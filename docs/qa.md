@@ -1,5 +1,55 @@
 # Idea-Wall Manual QA Checklist
 
+## Baseline + Guardrails (Day 1-2)
+1. Run `npm run dev`.
+2. Capture baseline screenshots with `npm run baseline:capture`.
+3. Confirm screenshot set exists in `docs/baselines/2026-02-11/`:
+   `home/login/signup/wall` for both desktop and mobile.
+4. Review short route flows in `docs/baselines/2026-02-11/README.md`.
+
+Expected:
+- Baseline packet is complete and can be reused for visual diff checks.
+- Route baselines are consistent across desktop and mobile captures.
+
+## Frontend Quality Guardrails
+1. Keyboard navigation:
+   - Tab through interactive controls on `/`, `/login`, `/signup`, `/wall`.
+   - Verify focus order is logical and no keyboard trap occurs in modal surfaces.
+2. Focus states:
+   - Verify visible focus treatment for primary controls, links, inputs, and modal close buttons.
+3. Mobile breakpoints:
+   - Validate `390x844` behavior for `/`, `/login`, `/signup`, `/wall`.
+   - Confirm no clipped controls or horizontal overflow.
+4. Contrast:
+   - Verify body text and interactive controls meet readable contrast on all primary surfaces.
+5. Panel overlap behavior (`/wall`):
+   - On compact width (`< 1120px`), open `Tools` and `Details`.
+   - Confirm overlays can be closed by backdrop and remain usable without blocking critical actions.
+
+Expected:
+- Keyboard-only users can complete core flows.
+- Focus visibility is clear and consistent.
+- Mobile layouts keep controls reachable without overlap regressions.
+- Contrast remains readable across all routes.
+- Panel layering does not trap interaction.
+
+## Wall Performance Targets (Guardrails)
+Measure in warm local sessions with DevTools performance markers where possible.
+
+1. Panel open latency:
+   - Target `< 120 ms` for `Tools`, `Details`, `Export`, and `Shortcuts`.
+2. Search palette open time (`Ctrl/Cmd + K` to focused input and rendered results):
+   - Target `< 100 ms`.
+3. Initial interactive time on `/wall` (navigation start to first successful note interaction):
+   - Target `< 2.5 s` (warm cache).
+4. Stretch targets with 300 notes loaded:
+   - Panel open latency `< 180 ms`.
+   - Search open time `< 140 ms`.
+
+Expected:
+- Wall command surfaces feel immediate during normal use.
+- Large walls remain responsive for key entry points.
+
 ## Milestone 0 - Scaffold and Routes
 1. Run `npm install`.
 2. Run `npm run dev`.
