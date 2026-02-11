@@ -276,6 +276,51 @@ const truncateNoteText = (text: string, note: Note) => {
   return `${text.slice(0, Math.max(1, maxChars - 1)).trimEnd()}…`;
 };
 
+const hexToRgb = (hex: string) => {
+  const normalized = hex.replace("#", "").trim();
+  if (normalized.length !== 6) {
+    return { r: 255, g: 255, b: 255 };
+  }
+  const r = Number.parseInt(normalized.slice(0, 2), 16);
+  const g = Number.parseInt(normalized.slice(2, 4), 16);
+  const b = Number.parseInt(normalized.slice(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+    return { r: 255, g: 255, b: 255 };
+  }
+  return { r, g, b };
+};
+
+const mixRgb = (a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }, ratio: number) => {
+  const r = Math.round(a.r * (1 - ratio) + b.r * ratio);
+  const g = Math.round(a.g * (1 - ratio) + b.g * ratio);
+  const b2 = Math.round(a.b * (1 - ratio) + b.b * ratio);
+  return { r, g, b: b2 };
+};
+
+const luminance = ({ r, g, b }: { r: number; g: number; b: number }) => {
+  const channel = (value: number) => {
+    const v = value / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+};
+
+const rgbToCss = ({ r, g, b }: { r: number; g: number; b: number }, alpha = 1) =>
+  alpha >= 1 ? `rgb(${r} ${g} ${b})` : `rgb(${r} ${g} ${b} / ${alpha})`;
+
+const noteTagChipPalette = (noteColor: string) => {
+  const base = hexToRgb(noteColor);
+  const bg = mixRgb(base, { r: 255, g: 255, b: 255 }, 0.62);
+  const border = mixRgb(base, { r: 15, g: 23, b: 42 }, 0.22);
+  const textIsDark = luminance(bg) > 0.46;
+  const text = textIsDark ? { r: 35, g: 39, b: 47 } : { r: 246, g: 248, b: 252 };
+  return {
+    bg: rgbToCss(bg, 0.96),
+    border: rgbToCss(border, 0.52),
+    text: rgbToCss(text),
+  };
+};
+
 type IconName =
   | "search"
   | "capture"
@@ -1811,6 +1856,7 @@ export const WallCanvas = () => {
       ? toScreenPoint(primarySelectedNote.x + primarySelectedNote.w / 2, primarySelectedNote.y - 16, camera)
       : undefined;
   const tagPreviewNote = hoveredNoteId ? renderSnapshot.notes[hoveredNoteId] : primarySelectedNote;
+  const tagPreviewPalette = tagPreviewNote ? noteTagChipPalette(tagPreviewNote.color) : undefined;
   const tagPreviewScreen =
     tagPreviewNote && tagPreviewNote.tags.length > 0
       ? toScreenPoint(tagPreviewNote.x + tagPreviewNote.w / 2, tagPreviewNote.y - 10, camera)
@@ -2464,6 +2510,7 @@ export const WallCanvas = () => {
               const visibleTagCount = note.w < 180 ? 1 : note.w < 240 ? 2 : 3;
               const noteTags = note.tags.slice(0, visibleTagCount);
               const overflowTags = Math.max(0, note.tags.length - noteTags.length);
+              const tagPalette = noteTagChipPalette(note.color);
 
               return (
                 <Group
@@ -2659,8 +2706,8 @@ export const WallCanvas = () => {
                         width={60}
                         height={16}
                         cornerRadius={8}
-                        fill="rgba(255,255,255,0.78)"
-                        stroke="rgba(15,23,42,0.16)"
+                        fill={tagPalette.bg}
+                        stroke={tagPalette.border}
                         strokeWidth={0.8}
                       />
                       <Text
@@ -2668,7 +2715,7 @@ export const WallCanvas = () => {
                         y={Math.max(12, note.h - 23)}
                         width={52}
                         fontSize={10}
-                        fill="#334155"
+                        fill={tagPalette.text}
                         text={`#${tag}`}
                         wrap="none"
                         ellipsis
@@ -2682,7 +2729,7 @@ export const WallCanvas = () => {
                       width={24}
                       align="right"
                       fontSize={10}
-                      fill="#334155"
+                      fill={tagPalette.text}
                       text={`+${overflowTags}`}
                     />
                   )}
@@ -2874,7 +2921,15 @@ export const WallCanvas = () => {
             <div className="max-w-[min(70vw,34rem)] overflow-x-auto whitespace-nowrap rounded-xl border border-zinc-200 bg-white/95 px-2 py-1.5 shadow-lg backdrop-blur-sm">
               <div className="flex items-center gap-1">
                 {tagPreviewNote.tags.map((tag) => (
-                  <span key={`hover-tag-${tag}`} className="rounded-full border border-zinc-300 bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-700">
+                  <span
+                    key={`hover-tag-${tag}`}
+                    className="rounded-full border px-2 py-0.5 text-[11px]"
+                    style={{
+                      backgroundColor: tagPreviewPalette?.bg,
+                      borderColor: tagPreviewPalette?.border,
+                      color: tagPreviewPalette?.text,
+                    }}
+                  >
                     #{tag}
                   </span>
                 ))}
