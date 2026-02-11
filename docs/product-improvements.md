@@ -24,7 +24,7 @@ Saved searches, smart filters (by zone/tag/date), and jump to stale/high-priorit
 8. Undo/redo history  (Done)
 Full command stack with keyboard shortcuts and recovery safety.
 
-9. Share/export upgrades  
+9. Share/export upgrades  (Done)
 PDF export, presentation mode, and one-click publish of a read-only wall snapshot.
 
 10. Optional collaboration mode  

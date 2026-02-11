@@ -8,10 +8,12 @@ type ExportModalProps = {
   open: boolean;
   onClose: () => void;
   onExportPng: (scope: ExportScope, pixelRatio: number) => void;
+  onExportPdf: (scope: ExportScope) => void;
   onExportMarkdown: () => void;
+  onPublishSnapshot: () => void;
 };
 
-export const ExportModal = ({ open, onClose, onExportPng, onExportMarkdown }: ExportModalProps) => {
+export const ExportModal = ({ open, onClose, onExportPng, onExportPdf, onExportMarkdown, onPublishSnapshot }: ExportModalProps) => {
   const [scope, setScope] = useState<ExportScope>("view");
   const [pixelRatio, setPixelRatio] = useState(2);
 
@@ -72,10 +74,24 @@ export const ExportModal = ({ open, onClose, onExportPng, onExportMarkdown }: Ex
           </button>
           <button
             type="button"
+            onClick={() => onExportPdf(scope)}
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800"
+          >
+            Export PDF
+          </button>
+          <button
+            type="button"
             onClick={onExportMarkdown}
             className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800"
           >
             Export Markdown
+          </button>
+          <button
+            type="button"
+            onClick={onPublishSnapshot}
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800"
+          >
+            Publish Read-Only Link
           </button>
           <button
             type="button"

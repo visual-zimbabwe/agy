@@ -180,6 +180,20 @@ Expected:
 - Calendar heatmap mirrors GitHub-style day grid and supports day-based timeline jump.
 - Timeline mode is read-only for wall mutations.
 
+## Share and Export Upgrades
+1. Open Export modal and export PDF for each scope (`Current view`, `Whole wall`, `Selected zone`, `Selected notes`).
+2. Verify downloaded PDF files render notes/links/zones correctly.
+3. Toggle presentation mode using `P`.
+4. Use arrow keys (or Prev/Next controls) to move between notes in presentation mode.
+5. Exit presentation mode and verify normal editing resumes.
+6. In Export modal, click `Publish Read-Only Link`.
+7. Open the copied link in a new tab and verify the wall is read-only and displays snapshot state.
+
+Expected:
+- PDF export works for all scopes.
+- Presentation mode supports focused note-by-note walkthrough.
+- Published snapshot link opens a read-only wall state without mutation controls.
+
 ## Keyboard Accessibility Spot Check
 1. Press `N` for new note.
 2. Press `Ctrl/Cmd + K` for search.

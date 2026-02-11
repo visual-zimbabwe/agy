@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Arrow, Group, Layer, Rect, Stage, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import Fuse from "fuse.js";
+import jsPDF from "jspdf";
 
 import { ExportModal, type ExportScope } from "@/components/ExportModal";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
@@ -34,6 +35,7 @@ import { LINK_TYPES, NOTE_DEFAULTS, TEMPLATE_TYPES, ZONE_DEFAULTS } from "@/feat
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
 import type { Link, LinkType, Note, PersistedWallState, TemplateType, Zone } from "@/features/wall/types";
+import { buildPublishedSnapshotUrl, decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
 import { clamp, computeContentBounds, detectClusters, notesToMarkdown } from "@/lib/wall-utils";
 
 type EditingState = {
@@ -316,6 +318,16 @@ export const WallCanvas = () => {
       return [];
     }
   });
+  const [presentationMode, setPresentationMode] = useState(false);
+  const [presentationIndex, setPresentationIndex] = useState(0);
+  const [publishedSnapshot] = useState<PersistedWallState | null>(() => {
+    const encoded = readSnapshotParamFromLocation();
+    if (!encoded) {
+      return null;
+    }
+    return decodeSnapshotFromUrl(encoded);
+  });
+  const publishedReadOnly = Boolean(publishedSnapshot);
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [boxSelectMode, setBoxSelectMode] = useState(false);
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
@@ -327,7 +339,7 @@ export const WallCanvas = () => {
     ? timelineEntries[Math.min(timelineIndex, Math.max(0, timelineEntries.length - 1))]
     : undefined;
   const activeTimelineSnapshot = activeTimelineEntry?.snapshot;
-  const renderSnapshot: PersistedWallState = activeTimelineSnapshot ?? {
+  const renderSnapshot: PersistedWallState = publishedSnapshot ?? activeTimelineSnapshot ?? {
     notes: notesMap,
     zones: zonesMap,
     zoneGroups: zoneGroupsMap,
@@ -339,7 +351,7 @@ export const WallCanvas = () => {
   const zones = useMemo(() => Object.values(renderSnapshot.zones), [renderSnapshot.zones]);
   const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
-  const isTimeLocked = timelineMode;
+  const isTimeLocked = timelineMode || publishedReadOnly || presentationMode;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -517,6 +529,33 @@ export const WallCanvas = () => {
         return;
       }
 
+      if (!ctrlOrMeta && key === "p") {
+        event.preventDefault();
+        setPresentationMode((previous) => {
+          const next = !previous;
+          if (next) {
+            setPresentationIndex(0);
+            setQuickCaptureOpen(false);
+            setSearchOpen(false);
+            setExportOpen(false);
+          }
+          return next;
+        });
+        return;
+      }
+
+      if (presentationMode && (event.key === "ArrowRight" || event.key === "ArrowDown")) {
+        event.preventDefault();
+        setPresentationIndex((previous) => Math.min(previous + 1, Math.max(0, notes.length - 1)));
+        return;
+      }
+
+      if (presentationMode && (event.key === "ArrowLeft" || event.key === "ArrowUp")) {
+        event.preventDefault();
+        setPresentationIndex((previous) => Math.max(previous - 1, 0));
+        return;
+      }
+
       if (!ctrlOrMeta && key === "q") {
         event.preventDefault();
         setQuickCaptureOpen((previous) => !previous);
@@ -669,6 +708,8 @@ export const WallCanvas = () => {
     camera,
     editing,
     isTimeLocked,
+    presentationMode,
+    notes.length,
     notesMap,
     notes,
     selectedNoteIds,
@@ -803,6 +844,30 @@ export const WallCanvas = () => {
     () => [...new Set(baseVisibleNotes.flatMap((note) => note.tags))].sort((a, b) => a.localeCompare(b)),
     [baseVisibleNotes],
   );
+  const presentationNotes = useMemo(
+    () => [...visibleNotes].sort((a, b) => a.updatedAt - b.updatedAt),
+    [visibleNotes],
+  );
+  useEffect(() => {
+    if (!presentationMode) {
+      return;
+    }
+    if (presentationNotes.length === 0) {
+      return;
+    }
+    const clamped = clamp(presentationIndex, 0, presentationNotes.length - 1);
+    const note = presentationNotes[clamped];
+    if (!note) {
+      return;
+    }
+    const zoom = 1.25;
+    setCamera({
+      zoom,
+      x: viewport.w / 2 - (note.x + note.w / 2) * zoom,
+      y: viewport.h / 2 - (note.y + note.h / 2) * zoom,
+    });
+  }, [presentationIndex, presentationMode, presentationNotes, setCamera, viewport.h, viewport.w]);
+
   const autoTagGroups = useMemo<TagGroup[]>(() => {
     const byTag = new Map<string, Note[]>();
     for (const note of visibleNotes) {
@@ -1214,6 +1279,56 @@ export const WallCanvas = () => {
     setCamera(previousCamera);
   };
 
+  const exportPdf = async (scope: ExportScope) => {
+    if (!stageRef.current) {
+      return;
+    }
+
+    const previousCamera = camera;
+    let dataUrl = "";
+
+    if (scope === "view") {
+      dataUrl = stageRef.current.toDataURL({ pixelRatio: 2 });
+    } else {
+      let bounds: Bounds | null = null;
+      if (scope === "whole") {
+        bounds = computeContentBounds(visibleNotes, visibleZones);
+      } else if (scope === "selection") {
+        const selected = visibleNotes.filter((note) => activeSelectedNoteIds.includes(note.id));
+        bounds = computeContentBounds(selected, []);
+      } else if (scope === "zone" && ui.selectedZoneId) {
+        const zone = renderSnapshot.zones[ui.selectedZoneId];
+        if (zone) {
+          bounds = { x: zone.x, y: zone.y, w: zone.w, h: zone.h };
+        }
+      }
+
+      if (!bounds) {
+        window.alert("No target content selected for export.");
+        return;
+      }
+      setCamera(fitBoundsCamera(bounds, viewport));
+      await waitForPaint();
+      dataUrl = stageRef.current.toDataURL({ pixelRatio: 2 });
+      setCamera(previousCamera);
+    }
+
+    const image = new Image();
+    image.src = dataUrl;
+    await new Promise<void>((resolve) => {
+      image.onload = () => resolve();
+    });
+
+    const orientation = image.width >= image.height ? "landscape" : "portrait";
+    const pdf = new jsPDF({
+      orientation,
+      unit: "pt",
+      format: [image.width, image.height],
+    });
+    pdf.addImage(dataUrl, "PNG", 0, 0, image.width, image.height);
+    pdf.save(`idea-wall-${scope}-${makeDownloadId()}.pdf`);
+  };
+
   const exportMarkdown = () => {
     const selectedZone = ui.selectedZoneId ? renderSnapshot.zones[ui.selectedZoneId] : undefined;
     const selectedNotes = activeSelectedNoteIds.length > 0
@@ -1227,6 +1342,20 @@ export const WallCanvas = () => {
     const content = notesToMarkdown(selectedNotes, zones);
     downloadTextFile(`idea-wall-${makeDownloadId()}.md`, content);
     setExportOpen(false);
+  };
+
+  const publishReadOnlySnapshot = async () => {
+    const snapshot = selectPersistedSnapshot(useWallStore.getState());
+    const url = buildPublishedSnapshotUrl(snapshot);
+    if (!url) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      window.alert("Read-only snapshot link copied to clipboard.");
+    } catch {
+      window.prompt("Copy read-only snapshot URL", url);
+    }
   };
 
   const selectedNote = ui.selectedNoteId ? renderSnapshot.notes[ui.selectedNoteId] : undefined;
@@ -1390,6 +1519,24 @@ export const WallCanvas = () => {
         >
           Heatmap (H)
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setPresentationMode((previous) => {
+              const next = !previous;
+              if (next) {
+                setPresentationIndex(0);
+                setQuickCaptureOpen(false);
+                setSearchOpen(false);
+                setExportOpen(false);
+              }
+              return next;
+            });
+          }}
+          className={`rounded-lg px-3 py-2 text-sm ${presentationMode ? "bg-indigo-600 text-white" : "border border-zinc-300 bg-white"}`}
+        >
+          Present (P)
+        </button>
 
         <div className="mx-1 h-6 w-px bg-zinc-300" />
 
@@ -1510,7 +1657,9 @@ export const WallCanvas = () => {
         </div>
 
         <div className="ml-auto text-xs text-zinc-600">
-          {activeSelectedNoteIds.length > 1
+          {publishedReadOnly
+            ? "Read-only published snapshot"
+            : activeSelectedNoteIds.length > 1
             ? `${activeSelectedNoteIds.length} notes selected`
             : ui.linkingFromNoteId
             ? `Link mode: pick a target note for ${renderSnapshot.notes[ui.linkingFromNoteId]?.text.split("\n")[0] || "selected note"}`
@@ -2124,7 +2273,8 @@ export const WallCanvas = () => {
           </div>
         )}
 
-        <aside className="pointer-events-auto absolute right-3 top-3 z-30 w-72 rounded-2xl border border-zinc-300/80 bg-white/92 p-3 shadow-xl backdrop-blur-sm">
+        {!presentationMode && (
+          <aside className="pointer-events-auto absolute right-3 top-3 z-30 w-72 rounded-2xl border border-zinc-300/80 bg-white/92 p-3 shadow-xl backdrop-blur-sm">
           <h3 className="text-sm font-semibold text-zinc-900">Recall</h3>
           <p className="mt-1 text-xs text-zinc-600">Filter notes by query, zone, tag, and recency. Save frequent searches.</p>
 
@@ -2354,7 +2504,8 @@ export const WallCanvas = () => {
               </button>
             ))}
           </div>
-        </aside>
+          </aside>
+        )}
 
         {showHeatmap && (
           <div className="pointer-events-auto absolute bottom-3 right-3 z-30">
@@ -2404,6 +2555,35 @@ export const WallCanvas = () => {
             />
           </div>
         )}
+
+        {presentationMode && (
+          <div className="pointer-events-auto absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-zinc-300 bg-white/95 px-3 py-2 shadow-xl backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => setPresentationIndex((previous) => Math.max(previous - 1, 0))}
+              className="rounded border border-zinc-300 px-2 py-1 text-xs"
+            >
+              Prev
+            </button>
+            <span className="text-xs text-zinc-700">
+              {Math.min(presentationIndex + 1, Math.max(1, presentationNotes.length))} / {Math.max(1, presentationNotes.length)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPresentationIndex((previous) => Math.min(previous + 1, Math.max(0, presentationNotes.length - 1)))}
+              className="rounded border border-zinc-300 px-2 py-1 text-xs"
+            >
+              Next
+            </button>
+            <button
+              type="button"
+              onClick={() => setPresentationMode(false)}
+              className="rounded border border-zinc-300 px-2 py-1 text-xs"
+            >
+              Exit
+            </button>
+          </div>
+        )}
       </div>
 
       <QuickCaptureBar
@@ -2421,7 +2601,13 @@ export const WallCanvas = () => {
         onExportPng={(scope, pixelRatio) => {
           void exportPng(scope, pixelRatio);
         }}
+        onExportPdf={(scope) => {
+          void exportPdf(scope);
+        }}
         onExportMarkdown={exportMarkdown}
+        onPublishSnapshot={() => {
+          void publishReadOnlySnapshot();
+        }}
       />
 
       <ShortcutsHelp open={ui.isShortcutsOpen} onClose={() => setShortcutsOpen(false)} />

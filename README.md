@@ -51,6 +51,10 @@ Idea-Wall is a local-first web app for spatial brainstorming. It provides an inf
   - Recently changed heatmap overlay
   - GitHub-style calendar heatmap (click a day to jump timeline)
   - Playback of wall evolution from persisted snapshots
+- Share/export upgrades:
+  - PDF export (whole/view/zone/selection)
+  - Presentation mode for focused read-only walkthroughs
+  - One-click publish of a read-only wall snapshot link
 - Export to PNG (whole wall, current view, selected zone)
 - Export notes to Markdown
 - Undo/redo history stack with keyboard shortcuts and safe bounded history
@@ -118,6 +122,7 @@ No backend is required for v1.
 - `Q` or `Ctrl/Cmd + J`: Toggle quick capture bar
 - `Ctrl/Cmd + Enter`: Capture quick-capture lines into notes
 - `Ctrl/Cmd + K`: Open search
+- `P`: Toggle presentation mode
 - `Ctrl/Cmd + L`: Start a directional link from selected note
 - `Ctrl/Cmd + A`: Select all visible notes
 - `Ctrl/Cmd + Z`: Undo
