@@ -1933,6 +1933,13 @@ export const WallCanvas = () => {
   const toolbarDivider = "mx-1 h-6 w-px bg-zinc-300";
   const toolbarLabel = "text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500";
   const toolbarSurface = "rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-md backdrop-blur";
+  const statusMessage = publishedReadOnly
+    ? "Read-only published snapshot"
+    : activeSelectedNoteIds.length > 1
+    ? `${activeSelectedNoteIds.length} notes selected`
+    : ui.linkingFromNoteId
+    ? `Link mode: pick a target note for ${renderSnapshot.notes[ui.linkingFromNoteId]?.text.split("\n")[0] || "selected note"}`
+    : "";
   const quickActionScreen =
     primarySelectedNote && !isTimeLocked
       ? toScreenPoint(primarySelectedNote.x + primarySelectedNote.w / 2, primarySelectedNote.y - 16, camera)
@@ -2215,15 +2222,11 @@ export const WallCanvas = () => {
           </div>
         )}
 
-        <div className="rounded-xl border border-zinc-200 bg-white/85 px-3 py-1.5 text-xs text-zinc-600 shadow-sm">
-          {publishedReadOnly
-            ? "Read-only published snapshot"
-            : activeSelectedNoteIds.length > 1
-            ? `${activeSelectedNoteIds.length} notes selected`
-            : ui.linkingFromNoteId
-            ? `Link mode: pick a target note for ${renderSnapshot.notes[ui.linkingFromNoteId]?.text.split("\n")[0] || "selected note"}`
-            : ""}
-        </div>
+        {statusMessage && (
+          <div className="rounded-xl border border-zinc-200 bg-white/85 px-3 py-1.5 text-xs text-zinc-600 shadow-sm">
+            {statusMessage}
+          </div>
+        )}
       </header>
 
       <div
