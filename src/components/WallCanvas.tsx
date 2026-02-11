@@ -64,7 +64,7 @@ type SavedRecallSearch = {
   tag?: string;
   dateFilter: RecallDateFilter;
 };
-type LayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar";
+type LayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags";
 type LayoutPreferences = Record<LayoutPreferenceKey, boolean>;
 type DetailsSectionKey = "history" | "recall" | "zoneGroups" | "tagGroups";
 type DetailsSectionState = Record<DetailsSectionKey, boolean>;
@@ -616,21 +616,22 @@ export const WallCanvas = () => {
   });
   const [layoutPrefs, setLayoutPrefs] = useState<LayoutPreferences>(() => {
     if (typeof window === "undefined") {
-      return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true };
+      return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true, showNoteTags: false };
     }
     try {
       const raw = window.localStorage.getItem(layoutPrefsStorageKey);
       if (!raw) {
-        return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true };
+        return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true, showNoteTags: false };
       }
       const parsed = JSON.parse(raw) as Partial<LayoutPreferences>;
       return {
         showToolsPanel: parsed.showToolsPanel ?? true,
         showDetailsPanel: parsed.showDetailsPanel ?? true,
         showContextBar: parsed.showContextBar ?? true,
+        showNoteTags: parsed.showNoteTags ?? false,
       };
     } catch {
-      return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true };
+      return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true, showNoteTags: false };
     }
   });
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
@@ -2042,6 +2043,15 @@ export const WallCanvas = () => {
               />
               <span>Context Bar</span>
             </label>
+            <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+              <input
+                type="checkbox"
+                checked={layoutPrefs.showNoteTags}
+                onChange={(event) => setLayoutPreference("showNoteTags", event.target.checked)}
+                className="h-3.5 w-3.5 accent-zinc-900"
+              />
+              <span>Tags on Notes</span>
+            </label>
           </div>
         )}
 
@@ -2698,31 +2708,32 @@ export const WallCanvas = () => {
                       setEditing({ id: note.id, text: note.text });
                     }}
                   />
-                  {noteTags.map((tag, index) => (
-                    <Group key={`${note.id}-tag-${tag}`}>
-                      <Rect
-                        x={12 + index * 64}
-                        y={Math.max(10, note.h - 25)}
-                        width={60}
-                        height={16}
-                        cornerRadius={8}
-                        fill={tagPalette.bg}
-                        stroke={tagPalette.border}
-                        strokeWidth={0.8}
-                      />
-                      <Text
-                        x={16 + index * 64}
-                        y={Math.max(12, note.h - 23)}
-                        width={52}
-                        fontSize={10}
-                        fill={tagPalette.text}
-                        text={`#${tag}`}
-                        wrap="none"
-                        ellipsis
-                      />
-                    </Group>
-                  ))}
-                  {overflowTags > 0 && (
+                  {layoutPrefs.showNoteTags &&
+                    noteTags.map((tag, index) => (
+                      <Group key={`${note.id}-tag-${tag}`}>
+                        <Rect
+                          x={12 + index * 64}
+                          y={Math.max(10, note.h - 25)}
+                          width={60}
+                          height={16}
+                          cornerRadius={8}
+                          fill={tagPalette.bg}
+                          stroke={tagPalette.border}
+                          strokeWidth={0.8}
+                        />
+                        <Text
+                          x={16 + index * 64}
+                          y={Math.max(12, note.h - 23)}
+                          width={52}
+                          fontSize={10}
+                          fill={tagPalette.text}
+                          text={`#${tag}`}
+                          wrap="none"
+                          ellipsis
+                        />
+                      </Group>
+                    ))}
+                  {layoutPrefs.showNoteTags && overflowTags > 0 && (
                     <Text
                       x={Math.max(12, note.w - 36)}
                       y={Math.max(12, note.h - 23)}
