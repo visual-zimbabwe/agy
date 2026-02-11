@@ -275,6 +275,11 @@ const truncateNoteText = (text: string, note: Note) => {
   return `${text.slice(0, Math.max(1, maxChars - 1)).trimEnd()}…`;
 };
 
+const parseInlineTags = (raw: string) =>
+  [...raw.matchAll(/#([a-zA-Z0-9_-]+)/g)]
+    .map((match) => match[1].toLowerCase())
+    .filter(Boolean);
+
 type IconName =
   | "search"
   | "capture"
@@ -759,11 +764,17 @@ export const WallCanvas = () => {
     }
 
     const timer = setTimeout(() => {
-      updateNote(editing.id, { text: editing.text });
+      const current = renderSnapshot.notes[editing.id];
+      if (!current) {
+        return;
+      }
+      const parsedInlineTags = parseInlineTags(editing.text);
+      const mergedTags = [...new Set([...current.tags, ...parsedInlineTags])];
+      updateNote(editing.id, { text: editing.text, tags: mergedTags });
     }, 280);
 
     return () => clearTimeout(timer);
-  }, [editing]);
+  }, [editing, renderSnapshot.notes]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -2866,7 +2877,12 @@ export const WallCanvas = () => {
             value={editing.text}
             onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
             onBlur={() => {
-              updateNote(editing.id, { text: editing.text });
+              const current = renderSnapshot.notes[editing.id];
+              if (current) {
+                const parsedInlineTags = parseInlineTags(editing.text);
+                const mergedTags = [...new Set([...current.tags, ...parsedInlineTags])];
+                updateNote(editing.id, { text: editing.text, tags: mergedTags });
+              }
               setEditing(null);
             }}
             className="absolute resize-none rounded-xl border border-zinc-700/40 bg-white/95 p-3 text-[16px] leading-6 shadow-xl outline-none"

@@ -260,3 +260,15 @@ Expected:
 - Axis lock and alt-drag duplication work consistently.
 - Tags render as compact chips with overflow handling.
 - Hover/selected/dragging visual states are clearly distinct.
+
+## Tag Parsing Parity - Direct Edit vs Quick Capture
+1. Create a new note and type text containing inline hashtags (for example: `Draft launch plan #release #q2`) directly in note edit mode.
+2. Blur or commit the edit.
+3. Select the note and verify tags appear in selection tag chips/details.
+4. Repeat by editing an existing note and adding an additional `#tag`.
+5. Open quick capture and create a note with inline `#tags` for comparison.
+
+Expected:
+- Inline hashtags typed directly inside note text are recognized and added to `note.tags`.
+- Quick capture and direct note editing produce consistent tag parsing behavior.
+- Existing manual tags are preserved while new inline tags are appended (deduplicated).
