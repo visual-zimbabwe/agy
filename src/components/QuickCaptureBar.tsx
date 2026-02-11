@@ -18,6 +18,7 @@ type QuickCaptureBarProps = {
 type RecognitionResult = {
   0: { transcript: string };
   isFinal: boolean;
+  item?: (index: number) => { transcript: string } | null;
 };
 
 type RecognitionEventLike = {
@@ -87,6 +88,26 @@ const getRecognitionCtor = (): SpeechRecognitionCtor | null => {
     ).webkitSpeechRecognition;
 
   return ctor ?? null;
+};
+
+const getResultAt = (results: ArrayLike<RecognitionResult>, index: number): RecognitionResult | null => {
+  const indexed = results[index];
+  if (indexed) {
+    return indexed;
+  }
+  const maybeItem = (results as ArrayLike<RecognitionResult> & { item?: (i: number) => RecognitionResult | null }).item;
+  if (typeof maybeItem === "function") {
+    return maybeItem(index);
+  }
+  return null;
+};
+
+const getTranscriptFromResult = (result: RecognitionResult | null): string => {
+  if (!result) {
+    return "";
+  }
+  const firstAlternative = result[0] ?? result.item?.(0) ?? null;
+  return (firstAlternative?.transcript ?? "").trim();
 };
 
 export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCaptureBarProps) => {
@@ -180,11 +201,15 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       let appended = "";
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        const result = event.results[i];
+        const result = getResultAt(event.results, i);
+        const transcript = getTranscriptFromResult(result);
+        if (!transcript) {
+          continue;
+        }
         if (result?.isFinal) {
-          appended += `${result[0].transcript.trim()}\n`;
+          appended += `${transcript}\n`;
         } else {
-          interim += `${result[0].transcript.trim()} `;
+          interim += `${transcript} `;
         }
       }
       const nextInterim = interim.trim();
