@@ -1,7 +1,7 @@
 "use client";
 
 import { type FocusEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Arrow, Group, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
+import { Arrow, Group, Layer, Line, Rect, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import Fuse from "fuse.js";
 import jsPDF from "jspdf";
@@ -16,6 +16,7 @@ import { WallDetailsPanel } from "@/components/wall/WallDetailsPanel";
 import { WallDetailsContent } from "@/components/wall/WallDetailsContent";
 import type { DetailsSectionKey, DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
+import { WallStage } from "@/components/wall/WallStage";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { WallToolbar } from "@/components/wall/WallToolbar";
 import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
@@ -2262,117 +2263,25 @@ export const WallCanvas = () => {
           />
         )}
 
-        <Stage
-          ref={(node) => {
-            stageRef.current = node;
-          }}
-          width={viewport.w}
-          height={viewport.h}
-          x={camera.x}
-          y={camera.y}
-          scaleX={camera.zoom}
-          scaleY={camera.zoom}
-          draggable={isSpaceDown || isMiddleDragging || (isLeftCanvasDragging && !boxSelectMode)}
-          onMouseDown={(event) => {
-            const stage = event.target.getStage();
-            if (event.evt.button === 1) {
-              setIsMiddleDragging(true);
-            }
-
-            const clickedOnEmpty = event.target === stage;
-            if (clickedOnEmpty) {
-              if (event.evt.button === 0) {
-                if (boxSelectMode && !isTimeLocked) {
-                  const pointer = stage?.getPointerPosition();
-                  if (pointer) {
-                    const start = toWorldPoint(pointer.x, pointer.y, camera);
-                    setSelectionBox({
-                      startX: start.x,
-                      startY: start.y,
-                      x: start.x,
-                      y: start.y,
-                      w: 0,
-                      h: 0,
-                    });
-                  }
-                } else {
-                  setIsLeftCanvasDragging(true);
-                  stage?.startDrag();
-                }
-              }
-              resetSelection();
-              clearNoteSelection();
-              setEditing(null);
-            }
-          }}
-          onMouseMove={(event) => {
-            if (!selectionBox) {
-              return;
-            }
-            const stage = event.target.getStage();
-            const pointer = stage?.getPointerPosition();
-            if (!pointer) {
-              return;
-            }
-            const current = toWorldPoint(pointer.x, pointer.y, camera);
-            setSelectionBox((previous) =>
-              previous
-                ? {
-                    ...previous,
-                    x: current.x,
-                    y: current.y,
-                    w: current.x - previous.startX,
-                    h: current.y - previous.startY,
-                  }
-                : previous,
-            );
-          }}
-          onDragEnd={(event) => {
-            const stage = event.target.getStage();
-            if (!stage || event.target !== stage) {
-              return;
-            }
-            setCamera({ ...camera, x: stage.x(), y: stage.y() });
-            setIsLeftCanvasDragging(false);
-            setIsMiddleDragging(false);
-          }}
-          onWheel={(event) => {
-            event.evt.preventDefault();
-
-            const stage = event.target.getStage();
-            if (!stage) {
-              return;
-            }
-
-            const pointer = stage.getPointerPosition();
-            if (!pointer) {
-              return;
-            }
-
-            if (event.evt.ctrlKey || event.evt.metaKey) {
-              const oldScale = camera.zoom;
-              const scaleBy = 1.06;
-              const direction = event.evt.deltaY > 0 ? -1 : 1;
-              const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-              const zoom = clamp(newScale, 0.2, 2.8);
-
-              const mousePoint = {
-                x: (pointer.x - camera.x) / oldScale,
-                y: (pointer.y - camera.y) / oldScale,
-              };
-
-              setCamera({
-                zoom,
-                x: pointer.x - mousePoint.x * zoom,
-                y: pointer.y - mousePoint.y * zoom,
-              });
-            } else {
-              setCamera({
-                ...camera,
-                x: camera.x - event.evt.deltaX,
-                y: camera.y - event.evt.deltaY,
-              });
-            }
+        <WallStage
+          stageRef={stageRef}
+          viewport={viewport}
+          camera={camera}
+          setCamera={setCamera}
+          isSpaceDown={isSpaceDown}
+          isMiddleDragging={isMiddleDragging}
+          isLeftCanvasDragging={isLeftCanvasDragging}
+          setIsMiddleDragging={setIsMiddleDragging}
+          setIsLeftCanvasDragging={setIsLeftCanvasDragging}
+          boxSelectMode={boxSelectMode}
+          isTimeLocked={isTimeLocked}
+          selectionBox={selectionBox}
+          setSelectionBox={setSelectionBox}
+          toWorldPoint={toWorldPoint}
+          onEmptyCanvasClick={() => {
+            resetSelection();
+            clearNoteSelection();
+            setEditing(null);
           }}
         >
           <Layer>
@@ -2949,7 +2858,7 @@ export const WallCanvas = () => {
               }}
             />
           </Layer>
-        </Stage>
+        </WallStage>
 
         {editing && renderSnapshot.notes[editing.id] && !isTimeLocked && (
           <div
