@@ -5,6 +5,7 @@ import { Arrow, Group, Layer, Rect, Stage, Text, Transformer } from "react-konva
 import type Konva from "konva";
 
 import { ExportModal, type ExportScope } from "@/components/ExportModal";
+import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteSwatches } from "@/components/NoteCard";
 import { SearchPalette } from "@/components/SearchPalette";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
@@ -792,6 +793,31 @@ export const WallCanvas = () => {
 
   const focusBounds = (bounds: Bounds) => {
     setCamera(fitBoundsCamera(bounds, viewport));
+  };
+
+  const jumpToTimelineDay = (day: string) => {
+    if (timelineEntries.length === 0) {
+      return;
+    }
+
+    const index = (() => {
+      for (let i = timelineEntries.length - 1; i >= 0; i -= 1) {
+        const candidate = new Date(timelineEntries[i].ts);
+        const key = `${candidate.getFullYear()}-${String(candidate.getMonth() + 1).padStart(2, "0")}-${String(
+          candidate.getDate(),
+        ).padStart(2, "0")}`;
+        if (key === day) {
+          return i;
+        }
+      }
+      return -1;
+    })();
+
+    if (index >= 0) {
+      setTimelineMode(true);
+      setIsTimelinePlaying(false);
+      setTimelineIndex(index);
+    }
   };
 
   const focusNote = (noteId: string) => {
@@ -1691,6 +1717,12 @@ export const WallCanvas = () => {
             ))}
           </div>
         </aside>
+
+        {showHeatmap && (
+          <div className="pointer-events-auto absolute left-3 top-3 z-30">
+            <CalendarHeatmap timestamps={timelineEntries.map((entry) => entry.ts)} onSelectDay={jumpToTimelineDay} />
+          </div>
+        )}
 
         {timelineMode && timelineEntries.length > 0 && (
           <div className="pointer-events-auto absolute bottom-3 left-1/2 z-30 w-[min(780px,95%)] -translate-x-1/2 rounded-2xl border border-zinc-300 bg-white/95 p-3 shadow-xl backdrop-blur-sm">

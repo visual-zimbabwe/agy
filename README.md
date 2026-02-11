@@ -37,6 +37,7 @@ Idea-Wall is a local-first web app for spatial brainstorming. It provides an inf
 - Time-based views:
   - Timeline mode with scrub/playback
   - Recently changed heatmap overlay
+  - GitHub-style calendar heatmap (click a day to jump timeline)
   - Playback of wall evolution from persisted snapshots
 - Export to PNG (whole wall, current view, selected zone)
 - Export notes to Markdown

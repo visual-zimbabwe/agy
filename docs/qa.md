@@ -127,12 +127,14 @@ Expected:
 3. Drag timeline slider backward and confirm wall state rewinds.
 4. Click `Play` and verify snapshots replay forward.
 5. Toggle heatmap (`H`) and confirm recently updated notes appear warmer/stronger.
-6. Exit timeline mode and verify editing is enabled again.
+6. Verify GitHub-style calendar heatmap appears and click a highlighted day to jump timeline.
+7. Exit timeline mode and verify editing is enabled again.
 
 Expected:
 - Timeline mode is navigable with slider and playback.
 - Playback reflects historical snapshots in order.
 - Heatmap visually emphasizes recently changed notes.
+- Calendar heatmap mirrors GitHub-style day grid and supports day-based timeline jump.
 - Timeline mode is read-only for wall mutations.
 
 ## Keyboard Accessibility Spot Check
