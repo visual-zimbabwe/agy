@@ -1,0 +1,294 @@
+import { GROUP_COLORS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS } from "@/features/wall/constants";
+import { useWallStore } from "@/features/wall/store";
+import type { Link, LinkType, Note, TemplateType, Zone, ZoneGroup } from "@/features/wall/types";
+
+const makeId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2, 11);
+};
+
+export const createNote = (x: number, y: number, color?: string) => {
+  const now = Date.now();
+  const chosenColor = color ?? useWallStore.getState().ui.lastColor ?? NOTE_COLORS[0];
+  const note: Note = {
+    id: makeId(),
+    text: "",
+    tags: [],
+    x,
+    y,
+    w: NOTE_DEFAULTS.width,
+    h: NOTE_DEFAULTS.height,
+    color: chosenColor,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const { upsertNote, selectNote, setLastColor } = useWallStore.getState();
+  upsertNote(note);
+  selectNote(note.id);
+  setLastColor(chosenColor);
+
+  return note.id;
+};
+
+export const updateNote = (noteId: string, patch: Partial<Note>) => {
+  useWallStore.getState().patchNote(noteId, patch);
+};
+
+export const moveNote = (noteId: string, x: number, y: number) => {
+  useWallStore.getState().patchNote(noteId, { x, y });
+};
+
+export const deleteNote = (noteId: string) => {
+  useWallStore.getState().removeNote(noteId);
+};
+
+export const duplicateNote = (noteId: string) => {
+  const { notes, upsertNote, selectNote } = useWallStore.getState();
+  const current = notes[noteId];
+  if (!current) {
+    return;
+  }
+
+  const now = Date.now();
+  const duplicated: Note = {
+    ...current,
+    id: makeId(),
+    x: current.x + 24,
+    y: current.y + 24,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  upsertNote(duplicated);
+  selectNote(duplicated.id);
+};
+
+export const createZone = (x: number, y: number, label = "New Zone") => {
+  const now = Date.now();
+  const zone: Zone = {
+    id: makeId(),
+    label,
+    groupId: undefined,
+    x,
+    y,
+    w: ZONE_DEFAULTS.width,
+    h: ZONE_DEFAULTS.height,
+    color: ZONE_COLORS[Math.floor(Math.random() * ZONE_COLORS.length)],
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const { upsertZone, selectZone } = useWallStore.getState();
+  upsertZone(zone);
+  selectZone(zone.id);
+
+  return zone.id;
+};
+
+export const updateZone = (zoneId: string, patch: Partial<Zone>) => {
+  useWallStore.getState().patchZone(zoneId, patch);
+};
+
+export const moveZone = (zoneId: string, x: number, y: number) => {
+  useWallStore.getState().patchZone(zoneId, { x, y });
+};
+
+export const deleteZone = (zoneId: string) => {
+  useWallStore.getState().removeZone(zoneId);
+};
+
+export const createZoneGroup = (label: string, zoneIds: string[] = []) => {
+  const now = Date.now();
+  const group: ZoneGroup = {
+    id: makeId(),
+    label: label.trim() || "Group",
+    color: GROUP_COLORS[Math.floor(Math.random() * GROUP_COLORS.length)],
+    zoneIds: [...new Set(zoneIds)],
+    collapsed: false,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const { upsertGroup, patchZone, selectGroup } = useWallStore.getState();
+  upsertGroup(group);
+  for (const zoneId of group.zoneIds) {
+    patchZone(zoneId, { groupId: group.id });
+  }
+  selectGroup(group.id);
+  return group.id;
+};
+
+export const assignZoneToGroup = (zoneId: string, groupId?: string) => {
+  const state = useWallStore.getState();
+  const zone = state.zones[zoneId];
+  if (!zone) {
+    return;
+  }
+
+  const previousGroupId = zone.groupId;
+  if (previousGroupId && state.zoneGroups[previousGroupId]) {
+    const prevGroup = state.zoneGroups[previousGroupId];
+    state.patchGroup(previousGroupId, {
+      zoneIds: prevGroup.zoneIds.filter((id) => id !== zoneId),
+    });
+  }
+
+  state.patchZone(zoneId, { groupId });
+
+  if (groupId && state.zoneGroups[groupId]) {
+    const nextGroup = state.zoneGroups[groupId];
+    if (!nextGroup.zoneIds.includes(zoneId)) {
+      state.patchGroup(groupId, { zoneIds: [...nextGroup.zoneIds, zoneId] });
+    }
+  }
+};
+
+export const toggleGroupCollapse = (groupId: string) => {
+  const state = useWallStore.getState();
+  const group = state.zoneGroups[groupId];
+  if (!group) {
+    return;
+  }
+  state.patchGroup(groupId, { collapsed: !group.collapsed });
+};
+
+export const deleteGroup = (groupId: string) => {
+  useWallStore.getState().removeGroup(groupId);
+};
+
+const linkLabelByType: Record<LinkType, string> = {
+  cause_effect: "Cause -> Effect",
+  dependency: "Dependency",
+  idea_execution: "Idea -> Execution",
+};
+
+export const createLink = (fromNoteId: string, toNoteId: string, type: LinkType) => {
+  if (fromNoteId === toNoteId) {
+    return;
+  }
+
+  const state = useWallStore.getState();
+  const hasDuplicate = Object.values(state.links).some(
+    (link) => link.fromNoteId === fromNoteId && link.toNoteId === toNoteId && link.type === type,
+  );
+  if (hasDuplicate) {
+    return;
+  }
+
+  const now = Date.now();
+  const link: Link = {
+    id: makeId(),
+    fromNoteId,
+    toNoteId,
+    type,
+    label: linkLabelByType[type],
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  state.upsertLink(link);
+  state.selectLink(link.id);
+};
+
+export const deleteLink = (linkId: string) => {
+  useWallStore.getState().removeLink(linkId);
+};
+
+export const updateLinkType = (linkId: string, type: LinkType) => {
+  useWallStore.getState().patchLink(linkId, { type, label: linkLabelByType[type] });
+};
+
+const templateDefinitions: Record<
+  TemplateType,
+  {
+    zones: Array<{ label: string; dx: number; dy: number; color?: string; w?: number; h?: number }>;
+    notes: Array<{ text: string; tags: string[]; dx: number; dy: number; color?: string }>;
+  }
+> = {
+  brainstorm: {
+    zones: [
+      { label: "Problem Space", dx: -520, dy: -160, color: "#FFF4CC" },
+      { label: "Wild Ideas", dx: -40, dy: -220, color: "#EDEBFF" },
+      { label: "Feasible Bets", dx: 430, dy: -80, color: "#E7F6F2" },
+    ],
+    notes: [
+      { text: "What if we removed onboarding friction?", tags: ["question", "users"], dx: -470, dy: -90 },
+      { text: "Auto-cluster by intent and urgency", tags: ["ai", "ux"], dx: 0, dy: -140 },
+      { text: "Ship a focused MVP experiment", tags: ["mvp", "experiment"], dx: 470, dy: -20 },
+    ],
+  },
+  retro: {
+    zones: [
+      { label: "Went Well", dx: -520, dy: -180, color: "#E7F6F2" },
+      { label: "Needs Work", dx: -40, dy: -180, color: "#FFE7EE" },
+      { label: "Action Items", dx: 430, dy: -180, color: "#FFF4CC" },
+    ],
+    notes: [
+      { text: "Team responded quickly to bugs", tags: ["wins"], dx: -470, dy: -90 },
+      { text: "Release checklist was unclear", tags: ["process"], dx: 10, dy: -90 },
+      { text: "Add pre-release QA gate", tags: ["action", "owner-needed"], dx: 470, dy: -90 },
+    ],
+  },
+  strategy_map: {
+    zones: [
+      { label: "Vision", dx: -560, dy: -200, color: "#EDEBFF" },
+      { label: "Initiatives", dx: -40, dy: -200, color: "#FFF4CC" },
+      { label: "Metrics", dx: 470, dy: -200, color: "#E7F6F2" },
+    ],
+    notes: [
+      { text: "Become the default idea capture tool", tags: ["north-star"], dx: -520, dy: -120 },
+      { text: "Launch smart-link workflows", tags: ["initiative", "q2"], dx: -20, dy: -120 },
+      { text: "Increase retained weekly creators by 20%", tags: ["metric", "okr"], dx: 500, dy: -120 },
+    ],
+  },
+};
+
+export const applyTemplate = (templateType: TemplateType, centerX: number, centerY: number) => {
+  const now = Date.now();
+  const def = templateDefinitions[templateType];
+  const state = useWallStore.getState();
+  const createdZoneIds: string[] = [];
+
+  for (const zoneDef of def.zones) {
+    const zone: Zone = {
+      id: makeId(),
+      label: zoneDef.label,
+      x: centerX + zoneDef.dx,
+      y: centerY + zoneDef.dy,
+      w: zoneDef.w ?? ZONE_DEFAULTS.width,
+      h: zoneDef.h ?? ZONE_DEFAULTS.height,
+      color: zoneDef.color ?? ZONE_COLORS[Math.floor(Math.random() * ZONE_COLORS.length)],
+      groupId: undefined,
+      createdAt: now,
+      updatedAt: now,
+    };
+    state.upsertZone(zone);
+    createdZoneIds.push(zone.id);
+  }
+
+  const groupId = createZoneGroup(
+    templateType === "brainstorm" ? "Brainstorm Set" : templateType === "retro" ? "Retro Set" : "Strategy Set",
+    createdZoneIds,
+  );
+
+  for (const noteDef of def.notes) {
+    const note: Note = {
+      id: makeId(),
+      text: noteDef.text,
+      tags: noteDef.tags,
+      x: centerX + noteDef.dx,
+      y: centerY + noteDef.dy,
+      w: NOTE_DEFAULTS.width,
+      h: NOTE_DEFAULTS.height,
+      color: noteDef.color ?? NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)],
+      createdAt: now,
+      updatedAt: now,
+    };
+    state.upsertNote(note);
+  }
+
+  state.selectGroup(groupId);
+};
