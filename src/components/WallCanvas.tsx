@@ -2222,7 +2222,7 @@ export const WallCanvas = () => {
             ? `${activeSelectedNoteIds.length} notes selected`
             : ui.linkingFromNoteId
             ? `Link mode: pick a target note for ${renderSnapshot.notes[ui.linkingFromNoteId]?.text.split("\n")[0] || "selected note"}`
-            : "Press `?` for shortcuts"}
+            : "Select a note to begin editing"}
         </div>
       </header>
 
