@@ -916,16 +916,14 @@ export const WallCanvas = () => {
 
       if (!ctrlOrMeta && key === "t") {
         event.preventDefault();
-        setTimelineMode((previous) => {
-          const next = !previous;
-          if (next && timelineEntries.length > 0) {
-            setTimelineIndex(timelineEntries.length - 1);
-          }
-          if (!next) {
-            setIsTimelinePlaying(false);
-          }
-          return next;
-        });
+        const next = !timelineMode;
+        setTimelineMode(next);
+        if (next && timelineEntries.length > 0) {
+          setTimelineIndex(timelineEntries.length - 1);
+        }
+        if (!next) {
+          setIsTimelinePlaying(false);
+        }
         return;
       }
 
@@ -937,16 +935,14 @@ export const WallCanvas = () => {
 
       if (!ctrlOrMeta && key === "p") {
         event.preventDefault();
-        setPresentationMode((previous) => {
-          const next = !previous;
-          if (next) {
-            setPresentationIndex(0);
-            setQuickCaptureOpen(false);
-            setSearchOpen(false);
-            setExportOpen(false);
-          }
-          return next;
-        });
+        const next = !presentationMode;
+        setPresentationMode(next);
+        if (next) {
+          setPresentationIndex(0);
+          setQuickCaptureOpen(false);
+          setSearchOpen(false);
+          setExportOpen(false);
+        }
         return;
       }
 
@@ -1147,6 +1143,7 @@ export const WallCanvas = () => {
     ui.selectedNoteId,
     ui.selectedZoneId,
     timelineEntries.length,
+    timelineMode,
     viewport.h,
     viewport.w,
   ]);
@@ -1979,29 +1976,25 @@ export const WallCanvas = () => {
   };
 
   const togglePresentationMode = () => {
-    setPresentationMode((previous) => {
-      const next = !previous;
-      if (next) {
-        setPresentationIndex(0);
-        setQuickCaptureOpen(false);
-        setSearchOpen(false);
-        setExportOpen(false);
-      }
-      return next;
-    });
+    const next = !presentationMode;
+    setPresentationMode(next);
+    if (next) {
+      setPresentationIndex(0);
+      setQuickCaptureOpen(false);
+      setSearchOpen(false);
+      setExportOpen(false);
+    }
   };
 
   const toggleTimelineMode = () => {
-    setTimelineMode((previous) => {
-      const next = !previous;
-      if (next && timelineEntries.length > 0) {
-        setTimelineIndex(timelineEntries.length - 1);
-      }
-      if (!next) {
-        setIsTimelinePlaying(false);
-      }
-      return next;
-    });
+    const next = !timelineMode;
+    setTimelineMode(next);
+    if (next && timelineEntries.length > 0) {
+      setTimelineIndex(timelineEntries.length - 1);
+    }
+    if (!next) {
+      setIsTimelinePlaying(false);
+    }
   };
 
   const selectedNote = ui.selectedNoteId ? renderSnapshot.notes[ui.selectedNoteId] : undefined;
