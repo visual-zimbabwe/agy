@@ -1,4 +1,4 @@
-# Idea Wall Multi-User Implementation Plan
+# Idea Wall Multi-User Implementation Plan (Supabase)
 
 ## Objective
 Add user accounts so people can sign in and see the same wall data across sessions and devices, with full create/edit/delete support.
@@ -10,247 +10,252 @@ Add user accounts so people can sign in and see the same wall data across sessio
 - No backend auth, no server database, no per-user isolation.
 
 ## Target Architecture
-- Auth: Auth.js (NextAuth) with email/password (Credentials) in phase 1, optional OAuth in phase 2.
-- Database: PostgreSQL (Neon/Supabase/RDS).
-- ORM: Prisma.
-- API: Next.js Route Handlers under `src/app/api/**`.
-- Sync model: local-first cache (Dexie) + authenticated cloud source of truth.
-- Ownership model: every wall-owned entity scoped by `userId` and `wallId`.
+- Platform: Supabase (PostgreSQL + Auth + Row Level Security).
+- Auth: Supabase Auth (email/password in v1, optional OAuth later).
+- DB access: `@supabase/supabase-js` + `@supabase/ssr`.
+- API: Next.js Route Handlers under `src/app/api/**` for sync orchestration/business rules.
+- Sync model: local-first cache (Dexie) + cloud source of truth per authenticated user.
+- Ownership model: every wall-owned entity scoped by `owner_id` and `wall_id`.
+
+## Supabase Project Setup
+1. Create Supabase project.
+2. Enable Email auth provider.
+3. Configure Auth URL settings:
+   - Site URL
+   - Redirect URLs for local and production
+4. Add env vars:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (server-only)
+5. Create SQL migration for tables, indexes, and RLS policies.
+
+Definition of done:
+- Supabase project reachable from local app.
+- Sign-in works with email/password.
 
 ## Phase Plan
 
-### Phase 0: Foundation and Infrastructure (1-2 days)
+### Phase 0: Foundation and Infra (1-2 days)
 1. Add dependencies:
-   - `next-auth`, `@auth/prisma-adapter`, `prisma`, `@prisma/client`, `bcryptjs`, `zod`.
-2. Create env config:
-   - `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`.
-3. Add Prisma schema and initial migration.
-4. Add shared server utilities:
-   - `src/lib/db.ts` (Prisma singleton)
-   - `src/lib/auth.ts` (Auth.js config/helpers)
+   - `@supabase/supabase-js`, `@supabase/ssr`, `zod`.
+2. Add Supabase clients:
+   - `src/lib/supabase/client.ts` (browser client)
+   - `src/lib/supabase/server.ts` (server client with cookies)
+   - `src/lib/supabase/admin.ts` (service role; only when absolutely needed)
+3. Add DB migration files under `supabase/migrations`.
+4. Add typed DB interfaces for app code.
 
 Definition of done:
-- `npx prisma migrate dev` succeeds.
-- App runs with DB connected.
+- Local app can read authenticated session.
+- Migrations apply successfully.
 
 ### Phase 1: Authentication (2-3 days)
-1. Implement Auth.js route in `src/app/api/auth/[...nextauth]/route.ts`.
-2. Add user registration endpoint:
-   - `POST src/app/api/register/route.ts`
-   - Hash password with `bcryptjs`.
-3. Add login/logout UI:
+1. Build auth pages:
    - `src/app/login/page.tsx`
    - `src/app/signup/page.tsx`
-   - Header actions for sign out and user identity.
-4. Add route protection middleware for `/wall`.
+2. Add auth actions/endpoints for sign up/sign in/sign out.
+3. Protect `/wall` route using session check in middleware or server components.
+4. Add account UI in header (email + sign out).
 
 Definition of done:
-- User can sign up, login, logout.
+- User can sign up, sign in, sign out.
 - Unauthenticated users are redirected from `/wall` to `/login`.
 
-### Phase 2: Cloud Data Model and APIs (3-4 days)
-1. Add multi-tenant schema (see section below).
-2. Build wall CRUD endpoints:
+### Phase 2: Cloud Data Model + RLS + APIs (3-4 days)
+1. Add multi-tenant tables (see SQL model below).
+2. Enable RLS on all user-owned tables.
+3. Add policies so authenticated users can only access rows where `owner_id = auth.uid()`.
+4. Build API endpoints:
    - `GET/POST /api/walls`
    - `GET/PATCH/DELETE /api/walls/[wallId]`
-3. Build batched sync endpoint for entities:
-   - `POST /api/walls/[wallId]/sync` (upserts/deletes for notes/zones/zoneGroups/links/camera)
-4. Enforce authorization in every handler using authenticated `userId`.
-5. Add Zod request validation and normalized API errors.
+   - `POST /api/walls/[wallId]/sync`
+5. Validate payloads with Zod and return normalized errors.
 
 Definition of done:
-- Authenticated user can create wall and persist note graph to Postgres.
-- User cannot read/write another user's wall.
+- Authenticated user can persist wall graph to Supabase Postgres.
+- Cross-account access is blocked by RLS and endpoint checks.
 
 ### Phase 3: Client Sync Integration (3-5 days)
 1. Keep Dexie as offline cache, but change boot sequence:
-   - On login: fetch cloud wall, merge into local, hydrate store.
-   - On local edits: debounce cloud sync (e.g., 1-2s) + keep local save.
-2. Add sync metadata fields to local records (`updatedAt`, `deletedAt`, `dirty`).
+   - On login: fetch cloud snapshot, merge into local, hydrate store.
+   - On local edits: debounce cloud sync (1-2s) while continuing local saves.
+2. Add sync metadata to records (`updatedAt`, `deletedAt`, `dirty`).
 3. Conflict policy v1:
-   - Last-write-wins by `updatedAt`.
-   - Server returns authoritative timestamps.
-4. Add manual actions:
-   - "Sync now"
-   - "Last synced at"
-   - "Sync error" banner + retry.
+   - Last-write-wins by server-normalized `updated_at`.
+4. Add sync UX:
+   - "Sync now" button
+   - "Last synced" indicator
+   - Error banner with retry.
 
 Definition of done:
 - User logs in on another device and sees same wall.
-- Offline edits sync when connection returns.
+- Offline edits sync after reconnect.
 
-### Phase 4: Data Migration and Backward Compatibility (1-2 days)
-1. One-time import flow for existing local-only users:
-   - On first login, detect local Dexie data and prompt import.
-   - Upload as a new wall.
-2. Preserve existing local behavior for signed-out users (optional guest mode).
+### Phase 4: Local Data Migration (1-2 days)
+1. On first login, detect local Dexie data and prompt import.
+2. Upload local snapshot into a new cloud wall.
+3. Mark migration complete to avoid duplicate imports.
 
 Definition of done:
-- Existing local users can move data to cloud without manual export/import files.
+- Existing local-only users can migrate without manual file export/import.
 
 ### Phase 5: Hardening and Production Readiness (2-3 days)
 1. Security:
-   - Rate limit auth and sync endpoints.
-   - Input validation everywhere.
-   - CSRF/session config review.
+   - Keep service role key out of client bundle.
+   - Rate limit auth-adjacent and sync APIs.
+   - Validate all payloads.
 2. Reliability:
-   - Structured logging and error monitoring.
-   - DB backup and restore procedure.
+   - Error tracking and structured logs.
+   - Backup and restore test using Supabase backup workflow.
 3. QA gates:
-   - Lint + build.
-   - Manual QA updates in `docs/qa.md` for auth + multi-device sync.
+   - `npm run lint`
+   - `npm run build`
+   - Update `docs/qa.md` with auth + sync scenarios.
 
 Definition of done:
-- Stable production deploy with runbook and monitored error budget.
+- Stable production deployment with runbook.
 
-## Proposed Prisma Schema (v1)
-```prisma
-model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  name          String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  walls         Wall[]
-}
+## Proposed SQL Data Model (Supabase Postgres v1)
+```sql
+create table public.walls (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  title text not null default 'My Wall',
+  camera_x double precision not null default 0,
+  camera_y double precision not null default 0,
+  camera_zoom double precision not null default 1,
+  last_color text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
-model Wall {
-  id            String   @id @default(cuid())
-  userId        String
-  title         String   @default("My Wall")
-  cameraX       Float    @default(0)
-  cameraY       Float    @default(0)
-  cameraZoom    Float    @default(1)
-  lastColor     String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+create table public.notes (
+  id text primary key,
+  wall_id uuid not null references public.walls(id) on delete cascade,
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  text text not null,
+  tags jsonb not null default '[]'::jsonb,
+  text_size text,
+  x double precision not null,
+  y double precision not null,
+  w double precision not null,
+  h double precision not null,
+  color text not null,
+  created_at timestamptz not null,
+  updated_at timestamptz not null,
+  deleted_at timestamptz
+);
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notes         Note[]
-  zones         Zone[]
-  zoneGroups    ZoneGroup[]
-  links         Link[]
+create table public.zones (
+  id text primary key,
+  wall_id uuid not null references public.walls(id) on delete cascade,
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  label text not null,
+  group_id text,
+  x double precision not null,
+  y double precision not null,
+  w double precision not null,
+  h double precision not null,
+  color text not null,
+  created_at timestamptz not null,
+  updated_at timestamptz not null,
+  deleted_at timestamptz
+);
 
-  @@index([userId, updatedAt])
-}
+create table public.zone_groups (
+  id text primary key,
+  wall_id uuid not null references public.walls(id) on delete cascade,
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  label text not null,
+  color text not null,
+  zone_ids jsonb not null default '[]'::jsonb,
+  collapsed boolean not null default false,
+  created_at timestamptz not null,
+  updated_at timestamptz not null,
+  deleted_at timestamptz
+);
 
-model Note {
-  id            String   @id
-  wallId        String
-  text          String
-  tags          Json
-  textSize      String?
-  x             Float
-  y             Float
-  w             Float
-  h             Float
-  color         String
-  createdAt     DateTime
-  updatedAt     DateTime
-  deletedAt     DateTime?
+create table public.links (
+  id text primary key,
+  wall_id uuid not null references public.walls(id) on delete cascade,
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  from_note_id text not null,
+  to_note_id text not null,
+  type text not null,
+  label text not null,
+  created_at timestamptz not null,
+  updated_at timestamptz not null,
+  deleted_at timestamptz
+);
 
-  wall          Wall     @relation(fields: [wallId], references: [id], onDelete: Cascade)
-  @@index([wallId, updatedAt])
-}
-
-model Zone {
-  id            String   @id
-  wallId        String
-  label         String
-  groupId       String?
-  x             Float
-  y             Float
-  w             Float
-  h             Float
-  color         String
-  createdAt     DateTime
-  updatedAt     DateTime
-  deletedAt     DateTime?
-
-  wall          Wall     @relation(fields: [wallId], references: [id], onDelete: Cascade)
-  @@index([wallId, updatedAt])
-}
-
-model ZoneGroup {
-  id            String   @id
-  wallId        String
-  label         String
-  color         String
-  zoneIds       Json
-  collapsed     Boolean
-  createdAt     DateTime
-  updatedAt     DateTime
-  deletedAt     DateTime?
-
-  wall          Wall     @relation(fields: [wallId], references: [id], onDelete: Cascade)
-  @@index([wallId, updatedAt])
-}
-
-model Link {
-  id            String   @id
-  wallId        String
-  fromNoteId    String
-  toNoteId      String
-  type          String
-  label         String
-  createdAt     DateTime
-  updatedAt     DateTime
-  deletedAt     DateTime?
-
-  wall          Wall     @relation(fields: [wallId], references: [id], onDelete: Cascade)
-  @@index([wallId, updatedAt])
-}
+create index idx_walls_owner_updated on public.walls(owner_id, updated_at desc);
+create index idx_notes_wall_updated on public.notes(wall_id, updated_at desc);
+create index idx_zones_wall_updated on public.zones(wall_id, updated_at desc);
+create index idx_zone_groups_wall_updated on public.zone_groups(wall_id, updated_at desc);
+create index idx_links_wall_updated on public.links(wall_id, updated_at desc);
 ```
 
+## RLS Policies (required)
+Apply to: `walls`, `notes`, `zones`, `zone_groups`, `links`.
+
+- Enable RLS on all tables.
+- Read policy: allow `select` when `owner_id = auth.uid()`.
+- Insert policy: allow `insert` when `owner_id = auth.uid()`.
+- Update policy: allow `update` when `owner_id = auth.uid()`.
+- Delete policy: allow `delete` when `owner_id = auth.uid()`.
+
+For child tables, optionally also enforce wall ownership join check.
+
 ## API Contract (v1)
-- `POST /api/register`
-  - Request: `{ email, password, name? }`
-  - Response: `{ userId }`
 - `GET /api/walls`
-  - Response: list of walls for logged-in user
+  - Response: list of walls for current session user.
 - `POST /api/walls`
   - Request: `{ title? }`
-  - Response: created wall
+  - Response: created wall.
 - `GET /api/walls/:wallId`
-  - Response: wall snapshot (camera + entities)
+  - Response: wall snapshot (camera + entities).
+- `PATCH /api/walls/:wallId`
+  - Request: wall metadata updates (title/camera/lastColor).
+- `DELETE /api/walls/:wallId`
+  - Soft-delete optional in v1, hard-delete acceptable for MVP.
 - `POST /api/walls/:wallId/sync`
   - Request: `{ notes, zones, zoneGroups, links, camera, lastColor, clientSyncedAt }`
-  - Response: `{ serverSnapshot, serverTime }`
+  - Response: `{ serverSnapshot, serverTime }`.
 
 ## Repository Changes (Expected)
 - New files:
-  - `prisma/schema.prisma`
-  - `src/lib/db.ts`
-  - `src/lib/auth.ts`
-  - `src/app/api/auth/[...nextauth]/route.ts`
-  - `src/app/api/register/route.ts`
+  - `supabase/migrations/*` (schema + RLS)
+  - `src/lib/supabase/client.ts`
+  - `src/lib/supabase/server.ts`
+  - `src/lib/supabase/admin.ts` (optional)
+  - `src/app/login/page.tsx`
+  - `src/app/signup/page.tsx`
   - `src/app/api/walls/route.ts`
   - `src/app/api/walls/[wallId]/route.ts`
   - `src/app/api/walls/[wallId]/sync/route.ts`
-  - `src/app/login/page.tsx`
-  - `src/app/signup/page.tsx`
-  - `middleware.ts`
+  - `middleware.ts` (if used for route guard)
 - Updated files:
-  - `src/components/WallCanvas.tsx` (hydrate/sync lifecycle)
+  - `src/components/WallCanvas.tsx` (cloud hydrate/sync lifecycle)
   - `src/features/wall/storage.ts` (local cache + dirty metadata)
   - `src/features/wall/types.ts` (sync metadata)
   - `docs/qa.md` (auth/sync test cases)
 
 ## QA Checklist Additions
-1. Signup, logout, login with same account.
-2. Create notes on Device A, verify visible on Device B after sync.
-3. Edit and delete notes, verify cross-device propagation.
-4. Offline edit, reconnect, verify sync reconciliation.
-5. Verify user isolation using two separate accounts.
+1. Sign up, sign out, sign in with same account.
+2. Create notes on Device A, verify on Device B after sync.
+3. Edit/delete notes and confirm cross-device propagation.
+4. Offline edit then reconnect; confirm successful reconciliation.
+5. Verify account isolation with two users.
+6. Verify RLS by attempting direct access to another user's wall row (must fail).
 
 ## Delivery Milestones
-1. Auth-only release (users can log in; still local wall).
+1. Auth and protected `/wall` release.
 2. Single-wall cloud sync release.
 3. Multi-wall + migration wizard release.
 4. Production hardening release.
 
 ## Risks and Decisions
-- Conflict resolution complexity grows quickly; v1 should stay last-write-wins.
-- Soft delete (`deletedAt`) is required for reliable sync.
-- If guest mode remains, clearly separate guest local wall from account wall to avoid accidental overwrite.
+- Conflict resolution complexity grows fast; v1 uses last-write-wins.
+- Soft delete (`deleted_at`) is strongly recommended for robust sync.
+- Guest mode must be isolated from account-backed walls to avoid accidental overwrite.
+- Service role key usage should be minimized and server-only.

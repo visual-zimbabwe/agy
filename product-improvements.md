@@ -1,6 +1,6 @@
 # Product Improvements
 
-1. Usability polish pass
+1. Usability polish pass (Done)
 - Add iconography to top bar/left rail and tighten spacing hierarchy.
 - Add tooltips for all controls with shortcut hints.
 - Improve mobile/tablet behavior (collapsible side panels).
@@ -19,7 +19,7 @@
 - Add E2E smoke tests for create/edit/drag/persist/search/export/linking.
 - Include a test for dependency-array stability in presentation/timeline toggles.
 
-5. Information architecture cleanup
+5. Information architecture cleanup (Done)
 - Move some right-panel sections into collapsible accordions.
 - Keep context bar minimal and show only truly selection-relevant actions.
 - Add “Customize layout” toggles to hide panels per user preference.
