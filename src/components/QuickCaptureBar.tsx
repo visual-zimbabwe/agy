@@ -149,9 +149,6 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
 
   useEffect(() => {
     if (!open && (keepListeningRef.current || isListening)) {
-      keepListeningRef.current = false;
-      stopRequestedRef.current = true;
-      terminalErrorRef.current = false;
       if (restartTimeoutRef.current) {
         clearTimeout(restartTimeoutRef.current);
         restartTimeoutRef.current = null;
