@@ -126,6 +126,8 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const keepListeningRef = useRef(false);
   const terminalErrorRef = useRef(false);
   const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openRef = useRef(open);
+  const disabledRef = useRef(Boolean(disabled));
 
   const recognitionSupported = useMemo(() => Boolean(getRecognitionCtor()), []);
   const pushVoiceDebug = (entry: string) => {
@@ -140,7 +142,15 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   };
 
   useEffect(() => {
-    if (!open && isListening) {
+    openRef.current = open;
+    disabledRef.current = Boolean(disabled);
+  }, [disabled, open]);
+
+  useEffect(() => {
+    if (open && !disabled) {
+      return;
+    }
+    if (keepListeningRef.current || isListening) {
       keepListeningRef.current = false;
       terminalErrorRef.current = false;
       if (restartTimeoutRef.current) {
@@ -149,20 +159,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       }
       recognitionRef.current?.stop();
     }
-  }, [isListening, open]);
-
-  useEffect(() => {
-    if (!disabled || !isListening) {
-      return;
-    }
-    keepListeningRef.current = false;
-    terminalErrorRef.current = false;
-    if (restartTimeoutRef.current) {
-      clearTimeout(restartTimeoutRef.current);
-      restartTimeoutRef.current = null;
-    }
-    recognitionRef.current?.stop();
-  }, [disabled, isListening]);
+  }, [disabled, isListening, open]);
 
   useEffect(() => {
     return () => {
@@ -334,14 +331,25 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       pushVoiceDebug(
         `end-state keep=${keepListeningRef.current} terminal=${terminalErrorRef.current} open=${open} disabled=${Boolean(disabled)}`
       );
-      if (keepListeningRef.current && !terminalErrorRef.current) {
+      if (
+        keepListeningRef.current &&
+        !terminalErrorRef.current &&
+        openRef.current &&
+        !disabledRef.current
+      ) {
         if (restartTimeoutRef.current) {
           clearTimeout(restartTimeoutRef.current);
           restartTimeoutRef.current = null;
         }
         pushVoiceDebug("schedule restart");
         restartTimeoutRef.current = setTimeout(() => {
-          if (recognitionRef.current !== recognition || !keepListeningRef.current || terminalErrorRef.current) {
+          if (
+            recognitionRef.current !== recognition ||
+            !keepListeningRef.current ||
+            terminalErrorRef.current ||
+            !openRef.current ||
+            disabledRef.current
+          ) {
             return;
           }
           try {
