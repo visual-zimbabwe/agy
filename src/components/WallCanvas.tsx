@@ -13,6 +13,7 @@ import { QuickCaptureBar } from "@/components/QuickCaptureBar";
 import { SearchPalette } from "@/components/SearchPalette";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { WallDetailsPanel } from "@/components/wall/WallDetailsPanel";
+import { type DetailsSectionKey, type DetailsSectionState, type RecallDateFilter, type SavedRecallSearch, WallDetailsContent } from "@/components/wall/WallDetailsContent";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { WallToolbar } from "@/components/wall/WallToolbar";
@@ -41,7 +42,7 @@ import { LINK_TYPES, NOTE_DEFAULTS, NOTE_TEXT_SIZES, TEMPLATE_TYPES, ZONE_DEFAUL
 import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
-import type { Link, LinkType, Note, PersistedWallState, TemplateType, Zone } from "@/features/wall/types";
+import type { Link, LinkType, Note, PersistedWallState, Zone } from "@/features/wall/types";
 import { buildPublishedSnapshotUrl, decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
 import { parseTaggedText } from "@/lib/tag-utils";
 import { clamp, computeContentBounds, detectClusters, notesToMarkdown } from "@/lib/wall-utils";
@@ -61,19 +62,8 @@ type LinkContextMenuState = {
 type Bounds = { x: number; y: number; w: number; h: number };
 type TagGroup = { tag: string; noteIds: string[]; bounds: Bounds };
 type SelectionBox = { startX: number; startY: number; x: number; y: number; w: number; h: number };
-type RecallDateFilter = "all" | "today" | "7d" | "30d";
-type SavedRecallSearch = {
-  id: string;
-  name: string;
-  query: string;
-  zoneId?: string;
-  tag?: string;
-  dateFilter: RecallDateFilter;
-};
 type LayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags";
 type LayoutPreferences = Record<LayoutPreferenceKey, boolean>;
-type DetailsSectionKey = "history" | "recall" | "zoneGroups" | "tagGroups";
-type DetailsSectionState = Record<DetailsSectionKey, boolean>;
 type GuideLineState = {
   vertical?: { x: number; y1: number; y2: number; distance?: number };
   horizontal?: { y: number; x1: number; x2: number; distance?: number };
@@ -3216,370 +3206,77 @@ export const WallCanvas = () => {
             rightPanelOpen={rightPanelOpen}
             onClose={() => setRightPanelOpen(false)}
           >
-
-            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Templates</p>
-              <div className="mt-2 flex items-center gap-2">
-                <select value={ui.templateType} onChange={(event) => setTemplateType(event.target.value as TemplateType)} className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs">
-                  {TEMPLATE_TYPES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <button type="button" onClick={applySelectedTemplate} disabled={isTimeLocked} className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-45">
-                  Apply
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Selection Tags</p>
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  value={tagInput}
-                  onChange={(event) => setTagInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      addTagToSelectedNote();
-                    }
-                  }}
-                  placeholder={activeSelectedNoteIds.length > 0 || ui.selectedNoteId ? "add-tag" : "select note first"}
-                  disabled={activeSelectedNoteIds.length === 0 && !ui.selectedNoteId ? true : isTimeLocked}
-                  className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
-                />
-                <button
-                  type="button"
-                  onClick={addTagToSelectedNote}
-                  disabled={activeSelectedNoteIds.length === 0 && !ui.selectedNoteId ? true : isTimeLocked}
-                  className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
-                >
-                  Add
-                </button>
-              </div>
-              <div className="mt-2 max-h-28 overflow-auto pr-1">
-                <div className="flex flex-wrap gap-1">
-                {displayedTags.length === 0 && <span className="text-[11px] text-zinc-500">No tags on current selection.</span>}
-                {displayedTags.map((tag) => (
-                  <button
-                    key={`detail-tag-${tag}`}
-                    type="button"
-                    onClick={() => removeTagFromSelectedNote(tag)}
-                    disabled={isTimeLocked}
-                    className="rounded-full border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700"
-                    title="Remove tag"
-                  >
-                    #{tag}
-                  </button>
-                ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
-              <button
-                type="button"
-                onClick={() => toggleDetailsSection("history")}
-                className="flex w-full items-center justify-between text-left"
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">History</p>
-                <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.history ? "Hide" : "Show"}</span>
-              </button>
-              {detailsSectionsOpen.history && (
-                <>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-zinc-700">
-                    <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Timeline entries: {timelineEntries.length}</div>
-                    <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Visible notes: {visibleNotes.length}</div>
-                    <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Undo depth: {historyUndoDepth}</div>
-                    <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Redo depth: {historyRedoDepth}</div>
-                    <div className="col-span-2 rounded-lg border border-zinc-200 bg-white px-2 py-1.5">
-                      Latest edit:{" "}
-                      {notes.length === 0
-                        ? "n/a"
-                        : new Date(Math.max(...notes.map((note) => note.updatedAt))).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <button type="button" onClick={jumpToStaleNote} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]">
-                      Jump Stale
-                    </button>
-                    <button type="button" onClick={jumpToHighPriorityNote} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]">
-                      Jump Priority
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const hasHistory = historyUndoDepth > 0 || historyRedoDepth > 0;
-                        if (!hasHistory) {
-                          return;
-                        }
-                        const ok = window.confirm("Clear undo/redo history? This cannot be undone.");
-                        if (ok) {
-                          clearHistory();
-                        }
-                      }}
-                      disabled={historyUndoDepth === 0 && historyRedoDepth === 0}
-                      className="rounded border border-rose-300 bg-white px-2 py-1 text-[11px] text-rose-700 disabled:opacity-50"
-                    >
-                      Clear History
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
-              <button
-                type="button"
-                onClick={() => toggleDetailsSection("recall")}
-                className="flex w-full items-center justify-between text-left"
-              >
-                <h3 className="text-sm font-semibold text-zinc-900">Recall</h3>
-                <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.recall ? "Hide" : "Show"}</span>
-              </button>
-              {detailsSectionsOpen.recall && (
-                <>
-                  <p className="mt-1 text-xs text-zinc-600">Filter notes by query, zone, tag, and recency. Save frequent searches.</p>
-                  <input
-                    value={recallQuery}
-                    onChange={(event) => setRecallQuery(event.target.value)}
-                    placeholder="Find text or #tag..."
-                    className="mt-2 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-                  />
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    <select
-                      value={recallZoneId}
-                      onChange={(event) => setRecallZoneId(event.target.value)}
-                      className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-                    >
-                      <option value="">All zones</option>
-                      {visibleZones.map((zone) => (
-                        <option key={`filter-zone-${zone.id}`} value={zone.id}>
-                          {zone.label}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={recallTag}
-                      onChange={(event) => setRecallTag(event.target.value)}
-                      className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-                    >
-                      <option value="">All tags</option>
-                      {availableRecallTags.map((tag) => (
-                        <option key={`filter-tag-${tag}`} value={tag}>
-                          #{tag}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={recallDateFilter}
-                      onChange={(event) => setRecallDateFilter(event.target.value as RecallDateFilter)}
-                      className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-                    >
-                      <option value="all">All dates</option>
-                      <option value="today">Today</option>
-                      <option value="7d">Last 7d</option>
-                      <option value="30d">Last 30d</option>
-                    </select>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={saveCurrentRecallSearch}
-                      className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
-                    >
-                      Save Search
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRecallQuery("");
-                        setRecallZoneId("");
-                        setRecallTag("");
-                        setRecallDateFilter("all");
-                      }}
-                      className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
-                    >
-                      Clear Filters
-                    </button>
-                  </div>
-                  {savedRecallSearches.length > 0 && (
-                    <div className="mt-2 max-h-24 space-y-1 overflow-auto pr-1">
-                      {savedRecallSearches.map((item) => (
-                        <div key={item.id} className="flex items-center gap-1 rounded border border-zinc-200 bg-white px-2 py-1">
-                          <button
-                            type="button"
-                            onClick={() => applySavedRecallSearch(item)}
-                            className="min-w-0 flex-1 truncate text-left text-[11px] text-zinc-800"
-                          >
-                            {item.name}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSavedRecallSearches((previous) => previous.filter((entry) => entry.id !== item.id))}
-                            className="text-[10px] text-red-700"
-                          >
-                            x
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
-              <button
-                type="button"
-                onClick={() => toggleDetailsSection("zoneGroups")}
-                className="flex w-full items-center justify-between text-left"
-              >
-                <h3 className="text-sm font-semibold text-zinc-900">Zone Groups</h3>
-                <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.zoneGroups ? "Hide" : "Show"}</span>
-              </button>
-              {detailsSectionsOpen.zoneGroups && (
-                <>
-                  <p className="mt-1 text-xs text-zinc-600">Collapse groups to hide grouped zones and their notes.</p>
-
-                  <div className="mt-2 flex items-center gap-2">
-                    <input
-                      value={groupLabelInput}
-                      onChange={(event) => setGroupLabelInput(event.target.value)}
-                      className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-                      placeholder="Group name"
-                    />
-                    <button
-                      type="button"
-                      onClick={createGroupFromSelectedZone}
-                      disabled={!ui.selectedZoneId || isTimeLocked}
-                      className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs disabled:opacity-45"
-                    >
-                      Group Zone
-                    </button>
-                  </div>
-
-                  {selectedZone && (
-                    <div className="mt-2">
-                      <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                        Selected Zone Group
-                      </label>
-                      <select
-                        value={selectedZone.groupId ?? ""}
-                        onChange={(event) => {
-                          if (isTimeLocked) {
-                            return;
-                          }
-                          assignZoneToGroup(selectedZone.id, event.target.value || undefined);
-                        }}
-                        disabled={isTimeLocked}
-                        className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-                      >
-                        <option value="">No group</option>
-                        {zoneGroups.map((group) => (
-                          <option key={group.id} value={group.id}>
-                            {group.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  <div className="mt-3 max-h-56 space-y-1 overflow-auto pr-1">
-                    {zoneGroups.length === 0 && <p className="text-xs text-zinc-500">No groups yet.</p>}
-                    {zoneGroups.map((group) => (
-                      <div
-                        key={group.id}
-                        className={`rounded-lg border px-2 py-2 ${
-                          selectedGroup?.id === group.id ? "border-zinc-700 bg-zinc-50" : "border-zinc-200 bg-white"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (isTimeLocked) {
-                                return;
-                              }
-                              selectGroup(group.id);
-                              toggleGroupCollapse(group.id);
-                            }}
-                            disabled={isTimeLocked}
-                            className="rounded-md border border-zinc-300 px-1.5 py-0.5 text-[10px]"
-                          >
-                            {group.collapsed ? "Expand" : "Collapse"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              clearNoteSelection();
-                              selectGroup(group.id);
-                            }}
-                            className="min-w-0 flex-1 truncate text-left text-xs font-medium text-zinc-800"
-                          >
-                            {group.label}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (isTimeLocked) {
-                                return;
-                              }
-                              deleteGroup(group.id);
-                            }}
-                            disabled={isTimeLocked}
-                            className="text-[10px] text-red-700"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                        <p className="mt-1 text-[11px] text-zinc-500">
-                          {group.zoneIds.length} zones {group.collapsed ? "(collapsed)" : "(expanded)"}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
-              <button
-                type="button"
-                onClick={() => toggleDetailsSection("tagGroups")}
-                className="flex w-full items-center justify-between text-left"
-              >
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Tag Groups (Auto)</h4>
-                <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.tagGroups ? "Hide" : "Show"}</span>
-              </button>
-              {detailsSectionsOpen.tagGroups && (
-                <>
-                  <div className="mb-1 mt-2 flex items-center justify-between">
-                    <span className="text-[11px] text-zinc-600">Auto-detected from shared tags.</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowAutoTagGroups((value) => !value)}
-                      className="rounded-md border border-zinc-300 px-2 py-0.5 text-[10px]"
-                    >
-                      {showAutoTagGroups ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                  {autoTagGroups.length === 0 && <p className="text-xs text-zinc-500">No auto groups yet (need 2+ notes per tag).</p>}
-                  {autoTagGroups.slice(0, 8).map((group) => (
-                    <button
-                      key={`panel-tag-${group.tag}`}
-                      type="button"
-                      onClick={() => focusBounds(group.bounds)}
-                      className="mt-1 flex w-full items-center justify-between rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-left text-xs hover:bg-zinc-50"
-                    >
-                      <span className="truncate text-zinc-800">#{group.tag}</span>
-                      <span className="text-zinc-500">{group.noteIds.length} notes</span>
-                    </button>
-                  ))}
-                </>
-              )}
-            </div>
+            <WallDetailsContent
+              templateType={ui.templateType}
+              templateOptions={TEMPLATE_TYPES}
+              isTimeLocked={isTimeLocked}
+              onTemplateTypeChange={(value) => setTemplateType(value)}
+              onApplyTemplate={applySelectedTemplate}
+              tagInput={tagInput}
+              onTagInputChange={setTagInput}
+              onAddTag={addTagToSelectedNote}
+              selectedNoteId={ui.selectedNoteId}
+              selectedNoteIdsCount={activeSelectedNoteIds.length}
+              displayedTags={displayedTags}
+              onRemoveTag={removeTagFromSelectedNote}
+              detailsSectionsOpen={detailsSectionsOpen}
+              onToggleDetailsSection={toggleDetailsSection}
+              timelineEntriesCount={timelineEntries.length}
+              visibleNotesCount={visibleNotes.length}
+              historyUndoDepth={historyUndoDepth}
+              historyRedoDepth={historyRedoDepth}
+              notes={notes}
+              onJumpStale={jumpToStaleNote}
+              onJumpPriority={jumpToHighPriorityNote}
+              onClearHistory={() => {
+                const hasHistory = historyUndoDepth > 0 || historyRedoDepth > 0;
+                if (!hasHistory) {
+                  return;
+                }
+                const ok = window.confirm("Clear undo/redo history? This cannot be undone.");
+                if (ok) {
+                  clearHistory();
+                }
+              }}
+              recallQuery={recallQuery}
+              onRecallQueryChange={setRecallQuery}
+              recallZoneId={recallZoneId}
+              onRecallZoneIdChange={setRecallZoneId}
+              recallTag={recallTag}
+              onRecallTagChange={setRecallTag}
+              recallDateFilter={recallDateFilter}
+              onRecallDateFilterChange={setRecallDateFilter}
+              visibleZones={visibleZones}
+              availableRecallTags={availableRecallTags}
+              onSaveRecallSearch={saveCurrentRecallSearch}
+              onClearRecallFilters={() => {
+                setRecallQuery("");
+                setRecallZoneId("");
+                setRecallTag("");
+                setRecallDateFilter("all");
+              }}
+              savedRecallSearches={savedRecallSearches}
+              onApplySavedRecallSearch={applySavedRecallSearch}
+              onDeleteSavedRecallSearch={(id) =>
+                setSavedRecallSearches((previous) => previous.filter((entry) => entry.id !== id))
+              }
+              groupLabelInput={groupLabelInput}
+              onGroupLabelInputChange={setGroupLabelInput}
+              selectedZone={selectedZone}
+              selectedGroup={selectedGroup}
+              selectedZoneId={ui.selectedZoneId}
+              zoneGroups={zoneGroups}
+              onCreateGroupFromSelectedZone={createGroupFromSelectedZone}
+              onAssignZoneToGroup={assignZoneToGroup}
+              onSelectGroup={selectGroup}
+              onToggleGroupCollapse={toggleGroupCollapse}
+              onDeleteGroup={deleteGroup}
+              onClearNoteSelection={clearNoteSelection}
+              showAutoTagGroups={showAutoTagGroups}
+              onToggleAutoTagGroups={() => setShowAutoTagGroups((value) => !value)}
+              autoTagGroups={autoTagGroups}
+              onFocusBounds={focusBounds}
+            />
           </WallDetailsPanel>
         )}
 
