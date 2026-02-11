@@ -93,6 +93,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const [text, setText] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [voiceMessage, setVoiceMessage] = useState<string | null>(null);
+  const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const recognitionSupported = useMemo(() => Boolean(getRecognitionCtor()), []);
@@ -165,17 +166,21 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
 
     const recognition = new Ctor();
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.lang = "en-US";
 
     recognition.onresult = (event: RecognitionEventLike) => {
       let appended = "";
+      let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const result = event.results[i];
         if (result?.isFinal) {
           appended += `${result[0].transcript.trim()}\n`;
+        } else {
+          interim += `${result[0].transcript.trim()} `;
         }
       }
+      setInterimTranscript(interim.trim());
       if (appended.trim()) {
         setText((previous) => `${previous}${previous ? "\n" : ""}${appended.trim()}`);
       }
@@ -193,10 +198,12 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
         "language-not-supported": "Selected language is not supported by speech recognition.",
       };
       setVoiceMessage(messageByCode[event.error] ?? `Voice recognition error: ${event.error}`);
+      setInterimTranscript("");
     };
 
     recognition.onend = () => {
       setIsListening(false);
+      setInterimTranscript("");
     };
 
     recognitionRef.current = recognition;
@@ -204,9 +211,11 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       recognition.start();
       setIsListening(true);
       setVoiceMessage("Listening... speak and pause to append lines.");
+      setInterimTranscript("");
     } catch {
       setIsListening(false);
       setVoiceMessage("Unable to start voice capture. Retry and confirm microphone permission.");
+      setInterimTranscript("");
     }
   };
 
@@ -272,6 +281,11 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
         <span className="ml-auto text-xs text-zinc-600">Ctrl/Cmd + Enter to capture</span>
       </div>
       {voiceMessage && <p className="mt-2 text-xs text-zinc-600">{voiceMessage}</p>}
+      {isListening && interimTranscript && (
+        <p className="mt-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-700">
+          Live: {interimTranscript}
+        </p>
+      )}
     </div>
   );
 };
