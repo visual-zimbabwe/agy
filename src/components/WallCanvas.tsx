@@ -588,7 +588,7 @@ export const WallCanvas = () => {
   const [linkMenu, setLinkMenu] = useState<LinkContextMenuState>({ open: false, x: 0, y: 0 });
   const [tagInput, setTagInput] = useState("");
   const [groupLabelInput, setGroupLabelInput] = useState("New Group");
-  const [showAutoTagGroups, setShowAutoTagGroups] = useState(true);
+  const [showAutoTagGroups, setShowAutoTagGroups] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
   const [timelineMode, setTimelineMode] = useState(false);
