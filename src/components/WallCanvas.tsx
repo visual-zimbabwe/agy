@@ -2665,6 +2665,7 @@ export const WallCanvas = () => {
                         fontSize={10}
                         fill="#334155"
                         text={`#${tag}`}
+                        wrap="none"
                         ellipsis
                       />
                     </Group>
