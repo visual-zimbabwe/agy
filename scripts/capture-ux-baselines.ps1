@@ -5,6 +5,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$resolvedOutDir = if ([System.IO.Path]::IsPathRooted($OutDir)) {
+  $OutDir
+} else {
+  Join-Path $projectRoot $OutDir
+}
 
 function Resolve-BrowserPath {
   $candidates = @(
@@ -42,7 +48,7 @@ function Wait-ForServer {
   throw "Timed out waiting for $Url"
 }
 
-New-Item -ItemType Directory -Force $OutDir | Out-Null
+New-Item -ItemType Directory -Force $resolvedOutDir | Out-Null
 
 $browser = Resolve-BrowserPath
 Wait-ForServer -Url "$BaseUrl/" -TimeoutSec $TimeoutSeconds
@@ -59,7 +65,7 @@ $targets = @(
 )
 
 foreach ($target in $targets) {
-  $outPath = Join-Path $OutDir $target.Name
+  $outPath = Join-Path $resolvedOutDir $target.Name
   & $browser `
     --headless=new `
     --disable-gpu `
@@ -71,4 +77,4 @@ foreach ($target in $targets) {
     $($target.Url) | Out-Null
 }
 
-Write-Host "Captured baseline screenshots in $OutDir"
+Write-Host "Captured baseline screenshots in $resolvedOutDir"

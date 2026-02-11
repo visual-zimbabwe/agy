@@ -48,6 +48,23 @@ Expected:
 - Mobile route behavior is intentional, readable, and touch-friendly.
 - Action hierarchy and state feedback are consistent across routes.
 
+## Phase 6 - Hardening Execution Record (2026-02-11)
+Executed checks:
+1. `npm run lint` -> pass
+2. `npm run check:regressions` -> pass
+3. `npm run build` -> pass (required sandbox escalation for Windows `spawn EPERM`)
+4. `npm run baseline:capture` -> pass after baseline script hardening in `scripts/capture-ux-baselines.ps1`
+
+Artifacts confirmed:
+1. `docs/baselines/2026-02-11/home-desktop.png`
+2. `docs/baselines/2026-02-11/login-desktop.png`
+3. `docs/baselines/2026-02-11/signup-desktop.png`
+4. `docs/baselines/2026-02-11/wall-desktop.png`
+5. `docs/baselines/2026-02-11/home-mobile.png`
+6. `docs/baselines/2026-02-11/login-mobile.png`
+7. `docs/baselines/2026-02-11/signup-mobile.png`
+8. `docs/baselines/2026-02-11/wall-mobile.png`
+
 ## Wall Performance Targets (Guardrails)
 Measure in warm local sessions with DevTools performance markers where possible.
 

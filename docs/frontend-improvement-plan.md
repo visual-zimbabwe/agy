@@ -40,7 +40,7 @@ Using `frontend-design`: the biggest frontend win is to separate visual system w
 - Make landing and auth feel like part of the same product as the canvas (currently they feel separate).
 - Ensure mobile behavior is intentional for each route, not just responsive by default.
 
-6. **Hardening + Documentation (Week 3)**
+6. **Hardening + Documentation (Week 3)** (Done)
 - Run `npm run lint`, `npm run build`, and full `docs/qa.md` checks.
 - Add frontend architecture notes (component boundaries and token usage) so new features don't regress into one-file growth.
 - Update `docs/product-improvements.md` with frontend milestones and completion criteria.
