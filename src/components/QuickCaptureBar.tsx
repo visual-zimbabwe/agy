@@ -312,6 +312,9 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       if (!keepListeningRef.current) {
         setIsListening(false);
       }
+      pushVoiceDebug(
+        `error-state keep=${keepListeningRef.current} terminal=${terminalErrorRef.current} listening=${isListening}`
+      );
       setVoiceMessage(messageByCode[event.error] ?? `Voice recognition error: ${event.error}`);
       setInterimTranscript("");
       interimTranscriptRef.current = "";
@@ -328,6 +331,9 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       }
       setInterimTranscript("");
       interimTranscriptRef.current = "";
+      pushVoiceDebug(
+        `end-state keep=${keepListeningRef.current} terminal=${terminalErrorRef.current} open=${open} disabled=${Boolean(disabled)}`
+      );
       if (keepListeningRef.current && !terminalErrorRef.current) {
         if (restartTimeoutRef.current) {
           clearTimeout(restartTimeoutRef.current);
