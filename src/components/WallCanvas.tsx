@@ -18,6 +18,7 @@ import { WallLinksZonesLayer } from "@/components/wall/WallLinksZonesLayer";
 import { WallNotesLayer } from "@/components/wall/WallNotesLayer";
 import { WallOverlaysLayer } from "@/components/wall/WallOverlaysLayer";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
+import { useWallCameraNavigation } from "@/components/wall/useWallCameraNavigation";
 import { useWallExport } from "@/components/wall/useWallExport";
 import { useWallSelection } from "@/components/wall/useWallSelection";
 import { WallStage } from "@/components/wall/WallStage";
@@ -1401,47 +1402,18 @@ export const WallCanvas = () => {
     syncPrimarySelection(createdIds);
   };
 
-  const resetView = () => {
-    const bounds = computeContentBounds(visibleNotes, visibleZones);
-    if (!bounds) {
-      setCamera({ x: 0, y: 0, zoom: 1 });
-      return;
-    }
-
-    const centerX = bounds.x + bounds.w / 2;
-    const centerY = bounds.y + bounds.h / 2;
-    setCamera({
-      zoom: 1,
-      x: viewport.w / 2 - centerX,
-      y: viewport.h / 2 - centerY,
-    });
-  };
-
-  const focusBounds = (bounds: Bounds) => {
-    setCamera(fitBoundsCamera(bounds, viewport));
-  };
-
-  const jumpToStaleNote = () => {
-    if (visibleNotes.length === 0) {
-      return;
-    }
-    const stale = [...visibleNotes].sort((a, b) => a.updatedAt - b.updatedAt)[0];
-    if (stale) {
-      focusNote(stale.id);
-    }
-  };
-
-  const jumpToHighPriorityNote = () => {
-    const priorityTags = new Set(["high", "priority", "urgent", "p0", "critical"]);
-    const candidates = visibleNotes.filter((note) => note.tags.some((tag) => priorityTags.has(tag.toLowerCase())));
-    if (candidates.length === 0) {
-      return;
-    }
-    const chosen = [...candidates].sort((a, b) => a.updatedAt - b.updatedAt)[0];
-    if (chosen) {
-      focusNote(chosen.id);
-    }
-  };
+  const { resetView, focusBounds, focusNote, jumpToStaleNote, jumpToHighPriorityNote } = useWallCameraNavigation({
+    camera,
+    viewport,
+    notesById: renderSnapshot.notes,
+    visibleNotes,
+    visibleZones,
+    setCamera,
+    setFlashNote,
+    syncPrimarySelection,
+    computeContentBounds,
+    fitBoundsCamera,
+  });
 
   const saveCurrentRecallSearch = () => {
     const activeCount = Number(Boolean(recallQuery)) + Number(Boolean(recallZoneId)) + Number(Boolean(recallTag)) + Number(recallDateFilter !== "all");
@@ -1468,22 +1440,6 @@ export const WallCanvas = () => {
     setRecallZoneId(item.zoneId ?? "");
     setRecallTag(item.tag ?? "");
     setRecallDateFilter(item.dateFilter);
-  };
-
-  const focusNote = (noteId: string) => {
-    const note = renderSnapshot.notes[noteId];
-    if (!note) {
-      return;
-    }
-
-    const zoom = clamp(Math.max(camera.zoom, 1), 0.2, 2.5);
-    setCamera({
-      zoom,
-      x: viewport.w / 2 - (note.x + note.w / 2) * zoom,
-      y: viewport.h / 2 - (note.y + note.h / 2) * zoom,
-    });
-    syncPrimarySelection([noteId]);
-    setFlashNote(noteId);
   };
 
   const { exportPng, exportPdf, exportMarkdown } = useWallExport({
