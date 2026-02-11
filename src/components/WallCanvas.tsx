@@ -292,6 +292,7 @@ export const WallCanvas = () => {
   const [tagInput, setTagInput] = useState("");
   const [groupLabelInput, setGroupLabelInput] = useState("New Group");
   const [showAutoTagGroups, setShowAutoTagGroups] = useState(true);
+  const [showAdvancedTools, setShowAdvancedTools] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
   const [timelineMode, setTimelineMode] = useState(false);
@@ -1368,310 +1369,240 @@ export const WallCanvas = () => {
           .reduce<string[]>((common, tags) => (common.length === 0 ? [...tags] : common.filter((tag) => tags.includes(tag))), [])
       : selectedNote?.tags ?? [];
   const toolbarBtn =
-    "rounded-lg border border-zinc-700/80 bg-zinc-800/85 px-3 py-2 text-sm font-medium text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-700/85 disabled:cursor-not-allowed disabled:opacity-40";
+    "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40";
   const toolbarBtnPrimary =
-    "rounded-lg border border-zinc-300/20 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40";
+    "rounded-lg border border-zinc-900 bg-zinc-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40";
   const toolbarBtnActive =
-    "rounded-lg border border-sky-400/70 bg-sky-500/25 px-3 py-2 text-sm font-medium text-sky-100 transition hover:bg-sky-500/35 disabled:cursor-not-allowed disabled:opacity-40";
+    "rounded-lg border border-sky-400 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40";
   const toolbarBtnAccent =
-    "rounded-lg border border-indigo-300/50 bg-indigo-500/30 px-3 py-2 text-sm font-medium text-indigo-100 transition hover:bg-indigo-500/40 disabled:cursor-not-allowed disabled:opacity-40";
+    "rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40";
   const toolbarBtnCompact =
-    "rounded-md border border-zinc-700/80 bg-zinc-800/85 px-2 py-1 text-xs font-medium text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-700/85 disabled:opacity-40";
+    "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-40";
   const toolbarSelect =
-    "rounded-lg border border-zinc-700/80 bg-zinc-800/90 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-sky-400/80";
-  const toolbarDivider = "mx-1 h-7 w-px bg-zinc-700/80";
-  const toolbarLabel = "text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400";
+    "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-sky-400";
+  const toolbarDivider = "mx-1 h-6 w-px bg-zinc-300";
+  const toolbarLabel = "text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500";
   const toolbarInput =
-    "w-28 rounded-lg border border-zinc-700/80 bg-zinc-800/90 px-2 py-1.5 text-xs text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-sky-400/80 disabled:opacity-40";
-  const toolbarTagChip = "rounded-full border border-zinc-700 bg-zinc-800 px-2 py-1 text-[11px] text-zinc-200 transition hover:bg-zinc-700";
+    "w-32 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-700 placeholder:text-zinc-400 outline-none transition focus:border-sky-400 disabled:opacity-40";
+  const toolbarTagChip = "rounded-full border border-zinc-300 bg-zinc-100 px-2 py-1 text-[11px] text-zinc-700 transition hover:bg-zinc-200";
+  const toolbarSurface = "rounded-2xl border border-zinc-200 bg-white/95 p-2 shadow-lg backdrop-blur";
 
   return (
     <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
-      <header className="mx-3 mt-3 flex flex-wrap items-center gap-1 rounded-2xl border border-zinc-700/80 bg-zinc-900/92 p-2 text-zinc-100 shadow-xl backdrop-blur-xl md:mx-4">
-        <button
-          type="button"
-          onClick={makeNoteAtViewportCenter}
-          disabled={isTimeLocked}
-          className={toolbarBtnPrimary}
-        >
-          New Note (N)
-        </button>
-        <button
-          type="button"
-          onClick={makeZoneAtViewportCenter}
-          disabled={isTimeLocked}
-          className={toolbarBtn}
-        >
-          New Zone
-        </button>
-        <button
-          type="button"
-          onClick={() => setQuickCaptureOpen((previous) => !previous)}
-          disabled={isTimeLocked}
-          className={quickCaptureOpen ? toolbarBtnActive : toolbarBtn}
-        >
-          Quick Capture (Q)
-        </button>
-        <button
-          type="button"
-          onClick={() => setSearchOpen(true)}
-          className={toolbarBtn}
-        >
-          Search (Ctrl+K)
-        </button>
-        <button
-          type="button"
-          onClick={() => setExportOpen(true)}
-          className={toolbarBtn}
-        >
-          Export
-        </button>
-        <button
-          type="button"
-          onClick={resetView}
-          className={toolbarBtn}
-        >
-          Reset View
-        </button>
-        <button
-          type="button"
-          onClick={undo}
-          disabled={!canUndo || isTimeLocked}
-          className={toolbarBtn}
-        >
-          Undo (Ctrl+Z)
-        </button>
-        <button
-          type="button"
-          onClick={redo}
-          disabled={!canRedo || isTimeLocked}
-          className={toolbarBtn}
-        >
-          Redo (Ctrl+Shift+Z)
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowClusters(!ui.showClusters)}
-          className={ui.showClusters ? toolbarBtnActive : toolbarBtn}
-        >
-          Detect Clusters
-        </button>
-        <button
-          type="button"
-          onClick={() => setBoxSelectMode((value) => !value)}
-          className={boxSelectMode ? toolbarBtnActive : toolbarBtn}
-        >
-          Box Select
-        </button>
-        <select
-          value={ui.linkType}
-          onChange={(event) => setLinkType(event.target.value as LinkType)}
-          className={toolbarSelect}
-        >
-          {LINK_TYPES.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() => {
-            if (isTimeLocked) {
-              return;
-            }
-            if (!ui.selectedNoteId) {
-              return;
-            }
-            setLinkingFromNote(ui.selectedNoteId);
-          }}
-          disabled={!ui.selectedNoteId || isTimeLocked}
-          className={toolbarBtn}
-        >
-          {ui.linkingFromNoteId ? "Select target note..." : "Start Link (Ctrl+L)"}
-        </button>
-        <select
-          value={ui.templateType}
-          onChange={(event) => setTemplateType(event.target.value as TemplateType)}
-          className={toolbarSelect}
-        >
-          {TEMPLATE_TYPES.map((option) => (
-            <option key={option.value} value={option.value}>
-              Template: {option.label}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={applySelectedTemplate}
-          disabled={isTimeLocked}
-          className={toolbarBtn}
-        >
-          Apply Template
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setTimelineMode((previous) => {
-              const next = !previous;
-              if (next && timelineEntries.length > 0) {
-                setTimelineIndex(timelineEntries.length - 1);
-              }
-              if (!next) {
-                setIsTimelinePlaying(false);
-              }
-              return next;
-            });
-          }}
-          className={timelineMode ? toolbarBtnActive : toolbarBtn}
-        >
-          Timeline (T)
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowHeatmap((previous) => !previous)}
-          className={showHeatmap ? toolbarBtnActive : toolbarBtn}
-        >
-          Heatmap (H)
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setPresentationMode((previous) => {
-              const next = !previous;
-              if (next) {
-                setPresentationIndex(0);
-                setQuickCaptureOpen(false);
-                setSearchOpen(false);
-                setExportOpen(false);
-              }
-              return next;
-            });
-          }}
-          className={presentationMode ? toolbarBtnAccent : toolbarBtn}
-        >
-          Present (P)
-        </button>
+      <header className="mx-3 mt-3 flex flex-col gap-2 md:mx-4">
+        <div className={`${toolbarSurface} flex flex-wrap items-center gap-1`}>
+          <button type="button" onClick={makeNoteAtViewportCenter} disabled={isTimeLocked} className={toolbarBtnPrimary}>
+            New (N)
+          </button>
+          <button type="button" onClick={() => setSearchOpen(true)} className={toolbarBtn}>
+            Search (Ctrl+K)
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuickCaptureOpen((previous) => !previous)}
+            disabled={isTimeLocked}
+            className={quickCaptureOpen ? toolbarBtnActive : toolbarBtn}
+          >
+            Capture (Q)
+          </button>
+          <button type="button" onClick={undo} disabled={!canUndo || isTimeLocked} className={toolbarBtn}>
+            Undo
+          </button>
+          <button type="button" onClick={redo} disabled={!canRedo || isTimeLocked} className={toolbarBtn}>
+            Redo
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPresentationMode((previous) => {
+                const next = !previous;
+                if (next) {
+                  setPresentationIndex(0);
+                  setQuickCaptureOpen(false);
+                  setSearchOpen(false);
+                  setExportOpen(false);
+                }
+                return next;
+              });
+            }}
+            className={presentationMode ? toolbarBtnAccent : toolbarBtn}
+          >
+            Present (P)
+          </button>
 
-        <div className={toolbarDivider} />
+          <div className={toolbarDivider} />
 
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => alignSelected("left")}
-            disabled={selectedNotes.length < 2 || isTimeLocked}
-            className={toolbarBtnCompact}
-          >
-            Align L
+          <button type="button" onClick={resetView} className={toolbarBtn}>
+            Reset View
+          </button>
+          <button type="button" onClick={() => setBoxSelectMode((value) => !value)} className={boxSelectMode ? toolbarBtnActive : toolbarBtn}>
+            Box Select
           </button>
           <button
             type="button"
-            onClick={() => alignSelected("center")}
-            disabled={selectedNotes.length < 2 || isTimeLocked}
-            className={toolbarBtnCompact}
+            onClick={() => {
+              setTimelineMode((previous) => {
+                const next = !previous;
+                if (next && timelineEntries.length > 0) {
+                  setTimelineIndex(timelineEntries.length - 1);
+                }
+                if (!next) {
+                  setIsTimelinePlaying(false);
+                }
+                return next;
+              });
+            }}
+            className={timelineMode ? toolbarBtnActive : toolbarBtn}
           >
-            Align C
+            Timeline (T)
           </button>
-          <button
-            type="button"
-            onClick={() => alignSelected("right")}
-            disabled={selectedNotes.length < 2 || isTimeLocked}
-            className={toolbarBtnCompact}
-          >
-            Align R
+          <button type="button" onClick={() => setShowHeatmap((previous) => !previous)} className={showHeatmap ? toolbarBtnActive : toolbarBtn}>
+            Heatmap (H)
           </button>
-          <button
-            type="button"
-            onClick={() => alignSelected("top")}
-            disabled={selectedNotes.length < 2 || isTimeLocked}
-            className={toolbarBtnCompact}
-          >
-            Align T
-          </button>
-          <button
-            type="button"
-            onClick={() => alignSelected("middle")}
-            disabled={selectedNotes.length < 2 || isTimeLocked}
-            className={toolbarBtnCompact}
-          >
-            Align M
-          </button>
-          <button
-            type="button"
-            onClick={() => alignSelected("bottom")}
-            disabled={selectedNotes.length < 2 || isTimeLocked}
-            className={toolbarBtnCompact}
-          >
-            Align B
-          </button>
-          <button
-            type="button"
-            onClick={() => distributeSelected("horizontal")}
-            disabled={selectedNotes.length < 3 || isTimeLocked}
-            className={toolbarBtnCompact}
-          >
-            Dist H
-          </button>
-          <button
-            type="button"
-            onClick={() => distributeSelected("vertical")}
-            disabled={selectedNotes.length < 3 || isTimeLocked}
-            className={toolbarBtnCompact}
-          >
-            Dist V
+          <button type="button" onClick={() => setShowAdvancedTools((value) => !value)} className={showAdvancedTools ? toolbarBtnActive : toolbarBtn}>
+            {showAdvancedTools ? "Hide Tools" : "More Tools"}
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className={toolbarLabel}>Color</span>
-          <NoteSwatches
-            value={selectedNotes[0]?.color ?? selectedNote?.color ?? ui.lastColor}
-            onSelect={(color) => {
-              applyColorToSelection(color);
-            }}
-          />
-        </div>
-
-        <div className={toolbarDivider} />
-
-        <div className="flex items-center gap-2">
-          <span className={toolbarLabel}>Tags</span>
-          <input
-            value={tagInput}
-            onChange={(event) => setTagInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addTagToSelectedNote();
-              }
-            }}
-            placeholder={activeSelectedNoteIds.length > 0 || ui.selectedNoteId ? "add-tag" : "select note"}
-            disabled={activeSelectedNoteIds.length === 0 && !ui.selectedNoteId ? true : isTimeLocked}
-            className={toolbarInput}
-          />
-          <button
-            type="button"
-            onClick={addTagToSelectedNote}
-            disabled={activeSelectedNoteIds.length === 0 && !ui.selectedNoteId ? true : isTimeLocked}
-            className={toolbarBtnCompact}
-          >
-            Add
-          </button>
-          {displayedTags.slice(0, 3).map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => removeTagFromSelectedNote(tag)}
-              disabled={isTimeLocked}
-              className={toolbarTagChip}
-              title="Remove tag"
-            >
-              #{tag}
+        {showAdvancedTools && (
+          <div className={`${toolbarSurface} flex flex-wrap items-center gap-2`}>
+            <span className={toolbarLabel}>Create</span>
+            <button type="button" onClick={makeZoneAtViewportCenter} disabled={isTimeLocked} className={toolbarBtn}>
+              New Zone
             </button>
-          ))}
-        </div>
+            <select value={ui.templateType} onChange={(event) => setTemplateType(event.target.value as TemplateType)} className={toolbarSelect}>
+              {TEMPLATE_TYPES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  Template: {option.label}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={applySelectedTemplate} disabled={isTimeLocked} className={toolbarBtn}>
+              Apply Template
+            </button>
 
-        <div className="ml-auto rounded-lg border border-zinc-700/80 bg-zinc-800/80 px-2.5 py-1 text-xs text-zinc-300">
+            <div className={toolbarDivider} />
+
+            <span className={toolbarLabel}>Links & Export</span>
+            <select value={ui.linkType} onChange={(event) => setLinkType(event.target.value as LinkType)} className={toolbarSelect}>
+              {LINK_TYPES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                if (isTimeLocked || !ui.selectedNoteId) {
+                  return;
+                }
+                setLinkingFromNote(ui.selectedNoteId);
+              }}
+              disabled={!ui.selectedNoteId || isTimeLocked}
+              className={toolbarBtn}
+            >
+              {ui.linkingFromNoteId ? "Select target..." : "Start Link (Ctrl+L)"}
+            </button>
+            <button type="button" onClick={() => setShowClusters(!ui.showClusters)} className={ui.showClusters ? toolbarBtnActive : toolbarBtn}>
+              Detect Clusters
+            </button>
+            <button type="button" onClick={() => setExportOpen(true)} className={toolbarBtn}>
+              Export
+            </button>
+            <button type="button" onClick={publishReadOnlySnapshot} className={toolbarBtn}>
+              Publish Snapshot
+            </button>
+
+            <div className={toolbarDivider} />
+
+            <div className="flex items-center gap-2">
+              <span className={toolbarLabel}>Color</span>
+              <NoteSwatches
+                value={selectedNotes[0]?.color ?? selectedNote?.color ?? ui.lastColor}
+                onSelect={(color) => {
+                  applyColorToSelection(color);
+                }}
+              />
+            </div>
+
+            {(activeSelectedNoteIds.length > 0 || ui.selectedNoteId) && (
+              <div className="flex items-center gap-2">
+                <span className={toolbarLabel}>Tags</span>
+                <input
+                  value={tagInput}
+                  onChange={(event) => setTagInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addTagToSelectedNote();
+                    }
+                  }}
+                  placeholder="add-tag"
+                  disabled={isTimeLocked}
+                  className={toolbarInput}
+                />
+                <button type="button" onClick={addTagToSelectedNote} disabled={isTimeLocked} className={toolbarBtnCompact}>
+                  Add
+                </button>
+                {displayedTags.slice(0, 3).map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => removeTagFromSelectedNote(tag)}
+                    disabled={isTimeLocked}
+                    className={toolbarTagChip}
+                    title="Remove tag"
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selectedNotes.length >= 2 && (
+              <div className="flex items-center gap-1">
+                <span className={toolbarLabel}>Align</span>
+                <button type="button" onClick={() => alignSelected("left")} disabled={isTimeLocked} className={toolbarBtnCompact}>
+                  L
+                </button>
+                <button type="button" onClick={() => alignSelected("center")} disabled={isTimeLocked} className={toolbarBtnCompact}>
+                  C
+                </button>
+                <button type="button" onClick={() => alignSelected("right")} disabled={isTimeLocked} className={toolbarBtnCompact}>
+                  R
+                </button>
+                <button type="button" onClick={() => alignSelected("top")} disabled={isTimeLocked} className={toolbarBtnCompact}>
+                  T
+                </button>
+                <button type="button" onClick={() => alignSelected("middle")} disabled={isTimeLocked} className={toolbarBtnCompact}>
+                  M
+                </button>
+                <button type="button" onClick={() => alignSelected("bottom")} disabled={isTimeLocked} className={toolbarBtnCompact}>
+                  B
+                </button>
+                <button
+                  type="button"
+                  onClick={() => distributeSelected("horizontal")}
+                  disabled={selectedNotes.length < 3 || isTimeLocked}
+                  className={toolbarBtnCompact}
+                >
+                  Dist H
+                </button>
+                <button
+                  type="button"
+                  onClick={() => distributeSelected("vertical")}
+                  disabled={selectedNotes.length < 3 || isTimeLocked}
+                  className={toolbarBtnCompact}
+                >
+                  Dist V
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="rounded-xl border border-zinc-200 bg-white/85 px-3 py-1.5 text-xs text-zinc-600 shadow-sm">
           {publishedReadOnly
             ? "Read-only published snapshot"
             : activeSelectedNoteIds.length > 1
