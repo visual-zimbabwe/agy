@@ -34,6 +34,10 @@ Idea-Wall is a local-first web app for spatial brainstorming. It provides an inf
   - Retro
   - Strategy Map
 - Collapsible zone groups with quick assignment from selected zone
+- Time-based views:
+  - Timeline mode with scrub/playback
+  - Recently changed heatmap overlay
+  - Playback of wall evolution from persisted snapshots
 - Export to PNG (whole wall, current view, selected zone)
 - Export notes to Markdown
 - Undo/redo history stack with keyboard shortcuts and safe bounded history
@@ -102,6 +106,8 @@ No backend is required for v1.
 - `Ctrl/Cmd + L`: Start a directional link from selected note
 - `Ctrl/Cmd + Z`: Undo
 - `Ctrl/Cmd + Shift + Z` or `Ctrl/Cmd + Y`: Redo
+- `T`: Toggle timeline mode
+- `H`: Toggle heatmap overlay
 - `Delete` / `Backspace`: Delete selected note, zone, link, or zone group
 - `Ctrl/Cmd + D` or `Shift + D`: Duplicate selected note
 - `Space + Drag`: Pan canvas

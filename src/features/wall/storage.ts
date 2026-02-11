@@ -7,12 +7,19 @@ type MetaRecord = {
   value: string;
 };
 
+type TimelineSnapshotRecord = {
+  id?: number;
+  ts: number;
+  payload: string;
+};
+
 class IdeaWallDatabase extends Dexie {
   notes!: Table<Note, string>;
   zones!: Table<Zone, string>;
   zoneGroups!: Table<ZoneGroup, string>;
   links!: Table<Link, string>;
   meta!: Table<MetaRecord, string>;
+  timelineSnapshots!: Table<TimelineSnapshotRecord, number>;
 
   constructor() {
     super("idea-wall-db");
@@ -33,6 +40,14 @@ class IdeaWallDatabase extends Dexie {
       zoneGroups: "id, updatedAt",
       links: "id, fromNoteId, toNoteId, updatedAt",
       meta: "key",
+    });
+    this.version(4).stores({
+      notes: "id, updatedAt",
+      zones: "id, groupId, updatedAt",
+      zoneGroups: "id, updatedAt",
+      links: "id, fromNoteId, toNoteId, updatedAt",
+      meta: "key",
+      timelineSnapshots: "++id, ts",
     });
   }
 }
@@ -118,6 +133,92 @@ export const createSnapshotSaver = (delayMs = 350) => {
   const schedule = (snapshot: PersistedWallState) => {
     latest = snapshot;
 
+    if (timer) {
+      clearTimeout(timer);
+    }
+
+    timer = setTimeout(() => {
+      void flush();
+    }, delayMs);
+  };
+
+  return { schedule, flush };
+};
+
+export type TimelineEntry = {
+  ts: number;
+  snapshot: PersistedWallState;
+};
+
+const parseTimelinePayload = (payload: string): PersistedWallState => {
+  const parsed = JSON.parse(payload) as PersistedWallState;
+  const notes = Object.fromEntries(
+    Object.entries(parsed.notes).map(([id, note]) => [id, { ...note, tags: note.tags ?? [] }]),
+  );
+
+  return {
+    ...parsed,
+    notes,
+    zoneGroups: parsed.zoneGroups ?? {},
+    links: parsed.links ?? {},
+  };
+};
+
+export const loadTimelineEntries = async (limit = 500): Promise<TimelineEntry[]> => {
+  const rows = await db.timelineSnapshots.orderBy("ts").reverse().limit(limit).toArray();
+  return rows
+    .reverse()
+    .map((row) => ({
+      ts: row.ts,
+      snapshot: parseTimelinePayload(row.payload),
+    }));
+};
+
+const persistTimelineSnapshot = async (snapshot: PersistedWallState, maxEntries: number) => {
+  await db.timelineSnapshots.add({
+    ts: Date.now(),
+    payload: JSON.stringify(snapshot),
+  });
+
+  const count = await db.timelineSnapshots.count();
+  if (count > maxEntries) {
+    const overflow = count - maxEntries;
+    const keys = await db.timelineSnapshots.orderBy("ts").limit(overflow).primaryKeys();
+    if (keys.length > 0) {
+      await db.timelineSnapshots.bulkDelete(keys);
+    }
+  }
+};
+
+export const createTimelineRecorder = (options?: { delayMs?: number; minIntervalMs?: number; maxEntries?: number }) => {
+  const delayMs = options?.delayMs ?? 1200;
+  const minIntervalMs = options?.minIntervalMs ?? 1400;
+  const maxEntries = options?.maxEntries ?? 500;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let latest: PersistedWallState | undefined;
+  let lastSerialized = "";
+  let lastWrittenAt = 0;
+
+  const flush = async () => {
+    if (!latest) {
+      return;
+    }
+
+    const serialized = JSON.stringify(latest);
+    const now = Date.now();
+    if (serialized === lastSerialized || now - lastWrittenAt < minIntervalMs) {
+      return;
+    }
+
+    const snapshot = latest;
+    latest = undefined;
+    await persistTimelineSnapshot(snapshot, maxEntries);
+    lastSerialized = serialized;
+    lastWrittenAt = now;
+  };
+
+  const schedule = (snapshot: PersistedWallState) => {
+    latest = snapshot;
     if (timer) {
       clearTimeout(timer);
     }

@@ -9,6 +9,8 @@ const shortcuts = [
   ["N / Ctrl+N", "New note"],
   ["Ctrl+K", "Open search"],
   ["Ctrl+L", "Start link from selected note"],
+  ["T", "Toggle timeline mode"],
+  ["H", "Toggle recently changed heatmap"],
   ["Ctrl/Cmd + Z", "Undo last change"],
   ["Ctrl/Cmd + Shift + Z", "Redo change"],
   ["Delete / Backspace", "Delete selected note, zone, link, or group"],

@@ -121,13 +121,28 @@ Expected:
 - Redo reapplies undone states.
 - New edits after undo clear redo stack (recovery safety against branching confusion).
 
+## Time-Based Views
+1. Make several edits over 1-2 minutes (create notes, move notes, change tags/colors).
+2. Toggle timeline mode (`T`) and verify timeline controls appear at the bottom.
+3. Drag timeline slider backward and confirm wall state rewinds.
+4. Click `Play` and verify snapshots replay forward.
+5. Toggle heatmap (`H`) and confirm recently updated notes appear warmer/stronger.
+6. Exit timeline mode and verify editing is enabled again.
+
+Expected:
+- Timeline mode is navigable with slider and playback.
+- Playback reflects historical snapshots in order.
+- Heatmap visually emphasizes recently changed notes.
+- Timeline mode is read-only for wall mutations.
+
 ## Keyboard Accessibility Spot Check
 1. Press `N` for new note.
 2. Press `Ctrl/Cmd + K` for search.
 3. Press `Ctrl/Cmd + L` with a selected note, then click target note to create a link.
 4. Press `Ctrl/Cmd + Z` then `Ctrl/Cmd + Shift + Z`.
-5. Press `Delete` with selected note (and optionally selected group).
-6. Press `?` to open shortcuts overlay.
+5. Press `T` and `H` to toggle time-based views.
+6. Press `Delete` with selected note (and optionally selected group).
+7. Press `?` to open shortcuts overlay.
 
 Expected:
 - All shortcuts work without needing mouse for command invocation.

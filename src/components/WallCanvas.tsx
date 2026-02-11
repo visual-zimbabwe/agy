@@ -29,8 +29,8 @@ import {
 } from "@/features/wall/commands";
 import { LINK_TYPES, NOTE_DEFAULTS, TEMPLATE_TYPES, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
-import { createSnapshotSaver, loadWallSnapshot } from "@/features/wall/storage";
-import type { Link, LinkType, Note, TemplateType, Zone } from "@/features/wall/types";
+import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
+import type { Link, LinkType, Note, PersistedWallState, TemplateType, Zone } from "@/features/wall/types";
 import { clamp, computeContentBounds, detectClusters, notesToMarkdown } from "@/lib/wall-utils";
 
 type EditingState = {
@@ -220,6 +220,11 @@ const tagGroupColor = (tag: string) => {
   return `hsl(${hash} 80% 45%)`;
 };
 
+const recencyIntensity = (updatedAt: number, referenceTs: number, windowMs = 1000 * 60 * 60 * 24 * 7) => {
+  const age = Math.max(0, referenceTs - updatedAt);
+  return clamp(1 - age / windowMs, 0, 1);
+};
+
 export const WallCanvas = () => {
   const notesMap = useWallStore((state) => state.notes);
   const zonesMap = useWallStore((state) => state.zones);
@@ -250,11 +255,6 @@ export const WallCanvas = () => {
   const canUndo = useWallStore((state) => state.historyPast.length > 0);
   const canRedo = useWallStore((state) => state.historyFuture.length > 0);
 
-  const notes = useMemo(() => Object.values(notesMap), [notesMap]);
-  const zones = useMemo(() => Object.values(zonesMap), [zonesMap]);
-  const zoneGroups = useMemo(() => Object.values(zoneGroupsMap), [zoneGroupsMap]);
-  const links = useMemo(() => Object.values(linksMap), [linksMap]);
-
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
   const noteTransformerRef = useRef<Konva.Transformer | null>(null);
@@ -266,19 +266,58 @@ export const WallCanvas = () => {
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [isSpaceDown, setIsSpaceDown] = useState(false);
   const [isMiddleDragging, setIsMiddleDragging] = useState(false);
+  const [isLeftCanvasDragging, setIsLeftCanvasDragging] = useState(false);
   const [linkMenu, setLinkMenu] = useState<LinkContextMenuState>({ open: false, x: 0, y: 0 });
   const [tagInput, setTagInput] = useState("");
   const [groupLabelInput, setGroupLabelInput] = useState("New Group");
   const [showAutoTagGroups, setShowAutoTagGroups] = useState(true);
+  const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
+  const [timelineMode, setTimelineMode] = useState(false);
+  const [timelineIndex, setTimelineIndex] = useState(0);
+  const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [wallClockTs, setWallClockTs] = useState(() => Date.now());
+  const lastTimelineRecordedAt = useRef(0);
+  const lastTimelineSerialized = useRef("");
+  const activeTimelineEntry = timelineMode
+    ? timelineEntries[Math.min(timelineIndex, Math.max(0, timelineEntries.length - 1))]
+    : undefined;
+  const activeTimelineSnapshot = activeTimelineEntry?.snapshot;
+  const renderSnapshot: PersistedWallState = activeTimelineSnapshot ?? {
+    notes: notesMap,
+    zones: zonesMap,
+    zoneGroups: zoneGroupsMap,
+    links: linksMap,
+    camera,
+    lastColor: ui.lastColor,
+  };
+  const notes = useMemo(() => Object.values(renderSnapshot.notes), [renderSnapshot.notes]);
+  const zones = useMemo(() => Object.values(renderSnapshot.zones), [renderSnapshot.zones]);
+  const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
+  const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
+  const isTimeLocked = timelineMode;
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setWallClockTs(Date.now());
+    }, 30000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const saver = createSnapshotSaver(320);
+    const timelineRecorder = createTimelineRecorder({ delayMs: 1100, minIntervalMs: 1400, maxEntries: 500 });
     let cancelled = false;
 
     const load = async () => {
-      const snapshot = await loadWallSnapshot();
+      const [snapshot, loadedTimeline] = await Promise.all([loadWallSnapshot(), loadTimelineEntries(500)]);
       if (!cancelled) {
         hydrate(snapshot);
+        setTimelineEntries(loadedTimeline);
+        if (loadedTimeline.length > 0) {
+          setTimelineIndex(loadedTimeline.length - 1);
+        }
       }
     };
 
@@ -288,13 +327,30 @@ export const WallCanvas = () => {
       if (!state.hydrated) {
         return;
       }
-      saver.schedule(selectPersistedSnapshot(state));
+      const snapshot = selectPersistedSnapshot(state);
+      saver.schedule(snapshot);
+      timelineRecorder.schedule(snapshot);
+
+      const serialized = JSON.stringify(snapshot);
+      const now = Date.now();
+      if (serialized !== lastTimelineSerialized.current && now - lastTimelineRecordedAt.current > 1400) {
+        lastTimelineSerialized.current = serialized;
+        lastTimelineRecordedAt.current = now;
+        setTimelineEntries((previous) => {
+          const next = [...previous, { ts: now, snapshot }];
+          if (next.length > 500) {
+            next.splice(0, next.length - 500);
+          }
+          return next;
+        });
+      }
     });
 
     return () => {
       cancelled = true;
       unsubscribe();
       void saver.flush();
+      void timelineRecorder.flush();
     };
   }, [hydrate]);
 
@@ -329,7 +385,7 @@ export const WallCanvas = () => {
       noteTransformerRef.current.nodes([node]);
       noteTransformerRef.current.getLayer()?.batchDraw();
     }
-  }, [ui.selectedNoteId, notesMap]);
+  }, [renderSnapshot.notes, ui.selectedNoteId]);
 
   useEffect(() => {
     if (!ui.selectedZoneId || !zoneTransformerRef.current) {
@@ -342,7 +398,7 @@ export const WallCanvas = () => {
       zoneTransformerRef.current.nodes([node]);
       zoneTransformerRef.current.getLayer()?.batchDraw();
     }
-  }, [ui.selectedZoneId, zonesMap]);
+  }, [renderSnapshot.zones, ui.selectedZoneId]);
 
   useEffect(() => {
     if (!editing?.id) {
@@ -386,7 +442,31 @@ export const WallCanvas = () => {
       const key = event.key.toLowerCase();
       const ctrlOrMeta = event.ctrlKey || event.metaKey;
 
+      if (!ctrlOrMeta && key === "t") {
+        event.preventDefault();
+        setTimelineMode((previous) => {
+          const next = !previous;
+          if (next && timelineEntries.length > 0) {
+            setTimelineIndex(timelineEntries.length - 1);
+          }
+          if (!next) {
+            setIsTimelinePlaying(false);
+          }
+          return next;
+        });
+        return;
+      }
+
+      if (!ctrlOrMeta && key === "h") {
+        event.preventDefault();
+        setShowHeatmap((previous) => !previous);
+        return;
+      }
+
       if ((key === "n" && !event.altKey) || (ctrlOrMeta && key === "n")) {
+        if (isTimeLocked) {
+          return;
+        }
         event.preventDefault();
         const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
         const createdId = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor);
@@ -403,6 +483,9 @@ export const WallCanvas = () => {
 
       if (ctrlOrMeta && key === "z") {
         event.preventDefault();
+        if (isTimeLocked) {
+          return;
+        }
         if (event.shiftKey) {
           redo();
         } else {
@@ -413,11 +496,17 @@ export const WallCanvas = () => {
 
       if (ctrlOrMeta && key === "y") {
         event.preventDefault();
+        if (isTimeLocked) {
+          return;
+        }
         redo();
         return;
       }
 
       if (ctrlOrMeta && key === "l") {
+        if (isTimeLocked) {
+          return;
+        }
         event.preventDefault();
         if (ui.selectedNoteId) {
           setLinkingFromNote(ui.selectedNoteId);
@@ -426,6 +515,9 @@ export const WallCanvas = () => {
       }
 
       if ((ctrlOrMeta && key === "d") || (event.shiftKey && key === "d")) {
+        if (isTimeLocked) {
+          return;
+        }
         if (ui.selectedNoteId) {
           event.preventDefault();
           duplicateNote(ui.selectedNoteId);
@@ -434,6 +526,9 @@ export const WallCanvas = () => {
       }
 
       if ((key === "delete" || key === "backspace") && !editing) {
+        if (isTimeLocked) {
+          return;
+        }
         if (ui.selectedNoteId) {
           const ok = window.confirm("Delete selected note?");
           if (ok) {
@@ -483,6 +578,7 @@ export const WallCanvas = () => {
   }, [
     camera,
     editing,
+    isTimeLocked,
     notesMap,
     resetSelection,
     redo,
@@ -498,6 +594,7 @@ export const WallCanvas = () => {
     ui.selectedLinkId,
     ui.selectedNoteId,
     ui.selectedZoneId,
+    timelineEntries.length,
     viewport.h,
     viewport.w,
   ]);
@@ -510,6 +607,24 @@ export const WallCanvas = () => {
     const timer = setTimeout(() => setFlashNote(undefined), flashDurationMs);
     return () => clearTimeout(timer);
   }, [setFlashNote, ui.flashNoteId]);
+
+  useEffect(() => {
+    if (!isTimelinePlaying || timelineEntries.length < 2) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimelineIndex((previous) => {
+        if (previous >= timelineEntries.length - 1) {
+          setIsTimelinePlaying(false);
+          return previous;
+        }
+        return previous + 1;
+      });
+    }, 700);
+
+    return () => clearInterval(timer);
+  }, [isTimelinePlaying, timelineEntries.length, timelineMode]);
 
   useEffect(() => {
     if (!linkMenu.open) {
@@ -591,21 +706,33 @@ export const WallCanvas = () => {
   const maxViewportHeight = typeof window !== "undefined" ? window.innerHeight : viewport.h;
 
   const makeNoteAtViewportCenter = () => {
+    if (isTimeLocked) {
+      return;
+    }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
     createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor);
   };
 
   const makeZoneAtViewportCenter = () => {
+    if (isTimeLocked) {
+      return;
+    }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
     createZone(world.x - ZONE_DEFAULTS.width / 2, world.y - ZONE_DEFAULTS.height / 2, "Zone");
   };
 
   const applySelectedTemplate = () => {
+    if (isTimeLocked) {
+      return;
+    }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
     applyTemplate(ui.templateType, world.x, world.y);
   };
 
   const addTagToSelectedNote = () => {
+    if (isTimeLocked) {
+      return;
+    }
     if (!ui.selectedNoteId) {
       return;
     }
@@ -623,6 +750,9 @@ export const WallCanvas = () => {
   };
 
   const removeTagFromSelectedNote = (tag: string) => {
+    if (isTimeLocked) {
+      return;
+    }
     if (!ui.selectedNoteId) {
       return;
     }
@@ -634,6 +764,9 @@ export const WallCanvas = () => {
   };
 
   const createGroupFromSelectedZone = () => {
+    if (isTimeLocked) {
+      return;
+    }
     if (!ui.selectedZoneId) {
       return;
     }
@@ -662,7 +795,7 @@ export const WallCanvas = () => {
   };
 
   const focusNote = (noteId: string) => {
-    const note = notesMap[noteId];
+    const note = renderSnapshot.notes[noteId];
     if (!note) {
       return;
     }
@@ -694,7 +827,7 @@ export const WallCanvas = () => {
     if (scope === "whole") {
       bounds = computeContentBounds(visibleNotes, visibleZones);
     } else if (scope === "zone" && ui.selectedZoneId) {
-      const zone = zonesMap[ui.selectedZoneId];
+      const zone = renderSnapshot.zones[ui.selectedZoneId];
       if (zone) {
         bounds = { x: zone.x, y: zone.y, w: zone.w, h: zone.h };
       }
@@ -715,7 +848,7 @@ export const WallCanvas = () => {
   };
 
   const exportMarkdown = () => {
-    const selectedZone = ui.selectedZoneId ? zonesMap[ui.selectedZoneId] : undefined;
+    const selectedZone = ui.selectedZoneId ? renderSnapshot.zones[ui.selectedZoneId] : undefined;
     const selectedNotes = ui.selectedNoteId
       ? visibleNotes.filter((note) => note.id === ui.selectedNoteId)
       : selectedZone
@@ -727,9 +860,9 @@ export const WallCanvas = () => {
     setExportOpen(false);
   };
 
-  const selectedNote = ui.selectedNoteId ? notesMap[ui.selectedNoteId] : undefined;
-  const selectedZone = ui.selectedZoneId ? zonesMap[ui.selectedZoneId] : undefined;
-  const selectedGroup = ui.selectedGroupId ? zoneGroupsMap[ui.selectedGroupId] : undefined;
+  const selectedNote = ui.selectedNoteId ? renderSnapshot.notes[ui.selectedNoteId] : undefined;
+  const selectedZone = ui.selectedZoneId ? renderSnapshot.zones[ui.selectedZoneId] : undefined;
+  const selectedGroup = ui.selectedGroupId ? renderSnapshot.zoneGroups[ui.selectedGroupId] : undefined;
 
   return (
     <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
@@ -737,14 +870,16 @@ export const WallCanvas = () => {
         <button
           type="button"
           onClick={makeNoteAtViewportCenter}
-          className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white"
+          disabled={isTimeLocked}
+          className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-45"
         >
           New Note (N)
         </button>
         <button
           type="button"
           onClick={makeZoneAtViewportCenter}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium"
+          disabled={isTimeLocked}
+          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium disabled:opacity-45"
         >
           New Zone
         </button>
@@ -772,7 +907,7 @@ export const WallCanvas = () => {
         <button
           type="button"
           onClick={undo}
-          disabled={!canUndo}
+          disabled={!canUndo || isTimeLocked}
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm disabled:opacity-45"
         >
           Undo (Ctrl+Z)
@@ -780,7 +915,7 @@ export const WallCanvas = () => {
         <button
           type="button"
           onClick={redo}
-          disabled={!canRedo}
+          disabled={!canRedo || isTimeLocked}
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm disabled:opacity-45"
         >
           Redo (Ctrl+Shift+Z)
@@ -808,12 +943,15 @@ export const WallCanvas = () => {
         <button
           type="button"
           onClick={() => {
+            if (isTimeLocked) {
+              return;
+            }
             if (!ui.selectedNoteId) {
               return;
             }
             setLinkingFromNote(ui.selectedNoteId);
           }}
-          disabled={!ui.selectedNoteId}
+          disabled={!ui.selectedNoteId || isTimeLocked}
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45"
         >
           {ui.linkingFromNoteId ? "Select target note..." : "Start Link (Ctrl+L)"}
@@ -832,9 +970,35 @@ export const WallCanvas = () => {
         <button
           type="button"
           onClick={applySelectedTemplate}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+          disabled={isTimeLocked}
+          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm disabled:opacity-45"
         >
           Apply Template
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setTimelineMode((previous) => {
+              const next = !previous;
+              if (next && timelineEntries.length > 0) {
+                setTimelineIndex(timelineEntries.length - 1);
+              }
+              if (!next) {
+                setIsTimelinePlaying(false);
+              }
+              return next;
+            });
+          }}
+          className={`rounded-lg px-3 py-2 text-sm ${timelineMode ? "bg-zinc-900 text-white" : "border border-zinc-300 bg-white"}`}
+        >
+          Timeline (T)
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowHeatmap((previous) => !previous)}
+          className={`rounded-lg px-3 py-2 text-sm ${showHeatmap ? "bg-orange-500 text-white" : "border border-zinc-300 bg-white"}`}
+        >
+          Heatmap (H)
         </button>
 
         <div className="mx-1 h-6 w-px bg-zinc-300" />
@@ -844,6 +1008,9 @@ export const WallCanvas = () => {
           <NoteSwatches
             value={selectedNote?.color ?? ui.lastColor}
             onSelect={(color) => {
+              if (isTimeLocked) {
+                return;
+              }
               setLastColor(color);
               if (ui.selectedNoteId) {
                 updateNote(ui.selectedNoteId, { color });
@@ -866,13 +1033,13 @@ export const WallCanvas = () => {
               }
             }}
             placeholder={ui.selectedNoteId ? "add-tag" : "select note"}
-            disabled={!ui.selectedNoteId}
+            disabled={!ui.selectedNoteId || isTimeLocked}
             className="w-28 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
           />
           <button
             type="button"
             onClick={addTagToSelectedNote}
-            disabled={!ui.selectedNoteId}
+            disabled={!ui.selectedNoteId || isTimeLocked}
             className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
           >
             Add
@@ -882,6 +1049,7 @@ export const WallCanvas = () => {
               key={tag}
               type="button"
               onClick={() => removeTagFromSelectedNote(tag)}
+              disabled={isTimeLocked}
               className="rounded-full bg-zinc-100 px-2 py-1 text-[11px] text-zinc-700"
               title="Remove tag"
             >
@@ -892,16 +1060,24 @@ export const WallCanvas = () => {
 
         <div className="ml-auto text-xs text-zinc-600">
           {ui.linkingFromNoteId
-            ? `Link mode: pick a target note for ${notesMap[ui.linkingFromNoteId]?.text.split("\n")[0] || "selected note"}`
+            ? `Link mode: pick a target note for ${renderSnapshot.notes[ui.linkingFromNoteId]?.text.split("\n")[0] || "selected note"}`
             : "Press `?` for shortcuts"}
         </div>
       </header>
 
       <div
         ref={containerRef}
-        className="relative flex-1 overflow-hidden"
-        onMouseUp={() => setIsMiddleDragging(false)}
-        onMouseLeave={() => setIsMiddleDragging(false)}
+        className={`relative flex-1 overflow-hidden ${
+          isSpaceDown || isMiddleDragging || isLeftCanvasDragging ? "cursor-grabbing" : "cursor-grab"
+        }`}
+        onMouseUp={() => {
+          setIsMiddleDragging(false);
+          setIsLeftCanvasDragging(false);
+        }}
+        onMouseLeave={() => {
+          setIsMiddleDragging(false);
+          setIsLeftCanvasDragging(false);
+        }}
         onContextMenu={(event) => {
           event.preventDefault();
         }}
@@ -922,14 +1098,19 @@ export const WallCanvas = () => {
           y={camera.y}
           scaleX={camera.zoom}
           scaleY={camera.zoom}
-          draggable={isSpaceDown || isMiddleDragging}
+          draggable={isSpaceDown || isMiddleDragging || isLeftCanvasDragging}
           onMouseDown={(event) => {
+            const stage = event.target.getStage();
             if (event.evt.button === 1) {
               setIsMiddleDragging(true);
             }
 
-            const clickedOnEmpty = event.target === event.target.getStage();
+            const clickedOnEmpty = event.target === stage;
             if (clickedOnEmpty) {
+              if (event.evt.button === 0) {
+                setIsLeftCanvasDragging(true);
+                stage?.startDrag();
+              }
               resetSelection();
               setEditing(null);
             }
@@ -940,6 +1121,8 @@ export const WallCanvas = () => {
               return;
             }
             setCamera({ ...camera, x: stage.x(), y: stage.y() });
+            setIsLeftCanvasDragging(false);
+            setIsMiddleDragging(false);
           }}
           onWheel={(event) => {
             event.evt.preventDefault();
@@ -982,8 +1165,8 @@ export const WallCanvas = () => {
         >
           <Layer>
             {visibleLinks.map((link) => {
-              const from = notesMap[link.fromNoteId];
-              const to = notesMap[link.toNoteId];
+              const from = renderSnapshot.notes[link.fromNoteId];
+              const to = renderSnapshot.notes[link.toNoteId];
               if (!from || !to) {
                 return null;
               }
@@ -1059,7 +1242,7 @@ export const WallCanvas = () => {
                   y={zone.y}
                   width={zone.w}
                   height={zone.h}
-                  draggable
+                  draggable={!isTimeLocked}
                   onClick={() => {
                     selectZone(zone.id);
                     if (zone.groupId) {
@@ -1072,8 +1255,16 @@ export const WallCanvas = () => {
                       selectGroup(zone.groupId);
                     }
                   }}
-                  onDragEnd={(event) => moveZone(zone.id, event.target.x(), event.target.y())}
+                  onDragEnd={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    moveZone(zone.id, event.target.x(), event.target.y());
+                  }}
                   onTransformEnd={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
                     const node = event.target;
                     const width = Math.max(ZONE_DEFAULTS.minWidth, node.width() * node.scaleX());
                     const height = Math.max(ZONE_DEFAULTS.minHeight, node.height() * node.scaleY());
@@ -1112,8 +1303,12 @@ export const WallCanvas = () => {
                   y={note.y}
                   width={note.w}
                   height={note.h}
-                  draggable
+                  draggable={!isTimeLocked}
                   onClick={() => {
+                    if (isTimeLocked) {
+                      selectNote(note.id);
+                      return;
+                    }
                     if (ui.linkingFromNoteId && ui.linkingFromNoteId !== note.id) {
                       createLink(ui.linkingFromNoteId, note.id, ui.linkType);
                       setLinkingFromNote(undefined);
@@ -1125,6 +1320,10 @@ export const WallCanvas = () => {
                     }
                   }}
                   onTap={() => {
+                    if (isTimeLocked) {
+                      selectNote(note.id);
+                      return;
+                    }
                     if (ui.linkingFromNoteId && ui.linkingFromNoteId !== note.id) {
                       createLink(ui.linkingFromNoteId, note.id, ui.linkType);
                       setLinkingFromNote(undefined);
@@ -1133,11 +1332,22 @@ export const WallCanvas = () => {
                     selectNote(note.id);
                   }}
                   onDblClick={() => {
+                    if (isTimeLocked) {
+                      return;
+                    }
                     selectNote(note.id);
                     setEditing({ id: note.id, text: note.text });
                   }}
-                  onDragEnd={(event) => moveNote(note.id, event.target.x(), event.target.y())}
+                  onDragEnd={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    moveNote(note.id, event.target.x(), event.target.y());
+                  }}
                   onTransformEnd={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
                     const node = event.target;
                     const width = Math.max(NOTE_DEFAULTS.minWidth, node.width() * node.scaleX());
                     const height = Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
@@ -1158,6 +1368,15 @@ export const WallCanvas = () => {
                     shadowOpacity={isFlashing ? 0.36 : 0.18}
                     shadowOffsetY={3}
                   />
+                  {showHeatmap && (
+                    <Rect
+                      width={note.w}
+                      height={note.h}
+                      cornerRadius={14}
+                      fill="#ef4444"
+                      opacity={0.08 + recencyIntensity(note.updatedAt, activeTimelineEntry?.ts ?? wallClockTs) * 0.35}
+                    />
+                  )}
                   <Text
                     x={12}
                     y={12}
@@ -1277,7 +1496,7 @@ export const WallCanvas = () => {
           </Layer>
         </Stage>
 
-        {editing && notesMap[editing.id] && (
+        {editing && renderSnapshot.notes[editing.id] && !isTimeLocked && (
           <textarea
             autoFocus
             value={editing.text}
@@ -1288,7 +1507,7 @@ export const WallCanvas = () => {
             }}
             className="absolute resize-none rounded-xl border border-zinc-700/40 bg-white/95 p-3 text-[16px] leading-6 shadow-xl outline-none"
             style={(() => {
-              const note = notesMap[editing.id];
+              const note = renderSnapshot.notes[editing.id];
               const screen = toScreenPoint(note.x, note.y, camera);
               return {
                 left: `${screen.x}px`,
@@ -1300,7 +1519,7 @@ export const WallCanvas = () => {
           />
         )}
 
-        {linkMenu.open && linkMenu.linkId && linksMap[linkMenu.linkId] && (
+        {linkMenu.open && linkMenu.linkId && renderSnapshot.links[linkMenu.linkId] && (
           <div
             className="fixed z-[70] w-56 rounded-xl border border-zinc-300 bg-white p-2 shadow-2xl"
             style={{
@@ -1313,6 +1532,7 @@ export const WallCanvas = () => {
             <button
               type="button"
               className="mt-1 w-full rounded-md px-2 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+              disabled={isTimeLocked}
               onClick={() => {
                 if (linkMenu.linkId) {
                   deleteLink(linkMenu.linkId);
@@ -1329,6 +1549,7 @@ export const WallCanvas = () => {
                   <button
                     key={`ctx-${option.value}`}
                     type="button"
+                    disabled={isTimeLocked}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-zinc-50"
                     onClick={() => {
                       if (linkMenu.linkId) {
@@ -1360,7 +1581,7 @@ export const WallCanvas = () => {
             <button
               type="button"
               onClick={createGroupFromSelectedZone}
-              disabled={!ui.selectedZoneId}
+              disabled={!ui.selectedZoneId || isTimeLocked}
               className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs disabled:opacity-45"
             >
               Group Zone
@@ -1374,7 +1595,13 @@ export const WallCanvas = () => {
               </label>
               <select
                 value={selectedZone.groupId ?? ""}
-                onChange={(event) => assignZoneToGroup(selectedZone.id, event.target.value || undefined)}
+                onChange={(event) => {
+                  if (isTimeLocked) {
+                    return;
+                  }
+                  assignZoneToGroup(selectedZone.id, event.target.value || undefined);
+                }}
+                disabled={isTimeLocked}
                 className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
               >
                 <option value="">No group</option>
@@ -1400,9 +1627,13 @@ export const WallCanvas = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      if (isTimeLocked) {
+                        return;
+                      }
                       selectGroup(group.id);
                       toggleGroupCollapse(group.id);
                     }}
+                    disabled={isTimeLocked}
                     className="rounded-md border border-zinc-300 px-1.5 py-0.5 text-[10px]"
                   >
                     {group.collapsed ? "Expand" : "Collapse"}
@@ -1416,7 +1647,13 @@ export const WallCanvas = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => deleteGroup(group.id)}
+                    onClick={() => {
+                      if (isTimeLocked) {
+                        return;
+                      }
+                      deleteGroup(group.id);
+                    }}
+                    disabled={isTimeLocked}
                     className="text-[10px] text-red-700"
                   >
                     Delete
@@ -1454,6 +1691,49 @@ export const WallCanvas = () => {
             ))}
           </div>
         </aside>
+
+        {timelineMode && timelineEntries.length > 0 && (
+          <div className="pointer-events-auto absolute bottom-3 left-1/2 z-30 w-[min(780px,95%)] -translate-x-1/2 rounded-2xl border border-zinc-300 bg-white/95 p-3 shadow-xl backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsTimelinePlaying((value) => !value)}
+                className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium"
+              >
+                {isTimelinePlaying ? "Pause" : "Play"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimelineIndex(0)}
+                className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+              >
+                Start
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimelineIndex(timelineEntries.length - 1)}
+                className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+              >
+                Latest
+              </button>
+              <span className="ml-auto text-xs text-zinc-600">
+                {new Date(timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)].ts).toLocaleString()}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(0, timelineEntries.length - 1)}
+              step={1}
+              value={Math.min(timelineIndex, timelineEntries.length - 1)}
+              onChange={(event) => {
+                setIsTimelinePlaying(false);
+                setTimelineIndex(Number(event.target.value));
+              }}
+              className="mt-3 w-full"
+            />
+          </div>
+        )}
       </div>
 
       <SearchPalette open={ui.isSearchOpen} notes={notes} onClose={() => setSearchOpen(false)} onSelect={focusNote} />
