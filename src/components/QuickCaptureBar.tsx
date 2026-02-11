@@ -22,7 +22,20 @@ type RecognitionResult = {
 
 type RecognitionEventLike = {
   resultIndex: number;
-  results: RecognitionResult[];
+  results: ArrayLike<RecognitionResult>;
+};
+
+type RecognitionErrorLike = {
+  error:
+    | "no-speech"
+    | "aborted"
+    | "audio-capture"
+    | "network"
+    | "not-allowed"
+    | "service-not-allowed"
+    | "bad-grammar"
+    | "language-not-supported"
+    | string;
 };
 
 type SpeechRecognitionLike = {
@@ -30,7 +43,7 @@ type SpeechRecognitionLike = {
   interimResults: boolean;
   lang: string;
   onresult: ((event: RecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: RecognitionErrorLike) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
@@ -79,6 +92,7 @@ const getRecognitionCtor = (): SpeechRecognitionCtor | null => {
 export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCaptureBarProps) => {
   const [text, setText] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [voiceMessage, setVoiceMessage] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const recognitionSupported = useMemo(() => Boolean(getRecognitionCtor()), []);
@@ -129,12 +143,18 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
 
   const toggleVoice = () => {
     if (disabled || !recognitionSupported) {
+      if (!recognitionSupported) {
+        setVoiceMessage("Voice recognition is not supported in this browser.");
+      } else if (disabled) {
+        setVoiceMessage("Voice capture is unavailable in read-only or timeline mode.");
+      }
       return;
     }
 
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
+      setVoiceMessage("Voice capture stopped.");
       return;
     }
 
@@ -161,8 +181,18 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       }
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (event: RecognitionErrorLike) => {
       setIsListening(false);
+      const messageByCode: Record<string, string> = {
+        "not-allowed": "Microphone permission denied. Allow mic access in browser settings.",
+        "service-not-allowed": "Speech service is not allowed in this browser/profile.",
+        "audio-capture": "No microphone was detected.",
+        "no-speech": "No speech detected. Try speaking closer to the microphone.",
+        network: "Speech recognition failed due to a network error.",
+        aborted: "Voice capture was aborted.",
+        "language-not-supported": "Selected language is not supported by speech recognition.",
+      };
+      setVoiceMessage(messageByCode[event.error] ?? `Voice recognition error: ${event.error}`);
     };
 
     recognition.onend = () => {
@@ -170,8 +200,14 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     };
 
     recognitionRef.current = recognition;
-    recognition.start();
-    setIsListening(true);
+    try {
+      recognition.start();
+      setIsListening(true);
+      setVoiceMessage("Listening... speak and pause to append lines.");
+    } catch {
+      setIsListening(false);
+      setVoiceMessage("Unable to start voice capture. Retry and confirm microphone permission.");
+    }
   };
 
   const parsedCount = parseCaptureItems(text).length;
@@ -226,6 +262,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
           type="button"
           onClick={toggleVoice}
           disabled={disabled || !recognitionSupported}
+          title={!recognitionSupported ? "Browser does not support SpeechRecognition" : undefined}
           className={`rounded px-3 py-1.5 text-xs ${
             isListening ? "bg-red-500 text-white" : "border border-zinc-300 text-zinc-800"
           } disabled:opacity-45`}
@@ -234,6 +271,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
         </button>
         <span className="ml-auto text-xs text-zinc-600">Ctrl/Cmd + Enter to capture</span>
       </div>
+      {voiceMessage && <p className="mt-2 text-xs text-zinc-600">{voiceMessage}</p>}
     </div>
   );
 };
