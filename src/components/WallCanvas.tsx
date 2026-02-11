@@ -1719,7 +1719,7 @@ export const WallCanvas = () => {
         </aside>
 
         {showHeatmap && (
-          <div className="pointer-events-auto absolute left-3 top-3 z-30">
+          <div className="pointer-events-auto absolute bottom-3 right-3 z-30">
             <CalendarHeatmap timestamps={timelineEntries.map((entry) => entry.ts)} onSelectDay={jumpToTimelineDay} />
           </div>
         )}
