@@ -95,6 +95,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const [voiceMessage, setVoiceMessage] = useState<string | null>(null);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const interimTranscriptRef = useRef("");
 
   const recognitionSupported = useMemo(() => Boolean(getRecognitionCtor()), []);
 
@@ -153,6 +154,12 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     }
 
     if (isListening) {
+      const pendingInterim = interimTranscriptRef.current.trim();
+      if (pendingInterim) {
+        setText((previous) => `${previous}${previous ? "\n" : ""}${pendingInterim}`);
+        setInterimTranscript("");
+        interimTranscriptRef.current = "";
+      }
       recognitionRef.current?.stop();
       setIsListening(false);
       setVoiceMessage("Voice capture stopped.");
@@ -180,7 +187,9 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
           interim += `${result[0].transcript.trim()} `;
         }
       }
-      setInterimTranscript(interim.trim());
+      const nextInterim = interim.trim();
+      setInterimTranscript(nextInterim);
+      interimTranscriptRef.current = nextInterim;
       if (appended.trim()) {
         setText((previous) => `${previous}${previous ? "\n" : ""}${appended.trim()}`);
       }
@@ -199,11 +208,17 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       };
       setVoiceMessage(messageByCode[event.error] ?? `Voice recognition error: ${event.error}`);
       setInterimTranscript("");
+      interimTranscriptRef.current = "";
     };
 
     recognition.onend = () => {
+      const pendingInterim = interimTranscriptRef.current.trim();
+      if (pendingInterim) {
+        setText((previous) => `${previous}${previous ? "\n" : ""}${pendingInterim}`);
+      }
       setIsListening(false);
       setInterimTranscript("");
+      interimTranscriptRef.current = "";
     };
 
     recognitionRef.current = recognition;
@@ -212,10 +227,12 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       setIsListening(true);
       setVoiceMessage("Listening... speak and pause to append lines.");
       setInterimTranscript("");
+      interimTranscriptRef.current = "";
     } catch {
       setIsListening(false);
       setVoiceMessage("Unable to start voice capture. Retry and confirm microphone permission.");
       setInterimTranscript("");
+      interimTranscriptRef.current = "";
     }
   };
 
