@@ -123,6 +123,9 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const [voiceDebug, setVoiceDebug] = useState<string[]>([]);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const interimTranscriptRef = useRef("");
+  const keepListeningRef = useRef(false);
+  const terminalErrorRef = useRef(false);
+  const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const recognitionSupported = useMemo(() => Boolean(getRecognitionCtor()), []);
   const pushVoiceDebug = (entry: string) => {
@@ -138,12 +141,24 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
 
   useEffect(() => {
     if (!open && isListening) {
+      keepListeningRef.current = false;
+      terminalErrorRef.current = false;
+      if (restartTimeoutRef.current) {
+        clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = null;
+      }
       recognitionRef.current?.stop();
     }
   }, [isListening, open]);
 
   useEffect(() => {
     return () => {
+      keepListeningRef.current = false;
+      terminalErrorRef.current = false;
+      if (restartTimeoutRef.current) {
+        clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = null;
+      }
       recognitionRef.current?.stop();
     };
   }, []);
@@ -191,6 +206,12 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     }
 
     if (isListening) {
+      keepListeningRef.current = false;
+      terminalErrorRef.current = false;
+      if (restartTimeoutRef.current) {
+        clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = null;
+      }
       const pendingInterim = interimTranscriptRef.current.trim();
       if (pendingInterim) {
         setText((previous) => `${previous}${previous ? "\n" : ""}${pendingInterim}`);
@@ -212,6 +233,8 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
+    keepListeningRef.current = true;
+    terminalErrorRef.current = false;
     pushVoiceDebug("init recognizer");
 
     recognition.onstart = () => pushVoiceDebug("onstart");
@@ -221,6 +244,9 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     recognition.onspeechend = () => pushVoiceDebug("onspeechend");
 
     recognition.onresult = (event: RecognitionEventLike) => {
+      if (recognitionRef.current !== recognition) {
+        return;
+      }
       let appended = "";
       let interim = "";
       let resultCount = 0;
@@ -247,31 +273,73 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     };
 
     recognition.onerror = (event: RecognitionErrorLike) => {
-      setIsListening(false);
+      if (recognitionRef.current !== recognition) {
+        return;
+      }
       pushVoiceDebug(`onerror ${event.error}`);
       const messageByCode: Record<string, string> = {
         "not-allowed": "Microphone permission denied. Allow mic access in browser settings.",
         "service-not-allowed": "Speech service is not allowed in this browser/profile.",
         "audio-capture": "No microphone was detected.",
-        "no-speech": "No speech detected. Try speaking closer to the microphone.",
+        "no-speech": "No speech detected. Still listening; try speaking again.",
         network: "Speech recognition failed due to a network error.",
         aborted: "Voice capture was aborted.",
         "language-not-supported": "Selected language is not supported by speech recognition.",
       };
+      const terminalErrors = new Set([
+        "not-allowed",
+        "service-not-allowed",
+        "audio-capture",
+        "language-not-supported",
+      ]);
+      if (terminalErrors.has(event.error)) {
+        keepListeningRef.current = false;
+        terminalErrorRef.current = true;
+      }
+      if (!keepListeningRef.current) {
+        setIsListening(false);
+      }
       setVoiceMessage(messageByCode[event.error] ?? `Voice recognition error: ${event.error}`);
       setInterimTranscript("");
       interimTranscriptRef.current = "";
     };
 
     recognition.onend = () => {
+      if (recognitionRef.current !== recognition) {
+        return;
+      }
       pushVoiceDebug("onend");
       const pendingInterim = interimTranscriptRef.current.trim();
       if (pendingInterim) {
         setText((previous) => `${previous}${previous ? "\n" : ""}${pendingInterim}`);
       }
-      setIsListening(false);
       setInterimTranscript("");
       interimTranscriptRef.current = "";
+      if (keepListeningRef.current && !terminalErrorRef.current && open && !disabled) {
+        if (restartTimeoutRef.current) {
+          clearTimeout(restartTimeoutRef.current);
+          restartTimeoutRef.current = null;
+        }
+        pushVoiceDebug("schedule restart");
+        restartTimeoutRef.current = setTimeout(() => {
+          if (recognitionRef.current !== recognition || !keepListeningRef.current || terminalErrorRef.current) {
+            return;
+          }
+          try {
+            recognition.start();
+            setIsListening(true);
+            setVoiceMessage("Listening... speak and pause to append lines.");
+            pushVoiceDebug("restart() called");
+          } catch {
+            keepListeningRef.current = false;
+            setIsListening(false);
+            setVoiceMessage("Unable to restart voice capture. Retry and confirm microphone permission.");
+            pushVoiceDebug("restart() threw");
+          }
+        }, 250);
+        return;
+      }
+      setIsListening(false);
     };
 
     recognitionRef.current = recognition;

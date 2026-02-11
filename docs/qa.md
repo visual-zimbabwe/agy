@@ -130,13 +130,14 @@ Expected:
 2. Enter 3 lines (include inline tags such as `#idea` on one line).
 3. Press `Ctrl/Cmd + Enter` to capture.
 4. Re-open quick capture and use `Paste -> Notes` with multi-line clipboard text.
-5. If browser supports speech recognition, click `Voice to Notes`, speak two short lines, stop, then capture.
+5. If browser supports speech recognition, click `Voice to Notes`, speak two short lines, pause for ~8-10 seconds, then speak again and stop.
 
 Expected:
 - One line becomes one note near viewport center.
 - Inline `#tags` are parsed into note tags.
 - Clipboard multi-line input creates multiple notes.
 - Voice transcripts are appended into quick-capture text and can be captured as notes.
+- Silence timeouts auto-recover: voice capture keeps listening after a `no-speech` timeout until you explicitly stop.
 
 ## Stronger Recall
 1. In the Recall panel, enter text in query and verify matching notes remain visible.
