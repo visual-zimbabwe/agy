@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type FocusEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Arrow, Group, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import Fuse from "fuse.js";
@@ -587,6 +587,8 @@ export const WallCanvas = () => {
   const [isLeftCanvasDragging, setIsLeftCanvasDragging] = useState(false);
   const [linkMenu, setLinkMenu] = useState<LinkContextMenuState>({ open: false, x: 0, y: 0 });
   const [tagInput, setTagInput] = useState("");
+  const [editTagInput, setEditTagInput] = useState("");
+  const [editTagRenameFrom, setEditTagRenameFrom] = useState<string | null>(null);
   const [groupLabelInput, setGroupLabelInput] = useState("New Group");
   const [showAutoTagGroups, setShowAutoTagGroups] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
@@ -693,6 +695,59 @@ export const WallCanvas = () => {
     const mergedTags = [...new Set([...current.tags, ...parsed.tags])];
     updateNote(noteId, { text: parsed.text, tags: mergedTags });
   }, [renderSnapshot.notes]);
+
+  const openEditor = useCallback((noteId: string, text: string) => {
+    setEditTagInput("");
+    setEditTagRenameFrom(null);
+    setEditing({ id: noteId, text });
+  }, []);
+
+  const normalizeTag = (raw: string) => raw.trim().replace(/^#/, "").toLowerCase();
+
+  const addTagToNote = (noteId: string, rawTag: string) => {
+    const note = renderSnapshot.notes[noteId];
+    if (!note || isTimeLocked) {
+      return;
+    }
+    const tag = normalizeTag(rawTag);
+    if (!tag || note.tags.includes(tag)) {
+      return;
+    }
+    updateNote(noteId, { tags: [...note.tags, tag] });
+  };
+
+  const removeTagFromNote = (noteId: string, tag: string) => {
+    const note = renderSnapshot.notes[noteId];
+    if (!note || isTimeLocked) {
+      return;
+    }
+    updateNote(noteId, { tags: note.tags.filter((value) => value !== tag) });
+  };
+
+  const renameTagOnNote = (noteId: string, from: string, rawTo: string) => {
+    const note = renderSnapshot.notes[noteId];
+    if (!note || isTimeLocked) {
+      return;
+    }
+    const to = normalizeTag(rawTo);
+    if (!to) {
+      return;
+    }
+    const next = note.tags.map((tag) => (tag === from ? to : tag));
+    updateNote(noteId, { tags: [...new Set(next)] });
+  };
+
+  const handleEditorBlur = (event: FocusEvent<HTMLTextAreaElement>) => {
+    const nextTarget = event.relatedTarget as HTMLElement | null;
+    if (nextTarget?.dataset?.noteEditTags === "true") {
+      return;
+    }
+    if (!editing) {
+      return;
+    }
+    commitEditedNoteText(editing.id, editing.text);
+    setEditing(null);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -927,7 +982,7 @@ export const WallCanvas = () => {
         const createdNote = notesMap[createdId];
         setSelectedNoteIds([createdId]);
         selectNote(createdId);
-        setEditing({ id: createdId, text: createdNote?.text ?? "" });
+        openEditor(createdId, createdNote?.text ?? "");
         return;
       }
 
@@ -996,7 +1051,7 @@ export const WallCanvas = () => {
         const selected = renderSnapshot.notes[ui.selectedNoteId];
         if (selected) {
           event.preventDefault();
-          setEditing({ id: selected.id, text: selected.text });
+          openEditor(selected.id, selected.text);
         }
         return;
       }
@@ -1070,6 +1125,7 @@ export const WallCanvas = () => {
     notes.length,
     notesMap,
     notes,
+    openEditor,
     selectedNoteIds,
     resetSelection,
     renderSnapshot.notes,
@@ -1527,11 +1583,7 @@ export const WallCanvas = () => {
       return;
     }
     for (const noteId of targetIds) {
-      const note = renderSnapshot.notes[noteId];
-      if (!note || note.tags.includes(tag)) {
-        continue;
-      }
-      updateNote(note.id, { tags: [...note.tags, tag] });
+      addTagToNote(noteId, tag);
     }
     setTagInput("");
   };
@@ -1545,11 +1597,7 @@ export const WallCanvas = () => {
       return;
     }
     for (const noteId of targetIds) {
-      const note = renderSnapshot.notes[noteId];
-      if (!note) {
-        continue;
-      }
-      updateNote(note.id, { tags: note.tags.filter((value) => value !== tag) });
+      removeTagFromNote(noteId, tag);
     }
   };
 
@@ -2607,7 +2655,7 @@ export const WallCanvas = () => {
                       return;
                     }
                     selectSingleNote(note.id);
-                    setEditing({ id: note.id, text: note.text });
+                    openEditor(note.id, note.text);
                   }}
                   onDragStart={(event) => {
                     if (isTimeLocked) {
@@ -2737,7 +2785,7 @@ export const WallCanvas = () => {
                       }
                       event.cancelBubble = true;
                       selectSingleNote(note.id);
-                      setEditing({ id: note.id, text: note.text });
+                      openEditor(note.id, note.text);
                     }}
                   />
                   {layoutPrefs.showNoteTags &&
@@ -2932,15 +2980,8 @@ export const WallCanvas = () => {
         </Stage>
 
         {editing && renderSnapshot.notes[editing.id] && !isTimeLocked && (
-          <textarea
-            autoFocus
-            value={editing.text}
-            onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
-            onBlur={() => {
-              commitEditedNoteText(editing.id, editing.text);
-              setEditing(null);
-            }}
-            className="absolute resize-none rounded-xl border border-zinc-700/40 bg-white/95 p-3 text-[16px] leading-6 shadow-xl outline-none"
+          <div
+            className="absolute z-[46]"
             style={(() => {
               const note = renderSnapshot.notes[editing.id];
               const screen = toScreenPoint(note.x, note.y, camera);
@@ -2948,10 +2989,103 @@ export const WallCanvas = () => {
                 left: `${screen.x}px`,
                 top: `${screen.y}px`,
                 width: `${note.w * camera.zoom}px`,
-                height: `${note.h * camera.zoom}px`,
               };
             })()}
-          />
+          >
+            <textarea
+              autoFocus
+              value={editing.text}
+              onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
+              onBlur={handleEditorBlur}
+              className="w-full resize-none rounded-xl border border-zinc-700/40 bg-white/95 p-3 text-[16px] leading-6 shadow-xl outline-none"
+              style={(() => {
+                const note = renderSnapshot.notes[editing.id];
+                return {
+                  height: `${note.h * camera.zoom}px`,
+                };
+              })()}
+            />
+            <div
+              data-note-edit-tags="true"
+              className="mt-2 rounded-xl border border-zinc-200 bg-white/95 p-2 shadow-lg"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Tags</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {renderSnapshot.notes[editing.id].tags.length === 0 && <span className="text-[11px] text-zinc-500">No tags yet.</span>}
+                {renderSnapshot.notes[editing.id].tags.map((tag) => (
+                  <span key={`edit-tag-${tag}`} className="inline-flex items-center gap-1 rounded-full border border-zinc-300 bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-700">
+                    <button
+                      type="button"
+                      data-note-edit-tags="true"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        setEditTagRenameFrom(tag);
+                        setEditTagInput(tag);
+                      }}
+                      className="text-zinc-700 hover:text-zinc-900"
+                    >
+                      #{tag}
+                    </button>
+                    <button
+                      type="button"
+                      data-note-edit-tags="true"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => removeTagFromNote(editing.id, tag)}
+                      className="text-zinc-500 hover:text-red-700"
+                      title="Delete tag"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  data-note-edit-tags="true"
+                  value={editTagInput}
+                  onChange={(event) => setEditTagInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") {
+                      return;
+                    }
+                    event.preventDefault();
+                    if (!editTagInput.trim()) {
+                      return;
+                    }
+                    if (editTagRenameFrom) {
+                      renameTagOnNote(editing.id, editTagRenameFrom, editTagInput);
+                      setEditTagRenameFrom(null);
+                    } else {
+                      addTagToNote(editing.id, editTagInput);
+                    }
+                    setEditTagInput("");
+                  }}
+                  placeholder={editTagRenameFrom ? "Rename tag" : "Add tag"}
+                  className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                />
+                <button
+                  type="button"
+                  data-note-edit-tags="true"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    if (!editTagInput.trim()) {
+                      return;
+                    }
+                    if (editTagRenameFrom) {
+                      renameTagOnNote(editing.id, editTagRenameFrom, editTagInput);
+                      setEditTagRenameFrom(null);
+                    } else {
+                      addTagToNote(editing.id, editTagInput);
+                    }
+                    setEditTagInput("");
+                  }}
+                  className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700"
+                >
+                  {editTagRenameFrom ? "Rename" : "Add"}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {tagPreviewScreen && tagPreviewNote && !editing && (
