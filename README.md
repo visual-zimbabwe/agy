@@ -38,6 +38,10 @@ Idea-Wall is a local-first web app for spatial brainstorming. It provides an inf
   - Box select mode for selecting many notes at once
   - Bulk move, color, tag, and export selected notes
   - Align/distribute actions (left/center/right/top/middle/bottom + horizontal/vertical)
+- Faster capture:
+  - Quick-capture command bar for rapid line-by-line note creation
+  - Paste-to-note parsing (bullets/lines to individual notes)
+  - Voice-to-note input (Web Speech API in supported browsers)
 - Time-based views:
   - Timeline mode with scrub/playback
   - Recently changed heatmap overlay
@@ -107,6 +111,8 @@ No backend is required for v1.
 
 ## Keyboard Shortcuts
 - `N` or `Ctrl/Cmd + N`: New note
+- `Q` or `Ctrl/Cmd + J`: Toggle quick capture bar
+- `Ctrl/Cmd + Enter`: Capture quick-capture lines into notes
 - `Ctrl/Cmd + K`: Open search
 - `Ctrl/Cmd + L`: Start a directional link from selected note
 - `Ctrl/Cmd + A`: Select all visible notes

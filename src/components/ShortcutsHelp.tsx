@@ -7,6 +7,8 @@ type ShortcutsHelpProps = {
 
 const shortcuts = [
   ["N / Ctrl+N", "New note"],
+  ["Q / Ctrl+J", "Toggle quick capture bar"],
+  ["Ctrl/Cmd + Enter", "Capture quick-capture lines as notes"],
   ["Ctrl+K", "Open search"],
   ["Ctrl+L", "Start link from selected note"],
   ["Ctrl/Cmd + A", "Select all visible notes"],

@@ -7,6 +7,7 @@ import type Konva from "konva";
 import { ExportModal, type ExportScope } from "@/components/ExportModal";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteSwatches } from "@/components/NoteCard";
+import { QuickCaptureBar } from "@/components/QuickCaptureBar";
 import { SearchPalette } from "@/components/SearchPalette";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import {
@@ -278,6 +279,7 @@ export const WallCanvas = () => {
   const [tagInput, setTagInput] = useState("");
   const [groupLabelInput, setGroupLabelInput] = useState("New Group");
   const [showAutoTagGroups, setShowAutoTagGroups] = useState(true);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
   const [timelineMode, setTimelineMode] = useState(false);
   const [timelineIndex, setTimelineIndex] = useState(0);
@@ -442,6 +444,7 @@ export const WallCanvas = () => {
         setSearchOpen(false);
         setExportOpen(false);
         setShortcutsOpen(false);
+        setQuickCaptureOpen(false);
         setEditing(null);
         resetSelection();
         setSelectedNoteIds([]);
@@ -474,6 +477,18 @@ export const WallCanvas = () => {
       if (!ctrlOrMeta && key === "h") {
         event.preventDefault();
         setShowHeatmap((previous) => !previous);
+        return;
+      }
+
+      if (!ctrlOrMeta && key === "q") {
+        event.preventDefault();
+        setQuickCaptureOpen((previous) => !previous);
+        return;
+      }
+
+      if (ctrlOrMeta && key === "j") {
+        event.preventDefault();
+        setQuickCaptureOpen((previous) => !previous);
         return;
       }
 
@@ -624,6 +639,7 @@ export const WallCanvas = () => {
     redo,
     setExportOpen,
     setLinkingFromNote,
+    setQuickCaptureOpen,
     setSearchOpen,
     setShortcutsOpen,
     selectNote,
@@ -922,6 +938,30 @@ export const WallCanvas = () => {
     createZoneGroup(label, [ui.selectedZoneId]);
   };
 
+  const captureNotes = (items: Array<{ text: string; tags: string[] }>) => {
+    if (isTimeLocked || items.length === 0) {
+      return;
+    }
+
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const columns = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(items.length))));
+    const gapX = NOTE_DEFAULTS.width + 24;
+    const gapY = NOTE_DEFAULTS.height + 20;
+
+    const createdIds: string[] = [];
+    items.forEach((item, index) => {
+      const row = Math.floor(index / columns);
+      const col = index % columns;
+      const x = world.x + (col - (columns - 1) / 2) * gapX;
+      const y = world.y + row * gapY;
+      const id = createNote(x, y, ui.lastColor);
+      updateNote(id, { text: item.text, tags: item.tags });
+      createdIds.push(id);
+    });
+
+    syncPrimarySelection(createdIds);
+  };
+
   const resetView = () => {
     const bounds = computeContentBounds(visibleNotes, visibleZones);
     if (!bounds) {
@@ -1086,6 +1126,14 @@ export const WallCanvas = () => {
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium disabled:opacity-45"
         >
           New Zone
+        </button>
+        <button
+          type="button"
+          onClick={() => setQuickCaptureOpen((previous) => !previous)}
+          disabled={isTimeLocked}
+          className={`rounded-lg px-3 py-2 text-sm ${quickCaptureOpen ? "bg-zinc-900 text-white" : "border border-zinc-300 bg-white"} disabled:opacity-45`}
+        >
+          Quick Capture (Q)
         </button>
         <button
           type="button"
@@ -2122,6 +2170,13 @@ export const WallCanvas = () => {
           </div>
         )}
       </div>
+
+      <QuickCaptureBar
+        open={quickCaptureOpen}
+        disabled={isTimeLocked}
+        onClose={() => setQuickCaptureOpen(false)}
+        onCapture={captureNotes}
+      />
 
       <SearchPalette open={ui.isSearchOpen} notes={notes} onClose={() => setSearchOpen(false)} onSelect={focusNote} />
 

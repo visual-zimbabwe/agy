@@ -125,6 +125,19 @@ Expected:
 - Align/distribute actions only activate when enough notes are selected.
 - Selected-notes export works for both PNG and Markdown.
 
+## Faster Capture
+1. Open quick capture with `Q` (or `Ctrl/Cmd + J`).
+2. Enter 3 lines (include inline tags such as `#idea` on one line).
+3. Press `Ctrl/Cmd + Enter` to capture.
+4. Re-open quick capture and use `Paste -> Notes` with multi-line clipboard text.
+5. If browser supports speech recognition, click `Voice to Notes`, speak two short lines, stop, then capture.
+
+Expected:
+- One line becomes one note near viewport center.
+- Inline `#tags` are parsed into note tags.
+- Clipboard multi-line input creates multiple notes.
+- Voice transcripts are appended into quick-capture text and can be captured as notes.
+
 ## Undo/Redo History
 1. Create three notes and move one note.
 2. Press `Ctrl/Cmd + Z` repeatedly and confirm actions revert in reverse order.
