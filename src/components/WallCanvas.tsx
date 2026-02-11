@@ -19,6 +19,7 @@ import { WallNotesLayer } from "@/components/wall/WallNotesLayer";
 import { WallOverlaysLayer } from "@/components/wall/WallOverlaysLayer";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { useWallExport } from "@/components/wall/useWallExport";
+import { useWallSelection } from "@/components/wall/useWallSelection";
 import { WallStage } from "@/components/wall/WallStage";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { useWallTimeline } from "@/components/wall/useWallTimeline";
@@ -277,9 +278,6 @@ const recencyIntensity = (updatedAt: number, referenceTs: number, windowMs = 100
   const age = Math.max(0, referenceTs - updatedAt);
   return clamp(1 - age / windowMs, 0, 1);
 };
-
-const boundsIntersect = (a: Bounds, b: Bounds) =>
-  a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
 const makeDownloadId = () => new Date().toISOString().replace(/[:.]/g, "-");
 const recallStorageKey = "idea-wall-recall-searches";
@@ -1130,18 +1128,23 @@ export const WallCanvas = () => {
   const pathLinkIds = useMemo(() => graphPathLinks(ui.selectedNoteId, visibleLinks), [ui.selectedNoteId, visibleLinks]);
   const maxViewportWidth = typeof window !== "undefined" ? window.innerWidth : viewport.w;
   const maxViewportHeight = typeof window !== "undefined" ? window.innerHeight : viewport.h;
-  const activeSelectedNoteIds = useMemo(
-    () => selectedNoteIds.filter((id) => Boolean(renderSnapshot.notes[id])),
-    [renderSnapshot.notes, selectedNoteIds],
-  );
-  const activeSelectedNoteIdSet = useMemo(() => new Set(activeSelectedNoteIds), [activeSelectedNoteIds]);
-  const selectedNotes = useMemo(
-    () =>
-      activeSelectedNoteIds
-        .map((id) => renderSnapshot.notes[id])
-        .filter((note): note is Note => Boolean(note)),
-    [activeSelectedNoteIds, renderSnapshot.notes],
-  );
+  const {
+    activeSelectedNoteIds,
+    activeSelectedNoteIdSet,
+    selectedNotes,
+    syncPrimarySelection,
+    toggleSelectNote,
+    clearNoteSelection,
+    finalizeBoxSelection,
+  } = useWallSelection({
+    notesById: renderSnapshot.notes,
+    visibleNotes,
+    selectedNoteIds,
+    setSelectedNoteIds,
+    selectNote,
+    selectionBox,
+    setSelectionBox,
+  });
   const resolveSnappedPosition = (note: Note, candidateX: number, candidateY: number) => {
     const snapThreshold = dragSnapThreshold / Math.max(0.35, camera.zoom);
     const noteLeft = candidateX;
@@ -1222,35 +1225,9 @@ export const WallCanvas = () => {
     return { x: snappedX, y: snappedY };
   };
 
-  const syncPrimarySelection = (ids: string[]) => {
-    const nextIds = ids.filter((id) => Boolean(renderSnapshot.notes[id]));
-    setSelectedNoteIds(nextIds);
-    if (nextIds.length === 1) {
-      selectNote(nextIds[0]);
-    } else {
-      selectNote(undefined);
-    }
-  };
-
   const selectSingleNote = (noteId: string) => {
     syncPrimarySelection([noteId]);
     setEditing((previous) => (previous?.id === noteId ? previous : null));
-  };
-
-  const toggleSelectNote = (noteId: string) => {
-    const exists = activeSelectedNoteIds.includes(noteId);
-    const next = exists ? activeSelectedNoteIds.filter((id) => id !== noteId) : [...activeSelectedNoteIds, noteId];
-    setSelectedNoteIds(next);
-    if (next.length === 1) {
-      selectNote(next[0]);
-    } else {
-      selectNote(undefined);
-    }
-  };
-
-  const clearNoteSelection = () => {
-    setSelectedNoteIds([]);
-    selectNote(undefined);
   };
 
   const applyColorToSelection = (color: string) => {
@@ -1491,26 +1468,6 @@ export const WallCanvas = () => {
     setRecallZoneId(item.zoneId ?? "");
     setRecallTag(item.tag ?? "");
     setRecallDateFilter(item.dateFilter);
-  };
-
-  const finalizeBoxSelection = () => {
-    if (!selectionBox) {
-      return;
-    }
-
-    const normalized: Bounds = {
-      x: Math.min(selectionBox.startX, selectionBox.x),
-      y: Math.min(selectionBox.startY, selectionBox.y),
-      w: Math.abs(selectionBox.w),
-      h: Math.abs(selectionBox.h),
-    };
-
-    const hitIds = visibleNotes
-      .filter((note) => boundsIntersect(normalized, { x: note.x, y: note.y, w: note.w, h: note.h }))
-      .map((note) => note.id);
-
-    syncPrimarySelection(hitIds);
-    setSelectionBox(null);
   };
 
   const focusNote = (noteId: string) => {
