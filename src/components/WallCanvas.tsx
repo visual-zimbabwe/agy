@@ -1,7 +1,7 @@
 "use client";
 
 import { type FocusEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Arrow, Group, Layer, Line, Rect, Text, Transformer } from "react-konva";
+import { Group, Layer, Line, Rect, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import Fuse from "fuse.js";
 import jsPDF from "jspdf";
@@ -15,6 +15,7 @@ import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { WallDetailsPanel } from "@/components/wall/WallDetailsPanel";
 import { WallDetailsContent } from "@/components/wall/WallDetailsContent";
 import type { DetailsSectionKey, DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
+import { WallLinksZonesLayer } from "@/components/wall/WallLinksZonesLayer";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallStage } from "@/components/wall/WallStage";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
@@ -2285,135 +2286,44 @@ export const WallCanvas = () => {
           }}
         >
           <Layer>
-            {visibleLinks.map((link) => {
-              const from = renderSnapshot.notes[link.fromNoteId];
-              const to = renderSnapshot.notes[link.toNoteId];
-              if (!from || !to) {
-                return null;
-              }
-
-              const geometry = linkPoints(from, to);
-              const isSelected = ui.selectedLinkId === link.id;
-              const inPath = pathLinkIds.has(link.id);
-              const showDimmed = Boolean(ui.selectedNoteId) && !inPath;
-              const stroke = linkColorByType[link.type];
-              const opacity = isSelected ? 1 : showDimmed ? 0.15 : 0.78;
-
-              return (
-                <Group
-                  key={link.id}
-                  onClick={(event) => {
-                    event.cancelBubble = true;
-                    setLinkMenu((previous) => ({ ...previous, open: false }));
-                    clearNoteSelection();
-                    selectLink(link.id);
-                  }}
-                  onTap={(event) => {
-                    event.cancelBubble = true;
-                    setLinkMenu((previous) => ({ ...previous, open: false }));
-                    clearNoteSelection();
-                    selectLink(link.id);
-                  }}
-                  onContextMenu={(event) => {
-                    event.evt.preventDefault();
-                    event.cancelBubble = true;
-                    clearNoteSelection();
-                    selectLink(link.id);
-                    setLinkMenu({
-                      open: true,
-                      x: event.evt.clientX,
-                      y: event.evt.clientY,
-                      linkId: link.id,
-                    });
-                  }}
-                >
-                  <Arrow
-                    points={geometry.points}
-                    pointerLength={11}
-                    pointerWidth={10}
-                    stroke={stroke}
-                    fill={stroke}
-                    dash={linkStrokeByType[link.type]}
-                    strokeWidth={isSelected ? 3.2 : inPath ? 2.6 : 2}
-                    opacity={opacity}
-                    lineCap="round"
-                    lineJoin="round"
-                  />
-                  <Text
-                    x={geometry.mid.x - 48}
-                    y={geometry.mid.y - 16}
-                    width={96}
-                    align="center"
-                    fontSize={11}
-                    fontStyle="bold"
-                    fill={stroke}
-                    text={link.label}
-                    opacity={opacity}
-                  />
-                </Group>
-              );
-            })}
-
-            {visibleZones.map((zone) => {
-              const isSelected = ui.selectedZoneId === zone.id;
-              return (
-                <Group
-                  key={zone.id}
-                  ref={(node) => {
-                    zoneNodeRefs.current[zone.id] = node;
-                  }}
-                  x={zone.x}
-                  y={zone.y}
-                  width={zone.w}
-                  height={zone.h}
-                  draggable={!isTimeLocked}
-                  onClick={() => {
-                    clearNoteSelection();
-                    selectZone(zone.id);
-                    if (zone.groupId) {
-                      selectGroup(zone.groupId);
-                    }
-                  }}
-                  onTap={() => {
-                    clearNoteSelection();
-                    selectZone(zone.id);
-                    if (zone.groupId) {
-                      selectGroup(zone.groupId);
-                    }
-                  }}
-                  onDragEnd={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    moveZone(zone.id, event.target.x(), event.target.y());
-                  }}
-                  onTransformEnd={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    const node = event.target;
-                    const width = Math.max(ZONE_DEFAULTS.minWidth, node.width() * node.scaleX());
-                    const height = Math.max(ZONE_DEFAULTS.minHeight, node.height() * node.scaleY());
-                    node.scaleX(1);
-                    node.scaleY(1);
-                    updateZone(zone.id, { x: node.x(), y: node.y(), w: width, h: height });
-                  }}
-                >
-                  <Rect
-                    width={zone.w}
-                    height={zone.h}
-                    cornerRadius={18}
-                    fill={zone.color}
-                    opacity={0.38}
-                    stroke={isSelected ? "#111827" : "#a1a1aa"}
-                    strokeWidth={isSelected ? 2 : 1}
-                    dash={[8, 6]}
-                  />
-                  <Rect width={zone.w} height={34} cornerRadius={18} fill="rgba(255,255,255,0.6)" />
-                  <Text x={12} y={8} fontSize={14} fontStyle="bold" text={zone.label || "Zone"} fill="#1f2937" />
-                </Group>
-              );
-            })}
+            <WallLinksZonesLayer
+              visibleLinks={visibleLinks}
+              visibleZones={visibleZones}
+              notesById={renderSnapshot.notes}
+              selectedLinkId={ui.selectedLinkId}
+              selectedNoteId={ui.selectedNoteId}
+              selectedZoneId={ui.selectedZoneId}
+              pathLinkIds={pathLinkIds}
+              linkColorByType={linkColorByType}
+              linkStrokeByType={linkStrokeByType}
+              linkPoints={linkPoints}
+              zoneNodeRefs={zoneNodeRefs}
+              isTimeLocked={isTimeLocked}
+              onSelectLink={(linkId) => {
+                setLinkMenu((previous) => ({ ...previous, open: false }));
+                clearNoteSelection();
+                selectLink(linkId);
+              }}
+              onOpenLinkMenu={(x, y, linkId) => {
+                clearNoteSelection();
+                selectLink(linkId);
+                setLinkMenu({
+                  open: true,
+                  x,
+                  y,
+                  linkId,
+                });
+              }}
+              onSelectZone={(zoneId, groupId) => {
+                clearNoteSelection();
+                selectZone(zoneId);
+                if (groupId) {
+                  selectGroup(groupId);
+                }
+              }}
+              onMoveZone={moveZone}
+              onResizeZone={updateZone}
+            />
 
             {visibleNotes.map((note) => {
               const isSelected = activeSelectedNoteIds.includes(note.id) || ui.selectedNoteId === note.id;
