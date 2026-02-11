@@ -9,6 +9,16 @@ const makeId = () => {
   return Math.random().toString(36).slice(2, 11);
 };
 
+const withHistoryGroup = <T>(run: () => T): T => {
+  const state = useWallStore.getState();
+  state.beginHistoryGroup();
+  try {
+    return run();
+  } finally {
+    useWallStore.getState().endHistoryGroup();
+  }
+};
+
 export const createNote = (x: number, y: number, color?: string) => {
   const now = Date.now();
   const chosenColor = color ?? useWallStore.getState().ui.lastColor ?? NOTE_COLORS[0];
@@ -123,49 +133,53 @@ export const deleteZone = (zoneId: string) => {
 };
 
 export const createZoneGroup = (label: string, zoneIds: string[] = []) => {
-  const now = Date.now();
-  const group: ZoneGroup = {
-    id: makeId(),
-    label: label.trim() || "Group",
-    color: GROUP_COLORS[Math.floor(Math.random() * GROUP_COLORS.length)],
-    zoneIds: [...new Set(zoneIds)],
-    collapsed: false,
-    createdAt: now,
-    updatedAt: now,
-  };
+  return withHistoryGroup(() => {
+    const now = Date.now();
+    const group: ZoneGroup = {
+      id: makeId(),
+      label: label.trim() || "Group",
+      color: GROUP_COLORS[Math.floor(Math.random() * GROUP_COLORS.length)],
+      zoneIds: [...new Set(zoneIds)],
+      collapsed: false,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-  const { upsertGroup, patchZone, selectGroup } = useWallStore.getState();
-  upsertGroup(group);
-  for (const zoneId of group.zoneIds) {
-    patchZone(zoneId, { groupId: group.id });
-  }
-  selectGroup(group.id);
-  return group.id;
+    const { upsertGroup, patchZone, selectGroup } = useWallStore.getState();
+    upsertGroup(group);
+    for (const zoneId of group.zoneIds) {
+      patchZone(zoneId, { groupId: group.id });
+    }
+    selectGroup(group.id);
+    return group.id;
+  });
 };
 
 export const assignZoneToGroup = (zoneId: string, groupId?: string) => {
-  const state = useWallStore.getState();
-  const zone = state.zones[zoneId];
-  if (!zone) {
-    return;
-  }
-
-  const previousGroupId = zone.groupId;
-  if (previousGroupId && state.zoneGroups[previousGroupId]) {
-    const prevGroup = state.zoneGroups[previousGroupId];
-    state.patchGroup(previousGroupId, {
-      zoneIds: prevGroup.zoneIds.filter((id) => id !== zoneId),
-    });
-  }
-
-  state.patchZone(zoneId, { groupId });
-
-  if (groupId && state.zoneGroups[groupId]) {
-    const nextGroup = state.zoneGroups[groupId];
-    if (!nextGroup.zoneIds.includes(zoneId)) {
-      state.patchGroup(groupId, { zoneIds: [...nextGroup.zoneIds, zoneId] });
+  withHistoryGroup(() => {
+    const state = useWallStore.getState();
+    const zone = state.zones[zoneId];
+    if (!zone) {
+      return;
     }
-  }
+
+    const previousGroupId = zone.groupId;
+    if (previousGroupId && state.zoneGroups[previousGroupId]) {
+      const prevGroup = state.zoneGroups[previousGroupId];
+      state.patchGroup(previousGroupId, {
+        zoneIds: prevGroup.zoneIds.filter((id) => id !== zoneId),
+      });
+    }
+
+    state.patchZone(zoneId, { groupId });
+
+    if (groupId && state.zoneGroups[groupId]) {
+      const nextGroup = state.zoneGroups[groupId];
+      if (!nextGroup.zoneIds.includes(zoneId)) {
+        state.patchGroup(groupId, { zoneIds: [...nextGroup.zoneIds, zoneId] });
+      }
+    }
+  });
 };
 
 export const toggleGroupCollapse = (groupId: string) => {
@@ -269,49 +283,51 @@ const templateDefinitions: Record<
 };
 
 export const applyTemplate = (templateType: TemplateType, centerX: number, centerY: number) => {
-  const now = Date.now();
-  const def = templateDefinitions[templateType];
-  const state = useWallStore.getState();
-  const createdZoneIds: string[] = [];
+  withHistoryGroup(() => {
+    const now = Date.now();
+    const def = templateDefinitions[templateType];
+    const state = useWallStore.getState();
+    const createdZoneIds: string[] = [];
 
-  for (const zoneDef of def.zones) {
-    const zone: Zone = {
-      id: makeId(),
-      label: zoneDef.label,
-      x: centerX + zoneDef.dx,
-      y: centerY + zoneDef.dy,
-      w: zoneDef.w ?? ZONE_DEFAULTS.width,
-      h: zoneDef.h ?? ZONE_DEFAULTS.height,
-      color: zoneDef.color ?? ZONE_COLORS[Math.floor(Math.random() * ZONE_COLORS.length)],
-      groupId: undefined,
-      createdAt: now,
-      updatedAt: now,
-    };
-    state.upsertZone(zone);
-    createdZoneIds.push(zone.id);
-  }
+    for (const zoneDef of def.zones) {
+      const zone: Zone = {
+        id: makeId(),
+        label: zoneDef.label,
+        x: centerX + zoneDef.dx,
+        y: centerY + zoneDef.dy,
+        w: zoneDef.w ?? ZONE_DEFAULTS.width,
+        h: zoneDef.h ?? ZONE_DEFAULTS.height,
+        color: zoneDef.color ?? ZONE_COLORS[Math.floor(Math.random() * ZONE_COLORS.length)],
+        groupId: undefined,
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.upsertZone(zone);
+      createdZoneIds.push(zone.id);
+    }
 
-  const groupId = createZoneGroup(
-    templateType === "brainstorm" ? "Brainstorm Set" : templateType === "retro" ? "Retro Set" : "Strategy Set",
-    createdZoneIds,
-  );
+    const groupId = createZoneGroup(
+      templateType === "brainstorm" ? "Brainstorm Set" : templateType === "retro" ? "Retro Set" : "Strategy Set",
+      createdZoneIds,
+    );
 
-  for (const noteDef of def.notes) {
-    const note: Note = {
-      id: makeId(),
-      text: noteDef.text,
-      tags: noteDef.tags,
-      textSize: NOTE_DEFAULTS.textSize,
-      x: centerX + noteDef.dx,
-      y: centerY + noteDef.dy,
-      w: NOTE_DEFAULTS.width,
-      h: NOTE_DEFAULTS.height,
-      color: noteDef.color ?? NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)],
-      createdAt: now,
-      updatedAt: now,
-    };
-    state.upsertNote(note);
-  }
+    for (const noteDef of def.notes) {
+      const note: Note = {
+        id: makeId(),
+        text: noteDef.text,
+        tags: noteDef.tags,
+        textSize: NOTE_DEFAULTS.textSize,
+        x: centerX + noteDef.dx,
+        y: centerY + noteDef.dy,
+        w: NOTE_DEFAULTS.width,
+        h: NOTE_DEFAULTS.height,
+        color: noteDef.color ?? NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)],
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.upsertNote(note);
+    }
 
-  state.selectGroup(groupId);
+    state.selectGroup(groupId);
+  });
 };

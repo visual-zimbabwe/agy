@@ -571,8 +571,13 @@ export const WallCanvas = () => {
   const setShowClusters = useWallStore((state) => state.setShowClusters);
   const undo = useWallStore((state) => state.undo);
   const redo = useWallStore((state) => state.redo);
-  const canUndo = useWallStore((state) => state.historyPast.length > 0);
-  const canRedo = useWallStore((state) => state.historyFuture.length > 0);
+  const beginHistoryGroup = useWallStore((state) => state.beginHistoryGroup);
+  const endHistoryGroup = useWallStore((state) => state.endHistoryGroup);
+  const clearHistory = useWallStore((state) => state.clearHistory);
+  const historyUndoDepth = useWallStore((state) => state.historyPast.length);
+  const historyRedoDepth = useWallStore((state) => state.historyFuture.length);
+  const canUndo = historyUndoDepth > 0;
+  const canRedo = historyRedoDepth > 0;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
@@ -713,6 +718,18 @@ export const WallCanvas = () => {
   }, []);
 
   const normalizeTag = (raw: string) => raw.trim().replace(/^#/, "").toLowerCase();
+
+  const runHistoryGroup = useCallback(
+    (run: () => void) => {
+      beginHistoryGroup();
+      try {
+        run();
+      } finally {
+        endHistoryGroup();
+      }
+    },
+    [beginHistoryGroup, endHistoryGroup],
+  );
 
   const addTagToNote = (noteId: string, rawTag: string) => {
     const note = renderSnapshot.notes[noteId];
@@ -1684,14 +1701,16 @@ export const WallCanvas = () => {
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
 
-    for (const note of selectedNotes) {
-      if (axis === "left") updateNote(note.id, { x: minX });
-      if (axis === "right") updateNote(note.id, { x: maxX - note.w });
-      if (axis === "center") updateNote(note.id, { x: centerX - note.w / 2 });
-      if (axis === "top") updateNote(note.id, { y: minY });
-      if (axis === "bottom") updateNote(note.id, { y: maxY - note.h });
-      if (axis === "middle") updateNote(note.id, { y: centerY - note.h / 2 });
-    }
+    runHistoryGroup(() => {
+      for (const note of selectedNotes) {
+        if (axis === "left") updateNote(note.id, { x: minX });
+        if (axis === "right") updateNote(note.id, { x: maxX - note.w });
+        if (axis === "center") updateNote(note.id, { x: centerX - note.w / 2 });
+        if (axis === "top") updateNote(note.id, { y: minY });
+        if (axis === "bottom") updateNote(note.id, { y: maxY - note.h });
+        if (axis === "middle") updateNote(note.id, { y: centerY - note.h / 2 });
+      }
+    });
   };
 
   const distributeSelected = (direction: "horizontal" | "vertical") => {
@@ -1712,12 +1731,14 @@ export const WallCanvas = () => {
     const span = direction === "horizontal" ? last.x - first.x : last.y - first.y;
     const gap = span / (sorted.length - 1);
 
-    sorted.forEach((note, index) => {
-      if (direction === "horizontal") {
-        updateNote(note.id, { x: first.x + gap * index });
-      } else {
-        updateNote(note.id, { y: first.y + gap * index });
-      }
+    runHistoryGroup(() => {
+      sorted.forEach((note, index) => {
+        if (direction === "horizontal") {
+          updateNote(note.id, { x: first.x + gap * index });
+        } else {
+          updateNote(note.id, { y: first.y + gap * index });
+        }
+      });
     });
   };
 
@@ -2207,6 +2228,9 @@ export const WallCanvas = () => {
               <span>Redo</span>
             </button>
           </ControlTooltip>
+          <div className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-600" title="Undo / Redo history depth">
+            H {historyUndoDepth}/{historyRedoDepth}
+          </div>
           <ControlTooltip label="Toggle presentation mode" shortcut="P">
             <button
               type="button"
@@ -2936,18 +2960,22 @@ export const WallCanvas = () => {
                     }
                     const snapped = resolveSnappedPosition(note, event.target.x(), event.target.y());
                     event.target.position(snapped);
-                    moveNote(note.id, snapped.x, snapped.y);
                     const anchor = dragAnchorRef.current;
                     const startMap = dragSelectionStartRef.current;
                     if (anchor && startMap) {
-                      const dx = snapped.x - anchor.x;
-                      const dy = snapped.y - anchor.y;
-                      for (const [id, start] of Object.entries(startMap)) {
-                        if (id === note.id) {
-                          continue;
+                      runHistoryGroup(() => {
+                        moveNote(note.id, snapped.x, snapped.y);
+                        const dx = snapped.x - anchor.x;
+                        const dy = snapped.y - anchor.y;
+                        for (const [id, start] of Object.entries(startMap)) {
+                          if (id === note.id) {
+                            continue;
+                          }
+                          updateNote(id, { x: start.x + dx, y: start.y + dy });
                         }
-                        updateNote(id, { x: start.x + dx, y: start.y + dy });
-                      }
+                      });
+                    } else {
+                      moveNote(note.id, snapped.x, snapped.y);
                     }
                     const dragStart = dragSingleStartRef.current;
                     if (dragStart?.id === note.id && dragStart.altClone) {
@@ -3575,6 +3603,8 @@ export const WallCanvas = () => {
                   <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-zinc-700">
                     <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Timeline entries: {timelineEntries.length}</div>
                     <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Visible notes: {visibleNotes.length}</div>
+                    <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Undo depth: {historyUndoDepth}</div>
+                    <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Redo depth: {historyRedoDepth}</div>
                     <div className="col-span-2 rounded-lg border border-zinc-200 bg-white px-2 py-1.5">
                       Latest edit:{" "}
                       {notes.length === 0
@@ -3588,6 +3618,23 @@ export const WallCanvas = () => {
                     </button>
                     <button type="button" onClick={jumpToHighPriorityNote} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]">
                       Jump Priority
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const hasHistory = historyUndoDepth > 0 || historyRedoDepth > 0;
+                        if (!hasHistory) {
+                          return;
+                        }
+                        const ok = window.confirm("Clear undo/redo history? This cannot be undone.");
+                        if (ok) {
+                          clearHistory();
+                        }
+                      }}
+                      disabled={historyUndoDepth === 0 && historyRedoDepth === 0}
+                      className="rounded border border-rose-300 bg-white px-2 py-1 text-[11px] text-rose-700 disabled:opacity-50"
+                    >
+                      Clear History
                     </button>
                   </div>
                 </>

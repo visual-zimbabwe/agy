@@ -41,6 +41,9 @@ type WallActions = {
   upsertLink: (link: Link) => void;
   patchLink: (linkId: string, patch: Partial<Link>) => void;
   removeLink: (linkId: string) => void;
+  beginHistoryGroup: () => void;
+  endHistoryGroup: () => void;
+  clearHistory: () => void;
   undo: () => void;
   redo: () => void;
 };
@@ -54,6 +57,8 @@ export type WallStore = WallState &
     hydrated: boolean;
     historyPast: HistorySnapshot[];
     historyFuture: HistorySnapshot[];
+    historyGroupDepth: number;
+    historyGroupSnapshot?: HistorySnapshot;
   };
 
 const historyLimit = 200;
@@ -105,6 +110,14 @@ const applyWithHistory = (state: WallStore, patch: Partial<WallState>) => {
     return patch;
   }
 
+  if (state.historyGroupDepth > 0) {
+    return {
+      ...patch,
+      historyFuture: [],
+      historyGroupSnapshot: state.historyGroupSnapshot ?? makeHistorySnapshot(state),
+    };
+  }
+
   const nextPast = [...state.historyPast, makeHistorySnapshot(state)];
   if (nextPast.length > historyLimit) {
     nextPast.splice(0, nextPast.length - historyLimit);
@@ -122,6 +135,8 @@ export const useWallStore = create<WallStore>((set) => ({
   hydrated: false,
   historyPast: [],
   historyFuture: [],
+  historyGroupDepth: 0,
+  historyGroupSnapshot: undefined,
 
   hydrate: (snapshot) =>
     set((state) => ({
@@ -137,6 +152,8 @@ export const useWallStore = create<WallStore>((set) => ({
       hydrated: true,
       historyPast: [],
       historyFuture: [],
+      historyGroupDepth: 0,
+      historyGroupSnapshot: undefined,
     })),
 
   setCamera: (camera) => set({ camera }),
@@ -426,6 +443,52 @@ export const useWallStore = create<WallStore>((set) => ({
       });
     }),
 
+  beginHistoryGroup: () =>
+    set((state) => ({
+      historyGroupDepth: state.historyGroupDepth + 1,
+    })),
+
+  endHistoryGroup: () =>
+    set((state) => {
+      if (state.historyGroupDepth <= 0) {
+        return state;
+      }
+
+      const nextDepth = state.historyGroupDepth - 1;
+      if (nextDepth > 0) {
+        return {
+          historyGroupDepth: nextDepth,
+        };
+      }
+
+      const groupedSnapshot = state.historyGroupSnapshot;
+      if (!groupedSnapshot) {
+        return {
+          historyGroupDepth: 0,
+          historyGroupSnapshot: undefined,
+        };
+      }
+
+      const nextPast = [...state.historyPast, groupedSnapshot];
+      if (nextPast.length > historyLimit) {
+        nextPast.splice(0, nextPast.length - historyLimit);
+      }
+
+      return {
+        historyPast: nextPast,
+        historyGroupDepth: 0,
+        historyGroupSnapshot: undefined,
+      };
+    }),
+
+  clearHistory: () =>
+    set(() => ({
+      historyPast: [],
+      historyFuture: [],
+      historyGroupDepth: 0,
+      historyGroupSnapshot: undefined,
+    })),
+
   undo: () =>
     set((state) => {
       const previous = state.historyPast[state.historyPast.length - 1];
@@ -456,6 +519,8 @@ export const useWallStore = create<WallStore>((set) => ({
         },
         historyPast: remainingPast,
         historyFuture: nextFuture,
+        historyGroupDepth: 0,
+        historyGroupSnapshot: undefined,
       };
     }),
 
@@ -489,6 +554,8 @@ export const useWallStore = create<WallStore>((set) => ({
         },
         historyPast: nextPast,
         historyFuture: remainingFuture,
+        historyGroupDepth: 0,
+        historyGroupSnapshot: undefined,
       };
     }),
 }));

@@ -159,11 +159,19 @@ Expected:
 3. Press `Ctrl/Cmd + Shift + Z` (or `Ctrl/Cmd + Y`) and confirm actions reapply.
 4. After one undo, make a brand-new edit (for example, add a tag).
 5. Press redo shortcut.
+6. Multi-select at least 3 notes, perform an align action, then press undo once.
+7. Apply a template, then press undo once.
+8. Multi-select drag at least 3 notes, then press undo once.
+9. In `History` panel, verify `Undo depth` and `Redo depth` values change as actions are undone/redone.
+10. Click `Clear History`, confirm prompt, then verify undo/redo are disabled and depths reset to 0.
 
 Expected:
 - Undo restores previous states reliably.
 - Redo reapplies undone states.
 - New edits after undo clear redo stack (recovery safety against branching confusion).
+- Grouped operations (align, template apply, multi-select move) undo in a single step.
+- History depth indicator is visible and updates correctly.
+- Clearing history requires confirmation and is irreversible.
 
 ## Time-Based Views
 1. Make several edits over 1-2 minutes (create notes, move notes, change tags/colors).
