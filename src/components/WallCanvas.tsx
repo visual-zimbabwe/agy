@@ -661,6 +661,7 @@ export const WallCanvas = () => {
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [hoveredNoteId, setHoveredNoteId] = useState<string | undefined>(undefined);
   const [draggingNoteId, setDraggingNoteId] = useState<string | undefined>(undefined);
+  const [resizingNoteDrafts, setResizingNoteDrafts] = useState<Record<string, { x: number; y: number; w: number; h: number }>>({});
   const [guideLines, setGuideLines] = useState<GuideLineState>({});
   const dragSelectionStartRef = useRef<Record<string, { x: number; y: number }> | null>(null);
   const dragAnchorRef = useRef<{ id: string; x: number; y: number } | null>(null);
@@ -2596,11 +2597,13 @@ export const WallCanvas = () => {
               const isFlashing = ui.flashNoteId === note.id;
               const isHovered = hoveredNoteId === note.id;
               const isDragging = draggingNoteId === note.id;
-              const noteTextStyle = getNoteTextStyle(note.textSize);
-              const visibleTagCount = note.w < 180 ? 1 : note.w < 240 ? 2 : 3;
-              const noteTags = note.tags.slice(0, visibleTagCount);
+              const draft = resizingNoteDrafts[note.id];
+              const noteView = draft ? { ...note, ...draft } : note;
+              const noteTextStyle = getNoteTextStyle(noteView.textSize);
+              const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
+              const noteTags = noteView.tags.slice(0, visibleTagCount);
               const overflowTags = Math.max(0, note.tags.length - noteTags.length);
-              const tagPalette = noteTagChipPalette(note.color);
+              const tagPalette = noteTagChipPalette(noteView.color);
 
               return (
                 <Group
@@ -2608,10 +2611,10 @@ export const WallCanvas = () => {
                   ref={(node) => {
                     noteNodeRefs.current[note.id] = node;
                   }}
-                  x={note.x}
-                  y={note.y}
-                  width={note.w}
-                  height={note.h}
+                  x={noteView.x}
+                  y={noteView.y}
+                  width={noteView.w}
+                  height={noteView.h}
                   draggable={!isTimeLocked}
                   onMouseEnter={() => setHoveredNoteId(note.id)}
                   onMouseLeave={() => setHoveredNoteId((previous) => (previous === note.id ? undefined : previous))}
@@ -2737,7 +2740,7 @@ export const WallCanvas = () => {
                     dragAnchorRef.current = null;
                     dragSingleStartRef.current = null;
                   }}
-                  onTransformEnd={(event) => {
+                  onTransform={(event) => {
                     if (isTimeLocked) {
                       return;
                     }
@@ -2746,12 +2749,42 @@ export const WallCanvas = () => {
                     const height = Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
                     node.scaleX(1);
                     node.scaleY(1);
-                    updateNote(note.id, { x: node.x(), y: node.y(), w: width, h: height });
+                    setResizingNoteDrafts((previous) => ({
+                      ...previous,
+                      [note.id]: {
+                        x: node.x(),
+                        y: node.y(),
+                        w: width,
+                        h: height,
+                      },
+                    }));
+                  }}
+                  onTransformEnd={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    const node = event.target;
+                    const draftEntry = resizingNoteDrafts[note.id];
+                    const width = draftEntry?.w ?? Math.max(NOTE_DEFAULTS.minWidth, node.width() * node.scaleX());
+                    const height = draftEntry?.h ?? Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
+                    const x = draftEntry?.x ?? node.x();
+                    const y = draftEntry?.y ?? node.y();
+                    node.scaleX(1);
+                    node.scaleY(1);
+                    updateNote(note.id, { x, y, w: width, h: height });
+                    setResizingNoteDrafts((previous) => {
+                      if (!previous[note.id]) {
+                        return previous;
+                      }
+                      const next = { ...previous };
+                      delete next[note.id];
+                      return next;
+                    });
                   }}
                 >
                   <Rect
-                    width={note.w}
-                    height={note.h}
+                    width={noteView.w}
+                    height={noteView.h}
                     cornerRadius={14}
                     fill={note.color}
                     stroke={isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
@@ -2763,29 +2796,29 @@ export const WallCanvas = () => {
                   />
                   {showHeatmap && (
                     <Rect
-                      width={note.w}
-                      height={note.h}
+                      width={noteView.w}
+                      height={noteView.h}
                       cornerRadius={14}
                       fill="#ef4444"
-                      opacity={0.08 + recencyIntensity(note.updatedAt, activeTimelineEntry?.ts ?? wallClockTs) * 0.35}
+                      opacity={0.08 + recencyIntensity(noteView.updatedAt, activeTimelineEntry?.ts ?? wallClockTs) * 0.35}
                     />
                   )}
                   <Text
                     x={12}
                     y={12}
-                    width={Math.max(0, note.w - 24)}
-                    height={Math.max(0, note.h - 56)}
+                    width={Math.max(0, noteView.w - 24)}
+                    height={Math.max(0, noteView.h - 56)}
                     fontSize={noteTextStyle.fontSize}
                     fill="#1f2937"
                     lineHeight={noteTextStyle.lineHeight}
-                    text={truncateNoteText(note.text, note) || "Double-click or press Enter to edit"}
+                    text={truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit"}
                     onClick={(event) => {
                       if (isTimeLocked) {
                         return;
                       }
                       event.cancelBubble = true;
                       selectSingleNote(note.id);
-                      openEditor(note.id, note.text);
+                      openEditor(note.id, noteView.text);
                     }}
                   />
                   {layoutPrefs.showNoteTags &&
@@ -2793,7 +2826,7 @@ export const WallCanvas = () => {
                       <Group key={`${note.id}-tag-${tag}`}>
                         <Rect
                           x={12 + index * 64}
-                          y={Math.max(10, note.h - 25)}
+                          y={Math.max(10, noteView.h - 25)}
                           width={60}
                           height={16}
                           cornerRadius={8}
@@ -2803,7 +2836,7 @@ export const WallCanvas = () => {
                         />
                         <Text
                           x={16 + index * 64}
-                          y={Math.max(12, note.h - 23)}
+                          y={Math.max(12, noteView.h - 23)}
                           width={52}
                           fontSize={10}
                           fill={tagPalette.text}
@@ -2815,8 +2848,8 @@ export const WallCanvas = () => {
                     ))}
                   {layoutPrefs.showNoteTags && overflowTags > 0 && (
                     <Text
-                      x={Math.max(12, note.w - 36)}
-                      y={Math.max(12, note.h - 23)}
+                      x={Math.max(12, noteView.w - 36)}
+                      y={Math.max(12, noteView.h - 23)}
                       width={24}
                       align="right"
                       fontSize={10}
