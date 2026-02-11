@@ -16,6 +16,7 @@ import { WallDetailsPanel } from "@/components/wall/WallDetailsPanel";
 import { WallDetailsContent } from "@/components/wall/WallDetailsContent";
 import type { DetailsSectionKey, DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { WallLinksZonesLayer } from "@/components/wall/WallLinksZonesLayer";
+import { WallNotesLayer } from "@/components/wall/WallNotesLayer";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallStage } from "@/components/wall/WallStage";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
@@ -2319,299 +2320,47 @@ export const WallCanvas = () => {
               onResizeZone={updateZone}
             />
 
-            {visibleNotes.map((note) => {
-              const isSelected = activeSelectedNoteIds.includes(note.id) || ui.selectedNoteId === note.id;
-              const isFlashing = ui.flashNoteId === note.id;
-              const isHovered = hoveredNoteId === note.id;
-              const isDragging = draggingNoteId === note.id;
-              const draft = resizingNoteDrafts[note.id];
-              const noteView = draft ? { ...note, ...draft } : note;
-              const noteTextStyle = getNoteTextStyle(noteView.textSize);
-              const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
-              const noteTags = noteView.tags.slice(0, visibleTagCount);
-              const overflowTags = Math.max(0, note.tags.length - noteTags.length);
-              const tagPalette = noteTagChipPalette(noteView.color);
-
-              return (
-                <Group
-                  key={note.id}
-                  ref={(node) => {
-                    noteNodeRefs.current[note.id] = node;
-                  }}
-                  x={noteView.x}
-                  y={noteView.y}
-                  width={noteView.w}
-                  height={noteView.h}
-                  draggable={!isTimeLocked}
-                  onMouseEnter={() => setHoveredNoteId(note.id)}
-                  onMouseLeave={() => setHoveredNoteId((previous) => (previous === note.id ? undefined : previous))}
-                  onClick={(event) => {
-                    if (isTimeLocked) {
-                      selectSingleNote(note.id);
-                      return;
-                    }
-                    if (ui.linkingFromNoteId && ui.linkingFromNoteId !== note.id) {
-                      createLink(ui.linkingFromNoteId, note.id, ui.linkType);
-                      setLinkingFromNote(undefined);
-                      return;
-                    }
-                    if (event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey) {
-                      toggleSelectNote(note.id);
-                    } else {
-                      selectSingleNote(note.id);
-                    }
-                    if (editing?.id !== note.id) {
-                      setEditing(null);
-                    }
-                  }}
-                  onTap={(event) => {
-                    if (isTimeLocked) {
-                      selectSingleNote(note.id);
-                      return;
-                    }
-                    if (ui.linkingFromNoteId && ui.linkingFromNoteId !== note.id) {
-                      createLink(ui.linkingFromNoteId, note.id, ui.linkType);
-                      setLinkingFromNote(undefined);
-                      return;
-                    }
-                    if (event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey) {
-                      toggleSelectNote(note.id);
-                    } else {
-                      selectSingleNote(note.id);
-                    }
-                  }}
-                  onDblClick={() => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    selectSingleNote(note.id);
-                    openEditor(note.id, note.text);
-                  }}
-                  onDragStart={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    setDraggingNoteId(note.id);
-                    setGuideLines({});
-                    if (!activeSelectedNoteIds.includes(note.id)) {
-                      syncPrimarySelection([note.id]);
-                    }
-                    const activeIds = activeSelectedNoteIds.includes(note.id) ? activeSelectedNoteIds : [note.id];
-                    dragSingleStartRef.current = {
-                      id: note.id,
-                      x: note.x,
-                      y: note.y,
-                      altClone: event.evt.altKey,
-                    };
-                    if (activeIds.length > 1) {
-                      dragSelectionStartRef.current = Object.fromEntries(
-                        activeIds
-                          .map((id) => renderSnapshot.notes[id])
-                          .filter((entry): entry is Note => Boolean(entry))
-                          .map((entry) => [entry.id, { x: entry.x, y: entry.y }]),
-                      );
-                      dragAnchorRef.current = { id: note.id, x: event.target.x(), y: event.target.y() };
-                    }
-                  }}
-                  onDragMove={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    const start = dragSingleStartRef.current;
-                    const pointerX = event.target.x();
-                    const pointerY = event.target.y();
-                    let candidateX = pointerX;
-                    let candidateY = pointerY;
-                    if (start && event.evt.shiftKey) {
-                      const dx = Math.abs(pointerX - start.x);
-                      const dy = Math.abs(pointerY - start.y);
-                      if (dx > dy) {
-                        candidateY = start.y;
-                      } else {
-                        candidateX = start.x;
-                      }
-                    }
-                    const snapped = resolveSnappedPosition(note, candidateX, candidateY);
-                    event.target.position(snapped);
-
-                    const anchor = dragAnchorRef.current;
-                    const startMap = dragSelectionStartRef.current;
-                    if (!anchor || !startMap) {
-                      return;
-                    }
-                    const dx = snapped.x - anchor.x;
-                    const dy = snapped.y - anchor.y;
-                    let movedPeers = false;
-                    for (const [id, start] of Object.entries(startMap)) {
-                      if (id === note.id) {
-                        continue;
-                      }
-                      const peerNode = noteNodeRefs.current[id];
-                      if (!peerNode) {
-                        continue;
-                      }
-                      peerNode.position({ x: start.x + dx, y: start.y + dy });
-                      movedPeers = true;
-                    }
-                    if (movedPeers) {
-                      event.target.getLayer()?.batchDraw();
-                    }
-                  }}
-                  onDragEnd={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    const snapped = resolveSnappedPosition(note, event.target.x(), event.target.y());
-                    event.target.position(snapped);
-                    const anchor = dragAnchorRef.current;
-                    const startMap = dragSelectionStartRef.current;
-                    if (anchor && startMap) {
-                      runHistoryGroup(() => {
-                        moveNote(note.id, snapped.x, snapped.y);
-                        const dx = snapped.x - anchor.x;
-                        const dy = snapped.y - anchor.y;
-                        for (const [id, start] of Object.entries(startMap)) {
-                          if (id === note.id) {
-                            continue;
-                          }
-                          updateNote(id, { x: start.x + dx, y: start.y + dy });
-                        }
-                      });
-                    } else {
-                      moveNote(note.id, snapped.x, snapped.y);
-                    }
-                    const dragStart = dragSingleStartRef.current;
-                    if (dragStart?.id === note.id && dragStart.altClone) {
-                      updateNote(note.id, { x: dragStart.x, y: dragStart.y });
-                      duplicateNoteAt(note.id, snapped.x, snapped.y);
-                      syncPrimarySelection([note.id]);
-                    }
-                    setDraggingNoteId(undefined);
-                    setGuideLines({});
-                    dragSelectionStartRef.current = null;
-                    dragAnchorRef.current = null;
-                    dragSingleStartRef.current = null;
-                  }}
-                  onTransform={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    const node = event.target;
-                    const width = Math.max(NOTE_DEFAULTS.minWidth, node.width() * node.scaleX());
-                    const height = Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
-                    node.scaleX(1);
-                    node.scaleY(1);
-                    setResizingNoteDrafts((previous) => ({
-                      ...previous,
-                      [note.id]: {
-                        x: node.x(),
-                        y: node.y(),
-                        w: width,
-                        h: height,
-                      },
-                    }));
-                  }}
-                  onTransformEnd={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    const node = event.target;
-                    const draftEntry = resizingNoteDrafts[note.id];
-                    const width = draftEntry?.w ?? Math.max(NOTE_DEFAULTS.minWidth, node.width() * node.scaleX());
-                    const height = draftEntry?.h ?? Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
-                    const x = draftEntry?.x ?? node.x();
-                    const y = draftEntry?.y ?? node.y();
-                    node.scaleX(1);
-                    node.scaleY(1);
-                    updateNote(note.id, { x, y, w: width, h: height });
-                    setResizingNoteDrafts((previous) => {
-                      if (!previous[note.id]) {
-                        return previous;
-                      }
-                      const next = { ...previous };
-                      delete next[note.id];
-                      return next;
-                    });
-                  }}
-                >
-                  <Rect
-                    width={noteView.w}
-                    height={noteView.h}
-                    cornerRadius={14}
-                    fill={note.color}
-                    stroke={isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
-                    strokeWidth={isSelected ? 2.4 : isHovered ? 1.4 : 1}
-                    shadowColor="#101010"
-                    shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
-                    shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
-                    shadowOffsetY={isDragging ? 7 : 3}
-                  />
-                  {showHeatmap && (
-                    <Rect
-                      width={noteView.w}
-                      height={noteView.h}
-                      cornerRadius={14}
-                      fill="#ef4444"
-                      opacity={0.08 + recencyIntensity(noteView.updatedAt, activeTimelineEntry?.ts ?? wallClockTs) * 0.35}
-                    />
-                  )}
-                  <Text
-                    x={12}
-                    y={12}
-                    width={Math.max(0, noteView.w - 24)}
-                    height={Math.max(0, noteView.h - 56)}
-                    fontSize={noteTextStyle.fontSize}
-                    fill="#1f2937"
-                    lineHeight={noteTextStyle.lineHeight}
-                    text={truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit"}
-                    onClick={(event) => {
-                      if (isTimeLocked) {
-                        return;
-                      }
-                      event.cancelBubble = true;
-                      selectSingleNote(note.id);
-                      openEditor(note.id, noteView.text);
-                    }}
-                  />
-                  {layoutPrefs.showNoteTags &&
-                    noteTags.map((tag, index) => (
-                      <Group key={`${note.id}-tag-${tag}`}>
-                        <Rect
-                          x={12 + index * 64}
-                          y={Math.max(10, noteView.h - 25)}
-                          width={60}
-                          height={16}
-                          cornerRadius={8}
-                          fill={tagPalette.bg}
-                          stroke={tagPalette.border}
-                          strokeWidth={0.8}
-                        />
-                        <Text
-                          x={16 + index * 64}
-                          y={Math.max(12, noteView.h - 23)}
-                          width={52}
-                          fontSize={10}
-                          fill={tagPalette.text}
-                          text={`#${tag}`}
-                          wrap="none"
-                          ellipsis
-                        />
-                      </Group>
-                    ))}
-                  {layoutPrefs.showNoteTags && overflowTags > 0 && (
-                    <Text
-                      x={Math.max(12, noteView.w - 36)}
-                      y={Math.max(12, noteView.h - 23)}
-                      width={24}
-                      align="right"
-                      fontSize={10}
-                      fill={tagPalette.text}
-                      text={`+${overflowTags}`}
-                    />
-                  )}
-                </Group>
-              );
-            })}
+            <WallNotesLayer
+              visibleNotes={visibleNotes}
+              activeSelectedNoteIds={activeSelectedNoteIds}
+              selectedNoteId={ui.selectedNoteId}
+              flashNoteId={ui.flashNoteId}
+              hoveredNoteId={hoveredNoteId}
+              draggingNoteId={draggingNoteId}
+              resizingNoteDrafts={resizingNoteDrafts}
+              notesById={renderSnapshot.notes}
+              linkingFromNoteId={ui.linkingFromNoteId}
+              linkType={ui.linkType}
+              isTimeLocked={isTimeLocked}
+              showHeatmap={showHeatmap}
+              heatmapReferenceTs={activeTimelineEntry?.ts ?? wallClockTs}
+              showNoteTags={layoutPrefs.showNoteTags}
+              noteNodeRefs={noteNodeRefs}
+              dragSelectionStartRef={dragSelectionStartRef}
+              dragAnchorRef={dragAnchorRef}
+              dragSingleStartRef={dragSingleStartRef}
+              setHoveredNoteId={setHoveredNoteId}
+              setDraggingNoteId={setDraggingNoteId}
+              setGuideLines={setGuideLines}
+              setResizingNoteDrafts={setResizingNoteDrafts}
+              syncPrimarySelection={syncPrimarySelection}
+              selectSingleNote={selectSingleNote}
+              toggleSelectNote={toggleSelectNote}
+              setLinkingFromNote={setLinkingFromNote}
+              setEditing={setEditing}
+              openEditor={openEditor}
+              createLink={createLink}
+              resolveSnappedPosition={resolveSnappedPosition}
+              runHistoryGroup={runHistoryGroup}
+              moveNote={moveNote}
+              updateNote={updateNote}
+              duplicateNoteAt={duplicateNoteAt}
+              getNoteTextStyle={getNoteTextStyle}
+              truncateNoteText={truncateNoteText}
+              noteTagChipPalette={noteTagChipPalette}
+              recencyIntensity={recencyIntensity}
+              editingId={editing?.id}
+            />
 
             {ui.showClusters &&
               clusterBounds.map((cluster, index) => (
