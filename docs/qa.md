@@ -206,3 +206,20 @@ Expected:
 
 Expected:
 - All shortcuts work without needing mouse for command invocation.
+
+## Usability Polish - Icons, Tooltips, Responsive Panels
+1. Open `/wall` on desktop width (>= 1200px).
+2. Verify top bar controls display icon + label pairs with tighter spacing.
+3. Hover each top bar control and verify tooltip text appears; confirm shortcut hints show for:
+   `Search`, `Capture`, `Undo`, `Redo`, `Present`, `Timeline`, `Heatmap`, `Keys`.
+4. Verify left tools rail controls display icon + label pairs and tooltips, including:
+   `New Note`, `New Zone`, `Box Select`, `Start Link`, `Detect Clusters`.
+5. Resize viewport to tablet/mobile width (< 1120px).
+6. Verify left/right side panels are collapsed by default and can be opened using top bar `Tools` / `Details` toggles.
+7. With one or both side panels open on compact width, click the dimmed backdrop and verify panels close.
+8. Open each compact panel and use its `Close` button.
+
+Expected:
+- Control iconography is consistent across top bar and tools rail.
+- Tooltips render for controls, with shortcut chips where available.
+- On compact layouts, side panels behave like collapsible overlays and do not permanently occupy canvas space.

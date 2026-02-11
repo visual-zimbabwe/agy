@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Arrow, Group, Layer, Rect, Stage, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import Fuse from "fuse.js";
@@ -245,6 +245,215 @@ const boundsIntersect = (a: Bounds, b: Bounds) =>
 
 const makeDownloadId = () => new Date().toISOString().replace(/[:.]/g, "-");
 const recallStorageKey = "idea-wall-recall-searches";
+const compactPanelBreakpoint = 1120;
+
+type IconName =
+  | "search"
+  | "capture"
+  | "export"
+  | "undo"
+  | "redo"
+  | "present"
+  | "reset"
+  | "timeline"
+  | "heatmap"
+  | "shortcuts"
+  | "tools"
+  | "details"
+  | "note"
+  | "zone"
+  | "box"
+  | "link"
+  | "cluster"
+  | "panel-left"
+  | "panel-right";
+
+const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; className?: string }) => {
+  const common = "none";
+  const stroke = "currentColor";
+  const strokeWidth = 1.9;
+  const strokeLinecap = "round";
+  const strokeLinejoin = "round";
+
+  if (name === "search") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </svg>
+    );
+  }
+  if (name === "capture") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+        <path d="M8 12h8M12 8v8" />
+      </svg>
+    );
+  }
+  if (name === "export") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <path d="M12 3v11" />
+        <path d="m8.5 10.5 3.5 3.5 3.5-3.5" />
+        <path d="M4 16.5V20h16v-3.5" />
+      </svg>
+    );
+  }
+  if (name === "undo") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <path d="M9 7H4v5" />
+        <path d="M4 12a8 8 0 0 1 14.3-4.8" />
+      </svg>
+    );
+  }
+  if (name === "redo") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <path d="M15 7h5v5" />
+        <path d="M20 12a8 8 0 0 0-14.3-4.8" />
+      </svg>
+    );
+  }
+  if (name === "present") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <rect x="3.5" y="4.5" width="17" height="11" rx="2" />
+        <path d="M9 20h6M12 15.5V20" />
+      </svg>
+    );
+  }
+  if (name === "reset") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <path d="M4 12a8 8 0 1 0 2.3-5.7" />
+        <path d="M4 4v4h4" />
+      </svg>
+    );
+  }
+  if (name === "timeline") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <path d="M5 12h14" />
+        <circle cx="7" cy="12" r="1.8" />
+        <circle cx="12" cy="12" r="1.8" />
+        <circle cx="17" cy="12" r="1.8" />
+      </svg>
+    );
+  }
+  if (name === "heatmap") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <rect x="4" y="4" width="4" height="4" />
+        <rect x="10" y="4" width="4" height="4" />
+        <rect x="16" y="4" width="4" height="4" />
+        <rect x="4" y="10" width="4" height="4" />
+        <rect x="10" y="10" width="4" height="4" />
+        <rect x="16" y="10" width="4" height="4" />
+        <rect x="4" y="16" width="4" height="4" />
+        <rect x="10" y="16" width="4" height="4" />
+      </svg>
+    );
+  }
+  if (name === "shortcuts") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <rect x="3.5" y="7" width="17" height="10" rx="2" />
+        <path d="M8 12h.01M12 12h.01M16 12h.01" />
+      </svg>
+    );
+  }
+  if (name === "tools") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <path d="M4 20 10.5 13.5" />
+        <path d="m8.5 5.5 10 10" />
+        <path d="m15 4 5 5-3 3-5-5z" />
+      </svg>
+    );
+  }
+  if (name === "details") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <rect x="4" y="4" width="16" height="16" rx="2.5" />
+        <path d="M8 9h8M8 12h8M8 15h5" />
+      </svg>
+    );
+  }
+  if (name === "note") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <path d="M6 4h12v16H6z" />
+        <path d="M9 9h6M9 13h6" />
+      </svg>
+    );
+  }
+  if (name === "zone") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <rect x="4" y="5" width="16" height="14" rx="2" />
+        <path d="M8 9h8" />
+      </svg>
+    );
+  }
+  if (name === "box") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <rect x="5" y="5" width="14" height="14" strokeDasharray="3 2" />
+      </svg>
+    );
+  }
+  if (name === "link") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <path d="m10.5 13.5 3-3" />
+        <path d="M8 16a4 4 0 0 1 0-5.7l2.3-2.3a4 4 0 1 1 5.7 5.7l-1.3 1.3" />
+      </svg>
+    );
+  }
+  if (name === "cluster") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <circle cx="7" cy="8" r="2.2" />
+        <circle cx="16.5" cy="8.5" r="2.2" />
+        <circle cx="12" cy="16" r="2.2" />
+        <path d="M8.8 9.5 10.8 14M14 14.3l1.5-3.6M9.4 8.4h4.9" />
+      </svg>
+    );
+  }
+  if (name === "panel-left") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+        <path d="M9 4.5v15M13.5 9 10 12l3.5 3" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M15 4.5v15M10.5 9 14 12l-3.5 3" />
+    </svg>
+  );
+};
+
+type ControlTooltipProps = {
+  label: string;
+  shortcut?: string;
+  children: ReactNode;
+  className?: string;
+};
+
+const ControlTooltip = ({ label, shortcut, children, className = "relative inline-flex" }: ControlTooltipProps) => (
+  <span className={`${className} group`}>
+    {children}
+    <span className="pointer-events-none absolute -bottom-10 left-1/2 z-[90] hidden w-max max-w-[18rem] -translate-x-1/2 items-center gap-2 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-100 opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100 md:flex">
+      <span>{label}</span>
+      {shortcut && <span className="rounded border border-zinc-500 bg-zinc-800 px-1 py-0.5 font-mono text-[10px] text-zinc-200">{shortcut}</span>}
+    </span>
+  </span>
+);
 
 export const WallCanvas = () => {
   const notesMap = useWallStore((state) => state.notes);
@@ -320,6 +529,8 @@ export const WallCanvas = () => {
   });
   const [presentationMode, setPresentationMode] = useState(false);
   const [presentationIndex, setPresentationIndex] = useState(0);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth >= compactPanelBreakpoint));
+  const [rightPanelOpen, setRightPanelOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth >= compactPanelBreakpoint));
   const [publishedSnapshot] = useState<PersistedWallState | null>(() => {
     const encoded = readSnapshotParamFromLocation();
     if (!encoded) {
@@ -352,6 +563,7 @@ export const WallCanvas = () => {
   const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
   const isTimeLocked = timelineMode || publishedReadOnly || presentationMode;
+  const isCompactLayout = viewport.w < compactPanelBreakpoint;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -1368,13 +1580,13 @@ export const WallCanvas = () => {
           .reduce<string[]>((common, tags) => (common.length === 0 ? [...tags] : common.filter((tag) => tags.includes(tag))), [])
       : selectedNote?.tags ?? [];
   const toolbarBtn =
-    "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40";
+    "inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40";
   const toolbarBtnPrimary =
-    "rounded-lg border border-zinc-900 bg-zinc-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40";
+    "inline-flex items-center gap-1.5 rounded-lg border border-zinc-900 bg-zinc-900 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40";
   const toolbarBtnActive =
-    "rounded-lg border border-sky-400 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40";
+    "inline-flex items-center gap-1.5 rounded-lg border border-sky-400 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40";
   const toolbarBtnAccent =
-    "rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40";
+    "inline-flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40";
   const toolbarBtnCompact =
     "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-40";
   const toolbarSelect =
@@ -1384,77 +1596,143 @@ export const WallCanvas = () => {
   const toolbarInput =
     "w-32 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-700 placeholder:text-zinc-400 outline-none transition focus:border-sky-400 disabled:opacity-40";
   const toolbarTagChip = "rounded-full border border-zinc-300 bg-zinc-100 px-2 py-1 text-[11px] text-zinc-700 transition hover:bg-zinc-200";
-  const toolbarSurface = "rounded-2xl border border-zinc-200 bg-white/95 p-2 shadow-lg backdrop-blur";
+  const toolbarSurface = "rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-md backdrop-blur";
 
   return (
     <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
-      <header className="mx-3 mt-3 flex flex-col gap-2 md:mx-4">
+      <header className="mx-2 mt-2 flex flex-col gap-1.5 md:mx-3 md:mt-3">
         <div className={`${toolbarSurface} flex flex-wrap items-center gap-1`}>
-          <button type="button" onClick={() => setSearchOpen(true)} className={toolbarBtn}>
-            Search (Ctrl+K)
-          </button>
-          <button
-            type="button"
-            onClick={() => setQuickCaptureOpen((previous) => !previous)}
-            disabled={isTimeLocked}
-            className={quickCaptureOpen ? toolbarBtnActive : toolbarBtn}
-          >
-            Quick Capture (Q)
-          </button>
-          <button type="button" onClick={() => setExportOpen(true)} className={toolbarBtn}>
-            Export
-          </button>
-          <button type="button" onClick={undo} disabled={!canUndo || isTimeLocked} className={toolbarBtn}>
-            Undo
-          </button>
-          <button type="button" onClick={redo} disabled={!canRedo || isTimeLocked} className={toolbarBtn}>
-            Redo
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setPresentationMode((previous) => {
-                const next = !previous;
-                if (next) {
-                  setPresentationIndex(0);
-                  setQuickCaptureOpen(false);
-                  setSearchOpen(false);
-                  setExportOpen(false);
-                }
-                return next;
-              });
-            }}
-            className={presentationMode ? toolbarBtnAccent : toolbarBtn}
-          >
-            Present (P)
-          </button>
-          <button type="button" onClick={resetView} className={toolbarBtn}>
-            Reset View
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setTimelineMode((previous) => {
-                const next = !previous;
-                if (next && timelineEntries.length > 0) {
-                  setTimelineIndex(timelineEntries.length - 1);
-                }
-                if (!next) {
-                  setIsTimelinePlaying(false);
-                }
-                return next;
-              });
-            }}
-            className={timelineMode ? toolbarBtnActive : toolbarBtn}
-          >
-            Timeline (T)
-          </button>
-          <button type="button" onClick={() => setShowHeatmap((previous) => !previous)} className={showHeatmap ? toolbarBtnActive : toolbarBtn}>
-            Heatmap (H)
-          </button>
-          <button type="button" onClick={() => setShortcutsOpen(true)} className={toolbarBtn}>
-            Shortcuts (?)
-          </button>
+          {!presentationMode && (
+            <>
+              {!publishedReadOnly && (
+                <ControlTooltip label={leftPanelOpen ? "Hide tools panel" : "Show tools panel"}>
+                  <button
+                    type="button"
+                    onClick={() => setLeftPanelOpen((previous) => !previous)}
+                    className={leftPanelOpen ? toolbarBtnActive : toolbarBtn}
+                    title={leftPanelOpen ? "Hide tools panel" : "Show tools panel"}
+                  >
+                    <Icon name="panel-left" />
+                    <span>Tools</span>
+                  </button>
+                </ControlTooltip>
+              )}
+              <ControlTooltip label={rightPanelOpen ? "Hide details panel" : "Show details panel"}>
+                <button
+                  type="button"
+                  onClick={() => setRightPanelOpen((previous) => !previous)}
+                  className={rightPanelOpen ? toolbarBtnActive : toolbarBtn}
+                  title={rightPanelOpen ? "Hide details panel" : "Show details panel"}
+                >
+                  <Icon name="panel-right" />
+                  <span>Details</span>
+                </button>
+              </ControlTooltip>
+            </>
+          )}
+          <ControlTooltip label="Open search palette" shortcut="Ctrl/Cmd+K">
+            <button type="button" onClick={() => setSearchOpen(true)} className={toolbarBtn} title="Open search palette (Ctrl/Cmd+K)">
+              <Icon name="search" />
+              <span>Search</span>
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Toggle quick capture" shortcut="Q or Ctrl/Cmd+J">
+            <button
+              type="button"
+              onClick={() => setQuickCaptureOpen((previous) => !previous)}
+              disabled={isTimeLocked}
+              className={quickCaptureOpen ? toolbarBtnActive : toolbarBtn}
+              title="Toggle quick capture (Q or Ctrl/Cmd+J)"
+            >
+              <Icon name="capture" />
+              <span>Capture</span>
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Export wall content">
+            <button type="button" onClick={() => setExportOpen(true)} className={toolbarBtn} title="Export wall content">
+              <Icon name="export" />
+              <span>Export</span>
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Undo last action" shortcut="Ctrl/Cmd+Z">
+            <button type="button" onClick={undo} disabled={!canUndo || isTimeLocked} className={toolbarBtn} title="Undo (Ctrl/Cmd+Z)">
+              <Icon name="undo" />
+              <span>Undo</span>
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Redo last action" shortcut="Ctrl/Cmd+Shift+Z">
+            <button type="button" onClick={redo} disabled={!canRedo || isTimeLocked} className={toolbarBtn} title="Redo (Ctrl/Cmd+Shift+Z)">
+              <Icon name="redo" />
+              <span>Redo</span>
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Toggle presentation mode" shortcut="P">
+            <button
+              type="button"
+              onClick={() => {
+                setPresentationMode((previous) => {
+                  const next = !previous;
+                  if (next) {
+                    setPresentationIndex(0);
+                    setQuickCaptureOpen(false);
+                    setSearchOpen(false);
+                    setExportOpen(false);
+                  }
+                  return next;
+                });
+              }}
+              className={presentationMode ? toolbarBtnAccent : toolbarBtn}
+              title="Toggle presentation mode (P)"
+            >
+              <Icon name="present" />
+              <span>Present</span>
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Reset camera to fit content">
+            <button type="button" onClick={resetView} className={toolbarBtn} title="Reset camera to fit content">
+              <Icon name="reset" />
+              <span>Reset</span>
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Toggle timeline mode" shortcut="T">
+            <button
+              type="button"
+              onClick={() => {
+                setTimelineMode((previous) => {
+                  const next = !previous;
+                  if (next && timelineEntries.length > 0) {
+                    setTimelineIndex(timelineEntries.length - 1);
+                  }
+                  if (!next) {
+                    setIsTimelinePlaying(false);
+                  }
+                  return next;
+                });
+              }}
+              className={timelineMode ? toolbarBtnActive : toolbarBtn}
+              title="Toggle timeline mode (T)"
+            >
+              <Icon name="timeline" />
+              <span>Timeline</span>
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Toggle recency heatmap" shortcut="H">
+            <button
+              type="button"
+              onClick={() => setShowHeatmap((previous) => !previous)}
+              className={showHeatmap ? toolbarBtnActive : toolbarBtn}
+              title="Toggle heatmap (H)"
+            >
+              <Icon name="heatmap" />
+              <span>Heatmap</span>
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Open keyboard shortcuts" shortcut="?">
+            <button type="button" onClick={() => setShortcutsOpen(true)} className={toolbarBtn} title="Open keyboard shortcuts (?)">
+              <Icon name="shortcuts" />
+              <span>Keys</span>
+            </button>
+          </ControlTooltip>
         </div>
 
         {!publishedReadOnly && !presentationMode && (
@@ -1581,42 +1859,95 @@ export const WallCanvas = () => {
           </div>
         )}
 
+        {!presentationMode && isCompactLayout && (leftPanelOpen || rightPanelOpen) && (
+          <button
+            type="button"
+            aria-label="Close side panels"
+            onClick={() => {
+              setLeftPanelOpen(false);
+              setRightPanelOpen(false);
+            }}
+            className="absolute inset-0 z-[34] bg-zinc-900/20"
+          />
+        )}
+
         {!presentationMode && !publishedReadOnly && (
-          <aside className="pointer-events-auto absolute left-3 top-3 z-30 w-40 rounded-2xl border border-zinc-200/80 bg-white/95 p-2 shadow-xl backdrop-blur-sm">
-            <p className="px-1 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Tools</p>
+          <aside
+            className={`pointer-events-auto absolute z-40 rounded-2xl border border-zinc-200/80 bg-white/95 p-2 shadow-xl backdrop-blur-sm transition ${
+              isCompactLayout
+                ? `left-2 top-2 w-[min(18rem,calc(100%-1rem))] ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
+                : "left-3 top-3 w-44"
+            }`}
+          >
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Tools</p>
+              {isCompactLayout && (
+                <button type="button" onClick={() => setLeftPanelOpen(false)} className="rounded border border-zinc-300 px-1.5 py-0.5 text-[10px] text-zinc-600">
+                  Close
+                </button>
+              )}
+            </div>
             <div className="space-y-1">
-              <button type="button" onClick={makeNoteAtViewportCenter} disabled={isTimeLocked} className={`w-full text-left ${toolbarBtnPrimary}`}>
-                New Note
-              </button>
-              <button type="button" onClick={makeZoneAtViewportCenter} disabled={isTimeLocked} className={`w-full text-left ${toolbarBtn}`}>
-                New Zone
-              </button>
-              <button type="button" onClick={() => setBoxSelectMode((value) => !value)} className={`w-full text-left ${boxSelectMode ? toolbarBtnActive : toolbarBtn}`}>
-                Box Select
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (isTimeLocked || !ui.selectedNoteId) {
-                    return;
-                  }
-                  setLinkingFromNote(ui.selectedNoteId);
-                }}
-                disabled={!ui.selectedNoteId || isTimeLocked}
-                className={`w-full text-left ${ui.linkingFromNoteId ? toolbarBtnActive : toolbarBtn}`}
-              >
-                {ui.linkingFromNoteId ? "Pick Link Target" : "Start Link"}
-              </button>
-              <select value={ui.linkType} onChange={(event) => setLinkType(event.target.value as LinkType)} className={`w-full ${toolbarSelect}`}>
-                {LINK_TYPES.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <button type="button" onClick={() => setShowClusters(!ui.showClusters)} className={`w-full text-left ${ui.showClusters ? toolbarBtnActive : toolbarBtn}`}>
-                Detect Clusters
-              </button>
+              <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd+N" className="relative block">
+                <button type="button" onClick={makeNoteAtViewportCenter} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtnPrimary}`} title="Create note (N or Ctrl/Cmd+N)">
+                  <Icon name="note" />
+                  <span>New Note</span>
+                </button>
+              </ControlTooltip>
+              <ControlTooltip label="Create zone at viewport center" className="relative block">
+                <button type="button" onClick={makeZoneAtViewportCenter} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create zone at viewport center">
+                  <Icon name="zone" />
+                  <span>New Zone</span>
+                </button>
+              </ControlTooltip>
+              <ControlTooltip label="Toggle box selection mode" className="relative block">
+                <button
+                  type="button"
+                  onClick={() => setBoxSelectMode((value) => !value)}
+                  className={`w-full justify-start ${boxSelectMode ? toolbarBtnActive : toolbarBtn}`}
+                  title="Toggle box selection mode"
+                >
+                  <Icon name="box" />
+                  <span>Box Select</span>
+                </button>
+              </ControlTooltip>
+              <ControlTooltip label="Start linking from selected note" shortcut="Ctrl/Cmd+L" className="relative block">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isTimeLocked || !ui.selectedNoteId) {
+                      return;
+                    }
+                    setLinkingFromNote(ui.selectedNoteId);
+                  }}
+                  disabled={!ui.selectedNoteId || isTimeLocked}
+                  className={`w-full justify-start ${ui.linkingFromNoteId ? toolbarBtnActive : toolbarBtn}`}
+                  title="Start linking (Ctrl/Cmd+L)"
+                >
+                  <Icon name="link" />
+                  <span>{ui.linkingFromNoteId ? "Pick Link Target" : "Start Link"}</span>
+                </button>
+              </ControlTooltip>
+              <ControlTooltip label="Pick link type" className="relative block">
+                <select value={ui.linkType} onChange={(event) => setLinkType(event.target.value as LinkType)} className={`w-full ${toolbarSelect}`} title="Pick link type">
+                  {LINK_TYPES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </ControlTooltip>
+              <ControlTooltip label="Toggle automatic cluster outlines" className="relative block">
+                <button
+                  type="button"
+                  onClick={() => setShowClusters(!ui.showClusters)}
+                  className={`w-full justify-start ${ui.showClusters ? toolbarBtnActive : toolbarBtn}`}
+                  title="Toggle cluster outlines"
+                >
+                  <Icon name="cluster" />
+                  <span>Detect Clusters</span>
+                </button>
+              </ControlTooltip>
             </div>
           </aside>
         )}
@@ -2203,8 +2534,21 @@ export const WallCanvas = () => {
         )}
 
         {!presentationMode && (
-          <aside className="pointer-events-auto absolute right-3 top-3 z-30 w-80 rounded-2xl border border-zinc-300/80 bg-white/92 p-3 shadow-xl backdrop-blur-sm">
-            <h3 className="text-sm font-semibold text-zinc-900">Details</h3>
+          <aside
+            className={`pointer-events-auto absolute z-40 rounded-2xl border border-zinc-300/80 bg-white/92 p-3 shadow-xl backdrop-blur-sm transition ${
+              isCompactLayout
+                ? `right-2 top-2 w-[min(24rem,calc(100%-1rem))] ${rightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-[110%] opacity-0 pointer-events-none"}`
+                : "right-3 top-3 w-80"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-zinc-900">Details</h3>
+              {isCompactLayout && (
+                <button type="button" onClick={() => setRightPanelOpen(false)} className="rounded border border-zinc-300 px-1.5 py-0.5 text-[10px] text-zinc-600">
+                  Close
+                </button>
+              )}
+            </div>
             <p className="mt-1 text-xs text-zinc-600">Tags, templates, history and recall controls for the current wall.</p>
 
             <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
