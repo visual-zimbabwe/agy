@@ -152,6 +152,19 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   }, [isListening, open]);
 
   useEffect(() => {
+    if (!disabled || !isListening) {
+      return;
+    }
+    keepListeningRef.current = false;
+    terminalErrorRef.current = false;
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
+    recognitionRef.current?.stop();
+  }, [disabled, isListening]);
+
+  useEffect(() => {
     return () => {
       keepListeningRef.current = false;
       terminalErrorRef.current = false;
@@ -315,7 +328,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       }
       setInterimTranscript("");
       interimTranscriptRef.current = "";
-      if (keepListeningRef.current && !terminalErrorRef.current && open && !disabled) {
+      if (keepListeningRef.current && !terminalErrorRef.current) {
         if (restartTimeoutRef.current) {
           clearTimeout(restartTimeoutRef.current);
           restartTimeoutRef.current = null;
