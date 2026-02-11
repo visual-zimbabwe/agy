@@ -2223,7 +2223,7 @@ export const WallCanvas = () => {
         )}
 
         {statusMessage && (
-          <div className="inline-flex max-w-[min(96vw,40rem)] items-center rounded-xl border border-zinc-200 bg-white/85 px-3 py-1.5 text-xs text-zinc-600 shadow-sm">
+          <div className="inline-flex w-fit max-w-[min(96vw,40rem)] self-start items-center rounded-xl border border-zinc-200 bg-white/85 px-3 py-1.5 text-xs text-zinc-600 shadow-sm">
             <span className="truncate">{statusMessage}</span>
           </div>
         )}
