@@ -1,5 +1,9 @@
 "use client";
 
+import { Badge } from "@/components/ui/Badge";
+import { ModalShell } from "@/components/ui/ModalShell";
+import { Panel } from "@/components/ui/Panel";
+
 type ShortcutsHelpProps = {
   open: boolean;
   onClose: () => void;
@@ -34,27 +38,22 @@ export const ShortcutsHelp = ({ open, onClose }: ShortcutsHelpProps) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 p-4">
-      <div className="w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900">Keyboard Shortcuts</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-zinc-300 px-3 py-1 text-sm text-zinc-700"
-          >
-            Close
-          </button>
-        </div>
-        <div className="mt-4 space-y-2">
-          {shortcuts.map(([combo, label]) => (
-            <div key={combo} className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm">
-              <span className="font-medium text-zinc-800">{combo}</span>
-              <span className="text-zinc-600">{label}</span>
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title="Keyboard Shortcuts"
+      maxWidthClassName="max-w-xl"
+    >
+      <div className="space-y-2">
+        {shortcuts.map(([combo, label]) => (
+          <Panel key={combo} tone="muted" className="rounded-[var(--radius-md)] px-3 py-2 shadow-none">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <Badge className="rounded-[var(--radius-sm)] font-mono text-[11px]">{combo}</Badge>
+              <span className="text-[var(--color-text-muted)]">{label}</span>
             </div>
-          ))}
-        </div>
+          </Panel>
+        ))}
       </div>
-    </div>
+    </ModalShell>
   );
 };

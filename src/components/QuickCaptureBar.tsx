@@ -1,6 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { TextAreaField } from "@/components/ui/Field";
+import { ModalShell } from "@/components/ui/ModalShell";
 import { parseTaggedText } from "@/lib/tag-utils";
 
 type CaptureItem = {
@@ -475,19 +480,15 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const parsedCount = parseCaptureItems(text).length;
 
   return (
-    <div className="fixed left-1/2 top-16 z-[70] w-[min(900px,95vw)] -translate-x-1/2 rounded-2xl border border-zinc-300 bg-white/95 p-3 shadow-2xl backdrop-blur-sm">
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-zinc-900">Quick Capture</h3>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-700"
-        >
-          Close
-        </button>
-      </div>
-
-      <textarea
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title="Quick Capture"
+      description="Type or dictate ideas. One line becomes one note."
+      maxWidthClassName="max-w-[900px]"
+      position="top"
+    >
+      <TextAreaField
         autoFocus
         value={text}
         onChange={(event) => setText(event.target.value)}
@@ -498,61 +499,49 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
           }
         }}
         placeholder="Type ideas quickly. One line equals one note. Use #tags inline."
-        className="h-24 w-full resize-none rounded-xl border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500"
+        className="h-24 resize-none"
       />
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={submitCapture}
-          disabled={disabled || parsedCount === 0}
-          className="rounded bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-45"
-        >
+        <Button onClick={submitCapture} disabled={disabled || parsedCount === 0} size="sm" variant="primary">
           Capture {parsedCount > 0 ? `(${parsedCount})` : ""}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           onClick={() => {
             void captureClipboard();
           }}
           disabled={disabled}
-          className="rounded border border-zinc-300 px-3 py-1.5 text-xs text-zinc-800 disabled:opacity-45"
+          size="sm"
         >
           Paste to Notes
-        </button>
+        </Button>
         {!voiceActive && (
-          <button
-            type="button"
+          <Button
             onClick={startVoice}
             disabled={disabled || !recognitionSupported}
             title={!recognitionSupported ? "Browser does not support SpeechRecognition" : undefined}
-            className="rounded border border-zinc-300 px-3 py-1.5 text-xs text-zinc-800 disabled:opacity-45"
+            size="sm"
           >
             Start Voice
-          </button>
+          </Button>
         )}
         {voiceActive && (
-          <button
-            type="button"
-            onClick={() => stopVoice("manual")}
-            disabled={disabled}
-            className="rounded bg-red-500 px-3 py-1.5 text-xs text-white disabled:opacity-45"
-          >
+          <Button onClick={() => stopVoice("manual")} disabled={disabled} size="sm" variant="danger">
             Stop Voice
-          </button>
+          </Button>
         )}
-        <span className="ml-auto text-xs text-zinc-600">Ctrl/Cmd + Enter to capture</span>
+        <Badge className="ml-auto">Ctrl/Cmd + Enter to capture</Badge>
       </div>
 
-      {voiceMessage && <p className="mt-2 text-xs text-zinc-600">{voiceMessage}</p>}
+      {voiceMessage && <p className="mt-2 text-xs text-[var(--color-text-muted)]">{voiceMessage}</p>}
       {voiceActive && interimTranscript && (
-        <p className="mt-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-700">
+        <p className="mt-1 rounded-[var(--radius-sm)] border border-[var(--color-border-muted)] bg-[var(--color-surface-muted)] px-2 py-1 text-xs text-[var(--color-text)]">
           Live: {interimTranscript}
         </p>
       )}
       {voiceDebug.length > 0 && (
-        <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-[11px] text-zinc-600">
-          <p className="font-semibold text-zinc-700">Voice Debug</p>
+        <div className="mt-2 rounded-[var(--radius-sm)] border border-[var(--color-border-muted)] bg-[var(--color-surface-muted)] px-2 py-1.5 text-[11px] text-[var(--color-text-muted)]">
+          <p className="font-semibold text-[var(--color-text)]">Voice Debug</p>
           {voiceDebug.map((line, index) => (
             <p key={`${line}-${index}`} className="truncate">
               {line}
@@ -560,6 +549,6 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
           ))}
         </div>
       )}
-    </div>
+    </ModalShell>
   );
 };

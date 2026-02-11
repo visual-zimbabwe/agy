@@ -2,15 +2,44 @@
 
 :root {
   --background: #f8f6f1;
-  --foreground: #111827;
+  --foreground: #1f2430;
+  --color-surface: #fffefb;
+  --color-surface-muted: #f4f1ea;
+  --color-surface-elevated: rgb(255 255 255 / 0.94);
+  --color-border: #d9d4c7;
+  --color-border-muted: #e8e3d8;
+  --color-text: var(--foreground);
+  --color-text-muted: #5f6676;
+  --color-accent: #2f4858;
+  --color-accent-strong: #243a47;
+  --color-accent-foreground: #f8fafc;
+  --color-danger: #dc2626;
+  --color-danger-strong: #b91c1c;
+  --color-focus: #0284c7;
+  --color-overlay: rgb(24 32 44 / 0.34);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --shadow-sm: 0 1px 2px rgb(17 24 39 / 0.08);
+  --shadow-md: 0 8px 18px rgb(15 23 42 / 0.12);
+  --shadow-lg: 0 18px 36px rgb(15 23 42 / 0.2);
+  --motion-fast: 140ms;
+  --motion-normal: 220ms;
+  --blur-panel: 8px;
+  --z-overlay: 120;
+  --font-display: "Rockwell", "Palatino Linotype", "Book Antiqua", serif;
+  --font-body: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
+  --font-mono-stack: "JetBrains Mono", "Cascadia Code", monospace;
+  --font-hand-stack: "Comic Sans MS", "Bradley Hand", cursive;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", "Cascadia Code", monospace;
-  --font-hand: "Comic Sans MS", "Bradley Hand", cursive;
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono-stack);
+  --font-hand: var(--font-hand-stack);
 }
 
 * {
@@ -27,9 +56,36 @@ body {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: var(--font-body);
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
 }
 
 textarea {
-  font-family: "Comic Sans MS", "Bradley Hand", cursive;
+  font-family: var(--font-hand-stack);
+}
+
+button,
+input,
+select,
+textarea {
+  transition-duration: var(--motion-fast);
+  transition-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

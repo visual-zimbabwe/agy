@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 
+import { Button } from "@/components/ui/Button";
+import { FieldLabel, SelectField } from "@/components/ui/Field";
+import { ModalShell } from "@/components/ui/ModalShell";
+
 export type ExportScope = "whole" | "view" | "zone" | "selection";
 
 type ExportModalProps = {
@@ -37,90 +41,65 @@ export const ExportModal = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xl">
-        <h2 className="text-lg font-semibold text-zinc-900">Export</h2>
-        <p className="mt-1 text-sm text-zinc-600">Create image/text exports and full JSON backups.</p>
-
-        <div className="mt-4 space-y-3">
-          <label className="block text-sm font-medium text-zinc-800">PNG Scope</label>
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title="Export"
+      description="Create image/text exports and full JSON backups."
+      maxWidthClassName="max-w-2xl"
+    >
+      <div className="space-y-3">
+        <FieldLabel>PNG Scope</FieldLabel>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {[
               { value: "whole", label: "Whole wall" },
               { value: "view", label: "Current view" },
               { value: "zone", label: "Selected zone" },
               { value: "selection", label: "Selected notes" },
             ].map((option) => (
-              <button
+              <Button
                 key={option.value}
-                type="button"
                 onClick={() => setScope(option.value as ExportScope)}
-                className={`rounded-lg border px-3 py-2 text-sm ${
-                  scope === option.value
-                    ? "border-zinc-900 bg-zinc-900 text-white"
-                    : "border-zinc-300 bg-white text-zinc-800"
-                }`}
+                variant={scope === option.value ? "primary" : "secondary"}
+                size="md"
               >
                 {option.label}
-              </button>
+              </Button>
             ))}
-          </div>
-
-          <label className="block text-sm font-medium text-zinc-800">Pixel Ratio</label>
-          <input
-            type="range"
-            min={1}
-            max={4}
-            step={1}
-            value={pixelRatio}
-            onChange={(event) => setPixelRatio(Number(event.target.value))}
-            className="w-full"
-          />
-          <p className="text-xs text-zinc-500">Current: {pixelRatio}x</p>
-
-          <label className="mt-2 block text-sm font-medium text-zinc-800">Backup Reminder</label>
-          <select
-            value={backupReminderCadence}
-            onChange={(event) => onBackupReminderCadenceChange(event.target.value as "off" | "daily" | "weekly")}
-            className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm text-zinc-800"
-          >
-            <option value="off">Off</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-          </select>
-          <p className="text-xs text-zinc-500">Optional reminder to download a full JSON backup.</p>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onExportPng(scope, pixelRatio)}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-          >
-            Export PNG
-          </button>
-          <button
-            type="button"
-            onClick={() => onExportPdf(scope)}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800"
-          >
-            Export PDF
-          </button>
-          <button
-            type="button"
-            onClick={onExportMarkdown}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800"
-          >
-            Export Markdown
-          </button>
-          <button
-            type="button"
-            onClick={onExportJson}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800"
-          >
-            Export JSON
-          </button>
-          <label className="cursor-pointer rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800">
+        <FieldLabel>Pixel Ratio</FieldLabel>
+        <input
+          type="range"
+          min={1}
+          max={4}
+          step={1}
+          value={pixelRatio}
+          onChange={(event) => setPixelRatio(Number(event.target.value))}
+          className="w-full accent-[var(--color-accent)]"
+        />
+        <p className="text-xs text-[var(--color-text-muted)]">Current: {pixelRatio}x</p>
+
+        <FieldLabel className="mt-2">Backup Reminder</FieldLabel>
+        <SelectField
+          value={backupReminderCadence}
+          onChange={(event) => onBackupReminderCadenceChange(event.target.value as "off" | "daily" | "weekly")}
+        >
+          <option value="off">Off</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </SelectField>
+        <p className="text-xs text-[var(--color-text-muted)]">Optional reminder to download a full JSON backup.</p>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        <Button variant="primary" onClick={() => onExportPng(scope, pixelRatio)}>
+          Export PNG
+        </Button>
+        <Button onClick={() => onExportPdf(scope)}>Export PDF</Button>
+        <Button onClick={onExportMarkdown}>Export Markdown</Button>
+        <Button onClick={onExportJson}>Export JSON</Button>
+        <label className="cursor-pointer rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-muted)]">
             Import JSON
             <input
               type="file"
@@ -134,23 +113,12 @@ export const ExportModal = ({
                 event.currentTarget.value = "";
               }}
             />
-          </label>
-          <button
-            type="button"
-            onClick={onPublishSnapshot}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800"
-          >
-            Publish Read-Only Link
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="ml-auto rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700"
-          >
-            Close
-          </button>
-        </div>
+        </label>
+        <Button onClick={onPublishSnapshot}>Publish Read-Only Link</Button>
+        <Button className="ml-auto" onClick={onClose}>
+          Close
+        </Button>
       </div>
-    </div>
+    </ModalShell>
   );
 };

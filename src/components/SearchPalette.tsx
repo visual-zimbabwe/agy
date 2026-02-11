@@ -3,6 +3,8 @@
 import Fuse from "fuse.js";
 import { useEffect, useMemo, useState } from "react";
 
+import { ModalShell } from "@/components/ui/ModalShell";
+import { TextField } from "@/components/ui/Field";
 import type { Note } from "@/features/wall/types";
 
 type SearchPaletteProps = {
@@ -49,18 +51,24 @@ export const SearchPalette = ({ open, notes, onClose, onSelect }: SearchPaletteP
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-zinc-950/35 px-4 pt-24 backdrop-blur-[1px]">
-      <div className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl">
-        <input
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title="Search Notes"
+      description="Find notes by text and tags."
+      maxWidthClassName="max-w-2xl"
+      position="top"
+    >
+      <TextField
           autoFocus
           type="text"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search notes by text..."
-          className="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm outline-none ring-0 focus:border-zinc-500"
-        />
-        <div className="mt-3 max-h-96 overflow-auto rounded-xl border border-zinc-200">
-          {results.length === 0 && <p className="px-4 py-3 text-sm text-zinc-500">No matches.</p>}
+          className="px-4 py-3"
+      />
+      <div className="mt-3 max-h-96 overflow-auto rounded-[var(--radius-lg)] border border-[var(--color-border-muted)]">
+        {results.length === 0 && <p className="px-4 py-3 text-sm text-[var(--color-text-muted)]">No matches.</p>}
           {results.map(({ item }) => (
             <button
               type="button"
@@ -69,19 +77,18 @@ export const SearchPalette = ({ open, notes, onClose, onSelect }: SearchPaletteP
                 onSelect(item.id);
                 onClose();
               }}
-              className="block w-full border-b border-zinc-100 px-4 py-3 text-left last:border-b-0 hover:bg-zinc-50"
+              className="block w-full border-b border-[var(--color-border-muted)] px-4 py-3 text-left last:border-b-0 hover:bg-[var(--color-surface-muted)]"
             >
-              <p className="line-clamp-1 text-sm font-medium text-zinc-900">
+              <p className="line-clamp-1 text-sm font-medium text-[var(--color-text)]">
                 {item.text.trim().split("\n")[0] || "Untitled note"}
               </p>
-              <p className="line-clamp-2 text-xs text-zinc-500">{item.text || "(empty note)"}</p>
+              <p className="line-clamp-2 text-xs text-[var(--color-text-muted)]">{item.text || "(empty note)"}</p>
               {item.tags.length > 0 && (
-                <p className="mt-1 line-clamp-1 text-[11px] text-zinc-500">#{item.tags.join(" #")}</p>
+                <p className="mt-1 line-clamp-1 text-[11px] text-[var(--color-text-muted)]">#{item.tags.join(" #")}</p>
               )}
             </button>
           ))}
-        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 };
