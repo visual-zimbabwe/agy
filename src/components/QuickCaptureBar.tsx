@@ -124,6 +124,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const interimTranscriptRef = useRef("");
   const keepListeningRef = useRef(false);
+  const stopRequestedRef = useRef(true);
   const terminalErrorRef = useRef(false);
   const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openRef = useRef(open);
@@ -149,6 +150,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   useEffect(() => {
     if (!open && (keepListeningRef.current || isListening)) {
       keepListeningRef.current = false;
+      stopRequestedRef.current = true;
       terminalErrorRef.current = false;
       if (restartTimeoutRef.current) {
         clearTimeout(restartTimeoutRef.current);
@@ -168,7 +170,14 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   }, [disabled, isListening, open]);
 
   useEffect(() => {
-    if (!open || disabled || isListening || !keepListeningRef.current || terminalErrorRef.current) {
+    if (
+      !open ||
+      disabled ||
+      isListening ||
+      stopRequestedRef.current ||
+      !keepListeningRef.current ||
+      terminalErrorRef.current
+    ) {
       return;
     }
     const recognition = recognitionRef.current;
@@ -183,6 +192,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
         pushVoiceDebug("resume() called");
       } catch {
         keepListeningRef.current = false;
+        stopRequestedRef.current = true;
         setIsListening(false);
         setVoiceMessage("Unable to restart voice capture. Retry and confirm microphone permission.");
         pushVoiceDebug("resume() threw");
@@ -194,6 +204,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   useEffect(() => {
     return () => {
       keepListeningRef.current = false;
+      stopRequestedRef.current = true;
       terminalErrorRef.current = false;
       if (restartTimeoutRef.current) {
         clearTimeout(restartTimeoutRef.current);
@@ -247,6 +258,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
 
     if (isListening) {
       keepListeningRef.current = false;
+      stopRequestedRef.current = true;
       terminalErrorRef.current = false;
       if (restartTimeoutRef.current) {
         clearTimeout(restartTimeoutRef.current);
@@ -274,6 +286,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     recognition.interimResults = true;
     recognition.lang = "en-US";
     keepListeningRef.current = true;
+    stopRequestedRef.current = false;
     terminalErrorRef.current = false;
     pushVoiceDebug("init recognizer");
 
@@ -334,13 +347,14 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       ]);
       if (terminalErrors.has(event.error)) {
         keepListeningRef.current = false;
+        stopRequestedRef.current = true;
         terminalErrorRef.current = true;
       }
-      if (!keepListeningRef.current) {
+      if (stopRequestedRef.current || terminalErrorRef.current) {
         setIsListening(false);
       }
       pushVoiceDebug(
-        `error-state keep=${keepListeningRef.current} terminal=${terminalErrorRef.current} listening=${isListening}`
+        `error-state keep=${keepListeningRef.current} stop=${stopRequestedRef.current} terminal=${terminalErrorRef.current} listening=${isListening}`
       );
       setVoiceMessage(messageByCode[event.error] ?? `Voice recognition error: ${event.error}`);
       setInterimTranscript("");
@@ -359,10 +373,10 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       setInterimTranscript("");
       interimTranscriptRef.current = "";
       pushVoiceDebug(
-        `end-state keep=${keepListeningRef.current} terminal=${terminalErrorRef.current} open=${open} disabled=${Boolean(disabled)}`
+        `end-state keep=${keepListeningRef.current} stop=${stopRequestedRef.current} terminal=${terminalErrorRef.current} open=${open} disabled=${Boolean(disabled)}`
       );
       if (
-        keepListeningRef.current &&
+        !stopRequestedRef.current &&
         !terminalErrorRef.current &&
         openRef.current &&
         !disabledRef.current
@@ -375,7 +389,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
         restartTimeoutRef.current = setTimeout(() => {
           if (
             recognitionRef.current !== recognition ||
-            !keepListeningRef.current ||
+            stopRequestedRef.current ||
             terminalErrorRef.current ||
             !openRef.current ||
             disabledRef.current
@@ -389,6 +403,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
             pushVoiceDebug("restart() called");
           } catch {
             keepListeningRef.current = false;
+            stopRequestedRef.current = true;
             setIsListening(false);
             setVoiceMessage("Unable to restart voice capture. Retry and confirm microphone permission.");
             pushVoiceDebug("restart() threw");
