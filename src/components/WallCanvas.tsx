@@ -21,6 +21,7 @@ import { WallOverlaysLayer } from "@/components/wall/WallOverlaysLayer";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallStage } from "@/components/wall/WallStage";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
+import { useWallTimeline } from "@/components/wall/useWallTimeline";
 import { WallToolbar } from "@/components/wall/WallToolbar";
 import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
 import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
@@ -923,6 +924,15 @@ export const WallCanvas = () => {
     deleteGroup,
   });
 
+  const { jumpToTimelineDay } = useWallTimeline({
+    timelineMode,
+    isTimelinePlaying,
+    timelineEntries,
+    setTimelineMode,
+    setIsTimelinePlaying,
+    setTimelineIndex,
+  });
+
   useEffect(() => {
     if (!ui.flashNoteId) {
       return;
@@ -931,24 +941,6 @@ export const WallCanvas = () => {
     const timer = setTimeout(() => setFlashNote(undefined), flashDurationMs);
     return () => clearTimeout(timer);
   }, [setFlashNote, ui.flashNoteId]);
-
-  useEffect(() => {
-    if (!isTimelinePlaying || timelineEntries.length < 2) {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setTimelineIndex((previous) => {
-        if (previous >= timelineEntries.length - 1) {
-          setIsTimelinePlaying(false);
-          return previous;
-        }
-        return previous + 1;
-      });
-    }, 700);
-
-    return () => clearInterval(timer);
-  }, [isTimelinePlaying, timelineEntries.length, timelineMode]);
 
   useEffect(() => {
     if (!linkMenu.open) {
@@ -1450,31 +1442,6 @@ export const WallCanvas = () => {
 
   const focusBounds = (bounds: Bounds) => {
     setCamera(fitBoundsCamera(bounds, viewport));
-  };
-
-  const jumpToTimelineDay = (day: string) => {
-    if (timelineEntries.length === 0) {
-      return;
-    }
-
-    const index = (() => {
-      for (let i = timelineEntries.length - 1; i >= 0; i -= 1) {
-        const candidate = new Date(timelineEntries[i].ts);
-        const key = `${candidate.getFullYear()}-${String(candidate.getMonth() + 1).padStart(2, "0")}-${String(
-          candidate.getDate(),
-        ).padStart(2, "0")}`;
-        if (key === day) {
-          return i;
-        }
-      }
-      return -1;
-    })();
-
-    if (index >= 0) {
-      setTimelineMode(true);
-      setIsTimelinePlaying(false);
-      setTimelineIndex(index);
-    }
   };
 
   const jumpToStaleNote = () => {
