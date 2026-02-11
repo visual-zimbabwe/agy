@@ -1,6 +1,6 @@
 "use client";
 
-import { type FocusEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type FocusEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Arrow, Group, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import Fuse from "fuse.js";
@@ -12,6 +12,9 @@ import { NoteSwatches } from "@/components/NoteCard";
 import { QuickCaptureBar } from "@/components/QuickCaptureBar";
 import { SearchPalette } from "@/components/SearchPalette";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
+import { ControlTooltip, Icon } from "@/components/wall/WallControls";
+import { WallDetailsPanel } from "@/components/wall/WallDetailsPanel";
+import { WallToolbar } from "@/components/wall/WallToolbar";
 import {
   applyTemplate,
   assignZoneToGroup,
@@ -358,227 +361,6 @@ const noteTagChipPalette = (noteColor: string) => {
     text: rgbToCss(text),
   };
 };
-
-type IconName =
-  | "search"
-  | "capture"
-  | "export"
-  | "undo"
-  | "redo"
-  | "present"
-  | "reset"
-  | "timeline"
-  | "heatmap"
-  | "shortcuts"
-  | "tools"
-  | "details"
-  | "note"
-  | "zone"
-  | "box"
-  | "link"
-  | "cluster"
-  | "panel-left"
-  | "panel-right"
-  | "layout";
-
-const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; className?: string }) => {
-  const common = "none";
-  const stroke = "currentColor";
-  const strokeWidth = 1.9;
-  const strokeLinecap = "round";
-  const strokeLinejoin = "round";
-
-  if (name === "search") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <circle cx="11" cy="11" r="7" />
-        <path d="m20 20-3.5-3.5" />
-      </svg>
-    );
-  }
-  if (name === "capture") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
-        <path d="M8 12h8M12 8v8" />
-      </svg>
-    );
-  }
-  if (name === "export") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <path d="M12 3v11" />
-        <path d="m8.5 10.5 3.5 3.5 3.5-3.5" />
-        <path d="M4 16.5V20h16v-3.5" />
-      </svg>
-    );
-  }
-  if (name === "undo") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <path d="M9 7H4v5" />
-        <path d="M4 12a8 8 0 0 1 14.3-4.8" />
-      </svg>
-    );
-  }
-  if (name === "redo") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <path d="M15 7h5v5" />
-        <path d="M20 12a8 8 0 0 0-14.3-4.8" />
-      </svg>
-    );
-  }
-  if (name === "present") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <rect x="3.5" y="4.5" width="17" height="11" rx="2" />
-        <path d="M9 20h6M12 15.5V20" />
-      </svg>
-    );
-  }
-  if (name === "reset") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <path d="M4 12a8 8 0 1 0 2.3-5.7" />
-        <path d="M4 4v4h4" />
-      </svg>
-    );
-  }
-  if (name === "timeline") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <path d="M5 12h14" />
-        <circle cx="7" cy="12" r="1.8" />
-        <circle cx="12" cy="12" r="1.8" />
-        <circle cx="17" cy="12" r="1.8" />
-      </svg>
-    );
-  }
-  if (name === "heatmap") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <rect x="4" y="4" width="4" height="4" />
-        <rect x="10" y="4" width="4" height="4" />
-        <rect x="16" y="4" width="4" height="4" />
-        <rect x="4" y="10" width="4" height="4" />
-        <rect x="10" y="10" width="4" height="4" />
-        <rect x="16" y="10" width="4" height="4" />
-        <rect x="4" y="16" width="4" height="4" />
-        <rect x="10" y="16" width="4" height="4" />
-      </svg>
-    );
-  }
-  if (name === "shortcuts") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <rect x="3.5" y="7" width="17" height="10" rx="2" />
-        <path d="M8 12h.01M12 12h.01M16 12h.01" />
-      </svg>
-    );
-  }
-  if (name === "tools") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <path d="M4 20 10.5 13.5" />
-        <path d="m8.5 5.5 10 10" />
-        <path d="m15 4 5 5-3 3-5-5z" />
-      </svg>
-    );
-  }
-  if (name === "details") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <rect x="4" y="4" width="16" height="16" rx="2.5" />
-        <path d="M8 9h8M8 12h8M8 15h5" />
-      </svg>
-    );
-  }
-  if (name === "note") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <path d="M6 4h12v16H6z" />
-        <path d="M9 9h6M9 13h6" />
-      </svg>
-    );
-  }
-  if (name === "zone") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <rect x="4" y="5" width="16" height="14" rx="2" />
-        <path d="M8 9h8" />
-      </svg>
-    );
-  }
-  if (name === "box") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <rect x="5" y="5" width="14" height="14" strokeDasharray="3 2" />
-      </svg>
-    );
-  }
-  if (name === "link") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <path d="m10.5 13.5 3-3" />
-        <path d="M8 16a4 4 0 0 1 0-5.7l2.3-2.3a4 4 0 1 1 5.7 5.7l-1.3 1.3" />
-      </svg>
-    );
-  }
-  if (name === "cluster") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <circle cx="7" cy="8" r="2.2" />
-        <circle cx="16.5" cy="8.5" r="2.2" />
-        <circle cx="12" cy="16" r="2.2" />
-        <path d="M8.8 9.5 10.8 14M14 14.3l1.5-3.6M9.4 8.4h4.9" />
-      </svg>
-    );
-  }
-  if (name === "panel-left") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
-        <path d="M9 4.5v15M13.5 9 10 12l3.5 3" />
-      </svg>
-    );
-  }
-  if (name === "layout") {
-    return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-        <path d="M5 7h14" />
-        <path d="M5 12h14" />
-        <path d="M5 17h14" />
-        <circle cx="9" cy="7" r="1.8" />
-        <circle cx="15" cy="12" r="1.8" />
-        <circle cx="11" cy="17" r="1.8" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
-      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
-      <path d="M15 4.5v15M10.5 9 14 12l-3.5 3" />
-    </svg>
-  );
-};
-
-type ControlTooltipProps = {
-  label: string;
-  shortcut?: string;
-  children: ReactNode;
-  className?: string;
-};
-
-const ControlTooltip = ({ label, shortcut, children, className = "relative inline-flex" }: ControlTooltipProps) => (
-  <span className={`${className} group`}>
-    {children}
-    <span className="pointer-events-none absolute -bottom-10 left-1/2 z-[90] hidden w-max max-w-[18rem] -translate-x-1/2 items-center gap-2 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-100 opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100 md:flex">
-      <span>{label}</span>
-      {shortcut && <span className="rounded border border-zinc-500 bg-zinc-800 px-1 py-0.5 font-mono text-[10px] text-zinc-200">{shortcut}</span>}
-    </span>
-  </span>
-);
 
 export const WallCanvas = () => {
   const notesMap = useWallStore((state) => state.notes);
@@ -2201,6 +1983,32 @@ export const WallCanvas = () => {
     setDetailsSectionsOpen((previous) => ({ ...previous, [key]: !previous[key] }));
   };
 
+  const togglePresentationMode = () => {
+    setPresentationMode((previous) => {
+      const next = !previous;
+      if (next) {
+        setPresentationIndex(0);
+        setQuickCaptureOpen(false);
+        setSearchOpen(false);
+        setExportOpen(false);
+      }
+      return next;
+    });
+  };
+
+  const toggleTimelineMode = () => {
+    setTimelineMode((previous) => {
+      const next = !previous;
+      if (next && timelineEntries.length > 0) {
+        setTimelineIndex(timelineEntries.length - 1);
+      }
+      if (!next) {
+        setIsTimelinePlaying(false);
+      }
+      return next;
+    });
+  };
+
   const selectedNote = ui.selectedNoteId ? renderSnapshot.notes[ui.selectedNoteId] : undefined;
   const primarySelectedNoteId = activeSelectedNoteIds[0] ?? ui.selectedNoteId;
   const primarySelectedNote = primarySelectedNoteId ? renderSnapshot.notes[primarySelectedNoteId] : undefined;
@@ -2223,8 +2031,6 @@ export const WallCanvas = () => {
     "inline-flex items-center gap-1.5 rounded-lg border border-zinc-900 bg-zinc-900 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40";
   const toolbarBtnActive =
     "inline-flex items-center gap-1.5 rounded-lg border border-sky-400 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40";
-  const toolbarBtnAccent =
-    "inline-flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40";
   const toolbarBtnCompact =
     "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-40";
   const toolbarSelect =
@@ -2253,197 +2059,36 @@ export const WallCanvas = () => {
   return (
     <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
       <header className="mx-2 mt-2 flex flex-col gap-1.5 md:mx-3 md:mt-3">
-        <div className={`${toolbarSurface} flex flex-wrap items-center gap-1`}>
-          {!presentationMode && (
-            <>
-              {!publishedReadOnly && layoutPrefs.showToolsPanel && (
-                <ControlTooltip label={leftPanelOpen ? "Hide tools panel" : "Show tools panel"}>
-                  <button
-                    type="button"
-                    onClick={() => setLeftPanelOpen((previous) => !previous)}
-                    className={leftPanelOpen ? toolbarBtnActive : toolbarBtn}
-                    title={leftPanelOpen ? "Hide tools panel" : "Show tools panel"}
-                  >
-                    <Icon name="panel-left" />
-                    <span>Tools</span>
-                  </button>
-                </ControlTooltip>
-              )}
-              {layoutPrefs.showDetailsPanel && (
-                <ControlTooltip label={rightPanelOpen ? "Hide details panel" : "Show details panel"}>
-                  <button
-                    type="button"
-                    onClick={() => setRightPanelOpen((previous) => !previous)}
-                    className={rightPanelOpen ? toolbarBtnActive : toolbarBtn}
-                    title={rightPanelOpen ? "Hide details panel" : "Show details panel"}
-                  >
-                    <Icon name="panel-right" />
-                    <span>Details</span>
-                  </button>
-                </ControlTooltip>
-              )}
-              <ControlTooltip label="Customize layout visibility">
-                <button
-                  type="button"
-                  onClick={() => setLayoutMenuOpen((previous) => !previous)}
-                  className={layoutMenuOpen ? toolbarBtnActive : toolbarBtn}
-                  title="Customize layout visibility"
-                >
-                  <Icon name="layout" />
-                  <span>Layout</span>
-                </button>
-              </ControlTooltip>
-            </>
-          )}
-          <ControlTooltip label="Open search palette" shortcut="Ctrl/Cmd+K">
-            <button type="button" onClick={() => setSearchOpen(true)} className={toolbarBtn} title="Open search palette (Ctrl/Cmd+K)">
-              <Icon name="search" />
-              <span>Search</span>
-            </button>
-          </ControlTooltip>
-          <ControlTooltip label="Toggle quick capture" shortcut="Q or Ctrl/Cmd+J">
-            <button
-              type="button"
-              onClick={() => setQuickCaptureOpen((previous) => !previous)}
-              disabled={isTimeLocked}
-              className={quickCaptureOpen ? toolbarBtnActive : toolbarBtn}
-              title="Toggle quick capture (Q or Ctrl/Cmd+J)"
-            >
-              <Icon name="capture" />
-              <span>Capture</span>
-            </button>
-          </ControlTooltip>
-          <ControlTooltip label="Export wall content">
-            <button type="button" onClick={() => setExportOpen(true)} className={toolbarBtn} title="Export wall content">
-              <Icon name="export" />
-              <span>Export</span>
-            </button>
-          </ControlTooltip>
-          <ControlTooltip label="Undo last action" shortcut="Ctrl/Cmd+Z">
-            <button type="button" onClick={undo} disabled={!canUndo || isTimeLocked} className={toolbarBtn} title="Undo (Ctrl/Cmd+Z)">
-              <Icon name="undo" />
-              <span>Undo</span>
-            </button>
-          </ControlTooltip>
-          <ControlTooltip label="Redo last action" shortcut="Ctrl/Cmd+Shift+Z">
-            <button type="button" onClick={redo} disabled={!canRedo || isTimeLocked} className={toolbarBtn} title="Redo (Ctrl/Cmd+Shift+Z)">
-              <Icon name="redo" />
-              <span>Redo</span>
-            </button>
-          </ControlTooltip>
-          <div className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-600" title="Undo / Redo history depth">
-            H {historyUndoDepth}/{historyRedoDepth}
-          </div>
-          <ControlTooltip label="Toggle presentation mode" shortcut="P">
-            <button
-              type="button"
-              onClick={() => {
-                setPresentationMode((previous) => {
-                  const next = !previous;
-                  if (next) {
-                    setPresentationIndex(0);
-                    setQuickCaptureOpen(false);
-                    setSearchOpen(false);
-                    setExportOpen(false);
-                  }
-                  return next;
-                });
-              }}
-              className={presentationMode ? toolbarBtnAccent : toolbarBtn}
-              title="Toggle presentation mode (P)"
-            >
-              <Icon name="present" />
-              <span>Present</span>
-            </button>
-          </ControlTooltip>
-          <ControlTooltip label="Reset camera to fit content">
-            <button type="button" onClick={resetView} className={toolbarBtn} title="Reset camera to fit content">
-              <Icon name="reset" />
-              <span>Reset</span>
-            </button>
-          </ControlTooltip>
-          <ControlTooltip label="Toggle timeline mode" shortcut="T">
-            <button
-              type="button"
-              onClick={() => {
-                setTimelineMode((previous) => {
-                  const next = !previous;
-                  if (next && timelineEntries.length > 0) {
-                    setTimelineIndex(timelineEntries.length - 1);
-                  }
-                  if (!next) {
-                    setIsTimelinePlaying(false);
-                  }
-                  return next;
-                });
-              }}
-              className={timelineMode ? toolbarBtnActive : toolbarBtn}
-              title="Toggle timeline mode (T)"
-            >
-              <Icon name="timeline" />
-              <span>Timeline</span>
-            </button>
-          </ControlTooltip>
-          <ControlTooltip label="Toggle recency heatmap" shortcut="H">
-            <button
-              type="button"
-              onClick={() => setShowHeatmap((previous) => !previous)}
-              className={showHeatmap ? toolbarBtnActive : toolbarBtn}
-              title="Toggle heatmap (H)"
-            >
-              <Icon name="heatmap" />
-              <span>Heatmap</span>
-            </button>
-          </ControlTooltip>
-          <ControlTooltip label="Open keyboard shortcuts" shortcut="?">
-            <button type="button" onClick={() => setShortcutsOpen(true)} className={toolbarBtn} title="Open keyboard shortcuts (?)">
-              <Icon name="shortcuts" />
-              <span>Keys</span>
-            </button>
-          </ControlTooltip>
-        </div>
-
-        {!presentationMode && layoutMenuOpen && (
-          <div className={`${toolbarSurface} flex flex-wrap items-center gap-3`}>
-            <span className={toolbarLabel}>Customize Layout</span>
-            <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
-              <input
-                type="checkbox"
-                checked={layoutPrefs.showToolsPanel}
-                onChange={(event) => setLayoutPreference("showToolsPanel", event.target.checked)}
-                className="h-3.5 w-3.5 accent-zinc-900"
-              />
-              <span>Tools Panel</span>
-            </label>
-            <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
-              <input
-                type="checkbox"
-                checked={layoutPrefs.showDetailsPanel}
-                onChange={(event) => setLayoutPreference("showDetailsPanel", event.target.checked)}
-                className="h-3.5 w-3.5 accent-zinc-900"
-              />
-              <span>Details Panel</span>
-            </label>
-            <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
-              <input
-                type="checkbox"
-                checked={layoutPrefs.showContextBar}
-                onChange={(event) => setLayoutPreference("showContextBar", event.target.checked)}
-                className="h-3.5 w-3.5 accent-zinc-900"
-              />
-              <span>Context Bar</span>
-            </label>
-            <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
-              <input
-                type="checkbox"
-                checked={layoutPrefs.showNoteTags}
-                onChange={(event) => setLayoutPreference("showNoteTags", event.target.checked)}
-                className="h-3.5 w-3.5 accent-zinc-900"
-              />
-              <span>Tags on Notes</span>
-            </label>
-          </div>
-        )}
+        <WallToolbar
+          presentationMode={presentationMode}
+          publishedReadOnly={publishedReadOnly}
+          layoutPrefs={layoutPrefs}
+          leftPanelOpen={leftPanelOpen}
+          rightPanelOpen={rightPanelOpen}
+          layoutMenuOpen={layoutMenuOpen}
+          quickCaptureOpen={quickCaptureOpen}
+          isTimeLocked={isTimeLocked}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          historyUndoDepth={historyUndoDepth}
+          historyRedoDepth={historyRedoDepth}
+          timelineMode={timelineMode}
+          showHeatmap={showHeatmap}
+          onToggleLeftPanel={() => setLeftPanelOpen((previous) => !previous)}
+          onToggleRightPanel={() => setRightPanelOpen((previous) => !previous)}
+          onToggleLayoutMenu={() => setLayoutMenuOpen((previous) => !previous)}
+          onOpenSearch={() => setSearchOpen(true)}
+          onToggleQuickCapture={() => setQuickCaptureOpen((previous) => !previous)}
+          onOpenExport={() => setExportOpen(true)}
+          onUndo={undo}
+          onRedo={redo}
+          onTogglePresentationMode={togglePresentationMode}
+          onResetView={resetView}
+          onToggleTimelineMode={toggleTimelineMode}
+          onToggleHeatmap={() => setShowHeatmap((previous) => !previous)}
+          onOpenShortcuts={() => setShortcutsOpen(true)}
+          onSetLayoutPreference={setLayoutPreference}
+        />
 
         {!publishedReadOnly && !presentationMode && layoutPrefs.showContextBar && hasContextActions && (
           <div className={`${toolbarSurface} flex flex-wrap items-center gap-2`}>
@@ -3615,22 +3260,11 @@ export const WallCanvas = () => {
         )}
 
         {!presentationMode && layoutPrefs.showDetailsPanel && (
-          <aside
-            className={`pointer-events-auto absolute z-40 rounded-2xl border border-zinc-300/80 bg-white/92 p-3 shadow-xl backdrop-blur-sm transition ${
-              isCompactLayout
-                ? `right-2 top-2 w-[min(24rem,calc(100%-1rem))] ${rightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-[110%] opacity-0 pointer-events-none"}`
-                : `right-3 top-3 w-80 ${rightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-[110%] opacity-0 pointer-events-none"}`
-            }`}
+          <WallDetailsPanel
+            isCompactLayout={isCompactLayout}
+            rightPanelOpen={rightPanelOpen}
+            onClose={() => setRightPanelOpen(false)}
           >
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-zinc-900">Details</h3>
-              {isCompactLayout && (
-                <button type="button" onClick={() => setRightPanelOpen(false)} className="rounded border border-zinc-300 px-1.5 py-0.5 text-[10px] text-zinc-600">
-                  Close
-                </button>
-              )}
-            </div>
-            <p className="mt-1 text-xs text-zinc-600">Tags, templates, history and recall controls for the current wall.</p>
 
             <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Templates</p>
@@ -3995,7 +3629,7 @@ export const WallCanvas = () => {
                 </>
               )}
             </div>
-          </aside>
+          </WallDetailsPanel>
         )}
 
         {showHeatmap && (
