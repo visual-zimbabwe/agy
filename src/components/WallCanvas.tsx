@@ -2275,7 +2275,7 @@ export const WallCanvas = () => {
             className={`pointer-events-auto absolute z-40 rounded-2xl border border-zinc-200/80 bg-white/95 p-2 shadow-xl backdrop-blur-sm transition ${
               isCompactLayout
                 ? `left-2 top-7 w-[min(18rem,calc(100%-1rem))] ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
-                : "left-3 top-8 w-44"
+                : `left-3 top-8 w-44 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
             }`}
           >
             <div className="mb-2 flex items-center justify-between px-1">
@@ -3270,7 +3270,7 @@ export const WallCanvas = () => {
             className={`pointer-events-auto absolute z-40 rounded-2xl border border-zinc-300/80 bg-white/92 p-3 shadow-xl backdrop-blur-sm transition ${
               isCompactLayout
                 ? `right-2 top-2 w-[min(24rem,calc(100%-1rem))] ${rightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-[110%] opacity-0 pointer-events-none"}`
-                : "right-3 top-3 w-80"
+                : `right-3 top-3 w-80 ${rightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-[110%] opacity-0 pointer-events-none"}`
             }`}
           >
             <div className="flex items-center justify-between">
