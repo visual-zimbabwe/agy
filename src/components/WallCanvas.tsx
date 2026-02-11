@@ -413,6 +413,7 @@ export const WallCanvas = () => {
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
   const [timelineMode, setTimelineMode] = useState(false);
+  const timelineModeRef = useRef(false);
   const [timelineIndex, setTimelineIndex] = useState(0);
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -520,6 +521,7 @@ export const WallCanvas = () => {
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
   const isTimeLocked = timelineMode || publishedReadOnly || presentationMode;
   const isCompactLayout = viewport.w < compactPanelBreakpoint;
+  timelineModeRef.current = timelineMode;
 
   const commitEditedNoteText = useCallback((noteId: string, rawText: string) => {
     const current = renderSnapshot.notes[noteId];
@@ -916,7 +918,7 @@ export const WallCanvas = () => {
 
       if (!ctrlOrMeta && key === "t") {
         event.preventDefault();
-        const next = !timelineMode;
+        const next = !timelineModeRef.current;
         setTimelineMode(next);
         if (next && timelineEntries.length > 0) {
           setTimelineIndex(timelineEntries.length - 1);
@@ -1143,7 +1145,6 @@ export const WallCanvas = () => {
     ui.selectedNoteId,
     ui.selectedZoneId,
     timelineEntries.length,
-    timelineMode,
     viewport.h,
     viewport.w,
   ]);
@@ -1987,7 +1988,7 @@ export const WallCanvas = () => {
   };
 
   const toggleTimelineMode = () => {
-    const next = !timelineMode;
+    const next = !timelineModeRef.current;
     setTimelineMode(next);
     if (next && timelineEntries.length > 0) {
       setTimelineIndex(timelineEntries.length - 1);
