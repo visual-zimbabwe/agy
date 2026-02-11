@@ -1367,15 +1367,32 @@ export const WallCanvas = () => {
           .map((note) => note.tags)
           .reduce<string[]>((common, tags) => (common.length === 0 ? [...tags] : common.filter((tag) => tags.includes(tag))), [])
       : selectedNote?.tags ?? [];
+  const toolbarBtn =
+    "rounded-lg border border-zinc-700/80 bg-zinc-800/85 px-3 py-2 text-sm font-medium text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-700/85 disabled:cursor-not-allowed disabled:opacity-40";
+  const toolbarBtnPrimary =
+    "rounded-lg border border-zinc-300/20 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40";
+  const toolbarBtnActive =
+    "rounded-lg border border-sky-400/70 bg-sky-500/25 px-3 py-2 text-sm font-medium text-sky-100 transition hover:bg-sky-500/35 disabled:cursor-not-allowed disabled:opacity-40";
+  const toolbarBtnAccent =
+    "rounded-lg border border-indigo-300/50 bg-indigo-500/30 px-3 py-2 text-sm font-medium text-indigo-100 transition hover:bg-indigo-500/40 disabled:cursor-not-allowed disabled:opacity-40";
+  const toolbarBtnCompact =
+    "rounded-md border border-zinc-700/80 bg-zinc-800/85 px-2 py-1 text-xs font-medium text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-700/85 disabled:opacity-40";
+  const toolbarSelect =
+    "rounded-lg border border-zinc-700/80 bg-zinc-800/90 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-sky-400/80";
+  const toolbarDivider = "mx-1 h-7 w-px bg-zinc-700/80";
+  const toolbarLabel = "text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400";
+  const toolbarInput =
+    "w-28 rounded-lg border border-zinc-700/80 bg-zinc-800/90 px-2 py-1.5 text-xs text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-sky-400/80 disabled:opacity-40";
+  const toolbarTagChip = "rounded-full border border-zinc-700 bg-zinc-800 px-2 py-1 text-[11px] text-zinc-200 transition hover:bg-zinc-700";
 
   return (
     <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
-      <header className="flex flex-wrap items-center gap-2 border-b border-zinc-300/70 bg-white/70 px-3 py-2 backdrop-blur-md md:px-4">
+      <header className="mx-3 mt-3 flex flex-wrap items-center gap-1 rounded-2xl border border-zinc-700/80 bg-zinc-900/92 p-2 text-zinc-100 shadow-xl backdrop-blur-xl md:mx-4">
         <button
           type="button"
           onClick={makeNoteAtViewportCenter}
           disabled={isTimeLocked}
-          className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-45"
+          className={toolbarBtnPrimary}
         >
           New Note (N)
         </button>
@@ -1383,7 +1400,7 @@ export const WallCanvas = () => {
           type="button"
           onClick={makeZoneAtViewportCenter}
           disabled={isTimeLocked}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium disabled:opacity-45"
+          className={toolbarBtn}
         >
           New Zone
         </button>
@@ -1391,28 +1408,28 @@ export const WallCanvas = () => {
           type="button"
           onClick={() => setQuickCaptureOpen((previous) => !previous)}
           disabled={isTimeLocked}
-          className={`rounded-lg px-3 py-2 text-sm ${quickCaptureOpen ? "bg-zinc-900 text-white" : "border border-zinc-300 bg-white"} disabled:opacity-45`}
+          className={quickCaptureOpen ? toolbarBtnActive : toolbarBtn}
         >
           Quick Capture (Q)
         </button>
         <button
           type="button"
           onClick={() => setSearchOpen(true)}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+          className={toolbarBtn}
         >
           Search (Ctrl+K)
         </button>
         <button
           type="button"
           onClick={() => setExportOpen(true)}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+          className={toolbarBtn}
         >
           Export
         </button>
         <button
           type="button"
           onClick={resetView}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+          className={toolbarBtn}
         >
           Reset View
         </button>
@@ -1420,7 +1437,7 @@ export const WallCanvas = () => {
           type="button"
           onClick={undo}
           disabled={!canUndo || isTimeLocked}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm disabled:opacity-45"
+          className={toolbarBtn}
         >
           Undo (Ctrl+Z)
         </button>
@@ -1428,30 +1445,28 @@ export const WallCanvas = () => {
           type="button"
           onClick={redo}
           disabled={!canRedo || isTimeLocked}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm disabled:opacity-45"
+          className={toolbarBtn}
         >
           Redo (Ctrl+Shift+Z)
         </button>
         <button
           type="button"
           onClick={() => setShowClusters(!ui.showClusters)}
-          className={`rounded-lg px-3 py-2 text-sm ${
-            ui.showClusters ? "bg-zinc-900 text-white" : "border border-zinc-300 bg-white"
-          }`}
+          className={ui.showClusters ? toolbarBtnActive : toolbarBtn}
         >
           Detect Clusters
         </button>
         <button
           type="button"
           onClick={() => setBoxSelectMode((value) => !value)}
-          className={`rounded-lg px-3 py-2 text-sm ${boxSelectMode ? "bg-blue-600 text-white" : "border border-zinc-300 bg-white"}`}
+          className={boxSelectMode ? toolbarBtnActive : toolbarBtn}
         >
           Box Select
         </button>
         <select
           value={ui.linkType}
           onChange={(event) => setLinkType(event.target.value as LinkType)}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+          className={toolbarSelect}
         >
           {LINK_TYPES.map((option) => (
             <option key={option.value} value={option.value}>
@@ -1471,14 +1486,14 @@ export const WallCanvas = () => {
             setLinkingFromNote(ui.selectedNoteId);
           }}
           disabled={!ui.selectedNoteId || isTimeLocked}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45"
+          className={toolbarBtn}
         >
           {ui.linkingFromNoteId ? "Select target note..." : "Start Link (Ctrl+L)"}
         </button>
         <select
           value={ui.templateType}
           onChange={(event) => setTemplateType(event.target.value as TemplateType)}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+          className={toolbarSelect}
         >
           {TEMPLATE_TYPES.map((option) => (
             <option key={option.value} value={option.value}>
@@ -1490,7 +1505,7 @@ export const WallCanvas = () => {
           type="button"
           onClick={applySelectedTemplate}
           disabled={isTimeLocked}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm disabled:opacity-45"
+          className={toolbarBtn}
         >
           Apply Template
         </button>
@@ -1508,14 +1523,14 @@ export const WallCanvas = () => {
               return next;
             });
           }}
-          className={`rounded-lg px-3 py-2 text-sm ${timelineMode ? "bg-zinc-900 text-white" : "border border-zinc-300 bg-white"}`}
+          className={timelineMode ? toolbarBtnActive : toolbarBtn}
         >
           Timeline (T)
         </button>
         <button
           type="button"
           onClick={() => setShowHeatmap((previous) => !previous)}
-          className={`rounded-lg px-3 py-2 text-sm ${showHeatmap ? "bg-orange-500 text-white" : "border border-zinc-300 bg-white"}`}
+          className={showHeatmap ? toolbarBtnActive : toolbarBtn}
         >
           Heatmap (H)
         </button>
@@ -1533,19 +1548,19 @@ export const WallCanvas = () => {
               return next;
             });
           }}
-          className={`rounded-lg px-3 py-2 text-sm ${presentationMode ? "bg-indigo-600 text-white" : "border border-zinc-300 bg-white"}`}
+          className={presentationMode ? toolbarBtnAccent : toolbarBtn}
         >
           Present (P)
         </button>
 
-        <div className="mx-1 h-6 w-px bg-zinc-300" />
+        <div className={toolbarDivider} />
 
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => alignSelected("left")}
             disabled={selectedNotes.length < 2 || isTimeLocked}
-            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+            className={toolbarBtnCompact}
           >
             Align L
           </button>
@@ -1553,7 +1568,7 @@ export const WallCanvas = () => {
             type="button"
             onClick={() => alignSelected("center")}
             disabled={selectedNotes.length < 2 || isTimeLocked}
-            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+            className={toolbarBtnCompact}
           >
             Align C
           </button>
@@ -1561,7 +1576,7 @@ export const WallCanvas = () => {
             type="button"
             onClick={() => alignSelected("right")}
             disabled={selectedNotes.length < 2 || isTimeLocked}
-            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+            className={toolbarBtnCompact}
           >
             Align R
           </button>
@@ -1569,7 +1584,7 @@ export const WallCanvas = () => {
             type="button"
             onClick={() => alignSelected("top")}
             disabled={selectedNotes.length < 2 || isTimeLocked}
-            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+            className={toolbarBtnCompact}
           >
             Align T
           </button>
@@ -1577,7 +1592,7 @@ export const WallCanvas = () => {
             type="button"
             onClick={() => alignSelected("middle")}
             disabled={selectedNotes.length < 2 || isTimeLocked}
-            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+            className={toolbarBtnCompact}
           >
             Align M
           </button>
@@ -1585,7 +1600,7 @@ export const WallCanvas = () => {
             type="button"
             onClick={() => alignSelected("bottom")}
             disabled={selectedNotes.length < 2 || isTimeLocked}
-            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+            className={toolbarBtnCompact}
           >
             Align B
           </button>
@@ -1593,7 +1608,7 @@ export const WallCanvas = () => {
             type="button"
             onClick={() => distributeSelected("horizontal")}
             disabled={selectedNotes.length < 3 || isTimeLocked}
-            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+            className={toolbarBtnCompact}
           >
             Dist H
           </button>
@@ -1601,14 +1616,14 @@ export const WallCanvas = () => {
             type="button"
             onClick={() => distributeSelected("vertical")}
             disabled={selectedNotes.length < 3 || isTimeLocked}
-            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+            className={toolbarBtnCompact}
           >
             Dist V
           </button>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Color</span>
+          <span className={toolbarLabel}>Color</span>
           <NoteSwatches
             value={selectedNotes[0]?.color ?? selectedNote?.color ?? ui.lastColor}
             onSelect={(color) => {
@@ -1617,10 +1632,10 @@ export const WallCanvas = () => {
           />
         </div>
 
-        <div className="mx-1 h-6 w-px bg-zinc-300" />
+        <div className={toolbarDivider} />
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Tags</span>
+          <span className={toolbarLabel}>Tags</span>
           <input
             value={tagInput}
             onChange={(event) => setTagInput(event.target.value)}
@@ -1632,13 +1647,13 @@ export const WallCanvas = () => {
             }}
             placeholder={activeSelectedNoteIds.length > 0 || ui.selectedNoteId ? "add-tag" : "select note"}
             disabled={activeSelectedNoteIds.length === 0 && !ui.selectedNoteId ? true : isTimeLocked}
-            className="w-28 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
+            className={toolbarInput}
           />
           <button
             type="button"
             onClick={addTagToSelectedNote}
             disabled={activeSelectedNoteIds.length === 0 && !ui.selectedNoteId ? true : isTimeLocked}
-            className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
+            className={toolbarBtnCompact}
           >
             Add
           </button>
@@ -1648,7 +1663,7 @@ export const WallCanvas = () => {
               type="button"
               onClick={() => removeTagFromSelectedNote(tag)}
               disabled={isTimeLocked}
-              className="rounded-full bg-zinc-100 px-2 py-1 text-[11px] text-zinc-700"
+              className={toolbarTagChip}
               title="Remove tag"
             >
               #{tag}
@@ -1656,7 +1671,7 @@ export const WallCanvas = () => {
           ))}
         </div>
 
-        <div className="ml-auto text-xs text-zinc-600">
+        <div className="ml-auto rounded-lg border border-zinc-700/80 bg-zinc-800/80 px-2.5 py-1 text-xs text-zinc-300">
           {publishedReadOnly
             ? "Read-only published snapshot"
             : activeSelectedNoteIds.length > 1
