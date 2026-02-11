@@ -848,25 +848,25 @@ export const WallCanvas = () => {
     () => [...visibleNotes].sort((a, b) => a.updatedAt - b.updatedAt),
     [visibleNotes],
   );
-  useEffect(() => {
-    if (!presentationMode) {
-      return;
-    }
-    if (presentationNotes.length === 0) {
-      return;
+  const presentationTarget = useMemo(() => {
+    if (!presentationMode || presentationNotes.length === 0) {
+      return undefined;
     }
     const clamped = clamp(presentationIndex, 0, presentationNotes.length - 1);
-    const note = presentationNotes[clamped];
-    if (!note) {
+    return presentationNotes[clamped];
+  }, [presentationIndex, presentationMode, presentationNotes]);
+
+  useEffect(() => {
+    if (!presentationTarget) {
       return;
     }
     const zoom = 1.25;
     setCamera({
       zoom,
-      x: viewport.w / 2 - (note.x + note.w / 2) * zoom,
-      y: viewport.h / 2 - (note.y + note.h / 2) * zoom,
+      x: viewport.w / 2 - (presentationTarget.x + presentationTarget.w / 2) * zoom,
+      y: viewport.h / 2 - (presentationTarget.y + presentationTarget.h / 2) * zoom,
     });
-  }, [presentationIndex, presentationMode, presentationNotes, setCamera, viewport.h, viewport.w]);
+  }, [presentationTarget, setCamera, viewport.h, viewport.w]);
 
   const autoTagGroups = useMemo<TagGroup[]>(() => {
     const byTag = new Map<string, Note[]>();
