@@ -1274,8 +1274,8 @@ export const WallCanvas = () => {
       const text = `#${group.tag} (${group.noteIds.length})`;
       const width = Math.max(96, Math.min(240, 18 + text.length * 6));
       const height = 18;
-      const x = group.bounds.x + 10;
-      let y = group.bounds.y + 8;
+      let x = group.bounds.x + 10;
+      const y = group.bounds.y + 8;
 
       let attempts = 0;
       while (attempts < 18) {
@@ -1285,7 +1285,7 @@ export const WallCanvas = () => {
           occupied.push(box);
           break;
         }
-        y += height + 6;
+        x += width + 8;
         attempts += 1;
       }
 
