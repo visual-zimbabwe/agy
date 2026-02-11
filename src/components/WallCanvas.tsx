@@ -14,6 +14,7 @@ import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { WallDetailsPanel } from "@/components/wall/WallDetailsPanel";
 import { WallDetailsContent } from "@/components/wall/WallDetailsContent";
 import type { DetailsSectionKey, DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
+import { useWallActions } from "@/components/wall/useWallActions";
 import { WallLinksZonesLayer } from "@/components/wall/WallLinksZonesLayer";
 import { WallNotesLayer } from "@/components/wall/WallNotesLayer";
 import { WallOverlaysLayer } from "@/components/wall/WallOverlaysLayer";
@@ -1231,176 +1232,43 @@ export const WallCanvas = () => {
     setEditing((previous) => (previous?.id === noteId ? previous : null));
   };
 
-  const applyColorToSelection = (color: string) => {
-    if (isTimeLocked) {
-      return;
-    }
-    if (activeSelectedNoteIds.length === 0) {
-      if (ui.selectedNoteId) {
-        updateNote(ui.selectedNoteId, { color });
-      }
-      setLastColor(color);
-      return;
-    }
-
-    for (const id of activeSelectedNoteIds) {
-      updateNote(id, { color });
-    }
-    setLastColor(color);
-  };
-
-  const applyTextSizeToSelection = (textSize: "sm" | "md" | "lg") => {
-    if (isTimeLocked) {
-      return;
-    }
-    const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
-    for (const id of targetIds) {
-      updateNote(id, { textSize });
-    }
-  };
-
-  const alignSelected = (axis: "left" | "center" | "right" | "top" | "middle" | "bottom") => {
-    if (isTimeLocked || selectedNotes.length < 2) {
-      return;
-    }
-    const minX = Math.min(...selectedNotes.map((n) => n.x));
-    const maxX = Math.max(...selectedNotes.map((n) => n.x + n.w));
-    const minY = Math.min(...selectedNotes.map((n) => n.y));
-    const maxY = Math.max(...selectedNotes.map((n) => n.y + n.h));
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-
-    runHistoryGroup(() => {
-      for (const note of selectedNotes) {
-        if (axis === "left") updateNote(note.id, { x: minX });
-        if (axis === "right") updateNote(note.id, { x: maxX - note.w });
-        if (axis === "center") updateNote(note.id, { x: centerX - note.w / 2 });
-        if (axis === "top") updateNote(note.id, { y: minY });
-        if (axis === "bottom") updateNote(note.id, { y: maxY - note.h });
-        if (axis === "middle") updateNote(note.id, { y: centerY - note.h / 2 });
-      }
-    });
-  };
-
-  const distributeSelected = (direction: "horizontal" | "vertical") => {
-    if (isTimeLocked || selectedNotes.length < 3) {
-      return;
-    }
-
-    const sorted =
-      direction === "horizontal"
-        ? [...selectedNotes].sort((a, b) => a.x - b.x)
-        : [...selectedNotes].sort((a, b) => a.y - b.y);
-
-    const first = sorted[0];
-    const last = sorted[sorted.length - 1];
-    if (!first || !last) {
-      return;
-    }
-    const span = direction === "horizontal" ? last.x - first.x : last.y - first.y;
-    const gap = span / (sorted.length - 1);
-
-    runHistoryGroup(() => {
-      sorted.forEach((note, index) => {
-        if (direction === "horizontal") {
-          updateNote(note.id, { x: first.x + gap * index });
-        } else {
-          updateNote(note.id, { y: first.y + gap * index });
-        }
-      });
-    });
-  };
-
-  const makeNoteAtViewportCenter = () => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor);
-    syncPrimarySelection([id]);
-  };
-
-  const makeZoneAtViewportCenter = () => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    createZone(world.x - ZONE_DEFAULTS.width / 2, world.y - ZONE_DEFAULTS.height / 2, "Zone");
-  };
-
-  const applySelectedTemplate = () => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    applyTemplate(ui.templateType, world.x, world.y);
-  };
-
-  const addTagToSelectedNote = () => {
-    if (isTimeLocked) {
-      return;
-    }
-    const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
-    if (targetIds.length === 0) {
-      return;
-    }
-    const tag = tagInput.trim().replace(/^#/, "").toLowerCase();
-    if (!tag) {
-      return;
-    }
-    for (const noteId of targetIds) {
-      addTagToNote(noteId, tag);
-    }
-    setTagInput("");
-  };
-
-  const removeTagFromSelectedNote = (tag: string) => {
-    if (isTimeLocked) {
-      return;
-    }
-    const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
-    if (targetIds.length === 0) {
-      return;
-    }
-    for (const noteId of targetIds) {
-      removeTagFromNote(noteId, tag);
-    }
-  };
-
-  const createGroupFromSelectedZone = () => {
-    if (isTimeLocked) {
-      return;
-    }
-    if (!ui.selectedZoneId) {
-      return;
-    }
-    const label = groupLabelInput.trim() || "Group";
-    createZoneGroup(label, [ui.selectedZoneId]);
-  };
-
-  const captureNotes = (items: Array<{ text: string; tags: string[] }>) => {
-    if (isTimeLocked || items.length === 0) {
-      return;
-    }
-
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const columns = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(items.length))));
-    const gapX = NOTE_DEFAULTS.width + 24;
-    const gapY = NOTE_DEFAULTS.height + 20;
-
-    const createdIds: string[] = [];
-    items.forEach((item, index) => {
-      const row = Math.floor(index / columns);
-      const col = index % columns;
-      const x = world.x + (col - (columns - 1) / 2) * gapX;
-      const y = world.y + row * gapY;
-      const id = createNote(x, y, ui.lastColor);
-      updateNote(id, { text: item.text, tags: item.tags });
-      createdIds.push(id);
-    });
-
-    syncPrimarySelection(createdIds);
-  };
+  const {
+    applyColorToSelection,
+    applyTextSizeToSelection,
+    alignSelected,
+    distributeSelected,
+    makeNoteAtViewportCenter,
+    makeZoneAtViewportCenter,
+    applySelectedTemplate,
+    addTagToSelectedNote,
+    removeTagFromSelectedNote,
+    createGroupFromSelectedZone,
+    captureNotes,
+  } = useWallActions({
+    isTimeLocked,
+    camera,
+    viewport,
+    selectedNoteId: ui.selectedNoteId,
+    selectedZoneId: ui.selectedZoneId,
+    lastColor: ui.lastColor,
+    templateType: ui.templateType,
+    tagInput,
+    groupLabelInput,
+    activeSelectedNoteIds,
+    selectedNotes,
+    setTagInput,
+    setLastColor,
+    syncPrimarySelection,
+    toWorldPoint,
+    createNote,
+    createZone,
+    applyTemplate,
+    updateNote,
+    addTagToNote,
+    removeTagFromNote,
+    createZoneGroup,
+    runHistoryGroup,
+  });
 
   const { resetView, focusBounds, focusNote, jumpToStaleNote, jumpToHighPriorityNote } = useWallCameraNavigation({
     camera,
