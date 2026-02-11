@@ -91,7 +91,7 @@ Expected:
 - Right-click menu appears on links with actions applied immediately.
 
 ## Structure Primitives - Tags, Templates, Zone Groups
-1. Select a note and add two tags via the `Tags` input in the top bar.
+1. Select a note and add two tags via the `Selection Tags` controls in the `Details` panel.
 2. Open search (`Ctrl/Cmd + K`) and search by one of those tags.
 3. Choose each template in the template dropdown and click `Apply Template`.
 4. Select one zone, enter a group name in `Zone Groups` panel, then click `Group Zone`.
@@ -272,3 +272,5 @@ Expected:
 - Inline hashtags typed directly inside note text are recognized and added to `note.tags`.
 - Quick capture and direct note editing produce consistent tag parsing behavior.
 - Existing manual tags are preserved while new inline tags are appended (deduplicated).
+- Tag editing entry point is the `Selection Tags` section in `Details` panel (not the top context bar).
+- Hovering or selecting a note with tags reveals full tag list context beyond compact chip truncation.

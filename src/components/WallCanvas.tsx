@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Arrow, Group, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import Fuse from "fuse.js";
@@ -37,6 +37,7 @@ import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
 import type { Link, LinkType, Note, PersistedWallState, TemplateType, Zone } from "@/features/wall/types";
 import { buildPublishedSnapshotUrl, decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
+import { parseTaggedText } from "@/lib/tag-utils";
 import { clamp, computeContentBounds, detectClusters, notesToMarkdown } from "@/lib/wall-utils";
 
 type EditingState = {
@@ -274,11 +275,6 @@ const truncateNoteText = (text: string, note: Note) => {
   }
   return `${text.slice(0, Math.max(1, maxChars - 1)).trimEnd()}…`;
 };
-
-const parseInlineTags = (raw: string) =>
-  [...raw.matchAll(/#([a-zA-Z0-9_-]+)/g)]
-    .map((match) => match[1].toLowerCase())
-    .filter(Boolean);
 
 type IconName =
   | "search"
@@ -641,6 +637,16 @@ export const WallCanvas = () => {
   const isTimeLocked = timelineMode || publishedReadOnly || presentationMode;
   const isCompactLayout = viewport.w < compactPanelBreakpoint;
 
+  const commitEditedNoteText = useCallback((noteId: string, rawText: string) => {
+    const current = renderSnapshot.notes[noteId];
+    if (!current) {
+      return;
+    }
+    const parsed = parseTaggedText(rawText);
+    const mergedTags = [...new Set([...current.tags, ...parsed.tags])];
+    updateNote(noteId, { text: parsed.text, tags: mergedTags });
+  }, [renderSnapshot.notes]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setWallClockTs(Date.now());
@@ -764,17 +770,11 @@ export const WallCanvas = () => {
     }
 
     const timer = setTimeout(() => {
-      const current = renderSnapshot.notes[editing.id];
-      if (!current) {
-        return;
-      }
-      const parsedInlineTags = parseInlineTags(editing.text);
-      const mergedTags = [...new Set([...current.tags, ...parsedInlineTags])];
-      updateNote(editing.id, { text: editing.text, tags: mergedTags });
+      commitEditedNoteText(editing.id, editing.text);
     }, 280);
 
     return () => clearTimeout(timer);
-  }, [editing, renderSnapshot.notes]);
+  }, [commitEditedNoteText, editing]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1782,10 +1782,9 @@ export const WallCanvas = () => {
   const selectedGroup = ui.selectedGroupId ? renderSnapshot.zoneGroups[ui.selectedGroupId] : undefined;
   const hasNoteSelection = activeSelectedNoteIds.length > 0 || Boolean(ui.selectedNoteId);
   const showContextColor = hasNoteSelection;
-  const showContextTags = hasNoteSelection;
   const showContextTextSize = hasNoteSelection;
   const showContextAlign = selectedNotes.length >= 2;
-  const hasContextActions = showContextColor || showContextTags || showContextTextSize || showContextAlign;
+  const hasContextActions = showContextColor || showContextTextSize || showContextAlign;
   const displayedTags =
     selectedNotes.length > 1
       ? selectedNotes
@@ -1806,9 +1805,6 @@ export const WallCanvas = () => {
     "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-sky-400";
   const toolbarDivider = "mx-1 h-6 w-px bg-zinc-300";
   const toolbarLabel = "text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500";
-  const toolbarInput =
-    "w-32 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-700 placeholder:text-zinc-400 outline-none transition focus:border-sky-400 disabled:opacity-40";
-  const toolbarTagChip = "rounded-full border border-zinc-300 bg-zinc-100 px-2 py-1 text-[11px] text-zinc-700 transition hover:bg-zinc-200";
   const toolbarSurface = "rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-md backdrop-blur";
   const quickActionScreen =
     primarySelectedNote && !isTimeLocked
@@ -2031,39 +2027,6 @@ export const WallCanvas = () => {
                     }
                   >
                     {size.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {showContextTags && (
-              <div className="flex items-center gap-2">
-                <span className={toolbarLabel}>Tags</span>
-                <input
-                  value={tagInput}
-                  onChange={(event) => setTagInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      addTagToSelectedNote();
-                    }
-                  }}
-                  placeholder="add-tag"
-                  disabled={isTimeLocked}
-                  className={toolbarInput}
-                />
-                <button type="button" onClick={addTagToSelectedNote} disabled={isTimeLocked} className={toolbarBtnCompact}>
-                  Add
-                </button>
-                {displayedTags.slice(0, 3).map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => removeTagFromSelectedNote(tag)}
-                    disabled={isTimeLocked}
-                    className={toolbarTagChip}
-                    title="Remove tag"
-                  >
-                    #{tag}
                   </button>
                 ))}
               </div>
@@ -2717,6 +2680,27 @@ export const WallCanvas = () => {
                       text={`+${overflowTags}`}
                     />
                   )}
+                  {(isHovered || isSelected) && note.tags.length > 0 && (
+                    <Group>
+                      <Rect
+                        x={10}
+                        y={-26}
+                        width={Math.min(260, Math.max(90, 18 + note.tags.join("  ").length * 4))}
+                        height={18}
+                        cornerRadius={9}
+                        fill="rgba(9,9,11,0.82)"
+                      />
+                      <Text
+                        x={14}
+                        y={-23}
+                        width={Math.min(252, Math.max(82, 12 + note.tags.join("  ").length * 4))}
+                        fontSize={10}
+                        fill="#f4f4f5"
+                        text={note.tags.map((tag) => `#${tag}`).join("  ")}
+                        ellipsis
+                      />
+                    </Group>
+                  )}
                 </Group>
               );
             })}
@@ -2877,12 +2861,7 @@ export const WallCanvas = () => {
             value={editing.text}
             onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
             onBlur={() => {
-              const current = renderSnapshot.notes[editing.id];
-              if (current) {
-                const parsedInlineTags = parseInlineTags(editing.text);
-                const mergedTags = [...new Set([...current.tags, ...parsedInlineTags])];
-                updateNote(editing.id, { text: editing.text, tags: mergedTags });
-              }
+              commitEditedNoteText(editing.id, editing.text);
               setEditing(null);
             }}
             className="absolute resize-none rounded-xl border border-zinc-700/40 bg-white/95 p-3 text-[16px] leading-6 shadow-xl outline-none"
@@ -3071,9 +3050,10 @@ export const WallCanvas = () => {
                   Add
                 </button>
               </div>
-              <div className="mt-2 flex flex-wrap gap-1">
+              <div className="mt-2 max-h-28 overflow-auto pr-1">
+                <div className="flex flex-wrap gap-1">
                 {displayedTags.length === 0 && <span className="text-[11px] text-zinc-500">No tags on current selection.</span>}
-                {displayedTags.slice(0, 12).map((tag) => (
+                {displayedTags.map((tag) => (
                   <button
                     key={`detail-tag-${tag}`}
                     type="button"
@@ -3085,6 +3065,7 @@ export const WallCanvas = () => {
                     #{tag}
                   </button>
                 ))}
+                </div>
               </div>
             </div>
 

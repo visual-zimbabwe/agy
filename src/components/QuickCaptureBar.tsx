@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { parseTaggedText } from "@/lib/tag-utils";
 
 type CaptureItem = {
   text: string;
@@ -46,11 +47,10 @@ const parseCaptureItems = (raw: string): CaptureItem[] => {
 
   return lines
     .map((line) => {
-      const tags = [...line.matchAll(/#([a-zA-Z0-9_-]+)/g)].map((match) => match[1].toLowerCase());
-      const text = line.replace(/#([a-zA-Z0-9_-]+)/g, "").replace(/\s{2,}/g, " ").trim();
+      const parsed = parseTaggedText(line);
       return {
-        text: text || line,
-        tags: [...new Set(tags)],
+        text: parsed.text || line,
+        tags: parsed.tags,
       };
     })
     .filter((item) => item.text.length > 0);
