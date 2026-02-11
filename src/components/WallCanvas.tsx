@@ -23,6 +23,7 @@ import { WallStage } from "@/components/wall/WallStage";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { WallToolbar } from "@/components/wall/WallToolbar";
 import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
+import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
 import {
   applyTemplate,
   assignZoneToGroup,
@@ -76,16 +77,6 @@ type GuideLineState = {
 type TagLabelLayout = Record<string, { x: number; y: number }>;
 
 const flashDurationMs = 1200;
-
-const isTypingInField = (event: KeyboardEvent) => {
-  const target = event.target as HTMLElement | null;
-  if (!target) {
-    return false;
-  }
-
-  const tagName = target.tagName.toLowerCase();
-  return tagName === "input" || tagName === "textarea" || target.isContentEditable;
-};
 
 const toWorldPoint = (screenX: number, screenY: number, camera: { x: number; y: number; zoom: number }) => ({
   x: (screenX - camera.x) / camera.zoom,
@@ -884,272 +875,53 @@ export const WallCanvas = () => {
     return () => clearTimeout(timer);
   }, [commitEditedNoteText, editing]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === " ") {
-        setIsSpaceDown(true);
-      }
-
-      const typing = isTypingInField(event);
-
-      if ((event.key === "?" || (event.shiftKey && event.key === "/")) && !typing) {
-        event.preventDefault();
-        setShortcutsOpen(!ui.isShortcutsOpen);
-        return;
-      }
-
-      if (event.key === "Escape") {
-        setSearchOpen(false);
-        setExportOpen(false);
-        setShortcutsOpen(false);
-        setQuickCaptureOpen(false);
-        setEditing(null);
-        setGuideLines({});
-        resetSelection();
-        setSelectedNoteIds([]);
-        selectNote(undefined);
-        return;
-      }
-
-      if (typing) {
-        return;
-      }
-
-      const key = event.key.toLowerCase();
-      const ctrlOrMeta = event.ctrlKey || event.metaKey;
-
-      if (!ctrlOrMeta && key === "t") {
-        event.preventDefault();
-        const next = !timelineModeRef.current;
-        setTimelineMode(next);
-        if (next && timelineEntries.length > 0) {
-          setTimelineIndex(timelineEntries.length - 1);
-        }
-        if (!next) {
-          setIsTimelinePlaying(false);
-        }
-        return;
-      }
-
-      if (!ctrlOrMeta && key === "h") {
-        event.preventDefault();
-        setShowHeatmap((previous) => !previous);
-        return;
-      }
-
-      if (!ctrlOrMeta && key === "p") {
-        event.preventDefault();
-        const next = !presentationMode;
-        setPresentationMode(next);
-        if (next) {
-          setPresentationIndex(0);
-          setQuickCaptureOpen(false);
-          setSearchOpen(false);
-          setExportOpen(false);
-        }
-        return;
-      }
-
-      if (presentationMode && (event.key === "ArrowRight" || event.key === "ArrowDown")) {
-        event.preventDefault();
-        setPresentationIndex((previous) => Math.min(previous + 1, Math.max(0, notes.length - 1)));
-        return;
-      }
-
-      if (presentationMode && (event.key === "ArrowLeft" || event.key === "ArrowUp")) {
-        event.preventDefault();
-        setPresentationIndex((previous) => Math.max(previous - 1, 0));
-        return;
-      }
-
-      if (!ctrlOrMeta && key === "q") {
-        event.preventDefault();
-        setQuickCaptureOpen((previous) => !previous);
-        return;
-      }
-
-      if (ctrlOrMeta && key === "j") {
-        event.preventDefault();
-        setQuickCaptureOpen((previous) => !previous);
-        return;
-      }
-
-      if ((key === "n" && !event.altKey) || (ctrlOrMeta && key === "n")) {
-        if (isTimeLocked) {
-          return;
-        }
-        event.preventDefault();
-        const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-        const createdId = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor);
-        const createdNote = notesMap[createdId];
-        setSelectedNoteIds([createdId]);
-        selectNote(createdId);
-        openEditor(createdId, createdNote?.text ?? "");
-        return;
-      }
-
-      if (ctrlOrMeta && key === "k") {
-        event.preventDefault();
-        setSearchOpen(true);
-        return;
-      }
-
-      if (ctrlOrMeta && key === "a") {
-        event.preventDefault();
-        if (isTimeLocked) {
-          return;
-        }
-        const ids = notes.map((note) => note.id);
-        setSelectedNoteIds(ids);
-        selectNote(ids.length === 1 ? ids[0] : undefined);
-        return;
-      }
-
-      if (ctrlOrMeta && key === "z") {
-        event.preventDefault();
-        if (isTimeLocked) {
-          return;
-        }
-        if (event.shiftKey) {
-          redo();
-        } else {
-          undo();
-        }
-        return;
-      }
-
-      if (ctrlOrMeta && key === "y") {
-        event.preventDefault();
-        if (isTimeLocked) {
-          return;
-        }
-        redo();
-        return;
-      }
-
-      if (ctrlOrMeta && key === "l") {
-        if (isTimeLocked) {
-          return;
-        }
-        event.preventDefault();
-        if (ui.selectedNoteId) {
-          setLinkingFromNote(ui.selectedNoteId);
-        }
-        return;
-      }
-
-      if ((ctrlOrMeta && key === "d") || (event.shiftKey && key === "d")) {
-        if (isTimeLocked) {
-          return;
-        }
-        if (ui.selectedNoteId) {
-          event.preventDefault();
-          duplicateNote(ui.selectedNoteId);
-        }
-        return;
-      }
-
-      if (!ctrlOrMeta && key === "enter" && ui.selectedNoteId && !isTimeLocked) {
-        const selected = renderSnapshot.notes[ui.selectedNoteId];
-        if (selected) {
-          event.preventDefault();
-          openEditor(selected.id, selected.text);
-        }
-        return;
-      }
-
-      if ((key === "delete" || key === "backspace") && !editing) {
-        if (isTimeLocked) {
-          return;
-        }
-        if (selectedNoteIds.length > 1) {
-          const ok = window.confirm(`Delete ${selectedNoteIds.length} selected notes?`);
-          if (ok) {
-            for (const id of selectedNoteIds) {
-              deleteNote(id);
-            }
-            setSelectedNoteIds([]);
-            selectNote(undefined);
-          }
-          return;
-        }
-        if (ui.selectedNoteId) {
-          const ok = window.confirm("Delete selected note?");
-          if (ok) {
-            deleteNote(ui.selectedNoteId);
-          }
-          return;
-        }
-
-        if (ui.selectedZoneId) {
-          const ok = window.confirm("Delete selected zone?");
-          if (ok) {
-            deleteZone(ui.selectedZoneId);
-          }
-          return;
-        }
-
-        if (ui.selectedLinkId) {
-          const ok = window.confirm("Delete selected link?");
-          if (ok) {
-            deleteLink(ui.selectedLinkId);
-          }
-          return;
-        }
-
-        if (ui.selectedGroupId) {
-          const ok = window.confirm("Delete selected zone group?");
-          if (ok) {
-            deleteGroup(ui.selectedGroupId);
-          }
-        }
-      }
-    };
-
-    const onKeyUp = (event: KeyboardEvent) => {
-      if (event.key === " ") {
-        setIsSpaceDown(false);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-    };
-  }, [
+  useWallKeyboard({
     camera,
+    viewport,
+    notes,
+    notesMap,
+    renderNotesById: renderSnapshot.notes,
+    ui: {
+      isShortcutsOpen: ui.isShortcutsOpen,
+      selectedNoteId: ui.selectedNoteId,
+      selectedZoneId: ui.selectedZoneId,
+      selectedLinkId: ui.selectedLinkId,
+      selectedGroupId: ui.selectedGroupId,
+      lastColor: ui.lastColor,
+    },
+    selectedNoteIds,
     editing,
     isTimeLocked,
     presentationMode,
-    notes.length,
-    notesMap,
-    notes,
-    openEditor,
-    selectedNoteIds,
-    resetSelection,
-    renderSnapshot.notes,
-    redo,
-    setExportOpen,
-    setLinkingFromNote,
-    setQuickCaptureOpen,
-    setSearchOpen,
+    timelineEntriesLength: timelineEntries.length,
+    timelineModeRef,
+    setIsSpaceDown,
     setShortcutsOpen,
+    setSearchOpen,
+    setExportOpen,
+    setQuickCaptureOpen,
+    setEditing,
+    clearGuideLines: () => setGuideLines({}),
+    resetSelection,
+    setSelectedNoteIds,
     selectNote,
+    setTimelineMode,
+    setTimelineIndex,
+    setIsTimelinePlaying,
+    setShowHeatmap,
+    setPresentationMode,
+    setPresentationIndex,
+    createNote,
+    openEditor,
+    redo,
     undo,
-    ui.isShortcutsOpen,
-    ui.lastColor,
-    ui.linkType,
-    ui.selectedGroupId,
-    ui.selectedLinkId,
-    ui.selectedNoteId,
-    ui.selectedZoneId,
-    timelineEntries.length,
-    viewport.h,
-    viewport.w,
-  ]);
+    setLinkingFromNote,
+    duplicateNote,
+    deleteNote,
+    deleteZone,
+    deleteLink,
+    deleteGroup,
+  });
 
   useEffect(() => {
     if (!ui.flashNoteId) {
