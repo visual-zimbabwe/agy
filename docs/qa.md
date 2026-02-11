@@ -223,3 +223,40 @@ Expected:
 - Control iconography is consistent across top bar and tools rail.
 - Tooltips render for controls, with shortcut chips where available.
 - On compact layouts, side panels behave like collapsible overlays and do not permanently occupy canvas space.
+
+## IA Cleanup - Accordions, Minimal Context, Layout Preferences
+1. Open `/wall` with default layout.
+2. In the `Details` panel, verify `History`, `Recall`, `Zone Groups`, and `Tag Groups (Auto)` sections can each be expanded/collapsed independently.
+3. Confirm `Templates` and `Selection Tags` remain visible without needing expansion.
+4. Clear note selection and verify top `Context` bar is hidden.
+5. Select one note and verify `Context` bar appears with only relevant controls (`Color`, `Tags`).
+6. Select two or more notes and verify alignment/distribution controls appear.
+7. Click top-bar `Layout` and disable `Tools Panel`; verify left panel disappears.
+8. Disable `Details Panel`; verify right panel disappears.
+9. Disable `Context Bar`; verify it stays hidden even with selected notes.
+10. Refresh the page and verify layout preferences persist.
+11. Re-enable all layout toggles and verify full layout is restored.
+
+Expected:
+- Dense right-panel sections are organized with collapsible accordions.
+- Context bar remains minimal and appears only when selection-dependent actions are relevant.
+- Layout preference toggles persist across reloads and control panel visibility reliably.
+
+## Note Design - Pro Interaction Pass
+1. Select one note and press `Enter`; verify inline editor opens.
+2. Click directly on note text; verify editor opens without requiring double-click.
+3. Select a note and use quick floating actions above the note:
+   set text size (`S/M/L`), change color, duplicate, delete, and start link.
+4. Drag a note near another note edge/center and verify snap guide lines appear.
+5. While dragging, hold `Shift` and verify movement locks to a single axis.
+6. Hold `Alt` and drag a note; on release verify a duplicated note appears at drop position while source remains.
+7. Add many tags to a note and verify note body shows compact tag chips with overflow count (`+N`).
+8. Resize note and verify text is visually truncated (no overflow clipping outside card).
+9. Hover a note and compare against selected/dragging states.
+
+Expected:
+- Editing and quick actions are faster and match modern canvas UX patterns.
+- Snap guides and distance labels improve alignment confidence.
+- Axis lock and alt-drag duplication work consistently.
+- Tags render as compact chips with overflow handling.
+- Hover/selected/dragging visual states are clearly distinct.

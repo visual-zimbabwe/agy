@@ -2,6 +2,7 @@ export type Note = {
   id: string;
   text: string;
   tags: string[];
+  textSize?: "sm" | "md" | "lg";
   x: number;
   y: number;
   w: number;

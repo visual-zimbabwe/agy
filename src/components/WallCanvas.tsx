@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Arrow, Group, Layer, Rect, Stage, Text, Transformer } from "react-konva";
+import { Arrow, Group, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import Fuse from "fuse.js";
 import jsPDF from "jspdf";
@@ -24,6 +24,7 @@ import {
   deleteNote,
   deleteZone,
   duplicateNote,
+  duplicateNoteAt,
   moveNote,
   moveZone,
   toggleGroupCollapse,
@@ -31,7 +32,7 @@ import {
   updateLinkType,
   updateZone,
 } from "@/features/wall/commands";
-import { LINK_TYPES, NOTE_DEFAULTS, TEMPLATE_TYPES, ZONE_DEFAULTS } from "@/features/wall/constants";
+import { LINK_TYPES, NOTE_DEFAULTS, NOTE_TEXT_SIZES, TEMPLATE_TYPES, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
 import type { Link, LinkType, Note, PersistedWallState, TemplateType, Zone } from "@/features/wall/types";
@@ -61,6 +62,14 @@ type SavedRecallSearch = {
   zoneId?: string;
   tag?: string;
   dateFilter: RecallDateFilter;
+};
+type LayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar";
+type LayoutPreferences = Record<LayoutPreferenceKey, boolean>;
+type DetailsSectionKey = "history" | "recall" | "zoneGroups" | "tagGroups";
+type DetailsSectionState = Record<DetailsSectionKey, boolean>;
+type GuideLineState = {
+  vertical?: { x: number; y1: number; y2: number; distance?: number };
+  horizontal?: { y: number; x1: number; x2: number; distance?: number };
 };
 
 const flashDurationMs = 1200;
@@ -245,7 +254,26 @@ const boundsIntersect = (a: Bounds, b: Bounds) =>
 
 const makeDownloadId = () => new Date().toISOString().replace(/[:.]/g, "-");
 const recallStorageKey = "idea-wall-recall-searches";
+const layoutPrefsStorageKey = "idea-wall-layout-prefs";
 const compactPanelBreakpoint = 1120;
+const dragSnapThreshold = 10;
+const textStyleBySize = Object.fromEntries(
+  NOTE_TEXT_SIZES.map((entry) => [entry.value, { fontSize: entry.fontSize, lineHeight: entry.lineHeight }]),
+) as Record<"sm" | "md" | "lg", { fontSize: number; lineHeight: number }>;
+
+const getNoteTextStyle = (size?: Note["textSize"]) => textStyleBySize[size ?? NOTE_DEFAULTS.textSize];
+
+const truncateNoteText = (text: string, note: Note) => {
+  const style = getNoteTextStyle(note.textSize);
+  const charWidth = Math.max(6, style.fontSize * 0.54);
+  const maxCharsPerLine = Math.max(10, Math.floor((note.w - 24) / charWidth));
+  const maxLines = Math.max(2, Math.floor((note.h - 52) / (style.fontSize * style.lineHeight)));
+  const maxChars = maxCharsPerLine * maxLines;
+  if (text.length <= maxChars) {
+    return text;
+  }
+  return `${text.slice(0, Math.max(1, maxChars - 1)).trimEnd()}…`;
+};
 
 type IconName =
   | "search"
@@ -266,7 +294,8 @@ type IconName =
   | "link"
   | "cluster"
   | "panel-left"
-  | "panel-right";
+  | "panel-right"
+  | "layout";
 
 const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; className?: string }) => {
   const common = "none";
@@ -430,6 +459,18 @@ const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; className?: str
       </svg>
     );
   }
+  if (name === "layout") {
+    return (
+      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+        <path d="M5 7h14" />
+        <path d="M5 12h14" />
+        <path d="M5 17h14" />
+        <circle cx="9" cy="7" r="1.8" />
+        <circle cx="15" cy="12" r="1.8" />
+        <circle cx="11" cy="17" r="1.8" />
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
       <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
@@ -527,6 +568,32 @@ export const WallCanvas = () => {
       return [];
     }
   });
+  const [layoutPrefs, setLayoutPrefs] = useState<LayoutPreferences>(() => {
+    if (typeof window === "undefined") {
+      return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true };
+    }
+    try {
+      const raw = window.localStorage.getItem(layoutPrefsStorageKey);
+      if (!raw) {
+        return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true };
+      }
+      const parsed = JSON.parse(raw) as Partial<LayoutPreferences>;
+      return {
+        showToolsPanel: parsed.showToolsPanel ?? true,
+        showDetailsPanel: parsed.showDetailsPanel ?? true,
+        showContextBar: parsed.showContextBar ?? true,
+      };
+    } catch {
+      return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true };
+    }
+  });
+  const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
+  const [detailsSectionsOpen, setDetailsSectionsOpen] = useState<DetailsSectionState>({
+    history: false,
+    recall: true,
+    zoneGroups: false,
+    tagGroups: false,
+  });
   const [presentationMode, setPresentationMode] = useState(false);
   const [presentationIndex, setPresentationIndex] = useState(0);
   const [leftPanelOpen, setLeftPanelOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth >= compactPanelBreakpoint));
@@ -542,8 +609,12 @@ export const WallCanvas = () => {
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [boxSelectMode, setBoxSelectMode] = useState(false);
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
+  const [hoveredNoteId, setHoveredNoteId] = useState<string | undefined>(undefined);
+  const [draggingNoteId, setDraggingNoteId] = useState<string | undefined>(undefined);
+  const [guideLines, setGuideLines] = useState<GuideLineState>({});
   const dragSelectionStartRef = useRef<Record<string, { x: number; y: number }> | null>(null);
   const dragAnchorRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  const dragSingleStartRef = useRef<{ id: string; x: number; y: number; altClone: boolean } | null>(null);
   const lastTimelineRecordedAt = useRef(0);
   const lastTimelineSerialized = useRef("");
   const activeTimelineEntry = timelineMode
@@ -579,6 +650,13 @@ export const WallCanvas = () => {
     }
     window.localStorage.setItem(recallStorageKey, JSON.stringify(savedRecallSearches));
   }, [savedRecallSearches]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(layoutPrefsStorageKey, JSON.stringify(layoutPrefs));
+  }, [layoutPrefs]);
 
   useEffect(() => {
     const saver = createSnapshotSaver(320);
@@ -707,6 +785,7 @@ export const WallCanvas = () => {
         setShortcutsOpen(false);
         setQuickCaptureOpen(false);
         setEditing(null);
+        setGuideLines({});
         resetSelection();
         setSelectedNoteIds([]);
         selectNote(undefined);
@@ -855,6 +934,15 @@ export const WallCanvas = () => {
         return;
       }
 
+      if (!ctrlOrMeta && key === "enter" && ui.selectedNoteId && !isTimeLocked) {
+        const selected = renderSnapshot.notes[ui.selectedNoteId];
+        if (selected) {
+          event.preventDefault();
+          setEditing({ id: selected.id, text: selected.text });
+        }
+        return;
+      }
+
       if ((key === "delete" || key === "backspace") && !editing) {
         if (isTimeLocked) {
           return;
@@ -926,6 +1014,7 @@ export const WallCanvas = () => {
     notes,
     selectedNoteIds,
     resetSelection,
+    renderSnapshot.notes,
     redo,
     setExportOpen,
     setLinkingFromNote,
@@ -1124,6 +1213,85 @@ export const WallCanvas = () => {
   const selectedNotes = activeSelectedNoteIds
     .map((id) => renderSnapshot.notes[id])
     .filter((note): note is Note => Boolean(note));
+  const resolveSnappedPosition = (note: Note, candidateX: number, candidateY: number) => {
+    const snapThreshold = dragSnapThreshold / Math.max(0.35, camera.zoom);
+    const noteLeft = candidateX;
+    const noteRight = candidateX + note.w;
+    const noteCenterX = candidateX + note.w / 2;
+    const noteTop = candidateY;
+    const noteBottom = candidateY + note.h;
+    const noteCenterY = candidateY + note.h / 2;
+    const boundsY1 = Math.min(noteTop, noteBottom) - 240;
+    const boundsY2 = Math.max(noteTop, noteBottom) + 240;
+    const boundsX1 = Math.min(noteLeft, noteRight) - 280;
+    const boundsX2 = Math.max(noteLeft, noteRight) + 280;
+
+    let bestX: { value: number; dist: number; measure?: number; target?: number } | undefined;
+    let bestY: { value: number; dist: number; measure?: number; target?: number } | undefined;
+
+    for (const peer of visibleNotes) {
+      if (peer.id === note.id) {
+        continue;
+      }
+      if (activeSelectedNoteIds.includes(peer.id)) {
+        continue;
+      }
+
+      const peerLeft = peer.x;
+      const peerRight = peer.x + peer.w;
+      const peerCenterX = peer.x + peer.w / 2;
+      const peerTop = peer.y;
+      const peerBottom = peer.y + peer.h;
+      const peerCenterY = peer.y + peer.h / 2;
+
+      const xCandidates = [
+        { target: peerLeft, value: peerLeft, measure: Math.abs(noteLeft - peerLeft) },
+        { target: peerRight, value: peerRight - note.w, measure: Math.abs(noteLeft - peerRight) },
+        { target: peerCenterX, value: peerCenterX - note.w / 2, measure: Math.abs(noteCenterX - peerCenterX) },
+      ];
+      for (const candidate of xCandidates) {
+        const dist = Math.abs(candidate.value - candidateX);
+        if (dist <= snapThreshold && (!bestX || dist < bestX.dist)) {
+          bestX = { value: candidate.value, dist, measure: candidate.measure, target: candidate.target };
+        }
+      }
+
+      const yCandidates = [
+        { target: peerTop, value: peerTop, measure: Math.abs(noteTop - peerTop) },
+        { target: peerBottom, value: peerBottom - note.h, measure: Math.abs(noteTop - peerBottom) },
+        { target: peerCenterY, value: peerCenterY - note.h / 2, measure: Math.abs(noteCenterY - peerCenterY) },
+      ];
+      for (const candidate of yCandidates) {
+        const dist = Math.abs(candidate.value - candidateY);
+        if (dist <= snapThreshold && (!bestY || dist < bestY.dist)) {
+          bestY = { value: candidate.value, dist, measure: candidate.measure, target: candidate.target };
+        }
+      }
+    }
+
+    const snappedX = bestX ? bestX.value : candidateX;
+    const snappedY = bestY ? bestY.value : candidateY;
+    setGuideLines({
+      vertical: bestX
+        ? {
+            x: snappedX + note.w / 2,
+            y1: boundsY1,
+            y2: boundsY2,
+            distance: bestX.measure,
+          }
+        : undefined,
+      horizontal: bestY
+        ? {
+            y: snappedY + note.h / 2,
+            x1: boundsX1,
+            x2: boundsX2,
+            distance: bestY.measure,
+          }
+        : undefined,
+    });
+
+    return { x: snappedX, y: snappedY };
+  };
 
   const syncPrimarySelection = (ids: string[]) => {
     const nextIds = ids.filter((id) => Boolean(renderSnapshot.notes[id]));
@@ -1172,6 +1340,16 @@ export const WallCanvas = () => {
       updateNote(id, { color });
     }
     setLastColor(color);
+  };
+
+  const applyTextSizeToSelection = (textSize: "sm" | "md" | "lg") => {
+    if (isTimeLocked) {
+      return;
+    }
+    const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
+    for (const id of targetIds) {
+      updateNote(id, { textSize });
+    }
   };
 
   const alignSelected = (axis: "left" | "center" | "right" | "top" | "middle" | "bottom") => {
@@ -1570,9 +1748,33 @@ export const WallCanvas = () => {
     }
   };
 
+  const setLayoutPreference = (key: LayoutPreferenceKey, value: boolean) => {
+    if (!value) {
+      if (key === "showToolsPanel") {
+        setLeftPanelOpen(false);
+      }
+      if (key === "showDetailsPanel") {
+        setRightPanelOpen(false);
+      }
+    }
+    setLayoutPrefs((previous) => ({ ...previous, [key]: value }));
+  };
+
+  const toggleDetailsSection = (key: DetailsSectionKey) => {
+    setDetailsSectionsOpen((previous) => ({ ...previous, [key]: !previous[key] }));
+  };
+
   const selectedNote = ui.selectedNoteId ? renderSnapshot.notes[ui.selectedNoteId] : undefined;
+  const primarySelectedNoteId = activeSelectedNoteIds[0] ?? ui.selectedNoteId;
+  const primarySelectedNote = primarySelectedNoteId ? renderSnapshot.notes[primarySelectedNoteId] : undefined;
   const selectedZone = ui.selectedZoneId ? renderSnapshot.zones[ui.selectedZoneId] : undefined;
   const selectedGroup = ui.selectedGroupId ? renderSnapshot.zoneGroups[ui.selectedGroupId] : undefined;
+  const hasNoteSelection = activeSelectedNoteIds.length > 0 || Boolean(ui.selectedNoteId);
+  const showContextColor = hasNoteSelection;
+  const showContextTags = hasNoteSelection;
+  const showContextTextSize = hasNoteSelection;
+  const showContextAlign = selectedNotes.length >= 2;
+  const hasContextActions = showContextColor || showContextTags || showContextTextSize || showContextAlign;
   const displayedTags =
     selectedNotes.length > 1
       ? selectedNotes
@@ -1597,6 +1799,10 @@ export const WallCanvas = () => {
     "w-32 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-700 placeholder:text-zinc-400 outline-none transition focus:border-sky-400 disabled:opacity-40";
   const toolbarTagChip = "rounded-full border border-zinc-300 bg-zinc-100 px-2 py-1 text-[11px] text-zinc-700 transition hover:bg-zinc-200";
   const toolbarSurface = "rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-md backdrop-blur";
+  const quickActionScreen =
+    primarySelectedNote && !isTimeLocked
+      ? toScreenPoint(primarySelectedNote.x + primarySelectedNote.w / 2, primarySelectedNote.y - 16, camera)
+      : undefined;
 
   return (
     <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
@@ -1604,7 +1810,7 @@ export const WallCanvas = () => {
         <div className={`${toolbarSurface} flex flex-wrap items-center gap-1`}>
           {!presentationMode && (
             <>
-              {!publishedReadOnly && (
+              {!publishedReadOnly && layoutPrefs.showToolsPanel && (
                 <ControlTooltip label={leftPanelOpen ? "Hide tools panel" : "Show tools panel"}>
                   <button
                     type="button"
@@ -1617,15 +1823,28 @@ export const WallCanvas = () => {
                   </button>
                 </ControlTooltip>
               )}
-              <ControlTooltip label={rightPanelOpen ? "Hide details panel" : "Show details panel"}>
+              {layoutPrefs.showDetailsPanel && (
+                <ControlTooltip label={rightPanelOpen ? "Hide details panel" : "Show details panel"}>
+                  <button
+                    type="button"
+                    onClick={() => setRightPanelOpen((previous) => !previous)}
+                    className={rightPanelOpen ? toolbarBtnActive : toolbarBtn}
+                    title={rightPanelOpen ? "Hide details panel" : "Show details panel"}
+                  >
+                    <Icon name="panel-right" />
+                    <span>Details</span>
+                  </button>
+                </ControlTooltip>
+              )}
+              <ControlTooltip label="Customize layout visibility">
                 <button
                   type="button"
-                  onClick={() => setRightPanelOpen((previous) => !previous)}
-                  className={rightPanelOpen ? toolbarBtnActive : toolbarBtn}
-                  title={rightPanelOpen ? "Hide details panel" : "Show details panel"}
+                  onClick={() => setLayoutMenuOpen((previous) => !previous)}
+                  className={layoutMenuOpen ? toolbarBtnActive : toolbarBtn}
+                  title="Customize layout visibility"
                 >
-                  <Icon name="panel-right" />
-                  <span>Details</span>
+                  <Icon name="layout" />
+                  <span>Layout</span>
                 </button>
               </ControlTooltip>
             </>
@@ -1735,20 +1954,77 @@ export const WallCanvas = () => {
           </ControlTooltip>
         </div>
 
-        {!publishedReadOnly && !presentationMode && (
+        {!presentationMode && layoutMenuOpen && (
+          <div className={`${toolbarSurface} flex flex-wrap items-center gap-3`}>
+            <span className={toolbarLabel}>Customize Layout</span>
+            <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+              <input
+                type="checkbox"
+                checked={layoutPrefs.showToolsPanel}
+                onChange={(event) => setLayoutPreference("showToolsPanel", event.target.checked)}
+                className="h-3.5 w-3.5 accent-zinc-900"
+              />
+              <span>Tools Panel</span>
+            </label>
+            <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+              <input
+                type="checkbox"
+                checked={layoutPrefs.showDetailsPanel}
+                onChange={(event) => setLayoutPreference("showDetailsPanel", event.target.checked)}
+                className="h-3.5 w-3.5 accent-zinc-900"
+              />
+              <span>Details Panel</span>
+            </label>
+            <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+              <input
+                type="checkbox"
+                checked={layoutPrefs.showContextBar}
+                onChange={(event) => setLayoutPreference("showContextBar", event.target.checked)}
+                className="h-3.5 w-3.5 accent-zinc-900"
+              />
+              <span>Context Bar</span>
+            </label>
+          </div>
+        )}
+
+        {!publishedReadOnly && !presentationMode && layoutPrefs.showContextBar && hasContextActions && (
           <div className={`${toolbarSurface} flex flex-wrap items-center gap-2`}>
             <span className={toolbarLabel}>Context</span>
-            <div className={toolbarDivider} />
-            <div className="flex items-center gap-2">
-              <span className={toolbarLabel}>Color</span>
-              <NoteSwatches
-                value={selectedNotes[0]?.color ?? selectedNote?.color ?? ui.lastColor}
-                onSelect={(color) => {
-                  applyColorToSelection(color);
-                }}
-              />
-            </div>
-            {(activeSelectedNoteIds.length > 0 || ui.selectedNoteId) && (
+            {showContextColor && (
+              <>
+                <div className={toolbarDivider} />
+                <div className="flex items-center gap-2">
+                  <span className={toolbarLabel}>Color</span>
+                  <NoteSwatches
+                    value={selectedNotes[0]?.color ?? selectedNote?.color ?? ui.lastColor}
+                    onSelect={(color) => {
+                      applyColorToSelection(color);
+                    }}
+                  />
+                </div>
+              </>
+            )}
+            {showContextTextSize && (
+              <div className="flex items-center gap-1">
+                <span className={toolbarLabel}>Text</span>
+                {NOTE_TEXT_SIZES.map((size) => (
+                  <button
+                    key={`context-size-${size.value}`}
+                    type="button"
+                    onClick={() => applyTextSizeToSelection(size.value)}
+                    disabled={isTimeLocked}
+                    className={
+                      (primarySelectedNote?.textSize ?? NOTE_DEFAULTS.textSize) === size.value
+                        ? toolbarBtnActive
+                        : toolbarBtnCompact
+                    }
+                  >
+                    {size.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {showContextTags && (
               <div className="flex items-center gap-2">
                 <span className={toolbarLabel}>Tags</span>
                 <input
@@ -1781,7 +2057,7 @@ export const WallCanvas = () => {
                 ))}
               </div>
             )}
-            {selectedNotes.length >= 2 && (
+            {showContextAlign && (
               <div className="flex items-center gap-1">
                 <span className={toolbarLabel}>Align</span>
                 <button type="button" onClick={() => alignSelected("left")} disabled={isTimeLocked} className={toolbarBtnCompact}>
@@ -1842,11 +2118,13 @@ export const WallCanvas = () => {
         onMouseUp={() => {
           setIsMiddleDragging(false);
           setIsLeftCanvasDragging(false);
+          setGuideLines({});
           finalizeBoxSelection();
         }}
         onMouseLeave={() => {
           setIsMiddleDragging(false);
           setIsLeftCanvasDragging(false);
+          setGuideLines({});
           finalizeBoxSelection();
         }}
         onContextMenu={(event) => {
@@ -1859,7 +2137,9 @@ export const WallCanvas = () => {
           </div>
         )}
 
-        {!presentationMode && isCompactLayout && (leftPanelOpen || rightPanelOpen) && (
+        {!presentationMode &&
+          isCompactLayout &&
+          ((layoutPrefs.showToolsPanel && leftPanelOpen) || (layoutPrefs.showDetailsPanel && rightPanelOpen)) && (
           <button
             type="button"
             aria-label="Close side panels"
@@ -1871,7 +2151,7 @@ export const WallCanvas = () => {
           />
         )}
 
-        {!presentationMode && !publishedReadOnly && (
+        {!presentationMode && !publishedReadOnly && layoutPrefs.showToolsPanel && (
           <aside
             className={`pointer-events-auto absolute z-40 rounded-2xl border border-zinc-200/80 bg-white/95 p-2 shadow-xl backdrop-blur-sm transition ${
               isCompactLayout
@@ -2199,6 +2479,12 @@ export const WallCanvas = () => {
             {visibleNotes.map((note) => {
               const isSelected = activeSelectedNoteIds.includes(note.id) || ui.selectedNoteId === note.id;
               const isFlashing = ui.flashNoteId === note.id;
+              const isHovered = hoveredNoteId === note.id;
+              const isDragging = draggingNoteId === note.id;
+              const noteTextStyle = getNoteTextStyle(note.textSize);
+              const visibleTagCount = note.w < 180 ? 1 : note.w < 240 ? 2 : 3;
+              const noteTags = note.tags.slice(0, visibleTagCount);
+              const overflowTags = Math.max(0, note.tags.length - noteTags.length);
 
               return (
                 <Group
@@ -2211,6 +2497,8 @@ export const WallCanvas = () => {
                   width={note.w}
                   height={note.h}
                   draggable={!isTimeLocked}
+                  onMouseEnter={() => setHoveredNoteId(note.id)}
+                  onMouseLeave={() => setHoveredNoteId((previous) => (previous === note.id ? undefined : previous))}
                   onClick={(event) => {
                     if (isTimeLocked) {
                       selectSingleNote(note.id);
@@ -2257,10 +2545,18 @@ export const WallCanvas = () => {
                     if (isTimeLocked) {
                       return;
                     }
+                    setDraggingNoteId(note.id);
+                    setGuideLines({});
                     if (!activeSelectedNoteIds.includes(note.id)) {
                       syncPrimarySelection([note.id]);
                     }
                     const activeIds = activeSelectedNoteIds.includes(note.id) ? activeSelectedNoteIds : [note.id];
+                    dragSingleStartRef.current = {
+                      id: note.id,
+                      x: note.x,
+                      y: note.y,
+                      altClone: event.evt.altKey,
+                    };
                     if (activeIds.length > 1) {
                       dragSelectionStartRef.current = Object.fromEntries(
                         activeIds
@@ -2275,13 +2571,30 @@ export const WallCanvas = () => {
                     if (isTimeLocked) {
                       return;
                     }
+                    const start = dragSingleStartRef.current;
+                    const pointerX = event.target.x();
+                    const pointerY = event.target.y();
+                    let candidateX = pointerX;
+                    let candidateY = pointerY;
+                    if (start && event.evt.shiftKey) {
+                      const dx = Math.abs(pointerX - start.x);
+                      const dy = Math.abs(pointerY - start.y);
+                      if (dx > dy) {
+                        candidateY = start.y;
+                      } else {
+                        candidateX = start.x;
+                      }
+                    }
+                    const snapped = resolveSnappedPosition(note, candidateX, candidateY);
+                    event.target.position(snapped);
+
                     const anchor = dragAnchorRef.current;
                     const startMap = dragSelectionStartRef.current;
                     if (!anchor || !startMap) {
                       return;
                     }
-                    const dx = event.target.x() - anchor.x;
-                    const dy = event.target.y() - anchor.y;
+                    const dx = snapped.x - anchor.x;
+                    const dy = snapped.y - anchor.y;
                     for (const [id, start] of Object.entries(startMap)) {
                       if (id === note.id) {
                         continue;
@@ -2293,9 +2606,20 @@ export const WallCanvas = () => {
                     if (isTimeLocked) {
                       return;
                     }
-                    moveNote(note.id, event.target.x(), event.target.y());
+                    const snapped = resolveSnappedPosition(note, event.target.x(), event.target.y());
+                    event.target.position(snapped);
+                    moveNote(note.id, snapped.x, snapped.y);
+                    const dragStart = dragSingleStartRef.current;
+                    if (dragStart?.id === note.id && dragStart.altClone) {
+                      updateNote(note.id, { x: dragStart.x, y: dragStart.y });
+                      duplicateNoteAt(note.id, snapped.x, snapped.y);
+                      syncPrimarySelection([note.id]);
+                    }
+                    setDraggingNoteId(undefined);
+                    setGuideLines({});
                     dragSelectionStartRef.current = null;
                     dragAnchorRef.current = null;
+                    dragSingleStartRef.current = null;
                   }}
                   onTransformEnd={(event) => {
                     if (isTimeLocked) {
@@ -2314,12 +2638,12 @@ export const WallCanvas = () => {
                     height={note.h}
                     cornerRadius={14}
                     fill={note.color}
-                    stroke={isSelected ? "#111827" : "#d4d4d8"}
-                    strokeWidth={isSelected ? 2 : 1}
+                    stroke={isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
+                    strokeWidth={isSelected ? 2.4 : isHovered ? 1.4 : 1}
                     shadowColor="#101010"
-                    shadowBlur={isFlashing ? 28 : 14}
-                    shadowOpacity={isFlashing ? 0.36 : 0.18}
-                    shadowOffsetY={3}
+                    shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
+                    shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
+                    shadowOffsetY={isDragging ? 7 : 3}
                   />
                   {showHeatmap && (
                     <Rect
@@ -2334,20 +2658,52 @@ export const WallCanvas = () => {
                     x={12}
                     y={12}
                     width={Math.max(0, note.w - 24)}
-                    height={Math.max(0, note.h - 48)}
-                    fontSize={17}
+                    height={Math.max(0, note.h - 56)}
+                    fontSize={noteTextStyle.fontSize}
                     fill="#1f2937"
-                    lineHeight={1.35}
-                    text={note.text || "Double-click to edit"}
+                    lineHeight={noteTextStyle.lineHeight}
+                    text={truncateNoteText(note.text, note) || "Double-click or press Enter to edit"}
+                    onClick={(event) => {
+                      if (isTimeLocked) {
+                        return;
+                      }
+                      event.cancelBubble = true;
+                      selectSingleNote(note.id);
+                      setEditing({ id: note.id, text: note.text });
+                    }}
                   />
-                  {note.tags.length > 0 && (
+                  {noteTags.map((tag, index) => (
+                    <Group key={`${note.id}-tag-${tag}`}>
+                      <Rect
+                        x={12 + index * 64}
+                        y={Math.max(10, note.h - 25)}
+                        width={60}
+                        height={16}
+                        cornerRadius={8}
+                        fill="rgba(255,255,255,0.78)"
+                        stroke="rgba(15,23,42,0.16)"
+                        strokeWidth={0.8}
+                      />
+                      <Text
+                        x={16 + index * 64}
+                        y={Math.max(12, note.h - 23)}
+                        width={52}
+                        fontSize={10}
+                        fill="#334155"
+                        text={`#${tag}`}
+                        ellipsis
+                      />
+                    </Group>
+                  ))}
+                  {overflowTags > 0 && (
                     <Text
-                      x={12}
-                      y={Math.max(12, note.h - 24)}
-                      width={Math.max(0, note.w - 24)}
-                      fontSize={12}
-                      fill="#374151"
-                      text={`#${note.tags.join("  #")}`}
+                      x={Math.max(12, note.w - 36)}
+                      y={Math.max(12, note.h - 23)}
+                      width={24}
+                      align="right"
+                      fontSize={10}
+                      fill="#334155"
+                      text={`+${overflowTags}`}
                     />
                   )}
                 </Group>
@@ -2410,6 +2766,46 @@ export const WallCanvas = () => {
               />
             )}
 
+            {guideLines.vertical && (
+              <Group>
+                <Line
+                  points={[guideLines.vertical.x, guideLines.vertical.y1, guideLines.vertical.x, guideLines.vertical.y2]}
+                  stroke="#0ea5e9"
+                  strokeWidth={1.2}
+                  dash={[6, 4]}
+                />
+                {typeof guideLines.vertical.distance === "number" && (
+                  <Text
+                    x={guideLines.vertical.x + 6}
+                    y={guideLines.vertical.y1 + 14}
+                    fontSize={10}
+                    fill="#0369a1"
+                    text={`${Math.round(guideLines.vertical.distance)}px`}
+                  />
+                )}
+              </Group>
+            )}
+
+            {guideLines.horizontal && (
+              <Group>
+                <Line
+                  points={[guideLines.horizontal.x1, guideLines.horizontal.y, guideLines.horizontal.x2, guideLines.horizontal.y]}
+                  stroke="#0ea5e9"
+                  strokeWidth={1.2}
+                  dash={[6, 4]}
+                />
+                {typeof guideLines.horizontal.distance === "number" && (
+                  <Text
+                    x={guideLines.horizontal.x1 + 10}
+                    y={guideLines.horizontal.y + 6}
+                    fontSize={10}
+                    fill="#0369a1"
+                    text={`${Math.round(guideLines.horizontal.distance)}px`}
+                  />
+                )}
+              </Group>
+            )}
+
             <Transformer
               ref={(node) => {
                 noteTransformerRef.current = node;
@@ -2417,6 +2813,7 @@ export const WallCanvas = () => {
               rotateEnabled={false}
               borderStroke="#111827"
               anchorFill="#111827"
+              anchorSize={isCompactLayout ? 11 : 9}
               enabledAnchors={[
                 "top-left",
                 "top-right",
@@ -2442,6 +2839,7 @@ export const WallCanvas = () => {
               rotateEnabled={false}
               borderStroke="#334155"
               anchorFill="#334155"
+              anchorSize={isCompactLayout ? 11 : 9}
               enabledAnchors={[
                 "top-left",
                 "top-right",
@@ -2483,6 +2881,71 @@ export const WallCanvas = () => {
               };
             })()}
           />
+        )}
+
+        {quickActionScreen && primarySelectedNote && !editing && (
+          <div
+            className="pointer-events-auto absolute z-[45] -translate-x-1/2 -translate-y-full rounded-xl border border-zinc-300 bg-white/96 px-2 py-1.5 shadow-xl backdrop-blur-sm"
+            style={{
+              left: `${quickActionScreen.x}px`,
+              top: `${quickActionScreen.y}px`,
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center gap-1">
+              {NOTE_TEXT_SIZES.map((size) => (
+                <button
+                  key={`quick-size-${size.value}`}
+                  type="button"
+                  className={
+                    (primarySelectedNote.textSize ?? NOTE_DEFAULTS.textSize) === size.value ? toolbarBtnActive : toolbarBtnCompact
+                  }
+                  onClick={() => applyTextSizeToSelection(size.value)}
+                  title={`Text size ${size.label}`}
+                >
+                  {size.label}
+                </button>
+              ))}
+              <div className="mx-1 h-5 w-px bg-zinc-300" />
+              <NoteSwatches
+                value={primarySelectedNote.color}
+                onSelect={(color) => {
+                  applyColorToSelection(color);
+                }}
+              />
+              <div className="mx-1 h-5 w-px bg-zinc-300" />
+              <button
+                type="button"
+                onClick={() => duplicateNote(primarySelectedNote.id)}
+                className={toolbarBtnCompact}
+                title="Duplicate (Ctrl/Cmd+D)"
+              >
+                Duplicate
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const ok = window.confirm("Delete selected note?");
+                  if (ok) {
+                    deleteNote(primarySelectedNote.id);
+                    clearNoteSelection();
+                  }
+                }}
+                className={toolbarBtnCompact}
+                title="Delete"
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                onClick={() => setLinkingFromNote(primarySelectedNote.id)}
+                className={ui.linkingFromNoteId ? toolbarBtnActive : toolbarBtnCompact}
+                title="Start link (Ctrl/Cmd+L)"
+              >
+                Link
+              </button>
+            </div>
+          </div>
         )}
 
         {linkMenu.open && linkMenu.linkId && renderSnapshot.links[linkMenu.linkId] && (
@@ -2533,7 +2996,7 @@ export const WallCanvas = () => {
           </div>
         )}
 
-        {!presentationMode && (
+        {!presentationMode && layoutPrefs.showDetailsPanel && (
           <aside
             className={`pointer-events-auto absolute z-40 rounded-2xl border border-zinc-300/80 bg-white/92 p-3 shadow-xl backdrop-blur-sm transition ${
               isCompactLayout
@@ -2610,242 +3073,288 @@ export const WallCanvas = () => {
             </div>
 
             <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">History</p>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-zinc-700">
-                <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Timeline entries: {timelineEntries.length}</div>
-                <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Visible notes: {visibleNotes.length}</div>
-                <div className="col-span-2 rounded-lg border border-zinc-200 bg-white px-2 py-1.5">
-                  Latest edit:{" "}
-                  {notes.length === 0
-                    ? "n/a"
-                    : new Date(Math.max(...notes.map((note) => note.updatedAt))).toLocaleString()}
-                </div>
-              </div>
-              <div className="mt-2 flex gap-2">
-                <button type="button" onClick={jumpToStaleNote} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]">
-                  Jump Stale
-                </button>
-                <button type="button" onClick={jumpToHighPriorityNote} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]">
-                  Jump Priority
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-3 border-t border-zinc-200 pt-3" />
-            <h3 className="text-sm font-semibold text-zinc-900">Recall</h3>
-            <p className="mt-1 text-xs text-zinc-600">Filter notes by query, zone, tag, and recency. Save frequent searches.</p>
-
-            <input
-              value={recallQuery}
-              onChange={(event) => setRecallQuery(event.target.value)}
-              placeholder="Find text or #tag..."
-              className="mt-2 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-            />
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              <select
-                value={recallZoneId}
-                onChange={(event) => setRecallZoneId(event.target.value)}
-                className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-              >
-                <option value="">All zones</option>
-                {visibleZones.map((zone) => (
-                  <option key={`filter-zone-${zone.id}`} value={zone.id}>
-                    {zone.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={recallTag}
-                onChange={(event) => setRecallTag(event.target.value)}
-                className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-              >
-                <option value="">All tags</option>
-                {availableRecallTags.map((tag) => (
-                  <option key={`filter-tag-${tag}`} value={tag}>
-                    #{tag}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={recallDateFilter}
-                onChange={(event) => setRecallDateFilter(event.target.value as RecallDateFilter)}
-                className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-              >
-                <option value="all">All dates</option>
-                <option value="today">Today</option>
-                <option value="7d">Last 7d</option>
-                <option value="30d">Last 30d</option>
-              </select>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={saveCurrentRecallSearch}
-                className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
+                onClick={() => toggleDetailsSection("history")}
+                className="flex w-full items-center justify-between text-left"
               >
-                Save Search
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">History</p>
+                <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.history ? "Hide" : "Show"}</span>
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setRecallQuery("");
-                  setRecallZoneId("");
-                  setRecallTag("");
-                  setRecallDateFilter("all");
-                }}
-                className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
-              >
-                Clear Filters
-              </button>
-            </div>
-            {savedRecallSearches.length > 0 && (
-              <div className="mt-2 max-h-24 space-y-1 overflow-auto pr-1">
-                {savedRecallSearches.map((item) => (
-                  <div key={item.id} className="flex items-center gap-1 rounded border border-zinc-200 bg-white px-2 py-1">
-                    <button
-                      type="button"
-                      onClick={() => applySavedRecallSearch(item)}
-                      className="min-w-0 flex-1 truncate text-left text-[11px] text-zinc-800"
-                    >
-                      {item.name}
+              {detailsSectionsOpen.history && (
+                <>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-zinc-700">
+                    <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Timeline entries: {timelineEntries.length}</div>
+                    <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Visible notes: {visibleNotes.length}</div>
+                    <div className="col-span-2 rounded-lg border border-zinc-200 bg-white px-2 py-1.5">
+                      Latest edit:{" "}
+                      {notes.length === 0
+                        ? "n/a"
+                        : new Date(Math.max(...notes.map((note) => note.updatedAt))).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <button type="button" onClick={jumpToStaleNote} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]">
+                      Jump Stale
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setSavedRecallSearches((previous) => previous.filter((entry) => entry.id !== item.id))}
-                      className="text-[10px] text-red-700"
-                    >
-                      x
+                    <button type="button" onClick={jumpToHighPriorityNote} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]">
+                      Jump Priority
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
+                </>
+              )}
+            </div>
 
-            <div className="mt-3 border-t border-zinc-200 pt-3" />
-            <h3 className="text-sm font-semibold text-zinc-900">Zone Groups</h3>
-            <p className="mt-1 text-xs text-zinc-600">Collapse groups to hide grouped zones and their notes.</p>
-
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                value={groupLabelInput}
-                onChange={(event) => setGroupLabelInput(event.target.value)}
-                className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-                placeholder="Group name"
-              />
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
               <button
                 type="button"
-                onClick={createGroupFromSelectedZone}
-                disabled={!ui.selectedZoneId || isTimeLocked}
-                className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs disabled:opacity-45"
+                onClick={() => toggleDetailsSection("recall")}
+                className="flex w-full items-center justify-between text-left"
               >
-                Group Zone
+                <h3 className="text-sm font-semibold text-zinc-900">Recall</h3>
+                <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.recall ? "Hide" : "Show"}</span>
               </button>
-            </div>
-
-            {selectedZone && (
-              <div className="mt-2">
-                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                  Selected Zone Group
-                </label>
-                <select
-                  value={selectedZone.groupId ?? ""}
-                  onChange={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    assignZoneToGroup(selectedZone.id, event.target.value || undefined);
-                  }}
-                  disabled={isTimeLocked}
-                  className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-                >
-                  <option value="">No group</option>
-                  {zoneGroups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="mt-3 max-h-56 space-y-1 overflow-auto pr-1">
-              {zoneGroups.length === 0 && <p className="text-xs text-zinc-500">No groups yet.</p>}
-              {zoneGroups.map((group) => (
-                <div
-                  key={group.id}
-                  className={`rounded-lg border px-2 py-2 ${
-                    selectedGroup?.id === group.id ? "border-zinc-700 bg-zinc-50" : "border-zinc-200 bg-white"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
+              {detailsSectionsOpen.recall && (
+                <>
+                  <p className="mt-1 text-xs text-zinc-600">Filter notes by query, zone, tag, and recency. Save frequent searches.</p>
+                  <input
+                    value={recallQuery}
+                    onChange={(event) => setRecallQuery(event.target.value)}
+                    placeholder="Find text or #tag..."
+                    className="mt-2 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+                  />
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    <select
+                      value={recallZoneId}
+                      onChange={(event) => setRecallZoneId(event.target.value)}
+                      className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+                    >
+                      <option value="">All zones</option>
+                      {visibleZones.map((zone) => (
+                        <option key={`filter-zone-${zone.id}`} value={zone.id}>
+                          {zone.label}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={recallTag}
+                      onChange={(event) => setRecallTag(event.target.value)}
+                      className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+                    >
+                      <option value="">All tags</option>
+                      {availableRecallTags.map((tag) => (
+                        <option key={`filter-tag-${tag}`} value={tag}>
+                          #{tag}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={recallDateFilter}
+                      onChange={(event) => setRecallDateFilter(event.target.value as RecallDateFilter)}
+                      className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+                    >
+                      <option value="all">All dates</option>
+                      <option value="today">Today</option>
+                      <option value="7d">Last 7d</option>
+                      <option value="30d">Last 30d</option>
+                    </select>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        if (isTimeLocked) {
-                          return;
-                        }
-                        selectGroup(group.id);
-                        toggleGroupCollapse(group.id);
-                      }}
-                      disabled={isTimeLocked}
-                      className="rounded-md border border-zinc-300 px-1.5 py-0.5 text-[10px]"
+                      onClick={saveCurrentRecallSearch}
+                      className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
                     >
-                      {group.collapsed ? "Expand" : "Collapse"}
+                      Save Search
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        clearNoteSelection();
-                        selectGroup(group.id);
+                        setRecallQuery("");
+                        setRecallZoneId("");
+                        setRecallTag("");
+                        setRecallDateFilter("all");
                       }}
-                      className="min-w-0 flex-1 truncate text-left text-xs font-medium text-zinc-800"
+                      className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
                     >
-                      {group.label}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isTimeLocked) {
-                          return;
-                        }
-                        deleteGroup(group.id);
-                      }}
-                      disabled={isTimeLocked}
-                      className="text-[10px] text-red-700"
-                    >
-                      Delete
+                      Clear Filters
                     </button>
                   </div>
-                  <p className="mt-1 text-[11px] text-zinc-500">
-                    {group.zoneIds.length} zones {group.collapsed ? "(collapsed)" : "(expanded)"}
-                  </p>
-                </div>
-              ))}
+                  {savedRecallSearches.length > 0 && (
+                    <div className="mt-2 max-h-24 space-y-1 overflow-auto pr-1">
+                      {savedRecallSearches.map((item) => (
+                        <div key={item.id} className="flex items-center gap-1 rounded border border-zinc-200 bg-white px-2 py-1">
+                          <button
+                            type="button"
+                            onClick={() => applySavedRecallSearch(item)}
+                            className="min-w-0 flex-1 truncate text-left text-[11px] text-zinc-800"
+                          >
+                            {item.name}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSavedRecallSearches((previous) => previous.filter((entry) => entry.id !== item.id))}
+                            className="text-[10px] text-red-700"
+                          >
+                            x
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
-            <div className="mt-3 border-t border-zinc-200 pt-3">
-              <div className="mb-1 flex items-center justify-between">
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+              <button
+                type="button"
+                onClick={() => toggleDetailsSection("zoneGroups")}
+                className="flex w-full items-center justify-between text-left"
+              >
+                <h3 className="text-sm font-semibold text-zinc-900">Zone Groups</h3>
+                <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.zoneGroups ? "Hide" : "Show"}</span>
+              </button>
+              {detailsSectionsOpen.zoneGroups && (
+                <>
+                  <p className="mt-1 text-xs text-zinc-600">Collapse groups to hide grouped zones and their notes.</p>
+
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      value={groupLabelInput}
+                      onChange={(event) => setGroupLabelInput(event.target.value)}
+                      className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+                      placeholder="Group name"
+                    />
+                    <button
+                      type="button"
+                      onClick={createGroupFromSelectedZone}
+                      disabled={!ui.selectedZoneId || isTimeLocked}
+                      className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs disabled:opacity-45"
+                    >
+                      Group Zone
+                    </button>
+                  </div>
+
+                  {selectedZone && (
+                    <div className="mt-2">
+                      <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                        Selected Zone Group
+                      </label>
+                      <select
+                        value={selectedZone.groupId ?? ""}
+                        onChange={(event) => {
+                          if (isTimeLocked) {
+                            return;
+                          }
+                          assignZoneToGroup(selectedZone.id, event.target.value || undefined);
+                        }}
+                        disabled={isTimeLocked}
+                        className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+                      >
+                        <option value="">No group</option>
+                        {zoneGroups.map((group) => (
+                          <option key={group.id} value={group.id}>
+                            {group.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="mt-3 max-h-56 space-y-1 overflow-auto pr-1">
+                    {zoneGroups.length === 0 && <p className="text-xs text-zinc-500">No groups yet.</p>}
+                    {zoneGroups.map((group) => (
+                      <div
+                        key={group.id}
+                        className={`rounded-lg border px-2 py-2 ${
+                          selectedGroup?.id === group.id ? "border-zinc-700 bg-zinc-50" : "border-zinc-200 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isTimeLocked) {
+                                return;
+                              }
+                              selectGroup(group.id);
+                              toggleGroupCollapse(group.id);
+                            }}
+                            disabled={isTimeLocked}
+                            className="rounded-md border border-zinc-300 px-1.5 py-0.5 text-[10px]"
+                          >
+                            {group.collapsed ? "Expand" : "Collapse"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              clearNoteSelection();
+                              selectGroup(group.id);
+                            }}
+                            className="min-w-0 flex-1 truncate text-left text-xs font-medium text-zinc-800"
+                          >
+                            {group.label}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isTimeLocked) {
+                                return;
+                              }
+                              deleteGroup(group.id);
+                            }}
+                            disabled={isTimeLocked}
+                            className="text-[10px] text-red-700"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                        <p className="mt-1 text-[11px] text-zinc-500">
+                          {group.zoneIds.length} zones {group.collapsed ? "(collapsed)" : "(expanded)"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+              <button
+                type="button"
+                onClick={() => toggleDetailsSection("tagGroups")}
+                className="flex w-full items-center justify-between text-left"
+              >
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Tag Groups (Auto)</h4>
-                <button
-                  type="button"
-                  onClick={() => setShowAutoTagGroups((value) => !value)}
-                  className="rounded-md border border-zinc-300 px-2 py-0.5 text-[10px]"
-                >
-                  {showAutoTagGroups ? "Hide" : "Show"}
-                </button>
-              </div>
-              {autoTagGroups.length === 0 && <p className="text-xs text-zinc-500">No auto groups yet (need 2+ notes per tag).</p>}
-              {autoTagGroups.slice(0, 8).map((group) => (
-                <button
-                  key={`panel-tag-${group.tag}`}
-                  type="button"
-                  onClick={() => focusBounds(group.bounds)}
-                  className="mt-1 flex w-full items-center justify-between rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-left text-xs hover:bg-zinc-50"
-                >
-                  <span className="truncate text-zinc-800">#{group.tag}</span>
-                  <span className="text-zinc-500">{group.noteIds.length} notes</span>
-                </button>
-              ))}
+                <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.tagGroups ? "Hide" : "Show"}</span>
+              </button>
+              {detailsSectionsOpen.tagGroups && (
+                <>
+                  <div className="mb-1 mt-2 flex items-center justify-between">
+                    <span className="text-[11px] text-zinc-600">Auto-detected from shared tags.</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowAutoTagGroups((value) => !value)}
+                      className="rounded-md border border-zinc-300 px-2 py-0.5 text-[10px]"
+                    >
+                      {showAutoTagGroups ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                  {autoTagGroups.length === 0 && <p className="text-xs text-zinc-500">No auto groups yet (need 2+ notes per tag).</p>}
+                  {autoTagGroups.slice(0, 8).map((group) => (
+                    <button
+                      key={`panel-tag-${group.tag}`}
+                      type="button"
+                      onClick={() => focusBounds(group.bounds)}
+                      className="mt-1 flex w-full items-center justify-between rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-left text-xs hover:bg-zinc-50"
+                    >
+                      <span className="truncate text-zinc-800">#{group.tag}</span>
+                      <span className="text-zinc-500">{group.noteIds.length} notes</span>
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           </aside>
         )}

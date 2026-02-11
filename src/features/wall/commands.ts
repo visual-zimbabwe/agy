@@ -16,6 +16,7 @@ export const createNote = (x: number, y: number, color?: string) => {
     id: makeId(),
     text: "",
     tags: [],
+    textSize: NOTE_DEFAULTS.textSize,
     x,
     y,
     w: NOTE_DEFAULTS.width,
@@ -58,6 +59,27 @@ export const duplicateNote = (noteId: string) => {
     id: makeId(),
     x: current.x + 24,
     y: current.y + 24,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  upsertNote(duplicated);
+  selectNote(duplicated.id);
+};
+
+export const duplicateNoteAt = (noteId: string, x: number, y: number) => {
+  const { notes, upsertNote, selectNote } = useWallStore.getState();
+  const current = notes[noteId];
+  if (!current) {
+    return;
+  }
+
+  const now = Date.now();
+  const duplicated: Note = {
+    ...current,
+    id: makeId(),
+    x,
+    y,
     createdAt: now,
     updatedAt: now,
   };
@@ -279,6 +301,7 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
       id: makeId(),
       text: noteDef.text,
       tags: noteDef.tags,
+      textSize: NOTE_DEFAULTS.textSize,
       x: centerX + noteDef.dx,
       y: centerY + noteDef.dy,
       w: NOTE_DEFAULTS.width,

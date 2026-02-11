@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
+import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import type { Camera, Link, Note, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
 
 type MetaRecord = {
@@ -66,7 +67,9 @@ export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
     db.meta.get("lastColor"),
   ]);
 
-  const notes = Object.fromEntries(notesList.map((note) => [note.id, { ...note, tags: note.tags ?? [] }]));
+  const notes = Object.fromEntries(
+    notesList.map((note) => [note.id, { ...note, tags: note.tags ?? [], textSize: note.textSize ?? NOTE_DEFAULTS.textSize }]),
+  );
   const zones = Object.fromEntries(zonesList.map((zone) => [zone.id, zone]));
   const zoneGroups = Object.fromEntries(zoneGroupsList.map((group) => [group.id, group]));
   const links = Object.fromEntries(linksList.map((link) => [link.id, link]));
@@ -153,7 +156,10 @@ export type TimelineEntry = {
 const parseTimelinePayload = (payload: string): PersistedWallState => {
   const parsed = JSON.parse(payload) as PersistedWallState;
   const notes = Object.fromEntries(
-    Object.entries(parsed.notes).map(([id, note]) => [id, { ...note, tags: note.tags ?? [] }]),
+    Object.entries(parsed.notes).map(([id, note]) => [
+      id,
+      { ...note, tags: note.tags ?? [], textSize: note.textSize ?? NOTE_DEFAULTS.textSize },
+    ]),
   );
 
   return {

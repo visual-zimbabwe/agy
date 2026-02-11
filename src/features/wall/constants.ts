@@ -14,7 +14,14 @@ export const NOTE_DEFAULTS = {
   height: 160,
   minWidth: 140,
   minHeight: 110,
+  textSize: "md" as const,
 };
+
+export const NOTE_TEXT_SIZES = [
+  { value: "sm", label: "S", fontSize: 14, lineHeight: 1.32 },
+  { value: "md", label: "M", fontSize: 17, lineHeight: 1.35 },
+  { value: "lg", label: "L", fontSize: 20, lineHeight: 1.36 },
+] as const;
 
 export const ZONE_DEFAULTS = {
   width: 420,
