@@ -33,6 +33,21 @@ Expected:
 - Contrast remains readable across all routes.
 - Panel layering does not trap interaction.
 
+## Phase 5 - Aesthetic Parity Across Routes
+1. Open `/`, `/login`, `/signup`, and `/wall`.
+2. Verify each route uses the same atmosphere shell (soft gradient field + glass surfaces + tokenized borders).
+3. On mobile viewport (`390x844`), confirm:
+   - Landing top actions (`Sign in`, `Create account`) remain visible without overlap.
+   - Auth support card and auth form stack vertically with comfortable spacing.
+   - Wall account chip remains reachable at top-right and does not overlap core toolbar actions.
+4. Verify primary actions on all routes use accent button styling consistently.
+5. Verify danger states on auth/wall (`auth error`, `sync error`) use tokenized danger palette.
+
+Expected:
+- Landing, auth, and wall feel like one product with consistent visual language.
+- Mobile route behavior is intentional, readable, and touch-friendly.
+- Action hierarchy and state feedback are consistent across routes.
+
 ## Wall Performance Targets (Guardrails)
 Measure in warm local sessions with DevTools performance markers where possible.
 

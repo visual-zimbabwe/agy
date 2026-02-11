@@ -847,7 +847,7 @@ export const WallCanvas = () => {
     publishedReadOnly,
   });
   return (
-    <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
+    <div className="route-shell flex h-screen flex-col text-[var(--color-text)]">
       <WallHeaderBar
         presentationMode={presentationMode}
         publishedReadOnly={publishedReadOnly}
@@ -923,13 +923,15 @@ export const WallCanvas = () => {
         }}
       >
         {!hydrated && (
-          <div className="absolute inset-0 z-10 grid place-items-center bg-white/60 backdrop-blur-sm">
-            <p className="rounded-lg bg-white px-4 py-2 text-sm text-zinc-700 shadow">Loading wall...</p>
+          <div className="absolute inset-0 z-10 grid place-items-center bg-[color:rgb(24_32_44_/_0.12)] backdrop-blur-sm">
+            <p className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-md)]">
+              Loading wall...
+            </p>
           </div>
         )}
 
         {!publishedReadOnly && syncError && (
-          <div className="pointer-events-none absolute left-1/2 top-3 z-[45] -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 shadow">
+          <div className="pointer-events-none absolute left-1/2 top-3 z-[45] -translate-x-1/2 rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger-soft)] px-3 py-2 text-xs text-[var(--color-danger-strong)] shadow-[var(--shadow-sm)]">
             Sync error: {syncError}
           </div>
         )}
@@ -944,7 +946,7 @@ export const WallCanvas = () => {
               setLeftPanelOpen(false);
               setRightPanelOpen(false);
             }}
-            className="absolute inset-0 z-[34] bg-zinc-900/20"
+            className="absolute inset-0 z-[34] bg-[var(--color-overlay)]"
           />
         )}
 

@@ -6,17 +6,23 @@
   --color-surface: #fffefb;
   --color-surface-muted: #f4f1ea;
   --color-surface-elevated: rgb(255 255 255 / 0.94);
+  --color-surface-glass: rgb(255 255 255 / 0.84);
   --color-border: #d9d4c7;
   --color-border-muted: #e8e3d8;
   --color-text: var(--foreground);
   --color-text-muted: #5f6676;
   --color-accent: #2f4858;
   --color-accent-strong: #243a47;
+  --color-accent-soft: #d9e8ef;
   --color-accent-foreground: #f8fafc;
   --color-danger: #dc2626;
   --color-danger-strong: #b91c1c;
+  --color-danger-soft: #fee2e2;
   --color-focus: #0284c7;
   --color-overlay: rgb(24 32 44 / 0.34);
+  --color-atmosphere-gold: rgb(252 211 77 / 0.26);
+  --color-atmosphere-sea: rgb(56 189 248 / 0.2);
+  --color-atmosphere-mint: rgb(110 231 183 / 0.18);
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
@@ -55,7 +61,7 @@ body {
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(circle at top left, #fdf1b2 0, #fff6d8 35%, #f8f6f1 100%);
   color: var(--foreground);
   font-family: var(--font-body);
   text-rendering: optimizeLegibility;
@@ -78,6 +84,31 @@ select,
 textarea {
   transition-duration: var(--motion-fast);
   transition-timing-function: ease-out;
+}
+
+.route-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 10% 18%, var(--color-atmosphere-gold) 0, transparent 35%),
+    radial-gradient(circle at 86% 16%, var(--color-atmosphere-sea) 0, transparent 40%),
+    radial-gradient(circle at 78% 88%, var(--color-atmosphere-mint) 0, transparent 36%),
+    linear-gradient(140deg, #f8efe0 0%, #f4f7ec 50%, #ebf3f7 100%);
+}
+
+.route-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.18) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.78), transparent 90%);
+  pointer-events: none;
 }
 
 .motion-fade-in {

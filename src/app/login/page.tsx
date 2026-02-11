@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
+import { Button } from "@/components/ui/Button";
+import { FieldLabel, TextField } from "@/components/ui/Field";
+import { Panel } from "@/components/ui/Panel";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -35,59 +38,66 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="grid min-h-screen place-items-center bg-zinc-100 px-4 py-10">
-      <section className="w-full max-w-md rounded-2xl border border-zinc-300 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-zinc-900">Sign in</h1>
-        <p className="mt-1 text-sm text-zinc-600">Use your email and password for Idea-Wall cloud sync.</p>
+    <main className="route-shell px-4 py-8 sm:px-6">
+      <section className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="order-2 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-glass)] p-4 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)] lg:order-1 lg:p-6">
+          <p className="text-[10px] font-semibold tracking-[0.14em] uppercase">Idea-Wall Account</p>
+          <h1 className="mt-2 text-3xl leading-tight font-semibold text-[var(--color-text)] sm:text-4xl">Return to your wall.</h1>
+          <p className="mt-3">Sign in to sync notes, links, and zones across devices while keeping local-first speed.</p>
+        </div>
 
-        <form onSubmit={onSubmit} className="mt-6 space-y-3">
-          <div>
-            <label className="mb-1 block text-sm text-zinc-700" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
+        <Panel className="order-1 w-full p-5 motion-modal-enter sm:p-7 lg:order-2">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-2xl font-semibold text-[var(--color-text)]">Sign in</h2>
+            <Link href="/" className="text-xs font-medium text-[var(--color-text-muted)] underline-offset-2 hover:underline">
+              Back home
+            </Link>
           </div>
-          <div>
-            <label className="mb-1 block text-sm text-zinc-700" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
-          </div>
+          <p className="mt-1 text-sm text-[var(--color-text-muted)]">Use your email and password for cloud sync.</p>
 
-          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          <form onSubmit={onSubmit} className="mt-6 space-y-3">
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor="email">Email</FieldLabel>
+              <TextField
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <TextField
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-lg bg-zinc-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {busy ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
+            {error && (
+              <p className="rounded-[var(--radius-md)] border border-[var(--color-danger)] bg-[var(--color-danger-soft)] px-3 py-2 text-sm text-[var(--color-danger-strong)]">
+                {error}
+              </p>
+            )}
 
-        <p className="mt-4 text-sm text-zinc-600">
-          No account yet?{" "}
-          <Link href="/signup" className="font-semibold text-zinc-900 underline">
-            Create one
-          </Link>
-        </p>
+            <Button type="submit" disabled={busy} variant="primary" className="mt-2 w-full">
+              {busy ? "Signing in..." : "Sign in"}
+            </Button>
+          </form>
+
+          <p className="mt-4 text-sm text-[var(--color-text-muted)]">
+            No account yet?{" "}
+            <Link href="/signup" className="font-semibold text-[var(--color-text)] underline underline-offset-2">
+              Create one
+            </Link>
+          </p>
+        </Panel>
       </section>
     </main>
   );

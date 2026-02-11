@@ -119,6 +119,12 @@ export const WallHeaderBar = ({
 }: WallHeaderBarProps) => {
   return (
     <header className="mx-2 mt-2 flex flex-col gap-1.5 md:mx-3 md:mt-3">
+      <div className="inline-flex w-fit items-center gap-2 self-start rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
+        <span className="font-semibold tracking-[0.14em] uppercase">Idea-Wall</span>
+        <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 text-[10px] text-[var(--color-text)]">
+          {presentationMode ? "Presentation Mode" : "Studio Mode"}
+        </span>
+      </div>
       <WallToolbar
         presentationMode={presentationMode}
         publishedReadOnly={publishedReadOnly}

@@ -56,7 +56,7 @@ export const AccountMenu = ({ email }: AccountMenuProps) => {
   }, [open]);
 
   return (
-    <div className="pointer-events-auto fixed right-3 top-3 z-[95]">
+    <div className="pointer-events-auto fixed right-2 top-2 z-[95] sm:right-3 sm:top-3">
       <Button
         ref={toggleRef}
         size="sm"
@@ -64,12 +64,10 @@ export const AccountMenu = ({ email }: AccountMenuProps) => {
         aria-expanded={open}
         aria-controls={menuId}
         aria-haspopup="menu"
-        className="max-w-[min(78vw,20rem)] rounded-xl border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text)] shadow-[var(--shadow-md)] motion-panel-enter"
+        className="max-w-[min(78vw,20rem)] rounded-xl border-[var(--color-border)] bg-[var(--color-surface-glass)] text-[var(--color-text)] shadow-[var(--shadow-md)] motion-panel-enter"
       >
         <span className="truncate">{email}</span>
-        <span aria-hidden="true" className={`text-[10px] transition-transform ${open ? "rotate-180" : ""}`}>
-          ▼
-        </span>
+        <span aria-hidden="true" className={`text-[10px] transition-transform ${open ? "rotate-180" : ""}`}>v</span>
       </Button>
       {open && (
         <Panel

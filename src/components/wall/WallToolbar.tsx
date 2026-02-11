@@ -207,39 +207,39 @@ export const WallToolbar = ({
       {!presentationMode && layoutMenuOpen && (
         <div className={`${toolbarSurface} flex flex-wrap items-center gap-3`}>
           <span className={toolbarLabel}>Customize Layout</span>
-          <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+          <label className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text)]">
             <input
               type="checkbox"
               checked={layoutPrefs.showToolsPanel}
               onChange={(event) => onSetLayoutPreference("showToolsPanel", event.target.checked)}
-              className="h-3.5 w-3.5 accent-zinc-900"
+              className="h-3.5 w-3.5 accent-[var(--color-accent-strong)]"
             />
             <span>Tools Panel</span>
           </label>
-          <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+          <label className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text)]">
             <input
               type="checkbox"
               checked={layoutPrefs.showDetailsPanel}
               onChange={(event) => onSetLayoutPreference("showDetailsPanel", event.target.checked)}
-              className="h-3.5 w-3.5 accent-zinc-900"
+              className="h-3.5 w-3.5 accent-[var(--color-accent-strong)]"
             />
             <span>Details Panel</span>
           </label>
-          <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+          <label className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text)]">
             <input
               type="checkbox"
               checked={layoutPrefs.showContextBar}
               onChange={(event) => onSetLayoutPreference("showContextBar", event.target.checked)}
-              className="h-3.5 w-3.5 accent-zinc-900"
+              className="h-3.5 w-3.5 accent-[var(--color-accent-strong)]"
             />
             <span>Context Bar</span>
           </label>
-          <label className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+          <label className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text)]">
             <input
               type="checkbox"
               checked={layoutPrefs.showNoteTags}
               onChange={(event) => onSetLayoutPreference("showNoteTags", event.target.checked)}
-              className="h-3.5 w-3.5 accent-zinc-900"
+              className="h-3.5 w-3.5 accent-[var(--color-accent-strong)]"
             />
             <span>Tags on Notes</span>
           </label>
