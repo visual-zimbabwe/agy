@@ -1810,6 +1810,11 @@ export const WallCanvas = () => {
     primarySelectedNote && !isTimeLocked
       ? toScreenPoint(primarySelectedNote.x + primarySelectedNote.w / 2, primarySelectedNote.y - 16, camera)
       : undefined;
+  const tagPreviewNote = hoveredNoteId ? renderSnapshot.notes[hoveredNoteId] : primarySelectedNote;
+  const tagPreviewScreen =
+    tagPreviewNote && tagPreviewNote.tags.length > 0
+      ? toScreenPoint(tagPreviewNote.x + tagPreviewNote.w / 2, tagPreviewNote.y - 10, camera)
+      : undefined;
 
   return (
     <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
@@ -2681,27 +2686,6 @@ export const WallCanvas = () => {
                       text={`+${overflowTags}`}
                     />
                   )}
-                  {(isHovered || isSelected) && note.tags.length > 0 && (
-                    <Group>
-                      <Rect
-                        x={10}
-                        y={-26}
-                        width={Math.min(260, Math.max(90, 18 + note.tags.join("  ").length * 4))}
-                        height={18}
-                        cornerRadius={9}
-                        fill="rgba(9,9,11,0.82)"
-                      />
-                      <Text
-                        x={14}
-                        y={-23}
-                        width={Math.min(252, Math.max(82, 12 + note.tags.join("  ").length * 4))}
-                        fontSize={10}
-                        fill="#f4f4f5"
-                        text={note.tags.map((tag) => `#${tag}`).join("  ")}
-                        ellipsis
-                      />
-                    </Group>
-                  )}
                 </Group>
               );
             })}
@@ -2877,6 +2861,26 @@ export const WallCanvas = () => {
               };
             })()}
           />
+        )}
+
+        {tagPreviewScreen && tagPreviewNote && !editing && (
+          <div
+            className="pointer-events-none absolute z-[44] -translate-x-1/2 -translate-y-full"
+            style={{
+              left: `${tagPreviewScreen.x}px`,
+              top: `${tagPreviewScreen.y}px`,
+            }}
+          >
+            <div className="max-w-[min(70vw,34rem)] overflow-x-auto whitespace-nowrap rounded-xl border border-zinc-200 bg-white/95 px-2 py-1.5 shadow-lg backdrop-blur-sm">
+              <div className="flex items-center gap-1">
+                {tagPreviewNote.tags.map((tag) => (
+                  <span key={`hover-tag-${tag}`} className="rounded-full border border-zinc-300 bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-700">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
 
         {quickActionScreen && primarySelectedNote && !editing && (
