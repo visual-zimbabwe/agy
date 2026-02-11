@@ -766,16 +766,14 @@ export const WallCanvas = () => {
   };
 
   const toggleSelectNote = (noteId: string) => {
-    setSelectedNoteIds((previous) => {
-      const exists = previous.includes(noteId);
-      const next = exists ? previous.filter((id) => id !== noteId) : [...previous, noteId];
-      if (next.length === 1) {
-        selectNote(next[0]);
-      } else {
-        selectNote(undefined);
-      }
-      return next;
-    });
+    const exists = activeSelectedNoteIds.includes(noteId);
+    const next = exists ? activeSelectedNoteIds.filter((id) => id !== noteId) : [...activeSelectedNoteIds, noteId];
+    setSelectedNoteIds(next);
+    if (next.length === 1) {
+      selectNote(next[0]);
+    } else {
+      selectNote(undefined);
+    }
   };
 
   const clearNoteSelection = () => {
