@@ -12,9 +12,11 @@ import { NoteSwatches } from "@/components/NoteCard";
 import { QuickCaptureBar } from "@/components/QuickCaptureBar";
 import { SearchPalette } from "@/components/SearchPalette";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
-import { ControlTooltip, Icon } from "@/components/wall/WallControls";
 import { WallDetailsPanel } from "@/components/wall/WallDetailsPanel";
+import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
+import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { WallToolbar } from "@/components/wall/WallToolbar";
+import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
 import {
   applyTemplate,
   assignZoneToGroup,
@@ -2240,84 +2242,33 @@ export const WallCanvas = () => {
         )}
 
         {!presentationMode && !publishedReadOnly && layoutPrefs.showToolsPanel && (
-          <aside
-            className={`pointer-events-auto absolute z-40 rounded-2xl border border-zinc-200/80 bg-white/95 p-2 shadow-xl backdrop-blur-sm transition ${
-              isCompactLayout
-                ? `left-2 top-7 w-[min(18rem,calc(100%-1rem))] ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
-                : `left-3 top-8 w-44 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
-            }`}
-          >
-            <div className="mb-2 flex items-center justify-between px-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Tools</p>
-              {isCompactLayout && (
-                <button type="button" onClick={() => setLeftPanelOpen(false)} className="rounded border border-zinc-300 px-1.5 py-0.5 text-[10px] text-zinc-600">
-                  Close
-                </button>
-              )}
-            </div>
-            <div className="space-y-1">
-              <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd+N" className="relative block">
-                <button type="button" onClick={makeNoteAtViewportCenter} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtnPrimary}`} title="Create note (N or Ctrl/Cmd+N)">
-                  <Icon name="note" />
-                  <span>New Note</span>
-                </button>
-              </ControlTooltip>
-              <ControlTooltip label="Create zone at viewport center" className="relative block">
-                <button type="button" onClick={makeZoneAtViewportCenter} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create zone at viewport center">
-                  <Icon name="zone" />
-                  <span>New Zone</span>
-                </button>
-              </ControlTooltip>
-              <ControlTooltip label="Toggle box selection mode" className="relative block">
-                <button
-                  type="button"
-                  onClick={() => setBoxSelectMode((value) => !value)}
-                  className={`w-full justify-start ${boxSelectMode ? toolbarBtnActive : toolbarBtn}`}
-                  title="Toggle box selection mode"
-                >
-                  <Icon name="box" />
-                  <span>Box Select</span>
-                </button>
-              </ControlTooltip>
-              <ControlTooltip label="Start linking from selected note" shortcut="Ctrl/Cmd+L" className="relative block">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isTimeLocked || !ui.selectedNoteId) {
-                      return;
-                    }
-                    setLinkingFromNote(ui.selectedNoteId);
-                  }}
-                  disabled={!ui.selectedNoteId || isTimeLocked}
-                  className={`w-full justify-start ${ui.linkingFromNoteId ? toolbarBtnActive : toolbarBtn}`}
-                  title="Start linking (Ctrl/Cmd+L)"
-                >
-                  <Icon name="link" />
-                  <span>{ui.linkingFromNoteId ? "Pick Link Target" : "Start Link"}</span>
-                </button>
-              </ControlTooltip>
-              <ControlTooltip label="Pick link type" className="relative block">
-                <select value={ui.linkType} onChange={(event) => setLinkType(event.target.value as LinkType)} className={`w-full ${toolbarSelect}`} title="Pick link type">
-                  {LINK_TYPES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </ControlTooltip>
-              <ControlTooltip label="Toggle automatic cluster outlines" className="relative block">
-                <button
-                  type="button"
-                  onClick={() => setShowClusters(!ui.showClusters)}
-                  className={`w-full justify-start ${ui.showClusters ? toolbarBtnActive : toolbarBtn}`}
-                  title="Toggle cluster outlines"
-                >
-                  <Icon name="cluster" />
-                  <span>Detect Clusters</span>
-                </button>
-              </ControlTooltip>
-            </div>
-          </aside>
+          <WallToolsPanel
+            isCompactLayout={isCompactLayout}
+            leftPanelOpen={leftPanelOpen}
+            isTimeLocked={isTimeLocked}
+            selectedNoteId={ui.selectedNoteId}
+            linkingFromNoteId={ui.linkingFromNoteId}
+            linkType={ui.linkType}
+            linkTypeOptions={LINK_TYPES}
+            showClusters={ui.showClusters}
+            toolbarBtn={toolbarBtn}
+            toolbarBtnPrimary={toolbarBtnPrimary}
+            toolbarBtnActive={toolbarBtnActive}
+            toolbarSelect={toolbarSelect}
+            onClose={() => setLeftPanelOpen(false)}
+            onCreateNote={makeNoteAtViewportCenter}
+            onCreateZone={makeZoneAtViewportCenter}
+            onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}
+            boxSelectMode={boxSelectMode}
+            onStartLinking={() => {
+              if (isTimeLocked || !ui.selectedNoteId) {
+                return;
+              }
+              setLinkingFromNote(ui.selectedNoteId);
+            }}
+            onLinkTypeChange={(value) => setLinkType(value)}
+            onToggleClusters={() => setShowClusters(!ui.showClusters)}
+          />
         )}
 
         <Stage
@@ -3639,75 +3590,29 @@ export const WallCanvas = () => {
         )}
 
         {timelineMode && timelineEntries.length > 0 && (
-          <div className="pointer-events-auto absolute bottom-3 left-1/2 z-30 w-[min(780px,95%)] -translate-x-1/2 rounded-2xl border border-zinc-300 bg-white/95 p-3 shadow-xl backdrop-blur-sm">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsTimelinePlaying((value) => !value)}
-                className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium"
-              >
-                {isTimelinePlaying ? "Pause" : "Play"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimelineIndex(0)}
-                className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-              >
-                Start
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimelineIndex(timelineEntries.length - 1)}
-                className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-              >
-                Latest
-              </button>
-              <span className="ml-auto text-xs text-zinc-600">
-                {new Date(timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)].ts).toLocaleString()}
-              </span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={Math.max(0, timelineEntries.length - 1)}
-              step={1}
-              value={Math.min(timelineIndex, timelineEntries.length - 1)}
-              onChange={(event) => {
-                setIsTimelinePlaying(false);
-                setTimelineIndex(Number(event.target.value));
-              }}
-              className="mt-3 w-full"
-            />
-          </div>
+          <WallTimelineDock
+            timelineEntriesLength={timelineEntries.length}
+            timelineIndex={timelineIndex}
+            isTimelinePlaying={isTimelinePlaying}
+            currentTimestamp={timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)].ts}
+            onTogglePlay={() => setIsTimelinePlaying((value) => !value)}
+            onStart={() => setTimelineIndex(0)}
+            onLatest={() => setTimelineIndex(timelineEntries.length - 1)}
+            onSeek={(index) => {
+              setIsTimelinePlaying(false);
+              setTimelineIndex(index);
+            }}
+          />
         )}
 
         {presentationMode && (
-          <div className="pointer-events-auto absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-zinc-300 bg-white/95 px-3 py-2 shadow-xl backdrop-blur-sm">
-            <button
-              type="button"
-              onClick={() => setPresentationIndex((previous) => Math.max(previous - 1, 0))}
-              className="rounded border border-zinc-300 px-2 py-1 text-xs"
-            >
-              Prev
-            </button>
-            <span className="text-xs text-zinc-700">
-              {Math.min(presentationIndex + 1, Math.max(1, presentationNotes.length))} / {Math.max(1, presentationNotes.length)}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPresentationIndex((previous) => Math.min(previous + 1, Math.max(0, presentationNotes.length - 1)))}
-              className="rounded border border-zinc-300 px-2 py-1 text-xs"
-            >
-              Next
-            </button>
-            <button
-              type="button"
-              onClick={() => setPresentationMode(false)}
-              className="rounded border border-zinc-300 px-2 py-1 text-xs"
-            >
-              Exit
-            </button>
-          </div>
+          <WallPresentationDock
+            presentationIndex={presentationIndex}
+            presentationNotesLength={presentationNotes.length}
+            onPrev={() => setPresentationIndex((previous) => Math.max(previous - 1, 0))}
+            onNext={() => setPresentationIndex((previous) => Math.min(previous + 1, Math.max(0, presentationNotes.length - 1)))}
+            onExit={() => setPresentationMode(false)}
+          />
         )}
       </div>
 
