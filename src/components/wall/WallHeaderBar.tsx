@@ -209,18 +209,18 @@ export const WallHeaderBar = ({
       )}
 
       {statusMessage && (
-        <div className="inline-flex w-fit max-w-[min(96vw,40rem)] self-start items-center rounded-xl border border-zinc-200 bg-white/85 px-3 py-1.5 text-xs text-zinc-600 shadow-sm">
+        <div className="inline-flex w-fit max-w-[min(96vw,40rem)] self-start items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] motion-panel-enter">
           <span className="truncate">{statusMessage}</span>
         </div>
       )}
 
       {!publishedReadOnly && (
-        <div className="inline-flex w-fit items-center gap-2 self-start rounded-xl border border-zinc-200 bg-white/85 px-3 py-1.5 text-xs text-zinc-600 shadow-sm">
+        <div className="inline-flex w-fit items-center gap-2 self-start rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] motion-panel-enter">
           <button
             type="button"
             onClick={onSyncNow}
             disabled={!cloudWallId || isSyncing}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 disabled:opacity-50"
+            className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] disabled:opacity-50"
           >
             {isSyncing ? "Syncing..." : "Sync now"}
           </button>

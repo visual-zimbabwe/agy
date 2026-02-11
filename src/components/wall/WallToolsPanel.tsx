@@ -15,7 +15,7 @@ type WallToolsPanelProps = {
   selectedNoteId?: string;
   linkingFromNoteId?: string;
   linkType: LinkType;
-  linkTypeOptions: LinkTypeOption[];
+  linkTypeOptions: readonly LinkTypeOption[];
   showClusters: boolean;
   toolbarBtn: string;
   toolbarBtnPrimary: string;
@@ -55,16 +55,20 @@ export const WallToolsPanel = ({
 }: WallToolsPanelProps) => {
   return (
     <aside
-      className={`pointer-events-auto absolute z-40 rounded-2xl border border-zinc-200/80 bg-white/95 p-2 shadow-xl backdrop-blur-sm transition ${
+      className={`pointer-events-auto absolute z-40 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)] transition-[transform,opacity] duration-[var(--motion-normal)] ease-out motion-panel-enter ${
         isCompactLayout
           ? `left-2 top-7 w-[min(18rem,calc(100%-1rem))] ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
           : `left-3 top-8 w-44 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
       }`}
     >
       <div className="mb-2 flex items-center justify-between px-1">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Tools</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Tools</p>
         {isCompactLayout && (
-          <button type="button" onClick={onClose} className="rounded border border-zinc-300 px-1.5 py-0.5 text-[10px] text-zinc-600">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded border border-[var(--color-border)] px-1.5 py-0.5 text-[10px] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]"
+          >
             Close
           </button>
         )}

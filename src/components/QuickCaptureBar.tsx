@@ -496,6 +496,15 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
           if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
             event.preventDefault();
             submitCapture();
+            return;
+          }
+          if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "v") {
+            event.preventDefault();
+            if (voiceActive) {
+              stopVoice("manual");
+            } else {
+              startVoice();
+            }
           }
         }}
         placeholder="Type ideas quickly. One line equals one note. Use #tags inline."
@@ -530,7 +539,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
             Stop Voice
           </Button>
         )}
-        <Badge className="ml-auto">Ctrl/Cmd + Enter to capture</Badge>
+        <Badge className="ml-auto">Ctrl/Cmd + Enter capture | Ctrl/Cmd + Shift + V voice</Badge>
       </div>
 
       {voiceMessage && <p className="mt-2 text-xs text-[var(--color-text-muted)]">{voiceMessage}</p>}

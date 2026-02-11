@@ -26,6 +26,7 @@
   --shadow-lg: 0 18px 36px rgb(15 23 42 / 0.2);
   --motion-fast: 140ms;
   --motion-normal: 220ms;
+  --motion-slow: 320ms;
   --blur-panel: 8px;
   --z-overlay: 120;
   --font-display: "Rockwell", "Palatino Linotype", "Book Antiqua", serif;
@@ -77,6 +78,49 @@ select,
 textarea {
   transition-duration: var(--motion-fast);
   transition-timing-function: ease-out;
+}
+
+.motion-fade-in {
+  animation: wall-fade-in var(--motion-normal) ease-out both;
+}
+
+.motion-modal-enter {
+  animation: wall-modal-enter var(--motion-normal) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.motion-panel-enter {
+  animation: wall-panel-enter var(--motion-slow) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes wall-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes wall-modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes wall-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

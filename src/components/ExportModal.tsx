@@ -36,6 +36,10 @@ export const ExportModal = ({
   const [scope, setScope] = useState<ExportScope>("view");
   const [pixelRatio, setPixelRatio] = useState(2);
 
+  const runPrimaryExport = () => {
+    onExportPng(scope, pixelRatio);
+  };
+
   if (!open) {
     return null;
   }
@@ -48,9 +52,17 @@ export const ExportModal = ({
       description="Create image/text exports and full JSON backups."
       maxWidthClassName="max-w-2xl"
     >
-      <div className="space-y-3">
+      <div
+        className="space-y-3"
+        onKeyDown={(event) => {
+          if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+            event.preventDefault();
+            runPrimaryExport();
+          }
+        }}
+      >
         <FieldLabel>PNG Scope</FieldLabel>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4" role="radiogroup" aria-label="PNG scope">
             {[
               { value: "whole", label: "Whole wall" },
               { value: "view", label: "Current view" },
@@ -60,6 +72,8 @@ export const ExportModal = ({
               <Button
                 key={option.value}
                 onClick={() => setScope(option.value as ExportScope)}
+                role="radio"
+                aria-checked={scope === option.value}
                 variant={scope === option.value ? "primary" : "secondary"}
                 size="md"
               >
@@ -93,7 +107,7 @@ export const ExportModal = ({
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <Button variant="primary" onClick={() => onExportPng(scope, pixelRatio)}>
+        <Button variant="primary" onClick={runPrimaryExport}>
           Export PNG
         </Button>
         <Button onClick={() => onExportPdf(scope)}>Export PDF</Button>
@@ -119,6 +133,7 @@ export const ExportModal = ({
           Close
         </Button>
       </div>
+      <p className="mt-2 text-[11px] text-[var(--color-text-muted)]">Tip: Press Ctrl/Cmd + Enter to export PNG with current settings.</p>
     </ModalShell>
   );
 };

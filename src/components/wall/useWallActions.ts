@@ -3,11 +3,10 @@
 import { useCallback } from "react";
 
 import { NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
-import type { Note } from "@/features/wall/types";
+import type { Note, TemplateType } from "@/features/wall/types";
 
 type Camera = { x: number; y: number; zoom: number };
 type Viewport = { w: number; h: number };
-type TemplateType = string;
 type CaptureItem = { text: string; tags: string[] };
 type AlignAxis = "left" | "center" | "right" | "top" | "middle" | "bottom";
 type DistributeDirection = "horizontal" | "vertical";
@@ -30,11 +29,11 @@ type UseWallActionsOptions = {
   toWorldPoint: (screenX: number, screenY: number, camera: Camera) => { x: number; y: number };
   createNote: (x: number, y: number, color?: string) => string;
   createZone: (x: number, y: number, label?: string, color?: string, groupId?: string) => string;
-  applyTemplate: (type: TemplateType, x: number, y: number) => string[];
+  applyTemplate: (type: TemplateType, x: number, y: number) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   addTagToNote: (noteId: string, tag: string) => void;
   removeTagFromNote: (noteId: string, tag: string) => void;
-  createZoneGroup: (label?: string, zoneIds?: string[]) => string;
+  createZoneGroup: (label: string, zoneIds?: string[]) => string;
   runHistoryGroup: (fn: () => void) => void;
 };
 

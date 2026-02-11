@@ -1,6 +1,14 @@
 "use client";
 
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
+import {
+  toolbarBtn,
+  toolbarBtnAccent,
+  toolbarBtnActive,
+  toolbarHistoryPill,
+  toolbarLabel,
+  toolbarSurface,
+} from "@/components/wall/wallChromeClasses";
 
 type LayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags";
 type LayoutPreferences = Record<LayoutPreferenceKey, boolean>;
@@ -66,15 +74,6 @@ export const WallToolbar = ({
   onOpenShortcuts,
   onSetLayoutPreference,
 }: WallToolbarProps) => {
-  const toolbarBtn =
-    "inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40";
-  const toolbarBtnActive =
-    "inline-flex items-center gap-1.5 rounded-lg border border-sky-400 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40";
-  const toolbarBtnAccent =
-    "inline-flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40";
-  const toolbarSurface = "rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-md backdrop-blur";
-  const toolbarLabel = "text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500";
-
   return (
     <>
       <div className={`${toolbarSurface} flex flex-wrap items-center gap-1`}>
@@ -155,7 +154,7 @@ export const WallToolbar = ({
             <span>Redo</span>
           </button>
         </ControlTooltip>
-        <div className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-600" title="Undo / Redo history depth">
+        <div className={toolbarHistoryPill} title="Undo / Redo history depth">
           H {historyUndoDepth}/{historyRedoDepth}
         </div>
         <ControlTooltip label="Toggle presentation mode" shortcut="P">

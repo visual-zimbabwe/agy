@@ -33,8 +33,8 @@ type WallStageProps = {
   setIsLeftCanvasDragging: Dispatch<SetStateAction<boolean>>;
   boxSelectMode: boolean;
   isTimeLocked: boolean;
-  selectionBox?: SelectionBox;
-  setSelectionBox: Dispatch<SetStateAction<SelectionBox | undefined>>;
+  selectionBox: SelectionBox | null;
+  setSelectionBox: Dispatch<SetStateAction<SelectionBox | null>>;
   toWorldPoint: (screenX: number, screenY: number, camera: CameraState) => { x: number; y: number };
   onEmptyCanvasClick: () => void;
   children: ReactNode;

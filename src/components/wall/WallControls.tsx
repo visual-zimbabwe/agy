@@ -216,9 +216,9 @@ type ControlTooltipProps = {
 export const ControlTooltip = ({ label, shortcut, children, className = "relative inline-flex" }: ControlTooltipProps) => (
   <span className={`${className} group`}>
     {children}
-    <span className="pointer-events-none absolute -bottom-10 left-1/2 z-[90] hidden w-max max-w-[18rem] -translate-x-1/2 items-center gap-2 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-100 opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100 md:flex">
+    <span className="pointer-events-none absolute -bottom-10 left-1/2 z-[90] hidden w-max max-w-[18rem] -translate-x-1/2 items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-accent-strong)] px-2 py-1 text-[11px] text-[var(--color-accent-foreground)] opacity-0 shadow-[var(--shadow-md)] transition-opacity duration-[var(--motion-fast)] group-hover:opacity-100 group-focus-within:opacity-100 md:flex">
       <span>{label}</span>
-      {shortcut && <span className="rounded border border-zinc-500 bg-zinc-800 px-1 py-0.5 font-mono text-[10px] text-zinc-200">{shortcut}</span>}
+      {shortcut && <span className="rounded border border-white/25 bg-black/20 px-1 py-0.5 font-mono text-[10px]">{shortcut}</span>}
     </span>
   </span>
 );

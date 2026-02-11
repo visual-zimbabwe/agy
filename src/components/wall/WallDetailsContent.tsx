@@ -16,7 +16,7 @@ type TemplateOption = {
 
 type WallDetailsContentProps = {
   templateType: TemplateType;
-  templateOptions: TemplateOption[];
+  templateOptions: readonly TemplateOption[];
   isTimeLocked: boolean;
   onTemplateTypeChange: (value: TemplateType) => void;
   onApplyTemplate: () => void;

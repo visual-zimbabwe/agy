@@ -1,6 +1,6 @@
 "use client";
 
-import type { ButtonHTMLAttributes } from "react";
+import { forwardRef, type ButtonHTMLAttributes } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -26,9 +26,10 @@ const sizeClasses: Record<ButtonSize, string> = {
   md: "rounded-[var(--radius-md)] px-3 py-2 text-sm",
 };
 
-export const Button = ({ className, variant = "secondary", size = "md", type = "button", ...props }: ButtonProps) => {
-  return (
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = "secondary", size = "md", type = "button", ...props }, ref) => (
     <button
+      ref={ref}
       type={type}
       className={cn(
         "inline-flex items-center justify-center border font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45",
@@ -38,5 +39,7 @@ export const Button = ({ className, variant = "secondary", size = "md", type = "
       )}
       {...props}
     />
-  );
-};
+  ),
+);
+
+Button.displayName = "Button";

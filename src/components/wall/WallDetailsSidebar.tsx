@@ -4,7 +4,7 @@ import { WallDetailsPanel } from "@/components/wall/WallDetailsPanel";
 import { WallDetailsContent } from "@/components/wall/WallDetailsContent";
 import type { DetailsSectionKey, DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { TEMPLATE_TYPES } from "@/features/wall/constants";
-import type { Bounds, Note, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Bounds, Note, TemplateType, Zone, ZoneGroup } from "@/features/wall/types";
 
 type WallDetailsSidebarProps = {
   presentationMode: boolean;
@@ -12,9 +12,9 @@ type WallDetailsSidebarProps = {
   isCompactLayout: boolean;
   rightPanelOpen: boolean;
   onClose: () => void;
-  templateType: string;
+  templateType: TemplateType;
   isTimeLocked: boolean;
-  onTemplateTypeChange: (value: string) => void;
+  onTemplateTypeChange: (value: TemplateType) => void;
   onApplyTemplate: () => void;
   tagInput: string;
   onTagInputChange: (value: string) => void;

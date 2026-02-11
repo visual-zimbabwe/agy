@@ -52,6 +52,16 @@ import { useWallViewState } from "@/components/wall/useWallViewState";
 import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
 import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
 import {
+  toolbarBtn,
+  toolbarBtnActive,
+  toolbarBtnCompact,
+  toolbarBtnPrimary,
+  toolbarDivider,
+  toolbarLabel,
+  toolbarSelect,
+  toolbarSurface,
+} from "@/components/wall/wallChromeClasses";
+import {
   applyTemplate,
   assignZoneToGroup,
   createNote,
@@ -71,7 +81,7 @@ import {
   updateLinkType,
   updateZone,
 } from "@/features/wall/commands";
-import { LINK_TYPES, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
+import { LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
@@ -527,7 +537,7 @@ export const WallCanvas = () => {
       selectedZoneId: ui.selectedZoneId,
       selectedLinkId: ui.selectedLinkId,
       selectedGroupId: ui.selectedGroupId,
-      lastColor: ui.lastColor,
+      lastColor: ui.lastColor ?? NOTE_COLORS[0],
     },
     selectedNoteIds,
     editing,
@@ -679,7 +689,7 @@ export const WallCanvas = () => {
     viewport,
     selectedNoteId: ui.selectedNoteId,
     selectedZoneId: ui.selectedZoneId,
-    lastColor: ui.lastColor,
+    lastColor: ui.lastColor ?? NOTE_COLORS[0],
     templateType: ui.templateType,
     tagInput,
     groupLabelInput,
@@ -836,19 +846,6 @@ export const WallCanvas = () => {
     isTimeLocked,
     publishedReadOnly,
   });
-  const toolbarBtn =
-    "inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40";
-  const toolbarBtnPrimary =
-    "inline-flex items-center gap-1.5 rounded-lg border border-zinc-900 bg-zinc-900 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40";
-  const toolbarBtnActive =
-    "inline-flex items-center gap-1.5 rounded-lg border border-sky-400 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40";
-  const toolbarBtnCompact =
-    "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-40";
-  const toolbarSelect =
-    "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition focus:border-sky-400";
-  const toolbarDivider = "mx-1 h-6 w-px bg-zinc-300";
-  const toolbarLabel = "text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500";
-  const toolbarSurface = "rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-md backdrop-blur";
   return (
     <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
       <WallHeaderBar
@@ -878,7 +875,7 @@ export const WallCanvas = () => {
         selectedNotes={selectedNotes}
         selectedNote={selectedNote}
         primarySelectedNote={primarySelectedNote}
-        uiLastColor={ui.lastColor}
+        uiLastColor={ui.lastColor ?? NOTE_COLORS[0]}
         statusMessage={statusMessage}
         cloudWallId={cloudWallId}
         isSyncing={isSyncing}

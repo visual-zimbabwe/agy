@@ -9,7 +9,7 @@ type TemplateOption = {
 
 type TemplatesSectionProps = {
   templateType: TemplateType;
-  templateOptions: TemplateOption[];
+  templateOptions: readonly TemplateOption[];
   isTimeLocked: boolean;
   onTemplateTypeChange: (value: TemplateType) => void;
   onApplyTemplate: () => void;

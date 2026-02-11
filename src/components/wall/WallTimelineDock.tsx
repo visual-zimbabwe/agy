@@ -21,19 +21,22 @@ export const WallTimelineDock = ({
   onLatest,
   onSeek,
 }: WallTimelineDockProps) => {
+  const dockButtonClass =
+    "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-muted)] transition-[background-color,border-color,color] duration-[var(--motion-fast)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
+
   return (
-    <div className="pointer-events-auto absolute bottom-3 left-1/2 z-30 w-[min(780px,95%)] -translate-x-1/2 rounded-2xl border border-zinc-300 bg-white/95 p-3 shadow-xl backdrop-blur-sm">
+    <div className="pointer-events-auto absolute bottom-3 left-1/2 z-30 w-[min(780px,95%)] -translate-x-1/2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3 shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)] motion-panel-enter">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={onTogglePlay} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium">
+        <button type="button" onClick={onTogglePlay} className={dockButtonClass}>
           {isTimelinePlaying ? "Pause" : "Play"}
         </button>
-        <button type="button" onClick={onStart} className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs">
+        <button type="button" onClick={onStart} className={dockButtonClass}>
           Start
         </button>
-        <button type="button" onClick={onLatest} className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs">
+        <button type="button" onClick={onLatest} className={dockButtonClass}>
           Latest
         </button>
-        <span className="ml-auto text-xs text-zinc-600">{new Date(currentTimestamp).toLocaleString()}</span>
+        <span className="ml-auto text-xs text-[var(--color-text-muted)]">{new Date(currentTimestamp).toLocaleString()}</span>
       </div>
       <input
         type="range"

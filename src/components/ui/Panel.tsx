@@ -1,6 +1,6 @@
 "use client";
 
-import type { HTMLAttributes } from "react";
+import { forwardRef, type HTMLAttributes } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -15,15 +15,16 @@ const toneClasses: Record<PanelTone, string> = {
   muted: "border-[var(--color-border-muted)] bg-[var(--color-surface-muted)]",
 };
 
-export const Panel = ({ className, tone = "base", ...props }: PanelProps) => {
-  return (
-    <div
-      className={cn(
-        "rounded-[var(--radius-xl)] border shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)]",
-        toneClasses[tone],
-        className,
-      )}
-      {...props}
-    />
-  );
-};
+export const Panel = forwardRef<HTMLDivElement, PanelProps>(({ className, tone = "base", ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-[var(--radius-xl)] border shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)]",
+      toneClasses[tone],
+      className,
+    )}
+    {...props}
+  />
+));
+
+Panel.displayName = "Panel";
