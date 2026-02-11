@@ -10,10 +10,25 @@ type ExportModalProps = {
   onExportPng: (scope: ExportScope, pixelRatio: number) => void;
   onExportPdf: (scope: ExportScope) => void;
   onExportMarkdown: () => void;
+  onExportJson: () => void;
+  onImportJson: (file: File) => void;
   onPublishSnapshot: () => void;
+  backupReminderCadence: "off" | "daily" | "weekly";
+  onBackupReminderCadenceChange: (cadence: "off" | "daily" | "weekly") => void;
 };
 
-export const ExportModal = ({ open, onClose, onExportPng, onExportPdf, onExportMarkdown, onPublishSnapshot }: ExportModalProps) => {
+export const ExportModal = ({
+  open,
+  onClose,
+  onExportPng,
+  onExportPdf,
+  onExportMarkdown,
+  onExportJson,
+  onImportJson,
+  onPublishSnapshot,
+  backupReminderCadence,
+  onBackupReminderCadenceChange,
+}: ExportModalProps) => {
   const [scope, setScope] = useState<ExportScope>("view");
   const [pixelRatio, setPixelRatio] = useState(2);
 
@@ -25,7 +40,7 @@ export const ExportModal = ({ open, onClose, onExportPng, onExportPdf, onExportM
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 p-4 backdrop-blur-[1px]">
       <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xl">
         <h2 className="text-lg font-semibold text-zinc-900">Export</h2>
-        <p className="mt-1 text-sm text-zinc-600">Create PNG snapshots or a Markdown reflection file.</p>
+        <p className="mt-1 text-sm text-zinc-600">Create image/text exports and full JSON backups.</p>
 
         <div className="mt-4 space-y-3">
           <label className="block text-sm font-medium text-zinc-800">PNG Scope</label>
@@ -62,6 +77,18 @@ export const ExportModal = ({ open, onClose, onExportPng, onExportPdf, onExportM
             className="w-full"
           />
           <p className="text-xs text-zinc-500">Current: {pixelRatio}x</p>
+
+          <label className="mt-2 block text-sm font-medium text-zinc-800">Backup Reminder</label>
+          <select
+            value={backupReminderCadence}
+            onChange={(event) => onBackupReminderCadenceChange(event.target.value as "off" | "daily" | "weekly")}
+            className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm text-zinc-800"
+          >
+            <option value="off">Off</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+          </select>
+          <p className="text-xs text-zinc-500">Optional reminder to download a full JSON backup.</p>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
@@ -86,6 +113,28 @@ export const ExportModal = ({ open, onClose, onExportPng, onExportPdf, onExportM
           >
             Export Markdown
           </button>
+          <button
+            type="button"
+            onClick={onExportJson}
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800"
+          >
+            Export JSON
+          </button>
+          <label className="cursor-pointer rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800">
+            Import JSON
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  onImportJson(file);
+                }
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
           <button
             type="button"
             onClick={onPublishSnapshot}

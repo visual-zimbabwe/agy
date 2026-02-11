@@ -203,6 +203,24 @@ Expected:
 - Presentation mode supports focused note-by-note walkthrough.
 - Published snapshot link opens a read-only wall state without mutation controls.
 
+## Data Backup - JSON Export/Import and Reminder
+1. Open `Export` modal and click `Export JSON`.
+2. Verify a backup file is downloaded (filename starts with `idea-wall-backup-`).
+3. Make a visible wall change (create or move note).
+4. In `Export` modal, click `Import JSON` and choose the exported backup file.
+5. Confirm import prompt.
+6. Verify wall state is restored to the backup snapshot.
+7. In `Export` modal, set `Backup Reminder` to `Daily`.
+8. Refresh the page and verify reminder prompt appears if due; choose cancel.
+9. Set `Backup Reminder` to `Weekly`, refresh again, and verify reminder does not reappear immediately.
+10. Set `Backup Reminder` to `Off` and verify no reminder prompt appears on refresh.
+
+Expected:
+- JSON export captures full wall snapshot (notes/zones/groups/links/camera).
+- JSON import restores the snapshot after confirmation.
+- Reminder cadence is persisted and prompts at configured intervals only.
+- Turning reminder off suppresses prompt.
+
 ## Keyboard Accessibility Spot Check
 1. Press `N` for new note.
 2. Press `Ctrl/Cmd + K` for search.

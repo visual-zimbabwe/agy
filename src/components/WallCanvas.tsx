@@ -239,6 +239,40 @@ const downloadTextFile = (filename: string, content: string) => {
   URL.revokeObjectURL(url);
 };
 
+const downloadJsonFile = (filename: string, data: unknown) => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isPersistedWallStateLike = (value: unknown): value is PersistedWallState => {
+  if (!isObjectRecord(value)) {
+    return false;
+  }
+  const notes = value.notes;
+  const zones = value.zones;
+  const zoneGroups = value.zoneGroups;
+  const links = value.links;
+  const camera = value.camera;
+  return (
+    isObjectRecord(notes) &&
+    isObjectRecord(zones) &&
+    isObjectRecord(zoneGroups) &&
+    isObjectRecord(links) &&
+    isObjectRecord(camera) &&
+    typeof camera.x === "number" &&
+    typeof camera.y === "number" &&
+    typeof camera.zoom === "number"
+  );
+};
+
 const tagGroupColor = (tag: string) => {
   let hash = 0;
   for (let i = 0; i < tag.length; i += 1) {
@@ -258,6 +292,8 @@ const boundsIntersect = (a: Bounds, b: Bounds) =>
 const makeDownloadId = () => new Date().toISOString().replace(/[:.]/g, "-");
 const recallStorageKey = "idea-wall-recall-searches";
 const layoutPrefsStorageKey = "idea-wall-layout-prefs";
+const backupReminderCadenceStorageKey = "idea-wall-backup-reminder-cadence";
+const backupReminderLastPromptStorageKey = "idea-wall-backup-reminder-last-prompt";
 const compactPanelBreakpoint = 1120;
 const dragSnapThreshold = 10;
 const textStyleBySize = Object.fromEntries(
@@ -652,6 +688,13 @@ export const WallCanvas = () => {
     }
   });
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
+  const [backupReminderCadence, setBackupReminderCadence] = useState<"off" | "daily" | "weekly">(() => {
+    if (typeof window === "undefined") {
+      return "off";
+    }
+    const raw = window.localStorage.getItem(backupReminderCadenceStorageKey);
+    return raw === "daily" || raw === "weekly" ? raw : "off";
+  });
   const [detailsSectionsOpen, setDetailsSectionsOpen] = useState<DetailsSectionState>({
     history: false,
     recall: true,
@@ -797,6 +840,13 @@ export const WallCanvas = () => {
     }
     window.localStorage.setItem(layoutPrefsStorageKey, JSON.stringify(layoutPrefs));
   }, [layoutPrefs]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(backupReminderCadenceStorageKey, backupReminderCadence);
+  }, [backupReminderCadence]);
 
   const syncSnapshotToCloud = useCallback(
     async (wallId: string, snapshot: PersistedWallState) => {
@@ -2067,6 +2117,59 @@ export const WallCanvas = () => {
     downloadTextFile(`idea-wall-${makeDownloadId()}.md`, content);
     setExportOpen(false);
   };
+
+  const exportJson = useCallback(() => {
+    const snapshot = selectPersistedSnapshot(useWallStore.getState());
+    downloadJsonFile(`idea-wall-backup-${makeDownloadId()}.json`, snapshot);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(backupReminderLastPromptStorageKey, String(Date.now()));
+    }
+    setExportOpen(false);
+  }, [setExportOpen]);
+
+  const importJson = useCallback(
+    async (file: File) => {
+      try {
+        const raw = await file.text();
+        const parsed: unknown = JSON.parse(raw);
+        if (!isPersistedWallStateLike(parsed)) {
+          window.alert("Invalid backup file format.");
+          return;
+        }
+        const ok = window.confirm("Import JSON backup and replace current wall state?");
+        if (!ok) {
+          return;
+        }
+        hydrate(parsed);
+        setSelectedNoteIds([]);
+        setExportOpen(false);
+        window.alert("Backup imported successfully.");
+      } catch {
+        window.alert("Unable to import JSON backup.");
+      }
+    },
+    [hydrate, setExportOpen],
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || publishedReadOnly || backupReminderCadence === "off") {
+      return;
+    }
+    const now = Date.now();
+    const lastPromptRaw = window.localStorage.getItem(backupReminderLastPromptStorageKey);
+    const lastPrompt = lastPromptRaw ? Number(lastPromptRaw) : 0;
+    const intervalMs = backupReminderCadence === "daily" ? 1000 * 60 * 60 * 24 : 1000 * 60 * 60 * 24 * 7;
+    if (Number.isFinite(lastPrompt) && now - lastPrompt < intervalMs) {
+      return;
+    }
+    window.localStorage.setItem(backupReminderLastPromptStorageKey, String(now));
+    const wantsExport = window.confirm(
+      `Backup reminder (${backupReminderCadence}): export a full JSON backup now?`,
+    );
+    if (wantsExport) {
+      exportJson();
+    }
+  }, [backupReminderCadence, exportJson, publishedReadOnly]);
 
   const publishReadOnlySnapshot = async () => {
     const snapshot = selectPersistedSnapshot(useWallStore.getState());
@@ -3993,9 +4096,15 @@ export const WallCanvas = () => {
           void exportPdf(scope);
         }}
         onExportMarkdown={exportMarkdown}
+        onExportJson={exportJson}
+        onImportJson={(file) => {
+          void importJson(file);
+        }}
         onPublishSnapshot={() => {
           void publishReadOnlySnapshot();
         }}
+        backupReminderCadence={backupReminderCadence}
+        onBackupReminderCadenceChange={setBackupReminderCadence}
       />
 
       <ShortcutsHelp open={ui.isShortcutsOpen} onClose={() => setShortcutsOpen(false)} />
