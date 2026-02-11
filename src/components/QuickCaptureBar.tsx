@@ -134,6 +134,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const terminalErrorRef = useRef(false);
   const restartAttemptRef = useRef(0);
   const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const voiceStartAtRef = useRef<number | null>(null);
 
   const recognitionSupported = useMemo(() => Boolean(getRecognitionCtor()), []);
   const terminalErrors = useMemo(
@@ -423,7 +424,22 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     }
   };
 
-  const toggleVoice = () => {
+  const stopVoice = (reason: "manual") => {
+    const activeSession = activeSessionIdRef.current;
+    activeSessionIdRef.current = null;
+    terminalErrorRef.current = false;
+    clearRestartTimer();
+    flushInterim();
+    recognitionRef.current?.stop();
+    recognitionRunningRef.current = false;
+    recognitionRef.current = null;
+    voiceStartAtRef.current = null;
+    pushVoiceDebug(`${reason} stop session=${activeSession ?? "none"}`);
+    setVoicePhase("idle");
+    setVoiceMessage("Voice capture stopped.");
+  };
+
+  const startVoice = () => {
     if (disabled || !recognitionSupported) {
       if (!recognitionSupported) {
         setVoiceMessage("Voice recognition is not supported in this browser.");
@@ -434,17 +450,6 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     }
 
     if (voiceActive || activeSessionIdRef.current !== null) {
-      const activeSession = activeSessionIdRef.current;
-      activeSessionIdRef.current = null;
-      terminalErrorRef.current = false;
-      clearRestartTimer();
-      flushInterim();
-      recognitionRef.current?.stop();
-      recognitionRunningRef.current = false;
-      recognitionRef.current = null;
-      pushVoiceDebug(`manual stop session=${activeSession ?? "none"}`);
-      setVoicePhase("idle");
-      setVoiceMessage("Voice capture stopped.");
       return;
     }
 
@@ -468,7 +473,23 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     interimTranscriptRef.current = "";
     pushVoiceDebug(`init recognizer session=${sessionId}`);
     voiceButtonRef.current?.blur();
+    voiceStartAtRef.current = Date.now();
     startRecognition(sessionId, "start");
+  };
+
+  const onVoiceButtonClick = () => {
+    if (voiceActive || activeSessionIdRef.current !== null) {
+      const startedAt = voiceStartAtRef.current;
+      const elapsed = startedAt ? Date.now() - startedAt : Number.POSITIVE_INFINITY;
+      // Guards against accidental double-activation/ghost click right after start.
+      if (elapsed < 1200) {
+        pushVoiceDebug(`ignored early stop elapsed=${elapsed}ms`);
+        return;
+      }
+      stopVoice("manual");
+      return;
+    }
+    startVoice();
   };
 
   const parsedCount = parseCaptureItems(text).length;
@@ -522,7 +543,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
         <button
           ref={voiceButtonRef}
           type="button"
-          onClick={toggleVoice}
+          onClick={onVoiceButtonClick}
           disabled={disabled || !recognitionSupported}
           title={!recognitionSupported ? "Browser does not support SpeechRecognition" : undefined}
           className={`rounded px-3 py-1.5 text-xs ${
