@@ -4,9 +4,8 @@ import { type FocusEvent, useCallback, useEffect, useMemo, useRef, useState } fr
 import { Layer } from "react-konva";
 import type Konva from "konva";
 import Fuse from "fuse.js";
-import jsPDF from "jspdf";
 
-import { ExportModal, type ExportScope } from "@/components/ExportModal";
+import { ExportModal } from "@/components/ExportModal";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteSwatches } from "@/components/NoteCard";
 import { QuickCaptureBar } from "@/components/QuickCaptureBar";
@@ -19,6 +18,7 @@ import { WallLinksZonesLayer } from "@/components/wall/WallLinksZonesLayer";
 import { WallNotesLayer } from "@/components/wall/WallNotesLayer";
 import { WallOverlaysLayer } from "@/components/wall/WallOverlaysLayer";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
+import { useWallExport } from "@/components/wall/useWallExport";
 import { WallStage } from "@/components/wall/WallStage";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { useWallTimeline } from "@/components/wall/useWallTimeline";
@@ -1529,110 +1529,28 @@ export const WallCanvas = () => {
     setFlashNote(noteId);
   };
 
-  const exportPng = async (scope: ExportScope, pixelRatio: number) => {
-    if (!stageRef.current) {
-      return;
-    }
-
-    if (scope === "view") {
-      const dataUrl = stageRef.current.toDataURL({ pixelRatio });
-      downloadDataUrl(`idea-wall-view-${makeDownloadId()}.png`, dataUrl);
-      return;
-    }
-
-    const previousCamera = camera;
-    let bounds: Bounds | null = null;
-
-    if (scope === "whole") {
-      bounds = computeContentBounds(visibleNotes, visibleZones);
-    } else if (scope === "selection") {
-      const selected = visibleNotes.filter((note) => activeSelectedNoteIds.includes(note.id));
-      bounds = computeContentBounds(selected, []);
-    } else if (scope === "zone" && ui.selectedZoneId) {
-      const zone = renderSnapshot.zones[ui.selectedZoneId];
-      if (zone) {
-        bounds = { x: zone.x, y: zone.y, w: zone.w, h: zone.h };
-      }
-    }
-
-    if (!bounds) {
-      window.alert("No target content selected for export.");
-      return;
-    }
-
-    setCamera(fitBoundsCamera(bounds, viewport));
-    await waitForPaint();
-
-    const dataUrl = stageRef.current.toDataURL({ pixelRatio });
-    downloadDataUrl(`idea-wall-${scope}-${makeDownloadId()}.png`, dataUrl);
-
-    setCamera(previousCamera);
-  };
-
-  const exportPdf = async (scope: ExportScope) => {
-    if (!stageRef.current) {
-      return;
-    }
-
-    const previousCamera = camera;
-    let dataUrl = "";
-
-    if (scope === "view") {
-      dataUrl = stageRef.current.toDataURL({ pixelRatio: 2 });
-    } else {
-      let bounds: Bounds | null = null;
-      if (scope === "whole") {
-        bounds = computeContentBounds(visibleNotes, visibleZones);
-      } else if (scope === "selection") {
-        const selected = visibleNotes.filter((note) => activeSelectedNoteIds.includes(note.id));
-        bounds = computeContentBounds(selected, []);
-      } else if (scope === "zone" && ui.selectedZoneId) {
-        const zone = renderSnapshot.zones[ui.selectedZoneId];
-        if (zone) {
-          bounds = { x: zone.x, y: zone.y, w: zone.w, h: zone.h };
-        }
-      }
-
-      if (!bounds) {
-        window.alert("No target content selected for export.");
-        return;
-      }
-      setCamera(fitBoundsCamera(bounds, viewport));
-      await waitForPaint();
-      dataUrl = stageRef.current.toDataURL({ pixelRatio: 2 });
-      setCamera(previousCamera);
-    }
-
-    const image = new Image();
-    image.src = dataUrl;
-    await new Promise<void>((resolve) => {
-      image.onload = () => resolve();
-    });
-
-    const orientation = image.width >= image.height ? "landscape" : "portrait";
-    const pdf = new jsPDF({
-      orientation,
-      unit: "pt",
-      format: [image.width, image.height],
-    });
-    pdf.addImage(dataUrl, "PNG", 0, 0, image.width, image.height);
-    pdf.save(`idea-wall-${scope}-${makeDownloadId()}.pdf`);
-  };
-
-  const exportMarkdown = () => {
-    const selectedZone = ui.selectedZoneId ? renderSnapshot.zones[ui.selectedZoneId] : undefined;
-    const selectedNotes = activeSelectedNoteIds.length > 0
-      ? visibleNotes.filter((note) => activeSelectedNoteIds.includes(note.id))
-      : ui.selectedNoteId
-      ? visibleNotes.filter((note) => note.id === ui.selectedNoteId)
-      : selectedZone
-        ? visibleNotes.filter((note) => zoneContainsNote(selectedZone, note))
-        : visibleNotes;
-
-    const content = notesToMarkdown(selectedNotes, zones);
-    downloadTextFile(`idea-wall-${makeDownloadId()}.md`, content);
-    setExportOpen(false);
-  };
+  const { exportPng, exportPdf, exportMarkdown } = useWallExport({
+    stageRef,
+    camera,
+    viewport,
+    visibleNotes,
+    visibleZones,
+    activeSelectedNoteIds,
+    selectedZoneId: ui.selectedZoneId,
+    zonesById: renderSnapshot.zones,
+    selectedNoteId: ui.selectedNoteId,
+    allZones: zones,
+    setCamera,
+    setExportOpen,
+    computeContentBounds,
+    fitBoundsCamera,
+    waitForPaint,
+    makeDownloadId,
+    downloadDataUrl,
+    downloadTextFile,
+    notesToMarkdown,
+    zoneContainsNote,
+  });
 
   const exportJson = useCallback(() => {
     const snapshot = selectPersistedSnapshot(useWallStore.getState());
