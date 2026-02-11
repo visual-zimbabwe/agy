@@ -110,6 +110,7 @@ type GuideLineState = {
 };
 
 const flashDurationMs = 1200;
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
 export const WallCanvas = () => {
   const notesMap = useWallStore((state) => state.notes);
@@ -722,6 +723,31 @@ export const WallCanvas = () => {
     fitBoundsCamera,
   });
 
+  const stepZoom = useCallback(
+    (direction: "in" | "out") => {
+      const factor = direction === "in" ? 1.2 : 1 / 1.2;
+      const nextZoom = clamp(camera.zoom * factor, 0.2, 2.8);
+      const centerWorldX = (viewport.w / 2 - camera.x) / camera.zoom;
+      const centerWorldY = (viewport.h / 2 - camera.y) / camera.zoom;
+      setCamera({
+        zoom: nextZoom,
+        x: viewport.w / 2 - centerWorldX * nextZoom,
+        y: viewport.h / 2 - centerWorldY * nextZoom,
+      });
+    },
+    [camera.x, camera.y, camera.zoom, setCamera, viewport.h, viewport.w],
+  );
+
+  const resetZoom = useCallback(() => {
+    const centerWorldX = (viewport.w / 2 - camera.x) / camera.zoom;
+    const centerWorldY = (viewport.h / 2 - camera.y) / camera.zoom;
+    setCamera({
+      zoom: 1,
+      x: viewport.w / 2 - centerWorldX,
+      y: viewport.h / 2 - centerWorldY,
+    });
+  }, [camera.x, camera.y, camera.zoom, setCamera, viewport.h, viewport.w]);
+
   const { setLayoutPreference, toggleDetailsSection, togglePresentationMode, toggleTimelineMode, saveCurrentRecallSearch, applySavedRecallSearch } = useWallUiActions({
     presentationMode, timelineEntriesLength: timelineEntries.length, timelineModeRef, setPresentationMode, setPresentationIndex,
     setQuickCaptureOpen, setSearchOpen, setExportOpen, setTimelineMode, setTimelineIndex, setIsTimelinePlaying, setLeftPanelOpen,
@@ -1152,6 +1178,9 @@ export const WallCanvas = () => {
           presentationNotesLength={presentationNotes.length}
           setPresentationIndex={setPresentationIndex}
           setPresentationMode={setPresentationMode}
+          onZoomIn={() => stepZoom("in")}
+          onZoomOut={() => stepZoom("out")}
+          onResetZoom={resetZoom}
         />
 
         <WallDetailsSidebar
