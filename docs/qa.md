@@ -208,6 +208,18 @@ Expected:
 Expected:
 - All shortcuts work without needing mouse for command invocation.
 
+## Performance and Regression Checks
+1. Create or import at least 300 notes.
+2. Enable `Box Select`, select 40+ notes, and drag the group across the wall.
+3. While dragging, verify peer notes move with the anchor smoothly and no major frame drops occur.
+4. Open Recall and type a query; verify filtering and panel interactions remain responsive.
+5. Run `npm run check:regressions`.
+
+Expected:
+- Multi-select drag remains responsive with large walls (no obvious jank spikes from per-frame state churn).
+- Recall/tag/path derived data updates remain responsive.
+- Regression guardrails pass for hook/state anti-patterns (`react-hooks/set-state-in-effect`, `react-hooks/refs`).
+
 ## Usability Polish - Icons, Tooltips, Responsive Panels
 1. Open `/wall` on desktop width (>= 1200px).
 2. Verify top bar controls display icon + label pairs with tighter spacing.

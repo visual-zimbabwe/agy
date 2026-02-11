@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:regressions": "eslint src/components/QuickCaptureBar.tsx src/components/WallCanvas.tsx --max-warnings=0 --rule \"react-hooks/set-state-in-effect:error\" --rule \"react-hooks/refs:error\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",

@@ -1368,18 +1368,22 @@ export const WallCanvas = () => {
     return new Set(notes.filter((note) => noteInAnyZone(note, collapsedZones)).map((note) => note.id));
   }, [collapsedGroupIds, notes, zones]);
   const baseVisibleNotes = useMemo(() => notes.filter((note) => !hiddenNotes.has(note.id)), [hiddenNotes, notes]);
+  const recallFuse = useMemo(
+    () =>
+      new Fuse(baseVisibleNotes, {
+        keys: ["text", "tags"],
+        threshold: 0.35,
+        ignoreLocation: true,
+      }),
+    [baseVisibleNotes],
+  );
   const recallQueryIds = useMemo(() => {
     const query = recallQuery.trim();
     if (!query) {
       return new Set(baseVisibleNotes.map((note) => note.id));
     }
-    const fuse = new Fuse(baseVisibleNotes, {
-      keys: ["text", "tags"],
-      threshold: 0.35,
-      ignoreLocation: true,
-    });
-    return new Set(fuse.search(query, { limit: 500 }).map((r) => r.item.id));
-  }, [baseVisibleNotes, recallQuery]);
+    return new Set(recallFuse.search(query, { limit: 500 }).map((r) => r.item.id));
+  }, [baseVisibleNotes, recallFuse, recallQuery]);
   const visibleNotes = useMemo(() => {
     const now = wallClockTs;
     const selectedZone = recallZoneId ? renderSnapshot.zones[recallZoneId] : undefined;
@@ -1409,10 +1413,11 @@ export const WallCanvas = () => {
       return true;
     });
   }, [baseVisibleNotes, recallDateFilter, recallQueryIds, recallTag, recallZoneId, renderSnapshot.zones, wallClockTs]);
-  const visibleLinks = useMemo(() => {
-    const allowed = new Set(visibleNotes.map((note) => note.id));
-    return links.filter((link) => allowed.has(link.fromNoteId) && allowed.has(link.toNoteId));
-  }, [links, visibleNotes]);
+  const visibleNoteIdSet = useMemo(() => new Set(visibleNotes.map((note) => note.id)), [visibleNotes]);
+  const visibleLinks = useMemo(
+    () => links.filter((link) => visibleNoteIdSet.has(link.fromNoteId) && visibleNoteIdSet.has(link.toNoteId)),
+    [links, visibleNoteIdSet],
+  );
   const availableRecallTags = useMemo(
     () => [...new Set(baseVisibleNotes.flatMap((note) => note.tags))].sort((a, b) => a.localeCompare(b)),
     [baseVisibleNotes],
@@ -1444,8 +1449,13 @@ export const WallCanvas = () => {
   const autoTagGroups = useMemo<TagGroup[]>(() => {
     const byTag = new Map<string, Note[]>();
     for (const note of visibleNotes) {
-      const uniqueTags = [...new Set(note.tags)];
-      for (const tag of uniqueTags) {
+      const seen = new Set<string>();
+      for (const rawTag of note.tags) {
+        const tag = rawTag.trim().toLowerCase();
+        if (!tag || seen.has(tag)) {
+          continue;
+        }
+        seen.add(tag);
         const normalized = tag.trim().toLowerCase();
         if (!normalized) {
           continue;
@@ -1512,10 +1522,18 @@ export const WallCanvas = () => {
   const pathLinkIds = useMemo(() => graphPathLinks(ui.selectedNoteId, visibleLinks), [ui.selectedNoteId, visibleLinks]);
   const maxViewportWidth = typeof window !== "undefined" ? window.innerWidth : viewport.w;
   const maxViewportHeight = typeof window !== "undefined" ? window.innerHeight : viewport.h;
-  const activeSelectedNoteIds = selectedNoteIds.filter((id) => Boolean(renderSnapshot.notes[id]));
-  const selectedNotes = activeSelectedNoteIds
-    .map((id) => renderSnapshot.notes[id])
-    .filter((note): note is Note => Boolean(note));
+  const activeSelectedNoteIds = useMemo(
+    () => selectedNoteIds.filter((id) => Boolean(renderSnapshot.notes[id])),
+    [renderSnapshot.notes, selectedNoteIds],
+  );
+  const activeSelectedNoteIdSet = useMemo(() => new Set(activeSelectedNoteIds), [activeSelectedNoteIds]);
+  const selectedNotes = useMemo(
+    () =>
+      activeSelectedNoteIds
+        .map((id) => renderSnapshot.notes[id])
+        .filter((note): note is Note => Boolean(note)),
+    [activeSelectedNoteIds, renderSnapshot.notes],
+  );
   const resolveSnappedPosition = (note: Note, candidateX: number, candidateY: number) => {
     const snapThreshold = dragSnapThreshold / Math.max(0.35, camera.zoom);
     const noteLeft = candidateX;
@@ -1536,7 +1554,7 @@ export const WallCanvas = () => {
       if (peer.id === note.id) {
         continue;
       }
-      if (activeSelectedNoteIds.includes(peer.id)) {
+      if (activeSelectedNoteIdSet.has(peer.id)) {
         continue;
       }
 
@@ -2896,11 +2914,20 @@ export const WallCanvas = () => {
                     }
                     const dx = snapped.x - anchor.x;
                     const dy = snapped.y - anchor.y;
+                    let movedPeers = false;
                     for (const [id, start] of Object.entries(startMap)) {
                       if (id === note.id) {
                         continue;
                       }
-                      updateNote(id, { x: start.x + dx, y: start.y + dy });
+                      const peerNode = noteNodeRefs.current[id];
+                      if (!peerNode) {
+                        continue;
+                      }
+                      peerNode.position({ x: start.x + dx, y: start.y + dy });
+                      movedPeers = true;
+                    }
+                    if (movedPeers) {
+                      event.target.getLayer()?.batchDraw();
                     }
                   }}
                   onDragEnd={(event) => {
@@ -2910,6 +2937,18 @@ export const WallCanvas = () => {
                     const snapped = resolveSnappedPosition(note, event.target.x(), event.target.y());
                     event.target.position(snapped);
                     moveNote(note.id, snapped.x, snapped.y);
+                    const anchor = dragAnchorRef.current;
+                    const startMap = dragSelectionStartRef.current;
+                    if (anchor && startMap) {
+                      const dx = snapped.x - anchor.x;
+                      const dy = snapped.y - anchor.y;
+                      for (const [id, start] of Object.entries(startMap)) {
+                        if (id === note.id) {
+                          continue;
+                        }
+                        updateNote(id, { x: start.x + dx, y: start.y + dy });
+                      }
+                    }
                     const dragStart = dragSingleStartRef.current;
                     if (dragStart?.id === note.id && dragStart.altClone) {
                       updateNote(note.id, { x: dragStart.x, y: dragStart.y });
