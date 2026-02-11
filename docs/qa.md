@@ -274,3 +274,21 @@ Expected:
 - Existing manual tags are preserved while new inline tags are appended (deduplicated).
 - Tag editing entry point is the `Selection Tags` section in `Details` panel (not the top context bar).
 - Hovering or selecting a note with tags reveals full tag list context beyond compact chip truncation.
+
+## Accounts and Cloud Sync (Supabase)
+1. Create a new account on `/signup` and complete sign-in.
+2. Verify `/wall` loads and account chip shows signed-in email.
+3. Sign out and verify redirect to `/login`.
+4. Sign in again with same account and verify return to `/wall`.
+5. Create notes/zones/links, wait for `Last synced` to update, refresh page, verify data persists.
+6. Click `Sync now` and confirm sync completes without error banner.
+7. Sign in on a second browser/device with same account and verify wall content appears after sync.
+8. Modify wall on device B, sync, then refresh device A and verify updates propagate.
+9. Turn off network, make local edits, turn network back on, click `Sync now`, verify changes persist and error clears.
+10. Sign in with a second account and verify it does not see the first account's wall.
+
+Expected:
+- `/wall` is protected for unauthenticated users.
+- Sync status updates (`Syncing...`, `Last synced`) behave consistently.
+- Cross-device sync works for create/edit/delete.
+- Accounts remain isolated via RLS.

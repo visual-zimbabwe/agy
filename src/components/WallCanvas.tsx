@@ -33,6 +33,7 @@ import {
   updateZone,
 } from "@/features/wall/commands";
 import { LINK_TYPES, NOTE_DEFAULTS, NOTE_TEXT_SIZES, TEMPLATE_TYPES, ZONE_DEFAULTS } from "@/features/wall/constants";
+import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
 import type { Link, LinkType, Note, PersistedWallState, TemplateType, Zone } from "@/features/wall/types";
@@ -598,6 +599,14 @@ export const WallCanvas = () => {
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [wallClockTs, setWallClockTs] = useState(() => Date.now());
+  const [cloudWallId, setCloudWallId] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cloudSyncInFlightRef = useRef(false);
+  const cloudReadyRef = useRef(false);
+  const lastCloudSyncedAtRef = useRef<number>(0);
   const [recallQuery, setRecallQuery] = useState("");
   const [recallZoneId, setRecallZoneId] = useState("");
   const [recallTag, setRecallTag] = useState("");
@@ -772,6 +781,77 @@ export const WallCanvas = () => {
     window.localStorage.setItem(layoutPrefsStorageKey, JSON.stringify(layoutPrefs));
   }, [layoutPrefs]);
 
+  const syncSnapshotToCloud = useCallback(
+    async (wallId: string, snapshot: PersistedWallState) => {
+      if (publishedReadOnly) {
+        return;
+      }
+
+      if (cloudSyncInFlightRef.current) {
+        return;
+      }
+
+      cloudSyncInFlightRef.current = true;
+      setIsSyncing(true);
+      setSyncError(null);
+
+      try {
+        const response = await fetch(`/api/walls/${wallId}/sync`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...snapshot,
+            clientSyncedAt: lastCloudSyncedAtRef.current || undefined,
+          }),
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(payload.error ?? "Cloud sync failed");
+        }
+
+        const payload = (await response.json()) as { serverTime?: number };
+        const syncedAt = payload.serverTime ?? Date.now();
+        lastCloudSyncedAtRef.current = syncedAt;
+        setLastSyncedAt(syncedAt);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Cloud sync failed";
+        setSyncError(message);
+      } finally {
+        cloudSyncInFlightRef.current = false;
+        setIsSyncing(false);
+      }
+    },
+    [publishedReadOnly],
+  );
+
+  const scheduleCloudSync = useCallback(
+    (snapshot: PersistedWallState) => {
+      if (!cloudWallId || !cloudReadyRef.current || publishedReadOnly) {
+        return;
+      }
+
+      if (cloudSyncTimerRef.current) {
+        clearTimeout(cloudSyncTimerRef.current);
+      }
+
+      cloudSyncTimerRef.current = setTimeout(() => {
+        void syncSnapshotToCloud(cloudWallId, snapshot);
+      }, 1400);
+    },
+    [cloudWallId, publishedReadOnly, syncSnapshotToCloud],
+  );
+
+  const syncNow = useCallback(() => {
+    if (!cloudWallId) {
+      return;
+    }
+    const snapshot = selectPersistedSnapshot(useWallStore.getState());
+    void syncSnapshotToCloud(cloudWallId, snapshot);
+  }, [cloudWallId, syncSnapshotToCloud]);
+
   useEffect(() => {
     const saver = createSnapshotSaver(320);
     const timelineRecorder = createTimelineRecorder({ delayMs: 1100, minIntervalMs: 1400, maxEntries: 500 });
@@ -786,6 +866,78 @@ export const WallCanvas = () => {
           setTimelineIndex(loadedTimeline.length - 1);
         }
       }
+
+      if (publishedReadOnly || cancelled) {
+        return;
+      }
+
+      try {
+        const listResponse = await fetch("/api/walls", { cache: "no-store" });
+        if (!listResponse.ok) {
+          const payload = (await listResponse.json().catch(() => ({}))) as { error?: string };
+          throw new Error(payload.error ?? "Unable to load walls");
+        }
+
+        const listPayload = (await listResponse.json()) as { walls: Array<{ id: string }> };
+        let wallId = listPayload.walls[0]?.id;
+
+        if (!wallId) {
+          const createResponse = await fetch("/api/walls", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: "My Wall" }),
+          });
+          if (!createResponse.ok) {
+            const payload = (await createResponse.json().catch(() => ({}))) as { error?: string };
+            throw new Error(payload.error ?? "Unable to create wall");
+          }
+          const createdPayload = (await createResponse.json()) as { wall: { id: string } };
+          wallId = createdPayload.wall.id;
+        }
+
+        if (!wallId) {
+          throw new Error("No wall available");
+        }
+
+        setCloudWallId(wallId);
+
+        const snapshotResponse = await fetch(`/api/walls/${wallId}`, { cache: "no-store" });
+        if (!snapshotResponse.ok) {
+          const payload = (await snapshotResponse.json().catch(() => ({}))) as { error?: string };
+          throw new Error(payload.error ?? "Unable to load cloud snapshot");
+        }
+
+        const snapshotPayload = (await snapshotResponse.json()) as { snapshot: PersistedWallState };
+        const serverSnapshot = snapshotPayload.snapshot;
+        const migrationKey = `idea-wall-cloud-imported-v1:${wallId}`;
+        const canPromptImport = typeof window !== "undefined" && !window.localStorage.getItem(migrationKey);
+        let nextSnapshot = mergeSnapshotsLww(serverSnapshot, snapshot);
+
+        if (hasContent(snapshot) && !hasContent(serverSnapshot) && canPromptImport && typeof window !== "undefined") {
+          const importLocal = window.confirm(
+            "Import your existing local wall data to your cloud account now?",
+          );
+          if (importLocal) {
+            nextSnapshot = snapshot;
+            await syncSnapshotToCloud(wallId, snapshot);
+          }
+          window.localStorage.setItem(migrationKey, "1");
+        } else if (JSON.stringify(nextSnapshot) !== JSON.stringify(serverSnapshot)) {
+          await syncSnapshotToCloud(wallId, nextSnapshot);
+        }
+
+        if (!cancelled) {
+          hydrate(nextSnapshot);
+          cloudReadyRef.current = true;
+          setSyncError(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : "Cloud sync unavailable";
+          setSyncError(message);
+          cloudReadyRef.current = false;
+        }
+      }
     };
 
     void load();
@@ -797,6 +949,7 @@ export const WallCanvas = () => {
       const snapshot = selectPersistedSnapshot(state);
       saver.schedule(snapshot);
       timelineRecorder.schedule(snapshot);
+      scheduleCloudSync(snapshot);
 
       const serialized = JSON.stringify(snapshot);
       const now = Date.now();
@@ -816,10 +969,14 @@ export const WallCanvas = () => {
     return () => {
       cancelled = true;
       unsubscribe();
+      cloudReadyRef.current = false;
+      if (cloudSyncTimerRef.current) {
+        clearTimeout(cloudSyncTimerRef.current);
+      }
       void saver.flush();
       void timelineRecorder.flush();
     };
-  }, [hydrate]);
+  }, [hydrate, publishedReadOnly, scheduleCloudSync, syncSnapshotToCloud]);
 
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
@@ -2227,6 +2384,22 @@ export const WallCanvas = () => {
             <span className="truncate">{statusMessage}</span>
           </div>
         )}
+
+        {!publishedReadOnly && (
+          <div className="inline-flex w-fit items-center gap-2 self-start rounded-xl border border-zinc-200 bg-white/85 px-3 py-1.5 text-xs text-zinc-600 shadow-sm">
+            <button
+              type="button"
+              onClick={syncNow}
+              disabled={!cloudWallId || isSyncing}
+              className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 disabled:opacity-50"
+            >
+              {isSyncing ? "Syncing..." : "Sync now"}
+            </button>
+            <span>
+              {lastSyncedAt ? `Last synced ${new Date(lastSyncedAt).toLocaleTimeString()}` : "Waiting for first sync"}
+            </span>
+          </div>
+        )}
       </header>
 
       <div
@@ -2253,6 +2426,12 @@ export const WallCanvas = () => {
         {!hydrated && (
           <div className="absolute inset-0 z-10 grid place-items-center bg-white/60 backdrop-blur-sm">
             <p className="rounded-lg bg-white px-4 py-2 text-sm text-zinc-700 shadow">Loading wall...</p>
+          </div>
+        )}
+
+        {!publishedReadOnly && syncError && (
+          <div className="pointer-events-none absolute left-1/2 top-3 z-[45] -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 shadow">
+            Sync error: {syncError}
           </div>
         )}
 

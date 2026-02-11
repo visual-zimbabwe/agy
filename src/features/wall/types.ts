@@ -10,6 +10,8 @@ export type Note = {
   color: string;
   createdAt: number;
   updatedAt: number;
+  deletedAt?: number;
+  dirty?: boolean;
 };
 
 export type Zone = {
@@ -23,6 +25,8 @@ export type Zone = {
   color: string;
   createdAt: number;
   updatedAt: number;
+  deletedAt?: number;
+  dirty?: boolean;
 };
 
 export type ZoneGroup = {
@@ -33,6 +37,8 @@ export type ZoneGroup = {
   collapsed: boolean;
   createdAt: number;
   updatedAt: number;
+  deletedAt?: number;
+  dirty?: boolean;
 };
 
 export type LinkType = "cause_effect" | "dependency" | "idea_execution";
@@ -45,6 +51,8 @@ export type Link = {
   label: string;
   createdAt: number;
   updatedAt: number;
+  deletedAt?: number;
+  dirty?: boolean;
 };
 
 export type TemplateType = "brainstorm" | "retro" | "strategy_map";

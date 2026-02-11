@@ -9,9 +9,13 @@ Idea-Wall is a local-first web app for spatial brainstorming. It provides an inf
 - Dexie + IndexedDB (local persistence)
 - Konva + react-konva (canvas rendering)
 - Fuse.js (fuzzy search)
+- Supabase (Auth + Postgres + RLS)
 
 ## Features
 - Infinite wall with pan/zoom camera
+- Email/password authentication (`/login`, `/signup`)
+- Account-scoped cloud sync with Supabase Postgres
+- Sync status UX (`Sync now`, last synced time, error banner)
 - Create notes (`N` / `Ctrl+N`) at viewport center
 - Inline note editing with debounced autosave
 - Drag and resize notes
@@ -70,6 +74,17 @@ Idea-Wall is a local-first web app for spatial brainstorming. It provides an inf
 npm install
 ```
 
+### Supabase Environment
+Create `.env.local` with:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://mklfzifmupjzgfuamtzv.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+Use `supabase/migrations/202602110001_user_accounts.sql` in your Supabase SQL editor to create tables, indexes, and RLS policies.
+
 ### Run Development Server
 ```bash
 npm run dev
@@ -77,7 +92,8 @@ npm run dev
 
 Open:
 - `http://localhost:3000/`
-- `http://localhost:3000/wall`
+- `http://localhost:3000/login`
+- `http://localhost:3000/wall` (requires sign-in unless using published snapshot link)
 
 ### Lint
 ```bash
@@ -105,7 +121,9 @@ npm run start
 - `docs/qa.md`: Milestone-based manual QA checklist
 
 ## Data Persistence
-Data is stored locally in IndexedDB database `idea-wall-db`.
+Data is stored in:
+- Local IndexedDB (`idea-wall-db`) for fast/offline cache
+- Supabase Postgres for account-backed sync across devices
 
 Persisted entities:
 - Notes
@@ -115,7 +133,7 @@ Persisted entities:
 - Camera transform
 - Last-used note color
 
-No backend is required for v1.
+Auth is handled by Supabase Auth, and row-level security enforces user isolation in Postgres tables.
 
 ## Keyboard Shortcuts
 - `N` or `Ctrl/Cmd + N`: New note
