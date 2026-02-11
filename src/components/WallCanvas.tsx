@@ -292,7 +292,6 @@ export const WallCanvas = () => {
   const [tagInput, setTagInput] = useState("");
   const [groupLabelInput, setGroupLabelInput] = useState("New Group");
   const [showAutoTagGroups, setShowAutoTagGroups] = useState(true);
-  const [showAdvancedTools, setShowAdvancedTools] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
   const [timelineMode, setTimelineMode] = useState(false);
@@ -1391,9 +1390,6 @@ export const WallCanvas = () => {
     <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
       <header className="mx-3 mt-3 flex flex-col gap-2 md:mx-4">
         <div className={`${toolbarSurface} flex flex-wrap items-center gap-1`}>
-          <button type="button" onClick={makeNoteAtViewportCenter} disabled={isTimeLocked} className={toolbarBtnPrimary}>
-            New (N)
-          </button>
           <button type="button" onClick={() => setSearchOpen(true)} className={toolbarBtn}>
             Search (Ctrl+K)
           </button>
@@ -1403,7 +1399,10 @@ export const WallCanvas = () => {
             disabled={isTimeLocked}
             className={quickCaptureOpen ? toolbarBtnActive : toolbarBtn}
           >
-            Capture (Q)
+            Quick Capture (Q)
+          </button>
+          <button type="button" onClick={() => setExportOpen(true)} className={toolbarBtn}>
+            Export
           </button>
           <button type="button" onClick={undo} disabled={!canUndo || isTimeLocked} className={toolbarBtn}>
             Undo
@@ -1429,14 +1428,8 @@ export const WallCanvas = () => {
           >
             Present (P)
           </button>
-
-          <div className={toolbarDivider} />
-
           <button type="button" onClick={resetView} className={toolbarBtn}>
             Reset View
-          </button>
-          <button type="button" onClick={() => setBoxSelectMode((value) => !value)} className={boxSelectMode ? toolbarBtnActive : toolbarBtn}>
-            Box Select
           </button>
           <button
             type="button"
@@ -1459,63 +1452,15 @@ export const WallCanvas = () => {
           <button type="button" onClick={() => setShowHeatmap((previous) => !previous)} className={showHeatmap ? toolbarBtnActive : toolbarBtn}>
             Heatmap (H)
           </button>
-          <button type="button" onClick={() => setShowAdvancedTools((value) => !value)} className={showAdvancedTools ? toolbarBtnActive : toolbarBtn}>
-            {showAdvancedTools ? "Hide Tools" : "More Tools"}
+          <button type="button" onClick={() => setShortcutsOpen(true)} className={toolbarBtn}>
+            Shortcuts (?)
           </button>
         </div>
 
-        {showAdvancedTools && (
+        {!publishedReadOnly && !presentationMode && (
           <div className={`${toolbarSurface} flex flex-wrap items-center gap-2`}>
-            <span className={toolbarLabel}>Create</span>
-            <button type="button" onClick={makeZoneAtViewportCenter} disabled={isTimeLocked} className={toolbarBtn}>
-              New Zone
-            </button>
-            <select value={ui.templateType} onChange={(event) => setTemplateType(event.target.value as TemplateType)} className={toolbarSelect}>
-              {TEMPLATE_TYPES.map((option) => (
-                <option key={option.value} value={option.value}>
-                  Template: {option.label}
-                </option>
-              ))}
-            </select>
-            <button type="button" onClick={applySelectedTemplate} disabled={isTimeLocked} className={toolbarBtn}>
-              Apply Template
-            </button>
-
+            <span className={toolbarLabel}>Context</span>
             <div className={toolbarDivider} />
-
-            <span className={toolbarLabel}>Links & Export</span>
-            <select value={ui.linkType} onChange={(event) => setLinkType(event.target.value as LinkType)} className={toolbarSelect}>
-              {LINK_TYPES.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => {
-                if (isTimeLocked || !ui.selectedNoteId) {
-                  return;
-                }
-                setLinkingFromNote(ui.selectedNoteId);
-              }}
-              disabled={!ui.selectedNoteId || isTimeLocked}
-              className={toolbarBtn}
-            >
-              {ui.linkingFromNoteId ? "Select target..." : "Start Link (Ctrl+L)"}
-            </button>
-            <button type="button" onClick={() => setShowClusters(!ui.showClusters)} className={ui.showClusters ? toolbarBtnActive : toolbarBtn}>
-              Detect Clusters
-            </button>
-            <button type="button" onClick={() => setExportOpen(true)} className={toolbarBtn}>
-              Export
-            </button>
-            <button type="button" onClick={publishReadOnlySnapshot} className={toolbarBtn}>
-              Publish Snapshot
-            </button>
-
-            <div className={toolbarDivider} />
-
             <div className="flex items-center gap-2">
               <span className={toolbarLabel}>Color</span>
               <NoteSwatches
@@ -1525,7 +1470,6 @@ export const WallCanvas = () => {
                 }}
               />
             </div>
-
             {(activeSelectedNoteIds.length > 0 || ui.selectedNoteId) && (
               <div className="flex items-center gap-2">
                 <span className={toolbarLabel}>Tags</span>
@@ -1559,7 +1503,6 @@ export const WallCanvas = () => {
                 ))}
               </div>
             )}
-
             {selectedNotes.length >= 2 && (
               <div className="flex items-center gap-1">
                 <span className={toolbarLabel}>Align</span>
@@ -1636,6 +1579,46 @@ export const WallCanvas = () => {
           <div className="absolute inset-0 z-10 grid place-items-center bg-white/60 backdrop-blur-sm">
             <p className="rounded-lg bg-white px-4 py-2 text-sm text-zinc-700 shadow">Loading wall...</p>
           </div>
+        )}
+
+        {!presentationMode && !publishedReadOnly && (
+          <aside className="pointer-events-auto absolute left-3 top-3 z-30 w-40 rounded-2xl border border-zinc-200/80 bg-white/95 p-2 shadow-xl backdrop-blur-sm">
+            <p className="px-1 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Tools</p>
+            <div className="space-y-1">
+              <button type="button" onClick={makeNoteAtViewportCenter} disabled={isTimeLocked} className={`w-full text-left ${toolbarBtnPrimary}`}>
+                New Note
+              </button>
+              <button type="button" onClick={makeZoneAtViewportCenter} disabled={isTimeLocked} className={`w-full text-left ${toolbarBtn}`}>
+                New Zone
+              </button>
+              <button type="button" onClick={() => setBoxSelectMode((value) => !value)} className={`w-full text-left ${boxSelectMode ? toolbarBtnActive : toolbarBtn}`}>
+                Box Select
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isTimeLocked || !ui.selectedNoteId) {
+                    return;
+                  }
+                  setLinkingFromNote(ui.selectedNoteId);
+                }}
+                disabled={!ui.selectedNoteId || isTimeLocked}
+                className={`w-full text-left ${ui.linkingFromNoteId ? toolbarBtnActive : toolbarBtn}`}
+              >
+                {ui.linkingFromNoteId ? "Pick Link Target" : "Start Link"}
+              </button>
+              <select value={ui.linkType} onChange={(event) => setLinkType(event.target.value as LinkType)} className={`w-full ${toolbarSelect}`}>
+                {LINK_TYPES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={() => setShowClusters(!ui.showClusters)} className={`w-full text-left ${ui.showClusters ? toolbarBtnActive : toolbarBtn}`}>
+                Detect Clusters
+              </button>
+            </div>
+          </aside>
         )}
 
         <Stage
@@ -2220,236 +2203,306 @@ export const WallCanvas = () => {
         )}
 
         {!presentationMode && (
-          <aside className="pointer-events-auto absolute right-3 top-3 z-30 w-72 rounded-2xl border border-zinc-300/80 bg-white/92 p-3 shadow-xl backdrop-blur-sm">
-          <h3 className="text-sm font-semibold text-zinc-900">Recall</h3>
-          <p className="mt-1 text-xs text-zinc-600">Filter notes by query, zone, tag, and recency. Save frequent searches.</p>
+          <aside className="pointer-events-auto absolute right-3 top-3 z-30 w-80 rounded-2xl border border-zinc-300/80 bg-white/92 p-3 shadow-xl backdrop-blur-sm">
+            <h3 className="text-sm font-semibold text-zinc-900">Details</h3>
+            <p className="mt-1 text-xs text-zinc-600">Tags, templates, history and recall controls for the current wall.</p>
 
-          <input
-            value={recallQuery}
-            onChange={(event) => setRecallQuery(event.target.value)}
-            placeholder="Find text or #tag..."
-            className="mt-2 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-          />
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            <select
-              value={recallZoneId}
-              onChange={(event) => setRecallZoneId(event.target.value)}
-              className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-            >
-              <option value="">All zones</option>
-              {visibleZones.map((zone) => (
-                <option key={`filter-zone-${zone.id}`} value={zone.id}>
-                  {zone.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={recallTag}
-              onChange={(event) => setRecallTag(event.target.value)}
-              className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-            >
-              <option value="">All tags</option>
-              {availableRecallTags.map((tag) => (
-                <option key={`filter-tag-${tag}`} value={tag}>
-                  #{tag}
-                </option>
-              ))}
-            </select>
-            <select
-              value={recallDateFilter}
-              onChange={(event) => setRecallDateFilter(event.target.value as RecallDateFilter)}
-              className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-            >
-              <option value="all">All dates</option>
-              <option value="today">Today</option>
-              <option value="7d">Last 7d</option>
-              <option value="30d">Last 30d</option>
-            </select>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={saveCurrentRecallSearch}
-              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
-            >
-              Save Search
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setRecallQuery("");
-                setRecallZoneId("");
-                setRecallTag("");
-                setRecallDateFilter("all");
-              }}
-              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
-            >
-              Clear Filters
-            </button>
-            <button
-              type="button"
-              onClick={jumpToStaleNote}
-              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
-            >
-              Jump Stale
-            </button>
-            <button
-              type="button"
-              onClick={jumpToHighPriorityNote}
-              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
-            >
-              Jump Priority
-            </button>
-          </div>
-          {savedRecallSearches.length > 0 && (
-            <div className="mt-2 max-h-24 space-y-1 overflow-auto pr-1">
-              {savedRecallSearches.map((item) => (
-                <div key={item.id} className="flex items-center gap-1 rounded border border-zinc-200 bg-white px-2 py-1">
-                  <button
-                    type="button"
-                    onClick={() => applySavedRecallSearch(item)}
-                    className="min-w-0 flex-1 truncate text-left text-[11px] text-zinc-800"
-                  >
-                    {item.name}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSavedRecallSearches((previous) => previous.filter((entry) => entry.id !== item.id))}
-                    className="text-[10px] text-red-700"
-                  >
-                    x
-                  </button>
-                </div>
-              ))}
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Templates</p>
+              <div className="mt-2 flex items-center gap-2">
+                <select value={ui.templateType} onChange={(event) => setTemplateType(event.target.value as TemplateType)} className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs">
+                  {TEMPLATE_TYPES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" onClick={applySelectedTemplate} disabled={isTimeLocked} className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-45">
+                  Apply
+                </button>
+              </div>
             </div>
-          )}
 
-          <div className="mt-3 border-t border-zinc-200 pt-3" />
-          <h3 className="text-sm font-semibold text-zinc-900">Zone Groups</h3>
-          <p className="mt-1 text-xs text-zinc-600">Collapse groups to hide grouped zones and their notes.</p>
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Selection Tags</p>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  value={tagInput}
+                  onChange={(event) => setTagInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addTagToSelectedNote();
+                    }
+                  }}
+                  placeholder={activeSelectedNoteIds.length > 0 || ui.selectedNoteId ? "add-tag" : "select note first"}
+                  disabled={activeSelectedNoteIds.length === 0 && !ui.selectedNoteId ? true : isTimeLocked}
+                  className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
+                />
+                <button
+                  type="button"
+                  onClick={addTagToSelectedNote}
+                  disabled={activeSelectedNoteIds.length === 0 && !ui.selectedNoteId ? true : isTimeLocked}
+                  className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {displayedTags.length === 0 && <span className="text-[11px] text-zinc-500">No tags on current selection.</span>}
+                {displayedTags.slice(0, 12).map((tag) => (
+                  <button
+                    key={`detail-tag-${tag}`}
+                    type="button"
+                    onClick={() => removeTagFromSelectedNote(tag)}
+                    disabled={isTimeLocked}
+                    className="rounded-full border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700"
+                    title="Remove tag"
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <div className="mt-2 flex items-center gap-2">
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">History</p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-zinc-700">
+                <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Timeline entries: {timelineEntries.length}</div>
+                <div className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5">Visible notes: {visibleNotes.length}</div>
+                <div className="col-span-2 rounded-lg border border-zinc-200 bg-white px-2 py-1.5">
+                  Latest edit:{" "}
+                  {notes.length === 0
+                    ? "n/a"
+                    : new Date(Math.max(...notes.map((note) => note.updatedAt))).toLocaleString()}
+                </div>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button type="button" onClick={jumpToStaleNote} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]">
+                  Jump Stale
+                </button>
+                <button type="button" onClick={jumpToHighPriorityNote} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]">
+                  Jump Priority
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 border-t border-zinc-200 pt-3" />
+            <h3 className="text-sm font-semibold text-zinc-900">Recall</h3>
+            <p className="mt-1 text-xs text-zinc-600">Filter notes by query, zone, tag, and recency. Save frequent searches.</p>
+
             <input
-              value={groupLabelInput}
-              onChange={(event) => setGroupLabelInput(event.target.value)}
-              className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
-              placeholder="Group name"
+              value={recallQuery}
+              onChange={(event) => setRecallQuery(event.target.value)}
+              placeholder="Find text or #tag..."
+              className="mt-2 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
             />
-            <button
-              type="button"
-              onClick={createGroupFromSelectedZone}
-              disabled={!ui.selectedZoneId || isTimeLocked}
-              className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs disabled:opacity-45"
-            >
-              Group Zone
-            </button>
-          </div>
-
-          {selectedZone && (
-            <div className="mt-2">
-              <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                Selected Zone Group
-              </label>
+            <div className="mt-2 grid grid-cols-3 gap-2">
               <select
-                value={selectedZone.groupId ?? ""}
-                onChange={(event) => {
-                  if (isTimeLocked) {
-                    return;
-                  }
-                  assignZoneToGroup(selectedZone.id, event.target.value || undefined);
-                }}
-                disabled={isTimeLocked}
-                className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+                value={recallZoneId}
+                onChange={(event) => setRecallZoneId(event.target.value)}
+                className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
               >
-                <option value="">No group</option>
-                {zoneGroups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.label}
+                <option value="">All zones</option>
+                {visibleZones.map((zone) => (
+                  <option key={`filter-zone-${zone.id}`} value={zone.id}>
+                    {zone.label}
                   </option>
                 ))}
               </select>
-            </div>
-          )}
-
-          <div className="mt-3 max-h-56 space-y-1 overflow-auto pr-1">
-            {zoneGroups.length === 0 && <p className="text-xs text-zinc-500">No groups yet.</p>}
-            {zoneGroups.map((group) => (
-              <div
-                key={group.id}
-                className={`rounded-lg border px-2 py-2 ${
-                  selectedGroup?.id === group.id ? "border-zinc-700 bg-zinc-50" : "border-zinc-200 bg-white"
-                }`}
+              <select
+                value={recallTag}
+                onChange={(event) => setRecallTag(event.target.value)}
+                className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
               >
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isTimeLocked) {
-                        return;
-                      }
-                      selectGroup(group.id);
-                      toggleGroupCollapse(group.id);
-                    }}
-                    disabled={isTimeLocked}
-                    className="rounded-md border border-zinc-300 px-1.5 py-0.5 text-[10px]"
-                  >
-                    {group.collapsed ? "Expand" : "Collapse"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      clearNoteSelection();
-                      selectGroup(group.id);
-                    }}
-                    className="min-w-0 flex-1 truncate text-left text-xs font-medium text-zinc-800"
-                  >
-                    {group.label}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isTimeLocked) {
-                        return;
-                      }
-                      deleteGroup(group.id);
-                    }}
-                    disabled={isTimeLocked}
-                    className="text-[10px] text-red-700"
-                  >
-                    Delete
-                  </button>
-                </div>
-                <p className="mt-1 text-[11px] text-zinc-500">
-                  {group.zoneIds.length} zones {group.collapsed ? "(collapsed)" : "(expanded)"}
-                </p>
+                <option value="">All tags</option>
+                {availableRecallTags.map((tag) => (
+                  <option key={`filter-tag-${tag}`} value={tag}>
+                    #{tag}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={recallDateFilter}
+                onChange={(event) => setRecallDateFilter(event.target.value as RecallDateFilter)}
+                className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+              >
+                <option value="all">All dates</option>
+                <option value="today">Today</option>
+                <option value="7d">Last 7d</option>
+                <option value="30d">Last 30d</option>
+              </select>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={saveCurrentRecallSearch}
+                className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
+              >
+                Save Search
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRecallQuery("");
+                  setRecallZoneId("");
+                  setRecallTag("");
+                  setRecallDateFilter("all");
+                }}
+                className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
+              >
+                Clear Filters
+              </button>
+            </div>
+            {savedRecallSearches.length > 0 && (
+              <div className="mt-2 max-h-24 space-y-1 overflow-auto pr-1">
+                {savedRecallSearches.map((item) => (
+                  <div key={item.id} className="flex items-center gap-1 rounded border border-zinc-200 bg-white px-2 py-1">
+                    <button
+                      type="button"
+                      onClick={() => applySavedRecallSearch(item)}
+                      className="min-w-0 flex-1 truncate text-left text-[11px] text-zinc-800"
+                    >
+                      {item.name}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSavedRecallSearches((previous) => previous.filter((entry) => entry.id !== item.id))}
+                      className="text-[10px] text-red-700"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
 
-          <div className="mt-3 border-t border-zinc-200 pt-3">
-            <div className="mb-1 flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Tag Groups (Auto)</h4>
+            <div className="mt-3 border-t border-zinc-200 pt-3" />
+            <h3 className="text-sm font-semibold text-zinc-900">Zone Groups</h3>
+            <p className="mt-1 text-xs text-zinc-600">Collapse groups to hide grouped zones and their notes.</p>
+
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                value={groupLabelInput}
+                onChange={(event) => setGroupLabelInput(event.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+                placeholder="Group name"
+              />
               <button
                 type="button"
-                onClick={() => setShowAutoTagGroups((value) => !value)}
-                className="rounded-md border border-zinc-300 px-2 py-0.5 text-[10px]"
+                onClick={createGroupFromSelectedZone}
+                disabled={!ui.selectedZoneId || isTimeLocked}
+                className="rounded-lg border border-zinc-300 px-2 py-1.5 text-xs disabled:opacity-45"
               >
-                {showAutoTagGroups ? "Hide" : "Show"}
+                Group Zone
               </button>
             </div>
-            {autoTagGroups.length === 0 && <p className="text-xs text-zinc-500">No auto groups yet (need 2+ notes per tag).</p>}
-            {autoTagGroups.slice(0, 8).map((group) => (
-              <button
-                key={`panel-tag-${group.tag}`}
-                type="button"
-                onClick={() => focusBounds(group.bounds)}
-                className="mt-1 flex w-full items-center justify-between rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-left text-xs hover:bg-zinc-50"
-              >
-                <span className="truncate text-zinc-800">#{group.tag}</span>
-                <span className="text-zinc-500">{group.noteIds.length} notes</span>
-              </button>
-            ))}
-          </div>
+
+            {selectedZone && (
+              <div className="mt-2">
+                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                  Selected Zone Group
+                </label>
+                <select
+                  value={selectedZone.groupId ?? ""}
+                  onChange={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    assignZoneToGroup(selectedZone.id, event.target.value || undefined);
+                  }}
+                  disabled={isTimeLocked}
+                  className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+                >
+                  <option value="">No group</option>
+                  {zoneGroups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="mt-3 max-h-56 space-y-1 overflow-auto pr-1">
+              {zoneGroups.length === 0 && <p className="text-xs text-zinc-500">No groups yet.</p>}
+              {zoneGroups.map((group) => (
+                <div
+                  key={group.id}
+                  className={`rounded-lg border px-2 py-2 ${
+                    selectedGroup?.id === group.id ? "border-zinc-700 bg-zinc-50" : "border-zinc-200 bg-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isTimeLocked) {
+                          return;
+                        }
+                        selectGroup(group.id);
+                        toggleGroupCollapse(group.id);
+                      }}
+                      disabled={isTimeLocked}
+                      className="rounded-md border border-zinc-300 px-1.5 py-0.5 text-[10px]"
+                    >
+                      {group.collapsed ? "Expand" : "Collapse"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearNoteSelection();
+                        selectGroup(group.id);
+                      }}
+                      className="min-w-0 flex-1 truncate text-left text-xs font-medium text-zinc-800"
+                    >
+                      {group.label}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isTimeLocked) {
+                          return;
+                        }
+                        deleteGroup(group.id);
+                      }}
+                      disabled={isTimeLocked}
+                      className="text-[10px] text-red-700"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[11px] text-zinc-500">
+                    {group.zoneIds.length} zones {group.collapsed ? "(collapsed)" : "(expanded)"}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 border-t border-zinc-200 pt-3">
+              <div className="mb-1 flex items-center justify-between">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Tag Groups (Auto)</h4>
+                <button
+                  type="button"
+                  onClick={() => setShowAutoTagGroups((value) => !value)}
+                  className="rounded-md border border-zinc-300 px-2 py-0.5 text-[10px]"
+                >
+                  {showAutoTagGroups ? "Hide" : "Show"}
+                </button>
+              </div>
+              {autoTagGroups.length === 0 && <p className="text-xs text-zinc-500">No auto groups yet (need 2+ notes per tag).</p>}
+              {autoTagGroups.slice(0, 8).map((group) => (
+                <button
+                  key={`panel-tag-${group.tag}`}
+                  type="button"
+                  onClick={() => focusBounds(group.bounds)}
+                  className="mt-1 flex w-full items-center justify-between rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-left text-xs hover:bg-zinc-50"
+                >
+                  <span className="truncate text-zinc-800">#{group.tag}</span>
+                  <span className="text-zinc-500">{group.noteIds.length} notes</span>
+                </button>
+              ))}
+            </div>
           </aside>
         )}
 
