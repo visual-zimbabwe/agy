@@ -13,8 +13,13 @@ export const createSupabaseServerClient = async () => {
         return cookieStore.getAll();
       },
       setAll(cookieList) {
-        for (const cookie of cookieList) {
-          cookieStore.set(cookie.name, cookie.value, cookie.options);
+        try {
+          for (const cookie of cookieList) {
+            cookieStore.set(cookie.name, cookie.value, cookie.options);
+          }
+        } catch {
+          // In Server Components, Next.js exposes a read-only cookie store.
+          // Route Handlers and Server Actions can still write cookies.
         }
       },
     },
