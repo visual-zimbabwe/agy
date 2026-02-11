@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Arrow, Group, Layer, Rect, Stage, Text, Transformer } from "react-konva";
 import type Konva from "konva";
+import Fuse from "fuse.js";
 
 import { ExportModal, type ExportScope } from "@/components/ExportModal";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
@@ -50,6 +51,15 @@ type LinkContextMenuState = {
 type Bounds = { x: number; y: number; w: number; h: number };
 type TagGroup = { tag: string; noteIds: string[]; bounds: Bounds };
 type SelectionBox = { startX: number; startY: number; x: number; y: number; w: number; h: number };
+type RecallDateFilter = "all" | "today" | "7d" | "30d";
+type SavedRecallSearch = {
+  id: string;
+  name: string;
+  query: string;
+  zoneId?: string;
+  tag?: string;
+  dateFilter: RecallDateFilter;
+};
 
 const flashDurationMs = 1200;
 
@@ -232,6 +242,7 @@ const boundsIntersect = (a: Bounds, b: Bounds) =>
   a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
 const makeDownloadId = () => new Date().toISOString().replace(/[:.]/g, "-");
+const recallStorageKey = "idea-wall-recall-searches";
 
 export const WallCanvas = () => {
   const notesMap = useWallStore((state) => state.notes);
@@ -286,6 +297,25 @@ export const WallCanvas = () => {
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [wallClockTs, setWallClockTs] = useState(() => Date.now());
+  const [recallQuery, setRecallQuery] = useState("");
+  const [recallZoneId, setRecallZoneId] = useState("");
+  const [recallTag, setRecallTag] = useState("");
+  const [recallDateFilter, setRecallDateFilter] = useState<RecallDateFilter>("all");
+  const [savedRecallSearches, setSavedRecallSearches] = useState<SavedRecallSearch[]>(() => {
+    if (typeof window === "undefined") {
+      return [];
+    }
+    try {
+      const raw = window.localStorage.getItem(recallStorageKey);
+      if (!raw) {
+        return [];
+      }
+      const parsed = JSON.parse(raw) as SavedRecallSearch[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [boxSelectMode, setBoxSelectMode] = useState(false);
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
@@ -318,6 +348,13 @@ export const WallCanvas = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(recallStorageKey, JSON.stringify(savedRecallSearches));
+  }, [savedRecallSearches]);
 
   useEffect(() => {
     const saver = createSnapshotSaver(320);
@@ -716,10 +753,55 @@ export const WallCanvas = () => {
     const collapsedZones = zones.filter((zone) => zone.groupId && collapsedGroupIds.has(zone.groupId));
     return new Set(notes.filter((note) => noteInAnyZone(note, collapsedZones)).map((note) => note.id));
   }, [collapsedGroupIds, notes, zones]);
-  const visibleNotes = useMemo(() => notes.filter((note) => !hiddenNotes.has(note.id)), [hiddenNotes, notes]);
-  const visibleLinks = useMemo(
-    () => links.filter((link) => !hiddenNotes.has(link.fromNoteId) && !hiddenNotes.has(link.toNoteId)),
-    [hiddenNotes, links],
+  const baseVisibleNotes = useMemo(() => notes.filter((note) => !hiddenNotes.has(note.id)), [hiddenNotes, notes]);
+  const recallQueryIds = useMemo(() => {
+    const query = recallQuery.trim();
+    if (!query) {
+      return new Set(baseVisibleNotes.map((note) => note.id));
+    }
+    const fuse = new Fuse(baseVisibleNotes, {
+      keys: ["text", "tags"],
+      threshold: 0.35,
+      ignoreLocation: true,
+    });
+    return new Set(fuse.search(query, { limit: 500 }).map((r) => r.item.id));
+  }, [baseVisibleNotes, recallQuery]);
+  const visibleNotes = useMemo(() => {
+    const now = wallClockTs;
+    const selectedZone = recallZoneId ? renderSnapshot.zones[recallZoneId] : undefined;
+    return baseVisibleNotes.filter((note) => {
+      if (!recallQueryIds.has(note.id)) {
+        return false;
+      }
+      if (selectedZone && !zoneContainsNote(selectedZone, note)) {
+        return false;
+      }
+      if (recallTag && !note.tags.includes(recallTag)) {
+        return false;
+      }
+      if (recallDateFilter === "today") {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        if (note.updatedAt < start.getTime()) {
+          return false;
+        }
+      }
+      if (recallDateFilter === "7d" && now - note.updatedAt > 1000 * 60 * 60 * 24 * 7) {
+        return false;
+      }
+      if (recallDateFilter === "30d" && now - note.updatedAt > 1000 * 60 * 60 * 24 * 30) {
+        return false;
+      }
+      return true;
+    });
+  }, [baseVisibleNotes, recallDateFilter, recallQueryIds, recallTag, recallZoneId, renderSnapshot.zones, wallClockTs]);
+  const visibleLinks = useMemo(() => {
+    const allowed = new Set(visibleNotes.map((note) => note.id));
+    return links.filter((link) => allowed.has(link.fromNoteId) && allowed.has(link.toNoteId));
+  }, [links, visibleNotes]);
+  const availableRecallTags = useMemo(
+    () => [...new Set(baseVisibleNotes.flatMap((note) => note.tags))].sort((a, b) => a.localeCompare(b)),
+    [baseVisibleNotes],
   );
   const autoTagGroups = useMemo<TagGroup[]>(() => {
     const byTag = new Map<string, Note[]>();
@@ -1005,6 +1087,55 @@ export const WallCanvas = () => {
       setIsTimelinePlaying(false);
       setTimelineIndex(index);
     }
+  };
+
+  const jumpToStaleNote = () => {
+    if (visibleNotes.length === 0) {
+      return;
+    }
+    const stale = [...visibleNotes].sort((a, b) => a.updatedAt - b.updatedAt)[0];
+    if (stale) {
+      focusNote(stale.id);
+    }
+  };
+
+  const jumpToHighPriorityNote = () => {
+    const priorityTags = new Set(["high", "priority", "urgent", "p0", "critical"]);
+    const candidates = visibleNotes.filter((note) => note.tags.some((tag) => priorityTags.has(tag.toLowerCase())));
+    if (candidates.length === 0) {
+      return;
+    }
+    const chosen = [...candidates].sort((a, b) => a.updatedAt - b.updatedAt)[0];
+    if (chosen) {
+      focusNote(chosen.id);
+    }
+  };
+
+  const saveCurrentRecallSearch = () => {
+    const activeCount = Number(Boolean(recallQuery)) + Number(Boolean(recallZoneId)) + Number(Boolean(recallTag)) + Number(recallDateFilter !== "all");
+    if (activeCount === 0) {
+      return;
+    }
+    const name = window.prompt("Name this recall search", `Recall ${savedRecallSearches.length + 1}`);
+    if (!name) {
+      return;
+    }
+    const item: SavedRecallSearch = {
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      query: recallQuery,
+      zoneId: recallZoneId || undefined,
+      tag: recallTag || undefined,
+      dateFilter: recallDateFilter,
+    };
+    setSavedRecallSearches((previous) => [item, ...previous].slice(0, 20));
+  };
+
+  const applySavedRecallSearch = (item: SavedRecallSearch) => {
+    setRecallQuery(item.query);
+    setRecallZoneId(item.zoneId ?? "");
+    setRecallTag(item.tag ?? "");
+    setRecallDateFilter(item.dateFilter);
   };
 
   const finalizeBoxSelection = () => {
@@ -1994,6 +2125,110 @@ export const WallCanvas = () => {
         )}
 
         <aside className="pointer-events-auto absolute right-3 top-3 z-30 w-72 rounded-2xl border border-zinc-300/80 bg-white/92 p-3 shadow-xl backdrop-blur-sm">
+          <h3 className="text-sm font-semibold text-zinc-900">Recall</h3>
+          <p className="mt-1 text-xs text-zinc-600">Filter notes by query, zone, tag, and recency. Save frequent searches.</p>
+
+          <input
+            value={recallQuery}
+            onChange={(event) => setRecallQuery(event.target.value)}
+            placeholder="Find text or #tag..."
+            className="mt-2 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+          />
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <select
+              value={recallZoneId}
+              onChange={(event) => setRecallZoneId(event.target.value)}
+              className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+            >
+              <option value="">All zones</option>
+              {visibleZones.map((zone) => (
+                <option key={`filter-zone-${zone.id}`} value={zone.id}>
+                  {zone.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={recallTag}
+              onChange={(event) => setRecallTag(event.target.value)}
+              className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+            >
+              <option value="">All tags</option>
+              {availableRecallTags.map((tag) => (
+                <option key={`filter-tag-${tag}`} value={tag}>
+                  #{tag}
+                </option>
+              ))}
+            </select>
+            <select
+              value={recallDateFilter}
+              onChange={(event) => setRecallDateFilter(event.target.value as RecallDateFilter)}
+              className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+            >
+              <option value="all">All dates</option>
+              <option value="today">Today</option>
+              <option value="7d">Last 7d</option>
+              <option value="30d">Last 30d</option>
+            </select>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={saveCurrentRecallSearch}
+              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
+            >
+              Save Search
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRecallQuery("");
+                setRecallZoneId("");
+                setRecallTag("");
+                setRecallDateFilter("all");
+              }}
+              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
+            >
+              Clear Filters
+            </button>
+            <button
+              type="button"
+              onClick={jumpToStaleNote}
+              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
+            >
+              Jump Stale
+            </button>
+            <button
+              type="button"
+              onClick={jumpToHighPriorityNote}
+              className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]"
+            >
+              Jump Priority
+            </button>
+          </div>
+          {savedRecallSearches.length > 0 && (
+            <div className="mt-2 max-h-24 space-y-1 overflow-auto pr-1">
+              {savedRecallSearches.map((item) => (
+                <div key={item.id} className="flex items-center gap-1 rounded border border-zinc-200 bg-white px-2 py-1">
+                  <button
+                    type="button"
+                    onClick={() => applySavedRecallSearch(item)}
+                    className="min-w-0 flex-1 truncate text-left text-[11px] text-zinc-800"
+                  >
+                    {item.name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSavedRecallSearches((previous) => previous.filter((entry) => entry.id !== item.id))}
+                    className="text-[10px] text-red-700"
+                  >
+                    x
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 border-t border-zinc-200 pt-3" />
           <h3 className="text-sm font-semibold text-zinc-900">Zone Groups</h3>
           <p className="mt-1 text-xs text-zinc-600">Collapse groups to hide grouped zones and their notes.</p>
 
@@ -2178,7 +2413,7 @@ export const WallCanvas = () => {
         onCapture={captureNotes}
       />
 
-      <SearchPalette open={ui.isSearchOpen} notes={notes} onClose={() => setSearchOpen(false)} onSelect={focusNote} />
+      <SearchPalette open={ui.isSearchOpen} notes={visibleNotes} onClose={() => setSearchOpen(false)} onSelect={focusNote} />
 
       <ExportModal
         open={ui.isExportOpen}

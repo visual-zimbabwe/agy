@@ -42,6 +42,10 @@ Idea-Wall is a local-first web app for spatial brainstorming. It provides an inf
   - Quick-capture command bar for rapid line-by-line note creation
   - Paste-to-note parsing (bullets/lines to individual notes)
   - Voice-to-note input (Web Speech API in supported browsers)
+- Stronger recall:
+  - Saved searches for recurring retrieval workflows
+  - Smart filters by zone, tag, and recency date window
+  - Jump actions for stale notes and high-priority notes
 - Time-based views:
   - Timeline mode with scrub/playback
   - Recently changed heatmap overlay

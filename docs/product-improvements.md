@@ -9,16 +9,16 @@ Create directional links (cause/effect, dependency, idea to execution) and visua
 3. Time-based views  (Done)
 Add timeline mode, recently changed heatmap, and playback of wall evolution.
 
-4. Multi-select workflows  
+4. Multi-select workflows  (Done)
 Box select plus bulk move/color/tag/export plus align/distribute actions.
 
 5. Better structure primitives  (Done)
 Add tags, lightweight templates (brainstorm, retro, strategy map), and collapsible zone groups.
 
-6. Faster capture  
+6. Faster capture  (Done)
 Quick-capture command bar, paste-to-note parsing, and voice-to-note input.
 
-7. Stronger recall  
+7. Stronger recall  (Done)
 Saved searches, smart filters (by zone/tag/date), and jump to stale/high-priority notes.
 
 8. Undo/redo history  (Done)

@@ -138,6 +138,20 @@ Expected:
 - Clipboard multi-line input creates multiple notes.
 - Voice transcripts are appended into quick-capture text and can be captured as notes.
 
+## Stronger Recall
+1. In the Recall panel, enter text in query and verify matching notes remain visible.
+2. Apply zone filter and confirm notes are restricted to that zone overlap.
+3. Apply tag filter and confirm only notes with that tag remain visible.
+4. Apply date filter (`Today`, `Last 7d`, `Last 30d`) and verify recency filtering by `updatedAt`.
+5. Click `Save Search`, name it, then clear filters and re-apply saved search.
+6. Click `Jump Stale` and confirm camera centers on the least recently updated visible note.
+7. Add `#priority` or `#urgent` to notes and click `Jump Priority`.
+
+Expected:
+- Saved searches persist and can be reapplied.
+- Combined filters narrow the visible note set.
+- Stale and priority jumps reliably focus the target notes.
+
 ## Undo/Redo History
 1. Create three notes and move one note.
 2. Press `Ctrl/Cmd + Z` repeatedly and confirm actions revert in reverse order.
