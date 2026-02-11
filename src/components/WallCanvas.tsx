@@ -72,6 +72,7 @@ type GuideLineState = {
   vertical?: { x: number; y1: number; y2: number; distance?: number };
   horizontal?: { y: number; x1: number; x2: number; distance?: number };
 };
+type TagLabelLayout = Record<string, { x: number; y: number }>;
 
 const flashDurationMs = 1200;
 
@@ -1262,6 +1263,37 @@ export const WallCanvas = () => {
       .filter((group): group is TagGroup => Boolean(group))
       .sort((a, b) => b.noteIds.length - a.noteIds.length || a.tag.localeCompare(b.tag));
   }, [visibleNotes]);
+  const autoTagLabelLayout = useMemo<TagLabelLayout>(() => {
+    const placements: TagLabelLayout = {};
+    const occupied: Array<{ x: number; y: number; w: number; h: number }> = [];
+
+    const intersects = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+      a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+    for (const group of autoTagGroups) {
+      const text = `#${group.tag} (${group.noteIds.length})`;
+      const width = Math.max(96, Math.min(240, 18 + text.length * 6));
+      const height = 18;
+      const x = group.bounds.x + 10;
+      let y = group.bounds.y + 8;
+
+      let attempts = 0;
+      while (attempts < 18) {
+        const box = { x, y, w: width, h: height };
+        const hasCollision = occupied.some((entry) => intersects(box, entry));
+        if (!hasCollision) {
+          occupied.push(box);
+          break;
+        }
+        y += height + 6;
+        attempts += 1;
+      }
+
+      placements[group.tag] = { x, y };
+    }
+
+    return placements;
+  }, [autoTagGroups]);
   const clusterBounds = useMemo(() => detectClusters(visibleNotes), [visibleNotes]);
   const pathLinkIds = useMemo(() => graphPathLinks(ui.selectedNoteId, visibleLinks), [ui.selectedNoteId, visibleLinks]);
   const maxViewportWidth = typeof window !== "undefined" ? window.innerWidth : viewport.w;
@@ -2766,6 +2798,7 @@ export const WallCanvas = () => {
             {showAutoTagGroups &&
               autoTagGroups.map((group) => {
                 const color = tagGroupColor(group.tag);
+                const label = autoTagLabelLayout[group.tag] ?? { x: group.bounds.x + 10, y: group.bounds.y + 8 };
                 return (
                   <Group key={`tag-group-${group.tag}`}>
                     <Rect
@@ -2780,8 +2813,8 @@ export const WallCanvas = () => {
                       opacity={0.55}
                     />
                     <Text
-                      x={group.bounds.x + 10}
-                      y={group.bounds.y + 8}
+                      x={label.x}
+                      y={label.y}
                       fontSize={11}
                       fontStyle="bold"
                       fill={color}
