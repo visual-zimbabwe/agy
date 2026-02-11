@@ -147,10 +147,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   }, [disabled, open]);
 
   useEffect(() => {
-    if (open && !disabled) {
-      return;
-    }
-    if (keepListeningRef.current || isListening) {
+    if (!open && (keepListeningRef.current || isListening)) {
       keepListeningRef.current = false;
       terminalErrorRef.current = false;
       if (restartTimeoutRef.current) {
@@ -158,7 +155,40 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
         restartTimeoutRef.current = null;
       }
       recognitionRef.current?.stop();
+      return;
     }
+
+    if (disabled && (keepListeningRef.current || isListening)) {
+      if (restartTimeoutRef.current) {
+        clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = null;
+      }
+      recognitionRef.current?.stop();
+    }
+  }, [disabled, isListening, open]);
+
+  useEffect(() => {
+    if (!open || disabled || isListening || !keepListeningRef.current || terminalErrorRef.current) {
+      return;
+    }
+    const recognition = recognitionRef.current;
+    if (!recognition) {
+      return;
+    }
+    const resumeTimer = setTimeout(() => {
+      try {
+        recognition.start();
+        setIsListening(true);
+        setVoiceMessage("Listening... speak and pause to append lines.");
+        pushVoiceDebug("resume() called");
+      } catch {
+        keepListeningRef.current = false;
+        setIsListening(false);
+        setVoiceMessage("Unable to restart voice capture. Retry and confirm microphone permission.");
+        pushVoiceDebug("resume() threw");
+      }
+    }, 0);
+    return () => clearTimeout(resumeTimer);
   }, [disabled, isListening, open]);
 
   useEffect(() => {
