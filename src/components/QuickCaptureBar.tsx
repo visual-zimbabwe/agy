@@ -122,7 +122,6 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const [voiceMessage, setVoiceMessage] = useState<string | null>(null);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [voiceDebug, setVoiceDebug] = useState<string[]>([]);
-  const voiceButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const interimTranscriptRef = useRef("");
@@ -134,7 +133,6 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const terminalErrorRef = useRef(false);
   const restartAttemptRef = useRef(0);
   const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const voiceStartAtRef = useRef<number | null>(null);
 
   const recognitionSupported = useMemo(() => Boolean(getRecognitionCtor()), []);
   const terminalErrors = useMemo(
@@ -433,7 +431,6 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     recognitionRef.current?.stop();
     recognitionRunningRef.current = false;
     recognitionRef.current = null;
-    voiceStartAtRef.current = null;
     pushVoiceDebug(`${reason} stop session=${activeSession ?? "none"}`);
     setVoicePhase("idle");
     setVoiceMessage("Voice capture stopped.");
@@ -472,24 +469,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     setInterimTranscript("");
     interimTranscriptRef.current = "";
     pushVoiceDebug(`init recognizer session=${sessionId}`);
-    voiceButtonRef.current?.blur();
-    voiceStartAtRef.current = Date.now();
     startRecognition(sessionId, "start");
-  };
-
-  const onVoiceButtonClick = () => {
-    if (voiceActive || activeSessionIdRef.current !== null) {
-      const startedAt = voiceStartAtRef.current;
-      const elapsed = startedAt ? Date.now() - startedAt : Number.POSITIVE_INFINITY;
-      // Guards against accidental double-activation/ghost click right after start.
-      if (elapsed < 1200) {
-        pushVoiceDebug(`ignored early stop elapsed=${elapsed}ms`);
-        return;
-      }
-      stopVoice("manual");
-      return;
-    }
-    startVoice();
   };
 
   const parsedCount = parseCaptureItems(text).length;
@@ -540,18 +520,27 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
         >
           Paste to Notes
         </button>
-        <button
-          ref={voiceButtonRef}
-          type="button"
-          onClick={onVoiceButtonClick}
-          disabled={disabled || !recognitionSupported}
-          title={!recognitionSupported ? "Browser does not support SpeechRecognition" : undefined}
-          className={`rounded px-3 py-1.5 text-xs ${
-            voiceActive ? "bg-red-500 text-white" : "border border-zinc-300 text-zinc-800"
-          } disabled:opacity-45`}
-        >
-          {voiceActive ? "Stop Voice" : "Voice to Notes"}
-        </button>
+        {!voiceActive && (
+          <button
+            type="button"
+            onClick={startVoice}
+            disabled={disabled || !recognitionSupported}
+            title={!recognitionSupported ? "Browser does not support SpeechRecognition" : undefined}
+            className="rounded border border-zinc-300 px-3 py-1.5 text-xs text-zinc-800 disabled:opacity-45"
+          >
+            Start Voice
+          </button>
+        )}
+        {voiceActive && (
+          <button
+            type="button"
+            onClick={() => stopVoice("manual")}
+            disabled={disabled}
+            className="rounded bg-red-500 px-3 py-1.5 text-xs text-white disabled:opacity-45"
+          >
+            Stop Voice
+          </button>
+        )}
         <span className="ml-auto text-xs text-zinc-600">Ctrl/Cmd + Enter to capture</span>
       </div>
 
