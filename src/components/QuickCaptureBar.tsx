@@ -43,6 +43,11 @@ type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  onaudiostart: (() => void) | null;
+  onaudioend: (() => void) | null;
+  onspeechstart: (() => void) | null;
+  onspeechend: (() => void) | null;
+  onstart: (() => void) | null;
   onresult: ((event: RecognitionEventLike) => void) | null;
   onerror: ((event: RecognitionErrorLike) => void) | null;
   onend: (() => void) | null;
@@ -115,10 +120,21 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const [isListening, setIsListening] = useState(false);
   const [voiceMessage, setVoiceMessage] = useState<string | null>(null);
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [voiceDebug, setVoiceDebug] = useState<string[]>([]);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const interimTranscriptRef = useRef("");
 
   const recognitionSupported = useMemo(() => Boolean(getRecognitionCtor()), []);
+  const pushVoiceDebug = (entry: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setVoiceDebug((previous) => {
+      const next = [...previous, `${timestamp} ${entry}`];
+      if (next.length > 8) {
+        next.splice(0, next.length - 8);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!open && isListening) {
@@ -196,22 +212,32 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
+    pushVoiceDebug("init recognizer");
+
+    recognition.onstart = () => pushVoiceDebug("onstart");
+    recognition.onaudiostart = () => pushVoiceDebug("onaudiostart");
+    recognition.onaudioend = () => pushVoiceDebug("onaudioend");
+    recognition.onspeechstart = () => pushVoiceDebug("onspeechstart");
+    recognition.onspeechend = () => pushVoiceDebug("onspeechend");
 
     recognition.onresult = (event: RecognitionEventLike) => {
       let appended = "";
       let interim = "";
+      let resultCount = 0;
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const result = getResultAt(event.results, i);
         const transcript = getTranscriptFromResult(result);
         if (!transcript) {
           continue;
         }
+        resultCount += 1;
         if (result?.isFinal) {
           appended += `${transcript}\n`;
         } else {
           interim += `${transcript} `;
         }
       }
+      pushVoiceDebug(`onresult count=${resultCount} final=${Boolean(appended.trim())}`);
       const nextInterim = interim.trim();
       setInterimTranscript(nextInterim);
       interimTranscriptRef.current = nextInterim;
@@ -222,6 +248,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
 
     recognition.onerror = (event: RecognitionErrorLike) => {
       setIsListening(false);
+      pushVoiceDebug(`onerror ${event.error}`);
       const messageByCode: Record<string, string> = {
         "not-allowed": "Microphone permission denied. Allow mic access in browser settings.",
         "service-not-allowed": "Speech service is not allowed in this browser/profile.",
@@ -237,6 +264,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     };
 
     recognition.onend = () => {
+      pushVoiceDebug("onend");
       const pendingInterim = interimTranscriptRef.current.trim();
       if (pendingInterim) {
         setText((previous) => `${previous}${previous ? "\n" : ""}${pendingInterim}`);
@@ -253,11 +281,13 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
       setVoiceMessage("Listening... speak and pause to append lines.");
       setInterimTranscript("");
       interimTranscriptRef.current = "";
+      pushVoiceDebug("start() called");
     } catch {
       setIsListening(false);
       setVoiceMessage("Unable to start voice capture. Retry and confirm microphone permission.");
       setInterimTranscript("");
       interimTranscriptRef.current = "";
+      pushVoiceDebug("start() threw");
     }
   };
 
@@ -327,6 +357,16 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
         <p className="mt-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-700">
           Live: {interimTranscript}
         </p>
+      )}
+      {voiceDebug.length > 0 && (
+        <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-[11px] text-zinc-600">
+          <p className="font-semibold text-zinc-700">Voice Debug</p>
+          {voiceDebug.map((line, index) => (
+            <p key={`${line}-${index}`} className="truncate">
+              {line}
+            </p>
+          ))}
+        </div>
       )}
     </div>
   );
