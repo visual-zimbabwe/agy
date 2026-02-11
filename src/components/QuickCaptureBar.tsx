@@ -122,6 +122,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
   const [voiceMessage, setVoiceMessage] = useState<string | null>(null);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [voiceDebug, setVoiceDebug] = useState<string[]>([]);
+  const voiceButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const interimTranscriptRef = useRef("");
@@ -466,6 +467,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
     setInterimTranscript("");
     interimTranscriptRef.current = "";
     pushVoiceDebug(`init recognizer session=${sessionId}`);
+    voiceButtonRef.current?.blur();
     startRecognition(sessionId, "start");
   };
 
@@ -518,6 +520,7 @@ export const QuickCaptureBar = ({ open, disabled, onClose, onCapture }: QuickCap
           Paste to Notes
         </button>
         <button
+          ref={voiceButtonRef}
           type="button"
           onClick={toggleVoice}
           disabled={disabled || !recognitionSupported}
