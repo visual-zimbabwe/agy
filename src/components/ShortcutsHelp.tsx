@@ -9,6 +9,7 @@ const shortcuts = [
   ["N / Ctrl+N", "New note"],
   ["Ctrl+K", "Open search"],
   ["Ctrl+L", "Start link from selected note"],
+  ["Ctrl/Cmd + A", "Select all visible notes"],
   ["T", "Toggle timeline mode"],
   ["H", "Toggle recently changed heatmap"],
   ["Ctrl/Cmd + Z", "Undo last change"],

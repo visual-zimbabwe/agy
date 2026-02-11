@@ -3,16 +3,16 @@
 1. AI-assisted clustering and labeling  
 Auto-suggest cluster names/themes from note content, then let users accept/edit.
 
-2. Smart links between notes  
+2. Smart links between notes  (Done)
 Create directional links (cause/effect, dependency, idea to execution) and visualize graph paths.
 
-3. Time-based views  
+3. Time-based views  (Done)
 Add timeline mode, recently changed heatmap, and playback of wall evolution.
 
 4. Multi-select workflows  
 Box select plus bulk move/color/tag/export plus align/distribute actions.
 
-5. Better structure primitives  
+5. Better structure primitives  (Done)
 Add tags, lightweight templates (brainstorm, retro, strategy map), and collapsible zone groups.
 
 6. Faster capture  
@@ -21,7 +21,7 @@ Quick-capture command bar, paste-to-note parsing, and voice-to-note input.
 7. Stronger recall  
 Saved searches, smart filters (by zone/tag/date), and jump to stale/high-priority notes.
 
-8. Undo/redo history  
+8. Undo/redo history  (Done)
 Full command stack with keyboard shortcuts and recovery safety.
 
 9. Share/export upgrades  

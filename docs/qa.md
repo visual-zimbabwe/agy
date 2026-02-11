@@ -109,6 +109,22 @@ Expected:
 - Zone groups, assignments, and collapse state persist after refresh.
 - Tags with 2+ notes are shown as automatic groups with outlines and panel entries.
 
+## Multi-Select Workflows
+1. Enable `Box Select` and drag over several notes.
+2. Verify selected count appears in header.
+3. Apply a color swatch and confirm all selected notes change color.
+4. Add a tag and confirm all selected notes receive the tag.
+5. Drag one selected note and confirm the full selection moves together.
+6. Use align/distribute buttons and verify layout updates accordingly.
+7. Open export modal and choose `Selected notes` PNG scope.
+8. Export Markdown and confirm selected notes are exported.
+
+Expected:
+- Box selection selects intersecting notes.
+- Bulk operations apply consistently to all selected notes.
+- Align/distribute actions only activate when enough notes are selected.
+- Selected-notes export works for both PNG and Markdown.
+
 ## Undo/Redo History
 1. Create three notes and move one note.
 2. Press `Ctrl/Cmd + Z` repeatedly and confirm actions revert in reverse order.
@@ -142,9 +158,10 @@ Expected:
 2. Press `Ctrl/Cmd + K` for search.
 3. Press `Ctrl/Cmd + L` with a selected note, then click target note to create a link.
 4. Press `Ctrl/Cmd + Z` then `Ctrl/Cmd + Shift + Z`.
-5. Press `T` and `H` to toggle time-based views.
-6. Press `Delete` with selected note (and optionally selected group).
-7. Press `?` to open shortcuts overlay.
+5. Press `Ctrl/Cmd + A` to select visible notes.
+6. Press `T` and `H` to toggle time-based views.
+7. Press `Delete` with selected note (and optionally selected group).
+8. Press `?` to open shortcuts overlay.
 
 Expected:
 - All shortcuts work without needing mouse for command invocation.

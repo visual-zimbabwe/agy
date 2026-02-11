@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export type ExportScope = "whole" | "view" | "zone";
+export type ExportScope = "whole" | "view" | "zone" | "selection";
 
 type ExportModalProps = {
   open: boolean;
@@ -27,11 +27,12 @@ export const ExportModal = ({ open, onClose, onExportPng, onExportMarkdown }: Ex
 
         <div className="mt-4 space-y-3">
           <label className="block text-sm font-medium text-zinc-800">PNG Scope</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {[
               { value: "whole", label: "Whole wall" },
               { value: "view", label: "Current view" },
               { value: "zone", label: "Selected zone" },
+              { value: "selection", label: "Selected notes" },
             ].map((option) => (
               <button
                 key={option.value}

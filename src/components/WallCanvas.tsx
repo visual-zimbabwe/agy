@@ -48,6 +48,7 @@ type LinkContextMenuState = {
 
 type Bounds = { x: number; y: number; w: number; h: number };
 type TagGroup = { tag: string; noteIds: string[]; bounds: Bounds };
+type SelectionBox = { startX: number; startY: number; x: number; y: number; w: number; h: number };
 
 const flashDurationMs = 1200;
 
@@ -226,6 +227,11 @@ const recencyIntensity = (updatedAt: number, referenceTs: number, windowMs = 100
   return clamp(1 - age / windowMs, 0, 1);
 };
 
+const boundsIntersect = (a: Bounds, b: Bounds) =>
+  a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+const makeDownloadId = () => new Date().toISOString().replace(/[:.]/g, "-");
+
 export const WallCanvas = () => {
   const notesMap = useWallStore((state) => state.notes);
   const zonesMap = useWallStore((state) => state.zones);
@@ -278,6 +284,11 @@ export const WallCanvas = () => {
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [wallClockTs, setWallClockTs] = useState(() => Date.now());
+  const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
+  const [boxSelectMode, setBoxSelectMode] = useState(false);
+  const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
+  const dragSelectionStartRef = useRef<Record<string, { x: number; y: number }> | null>(null);
+  const dragAnchorRef = useRef<{ id: string; x: number; y: number } | null>(null);
   const lastTimelineRecordedAt = useRef(0);
   const lastTimelineSerialized = useRef("");
   const activeTimelineEntry = timelineMode
@@ -433,6 +444,8 @@ export const WallCanvas = () => {
         setShortcutsOpen(false);
         setEditing(null);
         resetSelection();
+        setSelectedNoteIds([]);
+        selectNote(undefined);
         return;
       }
 
@@ -472,6 +485,8 @@ export const WallCanvas = () => {
         const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
         const createdId = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor);
         const createdNote = notesMap[createdId];
+        setSelectedNoteIds([createdId]);
+        selectNote(createdId);
         setEditing({ id: createdId, text: createdNote?.text ?? "" });
         return;
       }
@@ -479,6 +494,17 @@ export const WallCanvas = () => {
       if (ctrlOrMeta && key === "k") {
         event.preventDefault();
         setSearchOpen(true);
+        return;
+      }
+
+      if (ctrlOrMeta && key === "a") {
+        event.preventDefault();
+        if (isTimeLocked) {
+          return;
+        }
+        const ids = notes.map((note) => note.id);
+        setSelectedNoteIds(ids);
+        selectNote(ids.length === 1 ? ids[0] : undefined);
         return;
       }
 
@@ -528,6 +554,17 @@ export const WallCanvas = () => {
 
       if ((key === "delete" || key === "backspace") && !editing) {
         if (isTimeLocked) {
+          return;
+        }
+        if (selectedNoteIds.length > 1) {
+          const ok = window.confirm(`Delete ${selectedNoteIds.length} selected notes?`);
+          if (ok) {
+            for (const id of selectedNoteIds) {
+              deleteNote(id);
+            }
+            setSelectedNoteIds([]);
+            selectNote(undefined);
+          }
           return;
         }
         if (ui.selectedNoteId) {
@@ -581,12 +618,15 @@ export const WallCanvas = () => {
     editing,
     isTimeLocked,
     notesMap,
+    notes,
+    selectedNoteIds,
     resetSelection,
     redo,
     setExportOpen,
     setLinkingFromNote,
     setSearchOpen,
     setShortcutsOpen,
+    selectNote,
     undo,
     ui.isShortcutsOpen,
     ui.lastColor,
@@ -705,13 +745,117 @@ export const WallCanvas = () => {
   const pathLinkIds = useMemo(() => graphPathLinks(ui.selectedNoteId, visibleLinks), [ui.selectedNoteId, visibleLinks]);
   const maxViewportWidth = typeof window !== "undefined" ? window.innerWidth : viewport.w;
   const maxViewportHeight = typeof window !== "undefined" ? window.innerHeight : viewport.h;
+  const activeSelectedNoteIds = selectedNoteIds.filter((id) => Boolean(renderSnapshot.notes[id]));
+  const selectedNotes = activeSelectedNoteIds
+    .map((id) => renderSnapshot.notes[id])
+    .filter((note): note is Note => Boolean(note));
+
+  const syncPrimarySelection = (ids: string[]) => {
+    const nextIds = ids.filter((id) => Boolean(renderSnapshot.notes[id]));
+    setSelectedNoteIds(nextIds);
+    if (nextIds.length === 1) {
+      selectNote(nextIds[0]);
+    } else {
+      selectNote(undefined);
+    }
+  };
+
+  const selectSingleNote = (noteId: string) => {
+    syncPrimarySelection([noteId]);
+    setEditing((previous) => (previous?.id === noteId ? previous : null));
+  };
+
+  const toggleSelectNote = (noteId: string) => {
+    setSelectedNoteIds((previous) => {
+      const exists = previous.includes(noteId);
+      const next = exists ? previous.filter((id) => id !== noteId) : [...previous, noteId];
+      if (next.length === 1) {
+        selectNote(next[0]);
+      } else {
+        selectNote(undefined);
+      }
+      return next;
+    });
+  };
+
+  const clearNoteSelection = () => {
+    setSelectedNoteIds([]);
+    selectNote(undefined);
+  };
+
+  const applyColorToSelection = (color: string) => {
+    if (isTimeLocked) {
+      return;
+    }
+    if (activeSelectedNoteIds.length === 0) {
+      if (ui.selectedNoteId) {
+        updateNote(ui.selectedNoteId, { color });
+      }
+      setLastColor(color);
+      return;
+    }
+
+    for (const id of activeSelectedNoteIds) {
+      updateNote(id, { color });
+    }
+    setLastColor(color);
+  };
+
+  const alignSelected = (axis: "left" | "center" | "right" | "top" | "middle" | "bottom") => {
+    if (isTimeLocked || selectedNotes.length < 2) {
+      return;
+    }
+    const minX = Math.min(...selectedNotes.map((n) => n.x));
+    const maxX = Math.max(...selectedNotes.map((n) => n.x + n.w));
+    const minY = Math.min(...selectedNotes.map((n) => n.y));
+    const maxY = Math.max(...selectedNotes.map((n) => n.y + n.h));
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    for (const note of selectedNotes) {
+      if (axis === "left") updateNote(note.id, { x: minX });
+      if (axis === "right") updateNote(note.id, { x: maxX - note.w });
+      if (axis === "center") updateNote(note.id, { x: centerX - note.w / 2 });
+      if (axis === "top") updateNote(note.id, { y: minY });
+      if (axis === "bottom") updateNote(note.id, { y: maxY - note.h });
+      if (axis === "middle") updateNote(note.id, { y: centerY - note.h / 2 });
+    }
+  };
+
+  const distributeSelected = (direction: "horizontal" | "vertical") => {
+    if (isTimeLocked || selectedNotes.length < 3) {
+      return;
+    }
+
+    const sorted =
+      direction === "horizontal"
+        ? [...selectedNotes].sort((a, b) => a.x - b.x)
+        : [...selectedNotes].sort((a, b) => a.y - b.y);
+
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    if (!first || !last) {
+      return;
+    }
+    const span = direction === "horizontal" ? last.x - first.x : last.y - first.y;
+    const gap = span / (sorted.length - 1);
+
+    sorted.forEach((note, index) => {
+      if (direction === "horizontal") {
+        updateNote(note.id, { x: first.x + gap * index });
+      } else {
+        updateNote(note.id, { y: first.y + gap * index });
+      }
+    });
+  };
 
   const makeNoteAtViewportCenter = () => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor);
+    const id = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor);
+    syncPrimarySelection([id]);
   };
 
   const makeZoneAtViewportCenter = () => {
@@ -734,19 +878,21 @@ export const WallCanvas = () => {
     if (isTimeLocked) {
       return;
     }
-    if (!ui.selectedNoteId) {
+    const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
+    if (targetIds.length === 0) {
       return;
     }
     const tag = tagInput.trim().replace(/^#/, "").toLowerCase();
     if (!tag) {
       return;
     }
-    const note = notesMap[ui.selectedNoteId];
-    if (!note || note.tags.includes(tag)) {
-      setTagInput("");
-      return;
+    for (const noteId of targetIds) {
+      const note = renderSnapshot.notes[noteId];
+      if (!note || note.tags.includes(tag)) {
+        continue;
+      }
+      updateNote(note.id, { tags: [...note.tags, tag] });
     }
-    updateNote(note.id, { tags: [...note.tags, tag] });
     setTagInput("");
   };
 
@@ -754,14 +900,17 @@ export const WallCanvas = () => {
     if (isTimeLocked) {
       return;
     }
-    if (!ui.selectedNoteId) {
+    const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
+    if (targetIds.length === 0) {
       return;
     }
-    const note = notesMap[ui.selectedNoteId];
-    if (!note) {
-      return;
+    for (const noteId of targetIds) {
+      const note = renderSnapshot.notes[noteId];
+      if (!note) {
+        continue;
+      }
+      updateNote(note.id, { tags: note.tags.filter((value) => value !== tag) });
     }
-    updateNote(note.id, { tags: note.tags.filter((value) => value !== tag) });
   };
 
   const createGroupFromSelectedZone = () => {
@@ -820,6 +969,26 @@ export const WallCanvas = () => {
     }
   };
 
+  const finalizeBoxSelection = () => {
+    if (!selectionBox) {
+      return;
+    }
+
+    const normalized: Bounds = {
+      x: Math.min(selectionBox.startX, selectionBox.x),
+      y: Math.min(selectionBox.startY, selectionBox.y),
+      w: Math.abs(selectionBox.w),
+      h: Math.abs(selectionBox.h),
+    };
+
+    const hitIds = visibleNotes
+      .filter((note) => boundsIntersect(normalized, { x: note.x, y: note.y, w: note.w, h: note.h }))
+      .map((note) => note.id);
+
+    syncPrimarySelection(hitIds);
+    setSelectionBox(null);
+  };
+
   const focusNote = (noteId: string) => {
     const note = renderSnapshot.notes[noteId];
     if (!note) {
@@ -832,7 +1001,7 @@ export const WallCanvas = () => {
       x: viewport.w / 2 - (note.x + note.w / 2) * zoom,
       y: viewport.h / 2 - (note.y + note.h / 2) * zoom,
     });
-    selectNote(noteId);
+    syncPrimarySelection([noteId]);
     setFlashNote(noteId);
   };
 
@@ -843,7 +1012,7 @@ export const WallCanvas = () => {
 
     if (scope === "view") {
       const dataUrl = stageRef.current.toDataURL({ pixelRatio });
-      downloadDataUrl(`idea-wall-view-${Date.now()}.png`, dataUrl);
+      downloadDataUrl(`idea-wall-view-${makeDownloadId()}.png`, dataUrl);
       return;
     }
 
@@ -852,6 +1021,9 @@ export const WallCanvas = () => {
 
     if (scope === "whole") {
       bounds = computeContentBounds(visibleNotes, visibleZones);
+    } else if (scope === "selection") {
+      const selected = visibleNotes.filter((note) => activeSelectedNoteIds.includes(note.id));
+      bounds = computeContentBounds(selected, []);
     } else if (scope === "zone" && ui.selectedZoneId) {
       const zone = renderSnapshot.zones[ui.selectedZoneId];
       if (zone) {
@@ -868,27 +1040,35 @@ export const WallCanvas = () => {
     await waitForPaint();
 
     const dataUrl = stageRef.current.toDataURL({ pixelRatio });
-    downloadDataUrl(`idea-wall-${scope}-${Date.now()}.png`, dataUrl);
+    downloadDataUrl(`idea-wall-${scope}-${makeDownloadId()}.png`, dataUrl);
 
     setCamera(previousCamera);
   };
 
   const exportMarkdown = () => {
     const selectedZone = ui.selectedZoneId ? renderSnapshot.zones[ui.selectedZoneId] : undefined;
-    const selectedNotes = ui.selectedNoteId
+    const selectedNotes = activeSelectedNoteIds.length > 0
+      ? visibleNotes.filter((note) => activeSelectedNoteIds.includes(note.id))
+      : ui.selectedNoteId
       ? visibleNotes.filter((note) => note.id === ui.selectedNoteId)
       : selectedZone
         ? visibleNotes.filter((note) => zoneContainsNote(selectedZone, note))
         : visibleNotes;
 
     const content = notesToMarkdown(selectedNotes, zones);
-    downloadTextFile(`idea-wall-${Date.now()}.md`, content);
+    downloadTextFile(`idea-wall-${makeDownloadId()}.md`, content);
     setExportOpen(false);
   };
 
   const selectedNote = ui.selectedNoteId ? renderSnapshot.notes[ui.selectedNoteId] : undefined;
   const selectedZone = ui.selectedZoneId ? renderSnapshot.zones[ui.selectedZoneId] : undefined;
   const selectedGroup = ui.selectedGroupId ? renderSnapshot.zoneGroups[ui.selectedGroupId] : undefined;
+  const displayedTags =
+    selectedNotes.length > 1
+      ? selectedNotes
+          .map((note) => note.tags)
+          .reduce<string[]>((common, tags) => (common.length === 0 ? [...tags] : common.filter((tag) => tags.includes(tag))), [])
+      : selectedNote?.tags ?? [];
 
   return (
     <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_#fdf1b2_0,_#fff6d8_35%,_#f8f6f1_100%)] text-zinc-900">
@@ -954,6 +1134,13 @@ export const WallCanvas = () => {
           }`}
         >
           Detect Clusters
+        </button>
+        <button
+          type="button"
+          onClick={() => setBoxSelectMode((value) => !value)}
+          className={`rounded-lg px-3 py-2 text-sm ${boxSelectMode ? "bg-blue-600 text-white" : "border border-zinc-300 bg-white"}`}
+        >
+          Box Select
         </button>
         <select
           value={ui.linkType}
@@ -1029,18 +1216,79 @@ export const WallCanvas = () => {
 
         <div className="mx-1 h-6 w-px bg-zinc-300" />
 
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => alignSelected("left")}
+            disabled={selectedNotes.length < 2 || isTimeLocked}
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+          >
+            Align L
+          </button>
+          <button
+            type="button"
+            onClick={() => alignSelected("center")}
+            disabled={selectedNotes.length < 2 || isTimeLocked}
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+          >
+            Align C
+          </button>
+          <button
+            type="button"
+            onClick={() => alignSelected("right")}
+            disabled={selectedNotes.length < 2 || isTimeLocked}
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+          >
+            Align R
+          </button>
+          <button
+            type="button"
+            onClick={() => alignSelected("top")}
+            disabled={selectedNotes.length < 2 || isTimeLocked}
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+          >
+            Align T
+          </button>
+          <button
+            type="button"
+            onClick={() => alignSelected("middle")}
+            disabled={selectedNotes.length < 2 || isTimeLocked}
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+          >
+            Align M
+          </button>
+          <button
+            type="button"
+            onClick={() => alignSelected("bottom")}
+            disabled={selectedNotes.length < 2 || isTimeLocked}
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+          >
+            Align B
+          </button>
+          <button
+            type="button"
+            onClick={() => distributeSelected("horizontal")}
+            disabled={selectedNotes.length < 3 || isTimeLocked}
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+          >
+            Dist H
+          </button>
+          <button
+            type="button"
+            onClick={() => distributeSelected("vertical")}
+            disabled={selectedNotes.length < 3 || isTimeLocked}
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-40"
+          >
+            Dist V
+          </button>
+        </div>
+
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Color</span>
           <NoteSwatches
-            value={selectedNote?.color ?? ui.lastColor}
+            value={selectedNotes[0]?.color ?? selectedNote?.color ?? ui.lastColor}
             onSelect={(color) => {
-              if (isTimeLocked) {
-                return;
-              }
-              setLastColor(color);
-              if (ui.selectedNoteId) {
-                updateNote(ui.selectedNoteId, { color });
-              }
+              applyColorToSelection(color);
             }}
           />
         </div>
@@ -1058,19 +1306,19 @@ export const WallCanvas = () => {
                 addTagToSelectedNote();
               }
             }}
-            placeholder={ui.selectedNoteId ? "add-tag" : "select note"}
-            disabled={!ui.selectedNoteId || isTimeLocked}
+            placeholder={activeSelectedNoteIds.length > 0 || ui.selectedNoteId ? "add-tag" : "select note"}
+            disabled={activeSelectedNoteIds.length === 0 && !ui.selectedNoteId ? true : isTimeLocked}
             className="w-28 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
           />
           <button
             type="button"
             onClick={addTagToSelectedNote}
-            disabled={!ui.selectedNoteId || isTimeLocked}
+            disabled={activeSelectedNoteIds.length === 0 && !ui.selectedNoteId ? true : isTimeLocked}
             className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
           >
             Add
           </button>
-          {selectedNote?.tags.slice(0, 3).map((tag) => (
+          {displayedTags.slice(0, 3).map((tag) => (
             <button
               key={tag}
               type="button"
@@ -1085,7 +1333,9 @@ export const WallCanvas = () => {
         </div>
 
         <div className="ml-auto text-xs text-zinc-600">
-          {ui.linkingFromNoteId
+          {activeSelectedNoteIds.length > 1
+            ? `${activeSelectedNoteIds.length} notes selected`
+            : ui.linkingFromNoteId
             ? `Link mode: pick a target note for ${renderSnapshot.notes[ui.linkingFromNoteId]?.text.split("\n")[0] || "selected note"}`
             : "Press `?` for shortcuts"}
         </div>
@@ -1099,10 +1349,12 @@ export const WallCanvas = () => {
         onMouseUp={() => {
           setIsMiddleDragging(false);
           setIsLeftCanvasDragging(false);
+          finalizeBoxSelection();
         }}
         onMouseLeave={() => {
           setIsMiddleDragging(false);
           setIsLeftCanvasDragging(false);
+          finalizeBoxSelection();
         }}
         onContextMenu={(event) => {
           event.preventDefault();
@@ -1124,7 +1376,7 @@ export const WallCanvas = () => {
           y={camera.y}
           scaleX={camera.zoom}
           scaleY={camera.zoom}
-          draggable={isSpaceDown || isMiddleDragging || isLeftCanvasDragging}
+          draggable={isSpaceDown || isMiddleDragging || (isLeftCanvasDragging && !boxSelectMode)}
           onMouseDown={(event) => {
             const stage = event.target.getStage();
             if (event.evt.button === 1) {
@@ -1134,12 +1386,50 @@ export const WallCanvas = () => {
             const clickedOnEmpty = event.target === stage;
             if (clickedOnEmpty) {
               if (event.evt.button === 0) {
-                setIsLeftCanvasDragging(true);
-                stage?.startDrag();
+                if (boxSelectMode && !isTimeLocked) {
+                  const pointer = stage?.getPointerPosition();
+                  if (pointer) {
+                    const start = toWorldPoint(pointer.x, pointer.y, camera);
+                    setSelectionBox({
+                      startX: start.x,
+                      startY: start.y,
+                      x: start.x,
+                      y: start.y,
+                      w: 0,
+                      h: 0,
+                    });
+                  }
+                } else {
+                  setIsLeftCanvasDragging(true);
+                  stage?.startDrag();
+                }
               }
               resetSelection();
+              clearNoteSelection();
               setEditing(null);
             }
+          }}
+          onMouseMove={(event) => {
+            if (!selectionBox) {
+              return;
+            }
+            const stage = event.target.getStage();
+            const pointer = stage?.getPointerPosition();
+            if (!pointer) {
+              return;
+            }
+            const current = toWorldPoint(pointer.x, pointer.y, camera);
+            setSelectionBox((previous) =>
+              previous
+                ? {
+                    ...previous,
+                    x: current.x,
+                    y: current.y,
+                    w: current.x - previous.startX,
+                    h: current.y - previous.startY,
+                  }
+                : previous,
+            );
           }}
           onDragEnd={(event) => {
             const stage = event.target.getStage();
@@ -1210,16 +1500,19 @@ export const WallCanvas = () => {
                   onClick={(event) => {
                     event.cancelBubble = true;
                     setLinkMenu((previous) => ({ ...previous, open: false }));
+                    clearNoteSelection();
                     selectLink(link.id);
                   }}
                   onTap={(event) => {
                     event.cancelBubble = true;
                     setLinkMenu((previous) => ({ ...previous, open: false }));
+                    clearNoteSelection();
                     selectLink(link.id);
                   }}
                   onContextMenu={(event) => {
                     event.evt.preventDefault();
                     event.cancelBubble = true;
+                    clearNoteSelection();
                     selectLink(link.id);
                     setLinkMenu({
                       open: true,
@@ -1270,12 +1563,14 @@ export const WallCanvas = () => {
                   height={zone.h}
                   draggable={!isTimeLocked}
                   onClick={() => {
+                    clearNoteSelection();
                     selectZone(zone.id);
                     if (zone.groupId) {
                       selectGroup(zone.groupId);
                     }
                   }}
                   onTap={() => {
+                    clearNoteSelection();
                     selectZone(zone.id);
                     if (zone.groupId) {
                       selectGroup(zone.groupId);
@@ -1316,7 +1611,7 @@ export const WallCanvas = () => {
             })}
 
             {visibleNotes.map((note) => {
-              const isSelected = ui.selectedNoteId === note.id;
+              const isSelected = activeSelectedNoteIds.includes(note.id) || ui.selectedNoteId === note.id;
               const isFlashing = ui.flashNoteId === note.id;
 
               return (
@@ -1330,9 +1625,9 @@ export const WallCanvas = () => {
                   width={note.w}
                   height={note.h}
                   draggable={!isTimeLocked}
-                  onClick={() => {
+                  onClick={(event) => {
                     if (isTimeLocked) {
-                      selectNote(note.id);
+                      selectSingleNote(note.id);
                       return;
                     }
                     if (ui.linkingFromNoteId && ui.linkingFromNoteId !== note.id) {
@@ -1340,14 +1635,18 @@ export const WallCanvas = () => {
                       setLinkingFromNote(undefined);
                       return;
                     }
-                    selectNote(note.id);
+                    if (event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey) {
+                      toggleSelectNote(note.id);
+                    } else {
+                      selectSingleNote(note.id);
+                    }
                     if (editing?.id !== note.id) {
                       setEditing(null);
                     }
                   }}
-                  onTap={() => {
+                  onTap={(event) => {
                     if (isTimeLocked) {
-                      selectNote(note.id);
+                      selectSingleNote(note.id);
                       return;
                     }
                     if (ui.linkingFromNoteId && ui.linkingFromNoteId !== note.id) {
@@ -1355,20 +1654,62 @@ export const WallCanvas = () => {
                       setLinkingFromNote(undefined);
                       return;
                     }
-                    selectNote(note.id);
+                    if (event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey) {
+                      toggleSelectNote(note.id);
+                    } else {
+                      selectSingleNote(note.id);
+                    }
                   }}
                   onDblClick={() => {
                     if (isTimeLocked) {
                       return;
                     }
-                    selectNote(note.id);
+                    selectSingleNote(note.id);
                     setEditing({ id: note.id, text: note.text });
+                  }}
+                  onDragStart={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    if (!activeSelectedNoteIds.includes(note.id)) {
+                      syncPrimarySelection([note.id]);
+                    }
+                    const activeIds = activeSelectedNoteIds.includes(note.id) ? activeSelectedNoteIds : [note.id];
+                    if (activeIds.length > 1) {
+                      dragSelectionStartRef.current = Object.fromEntries(
+                        activeIds
+                          .map((id) => renderSnapshot.notes[id])
+                          .filter((entry): entry is Note => Boolean(entry))
+                          .map((entry) => [entry.id, { x: entry.x, y: entry.y }]),
+                      );
+                      dragAnchorRef.current = { id: note.id, x: event.target.x(), y: event.target.y() };
+                    }
+                  }}
+                  onDragMove={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    const anchor = dragAnchorRef.current;
+                    const startMap = dragSelectionStartRef.current;
+                    if (!anchor || !startMap) {
+                      return;
+                    }
+                    const dx = event.target.x() - anchor.x;
+                    const dy = event.target.y() - anchor.y;
+                    for (const [id, start] of Object.entries(startMap)) {
+                      if (id === note.id) {
+                        continue;
+                      }
+                      updateNote(id, { x: start.x + dx, y: start.y + dy });
+                    }
                   }}
                   onDragEnd={(event) => {
                     if (isTimeLocked) {
                       return;
                     }
                     moveNote(note.id, event.target.x(), event.target.y());
+                    dragSelectionStartRef.current = null;
+                    dragAnchorRef.current = null;
                   }}
                   onTransformEnd={(event) => {
                     if (isTimeLocked) {
@@ -1469,6 +1810,19 @@ export const WallCanvas = () => {
                   </Group>
                 );
               })}
+
+            {selectionBox && (
+              <Rect
+                x={Math.min(selectionBox.startX, selectionBox.x)}
+                y={Math.min(selectionBox.startY, selectionBox.y)}
+                width={Math.abs(selectionBox.w)}
+                height={Math.abs(selectionBox.h)}
+                fill="rgba(37,99,235,0.15)"
+                stroke="#2563eb"
+                strokeWidth={1.2}
+                dash={[4, 3]}
+              />
+            )}
 
             <Transformer
               ref={(node) => {
@@ -1666,7 +2020,10 @@ export const WallCanvas = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => selectGroup(group.id)}
+                    onClick={() => {
+                      clearNoteSelection();
+                      selectGroup(group.id);
+                    }}
                     className="min-w-0 flex-1 truncate text-left text-xs font-medium text-zinc-800"
                   >
                     {group.label}
