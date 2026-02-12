@@ -51,6 +51,7 @@ import { useWallUiActions } from "@/components/wall/useWallUiActions";
 import { useWallViewState } from "@/components/wall/useWallViewState";
 import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
 import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
+import { useWallZoomControls } from "@/components/wall/useWallZoomControls";
 import {
   toolbarBtn,
   toolbarBtnActive,
@@ -110,7 +111,6 @@ type GuideLineState = {
 };
 
 const flashDurationMs = 1200;
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
 export const WallCanvas = () => {
   const notesMap = useWallStore((state) => state.notes);
@@ -723,30 +723,7 @@ export const WallCanvas = () => {
     fitBoundsCamera,
   });
 
-  const stepZoom = useCallback(
-    (direction: "in" | "out") => {
-      const factor = direction === "in" ? 1.2 : 1 / 1.2;
-      const nextZoom = clamp(camera.zoom * factor, 0.2, 2.8);
-      const centerWorldX = (viewport.w / 2 - camera.x) / camera.zoom;
-      const centerWorldY = (viewport.h / 2 - camera.y) / camera.zoom;
-      setCamera({
-        zoom: nextZoom,
-        x: viewport.w / 2 - centerWorldX * nextZoom,
-        y: viewport.h / 2 - centerWorldY * nextZoom,
-      });
-    },
-    [camera.x, camera.y, camera.zoom, setCamera, viewport.h, viewport.w],
-  );
-
-  const resetZoom = useCallback(() => {
-    const centerWorldX = (viewport.w / 2 - camera.x) / camera.zoom;
-    const centerWorldY = (viewport.h / 2 - camera.y) / camera.zoom;
-    setCamera({
-      zoom: 1,
-      x: viewport.w / 2 - centerWorldX,
-      y: viewport.h / 2 - centerWorldY,
-    });
-  }, [camera.x, camera.y, camera.zoom, setCamera, viewport.h, viewport.w]);
+  const { stepZoom, resetZoom } = useWallZoomControls({ camera, viewport, setCamera });
 
   const { setLayoutPreference, toggleDetailsSection, togglePresentationMode, toggleTimelineMode, saveCurrentRecallSearch, applySavedRecallSearch } = useWallUiActions({
     presentationMode, timelineEntriesLength: timelineEntries.length, timelineModeRef, setPresentationMode, setPresentationIndex,

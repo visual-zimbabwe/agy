@@ -164,6 +164,10 @@ export const assignZoneToGroup = (zoneId: string, groupId?: string) => {
     }
 
     const previousGroupId = zone.groupId;
+    if (previousGroupId === groupId) {
+      return;
+    }
+
     if (previousGroupId && state.zoneGroups[previousGroupId]) {
       const prevGroup = state.zoneGroups[previousGroupId];
       state.patchGroup(previousGroupId, {

@@ -4,9 +4,11 @@ import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteSwatches } from "@/components/NoteCard";
+import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
-import { LINK_TYPES, NOTE_DEFAULTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
+import { WallZoomControls } from "@/components/wall/WallZoomControls";
+import { NOTE_DEFAULTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
 import type { LinkType, Note } from "@/features/wall/types";
 
 type LinkContextMenuState = {
@@ -302,53 +304,19 @@ export const WallFloatingUi = ({
         </div>
       )}
 
-      {linkMenu.open && linkMenu.linkId && linksById[linkMenu.linkId] && (
-        <div
-          className="fixed z-[70] w-56 rounded-xl border border-zinc-300 bg-white p-2 shadow-2xl"
-          style={{
-            left: `${Math.max(8, Math.min(linkMenu.x, maxViewportWidth - 232))}px`,
-            top: `${Math.max(8, Math.min(linkMenu.y, maxViewportHeight - 210))}px`,
-          }}
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <p className="px-2 py-1 text-[11px] font-semibold tracking-wide text-zinc-500 uppercase">Link Actions</p>
-          <button
-            type="button"
-            className="mt-1 w-full rounded-md px-2 py-2 text-left text-sm text-red-700 hover:bg-red-50"
-            disabled={isTimeLocked}
-            onClick={() => {
-              if (linkMenu.linkId) {
-                deleteLink(linkMenu.linkId);
-              }
-              setLinkMenu((previous) => ({ ...previous, open: false }));
-            }}
-          >
-            Delete link
-          </button>
-          <div className="mt-2 border-t border-zinc-200 pt-2">
-            <p className="px-2 pb-1 text-[11px] font-semibold tracking-wide text-zinc-500 uppercase">Change Type</p>
-            <div className="space-y-1">
-              {LINK_TYPES.map((option) => (
-                <button
-                  key={`ctx-${option.value}`}
-                  type="button"
-                  disabled={isTimeLocked}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-zinc-50"
-                  onClick={() => {
-                    if (linkMenu.linkId) {
-                      updateLinkType(linkMenu.linkId, option.value as LinkType);
-                    }
-                    setLinkMenu((previous) => ({ ...previous, open: false }));
-                  }}
-                >
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: option.color }} />
-                  <span>{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <WallLinkContextMenu
+        open={linkMenu.open}
+        linkId={linkMenu.linkId}
+        linksById={linksById}
+        x={linkMenu.x}
+        y={linkMenu.y}
+        maxViewportWidth={maxViewportWidth}
+        maxViewportHeight={maxViewportHeight}
+        isTimeLocked={isTimeLocked}
+        onDeleteLink={deleteLink}
+        onUpdateLinkType={updateLinkType}
+        onClose={() => setLinkMenu((previous) => ({ ...previous, open: false }))}
+      />
 
       {showHeatmap && (
         <div className="pointer-events-auto absolute bottom-3 right-3 z-30">
@@ -356,40 +324,13 @@ export const WallFloatingUi = ({
         </div>
       )}
 
-      <div
-        className="pointer-events-auto absolute right-3 z-[31] transition-[bottom] duration-[var(--motion-normal)]"
-        style={{ bottom: showHeatmap ? "14rem" : "0.75rem" }}
-      >
-        <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-glass)] shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)]">
-          <button
-            type="button"
-            onClick={onZoomIn}
-            className="h-9 w-11 border-b border-[var(--color-border)] text-lg font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]"
-            aria-label="Zoom in"
-            title="Zoom in"
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={onResetZoom}
-            className="h-8 w-11 border-b border-[var(--color-border)] text-[11px] font-semibold text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]"
-            aria-label="Reset zoom to 100 percent"
-            title="Reset zoom (100%)"
-          >
-            {zoomPercent}%
-          </button>
-          <button
-            type="button"
-            onClick={onZoomOut}
-            className="h-9 w-11 text-lg font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]"
-            aria-label="Zoom out"
-            title="Zoom out"
-          >
-            -
-          </button>
-        </div>
-      </div>
+      <WallZoomControls
+        zoomPercent={zoomPercent}
+        showHeatmap={showHeatmap}
+        onZoomIn={onZoomIn}
+        onZoomOut={onZoomOut}
+        onResetZoom={onResetZoom}
+      />
 
       {timelineMode && timelineEntries.length > 0 && (
         <WallTimelineDock

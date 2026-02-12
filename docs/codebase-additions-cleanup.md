@@ -8,17 +8,17 @@ Date: 2026-02-11
 - Focus on concrete items with clear owner-ready outcomes.
 
 ## Priority 1: High Impact, Low-Medium Effort
-1. Add an automated test baseline.
+1. Add an automated test baseline. (Done)
 - Add `vitest` + React Testing Library for command/store-level unit tests.
 - Start with `src/features/wall/commands.ts` and `src/features/wall/store.ts`.
 - Done when: key wall mutations have deterministic tests and run in CI/local.
-2. Add E2E smoke coverage.
+2. Add E2E smoke coverage. (Done)
 - Add Playwright for critical flows: create/edit/drag/search/export/sync auth gate.
 - Done when: one `npm run test:e2e` path catches basic runtime regressions.
-3. Add CI quality gate.
+3. Add CI quality gate. (Done)
 - Run `npm run lint`, `npm run check:regressions`, and `npm run build` on push/PR.
 - Done when: branch protections can rely on this pipeline.
-4. Split largest UI hotspots further.
+4. Split largest UI hotspots further. (Done - first decomposition slice)
 - Current large files: `src/components/WallCanvas.tsx`, `src/components/QuickCaptureBar.tsx`, `src/components/wall/WallFloatingUi.tsx`.
 - Extract reusable sub-panels/components to keep files under ~400-500 lines.
 - Done when: new feature work no longer lands in orchestration files by default.
