@@ -167,7 +167,7 @@ export const NoteSwatches = ({ value, onSelect, sortMode = "recency", showCustom
             <button
               type="button"
               aria-label={colorName}
-              className="h-6 w-6 rounded-full border border-black/10 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 motion-reduce:transform-none motion-reduce:transition-none"
+              className="h-9 w-9 rounded-full border border-black/10 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1 motion-reduce:transform-none motion-reduce:transition-none"
               style={{
                 backgroundColor: color,
                 boxShadow: isSelected ? `0 0 0 2px ${ringColor}` : "none",
@@ -191,7 +191,7 @@ export const NoteSwatches = ({ value, onSelect, sortMode = "recency", showCustom
             />
             <span
               aria-hidden="true"
-              className={`inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-xs leading-none text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)] motion-reduce:transition-none ${customPickerOpen ? "ring-2 ring-[var(--color-focus)] ring-offset-1" : ""}`}
+              className={`inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-xs leading-none text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)] motion-reduce:transition-none ${customPickerOpen ? "ring-2 ring-[var(--color-focus)] ring-offset-1" : ""}`}
             >
               +
             </span>

@@ -37,6 +37,8 @@ type WallFloatingUiProps = {
   tagPreviewScreen?: { x: number; y: number };
   tagPreviewNote?: Note;
   tagPreviewPalette?: { bg: string; border: string; text: string };
+  touchPaletteScreen?: { x: number; y: number };
+  touchPaletteNote?: Note;
   quickActionScreen?: { x: number; y: number };
   primarySelectedNote?: Note;
   selectedNotesCount: number;
@@ -77,6 +79,7 @@ type WallFloatingUiProps = {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
+  onCloseTouchPalette: () => void;
 };
 
 export const WallFloatingUi = ({
@@ -98,6 +101,8 @@ export const WallFloatingUi = ({
   tagPreviewScreen,
   tagPreviewNote,
   tagPreviewPalette,
+  touchPaletteScreen,
+  touchPaletteNote,
   quickActionScreen,
   primarySelectedNote,
   selectedNotesCount,
@@ -138,6 +143,7 @@ export const WallFloatingUi = ({
   onZoomIn,
   onZoomOut,
   onResetZoom,
+  onCloseTouchPalette,
 }: WallFloatingUiProps) => {
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
@@ -275,7 +281,7 @@ export const WallFloatingUi = ({
           style={{ left: `${quickActionScreen.x}px`, top: `${quickActionScreen.y}px` }}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <div className="flex items-center gap-1">
+          <div role="toolbar" aria-label="Note quick actions" className="flex items-center gap-1">
             {NOTE_TEXT_SIZES.map((size) => (
               <button
                 key={`quick-size-${size.value}`}
@@ -305,6 +311,7 @@ export const WallFloatingUi = ({
               }}
               className={`w-[8.4rem] ${toolbarBtnCompact}`}
               title="Convert note type"
+              aria-label="Convert note type"
             >
               <option value="">Convert to...</option>
               <option value="quote">Quote</option>
@@ -318,6 +325,7 @@ export const WallFloatingUi = ({
               onClick={() => togglePinOnNote(primarySelectedNote.id)}
               className={primarySelectedNote.pinned ? toolbarBtnActive : toolbarBtnCompact}
               title={primarySelectedNote.pinned ? "Unpin note" : "Pin note (prevent move/resize)"}
+              aria-label={primarySelectedNote.pinned ? "Unpin note" : "Pin note"}
             >
               Pin
             </button>
@@ -326,6 +334,7 @@ export const WallFloatingUi = ({
               onClick={() => toggleHighlightOnNote(primarySelectedNote.id)}
               className={primarySelectedNote.highlighted ? toolbarBtnActive : toolbarBtnCompact}
               title={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
+              aria-label={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
             >
               Highlight
             </button>
@@ -334,6 +343,7 @@ export const WallFloatingUi = ({
               onClick={() => onToggleFocusNote(primarySelectedNote.id)}
               className={isPrimaryNoteFocused ? toolbarBtnActive : toolbarBtnCompact}
               title={isPrimaryNoteFocused ? "Exit focus mode" : "Focus this note"}
+              aria-label={isPrimaryNoteFocused ? "Exit focus mode" : "Focus note"}
             >
               Focus
             </button>
@@ -342,18 +352,19 @@ export const WallFloatingUi = ({
               onClick={() => setLinkingFromNote(primarySelectedNote.id)}
               className={linkingFromNoteId ? toolbarBtnActive : toolbarBtnCompact}
               title="Start link (Ctrl/Cmd + L)"
+              aria-label="Start link from selected note"
             >
               Link
             </button>
             {selectedNotesCount >= 2 && (
               <>
                 <div className="mx-1 h-5 w-px bg-zinc-300" />
-                <button type="button" onClick={() => alignSelected("left")} className={toolbarBtnCompact} title="Align left">L</button>
-                <button type="button" onClick={() => alignSelected("center")} className={toolbarBtnCompact} title="Align center">C</button>
-                <button type="button" onClick={() => alignSelected("right")} className={toolbarBtnCompact} title="Align right">R</button>
-                <button type="button" onClick={() => alignSelected("top")} className={toolbarBtnCompact} title="Align top">T</button>
-                <button type="button" onClick={() => alignSelected("middle")} className={toolbarBtnCompact} title="Align middle">M</button>
-                <button type="button" onClick={() => alignSelected("bottom")} className={toolbarBtnCompact} title="Align bottom">B</button>
+                <button type="button" onClick={() => alignSelected("left")} className={toolbarBtnCompact} title="Align left" aria-label="Align left">L</button>
+                <button type="button" onClick={() => alignSelected("center")} className={toolbarBtnCompact} title="Align center" aria-label="Align center">C</button>
+                <button type="button" onClick={() => alignSelected("right")} className={toolbarBtnCompact} title="Align right" aria-label="Align right">R</button>
+                <button type="button" onClick={() => alignSelected("top")} className={toolbarBtnCompact} title="Align top" aria-label="Align top">T</button>
+                <button type="button" onClick={() => alignSelected("middle")} className={toolbarBtnCompact} title="Align middle" aria-label="Align middle">M</button>
+                <button type="button" onClick={() => alignSelected("bottom")} className={toolbarBtnCompact} title="Align bottom" aria-label="Align bottom">B</button>
                 <button
                   type="button"
                   onClick={() => distributeSelected("horizontal")}
@@ -375,10 +386,38 @@ export const WallFloatingUi = ({
               </>
             )}
             <div className="mx-1 h-5 w-px bg-zinc-300" />
-            <button type="button" onClick={onOpenCommandPalette} className={toolbarBtnCompact} title="Open command palette (Ctrl/Cmd + K)">
+            <button type="button" onClick={onOpenCommandPalette} className={toolbarBtnCompact} title="Open command palette (Ctrl/Cmd + K)" aria-label="Open command palette">
               ⌘K
             </button>
           </div>
+        </div>
+      )}
+
+      {touchPaletteScreen && touchPaletteNote && !editing && (
+        <div
+          className="pointer-events-auto absolute z-[46] -translate-x-1/2 -translate-y-full rounded-xl border border-zinc-300 bg-white/96 px-2 py-2 shadow-xl backdrop-blur-sm motion-toolbar-enter"
+          style={{ left: `${touchPaletteScreen.x}px`, top: `${touchPaletteScreen.y}px` }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold text-zinc-700">Color palette</p>
+            <button
+              type="button"
+              onClick={onCloseTouchPalette}
+              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-zinc-300 bg-white px-2 text-xs text-zinc-600"
+              aria-label="Close color palette"
+            >
+              Close
+            </button>
+          </div>
+          <NoteSwatches
+            value={touchPaletteNote.color}
+            onSelect={(color) => {
+              applyColorToSelection(color);
+              onCloseTouchPalette();
+            }}
+            showCustomColorAdd
+          />
         </div>
       )}
 

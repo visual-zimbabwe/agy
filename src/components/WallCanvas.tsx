@@ -290,6 +290,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
   const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
+  const [touchPaletteNoteId, setTouchPaletteNoteId] = useState<string | undefined>(undefined);
   const [presentationIndex, setPresentationIndex] = useState(0);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
@@ -905,6 +906,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setCamera,
   });
   const focusedNote = focusedNoteId ? renderSnapshot.notes[focusedNoteId] : undefined;
+  const touchPaletteNote = touchPaletteNoteId ? renderSnapshot.notes[touchPaletteNoteId] : undefined;
+  const touchPaletteScreen = touchPaletteNote
+    ? toScreenPoint(touchPaletteNote.x + touchPaletteNote.w / 2, touchPaletteNote.y - 18, camera)
+    : undefined;
   const isFocusMode = Boolean(focusedNote);
   const renderVisibleNotes = useMemo(
     () => (focusedNote ? visibleNotes.filter((note) => note.id === focusedNote.id) : visibleNotes),
@@ -954,6 +959,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       syncPrimarySelection([noteId]);
       selectNote(noteId);
       setFocusedNoteId((previous) => (previous === noteId ? undefined : noteId));
+    },
+    [selectNote, syncPrimarySelection],
+  );
+
+  const openTouchPaletteForNote = useCallback(
+    (noteId: string) => {
+      syncPrimarySelection([noteId]);
+      selectNote(noteId);
+      setTouchPaletteNoteId(noteId);
     },
     [selectNote, syncPrimarySelection],
   );
@@ -1165,6 +1179,21 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       setFocusedNoteId(undefined);
     }
   }, [focusedNoteId, renderSnapshot.notes, visibleNotes]);
+
+  useEffect(() => {
+    if (!touchPaletteNoteId) {
+      return;
+    }
+    const exists = Boolean(renderSnapshot.notes[touchPaletteNoteId]);
+    if (!exists) {
+      setTouchPaletteNoteId(undefined);
+      return;
+    }
+    const stillVisible = visibleNotes.some((note) => note.id === touchPaletteNoteId);
+    if (!stillVisible) {
+      setTouchPaletteNoteId(undefined);
+    }
+  }, [renderSnapshot.notes, touchPaletteNoteId, visibleNotes]);
 
   const { exportPng, exportPdf, exportMarkdown } = useWallExport({
     stageRef,
@@ -1657,6 +1686,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             clearNoteSelection();
             setEditing(null);
             setFocusedNoteId(undefined);
+            setTouchPaletteNoteId(undefined);
           }}
         >
           <Layer listening={false}>
@@ -1740,6 +1770,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               dragSingleStartRef={dragSingleStartRef}
               setHoveredNoteId={setHoveredNoteId}
               setDraggingNoteId={setDraggingNoteId}
+              onLongPressNote={openTouchPaletteForNote}
               setGuideLines={setGuideLines}
               setResizingNoteDrafts={setResizingNoteDrafts}
               syncPrimarySelection={syncPrimarySelection}
@@ -1801,6 +1832,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           tagPreviewScreen={tagPreviewScreen}
           tagPreviewNote={tagPreviewNote}
           tagPreviewPalette={tagPreviewPalette}
+          touchPaletteScreen={touchPaletteScreen}
+          touchPaletteNote={touchPaletteNote}
           quickActionScreen={quickActionScreen}
           primarySelectedNote={primarySelectedNote}
           selectedNotesCount={selectedNotes.length}
@@ -1841,6 +1874,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onZoomIn={() => stepZoom("in")}
           onZoomOut={() => stepZoom("out")}
           onResetZoom={resetZoom}
+          onCloseTouchPalette={() => setTouchPaletteNoteId(undefined)}
         />
         )}
 

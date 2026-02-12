@@ -324,6 +324,19 @@ Expected:
 Expected:
 - All shortcuts work without needing mouse for command invocation.
 
+## Accessibility + Touch Guardrail
+1. On `/wall`, inspect quick-action toolbar buttons (`Text size`, `Duplicate`, `Convert`, `Pin`, `Highlight`, `Focus`, `Link`, align/distribute) and verify hit areas are at least ~36px.
+2. Navigate the quick-action toolbar with keyboard only (`Tab`, `Shift+Tab`, `Enter`, `Space`) and verify every action is reachable/activatable.
+3. Verify short-label buttons (`L/C/R/T/M/B`) and command button expose accessible names via screen reader/ARIA.
+4. On touch device or mobile emulator, long-press a note (~400ms) and verify a color palette opens near that note.
+5. Pick a color from long-press palette and verify color applies, palette closes, and note remains selected.
+
+Expected:
+- Toolbar controls satisfy minimum touch target size and are reliably tappable.
+- Keyboard-only navigation can operate all primary quick actions.
+- ARIA labels provide clear names for icon/abbreviated controls.
+- Long-press provides direct touch access to color palette.
+
 ## Settings - Keyboard Color Slots
 1. Open profile menu on `/wall` and click `Settings`.
 2. In `Keyboard` section, set slot `1` and slot `2` to clearly distinct custom colors.
