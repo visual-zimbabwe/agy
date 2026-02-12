@@ -46,9 +46,7 @@ export const useWallViewState = ({
   const selectedNoteGroup = ui.selectedNoteGroupId ? noteGroupsById[ui.selectedNoteGroupId] : undefined;
   const hasNoteSelection = activeSelectedNoteIds.length > 0 || Boolean(ui.selectedNoteId);
   const showContextColor = hasNoteSelection;
-  const showContextTextSize = hasNoteSelection;
-  const showContextAlign = selectedNotes.length >= 2;
-  const hasContextActions = showContextColor || showContextTextSize || showContextAlign;
+  const hasContextActions = showContextColor;
   const displayedTags = useMemo(
     () =>
       selectedNotes.length > 1
@@ -83,8 +81,6 @@ export const useWallViewState = ({
     selectedGroup,
     selectedNoteGroup,
     showContextColor,
-    showContextTextSize,
-    showContextAlign,
     hasContextActions,
     displayedTags,
     statusMessage,

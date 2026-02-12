@@ -103,6 +103,21 @@ Expected:
 - Edits save automatically while typing.
 - Dragging remains smooth.
 
+## Text Formatting Micro-Toolbar
+1. Select a note and enter text edit mode (double-click a note or press `Enter` on selected note).
+2. Verify a floating formatting toolbar appears only while the text cursor is active inside the editor.
+3. Click outside the editor and confirm the formatting toolbar disappears immediately.
+4. Select text and apply `Bold`, `Italic`, and `Underline`.
+5. Select one or more lines and apply `Bulleted`, `Numbered`, and `Multilevel`.
+6. Toggle `Align Left`, `Align Center`, and `Align Right` while editing, then blur and re-open editor.
+7. With notes selected but not in text edit mode, verify no text-formatting controls are visible in header/quick-action toolbars.
+
+Expected:
+- Formatting controls exist only during note text editing.
+- Toolbar tracks text selection/caret context and stays near the edited text.
+- Toolbar hides instantly when text editing ends.
+- Text alignment persists for each note after exiting and re-entering edit mode.
+
 ## Milestone 2 - Pan, Zoom, Infinite Wall
 1. Hold `Space` and drag to pan.
 2. Use trackpad or mouse wheel without modifier to pan.

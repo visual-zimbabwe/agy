@@ -1,6 +1,7 @@
 export type Note = {
   id: string;
   text: string;
+  textAlign?: "left" | "center" | "right";
   tags: string[];
   textSize?: "sm" | "md" | "lg";
   pinned?: boolean;

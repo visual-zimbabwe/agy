@@ -1022,9 +1022,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   const {
     applyColorToSelection,
-    applyTextSizeToSelection,
-    alignSelected,
-    distributeSelected,
     makeNoteAtViewportCenter,
     makeZoneAtViewportCenter,
     applySelectedTemplate,
@@ -1236,8 +1233,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     selectedGroup,
     selectedNoteGroup,
     showContextColor,
-    showContextTextSize,
-    showContextAlign,
     hasContextActions,
     displayedTags,
     statusMessage,
@@ -1533,16 +1528,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         isTimeLocked={isTimeLocked}
         hasContextActions={hasContextActions}
         showContextColor={showContextColor}
-        showContextTextSize={showContextTextSize}
-        showContextAlign={showContextAlign}
         toolbarSurface={toolbarSurface}
         toolbarLabel={toolbarLabel}
         toolbarDivider={toolbarDivider}
-        toolbarBtnActive={toolbarBtnActive}
-        toolbarBtnCompact={toolbarBtnCompact}
         selectedNotes={selectedNotes}
         selectedNote={selectedNote}
-        primarySelectedNote={primarySelectedNote}
         uiLastColor={ui.lastColor ?? NOTE_COLORS[0]}
         statusMessage={statusMessage}
         userEmail={userEmail}
@@ -1558,9 +1548,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onOpenShortcuts={() => setShortcutsOpenTracked(true)}
         onSetLayoutPreference={setLayoutPreference}
         onApplyColorToSelection={applyColorToSelection}
-        onApplyTextSizeToSelection={applyTextSizeToSelection}
-        onAlignSelected={alignSelected}
-        onDistributeSelected={distributeSelected}
         onSyncNow={syncNow}
       />
       )}
@@ -1836,11 +1823,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           touchPaletteNote={touchPaletteNote}
           quickActionScreen={quickActionScreen}
           primarySelectedNote={primarySelectedNote}
-          selectedNotesCount={selectedNotes.length}
           toolbarBtnActive={toolbarBtnActive}
           toolbarBtnCompact={toolbarBtnCompact}
-          applyTextSizeToSelection={applyTextSizeToSelection}
           applyColorToSelection={applyColorToSelection}
+          updateNote={updateNote}
           duplicateNote={duplicateNote}
           togglePinOnNote={togglePinOnNote}
           toggleHighlightOnNote={toggleHighlightOnNote}
@@ -1855,8 +1841,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           setLinkMenu={setLinkMenu}
           deleteLink={deleteLink}
           updateLinkType={updateLinkType}
-          alignSelected={alignSelected}
-          distributeSelected={distributeSelected}
           onOpenCommandPalette={() => setSearchOpenTracked(true)}
           showHeatmap={showHeatmap}
           timelineEntries={timelineEntries}

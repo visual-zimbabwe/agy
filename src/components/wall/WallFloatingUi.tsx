@@ -1,14 +1,15 @@
 "use client";
 
+import { useRef } from "react";
 import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteSwatches } from "@/components/NoteCard";
+import { NoteTextFormattingToolbar } from "@/components/wall/NoteTextFormattingToolbar";
 import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { WallZoomControls } from "@/components/wall/WallZoomControls";
-import { NOTE_DEFAULTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
 import type { LinkType, Note } from "@/features/wall/types";
 
 type LinkContextMenuState = {
@@ -41,11 +42,10 @@ type WallFloatingUiProps = {
   touchPaletteNote?: Note;
   quickActionScreen?: { x: number; y: number };
   primarySelectedNote?: Note;
-  selectedNotesCount: number;
   toolbarBtnActive: string;
   toolbarBtnCompact: string;
-  applyTextSizeToSelection: (size: "sm" | "md" | "lg") => void;
   applyColorToSelection: (color: string) => void;
+  updateNote: (noteId: string, patch: Partial<Note>) => void;
   duplicateNote: (noteId: string) => void;
   togglePinOnNote: (noteId: string) => void;
   toggleHighlightOnNote: (noteId: string) => void;
@@ -60,8 +60,6 @@ type WallFloatingUiProps = {
   setLinkMenu: Dispatch<SetStateAction<LinkContextMenuState>>;
   deleteLink: (linkId: string) => void;
   updateLinkType: (linkId: string, type: LinkType) => void;
-  alignSelected: (axis: "left" | "center" | "right" | "top" | "middle" | "bottom") => void;
-  distributeSelected: (direction: "horizontal" | "vertical") => void;
   onOpenCommandPalette: () => void;
   showHeatmap: boolean;
   timelineEntries: Array<{ ts: number }>;
@@ -105,11 +103,10 @@ export const WallFloatingUi = ({
   touchPaletteNote,
   quickActionScreen,
   primarySelectedNote,
-  selectedNotesCount,
   toolbarBtnActive,
   toolbarBtnCompact,
-  applyTextSizeToSelection,
   applyColorToSelection,
+  updateNote,
   duplicateNote,
   togglePinOnNote,
   toggleHighlightOnNote,
@@ -124,8 +121,6 @@ export const WallFloatingUi = ({
   setLinkMenu,
   deleteLink,
   updateLinkType,
-  alignSelected,
-  distributeSelected,
   onOpenCommandPalette,
   showHeatmap,
   timelineEntries,
@@ -148,6 +143,7 @@ export const WallFloatingUi = ({
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
   const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   return (
     <>
@@ -163,14 +159,36 @@ export const WallFloatingUi = ({
             };
           })()}
         >
+          <NoteTextFormattingToolbar
+            textareaRef={textareaRef}
+            active
+            value={editing.text}
+            textAlign={editingNote.textAlign ?? "left"}
+            onTextUpdate={(nextValue, selectionStart, selectionEnd) => {
+              setEditing({ id: editing.id, text: nextValue });
+              requestAnimationFrame(() => {
+                const textarea = textareaRef.current;
+                if (!textarea) {
+                  return;
+                }
+                textarea.focus();
+                textarea.setSelectionRange(selectionStart, selectionEnd);
+              });
+            }}
+            onAlignUpdate={(textAlign) => updateNote(editing.id, { textAlign })}
+          />
           <textarea
+            ref={textareaRef}
             autoFocus
             value={editing.text}
             onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
             onBlur={handleEditorBlur}
             className="w-full resize-none rounded-xl border border-zinc-700/40 bg-white/95 p-3 text-[16px] leading-6 shadow-xl outline-none"
             style={(() => {
-              return { height: `${editingNote.h * camera.zoom}px` };
+              return {
+                height: `${editingNote.h * camera.zoom}px`,
+                textAlign: editingNote.textAlign ?? "left",
+              };
             })()}
           />
           <div data-note-edit-tags="true" className="mt-2 rounded-xl border border-zinc-200 bg-white/95 p-2 shadow-lg">
@@ -282,18 +300,6 @@ export const WallFloatingUi = ({
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div role="toolbar" aria-label="Note quick actions" className="flex items-center gap-1">
-            {NOTE_TEXT_SIZES.map((size) => (
-              <button
-                key={`quick-size-${size.value}`}
-                type="button"
-                className={(primarySelectedNote.textSize ?? NOTE_DEFAULTS.textSize) === size.value ? toolbarBtnActive : toolbarBtnCompact}
-                onClick={() => applyTextSizeToSelection(size.value)}
-                title={`Text size ${size.label}`}
-              >
-                {size.label}
-              </button>
-            ))}
-            <div className="mx-1 h-5 w-px bg-zinc-300" />
             <NoteSwatches value={primarySelectedNote.color} onSelect={applyColorToSelection} showCustomColorAdd />
             <div className="mx-1 h-5 w-px bg-zinc-300" />
             <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd + D)">
@@ -356,38 +362,9 @@ export const WallFloatingUi = ({
             >
               Link
             </button>
-            {selectedNotesCount >= 2 && (
-              <>
-                <div className="mx-1 h-5 w-px bg-zinc-300" />
-                <button type="button" onClick={() => alignSelected("left")} className={toolbarBtnCompact} title="Align left" aria-label="Align left">L</button>
-                <button type="button" onClick={() => alignSelected("center")} className={toolbarBtnCompact} title="Align center" aria-label="Align center">C</button>
-                <button type="button" onClick={() => alignSelected("right")} className={toolbarBtnCompact} title="Align right" aria-label="Align right">R</button>
-                <button type="button" onClick={() => alignSelected("top")} className={toolbarBtnCompact} title="Align top" aria-label="Align top">T</button>
-                <button type="button" onClick={() => alignSelected("middle")} className={toolbarBtnCompact} title="Align middle" aria-label="Align middle">M</button>
-                <button type="button" onClick={() => alignSelected("bottom")} className={toolbarBtnCompact} title="Align bottom" aria-label="Align bottom">B</button>
-                <button
-                  type="button"
-                  onClick={() => distributeSelected("horizontal")}
-                  disabled={selectedNotesCount < 3}
-                  className={toolbarBtnCompact}
-                  title="Distribute horizontally"
-                >
-                  Dist H
-                </button>
-                <button
-                  type="button"
-                  onClick={() => distributeSelected("vertical")}
-                  disabled={selectedNotesCount < 3}
-                  className={toolbarBtnCompact}
-                  title="Distribute vertically"
-                >
-                  Dist V
-                </button>
-              </>
-            )}
             <div className="mx-1 h-5 w-px bg-zinc-300" />
             <button type="button" onClick={onOpenCommandPalette} className={toolbarBtnCompact} title="Open command palette (Ctrl/Cmd + K)" aria-label="Open command palette">
-              ⌘K
+              Cmd/Ctrl+K
             </button>
           </div>
         </div>
@@ -477,3 +454,4 @@ export const WallFloatingUi = ({
     </>
   );
 };
+
