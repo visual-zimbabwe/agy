@@ -2,7 +2,7 @@
 
 import { ExportModal } from "@/components/ExportModal";
 import { QuickCaptureBar } from "@/components/QuickCaptureBar";
-import { SearchPalette } from "@/components/SearchPalette";
+import { SearchPalette, type CommandPaletteCommand } from "@/components/SearchPalette";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import type { Note } from "@/features/wall/types";
 
@@ -13,6 +13,7 @@ type WallGlobalModalsProps = {
   onCapture: (items: Array<{ text: string; tags: string[] }>) => void;
   isSearchOpen: boolean;
   visibleNotes: Note[];
+  commandPaletteCommands: CommandPaletteCommand[];
   onCloseSearch: () => void;
   onSelectSearchNote: (noteId: string) => void;
   isExportOpen: boolean;
@@ -36,6 +37,7 @@ export const WallGlobalModals = ({
   onCapture,
   isSearchOpen,
   visibleNotes,
+  commandPaletteCommands,
   onCloseSearch,
   onSelectSearchNote,
   isExportOpen,
@@ -54,7 +56,13 @@ export const WallGlobalModals = ({
   return (
     <>
       <QuickCaptureBar open={quickCaptureOpen} disabled={isTimeLocked} onClose={onCloseQuickCapture} onCapture={onCapture} />
-      <SearchPalette open={isSearchOpen} notes={visibleNotes} onClose={onCloseSearch} onSelect={onSelectSearchNote} />
+      <SearchPalette
+        open={isSearchOpen}
+        notes={visibleNotes}
+        commands={commandPaletteCommands}
+        onClose={onCloseSearch}
+        onSelect={onSelectSearchNote}
+      />
       <ExportModal
         open={isExportOpen}
         onClose={onCloseExport}

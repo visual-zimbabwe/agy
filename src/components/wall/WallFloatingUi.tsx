@@ -39,6 +39,7 @@ type WallFloatingUiProps = {
   tagPreviewPalette?: { bg: string; border: string; text: string };
   quickActionScreen?: { x: number; y: number };
   primarySelectedNote?: Note;
+  selectedNotesCount: number;
   toolbarBtnActive: string;
   toolbarBtnCompact: string;
   applyTextSizeToSelection: (size: "sm" | "md" | "lg") => void;
@@ -54,6 +55,9 @@ type WallFloatingUiProps = {
   setLinkMenu: Dispatch<SetStateAction<LinkContextMenuState>>;
   deleteLink: (linkId: string) => void;
   updateLinkType: (linkId: string, type: LinkType) => void;
+  alignSelected: (axis: "left" | "center" | "right" | "top" | "middle" | "bottom") => void;
+  distributeSelected: (direction: "horizontal" | "vertical") => void;
+  onOpenCommandPalette: () => void;
   showHeatmap: boolean;
   timelineEntries: Array<{ ts: number }>;
   jumpToTimelineDay: (day: string) => void;
@@ -93,6 +97,7 @@ export const WallFloatingUi = ({
   tagPreviewPalette,
   quickActionScreen,
   primarySelectedNote,
+  selectedNotesCount,
   toolbarBtnActive,
   toolbarBtnCompact,
   applyTextSizeToSelection,
@@ -108,6 +113,9 @@ export const WallFloatingUi = ({
   setLinkMenu,
   deleteLink,
   updateLinkType,
+  alignSelected,
+  distributeSelected,
+  onOpenCommandPalette,
   showHeatmap,
   timelineEntries,
   jumpToTimelineDay,
@@ -300,6 +308,39 @@ export const WallFloatingUi = ({
               title="Start link (Ctrl/Cmd + L)"
             >
               Link
+            </button>
+            {selectedNotesCount >= 2 && (
+              <>
+                <div className="mx-1 h-5 w-px bg-zinc-300" />
+                <button type="button" onClick={() => alignSelected("left")} className={toolbarBtnCompact} title="Align left">L</button>
+                <button type="button" onClick={() => alignSelected("center")} className={toolbarBtnCompact} title="Align center">C</button>
+                <button type="button" onClick={() => alignSelected("right")} className={toolbarBtnCompact} title="Align right">R</button>
+                <button type="button" onClick={() => alignSelected("top")} className={toolbarBtnCompact} title="Align top">T</button>
+                <button type="button" onClick={() => alignSelected("middle")} className={toolbarBtnCompact} title="Align middle">M</button>
+                <button type="button" onClick={() => alignSelected("bottom")} className={toolbarBtnCompact} title="Align bottom">B</button>
+                <button
+                  type="button"
+                  onClick={() => distributeSelected("horizontal")}
+                  disabled={selectedNotesCount < 3}
+                  className={toolbarBtnCompact}
+                  title="Distribute horizontally"
+                >
+                  Dist H
+                </button>
+                <button
+                  type="button"
+                  onClick={() => distributeSelected("vertical")}
+                  disabled={selectedNotesCount < 3}
+                  className={toolbarBtnCompact}
+                  title="Distribute vertically"
+                >
+                  Dist V
+                </button>
+              </>
+            )}
+            <div className="mx-1 h-5 w-px bg-zinc-300" />
+            <button type="button" onClick={onOpenCommandPalette} className={toolbarBtnCompact} title="Open command palette (Ctrl/Cmd + K)">
+              ⌘K
             </button>
           </div>
         </div>

@@ -3,9 +3,7 @@
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
 import {
   toolbarBtn,
-  toolbarBtnAccent,
   toolbarBtnActive,
-  toolbarHistoryPill,
   toolbarLabel,
   toolbarSurface,
 } from "@/components/wall/wallChromeClasses";
@@ -22,24 +20,11 @@ type WallToolbarProps = {
   layoutMenuOpen: boolean;
   quickCaptureOpen: boolean;
   isTimeLocked: boolean;
-  canUndo: boolean;
-  canRedo: boolean;
-  historyUndoDepth: number;
-  historyRedoDepth: number;
-  timelineMode: boolean;
-  showHeatmap: boolean;
   onToggleLeftPanel: () => void;
   onToggleRightPanel: () => void;
-  onToggleLayoutMenu: () => void;
-  onOpenSearch: () => void;
+  onOpenCommandPalette: () => void;
   onToggleQuickCapture: () => void;
-  onOpenExport: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
   onTogglePresentationMode: () => void;
-  onResetView: () => void;
-  onToggleTimelineMode: () => void;
-  onToggleHeatmap: () => void;
   onOpenShortcuts: () => void;
   onSetLayoutPreference: (key: LayoutPreferenceKey, value: boolean) => void;
 };
@@ -53,24 +38,11 @@ export const WallToolbar = ({
   layoutMenuOpen,
   quickCaptureOpen,
   isTimeLocked,
-  canUndo,
-  canRedo,
-  historyUndoDepth,
-  historyRedoDepth,
-  timelineMode,
-  showHeatmap,
   onToggleLeftPanel,
   onToggleRightPanel,
-  onToggleLayoutMenu,
-  onOpenSearch,
+  onOpenCommandPalette,
   onToggleQuickCapture,
-  onOpenExport,
-  onUndo,
-  onRedo,
   onTogglePresentationMode,
-  onResetView,
-  onToggleTimelineMode,
-  onToggleHeatmap,
   onOpenShortcuts,
   onSetLayoutPreference,
 }: WallToolbarProps) => {
@@ -105,23 +77,12 @@ export const WallToolbar = ({
                 </button>
               </ControlTooltip>
             )}
-            <ControlTooltip label="Customize layout visibility">
-              <button
-                type="button"
-                onClick={onToggleLayoutMenu}
-                className={layoutMenuOpen ? toolbarBtnActive : toolbarBtn}
-                title="Customize layout visibility"
-              >
-                <Icon name="layout" />
-                <span>Layout</span>
-              </button>
-            </ControlTooltip>
           </>
         )}
-        <ControlTooltip label="Open search palette" shortcut="Ctrl/Cmd + K">
-          <button type="button" onClick={onOpenSearch} className={toolbarBtn} title="Open search palette (Ctrl/Cmd + K)">
+        <ControlTooltip label="Open command palette" shortcut="Ctrl/Cmd + K">
+          <button type="button" onClick={onOpenCommandPalette} className={toolbarBtn} title="Open command palette (Ctrl/Cmd + K)">
             <Icon name="search" />
-            <span>Search</span>
+            <span>Command</span>
           </button>
         </ControlTooltip>
         <ControlTooltip label="Toggle quick capture" shortcut="Q or Ctrl/Cmd + J">
@@ -136,64 +97,15 @@ export const WallToolbar = ({
             <span>Capture</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Export wall content">
-          <button type="button" onClick={onOpenExport} className={toolbarBtn} title="Export wall content">
-            <Icon name="export" />
-            <span>Export</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Undo last action" shortcut="Ctrl/Cmd + Z">
-          <button type="button" onClick={onUndo} disabled={!canUndo || isTimeLocked} className={toolbarBtn} title="Undo (Ctrl/Cmd + Z)">
-            <Icon name="undo" />
-            <span>Undo</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Redo last action" shortcut="Ctrl/Cmd + Shift + Z">
-          <button type="button" onClick={onRedo} disabled={!canRedo || isTimeLocked} className={toolbarBtn} title="Redo (Ctrl/Cmd + Shift + Z)">
-            <Icon name="redo" />
-            <span>Redo</span>
-          </button>
-        </ControlTooltip>
-        <div className={toolbarHistoryPill} title="Undo / Redo history depth">
-          H {historyUndoDepth}/{historyRedoDepth}
-        </div>
         <ControlTooltip label="Toggle presentation mode" shortcut="P">
           <button
             type="button"
             onClick={onTogglePresentationMode}
-            className={presentationMode ? toolbarBtnAccent : toolbarBtn}
+            className={presentationMode ? toolbarBtnActive : toolbarBtn}
             title="Toggle presentation mode (P)"
           >
             <Icon name="present" />
             <span>Present</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Reset camera to fit content">
-          <button type="button" onClick={onResetView} className={toolbarBtn} title="Reset camera to fit content">
-            <Icon name="reset" />
-            <span>Reset view</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Toggle timeline mode" shortcut="T">
-          <button
-            type="button"
-            onClick={onToggleTimelineMode}
-            className={timelineMode ? toolbarBtnActive : toolbarBtn}
-            title="Toggle timeline mode (T)"
-          >
-            <Icon name="timeline" />
-            <span>Timeline</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Toggle recency heatmap" shortcut="H">
-          <button
-            type="button"
-            onClick={onToggleHeatmap}
-            className={showHeatmap ? toolbarBtnActive : toolbarBtn}
-            title="Toggle heatmap (H)"
-          >
-            <Icon name="heatmap" />
-            <span>Heatmap</span>
           </button>
         </ControlTooltip>
         <ControlTooltip label="Open keyboard shortcuts" shortcut="?">

@@ -22,12 +22,6 @@ type WallHeaderBarProps = {
   layoutMenuOpen: boolean;
   quickCaptureOpen: boolean;
   isTimeLocked: boolean;
-  canUndo: boolean;
-  canRedo: boolean;
-  historyUndoDepth: number;
-  historyRedoDepth: number;
-  timelineMode: boolean;
-  showHeatmap: boolean;
   hasContextActions: boolean;
   showContextColor: boolean;
   showContextTextSize: boolean;
@@ -47,16 +41,9 @@ type WallHeaderBarProps = {
   lastSyncedAt: number | null;
   onToggleLeftPanel: () => void;
   onToggleRightPanel: () => void;
-  onToggleLayoutMenu: () => void;
-  onOpenSearch: () => void;
+  onOpenCommandPalette: () => void;
   onToggleQuickCapture: () => void;
-  onOpenExport: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
   onTogglePresentationMode: () => void;
-  onResetView: () => void;
-  onToggleTimelineMode: () => void;
-  onToggleHeatmap: () => void;
   onOpenShortcuts: () => void;
   onSetLayoutPreference: (key: "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags", value: boolean) => void;
   onApplyColorToSelection: (color: string) => void;
@@ -75,12 +62,6 @@ export const WallHeaderBar = ({
   layoutMenuOpen,
   quickCaptureOpen,
   isTimeLocked,
-  canUndo,
-  canRedo,
-  historyUndoDepth,
-  historyRedoDepth,
-  timelineMode,
-  showHeatmap,
   hasContextActions,
   showContextColor,
   showContextTextSize,
@@ -100,16 +81,9 @@ export const WallHeaderBar = ({
   lastSyncedAt,
   onToggleLeftPanel,
   onToggleRightPanel,
-  onToggleLayoutMenu,
-  onOpenSearch,
+  onOpenCommandPalette,
   onToggleQuickCapture,
-  onOpenExport,
-  onUndo,
-  onRedo,
   onTogglePresentationMode,
-  onResetView,
-  onToggleTimelineMode,
-  onToggleHeatmap,
   onOpenShortcuts,
   onSetLayoutPreference,
   onApplyColorToSelection,
@@ -135,24 +109,11 @@ export const WallHeaderBar = ({
         layoutMenuOpen={layoutMenuOpen}
         quickCaptureOpen={quickCaptureOpen}
         isTimeLocked={isTimeLocked}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        historyUndoDepth={historyUndoDepth}
-        historyRedoDepth={historyRedoDepth}
-        timelineMode={timelineMode}
-        showHeatmap={showHeatmap}
         onToggleLeftPanel={onToggleLeftPanel}
         onToggleRightPanel={onToggleRightPanel}
-        onToggleLayoutMenu={onToggleLayoutMenu}
-        onOpenSearch={onOpenSearch}
+        onOpenCommandPalette={onOpenCommandPalette}
         onToggleQuickCapture={onToggleQuickCapture}
-        onOpenExport={onOpenExport}
-        onUndo={onUndo}
-        onRedo={onRedo}
         onTogglePresentationMode={onTogglePresentationMode}
-        onResetView={onResetView}
-        onToggleTimelineMode={onToggleTimelineMode}
-        onToggleHeatmap={onToggleHeatmap}
         onOpenShortcuts={onOpenShortcuts}
         onSetLayoutPreference={onSetLayoutPreference}
       />

@@ -4,6 +4,7 @@ import { type FocusEvent, useCallback, useEffect, useMemo, useRef, useState } fr
 import { Layer } from "react-konva";
 import type Konva from "konva";
 
+import type { CommandPaletteCommand } from "@/components/SearchPalette";
 import type { DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { useWallActions } from "@/components/wall/useWallActions";
 import { WallDetailsSidebar } from "@/components/wall/WallDetailsSidebar";
@@ -123,7 +124,7 @@ const flashDurationMs = 1200;
 const defaultLayoutPrefs: LayoutPreferences = {
   showToolsPanel: true,
   showDetailsPanel: true,
-  showContextBar: true,
+  showContextBar: false,
   showNoteTags: false,
 };
 const defaultSpatialPrefs: SpatialPreferences = {
@@ -897,6 +898,202 @@ export const WallCanvas = () => {
     isTimeLocked,
     publishedReadOnly,
   });
+
+  const commandPaletteCommands = useMemo<CommandPaletteCommand[]>(
+    () => [
+      {
+        id: "new-note",
+        label: "Create note",
+        description: "Add a note at viewport center and open editor.",
+        shortcut: "N",
+        keywords: ["add", "new", "sticky"],
+        disabled: isTimeLocked,
+        onSelect: makeNoteAtViewportCenter,
+      },
+      {
+        id: "new-frame",
+        label: "Create frame zone",
+        description: "Add a frame zone at viewport center.",
+        keywords: ["zone", "container", "frame"],
+        disabled: isTimeLocked,
+        onSelect: () => makeZoneAtViewportCenter("frame"),
+      },
+      {
+        id: "new-column",
+        label: "Create column zone",
+        description: "Add a column zone at viewport center.",
+        keywords: ["zone", "column", "layout"],
+        disabled: isTimeLocked,
+        onSelect: () => makeZoneAtViewportCenter("column"),
+      },
+      {
+        id: "new-swimlane",
+        label: "Create swimlane zone",
+        description: "Add a swimlane zone at viewport center.",
+        keywords: ["zone", "lane", "layout"],
+        disabled: isTimeLocked,
+        onSelect: () => makeZoneAtViewportCenter("swimlane"),
+      },
+      {
+        id: "toggle-quick-capture",
+        label: quickCaptureOpen ? "Close quick capture" : "Open quick capture",
+        description: "Capture notes quickly from text input.",
+        shortcut: "Q",
+        keywords: ["capture", "quick"],
+        disabled: isTimeLocked,
+        onSelect: () => setQuickCaptureOpen((previous) => !previous),
+      },
+      {
+        id: "export",
+        label: "Open export panel",
+        description: "Export PNG, PDF, Markdown, JSON, or publish snapshot.",
+        keywords: ["download", "share", "backup"],
+        onSelect: () => setExportOpenTracked(true),
+      },
+      {
+        id: "undo",
+        label: "Undo",
+        description: "Revert the last change.",
+        shortcut: "Ctrl/Cmd + Z",
+        keywords: ["history", "back"],
+        disabled: !canUndo || isTimeLocked,
+        onSelect: undo,
+      },
+      {
+        id: "redo",
+        label: "Redo",
+        description: "Re-apply the last reverted change.",
+        shortcut: "Ctrl/Cmd + Shift + Z",
+        keywords: ["history", "forward"],
+        disabled: !canRedo || isTimeLocked,
+        onSelect: redo,
+      },
+      {
+        id: "toggle-presentation",
+        label: presentationMode ? "Exit presentation mode" : "Enter presentation mode",
+        description: "Focus on sequential note walkthrough.",
+        shortcut: "P",
+        keywords: ["present", "slides"],
+        onSelect: togglePresentationMode,
+      },
+      {
+        id: "reset-view",
+        label: "Reset camera to fit content",
+        description: "Fit camera to visible notes and zones.",
+        keywords: ["camera", "zoom", "fit"],
+        onSelect: resetView,
+      },
+      {
+        id: "toggle-timeline",
+        label: timelineMode ? "Exit timeline mode" : "Enter timeline mode",
+        description: "View wall state along timeline history.",
+        shortcut: "T",
+        keywords: ["history", "time"],
+        onSelect: toggleTimelineMode,
+      },
+      {
+        id: "toggle-heatmap",
+        label: showHeatmap ? "Hide recency heatmap" : "Show recency heatmap",
+        description: "Overlay recency heatmap calendar.",
+        shortcut: "H",
+        keywords: ["calendar", "activity"],
+        onSelect: () => setShowHeatmap((previous) => !previous),
+      },
+      {
+        id: "toggle-tools-panel",
+        label: leftPanelOpen ? "Hide tools panel" : "Show tools panel",
+        description: "Toggle the left tools panel.",
+        keywords: ["left", "panel", "tools"],
+        onSelect: toggleLeftPanel,
+      },
+      {
+        id: "toggle-details-panel",
+        label: rightPanelOpen ? "Hide details panel" : "Show details panel",
+        description: "Toggle the right details panel.",
+        keywords: ["right", "panel", "details"],
+        onSelect: toggleRightPanel,
+      },
+      {
+        id: "toggle-layout-settings",
+        label: layoutMenuOpen ? "Close layout settings" : "Open layout settings",
+        description: "Choose which wall chrome elements are visible.",
+        keywords: ["layout", "preferences", "visibility"],
+        onSelect: () => setLayoutMenuOpen((previous) => !previous),
+      },
+      {
+        id: "toggle-box-select",
+        label: boxSelectMode ? "Disable box select mode" : "Enable box select mode",
+        description: "Switch drag behavior to marquee selection.",
+        keywords: ["multi-select", "selection", "marquee"],
+        onSelect: () => setBoxSelectMode((value) => !value),
+      },
+      {
+        id: "toggle-clusters",
+        label: ui.showClusters ? "Hide cluster overlays" : "Show cluster overlays",
+        description: "Toggle automatic cluster outlines.",
+        keywords: ["cluster", "insight", "overlay"],
+        onSelect: () => setShowClusters(!ui.showClusters),
+      },
+      {
+        id: "toggle-dot-matrix",
+        label: spatialPrefs.showDotMatrix ? "Hide dot matrix" : "Show dot matrix",
+        description: "Toggle subtle dot-grid background helper.",
+        keywords: ["grid", "dot", "background"],
+        onSelect: () => setSpatialPrefs((previous) => ({ ...previous, showDotMatrix: !previous.showDotMatrix })),
+      },
+      {
+        id: "toggle-snap-guides",
+        label: spatialPrefs.snapToGuides ? "Disable snap guides" : "Enable snap guides",
+        description: "Toggle alignment guide snapping.",
+        keywords: ["snap", "guide", "align"],
+        onSelect: () => setSpatialPrefs((previous) => ({ ...previous, snapToGuides: !previous.snapToGuides })),
+      },
+      {
+        id: "toggle-snap-grid",
+        label: spatialPrefs.snapToGrid ? "Disable snap grid" : "Enable snap grid",
+        description: "Toggle grid snapping during drag.",
+        keywords: ["snap", "grid"],
+        onSelect: () => setSpatialPrefs((previous) => ({ ...previous, snapToGrid: !previous.snapToGrid })),
+      },
+      {
+        id: "open-shortcuts",
+        label: "Open shortcuts help",
+        description: "Show keyboard shortcut reference.",
+        shortcut: "?",
+        keywords: ["help", "keys"],
+        onSelect: () => setShortcutsOpenTracked(true),
+      },
+    ],
+    [
+      boxSelectMode,
+      canRedo,
+      canUndo,
+      isTimeLocked,
+      layoutMenuOpen,
+      leftPanelOpen,
+      makeNoteAtViewportCenter,
+      makeZoneAtViewportCenter,
+      presentationMode,
+      quickCaptureOpen,
+      redo,
+      resetView,
+      rightPanelOpen,
+      setExportOpenTracked,
+      setShortcutsOpenTracked,
+      showHeatmap,
+      spatialPrefs.showDotMatrix,
+      spatialPrefs.snapToGrid,
+      spatialPrefs.snapToGuides,
+      timelineMode,
+      toggleLeftPanel,
+      togglePresentationMode,
+      toggleRightPanel,
+      toggleTimelineMode,
+      setShowClusters,
+      ui.showClusters,
+      undo,
+    ],
+  );
   return (
     <div className="route-shell flex h-screen flex-col text-[var(--color-text)]">
       <WallHeaderBar
@@ -908,12 +1105,6 @@ export const WallCanvas = () => {
         layoutMenuOpen={layoutMenuOpen}
         quickCaptureOpen={quickCaptureOpen}
         isTimeLocked={isTimeLocked}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        historyUndoDepth={historyUndoDepth}
-        historyRedoDepth={historyRedoDepth}
-        timelineMode={timelineMode}
-        showHeatmap={showHeatmap}
         hasContextActions={hasContextActions}
         showContextColor={showContextColor}
         showContextTextSize={showContextTextSize}
@@ -933,16 +1124,9 @@ export const WallCanvas = () => {
         lastSyncedAt={lastSyncedAt}
         onToggleLeftPanel={toggleLeftPanel}
         onToggleRightPanel={toggleRightPanel}
-        onToggleLayoutMenu={() => setLayoutMenuOpen((previous) => !previous)}
-        onOpenSearch={() => setSearchOpenTracked(true)}
+        onOpenCommandPalette={() => setSearchOpenTracked(true)}
         onToggleQuickCapture={() => setQuickCaptureOpen((previous) => !previous)}
-        onOpenExport={() => setExportOpenTracked(true)}
-        onUndo={undo}
-        onRedo={redo}
         onTogglePresentationMode={togglePresentationMode}
-        onResetView={resetView}
-        onToggleTimelineMode={toggleTimelineMode}
-        onToggleHeatmap={() => setShowHeatmap((previous) => !previous)}
         onOpenShortcuts={() => setShortcutsOpenTracked(true)}
         onSetLayoutPreference={setLayoutPreference}
         onApplyColorToSelection={applyColorToSelection}
@@ -984,6 +1168,12 @@ export const WallCanvas = () => {
         {!publishedReadOnly && syncError && (
           <div className="pointer-events-none absolute left-1/2 top-3 z-[45] -translate-x-1/2 rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger-soft)] px-3 py-2 text-xs text-[var(--color-danger-strong)] shadow-[var(--shadow-sm)]">
             Sync error: {syncError}
+          </div>
+        )}
+
+        {!presentationMode && !ui.isSearchOpen && (
+          <div className="pointer-events-none absolute bottom-3 left-1/2 z-[32] -translate-x-1/2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
+            Command-first: press Ctrl/Cmd + K
           </div>
         )}
 
@@ -1196,6 +1386,7 @@ export const WallCanvas = () => {
           tagPreviewPalette={tagPreviewPalette}
           quickActionScreen={quickActionScreen}
           primarySelectedNote={primarySelectedNote}
+          selectedNotesCount={selectedNotes.length}
           toolbarBtnActive={toolbarBtnActive}
           toolbarBtnCompact={toolbarBtnCompact}
           applyTextSizeToSelection={applyTextSizeToSelection}
@@ -1211,6 +1402,9 @@ export const WallCanvas = () => {
           setLinkMenu={setLinkMenu}
           deleteLink={deleteLink}
           updateLinkType={updateLinkType}
+          alignSelected={alignSelected}
+          distributeSelected={distributeSelected}
+          onOpenCommandPalette={() => setSearchOpenTracked(true)}
           showHeatmap={showHeatmap}
           timelineEntries={timelineEntries}
           jumpToTimelineDay={jumpToTimelineDay}
@@ -1309,7 +1503,8 @@ export const WallCanvas = () => {
 
       <WallGlobalModals
         quickCaptureOpen={quickCaptureOpen} isTimeLocked={isTimeLocked} onCloseQuickCapture={() => setQuickCaptureOpen(false)} onCapture={captureNotes}
-        isSearchOpen={ui.isSearchOpen} visibleNotes={visibleNotes} onCloseSearch={() => setSearchOpenTracked(false)} onSelectSearchNote={focusNote}
+        isSearchOpen={ui.isSearchOpen} visibleNotes={visibleNotes} commandPaletteCommands={commandPaletteCommands}
+        onCloseSearch={() => setSearchOpenTracked(false)} onSelectSearchNote={focusNote}
         isExportOpen={ui.isExportOpen} onCloseExport={() => setExportOpenTracked(false)}
         onExportPng={(scope, pixelRatio) => { void exportPng(scope, pixelRatio); }}
         onExportPdf={(scope) => { void exportPdf(scope); }}

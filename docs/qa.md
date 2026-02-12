@@ -126,13 +126,15 @@ Expected:
 - Deleted note does not return after refresh.
 
 ## Milestone 4 - Search and Quick Jump
-1. Press `Ctrl/Cmd + K` to open search.
+1. Press `Ctrl/Cmd + K` to open command palette.
 2. Search for a known phrase in one note.
 3. Select result.
+4. Reopen palette, type `/`, and run a command (for example `Undo` or `Open export panel`).
 
 Expected:
 - Result list updates quickly as you type.
 - Selecting a result centers and highlights the target note.
+- Command rows are discoverable with shortcut hints and execute immediately.
 
 ## Milestone 5 - Clusters and Zones
 1. Click `New Zone` twice.
@@ -305,7 +307,7 @@ Expected:
 
 ## Keyboard Accessibility Spot Check
 1. Press `N` for new note.
-2. Press `Ctrl/Cmd + K` for search.
+2. Press `Ctrl/Cmd + K` for command palette.
 3. Press `Ctrl/Cmd + L` with a selected note, then click target note to create a link.
 4. Press `Ctrl/Cmd + Z` then `Ctrl/Cmd + Shift + Z`.
 5. Press `Ctrl/Cmd + A` to select visible notes.
@@ -315,6 +317,19 @@ Expected:
 
 Expected:
 - All shortcuts work without needing mouse for command invocation.
+
+## Command-First Toolbar and Context
+1. Open `/wall` and verify top toolbar has reduced persistent controls (`Command`, panel toggles, `Capture`, `Present`, `Shortcuts`).
+2. Press `Ctrl/Cmd + K` and verify both command actions and note search results are shown.
+3. Type `/` in palette and verify only commands are shown.
+4. Select 2+ notes and verify alignment/distribution controls appear in floating contextual toolbar near selection.
+5. Verify contextual toolbar includes a `⌘K` action hint/button.
+6. With no modal open, verify canvas hint appears: `Command-first: press Ctrl/Cmd + K`.
+
+Expected:
+- Always-visible chrome is lighter while critical actions remain reachable.
+- Power actions are primarily executed through the command palette.
+- Selection workflows are surfaced contextually near the selected notes.
 
 ## Performance and Regression Checks
 1. Create or import at least 300 notes.
