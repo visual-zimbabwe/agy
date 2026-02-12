@@ -282,7 +282,14 @@ export const NoteTextFormattingToolbar = ({
 
     const updatePosition = () => {
       const current = textareaRef.current;
-      if (!current || document.activeElement !== current) {
+      if (!current) {
+        setPosition(null);
+        return;
+      }
+      const activeElement = document.activeElement as HTMLElement | null;
+      const focusInsideEditor = activeElement === current;
+      const focusInsideTools = Boolean(activeElement?.closest?.('[data-note-edit-tools="true"]'));
+      if (!focusInsideEditor && !focusInsideTools) {
         setPosition(null);
         return;
       }
