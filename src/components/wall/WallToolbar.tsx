@@ -52,7 +52,7 @@ export const WallToolbar = ({
         {!presentationMode && (
           <>
             {!publishedReadOnly && layoutPrefs.showToolsPanel && (
-              <ControlTooltip label={leftPanelOpen ? "Hide tools panel" : "Show tools panel"}>
+              <ControlTooltip label={leftPanelOpen ? "Hide tools panel" : "Show tools panel"} side="top">
                 <button
                   type="button"
                   onClick={onToggleLeftPanel}
@@ -65,7 +65,7 @@ export const WallToolbar = ({
               </ControlTooltip>
             )}
             {layoutPrefs.showDetailsPanel && (
-              <ControlTooltip label={rightPanelOpen ? "Hide details panel" : "Show details panel"}>
+              <ControlTooltip label={rightPanelOpen ? "Hide details panel" : "Show details panel"} side="top">
                 <button
                   type="button"
                   onClick={onToggleRightPanel}
@@ -79,13 +79,13 @@ export const WallToolbar = ({
             )}
           </>
         )}
-        <ControlTooltip label="Open command palette" shortcut="Ctrl/Cmd + K">
+        <ControlTooltip label="Open command palette" shortcut="Ctrl/Cmd + K" side="top">
           <button type="button" onClick={onOpenCommandPalette} className={toolbarBtn} title="Open command palette (Ctrl/Cmd + K)">
             <Icon name="search" />
             <span>Command</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Toggle quick capture" shortcut="Q or Ctrl/Cmd + J">
+        <ControlTooltip label="Toggle quick capture" shortcut="Q or Ctrl/Cmd + J" side="top">
           <button
             type="button"
             onClick={onToggleQuickCapture}
@@ -97,7 +97,7 @@ export const WallToolbar = ({
             <span>Capture</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Toggle presentation mode" shortcut="P">
+        <ControlTooltip label="Toggle presentation mode" shortcut="P" side="top">
           <button
             type="button"
             onClick={onTogglePresentationMode}
@@ -108,7 +108,7 @@ export const WallToolbar = ({
             <span>Present</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Open keyboard shortcuts" shortcut="?">
+        <ControlTooltip label="Open keyboard shortcuts" shortcut="?" side="top">
           <button type="button" onClick={onOpenShortcuts} className={toolbarBtn} title="Open keyboard shortcuts (?)">
             <Icon name="shortcuts" />
             <span>Shortcuts</span>
