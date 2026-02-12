@@ -2,7 +2,7 @@
 
 import { NoteSwatches } from "@/components/NoteCard";
 import { WallToolbar } from "@/components/wall/WallToolbar";
-import { brandChip, statusChip } from "@/components/wall/wallChromeClasses";
+import { statusChip } from "@/components/wall/wallChromeClasses";
 import { NOTE_DEFAULTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
 import type { Note } from "@/features/wall/types";
 
@@ -93,13 +93,7 @@ export const WallHeaderBar = ({
   onSyncNow,
 }: WallHeaderBarProps) => {
   return (
-    <header className="mx-3 mt-3 flex flex-col gap-2 md:mx-4 md:mt-4">
-      <div className={brandChip}>
-        <span className="font-semibold tracking-[0.14em] uppercase">Idea-Wall</span>
-        <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[10px] text-[var(--color-text)]">
-          {presentationMode ? "Presentation Mode" : "Studio Mode"}
-        </span>
-      </div>
+    <header className="mx-3 mt-3 flex flex-col gap-1.5 md:mx-4 md:mt-4">
       <WallToolbar
         presentationMode={presentationMode}
         publishedReadOnly={publishedReadOnly}

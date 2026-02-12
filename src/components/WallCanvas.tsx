@@ -232,9 +232,11 @@ export const WallCanvas = () => {
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
   const [presentationIndex, setPresentationIndex] = useState(0);
-  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [clientPrefsLoaded, setClientPrefsLoaded] = useState(false);
+  const previousSelectedNoteIdRef = useRef<string | undefined>(undefined);
+  const detailsPanelAutoOpenedRef = useRef(false);
   const [publishedSnapshot] = useState<PersistedWallState | null>(() => {
     const encoded = readSnapshotParamFromLocation();
     if (!encoded) {
@@ -412,9 +414,8 @@ export const WallCanvas = () => {
     const cadenceRaw = window.localStorage.getItem(backupReminderCadenceStorageKey);
     setBackupReminderCadence(cadenceRaw === "daily" || cadenceRaw === "weekly" ? cadenceRaw : "off");
 
-    const wideLayout = window.innerWidth >= compactPanelBreakpoint;
-    setLeftPanelOpen(wideLayout);
-    setRightPanelOpen(wideLayout);
+    setLeftPanelOpen(false);
+    setRightPanelOpen(false);
     setClientPrefsLoaded(true);
   }, []);
 
@@ -635,12 +636,79 @@ export const WallCanvas = () => {
     setLeftPanelOpen((previous) => !previous);
   }, [leftPanelOpen, markOpenIntent]);
 
+  const openLeftPanel = useCallback(() => {
+    if (leftPanelOpen) {
+      return;
+    }
+    markOpenIntent("toolsPanelOpenMs");
+    setLeftPanelOpen(true);
+  }, [leftPanelOpen, markOpenIntent]);
+
+  const closeLeftPanel = useCallback(() => {
+    if (!leftPanelOpen) {
+      return;
+    }
+    setLeftPanelOpen(false);
+  }, [leftPanelOpen]);
+
   const toggleRightPanel = useCallback(() => {
+    detailsPanelAutoOpenedRef.current = false;
     if (!rightPanelOpen) {
       markOpenIntent("detailsPanelOpenMs");
     }
     setRightPanelOpen((previous) => !previous);
   }, [markOpenIntent, rightPanelOpen]);
+
+  const openRightPanel = useCallback(() => {
+    detailsPanelAutoOpenedRef.current = false;
+    if (rightPanelOpen) {
+      return;
+    }
+    markOpenIntent("detailsPanelOpenMs");
+    setRightPanelOpen(true);
+  }, [markOpenIntent, rightPanelOpen]);
+
+  const closeRightPanel = useCallback(() => {
+    detailsPanelAutoOpenedRef.current = false;
+    if (!rightPanelOpen) {
+      return;
+    }
+    setRightPanelOpen(false);
+  }, [rightPanelOpen]);
+
+  useEffect(() => {
+    if (isChromeHidden || isCompactLayout || !layoutPrefs.showDetailsPanel) {
+      previousSelectedNoteIdRef.current = ui.selectedNoteId;
+      return;
+    }
+
+    const selectedNow = Boolean(ui.selectedNoteId);
+    const selectedBefore = Boolean(previousSelectedNoteIdRef.current);
+
+    if (selectedNow && !selectedBefore && !rightPanelOpen) {
+      markOpenIntent("detailsPanelOpenMs");
+      setRightPanelOpen(true);
+      detailsPanelAutoOpenedRef.current = true;
+    }
+
+    if (!selectedNow && selectedBefore && detailsPanelAutoOpenedRef.current && rightPanelOpen) {
+      setRightPanelOpen(false);
+      detailsPanelAutoOpenedRef.current = false;
+    }
+
+    if (!selectedNow) {
+      detailsPanelAutoOpenedRef.current = false;
+    }
+
+    previousSelectedNoteIdRef.current = ui.selectedNoteId;
+  }, [
+    isChromeHidden,
+    isCompactLayout,
+    layoutPrefs.showDetailsPanel,
+    markOpenIntent,
+    rightPanelOpen,
+    ui.selectedNoteId,
+  ]);
 
   useWallKeyboard({
     camera,
@@ -1120,15 +1188,47 @@ export const WallCanvas = () => {
         id: "toggle-tools-panel",
         label: leftPanelOpen ? "Hide tools panel" : "Show tools panel",
         description: "Toggle the left tools panel.",
-        keywords: ["left", "panel", "tools"],
+        keywords: ["left", "panel", "tools", "show tools"],
         onSelect: toggleLeftPanel,
+      },
+      {
+        id: "open-tools-panel",
+        label: "Show tools panel",
+        description: "Open the left tools panel.",
+        keywords: ["left", "panel", "tools", "show", "open"],
+        disabled: leftPanelOpen,
+        onSelect: openLeftPanel,
+      },
+      {
+        id: "close-tools-panel",
+        label: "Hide tools panel",
+        description: "Close the left tools panel.",
+        keywords: ["left", "panel", "tools", "hide", "close"],
+        disabled: !leftPanelOpen,
+        onSelect: closeLeftPanel,
       },
       {
         id: "toggle-details-panel",
         label: rightPanelOpen ? "Hide details panel" : "Show details panel",
         description: "Toggle the right details panel.",
-        keywords: ["right", "panel", "details"],
+        keywords: ["right", "panel", "details", "sidebar"],
         onSelect: toggleRightPanel,
+      },
+      {
+        id: "open-details-panel",
+        label: "Open sidebar",
+        description: "Open the right details sidebar.",
+        keywords: ["right", "panel", "details", "sidebar", "open"],
+        disabled: rightPanelOpen,
+        onSelect: openRightPanel,
+      },
+      {
+        id: "close-details-panel",
+        label: "Close sidebar",
+        description: "Close the right details sidebar.",
+        keywords: ["right", "panel", "details", "sidebar", "close", "hide"],
+        disabled: !rightPanelOpen,
+        onSelect: closeRightPanel,
       },
       {
         id: "toggle-layout-settings",
@@ -1224,6 +1324,10 @@ export const WallCanvas = () => {
       togglePresentationMode,
       toggleRightPanel,
       toggleTimelineMode,
+      openLeftPanel,
+      closeLeftPanel,
+      openRightPanel,
+      closeRightPanel,
       collapseAllZoneGroups,
       expandAllZoneGroups,
       setShowClusters,
@@ -1319,7 +1423,7 @@ export const WallCanvas = () => {
 
         {!isChromeHidden && !ui.isSearchOpen && (
           <div className="pointer-events-none absolute bottom-4 left-1/2 z-[32] -translate-x-1/2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-4 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
-            Command-first: press Ctrl/Cmd + K
+            Ctrl/Cmd + K
           </div>
         )}
 

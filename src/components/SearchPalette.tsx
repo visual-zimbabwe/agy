@@ -104,8 +104,8 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
     <ModalShell
       open={open}
       onClose={onClose}
-      title="Command Palette"
-      description="Power through commands and find notes in one place."
+      title="Search + Commands"
+      description="Search notes and run actions."
       maxWidthClassName="max-w-2xl"
       position="top"
     >
@@ -151,7 +151,7 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
             onClose();
           }
         }}
-        placeholder='Type command or search note text (use "/" for commands only)'
+        placeholder='Search notes or type "/" for commands'
         className="px-4 py-3"
       />
       <p className="mt-2 px-1 text-[11px] text-[var(--color-text-muted)]">
