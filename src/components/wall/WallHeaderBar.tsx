@@ -126,7 +126,7 @@ export const WallHeaderBar = ({
               <div className={toolbarDivider} />
               <div className="flex items-center gap-2">
                 <span className={toolbarLabel}>Color</span>
-                <NoteSwatches value={selectedNotes[0]?.color ?? selectedNote?.color ?? uiLastColor} onSelect={onApplyColorToSelection} />
+                <NoteSwatches value={selectedNotes[0]?.color ?? selectedNote?.color ?? uiLastColor} onSelect={onApplyColorToSelection} showCustomColorAdd />
               </div>
             </>
           )}

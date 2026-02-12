@@ -282,7 +282,7 @@ export const WallFloatingUi = ({
               </button>
             ))}
             <div className="mx-1 h-5 w-px bg-zinc-300" />
-            <NoteSwatches value={primarySelectedNote.color} onSelect={applyColorToSelection} />
+            <NoteSwatches value={primarySelectedNote.color} onSelect={applyColorToSelection} showCustomColorAdd />
             <div className="mx-1 h-5 w-px bg-zinc-300" />
             <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd + D)">
               Duplicate
