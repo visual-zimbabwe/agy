@@ -20,10 +20,13 @@ export const decodeSnapshotFromUrl = (encoded: string): PersistedWallState | nul
     const notes = Object.fromEntries(
       Object.entries(parsed.notes ?? {}).map(([id, note]) => [id, { ...note, tags: note.tags ?? [] }]),
     );
+    const zones = Object.fromEntries(
+      Object.entries(parsed.zones ?? {}).map(([id, zone]) => [id, { ...zone, kind: zone.kind ?? "frame" }]),
+    );
 
     return {
       notes,
-      zones: parsed.zones ?? {},
+      zones,
       zoneGroups: parsed.zoneGroups ?? {},
       links: parsed.links ?? {},
       camera: parsed.camera ?? { x: 0, y: 0, zoom: 1 },

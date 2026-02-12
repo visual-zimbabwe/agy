@@ -87,6 +87,7 @@ export type Database = {
           wall_id: string;
           owner_id: string;
           label: string;
+          kind: string;
           group_id: string | null;
           x: number;
           y: number;
@@ -102,6 +103,7 @@ export type Database = {
           wall_id: string;
           owner_id: string;
           label: string;
+          kind?: string;
           group_id?: string | null;
           x: number;
           y: number;
@@ -114,6 +116,7 @@ export type Database = {
         };
         Update: {
           label?: string;
+          kind?: string;
           group_id?: string | null;
           x?: number;
           y?: number;

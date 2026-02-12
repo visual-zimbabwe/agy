@@ -1,6 +1,6 @@
-import { GROUP_COLORS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS } from "@/features/wall/constants";
+import { GROUP_COLORS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
-import type { Link, LinkType, Note, TemplateType, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Link, LinkType, Note, TemplateType, Zone, ZoneGroup, ZoneKind } from "@/features/wall/types";
 
 const makeId = () => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -102,16 +102,18 @@ export const duplicateNoteAt = (noteId: string, x: number, y: number) => {
   selectNote(duplicated.id);
 };
 
-export const createZone = (x: number, y: number, label = "New Zone") => {
+export const createZone = (x: number, y: number, label = "New Zone", kind: ZoneKind = "frame") => {
   const now = Date.now();
+  const defaults = ZONE_KIND_DEFAULTS[kind];
   const zone: Zone = {
     id: makeId(),
     label,
+    kind,
     groupId: undefined,
     x,
     y,
-    w: ZONE_DEFAULTS.width,
-    h: ZONE_DEFAULTS.height,
+    w: defaults.width ?? ZONE_DEFAULTS.width,
+    h: defaults.height ?? ZONE_DEFAULTS.height,
     color: randomColor(ZONE_COLORS, "#FFF4CC"),
     createdAt: now,
     updatedAt: now,
@@ -301,6 +303,7 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
       const zone: Zone = {
         id: makeId(),
         label: zoneDef.label,
+        kind: "frame",
         x: centerX + zoneDef.dx,
         y: centerY + zoneDef.dy,
         w: zoneDef.w ?? ZONE_DEFAULTS.width,

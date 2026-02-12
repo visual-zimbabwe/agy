@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
-import type { Note, TemplateType } from "@/features/wall/types";
+import type { Note, TemplateType, ZoneKind } from "@/features/wall/types";
 
 type Camera = { x: number; y: number; zoom: number };
 type Viewport = { w: number; h: number };
@@ -28,7 +28,7 @@ type UseWallActionsOptions = {
   syncPrimarySelection: (ids: string[]) => void;
   toWorldPoint: (screenX: number, screenY: number, camera: Camera) => { x: number; y: number };
   createNote: (x: number, y: number, color?: string) => string;
-  createZone: (x: number, y: number, label?: string, color?: string, groupId?: string) => string;
+  createZone: (x: number, y: number, label?: string, kind?: ZoneKind) => string;
   applyTemplate: (type: TemplateType, x: number, y: number) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   addTagToNote: (noteId: string, tag: string) => void;
@@ -163,12 +163,18 @@ export const useWallActions = ({
     syncPrimarySelection([id]);
   }, [camera, createNote, isTimeLocked, lastColor, syncPrimarySelection, toWorldPoint, viewport.h, viewport.w]);
 
-  const makeZoneAtViewportCenter = useCallback(() => {
+  const makeZoneAtViewportCenter = useCallback((kind: ZoneKind = "frame") => {
     if (isTimeLocked) {
       return;
     }
+    const defaults =
+      kind === "column"
+        ? { width: 320, height: 520, label: "Column" }
+        : kind === "swimlane"
+          ? { width: 760, height: 190, label: "Swimlane" }
+          : { width: ZONE_DEFAULTS.width, height: ZONE_DEFAULTS.height, label: "Frame" };
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    createZone(world.x - ZONE_DEFAULTS.width / 2, world.y - ZONE_DEFAULTS.height / 2, "Zone");
+    createZone(world.x - defaults.width / 2, world.y - defaults.height / 2, defaults.label, kind);
   }, [camera, createZone, isTimeLocked, toWorldPoint, viewport.h, viewport.w]);
 
   const applySelectedTemplate = useCallback(() => {

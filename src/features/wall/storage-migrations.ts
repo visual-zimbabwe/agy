@@ -88,9 +88,11 @@ const normalizeZone = (entry: Record<string, unknown>, fallbackId: string): Zone
     return null;
   }
   const groupId = typeof entry.groupId === "string" && entry.groupId ? entry.groupId : undefined;
+  const kind = entry.kind === "column" || entry.kind === "swimlane" ? entry.kind : "frame";
   return {
     id,
     label: asString(entry.label),
+    kind,
     groupId,
     x: asNumber(entry.x),
     y: asNumber(entry.y),

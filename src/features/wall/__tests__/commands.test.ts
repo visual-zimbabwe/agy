@@ -98,4 +98,15 @@ describe("wall commands", () => {
     expect(targetGroup.zoneIds).toEqual([zoneId]);
     expect(zone.groupId).toBe(targetGroupId);
   });
+
+  it("creates zone variants with distinct kind", () => {
+    const frameId = createZone(10, 10, "Frame");
+    const columnId = createZone(20, 20, "Column", "column");
+    const swimlaneId = createZone(30, 30, "Swimlane", "swimlane");
+
+    const state = useWallStore.getState();
+    expect(state.zones[frameId]?.kind).toBe("frame");
+    expect(state.zones[columnId]?.kind).toBe("column");
+    expect(state.zones[swimlaneId]?.kind).toBe("swimlane");
+  });
 });

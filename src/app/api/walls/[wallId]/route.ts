@@ -48,7 +48,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       .is("deleted_at", null),
     auth.supabase
       .from("zones")
-      .select("id,label,group_id,x,y,w,h,color,created_at,updated_at")
+      .select("id,label,kind,group_id,x,y,w,h,color,created_at,updated_at")
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null),

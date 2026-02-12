@@ -24,6 +24,7 @@ type NoteRow = {
 type ZoneRow = {
   id: string;
   label: string;
+  kind: string | null;
   group_id: string | null;
   x: number;
   y: number;
@@ -130,6 +131,7 @@ export const rowsToSnapshot = (rows: {
       {
         id: zone.id,
         label: zone.label,
+        kind: zone.kind === "column" || zone.kind === "swimlane" ? zone.kind : "frame",
         groupId: zone.group_id ?? undefined,
         x: zone.x,
         y: zone.y,

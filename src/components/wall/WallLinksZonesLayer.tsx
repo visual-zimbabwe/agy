@@ -46,6 +46,38 @@ export const WallLinksZonesLayer = ({
   onMoveZone,
   onResizeZone,
 }: WallLinksZonesLayerProps) => {
+  const zoneStyle = (zone: Zone, isSelected: boolean) => {
+    const kind = zone.kind ?? "frame";
+    if (kind === "column") {
+      return {
+        cornerRadius: 12,
+        opacity: 0.32,
+        dash: [5, 5] as number[],
+        headerHeight: 30,
+        headerFill: "rgba(255,255,255,0.72)",
+        stroke: isSelected ? "#0f172a" : "#64748b",
+      };
+    }
+    if (kind === "swimlane") {
+      return {
+        cornerRadius: 10,
+        opacity: 0.3,
+        dash: [10, 6] as number[],
+        headerHeight: 34,
+        headerFill: "rgba(255,255,255,0.78)",
+        stroke: isSelected ? "#0f172a" : "#64748b",
+      };
+    }
+    return {
+      cornerRadius: 18,
+      opacity: 0.38,
+      dash: [8, 6] as number[],
+      headerHeight: 34,
+      headerFill: "rgba(255,255,255,0.6)",
+      stroke: isSelected ? "#111827" : "#a1a1aa",
+    };
+  };
+
   return (
     <>
       {visibleLinks.map((link) => {
@@ -108,6 +140,8 @@ export const WallLinksZonesLayer = ({
 
       {visibleZones.map((zone) => {
         const isSelected = selectedZoneId === zone.id;
+        const style = zoneStyle(zone, isSelected);
+        const isSwimlane = (zone.kind ?? "frame") === "swimlane";
         return (
           <Group
             key={zone.id}
@@ -146,15 +180,21 @@ export const WallLinksZonesLayer = ({
             <Rect
               width={zone.w}
               height={zone.h}
-              cornerRadius={18}
+              cornerRadius={style.cornerRadius}
               fill={zone.color}
-              opacity={0.38}
-              stroke={isSelected ? "#111827" : "#a1a1aa"}
+              opacity={style.opacity}
+              stroke={style.stroke}
               strokeWidth={isSelected ? 2 : 1}
-              dash={[8, 6]}
+              dash={style.dash}
             />
-            <Rect width={zone.w} height={34} cornerRadius={18} fill="rgba(255,255,255,0.6)" />
+            <Rect width={zone.w} height={style.headerHeight} cornerRadius={style.cornerRadius} fill={style.headerFill} />
             <Text x={12} y={8} fontSize={14} fontStyle="bold" text={zone.label || "Zone"} fill="#1f2937" />
+            {isSwimlane && (
+              <>
+                <Rect x={0} y={Math.max(54, zone.h / 3)} width={zone.w} height={1.2} fill="rgba(15,23,42,0.22)" />
+                <Rect x={0} y={Math.max(72, (zone.h * 2) / 3)} width={zone.w} height={1.2} fill="rgba(15,23,42,0.22)" />
+              </>
+            )}
           </Group>
         );
       })}

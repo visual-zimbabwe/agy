@@ -17,6 +17,7 @@ export type Note = {
 export type Zone = {
   id: string;
   label: string;
+  kind: ZoneKind;
   groupId?: string;
   x: number;
   y: number;
@@ -40,6 +41,8 @@ export type ZoneGroup = {
   deletedAt?: number;
   dirty?: boolean;
 };
+
+export type ZoneKind = "frame" | "column" | "swimlane";
 
 export type LinkType = "cause_effect" | "dependency" | "idea_execution";
 

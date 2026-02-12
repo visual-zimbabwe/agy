@@ -30,6 +30,24 @@ export const ZONE_DEFAULTS = {
   minHeight: 120,
 };
 
+export const ZONE_KIND_DEFAULTS = {
+  frame: {
+    width: ZONE_DEFAULTS.width,
+    height: ZONE_DEFAULTS.height,
+    label: "Frame",
+  },
+  column: {
+    width: 320,
+    height: 520,
+    label: "Column",
+  },
+  swimlane: {
+    width: 760,
+    height: 190,
+    label: "Swimlane",
+  },
+} as const;
+
 export const LINK_TYPES = [
   { value: "cause_effect", label: "Cause -> Effect", color: "#ef4444" },
   { value: "dependency", label: "Dependency", color: "#2563eb" },

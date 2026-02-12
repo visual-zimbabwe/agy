@@ -28,6 +28,7 @@ import {
   noteTagChipPalette,
   recallStorageKey,
   recencyIntensity,
+  spatialPrefsStorageKey,
   tagGroupColor,
   toScreenPoint,
   toWorldPoint,
@@ -36,6 +37,7 @@ import {
   zoneContainsNote,
 } from "@/components/wall/wall-canvas-helpers";
 import { WallLinksZonesLayer } from "@/components/wall/WallLinksZonesLayer";
+import { WallDotMatrixLayer } from "@/components/wall/WallDotMatrixLayer";
 import { WallNotesLayer } from "@/components/wall/WallNotesLayer";
 import { WallOverlaysLayer } from "@/components/wall/WallOverlaysLayer";
 import { useWallCameraNavigation } from "@/components/wall/useWallCameraNavigation";
@@ -106,6 +108,12 @@ type LinkContextMenuState = {
 type SelectionBox = { startX: number; startY: number; x: number; y: number; w: number; h: number };
 type LayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags";
 type LayoutPreferences = Record<LayoutPreferenceKey, boolean>;
+type SpatialPreferences = {
+  showDotMatrix: boolean;
+  snapToGuides: boolean;
+  snapToGrid: boolean;
+  dotGridSpacing: number;
+};
 type GuideLineState = {
   vertical?: { x: number; y1: number; y2: number; distance?: number };
   horizontal?: { y: number; x1: number; x2: number; distance?: number };
@@ -222,6 +230,27 @@ export const WallCanvas = () => {
     }
   });
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
+  const [spatialPrefs, setSpatialPrefs] = useState<SpatialPreferences>(() => {
+    if (typeof window === "undefined") {
+      return { showDotMatrix: false, snapToGuides: true, snapToGrid: false, dotGridSpacing: 32 };
+    }
+    try {
+      const raw = window.localStorage.getItem(spatialPrefsStorageKey);
+      if (!raw) {
+        return { showDotMatrix: false, snapToGuides: true, snapToGrid: false, dotGridSpacing: 32 };
+      }
+      const parsed = JSON.parse(raw) as Partial<SpatialPreferences>;
+      const spacing = typeof parsed.dotGridSpacing === "number" ? parsed.dotGridSpacing : 32;
+      return {
+        showDotMatrix: parsed.showDotMatrix ?? false,
+        snapToGuides: parsed.snapToGuides ?? true,
+        snapToGrid: parsed.snapToGrid ?? false,
+        dotGridSpacing: Math.max(12, Math.min(64, spacing)),
+      };
+    } catch {
+      return { showDotMatrix: false, snapToGuides: true, snapToGrid: false, dotGridSpacing: 32 };
+    }
+  });
   const [backupReminderCadence, setBackupReminderCadence] = useState<"off" | "daily" | "weekly">(() => {
     if (typeof window === "undefined") {
       return "off";
@@ -375,6 +404,13 @@ export const WallCanvas = () => {
     }
     window.localStorage.setItem(layoutPrefsStorageKey, JSON.stringify(layoutPrefs));
   }, [layoutPrefs]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(spatialPrefsStorageKey, JSON.stringify(spatialPrefs));
+  }, [spatialPrefs]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -716,7 +752,11 @@ export const WallCanvas = () => {
     dragSnapThreshold,
     cameraZoom: camera.zoom,
     visibleNotes,
+    visibleZones,
     activeSelectedNoteIdSet,
+    snapToGuides: spatialPrefs.snapToGuides,
+    snapToGrid: spatialPrefs.snapToGrid,
+    gridSize: spatialPrefs.dotGridSpacing,
     setGuideLines,
   });
 
@@ -977,6 +1017,18 @@ export const WallCanvas = () => {
             }}
             onLinkTypeChange={(value) => setLinkType(value)}
             onToggleClusters={() => setShowClusters(!ui.showClusters)}
+            showDotMatrix={spatialPrefs.showDotMatrix}
+            snapToGuides={spatialPrefs.snapToGuides}
+            snapToGrid={spatialPrefs.snapToGrid}
+            onToggleDotMatrix={() =>
+              setSpatialPrefs((previous) => ({ ...previous, showDotMatrix: !previous.showDotMatrix }))
+            }
+            onToggleSnapToGuides={() =>
+              setSpatialPrefs((previous) => ({ ...previous, snapToGuides: !previous.snapToGuides }))
+            }
+            onToggleSnapToGrid={() =>
+              setSpatialPrefs((previous) => ({ ...previous, snapToGrid: !previous.snapToGrid }))
+            }
           />
         )}
 
@@ -1001,6 +1053,15 @@ export const WallCanvas = () => {
             setEditing(null);
           }}
         >
+          <Layer listening={false}>
+            <WallDotMatrixLayer
+              showDotMatrix={spatialPrefs.showDotMatrix}
+              dotGridSpacing={spatialPrefs.dotGridSpacing}
+              camera={camera}
+              viewport={viewport}
+            />
+          </Layer>
+
           <Layer>
             <WallLinksZonesLayer
               visibleLinks={visibleLinks}

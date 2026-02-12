@@ -382,6 +382,26 @@ Expected:
 - Tags render as compact chips with overflow handling.
 - Hover/selected/dragging visual states are clearly distinct.
 
+## Spatial Affordances - Optional Guidance (2026-02-12)
+1. Open `Tools` panel on `/wall`.
+2. Click `Dot Matrix` and verify subtle low-opacity dot background appears.
+3. Drag a note and verify snapping guides appear only while dragging (and disappear on release).
+4. Toggle `Snap Guides` off, drag near note/zone edges, and verify note no longer auto-snaps to guide targets.
+5. Toggle `Snap Grid` on, drag a note slowly, and verify position snaps to dot-grid spacing while dragging.
+6. Create one of each zone type: `New Frame`, `New Column`, `New Swimlane`.
+7. Verify each zone type renders distinct visual affordance (frame shell, tall column, horizontal swimlane tracks).
+8. Place notes freely inside/outside zones and verify no forced constraint blocks manual layout decisions.
+9. Refresh page and verify:
+   - zone kinds persist
+   - spatial toggles (`Dot Matrix`, `Snap Guides`, `Snap Grid`) persist
+10. If cloud sync is enabled, sync and reload in another session to verify zone kinds persist across devices.
+
+Expected:
+- Spatial tools suggest structure without forcing it.
+- Users can keep fully freeform placement at any time.
+- Drag-time guidance is optional and reversible via toggles.
+- Zone variants remain first-class persisted objects.
+
 ## Tag Parsing Parity - Direct Edit vs Quick Capture
 1. Create a new note and type text containing inline hashtags (for example: `Draft launch plan #release #q2`) directly in note edit mode.
 2. Blur or commit the edit.

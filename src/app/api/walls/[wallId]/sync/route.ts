@@ -24,6 +24,7 @@ const noteSchema = z.object({
 const zoneSchema = z.object({
   id: z.string().min(1),
   label: z.string(),
+  kind: z.enum(["frame", "column", "swimlane"]).optional(),
   groupId: z.string().optional(),
   x: z.number(),
   y: z.number(),
@@ -157,6 +158,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
         wall_id: wallId,
         owner_id: auth.user.id,
         label: zone.label,
+        kind: zone.kind ?? "frame",
         group_id: zone.groupId ?? null,
         x: zone.x,
         y: zone.y,

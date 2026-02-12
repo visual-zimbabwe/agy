@@ -2,7 +2,7 @@
 
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
 import { panelCloseBtn, wallPanelSurface } from "@/components/wall/wallChromeClasses";
-import type { LinkType } from "@/features/wall/types";
+import type { LinkType, ZoneKind } from "@/features/wall/types";
 
 type LinkTypeOption = {
   value: LinkType;
@@ -24,12 +24,18 @@ type WallToolsPanelProps = {
   toolbarSelect: string;
   onClose: () => void;
   onCreateNote: () => void;
-  onCreateZone: () => void;
+  onCreateZone: (kind?: ZoneKind) => void;
   onToggleBoxSelect: () => void;
   boxSelectMode: boolean;
   onStartLinking: () => void;
   onLinkTypeChange: (value: LinkType) => void;
   onToggleClusters: () => void;
+  showDotMatrix: boolean;
+  snapToGuides: boolean;
+  snapToGrid: boolean;
+  onToggleDotMatrix: () => void;
+  onToggleSnapToGuides: () => void;
+  onToggleSnapToGrid: () => void;
 };
 
 export const WallToolsPanel = ({
@@ -53,6 +59,12 @@ export const WallToolsPanel = ({
   onStartLinking,
   onLinkTypeChange,
   onToggleClusters,
+  showDotMatrix,
+  snapToGuides,
+  snapToGrid,
+  onToggleDotMatrix,
+  onToggleSnapToGuides,
+  onToggleSnapToGrid,
 }: WallToolsPanelProps) => {
   return (
     <aside
@@ -82,9 +94,21 @@ export const WallToolsPanel = ({
           </button>
         </ControlTooltip>
         <ControlTooltip label="Create zone at viewport center" className="relative block">
-          <button type="button" onClick={onCreateZone} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create zone at viewport center">
+          <button type="button" onClick={() => onCreateZone("frame")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create frame at viewport center">
             <Icon name="zone" />
-            <span>New Zone</span>
+            <span>New Frame</span>
+          </button>
+        </ControlTooltip>
+        <ControlTooltip label="Create suggested column area" className="relative block">
+          <button type="button" onClick={() => onCreateZone("column")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create column at viewport center">
+            <Icon name="zone" />
+            <span>New Column</span>
+          </button>
+        </ControlTooltip>
+        <ControlTooltip label="Create suggested swimlane area" className="relative block">
+          <button type="button" onClick={() => onCreateZone("swimlane")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create swimlane at viewport center">
+            <Icon name="zone" />
+            <span>New Swimlane</span>
           </button>
         </ControlTooltip>
         <ControlTooltip label="Toggle box selection mode" className="relative block">
@@ -128,6 +152,40 @@ export const WallToolsPanel = ({
           >
             <Icon name="cluster" />
             <span>Detect Clusters</span>
+          </button>
+        </ControlTooltip>
+        <div className="my-2 border-t border-[var(--color-border)]/70" />
+        <ControlTooltip label="Toggle subtle dot matrix helper" className="relative block">
+          <button
+            type="button"
+            onClick={onToggleDotMatrix}
+            className={`w-full justify-start ${showDotMatrix ? toolbarBtnActive : toolbarBtn}`}
+            title="Toggle subtle dot matrix helper"
+          >
+            <Icon name="layout" />
+            <span>Dot Matrix</span>
+          </button>
+        </ControlTooltip>
+        <ControlTooltip label="Toggle drag-time guide snapping" className="relative block">
+          <button
+            type="button"
+            onClick={onToggleSnapToGuides}
+            className={`w-full justify-start ${snapToGuides ? toolbarBtnActive : toolbarBtn}`}
+            title="Toggle drag-time guide snapping"
+          >
+            <Icon name="layout" />
+            <span>Snap Guides</span>
+          </button>
+        </ControlTooltip>
+        <ControlTooltip label="Toggle drag-time grid snapping" className="relative block">
+          <button
+            type="button"
+            onClick={onToggleSnapToGrid}
+            className={`w-full justify-start ${snapToGrid ? toolbarBtnActive : toolbarBtn}`}
+            title="Toggle drag-time grid snapping"
+          >
+            <Icon name="layout" />
+            <span>Snap Grid</span>
           </button>
         </ControlTooltip>
       </div>
