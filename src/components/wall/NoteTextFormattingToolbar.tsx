@@ -269,11 +269,10 @@ export const NoteTextFormattingToolbar = ({
   onTextSizeUpdate,
   onTextFontUpdate,
 }: NoteTextFormattingToolbarProps) => {
-  const [focused, setFocused] = useState(false);
   const [position, setPosition] = useState<ToolbarPosition | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
 
-  const visible = active && focused && position;
+  const visible = active && position;
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -303,13 +302,9 @@ export const NoteTextFormattingToolbar = ({
     };
 
     const onFocus = () => {
-      setFocused(true);
       updatePosition();
     };
-    const onBlur = () => {
-      setFocused(false);
-      setPosition(null);
-    };
+    const onBlur = () => undefined;
 
     const trackedEvents: Array<keyof HTMLElementEventMap> = ["focus", "blur", "keyup", "mouseup", "select", "input", "click", "scroll"];
     trackedEvents.forEach((eventName) => textarea.addEventListener(eventName, updatePosition));
@@ -369,29 +364,29 @@ export const NoteTextFormattingToolbar = ({
   return (
     <div
       ref={toolbarRef}
+      data-note-edit-tools="true"
       className="pointer-events-auto fixed z-[70] flex items-center gap-1 rounded-xl border border-zinc-300 bg-white/96 px-2 py-1.5 shadow-xl backdrop-blur-sm motion-toolbar-enter"
       style={{ left: `${position.left}px`, top: `${position.top}px` }}
-      onMouseDown={(event) => event.preventDefault()}
       role="toolbar"
       aria-label="Text formatting"
     >
-      <button type="button" onClick={() => runAction("bold")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100" title="Bold">
+      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("bold")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100" title="Bold">
         B
       </button>
-      <button type="button" onClick={() => runAction("italic")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] italic text-zinc-700 hover:bg-zinc-100" title="Italic">
+      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("italic")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] italic text-zinc-700 hover:bg-zinc-100" title="Italic">
         I
       </button>
-      <button type="button" onClick={() => runAction("underline")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] underline text-zinc-700 hover:bg-zinc-100" title="Underline">
+      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("underline")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] underline text-zinc-700 hover:bg-zinc-100" title="Underline">
         U
       </button>
       <div className="mx-0.5 h-4 w-px bg-zinc-300" />
-      <button type="button" onClick={() => runAction("bullet")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" title="Bulleted list">
+      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("bullet")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" title="Bulleted list">
         Bul
       </button>
-      <button type="button" onClick={() => runAction("number")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" title="Numbered list">
+      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("number")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" title="Numbered list">
         Num
       </button>
-      <button type="button" onClick={() => runAction("multilevel")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" title="Multilevel list">
+      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("multilevel")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" title="Multilevel list">
         Multi
       </button>
       <div className="mx-0.5 h-4 w-px bg-zinc-300" />
@@ -399,6 +394,7 @@ export const NoteTextFormattingToolbar = ({
         <button
           key={button.id}
           type="button"
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => onAlignUpdate(button.id)}
           className={`rounded border px-2 py-1 text-[11px] ${
             textAlign === button.id

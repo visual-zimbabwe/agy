@@ -409,6 +409,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     if (nextTarget?.dataset?.noteEditTags === "true") {
       return;
     }
+    if (nextTarget?.closest?.('[data-note-edit-tools="true"]')) {
+      return;
+    }
     if (!editing) {
       return;
     }

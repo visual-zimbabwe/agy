@@ -185,8 +185,14 @@ export const WallFloatingUi = ({
               });
             }}
             onAlignUpdate={(textAlign) => updateNote(editing.id, { textAlign })}
-            onTextSizeUpdate={(textSizePx) => updateNote(editing.id, { textSizePx })}
-            onTextFontUpdate={(textFont) => updateNote(editing.id, { textFont })}
+            onTextSizeUpdate={(textSizePx) => {
+              updateNote(editing.id, { textSizePx });
+              requestAnimationFrame(() => textareaRef.current?.focus());
+            }}
+            onTextFontUpdate={(textFont) => {
+              updateNote(editing.id, { textFont });
+              requestAnimationFrame(() => textareaRef.current?.focus());
+            }}
           />
           <textarea
             ref={textareaRef}
