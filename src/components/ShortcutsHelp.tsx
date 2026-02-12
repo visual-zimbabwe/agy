@@ -12,7 +12,6 @@ type ShortcutsHelpProps = {
 const shortcuts = [
   ["N or Ctrl/Cmd + N", "New note"],
   ["Q or Ctrl/Cmd + J", "Toggle quick capture bar"],
-  ["Ctrl/Cmd + Shift + V", "Start/stop quick-capture voice dictation"],
   ["P", "Toggle presentation mode"],
   ["R", "Toggle reading mode (no tools/chrome)"],
   ["Ctrl/Cmd + Enter", "Capture quick-capture lines as notes"],

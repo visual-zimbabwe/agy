@@ -12,7 +12,7 @@
 5. Better structure primitives (Done)
 - Add tags, lightweight templates, and collapsible zone groups.
 6. Faster capture (Done)
-- Quick-capture command bar, paste-to-note parsing, and voice-to-note input.
+- Quick-capture command bar and paste-to-note parsing.
 7. Stronger recall (Done)
 - Saved searches, smart filters (zone/tag/date), and jump to stale/high-priority notes.
 8. Undo/redo history (Done)

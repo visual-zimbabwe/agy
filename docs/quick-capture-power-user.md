@@ -22,10 +22,7 @@ Paste bullet lists from docs, Slack, email, or meeting notes into quick capture,
 
 List markers are parsed and each line becomes a note.
 
-6. Use voice for raw capture, keyboard for refinement  
-Tap `Voice to Notes`, dictate short lines, and continue after short pauses if needed (silence timeouts auto-retry). Stop when done, then quickly clean text/tags before capture.
-
-7. Organize immediately with multi-select  
+6. Organize immediately with multi-select  
 After capture, box-select new notes and apply:
 - bulk color
 - bulk tags
