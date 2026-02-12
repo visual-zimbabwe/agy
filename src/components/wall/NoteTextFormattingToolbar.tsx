@@ -19,6 +19,48 @@ type ToolbarPosition = {
   top: number;
 };
 
+const plainUpper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const plainLower = "abcdefghijklmnopqrstuvwxyz";
+const plainDigits = "0123456789";
+const boldUpper = "𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭";
+const boldLower = "𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇";
+const boldDigits = "𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟕𝟴𝟵";
+const italicUpper = "𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝘑𝘒𝘓𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡";
+const italicLower = "𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭𝘮𝘯𝘰𝘱𝘲𝘳𝘴𝘵𝘶𝘷𝘸𝘹𝘺𝘻";
+const underlineMark = "\u0332";
+
+const buildCharMap = (from: string, to: string) => {
+  const map: Record<string, string> = {};
+  const fromChars = Array.from(from);
+  const toChars = Array.from(to);
+  for (let index = 0; index < fromChars.length; index += 1) {
+    const source = fromChars[index];
+    const target = toChars[index];
+    if (!source || !target) {
+      continue;
+    }
+    map[source] = target;
+  }
+  return map;
+};
+
+const boldMap = {
+  ...buildCharMap(plainUpper, boldUpper),
+  ...buildCharMap(plainLower, boldLower),
+  ...buildCharMap(plainDigits, boldDigits),
+};
+
+const italicMap = {
+  ...buildCharMap(plainUpper, italicUpper),
+  ...buildCharMap(plainLower, italicLower),
+};
+
+const reverseCharMap = (source: Record<string, string>) =>
+  Object.fromEntries(Object.entries(source).map(([key, value]) => [value, key])) as Record<string, string>;
+
+const reverseBoldMap = reverseCharMap(boldMap);
+const reverseItalicMap = reverseCharMap(italicMap);
+
 const mirrorStyleProps = [
   "fontFamily",
   "fontSize",
@@ -83,28 +125,69 @@ const getCaretRect = (textarea: HTMLTextAreaElement, index: number) => {
   return rect;
 };
 
-const applyInlineWrap = (
+const applyStyledTransform = (
   value: string,
   selectionStart: number,
   selectionEnd: number,
-  prefix: string,
-  suffix: string,
+  forwardMap: Record<string, string>,
+  reverseMap: Record<string, string>,
 ) => {
   const start = Math.min(selectionStart, selectionEnd);
   const end = Math.max(selectionStart, selectionEnd);
-  const selected = value.slice(start, end);
-  const replacement = `${prefix}${selected}${suffix}`;
-  const nextValue = `${value.slice(0, start)}${replacement}${value.slice(end)}`;
-
   if (start === end) {
-    const caret = start + prefix.length;
-    return { nextValue, selectionStart: caret, selectionEnd: caret };
+    return { nextValue: value, selectionStart: start, selectionEnd: end };
   }
 
+  const selected = value.slice(start, end);
+  const chars = Array.from(selected);
+  let styledCount = 0;
+  let plainCount = 0;
+  for (const char of chars) {
+    if (reverseMap[char]) {
+      styledCount += 1;
+    } else if (forwardMap[char]) {
+      plainCount += 1;
+    }
+  }
+  const eligibleCount = styledCount + plainCount;
+  const shouldUnstyle = eligibleCount > 0 && styledCount === eligibleCount;
+  const transformed = chars
+    .map((char) => {
+      if (shouldUnstyle) {
+        return reverseMap[char] ?? char;
+      }
+      return forwardMap[char] ?? char;
+    })
+    .join("");
+
+  const nextValue = `${value.slice(0, start)}${transformed}${value.slice(end)}`;
   return {
     nextValue,
-    selectionStart: start + prefix.length,
-    selectionEnd: start + prefix.length + selected.length,
+    selectionStart: start,
+    selectionEnd: start + transformed.length,
+  };
+};
+
+const applyUnderlineTransform = (value: string, selectionStart: number, selectionEnd: number) => {
+  const start = Math.min(selectionStart, selectionEnd);
+  const end = Math.max(selectionStart, selectionEnd);
+  if (start === end) {
+    return { nextValue: value, selectionStart: start, selectionEnd: end };
+  }
+
+  const selected = value.slice(start, end);
+  const shouldUnstyle = selected.includes(underlineMark);
+  const transformed = shouldUnstyle
+    ? selected.replaceAll(underlineMark, "")
+    : Array.from(selected)
+        .map((char) => (char === "\n" ? char : `${char}${underlineMark}`))
+        .join("");
+
+  const nextValue = `${value.slice(0, start)}${transformed}${value.slice(end)}`;
+  return {
+    nextValue,
+    selectionStart: start,
+    selectionEnd: start + transformed.length,
   };
 };
 
@@ -246,13 +329,13 @@ export const NoteTextFormattingToolbar = ({
 
     const update = (() => {
       if (action === "bold") {
-        return applyInlineWrap(value, selectionStart, selectionEnd, "**", "**");
+        return applyStyledTransform(value, selectionStart, selectionEnd, boldMap, reverseBoldMap);
       }
       if (action === "italic") {
-        return applyInlineWrap(value, selectionStart, selectionEnd, "*", "*");
+        return applyStyledTransform(value, selectionStart, selectionEnd, italicMap, reverseItalicMap);
       }
       if (action === "underline") {
-        return applyInlineWrap(value, selectionStart, selectionEnd, "<u>", "</u>");
+        return applyUnderlineTransform(value, selectionStart, selectionEnd);
       }
       return applyListTransform(value, selectionStart, selectionEnd, action);
     })();
