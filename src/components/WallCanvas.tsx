@@ -127,6 +127,60 @@ type GuideLineState = {
   horizontal?: { y: number; x1: number; x2: number; distance?: number };
 };
 
+type NoteConvertType = "quote" | "principle" | "checklist" | "heading" | "group";
+
+const convertNoteText = (text: string, type: NoteConvertType) => {
+  const lines = text.split("\n");
+  const nonEmpty = lines.map((line) => line.trim()).filter(Boolean);
+
+  if (type === "quote") {
+    if (nonEmpty.length === 0) {
+      return "> ";
+    }
+    return nonEmpty.map((line) => (line.startsWith(">") ? line : `> ${line}`)).join("\n");
+  }
+
+  if (type === "principle") {
+    const first = nonEmpty[0] ?? "";
+    if (!first) {
+      return "Principle: ";
+    }
+    const normalized = first.replace(/^Principle:\s*/i, "");
+    const rest = nonEmpty.slice(1).join("\n");
+    return rest ? `Principle: ${normalized}\n${rest}` : `Principle: ${normalized}`;
+  }
+
+  if (type === "checklist") {
+    if (nonEmpty.length === 0) {
+      return "- [ ] ";
+    }
+    return nonEmpty
+      .map((line) => {
+        const stripped = line.replace(/^- \[(?: |x|X)\]\s*/, "").replace(/^- /, "");
+        return `- [ ] ${stripped}`;
+      })
+      .join("\n");
+  }
+
+  if (type === "heading") {
+    const first = nonEmpty[0] ?? "";
+    if (!first) {
+      return "# ";
+    }
+    const normalized = first.replace(/^#+\s*/, "");
+    const rest = nonEmpty.slice(1).join("\n");
+    return rest ? `# ${normalized}\n${rest}` : `# ${normalized}`;
+  }
+
+  const first = nonEmpty[0] ?? "";
+  if (!first) {
+    return "Group: ";
+  }
+  const normalized = first.replace(/^Group:\s*/i, "");
+  const bodyLines = nonEmpty.slice(1).map((line) => `- ${line.replace(/^- /, "")}`);
+  return [`Group: ${normalized}`, ...bodyLines].join("\n");
+};
+
 const flashDurationMs = 1200;
 const defaultLayoutPrefs: LayoutPreferences = {
   showToolsPanel: true,
@@ -930,6 +984,26 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       updateNote(noteId, { highlighted: !note.highlighted });
     },
     [isTimeLocked, renderSnapshot.notes],
+  );
+
+  const convertPrimaryNote = useCallback(
+    (noteId: string, type: NoteConvertType) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const note = renderSnapshot.notes[noteId];
+      if (!note) {
+        return;
+      }
+      const nextText = convertNoteText(note.text, type);
+      if (nextText === note.text) {
+        return;
+      }
+      runHistoryGroup(() => {
+        updateNote(noteId, { text: nextText });
+      });
+    },
+    [isTimeLocked, renderSnapshot.notes, runHistoryGroup],
   );
 
   const {
@@ -1737,6 +1811,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           duplicateNote={duplicateNote}
           togglePinOnNote={togglePinOnNote}
           toggleHighlightOnNote={toggleHighlightOnNote}
+          onConvertNote={convertPrimaryNote}
           isPrimaryNoteFocused={Boolean(primarySelectedNote && focusedNoteId === primarySelectedNote.id)}
           onToggleFocusNote={toggleFocusNote}
           setLinkingFromNote={setLinkingFromNote}

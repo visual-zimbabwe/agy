@@ -47,6 +47,7 @@ type WallFloatingUiProps = {
   duplicateNote: (noteId: string) => void;
   togglePinOnNote: (noteId: string) => void;
   toggleHighlightOnNote: (noteId: string) => void;
+  onConvertNote: (noteId: string, type: "quote" | "principle" | "checklist" | "heading" | "group") => void;
   isPrimaryNoteFocused: boolean;
   onToggleFocusNote: (noteId: string) => void;
   setLinkingFromNote: (noteId?: string) => void;
@@ -107,6 +108,7 @@ export const WallFloatingUi = ({
   duplicateNote,
   togglePinOnNote,
   toggleHighlightOnNote,
+  onConvertNote,
   isPrimaryNoteFocused,
   onToggleFocusNote,
   setLinkingFromNote,
@@ -291,6 +293,26 @@ export const WallFloatingUi = ({
             <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd + D)">
               Duplicate
             </button>
+            <select
+              defaultValue=""
+              onChange={(event) => {
+                const nextType = event.target.value as "quote" | "principle" | "checklist" | "heading" | "group" | "";
+                if (!nextType) {
+                  return;
+                }
+                onConvertNote(primarySelectedNote.id, nextType);
+                event.target.value = "";
+              }}
+              className={`w-[8.4rem] ${toolbarBtnCompact}`}
+              title="Convert note type"
+            >
+              <option value="">Convert to...</option>
+              <option value="quote">Quote</option>
+              <option value="principle">Principle</option>
+              <option value="checklist">Checklist</option>
+              <option value="heading">Heading</option>
+              <option value="group">Group</option>
+            </select>
             <button
               type="button"
               onClick={() => togglePinOnNote(primarySelectedNote.id)}

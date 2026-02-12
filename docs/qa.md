@@ -414,6 +414,7 @@ Expected:
 10. With a note selected, click `Focus` in quick actions; verify canvas is dimmed and only the focused note remains visible. Click the `Focus mode` pill to exit.
 11. With a note selected, click `Pin` then try drag/resize, align, and distribute; verify pinned note does not move or resize. Click `Pin` again to unpin.
 12. Click `Highlight` and verify emphasized visual treatment appears without changing note content/position.
+13. In note quick actions, use `Convert to...` for `Quote`, `Principle`, `Checklist`, `Heading`, and `Group`; verify note text is reformatted in place (no new note created).
 
 Expected:
 - Editing and quick actions are faster and match modern canvas UX patterns.
@@ -424,6 +425,7 @@ Expected:
 - Focus mode isolates one note with low-distraction context and exits cleanly.
 - Pinned notes are visually anchored and protected from accidental movement.
 - Highlighted notes remain easy to spot on dense boards.
+- Convert actions restructure note text in-place for faster organization.
 
 ## Spatial Affordances - Optional Guidance (2026-02-12)
 1. Open `Tools` panel on `/wall`.
