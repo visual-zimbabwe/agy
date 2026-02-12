@@ -14,8 +14,7 @@ type SyncStatusProps = {
 };
 
 type SyncState = {
-  label: "Synced" | "Syncing..." | "Offline" | "Error";
-  icon: string;
+  label: "✅ Synced" | "Syncing…" | "⚠️ Offline" | "❌ Error";
   toneClass: string;
 };
 
@@ -62,28 +61,24 @@ export const SyncStatus = ({ hasCloudWall, isSyncing, lastSyncedAt, syncError, o
   const state: SyncState = useMemo(() => {
     if (syncError) {
       return {
-        label: "Error",
-        icon: "X",
+        label: "❌ Error",
         toneClass: "text-[var(--color-danger-strong)] border-[var(--color-danger)] bg-[var(--color-danger-soft)]",
       };
     }
     if (isSyncing) {
       return {
-        label: "Syncing...",
-        icon: "~",
+        label: "Syncing…",
         toneClass: "text-[var(--color-text)] border-[var(--color-border)] bg-[var(--color-surface-glass)]",
       };
     }
     if (!isOnline || !hasCloudWall) {
       return {
-        label: "Offline",
-        icon: "!",
+        label: "⚠️ Offline",
         toneClass: "text-[var(--color-text-muted)] border-[var(--color-border)] bg-[var(--color-surface)]",
       };
     }
     return {
-      label: "Synced",
-      icon: "v",
+      label: "✅ Synced",
       toneClass: "text-[var(--color-text)] border-[var(--color-border)] bg-[var(--color-surface-glass)]",
     };
   }, [hasCloudWall, isOnline, isSyncing, syncError]);
@@ -107,7 +102,6 @@ export const SyncStatus = ({ hasCloudWall, isSyncing, lastSyncedAt, syncError, o
             title={tooltipLabel}
             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)] ${state.toneClass}`}
           >
-            <span aria-hidden="true" className="font-semibold">{state.icon}</span>
             <span>{state.label}</span>
           </button>
         </ControlTooltip>
