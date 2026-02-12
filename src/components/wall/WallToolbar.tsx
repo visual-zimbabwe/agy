@@ -84,7 +84,7 @@ export const WallToolbar = ({
 
   return (
     <>
-      <div className={`${toolbarSurface} flex items-center gap-1.5`}>
+      <div className="inline-flex self-start items-center gap-1.5">
         <ControlTooltip label="Toggle quick capture" shortcut="Q or Ctrl/Cmd + J" side="top">
           <button
             type="button"
