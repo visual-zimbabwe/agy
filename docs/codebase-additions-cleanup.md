@@ -37,12 +37,12 @@ Date: 2026-02-11
 - Add `npm run check:types` (if split from build), `npm run check:deadcode` (optional), and duplicate style detection (lightweight script).
 
 ## Priority 3: Larger Additions (Strategic)
-1. Domain-first module boundaries for wall state/actions.
+1. Domain-first module boundaries for wall state/actions. (Done - 2026-02-12)
 - Continue moving orchestration logic out of UI components into feature modules/hooks.
-2. Add telemetry hooks for UX guardrails (local/dev mode first).
+2. Add telemetry hooks for UX guardrails (local/dev mode first). (Done - 2026-02-12)
 - Track panel open latency, search open time, and initial interact timing.
 - Persist local metrics snapshot for manual perf verification.
-3. Improve persistence migration safety.
+3. Improve persistence migration safety. (Done - 2026-02-12)
 - Add migration tests around `src/features/wall/storage.ts` and backup import/export compatibility checks.
 
 ## Suggested Execution Order (Next 2-3 Weeks)

@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 
-import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import type { Camera, Link, Note, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
+import { normalizePersistedWallState, parseTimelinePayload } from "@/features/wall/storage-migrations";
 
 type MetaRecord = {
   key: string;
@@ -67,21 +67,21 @@ export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
     db.meta.get("lastColor"),
   ]);
 
-  const notes = Object.fromEntries(
-    notesList.map((note) => [note.id, { ...note, tags: note.tags ?? [], textSize: note.textSize ?? NOTE_DEFAULTS.textSize }]),
-  );
+  const notes = Object.fromEntries(notesList.map((note) => [note.id, note]));
   const zones = Object.fromEntries(zonesList.map((zone) => [zone.id, zone]));
   const zoneGroups = Object.fromEntries(zoneGroupsList.map((group) => [group.id, group]));
   const links = Object.fromEntries(linksList.map((link) => [link.id, link]));
 
-  return {
+  const normalized = normalizePersistedWallState({
     notes,
     zones,
     zoneGroups,
     links,
     camera: cameraMeta ? (JSON.parse(cameraMeta.value) as Camera) : defaultCamera,
     lastColor: lastColorMeta?.value,
-  };
+  });
+
+  return normalized ?? { notes: {}, zones: {}, zoneGroups: {}, links: {}, camera: defaultCamera };
 };
 
 export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
@@ -153,31 +153,18 @@ export type TimelineEntry = {
   snapshot: PersistedWallState;
 };
 
-const parseTimelinePayload = (payload: string): PersistedWallState => {
-  const parsed = JSON.parse(payload) as PersistedWallState;
-  const notes = Object.fromEntries(
-    Object.entries(parsed.notes).map(([id, note]) => [
-      id,
-      { ...note, tags: note.tags ?? [], textSize: note.textSize ?? NOTE_DEFAULTS.textSize },
-    ]),
-  );
-
-  return {
-    ...parsed,
-    notes,
-    zoneGroups: parsed.zoneGroups ?? {},
-    links: parsed.links ?? {},
-  };
-};
-
 export const loadTimelineEntries = async (limit = 500): Promise<TimelineEntry[]> => {
   const rows = await db.timelineSnapshots.orderBy("ts").reverse().limit(limit).toArray();
   return rows
     .reverse()
-    .map((row) => ({
-      ts: row.ts,
-      snapshot: parseTimelinePayload(row.payload),
-    }));
+    .map((row) => {
+      const snapshot = parseTimelinePayload(row.payload);
+      if (!snapshot) {
+        return null;
+      }
+      return { ts: row.ts, snapshot };
+    })
+    .filter((entry): entry is TimelineEntry => Boolean(entry));
 };
 
 const persistTimelineSnapshot = async (snapshot: PersistedWallState, maxEntries: number) => {

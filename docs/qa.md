@@ -425,3 +425,17 @@ Expected:
 - Type check passes with `noUncheckedIndexedAccess` enabled.
 - Dead-code check passes for wall domain and shared lib modules.
 - Duplicate wall class check reports no repeated long class literals needing extraction.
+
+## Priority 3 Strategic Guardrails (2026-02-12)
+1. Run `npm run test:unit`.
+2. Open `/wall` in a local/dev session and perform:
+   - open `Tools`, `Details`, `Search`, `Export`, and `Shortcuts`
+   - first wall interaction (pointer or keyboard)
+3. Inspect `localStorage["idea-wall-ux-telemetry-v1"]` in DevTools.
+4. Export JSON backup from `Export` modal, then import it back.
+
+Expected:
+- Unit tests include storage migration and backup compatibility coverage.
+- Telemetry snapshot persists local/dev UX timings for:
+  `initialInteractMs`, `toolsPanelOpenMs`, `detailsPanelOpenMs`, `searchOpenMs`, `exportOpenMs`, `shortcutsOpenMs`.
+- Backup export/import remains compatible with current and legacy-shaped snapshots.

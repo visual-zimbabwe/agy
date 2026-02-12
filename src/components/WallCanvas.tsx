@@ -20,7 +20,6 @@ import {
   dragSnapThreshold,
   fitBoundsCamera,
   getNoteTextStyle,
-  isPersistedWallStateLike,
   layoutPrefsStorageKey,
   linkColorByType,
   linkPoints,
@@ -46,6 +45,8 @@ import { useWallSnapping } from "@/components/wall/useWallSnapping";
 import { WallStage } from "@/components/wall/WallStage";
 import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
+import { useWallBackupActions } from "@/components/wall/useWallBackupActions";
+import { useWallTelemetry } from "@/components/wall/useWallTelemetry";
 import { useWallTimeline } from "@/components/wall/useWallTimeline";
 import { useWallUiActions } from "@/components/wall/useWallUiActions";
 import { useWallViewState } from "@/components/wall/useWallViewState";
@@ -86,7 +87,7 @@ import { LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/feature
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
-import { buildPublishedSnapshotUrl, decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
+import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
 import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
 
@@ -526,6 +527,58 @@ export const WallCanvas = () => {
     return () => clearTimeout(timer);
   }, [commitEditedNoteText, editing]);
 
+  const { markOpenIntent } = useWallTelemetry({
+    leftPanelOpen,
+    rightPanelOpen,
+    isSearchOpen: ui.isSearchOpen,
+    isExportOpen: ui.isExportOpen,
+    isShortcutsOpen: ui.isShortcutsOpen,
+  });
+
+  const setSearchOpenTracked = useCallback(
+    (open: boolean) => {
+      if (open) {
+        markOpenIntent("searchOpenMs");
+      }
+      setSearchOpen(open);
+    },
+    [markOpenIntent, setSearchOpen],
+  );
+
+  const setExportOpenTracked = useCallback(
+    (open: boolean) => {
+      if (open) {
+        markOpenIntent("exportOpenMs");
+      }
+      setExportOpen(open);
+    },
+    [markOpenIntent, setExportOpen],
+  );
+
+  const setShortcutsOpenTracked = useCallback(
+    (open: boolean) => {
+      if (open) {
+        markOpenIntent("shortcutsOpenMs");
+      }
+      setShortcutsOpen(open);
+    },
+    [markOpenIntent, setShortcutsOpen],
+  );
+
+  const toggleLeftPanel = useCallback(() => {
+    if (!leftPanelOpen) {
+      markOpenIntent("toolsPanelOpenMs");
+    }
+    setLeftPanelOpen((previous) => !previous);
+  }, [leftPanelOpen, markOpenIntent]);
+
+  const toggleRightPanel = useCallback(() => {
+    if (!rightPanelOpen) {
+      markOpenIntent("detailsPanelOpenMs");
+    }
+    setRightPanelOpen((previous) => !previous);
+  }, [markOpenIntent, rightPanelOpen]);
+
   useWallKeyboard({
     camera,
     viewport,
@@ -547,9 +600,9 @@ export const WallCanvas = () => {
     timelineEntriesLength: timelineEntries.length,
     timelineModeRef,
     setIsSpaceDown,
-    setShortcutsOpen,
-    setSearchOpen,
-    setExportOpen,
+    setShortcutsOpen: setShortcutsOpenTracked,
+    setSearchOpen: setSearchOpenTracked,
+    setExportOpen: setExportOpenTracked,
     setQuickCaptureOpen,
     setEditing,
     clearGuideLines: () => setGuideLines({}),
@@ -727,7 +780,7 @@ export const WallCanvas = () => {
 
   const { setLayoutPreference, toggleDetailsSection, togglePresentationMode, toggleTimelineMode, saveCurrentRecallSearch, applySavedRecallSearch } = useWallUiActions({
     presentationMode, timelineEntriesLength: timelineEntries.length, timelineModeRef, setPresentationMode, setPresentationIndex,
-    setQuickCaptureOpen, setSearchOpen, setExportOpen, setTimelineMode, setTimelineIndex, setIsTimelinePlaying, setLeftPanelOpen,
+    setQuickCaptureOpen, setSearchOpen: setSearchOpenTracked, setExportOpen: setExportOpenTracked, setTimelineMode, setTimelineIndex, setIsTimelinePlaying, setLeftPanelOpen,
     setRightPanelOpen, setLayoutPrefs, setDetailsSectionsOpen, recallQuery, recallZoneId, recallTag, recallDateFilter,
     savedRecallSearchesLength: savedRecallSearches.length, setSavedRecallSearches, setRecallQuery, setRecallZoneId, setRecallTag, setRecallDateFilter,
   });
@@ -744,7 +797,7 @@ export const WallCanvas = () => {
     selectedNoteId: ui.selectedNoteId,
     allZones: zones,
     setCamera,
-    setExportOpen,
+    setExportOpen: setExportOpenTracked,
     computeContentBounds,
     fitBoundsCamera,
     waitForPaint,
@@ -755,72 +808,16 @@ export const WallCanvas = () => {
     zoneContainsNote,
   });
 
-  const exportJson = useCallback(() => {
-    const snapshot = selectPersistedSnapshot(useWallStore.getState());
-    downloadJsonFile(`idea-wall-backup-${makeDownloadId()}.json`, snapshot);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(backupReminderLastPromptStorageKey, String(Date.now()));
-    }
-    setExportOpen(false);
-  }, [setExportOpen]);
-
-  const importJson = useCallback(
-    async (file: File) => {
-      try {
-        const raw = await file.text();
-        const parsed: unknown = JSON.parse(raw);
-        if (!isPersistedWallStateLike(parsed)) {
-          window.alert("Invalid backup file format.");
-          return;
-        }
-        const ok = window.confirm("Import JSON backup and replace current wall state?");
-        if (!ok) {
-          return;
-        }
-        hydrate(parsed);
-        setSelectedNoteIds([]);
-        setExportOpen(false);
-        window.alert("Backup imported successfully.");
-      } catch {
-        window.alert("Unable to import JSON backup.");
-      }
-    },
-    [hydrate, setExportOpen],
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined" || publishedReadOnly || backupReminderCadence === "off") {
-      return;
-    }
-    const now = Date.now();
-    const lastPromptRaw = window.localStorage.getItem(backupReminderLastPromptStorageKey);
-    const lastPrompt = lastPromptRaw ? Number(lastPromptRaw) : 0;
-    const intervalMs = backupReminderCadence === "daily" ? 1000 * 60 * 60 * 24 : 1000 * 60 * 60 * 24 * 7;
-    if (Number.isFinite(lastPrompt) && now - lastPrompt < intervalMs) {
-      return;
-    }
-    window.localStorage.setItem(backupReminderLastPromptStorageKey, String(now));
-    const wantsExport = window.confirm(
-      `Backup reminder (${backupReminderCadence}): export a full JSON backup now?`,
-    );
-    if (wantsExport) {
-      exportJson();
-    }
-  }, [backupReminderCadence, exportJson, publishedReadOnly]);
-
-  const publishReadOnlySnapshot = async () => {
-    const snapshot = selectPersistedSnapshot(useWallStore.getState());
-    const url = buildPublishedSnapshotUrl(snapshot);
-    if (!url) {
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      window.alert("Read-only snapshot link copied to clipboard.");
-    } catch {
-      window.prompt("Copy read-only snapshot URL", url);
-    }
-  };
+  const { exportJson, importJson, publishReadOnlySnapshot } = useWallBackupActions({
+    backupReminderCadence,
+    backupReminderLastPromptStorageKey,
+    publishedReadOnly,
+    makeDownloadId,
+    downloadJsonFile,
+    setExportOpen: setExportOpenTracked,
+    hydrate,
+    clearSelectedNotes: () => setSelectedNoteIds([]),
+  });
 
   const {
     selectedNote,
@@ -883,19 +880,19 @@ export const WallCanvas = () => {
         cloudWallId={cloudWallId}
         isSyncing={isSyncing}
         lastSyncedAt={lastSyncedAt}
-        onToggleLeftPanel={() => setLeftPanelOpen((previous) => !previous)}
-        onToggleRightPanel={() => setRightPanelOpen((previous) => !previous)}
+        onToggleLeftPanel={toggleLeftPanel}
+        onToggleRightPanel={toggleRightPanel}
         onToggleLayoutMenu={() => setLayoutMenuOpen((previous) => !previous)}
-        onOpenSearch={() => setSearchOpen(true)}
+        onOpenSearch={() => setSearchOpenTracked(true)}
         onToggleQuickCapture={() => setQuickCaptureOpen((previous) => !previous)}
-        onOpenExport={() => setExportOpen(true)}
+        onOpenExport={() => setExportOpenTracked(true)}
         onUndo={undo}
         onRedo={redo}
         onTogglePresentationMode={togglePresentationMode}
         onResetView={resetView}
         onToggleTimelineMode={toggleTimelineMode}
         onToggleHeatmap={() => setShowHeatmap((previous) => !previous)}
-        onOpenShortcuts={() => setShortcutsOpen(true)}
+        onOpenShortcuts={() => setShortcutsOpenTracked(true)}
         onSetLayoutPreference={setLayoutPreference}
         onApplyColorToSelection={applyColorToSelection}
         onApplyTextSizeToSelection={applyTextSizeToSelection}
@@ -1240,15 +1237,15 @@ export const WallCanvas = () => {
 
       <WallGlobalModals
         quickCaptureOpen={quickCaptureOpen} isTimeLocked={isTimeLocked} onCloseQuickCapture={() => setQuickCaptureOpen(false)} onCapture={captureNotes}
-        isSearchOpen={ui.isSearchOpen} visibleNotes={visibleNotes} onCloseSearch={() => setSearchOpen(false)} onSelectSearchNote={focusNote}
-        isExportOpen={ui.isExportOpen} onCloseExport={() => setExportOpen(false)}
+        isSearchOpen={ui.isSearchOpen} visibleNotes={visibleNotes} onCloseSearch={() => setSearchOpenTracked(false)} onSelectSearchNote={focusNote}
+        isExportOpen={ui.isExportOpen} onCloseExport={() => setExportOpenTracked(false)}
         onExportPng={(scope, pixelRatio) => { void exportPng(scope, pixelRatio); }}
         onExportPdf={(scope) => { void exportPdf(scope); }}
         onExportMarkdown={exportMarkdown} onExportJson={exportJson}
         onImportJson={(file) => { void importJson(file); }}
         onPublishSnapshot={() => { void publishReadOnlySnapshot(); }}
         backupReminderCadence={backupReminderCadence} onBackupReminderCadenceChange={setBackupReminderCadence}
-        isShortcutsOpen={ui.isShortcutsOpen} onCloseShortcuts={() => setShortcutsOpen(false)}
+        isShortcutsOpen={ui.isShortcutsOpen} onCloseShortcuts={() => setShortcutsOpenTracked(false)}
       />
     </div>
   );
