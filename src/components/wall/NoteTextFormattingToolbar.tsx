@@ -271,6 +271,8 @@ export const NoteTextFormattingToolbar = ({
 }: NoteTextFormattingToolbarProps) => {
   const [position, setPosition] = useState<ToolbarPosition | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const toolInteractionRef = useRef(false);
+  const toolInteractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const visible = active && position;
 
@@ -290,6 +292,9 @@ export const NoteTextFormattingToolbar = ({
       const focusInsideEditor = activeElement === current;
       const focusInsideTools = Boolean(activeElement?.closest?.('[data-note-edit-tools="true"]'));
       if (!focusInsideEditor && !focusInsideTools) {
+        if (toolInteractionRef.current) {
+          return;
+        }
         setPosition(null);
         return;
       }
@@ -328,6 +333,9 @@ export const NoteTextFormattingToolbar = ({
       textarea.removeEventListener("focus", onFocus);
       textarea.removeEventListener("blur", onBlur);
       window.removeEventListener("resize", updatePosition);
+      if (toolInteractionTimerRef.current) {
+        clearTimeout(toolInteractionTimerRef.current);
+      }
     };
   }, [active, textareaRef, value]);
 
@@ -374,6 +382,20 @@ export const NoteTextFormattingToolbar = ({
       data-note-edit-tools="true"
       className="pointer-events-auto fixed z-[70] flex items-center gap-1 rounded-xl border border-zinc-300 bg-white/96 px-2 py-1.5 shadow-xl backdrop-blur-sm motion-toolbar-enter"
       style={{ left: `${position.left}px`, top: `${position.top}px` }}
+      onPointerDownCapture={() => {
+        toolInteractionRef.current = true;
+        if (toolInteractionTimerRef.current) {
+          clearTimeout(toolInteractionTimerRef.current);
+        }
+      }}
+      onPointerUpCapture={() => {
+        if (toolInteractionTimerRef.current) {
+          clearTimeout(toolInteractionTimerRef.current);
+        }
+        toolInteractionTimerRef.current = setTimeout(() => {
+          toolInteractionRef.current = false;
+        }, 220);
+      }}
       role="toolbar"
       aria-label="Text formatting"
     >
