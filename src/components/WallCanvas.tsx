@@ -1637,8 +1637,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           applyTextSizeToSelection={applyTextSizeToSelection}
           applyColorToSelection={applyColorToSelection}
           duplicateNote={duplicateNote}
-          deleteNote={deleteNote}
-          clearNoteSelection={clearNoteSelection}
           setLinkingFromNote={setLinkingFromNote}
           linkingFromNoteId={ui.linkingFromNoteId}
           linkMenu={linkMenu}

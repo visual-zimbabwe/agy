@@ -45,8 +45,6 @@ type WallFloatingUiProps = {
   applyTextSizeToSelection: (size: "sm" | "md" | "lg") => void;
   applyColorToSelection: (color: string) => void;
   duplicateNote: (noteId: string) => void;
-  deleteNote: (noteId: string) => void;
-  clearNoteSelection: () => void;
   setLinkingFromNote: (noteId?: string) => void;
   linkingFromNoteId?: string;
   linkMenu: LinkContextMenuState;
@@ -103,8 +101,6 @@ export const WallFloatingUi = ({
   applyTextSizeToSelection,
   applyColorToSelection,
   duplicateNote,
-  deleteNote,
-  clearNoteSelection,
   setLinkingFromNote,
   linkingFromNoteId,
   linkMenu,
@@ -286,20 +282,6 @@ export const WallFloatingUi = ({
             <div className="mx-1 h-5 w-px bg-zinc-300" />
             <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd + D)">
               Duplicate
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const ok = window.confirm("Delete selected note?");
-                if (ok) {
-                  deleteNote(primarySelectedNote.id);
-                  clearNoteSelection();
-                }
-              }}
-              className={toolbarBtnCompact}
-              title="Delete"
-            >
-              Delete
             </button>
             <button
               type="button"
