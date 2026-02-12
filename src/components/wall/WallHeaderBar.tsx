@@ -1,6 +1,7 @@
 "use client";
 
 import { NoteSwatches } from "@/components/NoteCard";
+import { SyncStatus } from "@/components/wall/SyncStatus";
 import { WallToolbar } from "@/components/wall/WallToolbar";
 import { statusChip } from "@/components/wall/wallChromeClasses";
 import { NOTE_DEFAULTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
@@ -39,6 +40,7 @@ type WallHeaderBarProps = {
   cloudWallId: string | null;
   isSyncing: boolean;
   lastSyncedAt: number | null;
+  syncError: string | null;
   onToggleLeftPanel: () => void;
   onToggleRightPanel: () => void;
   onOpenCommandPalette: () => void;
@@ -79,6 +81,7 @@ export const WallHeaderBar = ({
   cloudWallId,
   isSyncing,
   lastSyncedAt,
+  syncError,
   onToggleLeftPanel,
   onToggleRightPanel,
   onOpenCommandPalette,
@@ -177,17 +180,13 @@ export const WallHeaderBar = ({
       )}
 
       {!publishedReadOnly && (
-        <div className={statusChip}>
-          <button
-            type="button"
-            onClick={onSyncNow}
-            disabled={!cloudWallId || isSyncing}
-            className={toolbarBtnCompact}
-          >
-            {isSyncing ? "Syncing..." : "Sync now"}
-          </button>
-          <span>{lastSyncedAt ? `Last synced ${new Date(lastSyncedAt).toLocaleTimeString()}` : "Waiting for first sync"}</span>
-        </div>
+        <SyncStatus
+          hasCloudWall={Boolean(cloudWallId)}
+          isSyncing={isSyncing}
+          lastSyncedAt={lastSyncedAt}
+          syncError={syncError}
+          onSyncNow={onSyncNow}
+        />
       )}
     </header>
   );

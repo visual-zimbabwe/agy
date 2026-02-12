@@ -1365,6 +1365,7 @@ export const WallCanvas = () => {
         cloudWallId={cloudWallId}
         isSyncing={isSyncing}
         lastSyncedAt={lastSyncedAt}
+        syncError={syncError}
         onToggleLeftPanel={toggleLeftPanel}
         onToggleRightPanel={toggleRightPanel}
         onOpenCommandPalette={() => setSearchOpenTracked(true)}
@@ -1406,12 +1407,6 @@ export const WallCanvas = () => {
             <p className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-sm)]">
               Loading wall...
             </p>
-          </div>
-        )}
-
-        {!publishedReadOnly && syncError && (
-          <div className="pointer-events-none absolute left-1/2 top-4 z-[45] -translate-x-1/2 rounded-[var(--radius-lg)] border border-[var(--color-danger)] bg-[var(--color-danger-soft)] px-4 py-2.5 text-xs text-[var(--color-danger-strong)] shadow-[var(--shadow-sm)]">
-            Sync error: {syncError}
           </div>
         )}
 
