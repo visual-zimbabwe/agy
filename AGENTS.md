@@ -33,6 +33,10 @@
   2. `npm run build`
   3. Manual validation using `docs/qa.md`
 - For behavior changes, add or update QA steps in `docs/qa.md`.
+- UI spatial/visibility gate for idea-wall:
+  1. Tooltips, menus, popovers, floating bars, and side panels must remain fully visible in viewport (not clipped by edges/containers).
+  2. Overlays must not be hidden behind existing UI or obscure critical controls/content.
+  3. Leave enough breathing room around floating UI so interactions remain clear and unobstructed in default desktop and mobile wall layouts.
 
 ## Commit & Pull Request Guidelines
 - Follow Conventional Commit style used in history, e.g.:

@@ -122,7 +122,7 @@ export const WallToolbar = ({
           </ControlTooltip>
         )}
         <div className="relative" ref={moreMenuRef}>
-          <ControlTooltip label="More actions" side="top">
+          <ControlTooltip label="More actions" side="bottom">
             <button
               type="button"
               onClick={() => setMoreMenuOpen((open) => !open)}
