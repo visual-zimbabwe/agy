@@ -3,6 +3,7 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 
 import { NOTE_COLORS, NOTE_DEFAULTS } from "@/features/wall/constants";
+import { useWallStore } from "@/features/wall/store";
 import type { Note } from "@/features/wall/types";
 
 type Camera = { x: number; y: number; zoom: number };
@@ -60,8 +61,6 @@ type WallKeyboardOptions = {
   deleteLink: (linkId: string) => void;
   deleteGroup: (groupId: string) => void;
   deleteNoteGroup: (groupId: string) => void;
-  setLastColor: (color: string) => void;
-  updateNote: (noteId: string, patch: Partial<Note>) => void;
 };
 
 const isTypingInField = (event: KeyboardEvent) => {
@@ -121,8 +120,6 @@ export const useWallKeyboard = ({
   deleteLink,
   deleteGroup,
   deleteNoteGroup,
-  setLastColor,
-  updateNote,
 }: WallKeyboardOptions) => {
   const colorQuickSwitchArmedRef = useRef(false);
   const colorQuickSwitchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -142,6 +139,7 @@ export const useWallKeyboard = ({
       if (isTimeLocked) {
         return;
       }
+      const { patchNote, setLastColor } = useWallStore.getState();
 
       const targetIds = selectedNoteIds.length > 0 ? selectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
       if (targetIds.length === 0) {
@@ -150,7 +148,7 @@ export const useWallKeyboard = ({
       }
 
       for (const noteId of targetIds) {
-        updateNote(noteId, { color });
+        patchNote(noteId, { color });
       }
       setLastColor(color);
     };
@@ -496,12 +494,10 @@ export const useWallKeyboard = ({
     setShowHeatmap,
     setTimelineIndex,
     setTimelineMode,
-    setLastColor,
     timelineEntriesLength,
     timelineModeRef,
     ui,
     undo,
-    updateNote,
     viewport,
   ]);
 };
