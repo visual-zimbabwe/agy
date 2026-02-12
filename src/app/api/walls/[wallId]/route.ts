@@ -20,6 +20,9 @@ const patchWallSchema = z.object({
   lastColor: z.string().trim().optional(),
 });
 
+const isMissingZoneKindColumnError = (message?: string) =>
+  Boolean(message && message.includes("column zones.kind does not exist"));
+
 export async function GET(_: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
   if ("response" in auth) {
@@ -33,7 +36,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
 
   const wallId = parsedParams.data.wallId;
 
-  const [wallResult, notesResult, zonesResult, groupsResult, linksResult] = await Promise.all([
+  const [wallResult, notesResult, groupsResult, linksResult] = await Promise.all([
     auth.supabase
       .from("walls")
       .select("id,camera_x,camera_y,camera_zoom,last_color")
@@ -43,12 +46,6 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     auth.supabase
       .from("notes")
       .select("id,text,tags,text_size,x,y,w,h,color,created_at,updated_at")
-      .eq("wall_id", wallId)
-      .eq("owner_id", auth.user.id)
-      .is("deleted_at", null),
-    auth.supabase
-      .from("zones")
-      .select("id,label,kind,group_id,x,y,w,h,color,created_at,updated_at")
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null),
@@ -70,12 +67,11 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     return NextResponse.json({ error: "Wall not found" }, { status: 404 });
   }
 
-  if (notesResult.error || zonesResult.error || groupsResult.error || linksResult.error) {
+  if (notesResult.error || groupsResult.error || linksResult.error) {
     return NextResponse.json(
       {
         error:
           notesResult.error?.message ??
-          zonesResult.error?.message ??
           groupsResult.error?.message ??
           linksResult.error?.message ??
           "Query failed",
@@ -84,10 +80,33 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     );
   }
 
+  const zonesWithKindResult = await auth.supabase
+    .from("zones")
+    .select("id,label,kind,group_id,x,y,w,h,color,created_at,updated_at")
+    .eq("wall_id", wallId)
+    .eq("owner_id", auth.user.id)
+    .is("deleted_at", null);
+
+  let zonesData = zonesWithKindResult.data;
+  if (zonesWithKindResult.error && isMissingZoneKindColumnError(zonesWithKindResult.error.message)) {
+    const zonesLegacyResult = await auth.supabase
+      .from("zones")
+      .select("id,label,group_id,x,y,w,h,color,created_at,updated_at")
+      .eq("wall_id", wallId)
+      .eq("owner_id", auth.user.id)
+      .is("deleted_at", null);
+    if (zonesLegacyResult.error) {
+      return NextResponse.json({ error: zonesLegacyResult.error.message }, { status: 500 });
+    }
+    zonesData = zonesLegacyResult.data?.map((zone) => ({ ...zone, kind: "frame" })) ?? [];
+  } else if (zonesWithKindResult.error) {
+    return NextResponse.json({ error: zonesWithKindResult.error.message }, { status: 500 });
+  }
+
   const snapshot = rowsToSnapshot({
     wall: wallResult.data,
     notes: notesResult.data ?? [],
-    zones: zonesResult.data ?? [],
+    zones: zonesData ?? [],
     zoneGroups: groupsResult.data ?? [],
     links: linksResult.data ?? [],
   });

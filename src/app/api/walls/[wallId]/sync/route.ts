@@ -74,6 +74,9 @@ const toIso = (value: number) => new Date(value).toISOString();
 const buildInFilter = (ids: string[]) =>
   `(${ids.map((id) => `"${id.replaceAll('"', '\\"')}"`).join(",")})`;
 
+const isMissingZoneKindColumnError = (message?: string) =>
+  Boolean(message && message.includes("column zones.kind does not exist"));
+
 export async function POST(request: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
   if ("response" in auth) {
@@ -151,14 +154,14 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     return NextResponse.json({ error: notesUpsert.error.message }, { status: 500 });
   }
 
-  const zonesUpsert = zones.length
-    ? await auth.supabase.from("zones").upsert(
+  const upsertZones = async (includeKind: boolean) =>
+    auth.supabase.from("zones").upsert(
       zones.map((zone) => ({
         id: zone.id,
         wall_id: wallId,
         owner_id: auth.user.id,
         label: zone.label,
-        kind: zone.kind ?? "frame",
+        ...(includeKind ? { kind: zone.kind ?? "frame" } : {}),
         group_id: zone.groupId ?? null,
         x: zone.x,
         y: zone.y,
@@ -170,8 +173,18 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
         deleted_at: null,
       })),
       { onConflict: "id" },
-    )
-    : { error: null };
+    );
+
+  let zonesUpsert = { error: null as { message: string } | null };
+  if (zones.length) {
+    const withKind = await upsertZones(true);
+    if (withKind.error && isMissingZoneKindColumnError(withKind.error.message)) {
+      const legacy = await upsertZones(false);
+      zonesUpsert = { error: legacy.error ? { message: legacy.error.message } : null };
+    } else {
+      zonesUpsert = { error: withKind.error ? { message: withKind.error.message } : null };
+    }
+  }
 
   if (zonesUpsert.error) {
     return NextResponse.json({ error: zonesUpsert.error.message }, { status: 500 });
