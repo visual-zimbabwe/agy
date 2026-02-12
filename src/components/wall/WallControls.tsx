@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 
 export type IconName =
@@ -215,28 +217,121 @@ type ControlTooltipProps = {
 };
 
 export const ControlTooltip = ({ label, shortcut, children, className = "relative inline-flex", side = "bottom" }: ControlTooltipProps) => {
-  const sideClass =
-    side === "top"
-      ? "-top-11 left-1/2 -translate-x-1/2"
-      : side === "left"
-        ? "right-[calc(100%+0.5rem)] top-1/2 -translate-y-1/2"
-        : side === "right"
-          ? "left-[calc(100%+0.5rem)] top-1/2 -translate-y-1/2"
-          : "-bottom-11 left-1/2 -translate-x-1/2";
+  const triggerRef = useRef<HTMLSpanElement | null>(null);
+  const tooltipRef = useRef<HTMLSpanElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  const placeTooltip = useCallback(() => {
+    if (!triggerRef.current || !tooltipRef.current) {
+      return;
+    }
+
+    const margin = 8;
+    const gap = 8;
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    const oppositeSide = side === "top" ? "bottom" : side === "bottom" ? "top" : side === "left" ? "right" : "left";
+    const candidates: Array<"top" | "bottom" | "left" | "right"> = [side, oppositeSide];
+
+    const computeRaw = (placement: "top" | "bottom" | "left" | "right") => {
+      if (placement === "top") {
+        return {
+          top: triggerRect.top - tooltipRect.height - gap,
+          left: triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2,
+        };
+      }
+      if (placement === "bottom") {
+        return {
+          top: triggerRect.bottom + gap,
+          left: triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2,
+        };
+      }
+      if (placement === "left") {
+        return {
+          top: triggerRect.top + triggerRect.height / 2 - tooltipRect.height / 2,
+          left: triggerRect.left - tooltipRect.width - gap,
+        };
+      }
+      return {
+        top: triggerRect.top + triggerRect.height / 2 - tooltipRect.height / 2,
+        left: triggerRect.right + gap,
+      };
+    };
+
+    const fits = (placement: "top" | "bottom" | "left" | "right") => {
+      const raw = computeRaw(placement);
+      return (
+        raw.top >= margin &&
+        raw.left >= margin &&
+        raw.top + tooltipRect.height <= viewportHeight - margin &&
+        raw.left + tooltipRect.width <= viewportWidth - margin
+      );
+    };
+
+    const chosen = candidates.find((candidate) => fits(candidate)) ?? side;
+    const raw = computeRaw(chosen);
+    const clampedTop = Math.min(Math.max(raw.top, margin), Math.max(margin, viewportHeight - tooltipRect.height - margin));
+    const clampedLeft = Math.min(Math.max(raw.left, margin), Math.max(margin, viewportWidth - tooltipRect.width - margin));
+
+    setPosition({ top: clampedTop, left: clampedLeft });
+  }, [side]);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      return;
+    }
+    const raf = window.requestAnimationFrame(placeTooltip);
+    return () => window.cancelAnimationFrame(raf);
+  }, [open, placeTooltip]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const update = () => placeTooltip();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open, placeTooltip]);
 
   return (
-    <span className={`${className} group`}>
+    <span
+      ref={triggerRef}
+      className={className}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocusCapture={() => setOpen(true)}
+      onBlurCapture={(event) => {
+        const next = event.relatedTarget as Node | null;
+        if (!next || !event.currentTarget.contains(next)) {
+          setOpen(false);
+        }
+      }}
+    >
       {children}
-      <span
-        className={`pointer-events-none absolute ${sideClass} z-[140] hidden w-max max-w-[18rem] items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2.5 py-1.5 text-[11px] leading-4 text-[var(--color-text)] opacity-0 shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)] transition-opacity duration-[var(--motion-fast)] group-hover:opacity-100 group-focus-within:opacity-100 md:flex`}
-      >
-        <span>{label}</span>
-        {shortcut && (
-          <span className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
-            {shortcut}
-          </span>
+      {open && typeof document !== "undefined" &&
+        createPortal(
+          <span
+            ref={tooltipRef}
+            style={{ top: `${position.top}px`, left: `${position.left}px` }}
+            className="pointer-events-none fixed z-[180] hidden w-max max-w-[18rem] items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2.5 py-1.5 text-[11px] leading-4 text-[var(--color-text)] opacity-100 shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)] md:flex"
+          >
+            <span>{label}</span>
+            {shortcut && (
+              <span className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+                {shortcut}
+              </span>
+            )}
+          </span>,
+          document.body,
         )}
-      </span>
     </span>
   );
 };
