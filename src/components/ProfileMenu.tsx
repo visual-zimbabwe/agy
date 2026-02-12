@@ -5,18 +5,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
+import { applyPreferencesToDocument, persistPreferences, readStoredPreferences, type ThemePreference } from "@/lib/preferences";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type ProfileMenuProps = {
   email: string;
   onOpenShortcuts: () => void;
 };
-
-type ThemePreference = "system" | "light" | "dark";
-
-const themeStorageKey = "idea-wall-pref-theme";
-const reducedMotionStorageKey = "idea-wall-pref-reduced-motion";
-const compactModeStorageKey = "idea-wall-pref-compact-mode";
 
 export const ProfileMenu = ({ email, onOpenShortcuts }: ProfileMenuProps) => {
   const router = useRouter();
@@ -36,37 +31,14 @@ export const ProfileMenu = ({ email, onOpenShortcuts }: ProfileMenuProps) => {
 
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<ThemePreference>(() => {
-    if (typeof window === "undefined") {
-      return "system";
-    }
-    const savedTheme = window.localStorage.getItem(themeStorageKey);
-    return savedTheme === "light" || savedTheme === "dark" || savedTheme === "system" ? savedTheme : "system";
-  });
-  const [reduceMotion, setReduceMotion] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-    return window.localStorage.getItem(reducedMotionStorageKey) === "true";
-  });
-  const [compactMode, setCompactMode] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-    return window.localStorage.getItem(compactModeStorageKey) === "true";
-  });
+  const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
+  const [reduceMotion, setReduceMotion] = useState(() => readStoredPreferences().reduceMotion);
+  const [compactMode, setCompactMode] = useState(() => readStoredPreferences().compactMode);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(themeStorageKey, theme);
-      window.localStorage.setItem(reducedMotionStorageKey, String(reduceMotion));
-      window.localStorage.setItem(compactModeStorageKey, String(compactMode));
-    } catch {
-      // Ignore write failures for environments without storage access.
-    }
-    document.documentElement.dataset.themePreference = theme;
-    document.documentElement.classList.toggle("motion-reduce", reduceMotion);
-    document.documentElement.classList.toggle("compact-mode", compactMode);
+    const preferences = { theme, reduceMotion, compactMode };
+    persistPreferences(preferences);
+    applyPreferencesToDocument(preferences);
   }, [compactMode, reduceMotion, theme]);
 
   useEffect(() => {
@@ -168,6 +140,18 @@ export const ProfileMenu = ({ email, onOpenShortcuts }: ProfileMenuProps) => {
           </div>
 
           <div className="mt-2 grid gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start"
+              role="menuitem"
+              onClick={() => {
+                router.push("/settings");
+                setOpen(false);
+              }}
+            >
+              Settings
+            </Button>
             <Button
               variant="ghost"
               size="sm"
