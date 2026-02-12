@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, type MutableRefObject } from "react";
 
-import { NOTE_COLORS, NOTE_DEFAULTS } from "@/features/wall/constants";
+import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
 import type { Note } from "@/features/wall/types";
+import { readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 
 type Camera = { x: number; y: number; zoom: number };
 type Viewport = { w: number; h: number };
@@ -154,7 +155,7 @@ export const useWallKeyboard = ({
     };
 
     const applyColorByIndex = (index: number) => {
-      const color = NOTE_COLORS[index];
+      const color = readKeyboardColorSlots()[index];
       if (!color) {
         return;
       }
@@ -162,11 +163,19 @@ export const useWallKeyboard = ({
     };
 
     const cycleColor = () => {
+      const cyclePalette = readKeyboardColorSlots().filter((value): value is string => typeof value === "string");
+      if (cyclePalette.length === 0) {
+        return;
+      }
       const activeNoteId = selectedNoteIds[0] ?? ui.selectedNoteId;
       const activeColor = activeNoteId ? notesMap[activeNoteId]?.color ?? ui.lastColor : ui.lastColor;
-      const currentIndex = NOTE_COLORS.findIndex((color) => color.toLowerCase() === activeColor.toLowerCase());
-      const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % NOTE_COLORS.length;
-      applyColorByIndex(nextIndex);
+      const currentIndex = cyclePalette.findIndex((color) => color.toLowerCase() === activeColor.toLowerCase());
+      const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % cyclePalette.length;
+      const nextColor = cyclePalette[nextIndex];
+      if (!nextColor) {
+        return;
+      }
+      applyColor(nextColor);
     };
 
     const onKeyDown = (event: KeyboardEvent) => {

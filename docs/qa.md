@@ -324,6 +324,20 @@ Expected:
 Expected:
 - All shortcuts work without needing mouse for command invocation.
 
+## Settings - Keyboard Color Slots
+1. Open profile menu on `/wall` and click `Settings`.
+2. In `Keyboard` section, set slot `1` and slot `2` to clearly distinct custom colors.
+3. Click `Save settings`, return to `/wall`, select a note, press `C`, then press `1` and `2`.
+4. Press `Shift + C` repeatedly and verify it cycles through configured (non-empty) slots.
+5. Return to `Settings`, clear slot `2`, save, then verify `C` + `2` no longer applies a color.
+6. Refresh the page and verify slot changes persist.
+
+Expected:
+- `1-9` shortcuts follow configured keyboard slots from Settings.
+- `Shift + C` cycles through currently configured slots only.
+- Cleared slots are skipped/unavailable.
+- Slot configuration persists after refresh.
+
 ## Command-First Toolbar and Context
 1. Open `/wall` and verify top toolbar has reduced persistent controls (`Command`, panel toggles, `Capture`, `Present`, `Shortcuts`).
 2. Press `Ctrl/Cmd + K` and verify both command actions and note search results are shown.

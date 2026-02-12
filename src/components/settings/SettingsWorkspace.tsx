@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
-import { NOTE_COLORS } from "@/features/wall/constants";
+import { defaultKeyboardColorSlots, readKeyboardColorSlots, writeKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import { applyPreferencesToDocument, persistPreferences, readStoredPreferences, type ThemePreference } from "@/lib/preferences";
 
 type SettingsWorkspaceProps = {
@@ -27,6 +27,7 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
   const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
   const [reduceMotion, setReduceMotion] = useState(() => readStoredPreferences().reduceMotion);
   const [compactMode, setCompactMode] = useState(() => readStoredPreferences().compactMode);
+  const [keyboardColorSlots, setKeyboardColorSlots] = useState<Array<string | null>>(() => readKeyboardColorSlots());
   const [savedAt, setSavedAt] = useState<number>(() => Date.now());
 
   const preferenceState = useMemo(
@@ -37,7 +38,16 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
   const onSavePreferences = () => {
     persistPreferences(preferenceState);
     applyPreferencesToDocument(preferenceState);
+    writeKeyboardColorSlots(keyboardColorSlots);
     setSavedAt(Date.now());
+  };
+
+  const setKeyboardSlot = (index: number, color: string | null) => {
+    setKeyboardColorSlots((previous) => {
+      const next = [...previous];
+      next[index] = color;
+      return next;
+    });
   };
 
   return (
@@ -51,7 +61,7 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={onSavePreferences}>
-              Save preferences
+              Save settings
             </Button>
             <Link href="/wall" className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-muted)]">
               Back to wall
@@ -140,22 +150,45 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
             {activeSection === "keyboard" && (
               <section>
                 <h2 className="text-lg font-semibold">Keyboard Color Slots</h2>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Current `1-9` mapping follows your note palette order.</p>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Configure the `1-9` shortcuts used by `C` quick switch and `Shift + C` cycling.</p>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   {Array.from({ length: 9 }).map((_, index) => {
-                    const color = NOTE_COLORS[index];
+                    const color = keyboardColorSlots[index];
+                    const fallback = defaultKeyboardColorSlots[index] ?? "#FEEA89";
                     return (
                       <div key={`shortcut-color-${index + 1}`} className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
                         <span className="inline-flex h-6 min-w-6 items-center justify-center rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-xs font-semibold">
                           {index + 1}
                         </span>
-                        <span className="h-4 w-4 rounded-full border border-black/10" style={{ backgroundColor: color ?? "#ffffff" }} />
+                        <input
+                          type="color"
+                          value={color ?? fallback}
+                          onChange={(event) => setKeyboardSlot(index, event.target.value.toUpperCase())}
+                          className="h-7 w-9 cursor-pointer rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
+                          aria-label={`Set keyboard color slot ${index + 1}`}
+                        />
                         <span className="font-mono text-xs text-[var(--color-text-muted)]">{color ?? "Not set"}</span>
+                        <button
+                          type="button"
+                          onClick={() => setKeyboardSlot(index, null)}
+                          className="ml-auto rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+                        >
+                          Clear
+                        </button>
                       </div>
                     );
                   })}
                 </div>
-                <p className="mt-3 text-xs text-[var(--color-text-muted)]">Next step: editable slots and custom palette presets can plug in here.</p>
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setKeyboardColorSlots([...defaultKeyboardColorSlots])}
+                    className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+                  >
+                    Reset defaults
+                  </button>
+                  <p className="text-xs text-[var(--color-text-muted)]">Save settings to apply across sessions.</p>
+                </div>
               </section>
             )}
 
