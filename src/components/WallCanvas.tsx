@@ -38,6 +38,7 @@ import {
   zoneContainsNote,
 } from "@/components/wall/wall-canvas-helpers";
 import { WallLinksZonesLayer } from "@/components/wall/WallLinksZonesLayer";
+import { ControlTooltip, Icon } from "@/components/wall/WallControls";
 import { WallDotMatrixLayer } from "@/components/wall/WallDotMatrixLayer";
 import { WallNotesLayer } from "@/components/wall/WallNotesLayer";
 import { WallOverlaysLayer } from "@/components/wall/WallOverlaysLayer";
@@ -1413,6 +1414,26 @@ export const WallCanvas = () => {
         {readingMode && (
           <div className="pointer-events-auto absolute right-4 top-4 z-[45] rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
             Reading mode. Press R to exit.
+          </div>
+        )}
+
+        {!isChromeHidden && !ui.isSearchOpen && (
+          <div className="pointer-events-auto absolute left-1/2 top-4 z-[46] -translate-x-1/2">
+            <ControlTooltip label="Command palette (Ctrl+K)" side="bottom">
+              <button
+                type="button"
+                onClick={() => setSearchOpenTracked(true)}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1"
+                title="Command palette (Ctrl+K)"
+                aria-label="Open command palette"
+              >
+                <Icon name="search" className="h-3.5 w-3.5" />
+                <span>Search...</span>
+                <span className="rounded border border-[var(--color-border-muted)] bg-[var(--color-surface-muted)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+                  Ctrl K
+                </span>
+              </button>
+            </ControlTooltip>
           </div>
         )}
 
