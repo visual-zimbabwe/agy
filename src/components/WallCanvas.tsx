@@ -120,6 +120,18 @@ type GuideLineState = {
 };
 
 const flashDurationMs = 1200;
+const defaultLayoutPrefs: LayoutPreferences = {
+  showToolsPanel: true,
+  showDetailsPanel: true,
+  showContextBar: true,
+  showNoteTags: false,
+};
+const defaultSpatialPrefs: SpatialPreferences = {
+  showDotMatrix: false,
+  snapToGuides: true,
+  snapToGrid: false,
+  dotGridSpacing: 32,
+};
 
 export const WallCanvas = () => {
   const notesMap = useWallStore((state) => state.notes);
@@ -194,70 +206,11 @@ export const WallCanvas = () => {
   const [recallZoneId, setRecallZoneId] = useState("");
   const [recallTag, setRecallTag] = useState("");
   const [recallDateFilter, setRecallDateFilter] = useState<RecallDateFilter>("all");
-  const [savedRecallSearches, setSavedRecallSearches] = useState<SavedRecallSearch[]>(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
-    try {
-      const raw = window.localStorage.getItem(recallStorageKey);
-      if (!raw) {
-        return [];
-      }
-      const parsed = JSON.parse(raw) as SavedRecallSearch[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
-  const [layoutPrefs, setLayoutPrefs] = useState<LayoutPreferences>(() => {
-    if (typeof window === "undefined") {
-      return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true, showNoteTags: false };
-    }
-    try {
-      const raw = window.localStorage.getItem(layoutPrefsStorageKey);
-      if (!raw) {
-        return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true, showNoteTags: false };
-      }
-      const parsed = JSON.parse(raw) as Partial<LayoutPreferences>;
-      return {
-        showToolsPanel: parsed.showToolsPanel ?? true,
-        showDetailsPanel: parsed.showDetailsPanel ?? true,
-        showContextBar: parsed.showContextBar ?? true,
-        showNoteTags: parsed.showNoteTags ?? false,
-      };
-    } catch {
-      return { showToolsPanel: true, showDetailsPanel: true, showContextBar: true, showNoteTags: false };
-    }
-  });
+  const [savedRecallSearches, setSavedRecallSearches] = useState<SavedRecallSearch[]>([]);
+  const [layoutPrefs, setLayoutPrefs] = useState<LayoutPreferences>(defaultLayoutPrefs);
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
-  const [spatialPrefs, setSpatialPrefs] = useState<SpatialPreferences>(() => {
-    if (typeof window === "undefined") {
-      return { showDotMatrix: false, snapToGuides: true, snapToGrid: false, dotGridSpacing: 32 };
-    }
-    try {
-      const raw = window.localStorage.getItem(spatialPrefsStorageKey);
-      if (!raw) {
-        return { showDotMatrix: false, snapToGuides: true, snapToGrid: false, dotGridSpacing: 32 };
-      }
-      const parsed = JSON.parse(raw) as Partial<SpatialPreferences>;
-      const spacing = typeof parsed.dotGridSpacing === "number" ? parsed.dotGridSpacing : 32;
-      return {
-        showDotMatrix: parsed.showDotMatrix ?? false,
-        snapToGuides: parsed.snapToGuides ?? true,
-        snapToGrid: parsed.snapToGrid ?? false,
-        dotGridSpacing: Math.max(12, Math.min(64, spacing)),
-      };
-    } catch {
-      return { showDotMatrix: false, snapToGuides: true, snapToGrid: false, dotGridSpacing: 32 };
-    }
-  });
-  const [backupReminderCadence, setBackupReminderCadence] = useState<"off" | "daily" | "weekly">(() => {
-    if (typeof window === "undefined") {
-      return "off";
-    }
-    const raw = window.localStorage.getItem(backupReminderCadenceStorageKey);
-    return raw === "daily" || raw === "weekly" ? raw : "off";
-  });
+  const [spatialPrefs, setSpatialPrefs] = useState<SpatialPreferences>(defaultSpatialPrefs);
+  const [backupReminderCadence, setBackupReminderCadence] = useState<"off" | "daily" | "weekly">("off");
   const [detailsSectionsOpen, setDetailsSectionsOpen] = useState<DetailsSectionState>({
     history: false,
     recall: true,
@@ -266,8 +219,9 @@ export const WallCanvas = () => {
   });
   const [presentationMode, setPresentationMode] = useState(false);
   const [presentationIndex, setPresentationIndex] = useState(0);
-  const [leftPanelOpen, setLeftPanelOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth >= compactPanelBreakpoint));
-  const [rightPanelOpen, setRightPanelOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth >= compactPanelBreakpoint));
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [clientPrefsLoaded, setClientPrefsLoaded] = useState(false);
   const [publishedSnapshot] = useState<PersistedWallState | null>(() => {
     const encoded = readSnapshotParamFromLocation();
     if (!encoded) {
@@ -395,29 +349,86 @@ export const WallCanvas = () => {
     if (typeof window === "undefined") {
       return;
     }
-    window.localStorage.setItem(recallStorageKey, JSON.stringify(savedRecallSearches));
-  }, [savedRecallSearches]);
+
+    try {
+      const recallRaw = window.localStorage.getItem(recallStorageKey);
+      if (recallRaw) {
+        const parsed = JSON.parse(recallRaw) as SavedRecallSearch[];
+        if (Array.isArray(parsed)) {
+          setSavedRecallSearches(parsed);
+        }
+      }
+    } catch {
+      // Ignore malformed persisted recall payloads and keep defaults.
+    }
+
+    try {
+      const layoutRaw = window.localStorage.getItem(layoutPrefsStorageKey);
+      if (layoutRaw) {
+        const parsed = JSON.parse(layoutRaw) as Partial<LayoutPreferences>;
+        setLayoutPrefs({
+          showToolsPanel: parsed.showToolsPanel ?? defaultLayoutPrefs.showToolsPanel,
+          showDetailsPanel: parsed.showDetailsPanel ?? defaultLayoutPrefs.showDetailsPanel,
+          showContextBar: parsed.showContextBar ?? defaultLayoutPrefs.showContextBar,
+          showNoteTags: parsed.showNoteTags ?? defaultLayoutPrefs.showNoteTags,
+        });
+      }
+    } catch {
+      // Ignore malformed persisted layout payloads and keep defaults.
+    }
+
+    try {
+      const spatialRaw = window.localStorage.getItem(spatialPrefsStorageKey);
+      if (spatialRaw) {
+        const parsed = JSON.parse(spatialRaw) as Partial<SpatialPreferences>;
+        const spacing = typeof parsed.dotGridSpacing === "number" ? parsed.dotGridSpacing : defaultSpatialPrefs.dotGridSpacing;
+        setSpatialPrefs({
+          showDotMatrix: parsed.showDotMatrix ?? defaultSpatialPrefs.showDotMatrix,
+          snapToGuides: parsed.snapToGuides ?? defaultSpatialPrefs.snapToGuides,
+          snapToGrid: parsed.snapToGrid ?? defaultSpatialPrefs.snapToGrid,
+          dotGridSpacing: Math.max(12, Math.min(64, spacing)),
+        });
+      }
+    } catch {
+      // Ignore malformed persisted spatial payloads and keep defaults.
+    }
+
+    const cadenceRaw = window.localStorage.getItem(backupReminderCadenceStorageKey);
+    setBackupReminderCadence(cadenceRaw === "daily" || cadenceRaw === "weekly" ? cadenceRaw : "off");
+
+    const wideLayout = window.innerWidth >= compactPanelBreakpoint;
+    setLeftPanelOpen(wideLayout);
+    setRightPanelOpen(wideLayout);
+    setClientPrefsLoaded(true);
+  }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || !clientPrefsLoaded) {
+      return;
+    }
+    window.localStorage.setItem(recallStorageKey, JSON.stringify(savedRecallSearches));
+  }, [clientPrefsLoaded, savedRecallSearches]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !clientPrefsLoaded) {
       return;
     }
     window.localStorage.setItem(layoutPrefsStorageKey, JSON.stringify(layoutPrefs));
-  }, [layoutPrefs]);
+  }, [clientPrefsLoaded, layoutPrefs]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || !clientPrefsLoaded) {
       return;
     }
     window.localStorage.setItem(spatialPrefsStorageKey, JSON.stringify(spatialPrefs));
-  }, [spatialPrefs]);
+  }, [clientPrefsLoaded, spatialPrefs]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || !clientPrefsLoaded) {
       return;
     }
     window.localStorage.setItem(backupReminderCadenceStorageKey, backupReminderCadence);
-  }, [backupReminderCadence]);
+  }, [backupReminderCadence, clientPrefsLoaded]);
 
   const syncSnapshotToCloud = useCallback(
     async (wallId: string, snapshot: PersistedWallState) => {
