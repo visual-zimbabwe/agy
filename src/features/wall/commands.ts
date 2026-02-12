@@ -201,6 +201,17 @@ export const toggleGroupCollapse = (groupId: string) => {
   state.patchGroup(groupId, { collapsed: !group.collapsed });
 };
 
+export const setAllGroupsCollapsed = (collapsed: boolean) => {
+  withHistoryGroup(() => {
+    const state = useWallStore.getState();
+    for (const group of Object.values(state.zoneGroups)) {
+      if (group.collapsed !== collapsed) {
+        state.patchGroup(group.id, { collapsed });
+      }
+    }
+  });
+};
+
 export const deleteGroup = (groupId: string) => {
   useWallStore.getState().removeGroup(groupId);
 };

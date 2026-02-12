@@ -16,6 +16,8 @@ export const ZoneGroupsSection = ({
   onAssignZoneToGroup,
   onSelectGroup,
   onToggleGroupCollapse,
+  onCollapseAllGroups,
+  onExpandAllGroups,
   onDeleteGroup,
   onClearNoteSelection,
 }: ZoneGroupsSectionProps) => {
@@ -32,6 +34,24 @@ export const ZoneGroupsSection = ({
       {detailsSectionsOpen.zoneGroups && (
         <>
           <p className="mt-1 text-xs text-zinc-600">Collapse groups to hide grouped zones and their notes.</p>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onCollapseAllGroups}
+              disabled={isTimeLocked || zoneGroups.length === 0}
+              className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700 disabled:opacity-45"
+            >
+              Collapse All
+            </button>
+            <button
+              type="button"
+              onClick={onExpandAllGroups}
+              disabled={isTimeLocked || zoneGroups.length === 0}
+              className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700 disabled:opacity-45"
+            >
+              Expand All
+            </button>
+          </div>
 
           <div className="mt-2 flex items-center gap-2">
             <input

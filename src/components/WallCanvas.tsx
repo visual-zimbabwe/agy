@@ -81,6 +81,7 @@ import {
   duplicateNoteAt,
   moveNote,
   moveZone,
+  setAllGroupsCollapsed,
   toggleGroupCollapse,
   updateNote,
   updateLinkType,
@@ -219,6 +220,7 @@ export const WallCanvas = () => {
     tagGroups: false,
   });
   const [presentationMode, setPresentationMode] = useState(false);
+  const [readingMode, setReadingMode] = useState(false);
   const [presentationIndex, setPresentationIndex] = useState(0);
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
@@ -259,7 +261,8 @@ export const WallCanvas = () => {
   const zones = useMemo(() => Object.values(renderSnapshot.zones), [renderSnapshot.zones]);
   const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
-  const isTimeLocked = timelineMode || publishedReadOnly || presentationMode;
+  const isTimeLocked = timelineMode || publishedReadOnly || presentationMode || readingMode;
+  const isChromeHidden = presentationMode || readingMode;
   const isCompactLayout = viewport.w < compactPanelBreakpoint;
   timelineModeRef.current = timelineMode;
 
@@ -644,6 +647,7 @@ export const WallCanvas = () => {
     selectedNoteIds,
     editing,
     isTimeLocked,
+    readingMode,
     presentationMode,
     timelineEntriesLength: timelineEntries.length,
     timelineModeRef,
@@ -663,6 +667,7 @@ export const WallCanvas = () => {
     setShowHeatmap,
     setPresentationMode,
     setPresentationIndex,
+    setReadingMode,
     createNote,
     openEditor,
     redo,
@@ -830,12 +835,42 @@ export const WallCanvas = () => {
 
   const { stepZoom, resetZoom } = useWallZoomControls({ camera, viewport, setCamera });
 
-  const { setLayoutPreference, toggleDetailsSection, togglePresentationMode, toggleTimelineMode, saveCurrentRecallSearch, applySavedRecallSearch } = useWallUiActions({
-    presentationMode, timelineEntriesLength: timelineEntries.length, timelineModeRef, setPresentationMode, setPresentationIndex,
+  const { setLayoutPreference, toggleDetailsSection, togglePresentationMode, toggleReadingMode, toggleTimelineMode, saveCurrentRecallSearch, applySavedRecallSearch } = useWallUiActions({
+    readingMode, presentationMode, timelineEntriesLength: timelineEntries.length, timelineModeRef, setPresentationMode, setPresentationIndex, setReadingMode,
     setQuickCaptureOpen, setSearchOpen: setSearchOpenTracked, setExportOpen: setExportOpenTracked, setTimelineMode, setTimelineIndex, setIsTimelinePlaying, setLeftPanelOpen,
     setRightPanelOpen, setLayoutPrefs, setDetailsSectionsOpen, recallQuery, recallZoneId, recallTag, recallDateFilter,
     savedRecallSearchesLength: savedRecallSearches.length, setSavedRecallSearches, setRecallQuery, setRecallZoneId, setRecallTag, setRecallDateFilter,
   });
+
+  const collapseAllZoneGroups = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    setAllGroupsCollapsed(true);
+  }, [isTimeLocked]);
+
+  const expandAllZoneGroups = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    setAllGroupsCollapsed(false);
+  }, [isTimeLocked]);
+
+  useEffect(() => {
+    const visibleNoteIdSet = new Set(visibleNotes.map((note) => note.id));
+    const visibleZoneIdSet = new Set(visibleZones.map((zone) => zone.id));
+    const nextSelectedNoteIds = selectedNoteIds.filter((id) => visibleNoteIdSet.has(id));
+    if (nextSelectedNoteIds.length !== selectedNoteIds.length) {
+      setSelectedNoteIds(nextSelectedNoteIds);
+    }
+    if (ui.selectedNoteId && !visibleNoteIdSet.has(ui.selectedNoteId)) {
+      selectNote(nextSelectedNoteIds[0]);
+    }
+    if (ui.selectedZoneId && !visibleZoneIdSet.has(ui.selectedZoneId)) {
+      selectZone(undefined);
+      selectGroup(undefined);
+    }
+  }, [selectedNoteIds, selectGroup, selectNote, selectZone, setSelectedNoteIds, ui.selectedNoteId, ui.selectedZoneId, visibleNotes, visibleZones]);
 
   const { exportPng, exportPdf, exportMarkdown } = useWallExport({
     stageRef,
@@ -969,6 +1004,14 @@ export const WallCanvas = () => {
         onSelect: redo,
       },
       {
+        id: "toggle-reading",
+        label: readingMode ? "Exit reading mode" : "Enter reading mode",
+        description: "Hide wall chrome and focus on note content only.",
+        shortcut: "R",
+        keywords: ["read", "calm", "focus", "distraction-free"],
+        onSelect: toggleReadingMode,
+      },
+      {
         id: "toggle-presentation",
         label: presentationMode ? "Exit presentation mode" : "Enter presentation mode",
         description: "Focus on sequential note walkthrough.",
@@ -1035,6 +1078,22 @@ export const WallCanvas = () => {
         onSelect: () => setShowClusters(!ui.showClusters),
       },
       {
+        id: "collapse-all-groups",
+        label: "Collapse all zone groups",
+        description: "Hide all grouped zones and grouped notes.",
+        keywords: ["groups", "collapse", "declutter"],
+        disabled: isTimeLocked || zoneGroups.every((group) => group.collapsed),
+        onSelect: collapseAllZoneGroups,
+      },
+      {
+        id: "expand-all-groups",
+        label: "Expand all zone groups",
+        description: "Show all grouped zones and grouped notes.",
+        keywords: ["groups", "expand", "restore"],
+        disabled: isTimeLocked || zoneGroups.every((group) => !group.collapsed),
+        onSelect: expandAllZoneGroups,
+      },
+      {
         id: "toggle-dot-matrix",
         label: spatialPrefs.showDotMatrix ? "Hide dot matrix" : "Show dot matrix",
         description: "Toggle subtle dot-grid background helper.",
@@ -1073,6 +1132,7 @@ export const WallCanvas = () => {
       leftPanelOpen,
       makeNoteAtViewportCenter,
       makeZoneAtViewportCenter,
+      readingMode,
       presentationMode,
       quickCaptureOpen,
       redo,
@@ -1086,16 +1146,21 @@ export const WallCanvas = () => {
       spatialPrefs.snapToGuides,
       timelineMode,
       toggleLeftPanel,
+      toggleReadingMode,
       togglePresentationMode,
       toggleRightPanel,
       toggleTimelineMode,
+      collapseAllZoneGroups,
+      expandAllZoneGroups,
       setShowClusters,
       ui.showClusters,
       undo,
+      zoneGroups,
     ],
   );
   return (
     <div className="route-shell flex h-screen flex-col text-[var(--color-text)]">
+      {!readingMode && (
       <WallHeaderBar
         presentationMode={presentationMode}
         publishedReadOnly={publishedReadOnly}
@@ -1135,6 +1200,7 @@ export const WallCanvas = () => {
         onDistributeSelected={distributeSelected}
         onSyncNow={syncNow}
       />
+      )}
 
       <div
         ref={containerRef}
@@ -1171,13 +1237,19 @@ export const WallCanvas = () => {
           </div>
         )}
 
-        {!presentationMode && !ui.isSearchOpen && (
+        {readingMode && (
+          <div className="pointer-events-auto absolute right-4 top-4 z-[45] rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
+            Reading mode. Press R to exit.
+          </div>
+        )}
+
+        {!isChromeHidden && !ui.isSearchOpen && (
           <div className="pointer-events-none absolute bottom-4 left-1/2 z-[32] -translate-x-1/2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-4 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
             Command-first: press Ctrl/Cmd + K
           </div>
         )}
 
-        {!presentationMode &&
+        {!isChromeHidden &&
           isCompactLayout &&
           ((layoutPrefs.showToolsPanel && leftPanelOpen) || (layoutPrefs.showDetailsPanel && rightPanelOpen)) && (
           <button
@@ -1191,7 +1263,7 @@ export const WallCanvas = () => {
           />
         )}
 
-        {!presentationMode && !publishedReadOnly && layoutPrefs.showToolsPanel && (
+        {!isChromeHidden && !publishedReadOnly && layoutPrefs.showToolsPanel && (
           <WallToolsPanel
             isCompactLayout={isCompactLayout}
             leftPanelOpen={leftPanelOpen}
@@ -1365,6 +1437,7 @@ export const WallCanvas = () => {
           </Layer>
         </WallStage>
 
+        {!readingMode && (
         <WallFloatingUi
           editing={editing}
           notesById={renderSnapshot.notes}
@@ -1422,9 +1495,10 @@ export const WallCanvas = () => {
           onZoomOut={() => stepZoom("out")}
           onResetZoom={resetZoom}
         />
+        )}
 
         <WallDetailsSidebar
-          presentationMode={presentationMode}
+          presentationMode={isChromeHidden}
           showDetailsPanel={layoutPrefs.showDetailsPanel}
           isCompactLayout={isCompactLayout}
           rightPanelOpen={rightPanelOpen}
@@ -1491,6 +1565,8 @@ export const WallCanvas = () => {
           onAssignZoneToGroup={assignZoneToGroup}
           onSelectGroup={selectGroup}
           onToggleGroupCollapse={toggleGroupCollapse}
+          onCollapseAllGroups={collapseAllZoneGroups}
+          onExpandAllGroups={expandAllZoneGroups}
           onDeleteGroup={deleteGroup}
           onClearNoteSelection={clearNoteSelection}
           showAutoTagGroups={showAutoTagGroups}

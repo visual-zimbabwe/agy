@@ -58,6 +58,8 @@ type WallDetailsSidebarProps = {
   onAssignZoneToGroup: (zoneId: string, groupId?: string) => void;
   onSelectGroup: (groupId?: string) => void;
   onToggleGroupCollapse: (groupId: string) => void;
+  onCollapseAllGroups: () => void;
+  onExpandAllGroups: () => void;
   onDeleteGroup: (groupId: string) => void;
   onClearNoteSelection: () => void;
   showAutoTagGroups: boolean;
@@ -118,6 +120,8 @@ export const WallDetailsSidebar = ({
   onAssignZoneToGroup,
   onSelectGroup,
   onToggleGroupCollapse,
+  onCollapseAllGroups,
+  onExpandAllGroups,
   onDeleteGroup,
   onClearNoteSelection,
   showAutoTagGroups,
@@ -179,6 +183,8 @@ export const WallDetailsSidebar = ({
         onAssignZoneToGroup={onAssignZoneToGroup}
         onSelectGroup={onSelectGroup}
         onToggleGroupCollapse={onToggleGroupCollapse}
+        onCollapseAllGroups={onCollapseAllGroups}
+        onExpandAllGroups={onExpandAllGroups}
         onDeleteGroup={onDeleteGroup}
         onClearNoteSelection={onClearNoteSelection}
         showAutoTagGroups={showAutoTagGroups}

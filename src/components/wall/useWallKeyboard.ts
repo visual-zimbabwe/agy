@@ -27,6 +27,7 @@ type WallKeyboardOptions = {
   selectedNoteIds: string[];
   editing: { id: string; text: string } | null;
   isTimeLocked: boolean;
+  readingMode: boolean;
   presentationMode: boolean;
   timelineEntriesLength: number;
   timelineModeRef: MutableRefObject<boolean>;
@@ -46,6 +47,7 @@ type WallKeyboardOptions = {
   setShowHeatmap: (updater: (previous: boolean) => boolean) => void;
   setPresentationMode: (enabled: boolean) => void;
   setPresentationIndex: (value: number | ((previous: number) => number)) => void;
+  setReadingMode: (enabled: boolean) => void;
   createNote: (x: number, y: number, color?: string) => string;
   openEditor: (noteId: string, text: string) => void;
   redo: () => void;
@@ -83,6 +85,7 @@ export const useWallKeyboard = ({
   selectedNoteIds,
   editing,
   isTimeLocked,
+  readingMode,
   presentationMode,
   timelineEntriesLength,
   timelineModeRef,
@@ -102,6 +105,7 @@ export const useWallKeyboard = ({
   setShowHeatmap,
   setPresentationMode,
   setPresentationIndex,
+  setReadingMode,
   createNote,
   openEditor,
   redo,
@@ -123,6 +127,9 @@ export const useWallKeyboard = ({
 
       if ((event.key === "?" || (event.shiftKey && event.key === "/")) && !typing) {
         event.preventDefault();
+        if (readingMode) {
+          return;
+        }
         setShortcutsOpen(!ui.isShortcutsOpen);
         return;
       }
@@ -171,11 +178,29 @@ export const useWallKeyboard = ({
         const next = !presentationMode;
         setPresentationMode(next);
         if (next) {
+          setReadingMode(false);
           setPresentationIndex(0);
           setQuickCaptureOpen(false);
           setSearchOpen(false);
           setExportOpen(false);
         }
+        return;
+      }
+
+      if (!ctrlOrMeta && key === "r") {
+        event.preventDefault();
+        const next = !readingMode;
+        setReadingMode(next);
+        if (next) {
+          setPresentationMode(false);
+          setQuickCaptureOpen(false);
+          setSearchOpen(false);
+          setExportOpen(false);
+        }
+        return;
+      }
+
+      if (readingMode) {
         return;
       }
 
@@ -363,6 +388,7 @@ export const useWallKeyboard = ({
     notesMap,
     openEditor,
     presentationMode,
+    readingMode,
     redo,
     renderNotesById,
     resetSelection,
@@ -375,6 +401,7 @@ export const useWallKeyboard = ({
     setLinkingFromNote,
     setPresentationIndex,
     setPresentationMode,
+    setReadingMode,
     setQuickCaptureOpen,
     setSearchOpen,
     setSelectedNoteIds,

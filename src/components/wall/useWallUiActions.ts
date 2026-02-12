@@ -6,10 +6,12 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { DetailsSectionKey, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 
 type UseWallUiActionsOptions = {
+  readingMode: boolean;
   presentationMode: boolean;
   timelineEntriesLength: number;
   timelineModeRef: MutableRefObject<boolean>;
   setPresentationMode: Dispatch<SetStateAction<boolean>>;
+  setReadingMode: Dispatch<SetStateAction<boolean>>;
   setPresentationIndex: Dispatch<SetStateAction<number>>;
   setQuickCaptureOpen: Dispatch<SetStateAction<boolean>>;
   setSearchOpen: (open: boolean) => void;
@@ -34,10 +36,12 @@ type UseWallUiActionsOptions = {
 };
 
 export const useWallUiActions = ({
+  readingMode,
   presentationMode,
   timelineEntriesLength,
   timelineModeRef,
   setPresentationMode,
+  setReadingMode,
   setPresentationIndex,
   setQuickCaptureOpen,
   setSearchOpen,
@@ -86,12 +90,24 @@ export const useWallUiActions = ({
     const next = !presentationMode;
     setPresentationMode(next);
     if (next) {
+      setReadingMode(false);
       setPresentationIndex(0);
       setQuickCaptureOpen(false);
       setSearchOpen(false);
       setExportOpen(false);
     }
-  }, [presentationMode, setExportOpen, setPresentationIndex, setPresentationMode, setQuickCaptureOpen, setSearchOpen]);
+  }, [presentationMode, setExportOpen, setPresentationIndex, setPresentationMode, setQuickCaptureOpen, setReadingMode, setSearchOpen]);
+
+  const toggleReadingMode = useCallback(() => {
+    const next = !readingMode;
+    setReadingMode(next);
+    if (next) {
+      setPresentationMode(false);
+      setQuickCaptureOpen(false);
+      setSearchOpen(false);
+      setExportOpen(false);
+    }
+  }, [readingMode, setExportOpen, setPresentationMode, setQuickCaptureOpen, setReadingMode, setSearchOpen]);
 
   const toggleTimelineMode = useCallback(() => {
     const next = !timelineModeRef.current;
@@ -138,6 +154,7 @@ export const useWallUiActions = ({
     setLayoutPreference,
     toggleDetailsSection,
     togglePresentationMode,
+    toggleReadingMode,
     toggleTimelineMode,
     saveCurrentRecallSearch,
     applySavedRecallSearch,

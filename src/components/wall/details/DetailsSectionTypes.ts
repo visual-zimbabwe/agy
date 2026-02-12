@@ -67,6 +67,8 @@ export type ZoneGroupsSectionProps = {
   onAssignZoneToGroup: (zoneId: string, groupId?: string) => void;
   onSelectGroup: (groupId?: string) => void;
   onToggleGroupCollapse: (groupId: string) => void;
+  onCollapseAllGroups: () => void;
+  onExpandAllGroups: () => void;
   onDeleteGroup: (groupId: string) => void;
   onClearNoteSelection: () => void;
 };
