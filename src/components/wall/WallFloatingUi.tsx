@@ -6,12 +6,13 @@ import type { Dispatch, FocusEvent, SetStateAction } from "react";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteSwatches } from "@/components/NoteCard";
 import { NoteTextFormattingToolbar } from "@/components/wall/NoteTextFormattingToolbar";
-import { getNoteTextFontFamily } from "@/components/wall/wall-canvas-helpers";
+import { getNoteTextFontFamily, getNoteTextStyle } from "@/components/wall/wall-canvas-helpers";
+import { NOTE_TEXT_FONTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
 import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { WallZoomControls } from "@/components/wall/WallZoomControls";
-import type { LinkType, Note } from "@/features/wall/types";
+import type { LinkType, Note, NoteTextFont } from "@/features/wall/types";
 
 type LinkContextMenuState = {
   open: boolean;
@@ -46,6 +47,8 @@ type WallFloatingUiProps = {
   toolbarBtnActive: string;
   toolbarBtnCompact: string;
   applyColorToSelection: (color: string) => void;
+  applyTextSizeToSelection: (size: "sm" | "md" | "lg") => void;
+  applyTextFontToSelection: (font: NoteTextFont) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   duplicateNote: (noteId: string) => void;
   togglePinOnNote: (noteId: string) => void;
@@ -107,6 +110,8 @@ export const WallFloatingUi = ({
   toolbarBtnActive,
   toolbarBtnCompact,
   applyColorToSelection,
+  applyTextSizeToSelection,
+  applyTextFontToSelection,
   updateNote,
   duplicateNote,
   togglePinOnNote,
@@ -145,6 +150,7 @@ export const WallFloatingUi = ({
   const editingNote = editing ? notesById[editing.id] : undefined;
   const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const editingTextStyle = getNoteTextStyle(editingNote?.textSize);
 
   return (
     <>
@@ -194,6 +200,8 @@ export const WallFloatingUi = ({
                 height: `${editingNote.h * camera.zoom}px`,
                 textAlign: editingNote.textAlign ?? "left",
                 fontFamily: getNoteTextFontFamily(editingNote.textFont),
+                fontSize: `${editingTextStyle.fontSize}px`,
+                lineHeight: `${editingTextStyle.lineHeight}`,
               };
             })()}
           />
@@ -306,6 +314,33 @@ export const WallFloatingUi = ({
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div role="toolbar" aria-label="Note quick actions" className="flex items-center gap-1">
+            <select
+              value={primarySelectedNote.textFont ?? "patrick_hand"}
+              onChange={(event) => applyTextFontToSelection(event.target.value as NonNullable<Note["textFont"]>)}
+              className={`w-[9rem] ${toolbarBtnCompact}`}
+              title="Note font"
+              aria-label="Note font"
+            >
+              {NOTE_TEXT_FONTS.map((option) => (
+                <option key={`quick-font-${option.value}`} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={primarySelectedNote.textSize ?? "md"}
+              onChange={(event) => applyTextSizeToSelection(event.target.value as NonNullable<Note["textSize"]>)}
+              className={`w-[5.4rem] ${toolbarBtnCompact}`}
+              title="Note size"
+              aria-label="Note size"
+            >
+              {NOTE_TEXT_SIZES.map((option) => (
+                <option key={`quick-size-${option.value}`} value={option.value}>
+                  {option.label === "S" ? "14px" : option.label === "M" ? "17px" : "20px"}
+                </option>
+              ))}
+            </select>
+            <div className="mx-1 h-5 w-px bg-zinc-300" />
             <NoteSwatches value={primarySelectedNote.color} onSelect={applyColorToSelection} showCustomColorAdd />
             <div className="mx-1 h-5 w-px bg-zinc-300" />
             <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd + D)">

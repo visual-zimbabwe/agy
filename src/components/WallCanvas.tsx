@@ -1023,6 +1023,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   const {
     applyColorToSelection,
+    applyTextSizeToSelection,
+    applyTextFontToSelection,
     makeNoteAtViewportCenter,
     makeZoneAtViewportCenter,
     applySelectedTemplate,
@@ -1828,6 +1830,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           toolbarBtnActive={toolbarBtnActive}
           toolbarBtnCompact={toolbarBtnCompact}
           applyColorToSelection={applyColorToSelection}
+          applyTextSizeToSelection={applyTextSizeToSelection}
+          applyTextFontToSelection={applyTextFontToSelection}
           updateNote={updateNote}
           duplicateNote={duplicateNote}
           togglePinOnNote={togglePinOnNote}

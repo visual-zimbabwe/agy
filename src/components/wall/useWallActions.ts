@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
-import type { Note, TemplateType, ZoneKind } from "@/features/wall/types";
+import type { Note, NoteTextFont, TemplateType, ZoneKind } from "@/features/wall/types";
 
 type Camera = { x: number; y: number; zoom: number };
 type Viewport = { w: number; h: number };
@@ -91,6 +91,19 @@ export const useWallActions = ({
       const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : selectedNoteId ? [selectedNoteId] : [];
       for (const id of targetIds) {
         updateNote(id, { textSize });
+      }
+    },
+    [activeSelectedNoteIds, isTimeLocked, selectedNoteId, updateNote],
+  );
+
+  const applyTextFontToSelection = useCallback(
+    (textFont: NoteTextFont) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : selectedNoteId ? [selectedNoteId] : [];
+      for (const id of targetIds) {
+        updateNote(id, { textFont });
       }
     },
     [activeSelectedNoteIds, isTimeLocked, selectedNoteId, updateNote],
@@ -266,6 +279,7 @@ export const useWallActions = ({
   return {
     applyColorToSelection,
     applyTextSizeToSelection,
+    applyTextFontToSelection,
     alignSelected,
     distributeSelected,
     makeNoteAtViewportCenter,
