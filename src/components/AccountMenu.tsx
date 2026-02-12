@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
@@ -15,7 +15,10 @@ export const AccountMenu = ({ email }: AccountMenuProps) => {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
-  const menuId = useId();
+  const menuId = useMemo(() => {
+    const normalized = email.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+    return `account-menu-${normalized || "user"}`;
+  }, [email]);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
 
