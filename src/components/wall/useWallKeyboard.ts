@@ -14,6 +14,7 @@ type WallKeyboardUiState = {
   selectedZoneId?: string;
   selectedLinkId?: string;
   selectedGroupId?: string;
+  selectedNoteGroupId?: string;
   lastColor: string;
 };
 
@@ -58,6 +59,7 @@ type WallKeyboardOptions = {
   deleteZone: (zoneId: string) => void;
   deleteLink: (linkId: string) => void;
   deleteGroup: (groupId: string) => void;
+  deleteNoteGroup: (groupId: string) => void;
 };
 
 const isTypingInField = (event: KeyboardEvent) => {
@@ -116,6 +118,7 @@ export const useWallKeyboard = ({
   deleteZone,
   deleteLink,
   deleteGroup,
+  deleteNoteGroup,
 }: WallKeyboardOptions) => {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -356,6 +359,14 @@ export const useWallKeyboard = ({
           if (ok) {
             deleteGroup(ui.selectedGroupId);
           }
+          return;
+        }
+
+        if (ui.selectedNoteGroupId) {
+          const ok = window.confirm("Delete selected note group?");
+          if (ok) {
+            deleteNoteGroup(ui.selectedNoteGroupId);
+          }
         }
       }
     };
@@ -381,6 +392,7 @@ export const useWallKeyboard = ({
     deleteLink,
     deleteNote,
     deleteZone,
+    deleteNoteGroup,
     duplicateNote,
     editing,
     isTimeLocked,

@@ -1,6 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
-import type { Camera, Link, Note, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Camera, Link, Note, NoteGroup, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
 import { normalizePersistedWallState, parseTimelinePayload } from "@/features/wall/storage-migrations";
 
 type MetaRecord = {
@@ -18,6 +18,7 @@ class IdeaWallDatabase extends Dexie {
   notes!: Table<Note, string>;
   zones!: Table<Zone, string>;
   zoneGroups!: Table<ZoneGroup, string>;
+  noteGroups!: Table<NoteGroup, string>;
   links!: Table<Link, string>;
   meta!: Table<MetaRecord, string>;
   timelineSnapshots!: Table<TimelineSnapshotRecord, number>;
@@ -50,6 +51,15 @@ class IdeaWallDatabase extends Dexie {
       meta: "key",
       timelineSnapshots: "++id, ts",
     });
+    this.version(5).stores({
+      notes: "id, updatedAt",
+      zones: "id, groupId, updatedAt",
+      zoneGroups: "id, updatedAt",
+      noteGroups: "id, updatedAt",
+      links: "id, fromNoteId, toNoteId, updatedAt",
+      meta: "key",
+      timelineSnapshots: "++id, ts",
+    });
   }
 }
 
@@ -58,10 +68,11 @@ const db = new IdeaWallDatabase();
 const defaultCamera: Camera = { x: 0, y: 0, zoom: 1 };
 
 export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
-  const [notesList, zonesList, zoneGroupsList, linksList, cameraMeta, lastColorMeta] = await Promise.all([
+  const [notesList, zonesList, zoneGroupsList, noteGroupsList, linksList, cameraMeta, lastColorMeta] = await Promise.all([
     db.notes.toArray(),
     db.zones.toArray(),
     db.zoneGroups.toArray(),
+    db.noteGroups.toArray(),
     db.links.toArray(),
     db.meta.get("camera"),
     db.meta.get("lastColor"),
@@ -70,25 +81,28 @@ export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
   const notes = Object.fromEntries(notesList.map((note) => [note.id, note]));
   const zones = Object.fromEntries(zonesList.map((zone) => [zone.id, zone]));
   const zoneGroups = Object.fromEntries(zoneGroupsList.map((group) => [group.id, group]));
+  const noteGroups = Object.fromEntries(noteGroupsList.map((group) => [group.id, group]));
   const links = Object.fromEntries(linksList.map((link) => [link.id, link]));
 
   const normalized = normalizePersistedWallState({
     notes,
     zones,
     zoneGroups,
+    noteGroups,
     links,
     camera: cameraMeta ? (JSON.parse(cameraMeta.value) as Camera) : defaultCamera,
     lastColor: lastColorMeta?.value,
   });
 
-  return normalized ?? { notes: {}, zones: {}, zoneGroups: {}, links: {}, camera: defaultCamera };
+  return normalized ?? { notes: {}, zones: {}, zoneGroups: {}, noteGroups: {}, links: {}, camera: defaultCamera };
 };
 
 export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
-  await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.links, db.meta], async () => {
+  await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta], async () => {
     const notes = Object.values(snapshot.notes);
     const zones = Object.values(snapshot.zones);
     const zoneGroups = Object.values(snapshot.zoneGroups);
+    const noteGroups = Object.values(snapshot.noteGroups);
     const links = Object.values(snapshot.links);
 
     await db.notes.clear();
@@ -104,6 +118,11 @@ export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<vo
     await db.zoneGroups.clear();
     if (zoneGroups.length > 0) {
       await db.zoneGroups.bulkPut(zoneGroups);
+    }
+
+    await db.noteGroups.clear();
+    if (noteGroups.length > 0) {
+      await db.noteGroups.bulkPut(noteGroups);
     }
 
     await db.links.clear();

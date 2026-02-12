@@ -28,6 +28,7 @@ export const decodeSnapshotFromUrl = (encoded: string): PersistedWallState | nul
       notes,
       zones,
       zoneGroups: parsed.zoneGroups ?? {},
+      noteGroups: parsed.noteGroups ?? {},
       links: parsed.links ?? {},
       camera: parsed.camera ?? { x: 0, y: 0, zoom: 1 },
       lastColor: parsed.lastColor,

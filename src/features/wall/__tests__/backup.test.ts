@@ -9,6 +9,7 @@ describe("backup compatibility", () => {
         notes: {},
         zones: {},
         zoneGroups: {},
+        noteGroups: {},
         links: {},
         camera: { x: 0, y: 0, zoom: 1 },
       }),
@@ -29,6 +30,7 @@ describe("backup compatibility", () => {
 
     expect(parsed).toBeTruthy();
     expect(parsed?.zoneGroups).toEqual({});
+    expect(parsed?.noteGroups).toEqual({});
     expect(parsed?.links).toEqual({});
   });
 

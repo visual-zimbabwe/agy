@@ -5,6 +5,7 @@ import type {
   Link,
   LinkType,
   Note,
+  NoteGroup,
   PersistedWallState,
   TemplateType,
   WallState,
@@ -19,6 +20,7 @@ type WallActions = {
   selectNote: (noteId?: string) => void;
   selectZone: (zoneId?: string) => void;
   selectGroup: (groupId?: string) => void;
+  selectNoteGroup: (groupId?: string) => void;
   selectLink: (linkId?: string) => void;
   setLinkingFromNote: (noteId?: string) => void;
   setLinkType: (linkType: LinkType) => void;
@@ -38,6 +40,9 @@ type WallActions = {
   upsertGroup: (group: ZoneGroup) => void;
   patchGroup: (groupId: string, patch: Partial<ZoneGroup>) => void;
   removeGroup: (groupId: string) => void;
+  upsertNoteGroup: (group: NoteGroup) => void;
+  patchNoteGroup: (groupId: string, patch: Partial<NoteGroup>) => void;
+  removeNoteGroup: (groupId: string) => void;
   upsertLink: (link: Link) => void;
   patchLink: (linkId: string, patch: Partial<Link>) => void;
   removeLink: (linkId: string) => void;
@@ -48,7 +53,7 @@ type WallActions = {
   redo: () => void;
 };
 
-type HistorySnapshot = Pick<WallState, "notes" | "zones" | "zoneGroups" | "links" | "camera"> & {
+type HistorySnapshot = Pick<WallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links" | "camera"> & {
   lastColor?: string;
 };
 
@@ -67,6 +72,7 @@ const makeHistorySnapshot = (state: WallStore): HistorySnapshot => ({
   notes: state.notes,
   zones: state.zones,
   zoneGroups: state.zoneGroups,
+  noteGroups: state.noteGroups,
   links: state.links,
   camera: state.camera,
   lastColor: state.ui.lastColor,
@@ -78,6 +84,7 @@ const initialState: WallState = {
   notes: {},
   zones: {},
   zoneGroups: {},
+  noteGroups: {},
   links: {},
   camera: initialCamera,
   ui: {
@@ -94,6 +101,7 @@ const applyWithHistory = (state: WallStore, patch: Partial<WallState>) => {
   const nextNotes = patch.notes ?? state.notes;
   const nextZones = patch.zones ?? state.zones;
   const nextZoneGroups = patch.zoneGroups ?? state.zoneGroups;
+  const nextNoteGroups = patch.noteGroups ?? state.noteGroups;
   const nextLinks = patch.links ?? state.links;
   const nextCamera = patch.camera ?? state.camera;
   const nextUi = patch.ui ?? state.ui;
@@ -102,6 +110,7 @@ const applyWithHistory = (state: WallStore, patch: Partial<WallState>) => {
     nextNotes !== state.notes ||
     nextZones !== state.zones ||
     nextZoneGroups !== state.zoneGroups ||
+    nextNoteGroups !== state.noteGroups ||
     nextLinks !== state.links ||
     nextCamera !== state.camera ||
     nextUi !== state.ui;
@@ -143,6 +152,7 @@ export const useWallStore = create<WallStore>((set) => ({
       notes: snapshot.notes,
       zones: snapshot.zones,
       zoneGroups: snapshot.zoneGroups,
+      noteGroups: snapshot.noteGroups,
       links: snapshot.links,
       camera: snapshot.camera,
       ui: {
@@ -165,6 +175,7 @@ export const useWallStore = create<WallStore>((set) => ({
         selectedNoteId: undefined,
         selectedZoneId: undefined,
         selectedGroupId: undefined,
+        selectedNoteGroupId: undefined,
         selectedLinkId: undefined,
         linkingFromNoteId: undefined,
       },
@@ -177,6 +188,7 @@ export const useWallStore = create<WallStore>((set) => ({
         selectedNoteId: noteId,
         selectedZoneId: undefined,
         selectedGroupId: undefined,
+        selectedNoteGroupId: undefined,
         selectedLinkId: undefined,
       },
     })),
@@ -187,6 +199,7 @@ export const useWallStore = create<WallStore>((set) => ({
         ...state.ui,
         selectedZoneId: zoneId,
         selectedGroupId: undefined,
+        selectedNoteGroupId: undefined,
         selectedNoteId: undefined,
         selectedLinkId: undefined,
       },
@@ -199,6 +212,19 @@ export const useWallStore = create<WallStore>((set) => ({
         selectedGroupId: groupId,
         selectedNoteId: undefined,
         selectedZoneId: undefined,
+        selectedNoteGroupId: undefined,
+        selectedLinkId: undefined,
+      },
+    })),
+
+  selectNoteGroup: (groupId) =>
+    set((state) => ({
+      ui: {
+        ...state.ui,
+        selectedNoteGroupId: groupId,
+        selectedNoteId: undefined,
+        selectedZoneId: undefined,
+        selectedGroupId: undefined,
         selectedLinkId: undefined,
       },
     })),
@@ -210,6 +236,7 @@ export const useWallStore = create<WallStore>((set) => ({
         selectedLinkId: linkId,
         selectedNoteId: undefined,
         selectedZoneId: undefined,
+        selectedNoteGroupId: undefined,
       },
     })),
 
@@ -286,8 +313,19 @@ export const useWallStore = create<WallStore>((set) => ({
       const links = Object.fromEntries(
         Object.entries(state.links).filter(([, link]) => link.fromNoteId !== noteId && link.toNoteId !== noteId),
       );
+      const noteGroups = Object.fromEntries(
+        Object.entries(state.noteGroups).map(([groupId, group]) => [
+          groupId,
+          {
+            ...group,
+            noteIds: group.noteIds.filter((id) => id !== noteId),
+            updatedAt: Date.now(),
+          },
+        ]),
+      );
       return applyWithHistory(state, {
         notes: rest,
+        noteGroups,
         links,
         ui: {
           ...state.ui,
@@ -401,6 +439,49 @@ export const useWallStore = create<WallStore>((set) => ({
       });
     }),
 
+  upsertNoteGroup: (group) =>
+    set((state) =>
+      applyWithHistory(state, {
+        noteGroups: {
+          ...state.noteGroups,
+          [group.id]: group,
+        },
+      }),
+    ),
+
+  patchNoteGroup: (groupId, patch) =>
+    set((state) => {
+      const current = state.noteGroups[groupId];
+      if (!current) {
+        return state;
+      }
+
+      return applyWithHistory(state, {
+        noteGroups: {
+          ...state.noteGroups,
+          [groupId]: {
+            ...current,
+            ...patch,
+            updatedAt: Date.now(),
+          },
+        },
+      });
+    }),
+
+  removeNoteGroup: (groupId) =>
+    set((state) => {
+      const remainingGroups = { ...state.noteGroups };
+      delete remainingGroups[groupId];
+
+      return applyWithHistory(state, {
+        noteGroups: remainingGroups,
+        ui: {
+          ...state.ui,
+          selectedNoteGroupId: state.ui.selectedNoteGroupId === groupId ? undefined : state.ui.selectedNoteGroupId,
+        },
+      });
+    }),
+
   upsertLink: (link) =>
     set((state) =>
       applyWithHistory(state, {
@@ -506,6 +587,7 @@ export const useWallStore = create<WallStore>((set) => ({
         notes: previous.notes,
         zones: previous.zones,
         zoneGroups: previous.zoneGroups,
+        noteGroups: previous.noteGroups,
         links: previous.links,
         camera: previous.camera,
         ui: {
@@ -514,6 +596,7 @@ export const useWallStore = create<WallStore>((set) => ({
           selectedNoteId: undefined,
           selectedZoneId: undefined,
           selectedGroupId: undefined,
+          selectedNoteGroupId: undefined,
           selectedLinkId: undefined,
           linkingFromNoteId: undefined,
         },
@@ -541,6 +624,7 @@ export const useWallStore = create<WallStore>((set) => ({
         notes: next.notes,
         zones: next.zones,
         zoneGroups: next.zoneGroups,
+        noteGroups: next.noteGroups,
         links: next.links,
         camera: next.camera,
         ui: {
@@ -549,6 +633,7 @@ export const useWallStore = create<WallStore>((set) => ({
           selectedNoteId: undefined,
           selectedZoneId: undefined,
           selectedGroupId: undefined,
+          selectedNoteGroupId: undefined,
           selectedLinkId: undefined,
           linkingFromNoteId: undefined,
         },
@@ -564,6 +649,7 @@ export const selectPersistedSnapshot = (state: WallStore): PersistedWallState =>
   notes: state.notes,
   zones: state.zones,
   zoneGroups: state.zoneGroups,
+  noteGroups: state.noteGroups,
   links: state.links,
   camera: state.camera,
   lastColor: state.ui.lastColor,

@@ -45,6 +45,16 @@ const zoneGroupSchema = z.object({
   updatedAt: z.number(),
 });
 
+const noteGroupSchema = z.object({
+  id: z.string().min(1),
+  label: z.string(),
+  color: z.string(),
+  noteIds: z.array(z.string()),
+  collapsed: z.boolean(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+
 const linkSchema = z.object({
   id: z.string().min(1),
   fromNoteId: z.string(),
@@ -59,6 +69,7 @@ const syncSchema = z.object({
   notes: z.record(z.string(), noteSchema),
   zones: z.record(z.string(), zoneSchema),
   zoneGroups: z.record(z.string(), zoneGroupSchema),
+  noteGroups: z.record(z.string(), noteGroupSchema).default({}),
   links: z.record(z.string(), linkSchema),
   camera: z.object({
     x: z.number(),
@@ -267,6 +278,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     notes: snapshot.notes,
     zones: snapshot.zones,
     zoneGroups: snapshot.zoneGroups,
+    noteGroups: snapshot.noteGroups,
     links: snapshot.links,
     camera: snapshot.camera,
     lastColor: snapshot.lastColor,

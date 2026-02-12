@@ -27,6 +27,7 @@ describe("storage migrations", () => {
       return;
     }
     expect(normalized.zoneGroups).toEqual({});
+    expect(normalized.noteGroups).toEqual({});
     expect(normalized.links).toEqual({});
     expect(normalized.notes.n1?.tags).toEqual([]);
     expect(normalized.notes.n1?.textSize).toBe("md");
@@ -52,6 +53,7 @@ describe("storage migrations", () => {
       ],
       zones: [],
       zoneGroups: [],
+      noteGroups: [],
       links: [],
       camera: { x: 5, y: 6, zoom: 1.2 },
       lastColor: "#abc",
@@ -90,6 +92,7 @@ describe("storage migrations", () => {
         },
       },
       zoneGroups: {},
+      noteGroups: {},
       links: {},
       camera: { x: 0, y: 0, zoom: 1 },
     });
@@ -104,6 +107,7 @@ describe("storage migrations", () => {
         notes: {},
         zones: {},
         zoneGroups: {},
+        noteGroups: {},
         links: {},
         camera: { x: 0, y: 0, zoom: 1 },
       }),

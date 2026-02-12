@@ -1,6 +1,6 @@
 "use client";
 
-import type { Note, TemplateType, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Note, NoteGroup, TemplateType, Zone, ZoneGroup } from "@/features/wall/types";
 import { HistorySection } from "@/components/wall/details/HistorySection";
 import { RecallSection } from "@/components/wall/details/RecallSection";
 import { SelectionTagsSection } from "@/components/wall/details/SelectionTagsSection";
@@ -8,6 +8,7 @@ import { TagGroupsSection } from "@/components/wall/details/TagGroupsSection";
 import { type AutoTagGroup, type DetailsSectionKey, type DetailsSectionState, type RecallDateFilter, type SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { TemplatesSection } from "@/components/wall/details/TemplatesSection";
 import { ZoneGroupsSection } from "@/components/wall/details/ZoneGroupsSection";
+import { NoteGroupsSection } from "@/components/wall/details/NoteGroupsSection";
 
 type TemplateOption = {
   value: TemplateType;
@@ -66,6 +67,20 @@ type WallDetailsContentProps = {
   onExpandAllGroups: () => void;
   onDeleteGroup: (groupId: string) => void;
   onClearNoteSelection: () => void;
+  noteGroupLabelInput: string;
+  onNoteGroupLabelInputChange: (value: string) => void;
+  selectedNoteGroup?: NoteGroup;
+  activeSelectedNoteIds: string[];
+  noteGroups: NoteGroup[];
+  onCreateGroupFromSelection: () => void;
+  onSelectNoteGroup: (groupId?: string) => void;
+  onToggleNoteGroupCollapse: (groupId: string) => void;
+  onCollapseAllNoteGroups: () => void;
+  onExpandAllNoteGroups: () => void;
+  onDeleteNoteGroup: (groupId: string) => void;
+  onAddSelectionToNoteGroup: (groupId: string) => void;
+  onRemoveSelectionFromNoteGroup: (groupId: string) => void;
+  onSelectNotesForGroup: (groupId: string) => void;
   showAutoTagGroups: boolean;
   onToggleAutoTagGroups: () => void;
   autoTagGroups: AutoTagGroup[];
@@ -124,6 +139,20 @@ export const WallDetailsContent = ({
   onExpandAllGroups,
   onDeleteGroup,
   onClearNoteSelection,
+  noteGroupLabelInput,
+  onNoteGroupLabelInputChange,
+  selectedNoteGroup,
+  activeSelectedNoteIds,
+  noteGroups,
+  onCreateGroupFromSelection,
+  onSelectNoteGroup,
+  onToggleNoteGroupCollapse,
+  onCollapseAllNoteGroups,
+  onExpandAllNoteGroups,
+  onDeleteNoteGroup,
+  onAddSelectionToNoteGroup,
+  onRemoveSelectionFromNoteGroup,
+  onSelectNotesForGroup,
   showAutoTagGroups,
   onToggleAutoTagGroups,
   autoTagGroups,
@@ -197,6 +226,25 @@ export const WallDetailsContent = ({
         onExpandAllGroups={onExpandAllGroups}
         onDeleteGroup={onDeleteGroup}
         onClearNoteSelection={onClearNoteSelection}
+      />
+      <NoteGroupsSection
+        detailsSectionsOpen={detailsSectionsOpen}
+        onToggleDetailsSection={onToggleDetailsSection}
+        noteGroupLabelInput={noteGroupLabelInput}
+        onNoteGroupLabelInputChange={onNoteGroupLabelInputChange}
+        selectedNoteGroup={selectedNoteGroup}
+        activeSelectedNoteIds={activeSelectedNoteIds}
+        noteGroups={noteGroups}
+        isTimeLocked={isTimeLocked}
+        onCreateGroupFromSelection={onCreateGroupFromSelection}
+        onSelectNoteGroup={onSelectNoteGroup}
+        onToggleNoteGroupCollapse={onToggleNoteGroupCollapse}
+        onCollapseAllNoteGroups={onCollapseAllNoteGroups}
+        onExpandAllNoteGroups={onExpandAllNoteGroups}
+        onDeleteNoteGroup={onDeleteNoteGroup}
+        onAddSelectionToNoteGroup={onAddSelectionToNoteGroup}
+        onRemoveSelectionFromNoteGroup={onRemoveSelectionFromNoteGroup}
+        onSelectNotesForGroup={onSelectNotesForGroup}
       />
       <TagGroupsSection
         detailsSectionsOpen={detailsSectionsOpen}

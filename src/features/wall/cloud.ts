@@ -63,6 +63,7 @@ export const hasContent = (snapshot: PersistedWallState) =>
   Object.keys(snapshot.notes).length > 0 ||
   Object.keys(snapshot.zones).length > 0 ||
   Object.keys(snapshot.zoneGroups).length > 0 ||
+  Object.keys(snapshot.noteGroups).length > 0 ||
   Object.keys(snapshot.links).length > 0;
 
 export const mergeSnapshotsLww = (server: PersistedWallState, local: PersistedWallState): PersistedWallState => {
@@ -91,6 +92,7 @@ export const mergeSnapshotsLww = (server: PersistedWallState, local: PersistedWa
     notes: mergeByUpdatedAt(server.notes, local.notes),
     zones: mergeByUpdatedAt(server.zones, local.zones),
     zoneGroups: mergeByUpdatedAt(server.zoneGroups, local.zoneGroups),
+    noteGroups: mergeByUpdatedAt(server.noteGroups, local.noteGroups),
     links: mergeByUpdatedAt(server.links, local.links),
     camera: local.camera,
     lastColor: local.lastColor ?? server.lastColor,
@@ -157,6 +159,7 @@ export const rowsToSnapshot = (rows: {
       },
     ]),
   ),
+  noteGroups: {},
   links: Object.fromEntries(
     rows.links.map((link) => [
       link.id,

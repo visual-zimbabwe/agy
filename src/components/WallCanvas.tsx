@@ -67,12 +67,15 @@ import {
   toolbarSurface,
 } from "@/components/wall/wallChromeClasses";
 import {
+  addNotesToNoteGroup,
   applyTemplate,
   assignZoneToGroup,
   createNote,
+  createNoteGroup,
   createLink,
   createZone,
   createZoneGroup,
+  deleteNoteGroup,
   deleteGroup,
   deleteLink,
   deleteNote,
@@ -80,8 +83,11 @@ import {
   duplicateNote,
   duplicateNoteAt,
   moveNote,
+  removeNotesFromNoteGroup,
+  setAllNoteGroupsCollapsed,
   moveZone,
   setAllGroupsCollapsed,
+  toggleNoteGroupCollapse,
   toggleGroupCollapse,
   updateNote,
   updateLinkType,
@@ -139,6 +145,7 @@ export const WallCanvas = () => {
   const notesMap = useWallStore((state) => state.notes);
   const zonesMap = useWallStore((state) => state.zones);
   const zoneGroupsMap = useWallStore((state) => state.zoneGroups);
+  const noteGroupsMap = useWallStore((state) => state.noteGroups);
   const linksMap = useWallStore((state) => state.links);
   const camera = useWallStore((state) => state.camera);
   const ui = useWallStore((state) => state.ui);
@@ -149,6 +156,7 @@ export const WallCanvas = () => {
   const selectNote = useWallStore((state) => state.selectNote);
   const selectZone = useWallStore((state) => state.selectZone);
   const selectGroup = useWallStore((state) => state.selectGroup);
+  const selectNoteGroup = useWallStore((state) => state.selectNoteGroup);
   const selectLink = useWallStore((state) => state.selectLink);
   const resetSelection = useWallStore((state) => state.resetSelection);
   const setLinkingFromNote = useWallStore((state) => state.setLinkingFromNote);
@@ -187,6 +195,7 @@ export const WallCanvas = () => {
   const [editTagInput, setEditTagInput] = useState("");
   const [editTagRenameFrom, setEditTagRenameFrom] = useState<string | null>(null);
   const [groupLabelInput, setGroupLabelInput] = useState("New Group");
+  const [noteGroupLabelInput, setNoteGroupLabelInput] = useState("New Note Group");
   const [showAutoTagGroups, setShowAutoTagGroups] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
@@ -217,6 +226,7 @@ export const WallCanvas = () => {
     history: false,
     recall: true,
     zoneGroups: false,
+    noteGroups: false,
     tagGroups: false,
   });
   const [presentationMode, setPresentationMode] = useState(false);
@@ -253,6 +263,7 @@ export const WallCanvas = () => {
     notes: notesMap,
     zones: zonesMap,
     zoneGroups: zoneGroupsMap,
+    noteGroups: noteGroupsMap,
     links: linksMap,
     camera,
     lastColor: ui.lastColor,
@@ -260,6 +271,7 @@ export const WallCanvas = () => {
   const notes = useMemo(() => Object.values(renderSnapshot.notes), [renderSnapshot.notes]);
   const zones = useMemo(() => Object.values(renderSnapshot.zones), [renderSnapshot.zones]);
   const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
+  const noteGroups = useMemo(() => Object.values(renderSnapshot.noteGroups), [renderSnapshot.noteGroups]);
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
   const isTimeLocked = timelineMode || publishedReadOnly || presentationMode || readingMode;
   const isChromeHidden = presentationMode || readingMode;
@@ -642,6 +654,7 @@ export const WallCanvas = () => {
       selectedZoneId: ui.selectedZoneId,
       selectedLinkId: ui.selectedLinkId,
       selectedGroupId: ui.selectedGroupId,
+      selectedNoteGroupId: ui.selectedNoteGroupId,
       lastColor: ui.lastColor ?? NOTE_COLORS[0],
     },
     selectedNoteIds,
@@ -678,6 +691,7 @@ export const WallCanvas = () => {
     deleteZone,
     deleteLink,
     deleteGroup,
+    deleteNoteGroup,
   });
 
   const { jumpToTimelineDay } = useWallTimeline({
@@ -733,6 +747,7 @@ export const WallCanvas = () => {
     notes,
     zones,
     zoneGroups,
+    noteGroups,
     links,
     selectedNoteId: ui.selectedNoteId,
     recallQuery,
@@ -856,6 +871,60 @@ export const WallCanvas = () => {
     setAllGroupsCollapsed(false);
   }, [isTimeLocked]);
 
+  const createNoteGroupFromSelection = useCallback(() => {
+    if (isTimeLocked || activeSelectedNoteIds.length === 0) {
+      return;
+    }
+    createNoteGroup(noteGroupLabelInput.trim() || "Note Group", activeSelectedNoteIds);
+  }, [activeSelectedNoteIds, isTimeLocked, noteGroupLabelInput]);
+
+  const addSelectionToNoteGroup = useCallback(
+    (groupId: string) => {
+      if (isTimeLocked || activeSelectedNoteIds.length === 0) {
+        return;
+      }
+      addNotesToNoteGroup(groupId, activeSelectedNoteIds);
+    },
+    [activeSelectedNoteIds, isTimeLocked],
+  );
+
+  const removeSelectionFromNoteGroup = useCallback(
+    (groupId: string) => {
+      if (isTimeLocked || activeSelectedNoteIds.length === 0) {
+        return;
+      }
+      removeNotesFromNoteGroup(groupId, activeSelectedNoteIds);
+    },
+    [activeSelectedNoteIds, isTimeLocked],
+  );
+
+  const selectNotesForGroup = useCallback(
+    (groupId: string) => {
+      const group = renderSnapshot.noteGroups[groupId];
+      if (!group) {
+        return;
+      }
+      const ids = group.noteIds.filter((id) => Boolean(renderSnapshot.notes[id]));
+      syncPrimarySelection(ids);
+      selectNoteGroup(groupId);
+    },
+    [renderSnapshot.noteGroups, renderSnapshot.notes, selectNoteGroup, syncPrimarySelection],
+  );
+
+  const collapseAllNoteGroups = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    setAllNoteGroupsCollapsed(true);
+  }, [isTimeLocked]);
+
+  const expandAllNoteGroups = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    setAllNoteGroupsCollapsed(false);
+  }, [isTimeLocked]);
+
   useEffect(() => {
     const visibleNoteIdSet = new Set(visibleNotes.map((note) => note.id));
     const visibleZoneIdSet = new Set(visibleZones.map((zone) => zone.id));
@@ -870,7 +939,10 @@ export const WallCanvas = () => {
       selectZone(undefined);
       selectGroup(undefined);
     }
-  }, [selectedNoteIds, selectGroup, selectNote, selectZone, setSelectedNoteIds, ui.selectedNoteId, ui.selectedZoneId, visibleNotes, visibleZones]);
+    if (ui.selectedNoteGroupId && !renderSnapshot.noteGroups[ui.selectedNoteGroupId]) {
+      selectNoteGroup(undefined);
+    }
+  }, [renderSnapshot.noteGroups, selectedNoteIds, selectGroup, selectNote, selectNoteGroup, selectZone, setSelectedNoteIds, ui.selectedNoteGroupId, ui.selectedNoteId, ui.selectedZoneId, visibleNotes, visibleZones]);
 
   const { exportPng, exportPdf, exportMarkdown } = useWallExport({
     stageRef,
@@ -911,6 +983,7 @@ export const WallCanvas = () => {
     primarySelectedNote,
     selectedZone,
     selectedGroup,
+    selectedNoteGroup,
     showContextColor,
     showContextTextSize,
     showContextAlign,
@@ -926,6 +999,7 @@ export const WallCanvas = () => {
     notesById: renderSnapshot.notes,
     zonesById: renderSnapshot.zones,
     groupsById: renderSnapshot.zoneGroups,
+    noteGroupsById: renderSnapshot.noteGroups,
     activeSelectedNoteIds,
     selectedNotes,
     hoveredNoteId,
@@ -1569,6 +1643,20 @@ export const WallCanvas = () => {
           onExpandAllGroups={expandAllZoneGroups}
           onDeleteGroup={deleteGroup}
           onClearNoteSelection={clearNoteSelection}
+          noteGroupLabelInput={noteGroupLabelInput}
+          onNoteGroupLabelInputChange={setNoteGroupLabelInput}
+          selectedNoteGroup={selectedNoteGroup}
+          activeSelectedNoteIds={activeSelectedNoteIds}
+          noteGroups={noteGroups}
+          onCreateGroupFromSelection={createNoteGroupFromSelection}
+          onSelectNoteGroup={selectNoteGroup}
+          onToggleNoteGroupCollapse={toggleNoteGroupCollapse}
+          onCollapseAllNoteGroups={collapseAllNoteGroups}
+          onExpandAllNoteGroups={expandAllNoteGroups}
+          onDeleteNoteGroup={deleteNoteGroup}
+          onAddSelectionToNoteGroup={addSelectionToNoteGroup}
+          onRemoveSelectionFromNoteGroup={removeSelectionFromNoteGroup}
+          onSelectNotesForGroup={selectNotesForGroup}
           showAutoTagGroups={showAutoTagGroups}
           onToggleAutoTagGroups={() => setShowAutoTagGroups((value) => !value)}
           autoTagGroups={autoTagGroups}

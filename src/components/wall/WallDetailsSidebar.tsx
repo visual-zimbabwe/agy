@@ -4,7 +4,7 @@ import { WallDetailsPanel } from "@/components/wall/WallDetailsPanel";
 import { WallDetailsContent } from "@/components/wall/WallDetailsContent";
 import type { DetailsSectionKey, DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { TEMPLATE_TYPES } from "@/features/wall/constants";
-import type { Bounds, Note, TemplateType, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Bounds, Note, NoteGroup, TemplateType, Zone, ZoneGroup } from "@/features/wall/types";
 
 type WallDetailsSidebarProps = {
   presentationMode: boolean;
@@ -62,6 +62,20 @@ type WallDetailsSidebarProps = {
   onExpandAllGroups: () => void;
   onDeleteGroup: (groupId: string) => void;
   onClearNoteSelection: () => void;
+  noteGroupLabelInput: string;
+  onNoteGroupLabelInputChange: (value: string) => void;
+  selectedNoteGroup?: NoteGroup;
+  activeSelectedNoteIds: string[];
+  noteGroups: NoteGroup[];
+  onCreateGroupFromSelection: () => void;
+  onSelectNoteGroup: (groupId?: string) => void;
+  onToggleNoteGroupCollapse: (groupId: string) => void;
+  onCollapseAllNoteGroups: () => void;
+  onExpandAllNoteGroups: () => void;
+  onDeleteNoteGroup: (groupId: string) => void;
+  onAddSelectionToNoteGroup: (groupId: string) => void;
+  onRemoveSelectionFromNoteGroup: (groupId: string) => void;
+  onSelectNotesForGroup: (groupId: string) => void;
   showAutoTagGroups: boolean;
   onToggleAutoTagGroups: () => void;
   autoTagGroups: Array<{ tag: string; noteIds: string[]; bounds: Bounds }>;
@@ -124,6 +138,20 @@ export const WallDetailsSidebar = ({
   onExpandAllGroups,
   onDeleteGroup,
   onClearNoteSelection,
+  noteGroupLabelInput,
+  onNoteGroupLabelInputChange,
+  selectedNoteGroup,
+  activeSelectedNoteIds,
+  noteGroups,
+  onCreateGroupFromSelection,
+  onSelectNoteGroup,
+  onToggleNoteGroupCollapse,
+  onCollapseAllNoteGroups,
+  onExpandAllNoteGroups,
+  onDeleteNoteGroup,
+  onAddSelectionToNoteGroup,
+  onRemoveSelectionFromNoteGroup,
+  onSelectNotesForGroup,
   showAutoTagGroups,
   onToggleAutoTagGroups,
   autoTagGroups,
@@ -187,6 +215,20 @@ export const WallDetailsSidebar = ({
         onExpandAllGroups={onExpandAllGroups}
         onDeleteGroup={onDeleteGroup}
         onClearNoteSelection={onClearNoteSelection}
+        noteGroupLabelInput={noteGroupLabelInput}
+        onNoteGroupLabelInputChange={onNoteGroupLabelInputChange}
+        selectedNoteGroup={selectedNoteGroup}
+        activeSelectedNoteIds={activeSelectedNoteIds}
+        noteGroups={noteGroups}
+        onCreateGroupFromSelection={onCreateGroupFromSelection}
+        onSelectNoteGroup={onSelectNoteGroup}
+        onToggleNoteGroupCollapse={onToggleNoteGroupCollapse}
+        onCollapseAllNoteGroups={onCollapseAllNoteGroups}
+        onExpandAllNoteGroups={onExpandAllNoteGroups}
+        onDeleteNoteGroup={onDeleteNoteGroup}
+        onAddSelectionToNoteGroup={onAddSelectionToNoteGroup}
+        onRemoveSelectionFromNoteGroup={onRemoveSelectionFromNoteGroup}
+        onSelectNotesForGroup={onSelectNotesForGroup}
         showAutoTagGroups={showAutoTagGroups}
         onToggleAutoTagGroups={onToggleAutoTagGroups}
         autoTagGroups={autoTagGroups}

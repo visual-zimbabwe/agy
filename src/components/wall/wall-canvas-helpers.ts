@@ -180,12 +180,14 @@ export const isPersistedWallStateLike = (value: unknown): value is PersistedWall
   const notes = value.notes;
   const zones = value.zones;
   const zoneGroups = value.zoneGroups;
+  const noteGroups = value.noteGroups;
   const links = value.links;
   const camera = value.camera;
   return (
     isObjectRecord(notes) &&
     isObjectRecord(zones) &&
     isObjectRecord(zoneGroups) &&
+    (noteGroups === undefined || isObjectRecord(noteGroups)) &&
     isObjectRecord(links) &&
     isObjectRecord(camera) &&
     typeof camera.x === "number" &&

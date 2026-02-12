@@ -1,6 +1,6 @@
 import { GROUP_COLORS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
-import type { Link, LinkType, Note, TemplateType, Zone, ZoneGroup, ZoneKind } from "@/features/wall/types";
+import type { Link, LinkType, Note, NoteGroup, TemplateType, Zone, ZoneGroup, ZoneKind } from "@/features/wall/types";
 
 const makeId = () => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -214,6 +214,82 @@ export const setAllGroupsCollapsed = (collapsed: boolean) => {
 
 export const deleteGroup = (groupId: string) => {
   useWallStore.getState().removeGroup(groupId);
+};
+
+export const createNoteGroup = (label: string, noteIds: string[] = []) => {
+  return withHistoryGroup(() => {
+    const state = useWallStore.getState();
+    const now = Date.now();
+    const uniqueNoteIds = [...new Set(noteIds)].filter((id) => Boolean(state.notes[id]));
+    const group: NoteGroup = {
+      id: makeId(),
+      label: label.trim() || "Note Group",
+      color: randomColor(GROUP_COLORS, "#C7D2FE"),
+      noteIds: uniqueNoteIds,
+      collapsed: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    state.upsertNoteGroup(group);
+    state.selectNoteGroup(group.id);
+    return group.id;
+  });
+};
+
+export const addNotesToNoteGroup = (groupId: string, noteIds: string[]) => {
+  withHistoryGroup(() => {
+    const state = useWallStore.getState();
+    const group = state.noteGroups[groupId];
+    if (!group) {
+      return;
+    }
+    const additions = noteIds.filter((id) => Boolean(state.notes[id]));
+    const nextIds = [...new Set([...group.noteIds, ...additions])];
+    if (nextIds.length === group.noteIds.length) {
+      return;
+    }
+    state.patchNoteGroup(groupId, { noteIds: nextIds });
+  });
+};
+
+export const removeNotesFromNoteGroup = (groupId: string, noteIds: string[]) => {
+  withHistoryGroup(() => {
+    const state = useWallStore.getState();
+    const group = state.noteGroups[groupId];
+    if (!group) {
+      return;
+    }
+    const removeSet = new Set(noteIds);
+    const nextIds = group.noteIds.filter((id) => !removeSet.has(id));
+    if (nextIds.length === group.noteIds.length) {
+      return;
+    }
+    state.patchNoteGroup(groupId, { noteIds: nextIds });
+  });
+};
+
+export const toggleNoteGroupCollapse = (groupId: string) => {
+  const state = useWallStore.getState();
+  const group = state.noteGroups[groupId];
+  if (!group) {
+    return;
+  }
+  state.patchNoteGroup(groupId, { collapsed: !group.collapsed });
+};
+
+export const setAllNoteGroupsCollapsed = (collapsed: boolean) => {
+  withHistoryGroup(() => {
+    const state = useWallStore.getState();
+    for (const group of Object.values(state.noteGroups)) {
+      if (group.collapsed !== collapsed) {
+        state.patchNoteGroup(group.id, { collapsed });
+      }
+    }
+  });
+};
+
+export const deleteNoteGroup = (groupId: string) => {
+  useWallStore.getState().removeNoteGroup(groupId);
 };
 
 const linkLabelByType: Record<LinkType, string> = {

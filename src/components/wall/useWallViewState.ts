@@ -3,18 +3,20 @@
 import { useMemo } from "react";
 
 import { noteTagChipPalette, toScreenPoint } from "@/components/wall/wall-canvas-helpers";
-import type { Note, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Note, NoteGroup, Zone, ZoneGroup } from "@/features/wall/types";
 
 type UseWallViewStateOptions = {
   ui: {
     selectedNoteId?: string;
     selectedZoneId?: string;
     selectedGroupId?: string;
+    selectedNoteGroupId?: string;
     linkingFromNoteId?: string;
   };
   notesById: Record<string, Note>;
   zonesById: Record<string, Zone>;
   groupsById: Record<string, ZoneGroup>;
+  noteGroupsById: Record<string, NoteGroup>;
   activeSelectedNoteIds: string[];
   selectedNotes: Note[];
   hoveredNoteId?: string;
@@ -28,6 +30,7 @@ export const useWallViewState = ({
   notesById,
   zonesById,
   groupsById,
+  noteGroupsById,
   activeSelectedNoteIds,
   selectedNotes,
   hoveredNoteId,
@@ -40,6 +43,7 @@ export const useWallViewState = ({
   const primarySelectedNote = primarySelectedNoteId ? notesById[primarySelectedNoteId] : undefined;
   const selectedZone = ui.selectedZoneId ? zonesById[ui.selectedZoneId] : undefined;
   const selectedGroup = ui.selectedGroupId ? groupsById[ui.selectedGroupId] : undefined;
+  const selectedNoteGroup = ui.selectedNoteGroupId ? noteGroupsById[ui.selectedNoteGroupId] : undefined;
   const hasNoteSelection = activeSelectedNoteIds.length > 0 || Boolean(ui.selectedNoteId);
   const showContextColor = hasNoteSelection;
   const showContextTextSize = hasNoteSelection;
@@ -77,6 +81,7 @@ export const useWallViewState = ({
     primarySelectedNote,
     selectedZone,
     selectedGroup,
+    selectedNoteGroup,
     showContextColor,
     showContextTextSize,
     showContextAlign,

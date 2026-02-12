@@ -1,11 +1,15 @@
 import {
+  addNotesToNoteGroup,
   applyTemplate,
   assignZoneToGroup,
+  createNoteGroup,
   createLink,
   createNote,
   createZone,
   createZoneGroup,
   duplicateNote,
+  removeNotesFromNoteGroup,
+  toggleNoteGroupCollapse,
 } from "@/features/wall/commands";
 import { NOTE_COLORS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
@@ -16,6 +20,7 @@ const emptySnapshot: PersistedWallState = {
   notes: {},
   zones: {},
   zoneGroups: {},
+  noteGroups: {},
   links: {},
   camera: { x: 0, y: 0, zoom: 1 },
 };
@@ -108,5 +113,25 @@ describe("wall commands", () => {
     expect(state.zones[frameId]?.kind).toBe("frame");
     expect(state.zones[columnId]?.kind).toBe("column");
     expect(state.zones[swimlaneId]?.kind).toBe("swimlane");
+  });
+
+  it("creates and mutates note groups for arbitrary note selections", () => {
+    const firstId = createNote(0, 0);
+    const secondId = createNote(220, 10);
+    const thirdId = createNote(440, 20);
+    const groupId = createNoteGroup("Sprint Scope", [firstId, secondId]);
+
+    addNotesToNoteGroup(groupId, [secondId, thirdId]);
+    removeNotesFromNoteGroup(groupId, [firstId]);
+    toggleNoteGroupCollapse(groupId);
+
+    const state = useWallStore.getState();
+    const group = state.noteGroups[groupId];
+    expect(group).toBeDefined();
+    if (!group) {
+      return;
+    }
+    expect(group.noteIds).toEqual([secondId, thirdId]);
+    expect(group.collapsed).toBe(true);
   });
 });

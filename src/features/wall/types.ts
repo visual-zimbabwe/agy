@@ -42,6 +42,18 @@ export type ZoneGroup = {
   dirty?: boolean;
 };
 
+export type NoteGroup = {
+  id: string;
+  label: string;
+  color: string;
+  noteIds: string[];
+  collapsed: boolean;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+  dirty?: boolean;
+};
+
 export type ZoneKind = "frame" | "column" | "swimlane";
 
 export type LinkType = "cause_effect" | "dependency" | "idea_execution";
@@ -77,6 +89,7 @@ export type WallUI = {
   selectedNoteId?: string;
   selectedZoneId?: string;
   selectedGroupId?: string;
+  selectedNoteGroupId?: string;
   selectedLinkId?: string;
   linkingFromNoteId?: string;
   linkType: LinkType;
@@ -93,11 +106,12 @@ export type WallState = {
   notes: Record<string, Note>;
   zones: Record<string, Zone>;
   zoneGroups: Record<string, ZoneGroup>;
+  noteGroups: Record<string, NoteGroup>;
   links: Record<string, Link>;
   camera: Camera;
   ui: WallUI;
 };
 
-export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups" | "links" | "camera"> & {
+export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links" | "camera"> & {
   lastColor?: string;
 };

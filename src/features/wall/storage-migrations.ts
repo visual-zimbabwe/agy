@@ -1,5 +1,5 @@
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
-import type { Link, Note, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Link, Note, NoteGroup, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -138,6 +138,22 @@ const normalizeLink = (entry: Record<string, unknown>, fallbackId: string): Link
   };
 };
 
+const normalizeNoteGroup = (entry: Record<string, unknown>, fallbackId: string): NoteGroup | null => {
+  const id = asString(entry.id, fallbackId);
+  if (!id) {
+    return null;
+  }
+  return {
+    id,
+    label: asString(entry.label),
+    color: asString(entry.color),
+    noteIds: normalizeStringList(entry.noteIds),
+    collapsed: Boolean(entry.collapsed),
+    createdAt: asNumber(entry.createdAt),
+    updatedAt: asNumber(entry.updatedAt),
+  };
+};
+
 export const normalizePersistedWallState = (value: unknown): PersistedWallState | null => {
   if (!isRecord(value)) {
     return null;
@@ -150,12 +166,14 @@ export const normalizePersistedWallState = (value: unknown): PersistedWallState 
   }
 
   const zoneGroups = normalizeEntityRecord(value.zoneGroups ?? {}, normalizeZoneGroup) ?? {};
+  const noteGroups = normalizeEntityRecord(value.noteGroups ?? {}, normalizeNoteGroup) ?? {};
   const links = normalizeEntityRecord(value.links ?? {}, normalizeLink) ?? {};
 
   return {
     notes,
     zones,
     zoneGroups,
+    noteGroups,
     links,
     camera: normalizeCamera(value.camera),
     lastColor: typeof value.lastColor === "string" ? value.lastColor : undefined,

@@ -6,6 +6,7 @@ const emptySnapshot: PersistedWallState = {
   notes: {},
   zones: {},
   zoneGroups: {},
+  noteGroups: {},
   links: {},
   camera: { x: 0, y: 0, zoom: 1 },
 };
@@ -92,6 +93,15 @@ describe("wall store history", () => {
     const state = useWallStore.getState();
     state.upsertNote(baseNote({ id: "a" }));
     state.upsertNote(baseNote({ id: "b" }));
+    state.upsertNoteGroup({
+      id: "group-1",
+      label: "Keepers",
+      color: "#C7D2FE",
+      noteIds: ["a", "b"],
+      collapsed: false,
+      createdAt: 1,
+      updatedAt: 1,
+    });
     state.upsertLink({
       id: "link-1",
       fromNoteId: "a",
@@ -104,5 +114,6 @@ describe("wall store history", () => {
 
     state.removeNote("a");
     expect(useWallStore.getState().links["link-1"]).toBeUndefined();
+    expect(useWallStore.getState().noteGroups["group-1"]?.noteIds).toEqual(["b"]);
   });
 });
