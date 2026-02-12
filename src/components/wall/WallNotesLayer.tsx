@@ -50,7 +50,7 @@ type WallNotesLayerProps = {
   moveNote: (noteId: string, x: number, y: number) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   duplicateNoteAt: (noteId: string, x: number, y: number) => void;
-  getNoteTextStyle: (size?: Note["textSize"]) => { fontSize: number; lineHeight: number };
+  getNoteTextStyle: (size?: Note["textSize"], textSizePx?: number) => { fontSize: number; lineHeight: number };
   getNoteTextFontFamily: (font?: Note["textFont"]) => string;
   truncateNoteText: (text: string, note: Note) => string;
   noteTagChipPalette: (noteColor: string) => { bg: string; border: string; text: string };
@@ -102,7 +102,7 @@ export const WallNotesLayer = ({
   editingId,
 }: WallNotesLayerProps) => {
   const previousColorRef = useRef<Record<string, string>>({});
-  const previousTextSizeRef = useRef<Record<string, Note["textSize"] | undefined>>({});
+  const previousTextSizeRef = useRef<Record<string, string>>({});
   const [colorWashOpacityByNote, setColorWashOpacityByNote] = useState<Record<string, number>>({});
   const [sizePulseScaleByNote, setSizePulseScaleByNote] = useState<Record<string, number>>({});
   const colorWashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
@@ -157,16 +157,16 @@ export const WallNotesLayer = ({
     };
 
     const nextColorMap: Record<string, string> = {};
-    const nextTextSizeMap: Record<string, Note["textSize"] | undefined> = {};
+    const nextTextSizeMap: Record<string, string> = {};
     for (const note of visibleNotes) {
       nextColorMap[note.id] = note.color;
-      nextTextSizeMap[note.id] = note.textSize;
+      nextTextSizeMap[note.id] = `${note.textSize ?? "md"}:${note.textSizePx ?? NOTE_DEFAULTS.textSizePx}`;
       const previousColor = previousColorRef.current[note.id];
       const previousTextSize = previousTextSizeRef.current[note.id];
       if (previousColor && previousColor !== note.color) {
         runColorWash(note.id);
       }
-      if (previousTextSize && previousTextSize !== note.textSize) {
+      if (previousTextSize && previousTextSize !== nextTextSizeMap[note.id]) {
         runSizePulse(note.id);
       }
     }
@@ -200,7 +200,7 @@ export const WallNotesLayer = ({
         const pulseScale = sizePulseScaleByNote[note.id] ?? 1;
         const textSpringFactor = 1 + (pulseScale - 1) * 0.7;
         const colorWashOpacity = colorWashOpacityByNote[note.id] ?? 0;
-        const noteTextStyle = getNoteTextStyle(noteView.textSize);
+        const noteTextStyle = getNoteTextStyle(noteView.textSize, noteView.textSizePx);
         const noteTextFontFamily = getNoteTextFontFamily(noteView.textFont);
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);

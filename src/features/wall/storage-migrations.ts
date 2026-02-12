@@ -10,6 +10,34 @@ const asString = (value: unknown, fallback = "") => (typeof value === "string" ?
 const normalizeStringList = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 
+const normalizeNoteFont = (value: unknown) => {
+  if (
+    value === "roboto" ||
+    value === "open_sans" ||
+    value === "lato" ||
+    value === "montserrat" ||
+    value === "poppins" ||
+    value === "nunito" ||
+    value === "source_sans_3" ||
+    value === "inter" ||
+    value === "raleway" ||
+    value === "ubuntu" ||
+    value === "playfair_display" ||
+    value === "merriweather" ||
+    value === "pt_sans" ||
+    value === "noto_sans" ||
+    value === "work_sans" ||
+    value === "oswald" ||
+    value === "rubik" ||
+    value === "fira_sans" ||
+    value === "josefin_sans" ||
+    value === "quicksand"
+  ) {
+    return value;
+  }
+  return "nunito";
+};
+
 const normalizeCamera = (value: unknown) => {
   if (!isRecord(value)) {
     return { x: 0, y: 0, zoom: 1 };
@@ -71,13 +99,9 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     id,
     text: asString(entry.text),
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
-    textFont:
-      entry.textFont === "nunito" ||
-      entry.textFont === "merriweather" ||
-      entry.textFont === "jetbrains_mono" ||
-      entry.textFont === "patrick_hand"
-        ? entry.textFont
-        : "patrick_hand",
+    textFont: normalizeNoteFont(entry.textFont),
+    textSizePx:
+      typeof entry.textSizePx === "number" && Number.isFinite(entry.textSizePx) ? Math.max(8, Math.min(72, entry.textSizePx)) : NOTE_DEFAULTS.textSizePx,
     tags: normalizeStringList(entry.tags),
     textSize: entry.textSize === "sm" || entry.textSize === "lg" ? entry.textSize : NOTE_DEFAULTS.textSize,
     pinned: Boolean(entry.pinned),

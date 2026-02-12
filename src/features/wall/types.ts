@@ -1,10 +1,31 @@
-export type NoteTextFont = "nunito" | "merriweather" | "jetbrains_mono" | "patrick_hand";
+export type NoteTextFont =
+  | "roboto"
+  | "open_sans"
+  | "lato"
+  | "montserrat"
+  | "poppins"
+  | "nunito"
+  | "source_sans_3"
+  | "inter"
+  | "raleway"
+  | "ubuntu"
+  | "playfair_display"
+  | "merriweather"
+  | "pt_sans"
+  | "noto_sans"
+  | "work_sans"
+  | "oswald"
+  | "rubik"
+  | "fira_sans"
+  | "josefin_sans"
+  | "quicksand";
 
 export type Note = {
   id: string;
   text: string;
   textAlign?: "left" | "center" | "right";
   textFont?: NoteTextFont;
+  textSizePx?: number;
   tags: string[];
   textSize?: "sm" | "md" | "lg";
   pinned?: boolean;

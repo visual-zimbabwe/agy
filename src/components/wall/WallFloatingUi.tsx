@@ -7,7 +7,7 @@ import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteSwatches } from "@/components/NoteCard";
 import { NoteTextFormattingToolbar } from "@/components/wall/NoteTextFormattingToolbar";
 import { getNoteTextFontFamily, getNoteTextStyle } from "@/components/wall/wall-canvas-helpers";
-import { NOTE_TEXT_FONTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
+import { NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
 import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
@@ -47,7 +47,7 @@ type WallFloatingUiProps = {
   toolbarBtnActive: string;
   toolbarBtnCompact: string;
   applyColorToSelection: (color: string) => void;
-  applyTextSizeToSelection: (size: "sm" | "md" | "lg") => void;
+  applyTextSizeToSelection: (sizePx: number) => void;
   applyTextFontToSelection: (font: NoteTextFont) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   duplicateNote: (noteId: string) => void;
@@ -150,7 +150,7 @@ export const WallFloatingUi = ({
   const editingNote = editing ? notesById[editing.id] : undefined;
   const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const editingTextStyle = getNoteTextStyle(editingNote?.textSize);
+  const editingTextStyle = getNoteTextStyle(editingNote?.textSize, editingNote?.textSizePx);
 
   return (
     <>
@@ -171,7 +171,7 @@ export const WallFloatingUi = ({
             active
             value={editing.text}
             textAlign={editingNote.textAlign ?? "left"}
-            textSize={editingNote.textSize}
+            textSizePx={editingNote.textSizePx}
             textFont={editingNote.textFont}
             onTextUpdate={(nextValue, selectionStart, selectionEnd) => {
               setEditing({ id: editing.id, text: nextValue });
@@ -185,7 +185,7 @@ export const WallFloatingUi = ({
               });
             }}
             onAlignUpdate={(textAlign) => updateNote(editing.id, { textAlign })}
-            onTextSizeUpdate={(textSize) => updateNote(editing.id, { textSize })}
+            onTextSizeUpdate={(textSizePx) => updateNote(editing.id, { textSizePx })}
             onTextFontUpdate={(textFont) => updateNote(editing.id, { textFont })}
           />
           <textarea
@@ -194,7 +194,7 @@ export const WallFloatingUi = ({
             value={editing.text}
             onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
             onBlur={handleEditorBlur}
-            className="w-full resize-none rounded-xl border border-zinc-700/40 bg-white/95 p-3 text-[16px] leading-6 shadow-xl outline-none"
+            className="w-full resize-none rounded-xl border border-zinc-700/40 bg-white/95 p-3 shadow-xl outline-none"
             style={(() => {
               return {
                 height: `${editingNote.h * camera.zoom}px`,
@@ -315,7 +315,7 @@ export const WallFloatingUi = ({
         >
           <div role="toolbar" aria-label="Note quick actions" className="flex items-center gap-1">
             <select
-              value={primarySelectedNote.textFont ?? "patrick_hand"}
+              value={primarySelectedNote.textFont ?? "nunito"}
               onChange={(event) => applyTextFontToSelection(event.target.value as NonNullable<Note["textFont"]>)}
               className={`w-[9rem] ${toolbarBtnCompact}`}
               title="Note font"
@@ -328,15 +328,15 @@ export const WallFloatingUi = ({
               ))}
             </select>
             <select
-              value={primarySelectedNote.textSize ?? "md"}
-              onChange={(event) => applyTextSizeToSelection(event.target.value as NonNullable<Note["textSize"]>)}
+              value={primarySelectedNote.textSizePx ?? 16}
+              onChange={(event) => applyTextSizeToSelection(Number(event.target.value))}
               className={`w-[5.4rem] ${toolbarBtnCompact}`}
               title="Note size"
               aria-label="Note size"
             >
-              {NOTE_TEXT_SIZES.map((option) => (
-                <option key={`quick-size-${option.value}`} value={option.value}>
-                  {option.label === "S" ? "14px" : option.label === "M" ? "17px" : "20px"}
+              {NOTE_TEXT_SIZE_OPTIONS.map((size) => (
+                <option key={`quick-size-${size}`} value={size}>
+                  {size}px
                 </option>
               ))}
             </select>

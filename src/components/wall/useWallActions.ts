@@ -84,13 +84,13 @@ export const useWallActions = ({
   );
 
   const applyTextSizeToSelection = useCallback(
-    (textSize: "sm" | "md" | "lg") => {
+    (textSizePx: number) => {
       if (isTimeLocked) {
         return;
       }
       const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : selectedNoteId ? [selectedNoteId] : [];
       for (const id of targetIds) {
-        updateNote(id, { textSize });
+        updateNote(id, { textSizePx });
       }
     },
     [activeSelectedNoteIds, isTimeLocked, selectedNoteId, updateNote],

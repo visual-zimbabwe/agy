@@ -14,6 +14,7 @@ export const NOTE_DEFAULTS = {
   height: 160,
   minWidth: 140,
   minHeight: 110,
+  textSizePx: 16,
   textSize: "md" as const,
 };
 
@@ -24,11 +25,29 @@ export const NOTE_TEXT_SIZES = [
 ] as const;
 
 export const NOTE_TEXT_FONTS = [
-  { value: "nunito", label: "Nunito", family: "\"Nunito\", \"Trebuchet MS\", sans-serif" },
-  { value: "merriweather", label: "Merriweather", family: "\"Merriweather\", \"Palatino Linotype\", serif" },
-  { value: "jetbrains_mono", label: "JetBrains Mono", family: "\"JetBrains Mono\", \"Cascadia Code\", monospace" },
-  { value: "patrick_hand", label: "Patrick Hand", family: "\"Patrick Hand\", \"Bradley Hand\", cursive" },
+  { value: "roboto", label: "Roboto", family: "\"Roboto\", \"Segoe UI\", sans-serif" },
+  { value: "open_sans", label: "Open Sans", family: "\"Open Sans\", \"Segoe UI\", sans-serif" },
+  { value: "lato", label: "Lato", family: "\"Lato\", \"Segoe UI\", sans-serif" },
+  { value: "montserrat", label: "Montserrat", family: "\"Montserrat\", \"Segoe UI\", sans-serif" },
+  { value: "poppins", label: "Poppins", family: "\"Poppins\", \"Segoe UI\", sans-serif" },
+  { value: "nunito", label: "Nunito", family: "\"Nunito\", \"Segoe UI\", sans-serif" },
+  { value: "source_sans_3", label: "Source Sans 3", family: "\"Source Sans 3\", \"Segoe UI\", sans-serif" },
+  { value: "inter", label: "Inter", family: "\"Inter\", \"Segoe UI\", sans-serif" },
+  { value: "raleway", label: "Raleway", family: "\"Raleway\", \"Segoe UI\", sans-serif" },
+  { value: "ubuntu", label: "Ubuntu", family: "\"Ubuntu\", \"Segoe UI\", sans-serif" },
+  { value: "playfair_display", label: "Playfair Display", family: "\"Playfair Display\", \"Times New Roman\", serif" },
+  { value: "merriweather", label: "Merriweather", family: "\"Merriweather\", \"Times New Roman\", serif" },
+  { value: "pt_sans", label: "PT Sans", family: "\"PT Sans\", \"Segoe UI\", sans-serif" },
+  { value: "noto_sans", label: "Noto Sans", family: "\"Noto Sans\", \"Segoe UI\", sans-serif" },
+  { value: "work_sans", label: "Work Sans", family: "\"Work Sans\", \"Segoe UI\", sans-serif" },
+  { value: "oswald", label: "Oswald", family: "\"Oswald\", \"Segoe UI\", sans-serif" },
+  { value: "rubik", label: "Rubik", family: "\"Rubik\", \"Segoe UI\", sans-serif" },
+  { value: "fira_sans", label: "Fira Sans", family: "\"Fira Sans\", \"Segoe UI\", sans-serif" },
+  { value: "josefin_sans", label: "Josefin Sans", family: "\"Josefin Sans\", \"Segoe UI\", sans-serif" },
+  { value: "quicksand", label: "Quicksand", family: "\"Quicksand\", \"Segoe UI\", sans-serif" },
 ] as const;
+
+export const NOTE_TEXT_SIZE_OPTIONS = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72] as const;
 
 export const ZONE_DEFAULTS = {
   width: 420,

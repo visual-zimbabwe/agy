@@ -1,6 +1,6 @@
 "use client";
 
-import { NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
+import { NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
 import type { Link, LinkType, Note, PersistedWallState, Zone } from "@/features/wall/types";
 import { clamp } from "@/lib/wall-utils";
 
@@ -222,17 +222,30 @@ const textStyleBySize = Object.fromEntries(
   NOTE_TEXT_SIZES.map((entry) => [entry.value, { fontSize: entry.fontSize, lineHeight: entry.lineHeight }]),
 ) as Record<"sm" | "md" | "lg", { fontSize: number; lineHeight: number }>;
 
-export const getNoteTextStyle = (size?: Note["textSize"]) => textStyleBySize[size ?? NOTE_DEFAULTS.textSize];
+const clampTextSizePx = (value: number) => {
+  const min = NOTE_TEXT_SIZE_OPTIONS[0] ?? 8;
+  const max = NOTE_TEXT_SIZE_OPTIONS[NOTE_TEXT_SIZE_OPTIONS.length - 1] ?? 72;
+  return Math.min(max, Math.max(min, value));
+};
+
+export const getNoteTextStyle = (size?: Note["textSize"], textSizePx?: number) => {
+  if (typeof textSizePx === "number" && Number.isFinite(textSizePx)) {
+    const fontSize = clampTextSizePx(textSizePx);
+    const lineHeight = fontSize <= 12 ? 1.28 : fontSize <= 20 ? 1.35 : 1.4;
+    return { fontSize, lineHeight };
+  }
+  return textStyleBySize[size ?? NOTE_DEFAULTS.textSize];
+};
 
 const noteFontFamilyByKey = Object.fromEntries(NOTE_TEXT_FONTS.map((entry) => [entry.value, entry.family])) as Record<
   NonNullable<Note["textFont"]>,
   string
 >;
 
-export const getNoteTextFontFamily = (font?: Note["textFont"]) => noteFontFamilyByKey[font ?? "patrick_hand"];
+export const getNoteTextFontFamily = (font?: Note["textFont"]) => noteFontFamilyByKey[font ?? "nunito"];
 
 export const truncateNoteText = (text: string, note: Note) => {
-  const style = getNoteTextStyle(note.textSize);
+  const style = getNoteTextStyle(note.textSize, note.textSizePx);
   const charWidth = Math.max(6, style.fontSize * 0.54);
   const maxCharsPerLine = Math.max(10, Math.floor((note.w - 24) / charWidth));
   const maxLines = Math.max(2, Math.floor((note.h - 52) / (style.fontSize * style.lineHeight)));

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { NOTE_TEXT_FONTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
+import { NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
 import type { Note } from "@/features/wall/types";
 
 type NoteTextAlign = "left" | "center" | "right";
@@ -12,11 +12,11 @@ type NoteTextFormattingToolbarProps = {
   active: boolean;
   value: string;
   textAlign: NoteTextAlign;
-  textSize?: Note["textSize"];
+  textSizePx?: number;
   textFont?: Note["textFont"];
   onTextUpdate: (nextValue: string, selectionStart: number, selectionEnd: number) => void;
   onAlignUpdate: (align: NoteTextAlign) => void;
-  onTextSizeUpdate: (size: NonNullable<Note["textSize"]>) => void;
+  onTextSizeUpdate: (sizePx: number) => void;
   onTextFontUpdate: (font: NonNullable<Note["textFont"]>) => void;
 };
 
@@ -262,7 +262,7 @@ export const NoteTextFormattingToolbar = ({
   active,
   value,
   textAlign,
-  textSize,
+  textSizePx,
   textFont,
   onTextUpdate,
   onAlignUpdate,
@@ -413,7 +413,7 @@ export const NoteTextFormattingToolbar = ({
       ))}
       <div className="mx-0.5 h-4 w-px bg-zinc-300" />
       <select
-        value={textFont ?? "patrick_hand"}
+        value={textFont ?? "nunito"}
         onChange={(event) => onTextFontUpdate(event.target.value as NonNullable<Note["textFont"]>)}
         className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
         title="Font family"
@@ -426,15 +426,15 @@ export const NoteTextFormattingToolbar = ({
         ))}
       </select>
       <select
-        value={textSize ?? "md"}
-        onChange={(event) => onTextSizeUpdate(event.target.value as NonNullable<Note["textSize"]>)}
+        value={textSizePx ?? 16}
+        onChange={(event) => onTextSizeUpdate(Number(event.target.value))}
         className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
         title="Font size"
         aria-label="Font size"
       >
-        {NOTE_TEXT_SIZES.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label === "S" ? "14px" : option.label === "M" ? "17px" : "20px"}
+        {NOTE_TEXT_SIZE_OPTIONS.map((size) => (
+          <option key={`edit-size-${size}`} value={size}>
+            {size}px
           </option>
         ))}
       </select>
