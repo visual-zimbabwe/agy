@@ -79,7 +79,7 @@ export const WallToolbar = ({
             )}
           </>
         )}
-        <ControlTooltip label="Open command palette" shortcut="Ctrl/Cmd + K" side="top">
+        <ControlTooltip label="Open command palette" shortcut="Ctrl/Cmd + K" side="right">
           <button type="button" onClick={onOpenCommandPalette} className={toolbarBtn} title="Open command palette (Ctrl/Cmd + K)">
             <Icon name="search" />
             <span>Command</span>
