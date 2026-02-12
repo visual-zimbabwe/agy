@@ -45,6 +45,8 @@ type WallFloatingUiProps = {
   applyTextSizeToSelection: (size: "sm" | "md" | "lg") => void;
   applyColorToSelection: (color: string) => void;
   duplicateNote: (noteId: string) => void;
+  isPrimaryNoteFocused: boolean;
+  onToggleFocusNote: (noteId: string) => void;
   setLinkingFromNote: (noteId?: string) => void;
   linkingFromNoteId?: string;
   linkMenu: LinkContextMenuState;
@@ -101,6 +103,8 @@ export const WallFloatingUi = ({
   applyTextSizeToSelection,
   applyColorToSelection,
   duplicateNote,
+  isPrimaryNoteFocused,
+  onToggleFocusNote,
   setLinkingFromNote,
   linkingFromNoteId,
   linkMenu,
@@ -282,6 +286,14 @@ export const WallFloatingUi = ({
             <div className="mx-1 h-5 w-px bg-zinc-300" />
             <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd + D)">
               Duplicate
+            </button>
+            <button
+              type="button"
+              onClick={() => onToggleFocusNote(primarySelectedNote.id)}
+              className={isPrimaryNoteFocused ? toolbarBtnActive : toolbarBtnCompact}
+              title={isPrimaryNoteFocused ? "Exit focus mode" : "Focus this note"}
+            >
+              Focus
             </button>
             <button
               type="button"

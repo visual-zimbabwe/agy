@@ -411,6 +411,7 @@ Expected:
 7. Add many tags to a note and verify note body shows compact tag chips with overflow count (`+N`).
 8. Resize note and verify text is visually truncated (no overflow clipping outside card).
 9. Hover a note and compare against selected/dragging states.
+10. With a note selected, click `Focus` in quick actions; verify canvas is dimmed and only the focused note remains visible. Click the `Focus mode` pill to exit.
 
 Expected:
 - Editing and quick actions are faster and match modern canvas UX patterns.
@@ -418,6 +419,7 @@ Expected:
 - Axis lock and alt-drag duplication work consistently.
 - Tags render as compact chips with overflow handling.
 - Hover/selected/dragging visual states are clearly distinct.
+- Focus mode isolates one note with low-distraction context and exits cleanly.
 
 ## Spatial Affordances - Optional Guidance (2026-02-12)
 1. Open `Tools` panel on `/wall`.

@@ -1,7 +1,7 @@
 "use client";
 
 import { type FocusEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Layer } from "react-konva";
+import { Layer, Rect } from "react-konva";
 import type Konva from "konva";
 
 import type { CommandPaletteCommand } from "@/components/SearchPalette";
@@ -235,6 +235,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   });
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
+  const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
   const [presentationIndex, setPresentationIndex] = useState(0);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
@@ -833,6 +834,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     viewport,
     setCamera,
   });
+  const focusedNote = focusedNoteId ? renderSnapshot.notes[focusedNoteId] : undefined;
+  const isFocusMode = Boolean(focusedNote);
+  const renderVisibleNotes = useMemo(
+    () => (focusedNote ? visibleNotes.filter((note) => note.id === focusedNote.id) : visibleNotes),
+    [focusedNote, visibleNotes],
+  );
+  const renderVisibleZones = useMemo(() => (focusedNote ? [] : visibleZones), [focusedNote, visibleZones]);
+  const renderVisibleLinks = useMemo(() => (focusedNote ? [] : visibleLinks), [focusedNote, visibleLinks]);
+  const renderPathLinkIds = useMemo(() => (focusedNote ? new Set<string>() : pathLinkIds), [focusedNote, pathLinkIds]);
   const maxViewportWidth = typeof window !== "undefined" ? window.innerWidth : viewport.w;
   const maxViewportHeight = typeof window !== "undefined" ? window.innerHeight : viewport.h;
   const {
@@ -845,7 +855,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     finalizeBoxSelection,
   } = useWallSelection({
     notesById: renderSnapshot.notes,
-    visibleNotes,
+    visibleNotes: renderVisibleNotes,
     selectedNoteIds,
     setSelectedNoteIds,
     selectNote,
@@ -855,8 +865,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const { resolveSnappedPosition } = useWallSnapping({
     dragSnapThreshold,
     cameraZoom: camera.zoom,
-    visibleNotes,
-    visibleZones,
+    visibleNotes: renderVisibleNotes,
+    visibleZones: renderVisibleZones,
     activeSelectedNoteIdSet,
     snapToGuides: spatialPrefs.snapToGuides,
     snapToGrid: spatialPrefs.snapToGrid,
@@ -868,6 +878,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     syncPrimarySelection([noteId]);
     setEditing((previous) => (previous?.id === noteId ? previous : null));
   };
+
+  const toggleFocusNote = useCallback(
+    (noteId: string) => {
+      syncPrimarySelection([noteId]);
+      selectNote(noteId);
+      setFocusedNoteId((previous) => (previous === noteId ? undefined : noteId));
+    },
+    [selectNote, syncPrimarySelection],
+  );
 
   const {
     applyColorToSelection,
@@ -911,8 +930,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     camera,
     viewport,
     notesById: renderSnapshot.notes,
-    visibleNotes,
-    visibleZones,
+    visibleNotes: renderVisibleNotes,
+    visibleZones: renderVisibleZones,
     setCamera,
     setFlashNote,
     syncPrimarySelection,
@@ -998,8 +1017,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   }, [isTimeLocked]);
 
   useEffect(() => {
-    const visibleNoteIdSet = new Set(visibleNotes.map((note) => note.id));
-    const visibleZoneIdSet = new Set(visibleZones.map((zone) => zone.id));
+    const visibleNoteIdSet = new Set(renderVisibleNotes.map((note) => note.id));
+    const visibleZoneIdSet = new Set(renderVisibleZones.map((zone) => zone.id));
     const nextSelectedNoteIds = selectedNoteIds.filter((id) => visibleNoteIdSet.has(id));
     if (nextSelectedNoteIds.length !== selectedNoteIds.length) {
       setSelectedNoteIds(nextSelectedNoteIds);
@@ -1014,14 +1033,27 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     if (ui.selectedNoteGroupId && !renderSnapshot.noteGroups[ui.selectedNoteGroupId]) {
       selectNoteGroup(undefined);
     }
-  }, [renderSnapshot.noteGroups, selectedNoteIds, selectGroup, selectNote, selectNoteGroup, selectZone, setSelectedNoteIds, ui.selectedNoteGroupId, ui.selectedNoteId, ui.selectedZoneId, visibleNotes, visibleZones]);
+  }, [renderSnapshot.noteGroups, renderVisibleNotes, renderVisibleZones, selectedNoteIds, selectGroup, selectNote, selectNoteGroup, selectZone, setSelectedNoteIds, ui.selectedNoteGroupId, ui.selectedNoteId, ui.selectedZoneId]);
+
+  useEffect(() => {
+    if (!focusedNoteId) {
+      return;
+    }
+    if (!renderSnapshot.notes[focusedNoteId]) {
+      setFocusedNoteId(undefined);
+      return;
+    }
+    if (!visibleNotes.some((note) => note.id === focusedNoteId)) {
+      setFocusedNoteId(undefined);
+    }
+  }, [focusedNoteId, renderSnapshot.notes, visibleNotes]);
 
   const { exportPng, exportPdf, exportMarkdown } = useWallExport({
     stageRef,
     camera,
     viewport,
-    visibleNotes,
-    visibleZones,
+    visibleNotes: renderVisibleNotes,
+    visibleZones: renderVisibleZones,
     activeSelectedNoteIds,
     selectedZoneId: ui.selectedZoneId,
     zonesById: renderSnapshot.zones,
@@ -1421,6 +1453,16 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           </div>
         )}
 
+        {isFocusMode && !readingMode && (
+          <button
+            type="button"
+            onClick={() => setFocusedNoteId(undefined)}
+            className="pointer-events-auto absolute right-4 top-4 z-[45] rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)] hover:bg-[var(--color-surface)]"
+          >
+            Focus mode. Click to exit.
+          </button>
+        )}
+
         {!isChromeHidden &&
           isCompactLayout &&
           ((layoutPrefs.showToolsPanel && leftPanelOpen) || (layoutPrefs.showDetailsPanel && rightPanelOpen)) && (
@@ -1496,6 +1538,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             resetSelection();
             clearNoteSelection();
             setEditing(null);
+            setFocusedNoteId(undefined);
           }}
         >
           <Layer listening={false}>
@@ -1509,13 +1552,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
           <Layer>
             <WallLinksZonesLayer
-              visibleLinks={visibleLinks}
-              visibleZones={visibleZones}
+              visibleLinks={renderVisibleLinks}
+              visibleZones={renderVisibleZones}
               notesById={renderSnapshot.notes}
               selectedLinkId={ui.selectedLinkId}
               selectedNoteId={ui.selectedNoteId}
               selectedZoneId={ui.selectedZoneId}
-              pathLinkIds={pathLinkIds}
+              pathLinkIds={renderPathLinkIds}
               linkColorByType={linkColorByType}
               linkStrokeByType={linkStrokeByType}
               linkPoints={linkPoints}
@@ -1547,8 +1590,20 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               onResizeZone={updateZone}
             />
 
+            {isFocusMode && (
+              <Layer listening={false}>
+                <Rect
+                  x={-camera.x / camera.zoom}
+                  y={-camera.y / camera.zoom}
+                  width={viewport.w / camera.zoom}
+                  height={viewport.h / camera.zoom}
+                  fill="rgb(15 23 42 / 0.26)"
+                />
+              </Layer>
+            )}
+
             <WallNotesLayer
-              visibleNotes={visibleNotes}
+              visibleNotes={renderVisibleNotes}
               activeSelectedNoteIds={activeSelectedNoteIds}
               selectedNoteId={ui.selectedNoteId}
               flashNoteId={ui.flashNoteId}
@@ -1637,6 +1692,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           applyTextSizeToSelection={applyTextSizeToSelection}
           applyColorToSelection={applyColorToSelection}
           duplicateNote={duplicateNote}
+          isPrimaryNoteFocused={Boolean(primarySelectedNote && focusedNoteId === primarySelectedNote.id)}
+          onToggleFocusNote={toggleFocusNote}
           setLinkingFromNote={setLinkingFromNote}
           linkingFromNoteId={ui.linkingFromNoteId}
           linkMenu={linkMenu}
@@ -1687,7 +1744,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           detailsSectionsOpen={detailsSectionsOpen}
           onToggleDetailsSection={toggleDetailsSection}
           timelineEntriesCount={timelineEntries.length}
-          visibleNotesCount={visibleNotes.length}
+          visibleNotesCount={renderVisibleNotes.length}
           historyUndoDepth={historyUndoDepth}
           historyRedoDepth={historyRedoDepth}
           notes={notes}
@@ -1763,7 +1820,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
       <WallGlobalModals
         quickCaptureOpen={quickCaptureOpen} isTimeLocked={isTimeLocked} onCloseQuickCapture={() => setQuickCaptureOpen(false)} onCapture={captureNotes}
-        isSearchOpen={ui.isSearchOpen} visibleNotes={visibleNotes} commandPaletteCommands={commandPaletteCommands}
+        isSearchOpen={ui.isSearchOpen} visibleNotes={renderVisibleNotes} commandPaletteCommands={commandPaletteCommands}
         onCloseSearch={() => setSearchOpenTracked(false)} onSelectSearchNote={focusNote}
         isExportOpen={ui.isExportOpen} onCloseExport={() => setExportOpenTracked(false)}
         onExportPng={(scope, pixelRatio) => { void exportPng(scope, pixelRatio); }}
