@@ -1591,15 +1591,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             />
 
             {isFocusMode && (
-              <Layer listening={false}>
-                <Rect
-                  x={-camera.x / camera.zoom}
-                  y={-camera.y / camera.zoom}
-                  width={viewport.w / camera.zoom}
-                  height={viewport.h / camera.zoom}
-                  fill="rgb(15 23 42 / 0.26)"
-                />
-              </Layer>
+              <Rect
+                listening={false}
+                x={-camera.x / camera.zoom}
+                y={-camera.y / camera.zoom}
+                width={viewport.w / camera.zoom}
+                height={viewport.h / camera.zoom}
+                fill="rgb(15 23 42 / 0.26)"
+              />
             )}
 
             <WallNotesLayer
