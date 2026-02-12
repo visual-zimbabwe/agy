@@ -12,6 +12,7 @@ const noteSchema = z.object({
   text: z.string(),
   tags: z.array(z.string()),
   textSize: z.enum(["sm", "md", "lg"]).optional(),
+  textSizePx: z.number().int().min(8).max(72).optional(),
   x: z.number(),
   y: z.number(),
   w: z.number(),
@@ -81,6 +82,8 @@ const syncSchema = z.object({
 });
 
 const toIso = (value: number) => new Date(value).toISOString();
+const toStoredTextSize = (note: { textSize?: "sm" | "md" | "lg"; textSizePx?: number }) =>
+  typeof note.textSizePx === "number" ? `px:${Math.max(8, Math.min(72, Math.round(note.textSizePx)))}` : note.textSize ?? null;
 
 const buildInFilter = (ids: string[]) =>
   `(${ids.map((id) => `"${id.replaceAll('"', '\\"')}"`).join(",")})`;
@@ -147,7 +150,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
         owner_id: auth.user.id,
         text: note.text,
         tags: note.tags,
-        text_size: note.textSize ?? null,
+        text_size: toStoredTextSize(note),
         x: note.x,
         y: note.y,
         w: note.w,

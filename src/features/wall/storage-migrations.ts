@@ -103,7 +103,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     textSizePx:
       typeof entry.textSizePx === "number" && Number.isFinite(entry.textSizePx) ? Math.max(8, Math.min(72, entry.textSizePx)) : NOTE_DEFAULTS.textSizePx,
     tags: normalizeStringList(entry.tags),
-    textSize: entry.textSize === "sm" || entry.textSize === "lg" ? entry.textSize : NOTE_DEFAULTS.textSize,
+    textSize: entry.textSize === "sm" || entry.textSize === "md" || entry.textSize === "lg" ? entry.textSize : NOTE_DEFAULTS.textSize,
     pinned: Boolean(entry.pinned),
     highlighted: Boolean(entry.highlighted),
     x: asNumber(entry.x),

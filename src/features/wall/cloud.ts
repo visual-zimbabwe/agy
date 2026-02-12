@@ -80,7 +80,7 @@ export const mergeSnapshotsLww = (server: PersistedWallState, local: PersistedWa
 
     for (const [id, localValue] of Object.entries(localMap)) {
       const serverValue = serverMap[id];
-      if (!serverValue || localValue.updatedAt > serverValue.updatedAt) {
+      if (!serverValue || localValue.updatedAt >= serverValue.updatedAt) {
         merged[id] = localValue;
       }
     }
@@ -99,6 +99,20 @@ export const mergeSnapshotsLww = (server: PersistedWallState, local: PersistedWa
   };
 };
 
+const parseTextSize = (raw: string | null): { textSize?: "sm" | "md" | "lg"; textSizePx?: number } => {
+  if (!raw) {
+    return {};
+  }
+  if (raw === "sm" || raw === "md" || raw === "lg") {
+    return { textSize: raw };
+  }
+  const numeric = raw.startsWith("px:") ? Number(raw.slice(3)) : Number(raw);
+  if (Number.isFinite(numeric)) {
+    return { textSizePx: Math.max(8, Math.min(72, Math.round(numeric))) };
+  }
+  return {};
+};
+
 export const rowsToSnapshot = (rows: {
   wall: WallRow;
   notes: NoteRow[];
@@ -110,13 +124,10 @@ export const rowsToSnapshot = (rows: {
     rows.notes.map((note) => [
       note.id,
       {
+        ...parseTextSize(note.text_size),
         id: note.id,
         text: note.text,
         tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
-        textSize:
-          note.text_size === "sm" || note.text_size === "md" || note.text_size === "lg"
-            ? note.text_size
-            : undefined,
         x: note.x,
         y: note.y,
         w: note.w,
