@@ -271,7 +271,7 @@ export const WallFloatingUi = ({
 
       {quickActionScreen && primarySelectedNote && !editing && (
         <div
-          className="pointer-events-auto absolute z-[45] -translate-x-1/2 -translate-y-full rounded-xl border border-zinc-300 bg-white/96 px-2 py-1.5 shadow-xl backdrop-blur-sm"
+          className="pointer-events-auto absolute z-[45] -translate-x-1/2 -translate-y-full rounded-xl border border-zinc-300 bg-white/96 px-2 py-1.5 shadow-xl backdrop-blur-sm motion-toolbar-enter"
           style={{ left: `${quickActionScreen.x}px`, top: `${quickActionScreen.y}px` }}
           onPointerDown={(event) => event.stopPropagation()}
         >

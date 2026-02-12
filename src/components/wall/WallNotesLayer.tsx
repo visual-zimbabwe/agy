@@ -1,6 +1,6 @@
 "use client";
 
-import { type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { Group, Rect, Text } from "react-konva";
 import type Konva from "konva";
 
@@ -97,6 +97,87 @@ export const WallNotesLayer = ({
   recencyIntensity,
   editingId,
 }: WallNotesLayerProps) => {
+  const previousColorRef = useRef<Record<string, string>>({});
+  const previousTextSizeRef = useRef<Record<string, Note["textSize"] | undefined>>({});
+  const [colorWashOpacityByNote, setColorWashOpacityByNote] = useState<Record<string, number>>({});
+  const [sizePulseScaleByNote, setSizePulseScaleByNote] = useState<Record<string, number>>({});
+  const colorWashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
+  const sizePulseTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
+
+  useEffect(() => {
+    const reducedMotion = typeof document !== "undefined" && document.documentElement.classList.contains("motion-reduce");
+
+    const runColorWash = (noteId: string) => {
+      colorWashTimersRef.current[noteId]?.forEach((timer) => clearTimeout(timer));
+      if (reducedMotion) {
+        return;
+      }
+      setColorWashOpacityByNote((previous) => ({ ...previous, [noteId]: 0.24 }));
+      const fadeTimer = setTimeout(() => {
+        setColorWashOpacityByNote((previous) => ({ ...previous, [noteId]: 0.1 }));
+      }, 90);
+      const clearTimer = setTimeout(() => {
+        setColorWashOpacityByNote((previous) => {
+          if (previous[noteId] == null) {
+            return previous;
+          }
+          const next = { ...previous };
+          delete next[noteId];
+          return next;
+        });
+      }, 180);
+      colorWashTimersRef.current[noteId] = [fadeTimer, clearTimer];
+    };
+
+    const runSizePulse = (noteId: string) => {
+      sizePulseTimersRef.current[noteId]?.forEach((timer) => clearTimeout(timer));
+      if (reducedMotion) {
+        return;
+      }
+      setSizePulseScaleByNote((previous) => ({ ...previous, [noteId]: 1.035 }));
+      const settleTimer = setTimeout(() => {
+        setSizePulseScaleByNote((previous) => ({ ...previous, [noteId]: 1.01 }));
+      }, 95);
+      const clearTimer = setTimeout(() => {
+        setSizePulseScaleByNote((previous) => {
+          if (previous[noteId] == null) {
+            return previous;
+          }
+          const next = { ...previous };
+          delete next[noteId];
+          return next;
+        });
+      }, 210);
+      sizePulseTimersRef.current[noteId] = [settleTimer, clearTimer];
+    };
+
+    const nextColorMap: Record<string, string> = {};
+    const nextTextSizeMap: Record<string, Note["textSize"] | undefined> = {};
+    for (const note of visibleNotes) {
+      nextColorMap[note.id] = note.color;
+      nextTextSizeMap[note.id] = note.textSize;
+      const previousColor = previousColorRef.current[note.id];
+      const previousTextSize = previousTextSizeRef.current[note.id];
+      if (previousColor && previousColor !== note.color) {
+        runColorWash(note.id);
+      }
+      if (previousTextSize && previousTextSize !== note.textSize) {
+        runSizePulse(note.id);
+      }
+    }
+    previousColorRef.current = nextColorMap;
+    previousTextSizeRef.current = nextTextSizeMap;
+  }, [visibleNotes]);
+
+  useEffect(() => {
+    const colorWashTimers = colorWashTimersRef.current;
+    const sizePulseTimers = sizePulseTimersRef.current;
+    return () => {
+      Object.values(colorWashTimers).forEach((timers) => timers.forEach((timer) => clearTimeout(timer)));
+      Object.values(sizePulseTimers).forEach((timers) => timers.forEach((timer) => clearTimeout(timer)));
+    };
+  }, []);
+
   return (
     <>
       {visibleNotes.map((note) => {
@@ -108,6 +189,9 @@ export const WallNotesLayer = ({
         const isHighlighted = Boolean(note.highlighted);
         const draft = resizingNoteDrafts[note.id];
         const noteView = draft ? { ...note, ...draft } : note;
+        const pulseScale = sizePulseScaleByNote[note.id] ?? 1;
+        const textSpringFactor = 1 + (pulseScale - 1) * 0.7;
+        const colorWashOpacity = colorWashOpacityByNote[note.id] ?? 0;
         const noteTextStyle = getNoteTextStyle(noteView.textSize);
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
@@ -371,12 +455,21 @@ export const WallNotesLayer = ({
                 opacity={0.08 + recencyIntensity(noteView.updatedAt, heatmapReferenceTs) * 0.35}
               />
             )}
+            {colorWashOpacity > 0 && (
+              <Rect
+                width={noteView.w}
+                height={noteView.h}
+                cornerRadius={14}
+                fill="#ffffff"
+                opacity={colorWashOpacity}
+              />
+            )}
             <Text
               x={12}
               y={12}
               width={Math.max(0, noteView.w - 24)}
               height={Math.max(0, noteView.h - 56)}
-              fontSize={noteTextStyle.fontSize}
+              fontSize={noteTextStyle.fontSize * textSpringFactor}
               fill="#1f2937"
               lineHeight={noteTextStyle.lineHeight}
               text={truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit"}
