@@ -1416,12 +1416,6 @@ export const WallCanvas = () => {
           </div>
         )}
 
-        {!isChromeHidden && !ui.isSearchOpen && (
-          <div className="pointer-events-none absolute bottom-4 left-1/2 z-[32] -translate-x-1/2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-4 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
-            Ctrl/Cmd + K
-          </div>
-        )}
-
         {!isChromeHidden &&
           isCompactLayout &&
           ((layoutPrefs.showToolsPanel && leftPanelOpen) || (layoutPrefs.showDetailsPanel && rightPanelOpen)) && (

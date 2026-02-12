@@ -180,6 +180,21 @@ export const WallToolbar = ({
             </div>
           )}
         </div>
+        <ControlTooltip label="Command palette (Ctrl+K)" side="bottom">
+          <button
+            type="button"
+            onClick={onOpenCommandPalette}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1"
+            title="Command palette (Ctrl+K)"
+            aria-label="Open command palette"
+          >
+            <Icon name="search" className="h-3.5 w-3.5" />
+            <span>Search...</span>
+            <span className="rounded border border-[var(--color-border-muted)] bg-[var(--color-surface-muted)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+              Ctrl K
+            </span>
+          </button>
+        </ControlTooltip>
       </div>
 
       {!presentationMode && layoutMenuOpen && (
