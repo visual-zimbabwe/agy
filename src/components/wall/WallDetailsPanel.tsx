@@ -14,13 +14,13 @@ type WallDetailsPanelProps = {
 export const WallDetailsPanel = ({ isCompactLayout, rightPanelOpen, onClose, children }: WallDetailsPanelProps) => {
   return (
     <aside
-      className={`${wallPanelSurface} p-3 ${
+      className={`${wallPanelSurface} p-4 ${
         isCompactLayout
-          ? `right-2 top-2 w-[min(24rem,calc(100%-1rem))] ${rightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-[110%] opacity-0 pointer-events-none"}`
-          : `right-3 top-3 w-80 ${rightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-[110%] opacity-0 pointer-events-none"}`
+          ? `right-3 top-3 w-[min(24rem,calc(100%-1.5rem))] ${rightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-[110%] opacity-0 pointer-events-none"}`
+          : `right-4 top-4 w-[21rem] ${rightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-[110%] opacity-0 pointer-events-none"}`
       }`}
     >
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-[var(--color-text)]">Details</h3>
         {isCompactLayout && (
           <button
@@ -32,7 +32,7 @@ export const WallDetailsPanel = ({ isCompactLayout, rightPanelOpen, onClose, chi
           </button>
         )}
       </div>
-      <p className="mt-1 text-xs text-[var(--color-text-muted)]">Tags, templates, history and recall controls for the current wall.</p>
+      <p className="mt-1.5 text-xs leading-5 text-[var(--color-text-muted)]">Tags, templates, history and recall controls for the current wall.</p>
       {children}
     </aside>
   );

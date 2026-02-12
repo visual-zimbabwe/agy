@@ -93,10 +93,10 @@ export const WallHeaderBar = ({
   onSyncNow,
 }: WallHeaderBarProps) => {
   return (
-    <header className="mx-2 mt-2 flex flex-col gap-1.5 md:mx-3 md:mt-3">
+    <header className="mx-3 mt-3 flex flex-col gap-2 md:mx-4 md:mt-4">
       <div className={brandChip}>
         <span className="font-semibold tracking-[0.14em] uppercase">Idea-Wall</span>
-        <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 text-[10px] text-[var(--color-text)]">
+        <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[10px] text-[var(--color-text)]">
           {presentationMode ? "Presentation Mode" : "Studio Mode"}
         </span>
       </div>

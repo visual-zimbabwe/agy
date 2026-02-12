@@ -1159,20 +1159,20 @@ export const WallCanvas = () => {
       >
         {!hydrated && (
           <div className="absolute inset-0 z-10 grid place-items-center bg-[color:rgb(24_32_44_/_0.12)] backdrop-blur-sm">
-            <p className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-md)]">
+            <p className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-sm)]">
               Loading wall...
             </p>
           </div>
         )}
 
         {!publishedReadOnly && syncError && (
-          <div className="pointer-events-none absolute left-1/2 top-3 z-[45] -translate-x-1/2 rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger-soft)] px-3 py-2 text-xs text-[var(--color-danger-strong)] shadow-[var(--shadow-sm)]">
+          <div className="pointer-events-none absolute left-1/2 top-4 z-[45] -translate-x-1/2 rounded-[var(--radius-lg)] border border-[var(--color-danger)] bg-[var(--color-danger-soft)] px-4 py-2.5 text-xs text-[var(--color-danger-strong)] shadow-[var(--shadow-sm)]">
             Sync error: {syncError}
           </div>
         )}
 
         {!presentationMode && !ui.isSearchOpen && (
-          <div className="pointer-events-none absolute bottom-3 left-1/2 z-[32] -translate-x-1/2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-[32] -translate-x-1/2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-4 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
             Command-first: press Ctrl/Cmd + K
           </div>
         )}

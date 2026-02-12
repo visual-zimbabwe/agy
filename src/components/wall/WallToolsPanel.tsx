@@ -68,13 +68,13 @@ export const WallToolsPanel = ({
 }: WallToolsPanelProps) => {
   return (
     <aside
-      className={`${wallPanelSurface} p-2 ${
+      className={`${wallPanelSurface} p-3 ${
         isCompactLayout
-          ? `left-2 top-7 w-[min(18rem,calc(100%-1rem))] ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
-          : `left-3 top-8 w-44 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
+          ? `left-3 top-8 w-[min(18rem,calc(100%-1.5rem))] ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
+          : `left-4 top-10 w-48 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
       }`}
     >
-      <div className="mb-2 flex items-center justify-between px-1">
+      <div className="mb-3 flex items-center justify-between px-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Tools</p>
         {isCompactLayout && (
           <button
@@ -86,7 +86,7 @@ export const WallToolsPanel = ({
           </button>
         )}
       </div>
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd + N" className="relative block" side="right">
           <button type="button" onClick={onCreateNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtnPrimary}`} title="Create note (N or Ctrl/Cmd + N)">
             <Icon name="note" />

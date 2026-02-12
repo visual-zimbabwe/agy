@@ -48,7 +48,7 @@ export const WallToolbar = ({
 }: WallToolbarProps) => {
   return (
     <>
-      <div className={`${toolbarSurface} flex flex-wrap items-center gap-1`}>
+      <div className={`${toolbarSurface} flex flex-wrap items-center gap-1.5`}>
         {!presentationMode && (
           <>
             {!publishedReadOnly && layoutPrefs.showToolsPanel && (
@@ -117,7 +117,7 @@ export const WallToolbar = ({
       </div>
 
       {!presentationMode && layoutMenuOpen && (
-        <div className={`${toolbarSurface} flex flex-wrap items-center gap-3`}>
+        <div className={`${toolbarSurface} flex flex-wrap items-center gap-4`}>
           <span className={toolbarLabel}>Customize Layout</span>
           <label className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text)]">
             <input

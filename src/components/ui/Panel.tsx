@@ -19,7 +19,7 @@ export const Panel = forwardRef<HTMLDivElement, PanelProps>(({ className, tone =
   <div
     ref={ref}
     className={cn(
-      "rounded-[var(--radius-xl)] border shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)]",
+      "rounded-[var(--radius-xl)] border shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)]",
       toneClasses[tone],
       className,
     )}

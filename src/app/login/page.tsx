@@ -38,25 +38,25 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="route-shell px-4 py-8 sm:px-6">
-      <section className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <div className="order-2 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-glass)] p-4 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)] lg:order-1 lg:p-6">
+    <main className="route-shell px-5 py-10 sm:px-8 sm:py-12">
+      <section className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center gap-7 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="order-2 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-glass)] p-6 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)] lg:order-1 lg:p-8">
           <p className="text-[10px] font-semibold tracking-[0.14em] uppercase">Idea-Wall Account</p>
-          <h1 className="mt-2 text-3xl leading-tight font-semibold text-[var(--color-text)] sm:text-4xl">Return to your wall.</h1>
-          <p className="mt-3">Sign in to sync notes, links, and zones across devices while keeping local-first speed.</p>
+          <h1 className="mt-3 text-3xl leading-tight font-semibold text-[var(--color-text)] sm:text-4xl">Return to your wall.</h1>
+          <p className="mt-4 leading-7">Sign in to sync notes, links, and zones across devices while keeping local-first speed.</p>
         </div>
 
-        <Panel className="order-1 w-full p-5 motion-modal-enter sm:p-7 lg:order-2">
+        <Panel className="order-1 w-full p-6 motion-modal-enter sm:p-8 lg:order-2">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-2xl font-semibold text-[var(--color-text)]">Sign in</h2>
             <Link href="/" className="text-xs font-medium text-[var(--color-text-muted)] underline-offset-2 hover:underline">
               Back home
             </Link>
           </div>
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">Use your email and password for cloud sync.</p>
+          <p className="mt-2 text-sm text-[var(--color-text-muted)]">Use your email and password for cloud sync.</p>
 
-          <form onSubmit={onSubmit} className="mt-6 space-y-3">
-            <div className="space-y-1.5">
+          <form onSubmit={onSubmit} className="mt-7 space-y-4">
+            <div className="space-y-2">
               <FieldLabel htmlFor="email">Email</FieldLabel>
               <TextField
                 id="email"
@@ -67,7 +67,7 @@ export default function LoginPage() {
                 onChange={(event) => setEmail(event.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <FieldLabel htmlFor="password">Password</FieldLabel>
               <TextField
                 id="password"

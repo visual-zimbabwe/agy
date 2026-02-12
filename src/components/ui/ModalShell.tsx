@@ -103,8 +103,8 @@ export const ModalShell = ({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[var(--z-overlay)] flex bg-[var(--color-overlay)] px-4 backdrop-blur-[2px] motion-fade-in",
-        position === "top" ? "items-start justify-center pt-16" : "items-center justify-center py-4",
+        "fixed inset-0 z-[var(--z-overlay)] flex bg-[var(--color-overlay)] px-5 backdrop-blur-[3px] motion-fade-in sm:px-7",
+        position === "top" ? "items-start justify-center pt-20" : "items-center justify-center py-6",
       )}
       onClick={() => {
         if (closeOnBackdrop) {
@@ -118,7 +118,7 @@ export const ModalShell = ({
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className={cn("w-full p-4 md:p-5 motion-modal-enter", maxWidthClassName, panelClassName)}
+        className={cn("w-full p-5 md:p-7 motion-modal-enter", maxWidthClassName, panelClassName)}
         onClick={(event) => {
           event.stopPropagation();
         }}
@@ -136,7 +136,7 @@ export const ModalShell = ({
             )}
           </div>
         )}
-        <div className={cn(title || description || showCloseButton ? "mt-4" : "", contentClassName)}>{children}</div>
+        <div className={cn(title || description || showCloseButton ? "mt-5" : "", contentClassName)}>{children}</div>
       </Panel>
     </div>
   );

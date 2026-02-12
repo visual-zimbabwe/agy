@@ -56,7 +56,7 @@ export const AccountMenu = ({ email }: AccountMenuProps) => {
   }, [open]);
 
   return (
-    <div className="pointer-events-auto fixed right-2 top-2 z-[95] sm:right-3 sm:top-3">
+    <div className="pointer-events-auto fixed right-3 top-3 z-[95] sm:right-4 sm:top-4">
       <Button
         ref={toggleRef}
         size="sm"
@@ -64,7 +64,7 @@ export const AccountMenu = ({ email }: AccountMenuProps) => {
         aria-expanded={open}
         aria-controls={menuId}
         aria-haspopup="menu"
-        className="max-w-[min(78vw,20rem)] rounded-xl border-[var(--color-border)] bg-[var(--color-surface-glass)] text-[var(--color-text)] shadow-[var(--shadow-md)] motion-panel-enter"
+        className="max-w-[min(78vw,20rem)] rounded-[var(--radius-lg)] border-[var(--color-border)] bg-[var(--color-surface-glass)] text-[var(--color-text)] shadow-[var(--shadow-sm)] motion-panel-enter"
       >
         <span className="truncate">{email}</span>
         <span aria-hidden="true" className={`text-[10px] transition-transform ${open ? "rotate-180" : ""}`}>v</span>
@@ -75,7 +75,7 @@ export const AccountMenu = ({ email }: AccountMenuProps) => {
           id={menuId}
           role="menu"
           aria-label="Account menu"
-          className="mt-2 w-[min(18rem,90vw)] p-2 motion-modal-enter"
+          className="mt-2.5 w-[min(18rem,90vw)] p-3 motion-modal-enter"
         >
           <p className="rounded-[var(--radius-sm)] bg-[var(--color-surface-muted)] px-2 py-1.5 text-xs text-[var(--color-text-muted)]">
             Signed in as <span className="font-semibold text-[var(--color-text)]">{email}</span>
