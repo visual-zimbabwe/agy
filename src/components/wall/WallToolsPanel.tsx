@@ -87,31 +87,31 @@ export const WallToolsPanel = ({
         )}
       </div>
       <div className="space-y-1">
-        <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd + N" className="relative block">
+        <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd + N" className="relative block" side="right">
           <button type="button" onClick={onCreateNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtnPrimary}`} title="Create note (N or Ctrl/Cmd + N)">
             <Icon name="note" />
             <span>New Note</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Create zone at viewport center" className="relative block">
+        <ControlTooltip label="Create zone at viewport center" className="relative block" side="right">
           <button type="button" onClick={() => onCreateZone("frame")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create frame at viewport center">
             <Icon name="zone" />
             <span>New Frame</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Create suggested column area" className="relative block">
+        <ControlTooltip label="Create suggested column area" className="relative block" side="right">
           <button type="button" onClick={() => onCreateZone("column")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create column at viewport center">
             <Icon name="zone" />
             <span>New Column</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Create suggested swimlane area" className="relative block">
+        <ControlTooltip label="Create suggested swimlane area" className="relative block" side="right">
           <button type="button" onClick={() => onCreateZone("swimlane")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create swimlane at viewport center">
             <Icon name="zone" />
             <span>New Swimlane</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Toggle box selection mode" className="relative block">
+        <ControlTooltip label="Toggle box selection mode" className="relative block" side="right">
           <button
             type="button"
             onClick={onToggleBoxSelect}
@@ -122,7 +122,7 @@ export const WallToolsPanel = ({
             <span>Box Select</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Start linking from selected note" shortcut="Ctrl/Cmd + L" className="relative block">
+        <ControlTooltip label="Start linking from selected note" shortcut="Ctrl/Cmd + L" className="relative block" side="right">
           <button
             type="button"
             onClick={onStartLinking}
@@ -134,7 +134,7 @@ export const WallToolsPanel = ({
             <span>{linkingFromNoteId ? "Pick Link Target" : "Start Link"}</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Pick link type" className="relative block">
+        <ControlTooltip label="Pick link type" className="relative block" side="right">
           <select value={linkType} onChange={(event) => onLinkTypeChange(event.target.value as LinkType)} className={`w-full ${toolbarSelect}`} title="Pick link type">
             {linkTypeOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -143,7 +143,7 @@ export const WallToolsPanel = ({
             ))}
           </select>
         </ControlTooltip>
-        <ControlTooltip label="Toggle automatic cluster outlines" className="relative block">
+        <ControlTooltip label="Toggle automatic cluster outlines" className="relative block" side="right">
           <button
             type="button"
             onClick={onToggleClusters}
@@ -155,7 +155,7 @@ export const WallToolsPanel = ({
           </button>
         </ControlTooltip>
         <div className="my-2 border-t border-[var(--color-border)]/70" />
-        <ControlTooltip label="Toggle subtle dot matrix helper" className="relative block">
+        <ControlTooltip label="Toggle subtle dot matrix helper" className="relative block" side="right">
           <button
             type="button"
             onClick={onToggleDotMatrix}
@@ -166,7 +166,7 @@ export const WallToolsPanel = ({
             <span>Dot Matrix</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Toggle drag-time guide snapping" className="relative block">
+        <ControlTooltip label="Toggle drag-time guide snapping" className="relative block" side="right">
           <button
             type="button"
             onClick={onToggleSnapToGuides}
@@ -177,7 +177,7 @@ export const WallToolsPanel = ({
             <span>Snap Guides</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Toggle drag-time grid snapping" className="relative block">
+        <ControlTooltip label="Toggle drag-time grid snapping" className="relative block" side="right">
           <button
             type="button"
             onClick={onToggleSnapToGrid}

@@ -211,14 +211,32 @@ type ControlTooltipProps = {
   shortcut?: string;
   children: ReactNode;
   className?: string;
+  side?: "top" | "bottom" | "left" | "right";
 };
 
-export const ControlTooltip = ({ label, shortcut, children, className = "relative inline-flex" }: ControlTooltipProps) => (
-  <span className={`${className} group`}>
-    {children}
-    <span className="pointer-events-none absolute -bottom-10 left-1/2 z-[90] hidden w-max max-w-[18rem] -translate-x-1/2 items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-accent-strong)] px-2 py-1 text-[11px] text-[var(--color-accent-foreground)] opacity-0 shadow-[var(--shadow-md)] transition-opacity duration-[var(--motion-fast)] group-hover:opacity-100 group-focus-within:opacity-100 md:flex">
-      <span>{label}</span>
-      {shortcut && <span className="rounded border border-white/25 bg-black/20 px-1 py-0.5 font-mono text-[10px]">{shortcut}</span>}
+export const ControlTooltip = ({ label, shortcut, children, className = "relative inline-flex", side = "bottom" }: ControlTooltipProps) => {
+  const sideClass =
+    side === "top"
+      ? "-top-11 left-1/2 -translate-x-1/2"
+      : side === "left"
+        ? "right-[calc(100%+0.5rem)] top-1/2 -translate-y-1/2"
+        : side === "right"
+          ? "left-[calc(100%+0.5rem)] top-1/2 -translate-y-1/2"
+          : "-bottom-11 left-1/2 -translate-x-1/2";
+
+  return (
+    <span className={`${className} group`}>
+      {children}
+      <span
+        className={`pointer-events-none absolute ${sideClass} z-[140] hidden w-max max-w-[18rem] items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2.5 py-1.5 text-[11px] leading-4 text-[var(--color-text)] opacity-0 shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)] transition-opacity duration-[var(--motion-fast)] group-hover:opacity-100 group-focus-within:opacity-100 md:flex`}
+      >
+        <span>{label}</span>
+        {shortcut && (
+          <span className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]">
+            {shortcut}
+          </span>
+        )}
+      </span>
     </span>
-  </span>
-);
+  );
+};
