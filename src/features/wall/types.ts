@@ -3,6 +3,8 @@ export type Note = {
   text: string;
   tags: string[];
   textSize?: "sm" | "md" | "lg";
+  pinned?: boolean;
+  highlighted?: boolean;
   x: number;
   y: number;
   w: number;

@@ -412,6 +412,8 @@ Expected:
 8. Resize note and verify text is visually truncated (no overflow clipping outside card).
 9. Hover a note and compare against selected/dragging states.
 10. With a note selected, click `Focus` in quick actions; verify canvas is dimmed and only the focused note remains visible. Click the `Focus mode` pill to exit.
+11. With a note selected, click `Pin` then try drag/resize, align, and distribute; verify pinned note does not move or resize. Click `Pin` again to unpin.
+12. Click `Highlight` and verify emphasized visual treatment appears without changing note content/position.
 
 Expected:
 - Editing and quick actions are faster and match modern canvas UX patterns.
@@ -420,6 +422,8 @@ Expected:
 - Tags render as compact chips with overflow handling.
 - Hover/selected/dragging visual states are clearly distinct.
 - Focus mode isolates one note with low-distraction context and exits cleanly.
+- Pinned notes are visually anchored and protected from accidental movement.
+- Highlighted notes remain easy to spot on dense boards.
 
 ## Spatial Affordances - Optional Guidance (2026-02-12)
 1. Open `Tools` panel on `/wall`.

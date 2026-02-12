@@ -104,6 +104,8 @@ export const WallNotesLayer = ({
         const isFlashing = flashNoteId === note.id;
         const isHovered = hoveredNoteId === note.id;
         const isDragging = draggingNoteId === note.id;
+        const isPinned = Boolean(note.pinned);
+        const isHighlighted = Boolean(note.highlighted);
         const draft = resizingNoteDrafts[note.id];
         const noteView = draft ? { ...note, ...draft } : note;
         const noteTextStyle = getNoteTextStyle(noteView.textSize);
@@ -122,7 +124,7 @@ export const WallNotesLayer = ({
             y={noteView.y}
             width={noteView.w}
             height={noteView.h}
-            draggable={!isTimeLocked}
+            draggable={!isTimeLocked && !isPinned}
             onMouseEnter={() => setHoveredNoteId(note.id)}
             onMouseLeave={() => setHoveredNoteId((previous) => (previous === note.id ? undefined : previous))}
             onClick={(event) => {
@@ -168,7 +170,7 @@ export const WallNotesLayer = ({
               openEditor(note.id, note.text);
             }}
             onDragStart={(event) => {
-              if (isTimeLocked) {
+              if (isTimeLocked || isPinned) {
                 return;
               }
               setDraggingNoteId(note.id);
@@ -187,14 +189,19 @@ export const WallNotesLayer = ({
                 dragSelectionStartRef.current = Object.fromEntries(
                   activeIds
                     .map((id) => notesById[id])
-                    .filter((entry): entry is Note => Boolean(entry))
+                    .filter((entry): entry is Note => {
+                      if (!entry) {
+                        return false;
+                      }
+                      return !entry.pinned;
+                    })
                     .map((entry) => [entry.id, { x: entry.x, y: entry.y }]),
                 );
                 dragAnchorRef.current = { id: note.id, x: event.target.x(), y: event.target.y() };
               }
             }}
             onDragMove={(event) => {
-              if (isTimeLocked) {
+              if (isTimeLocked || isPinned) {
                 return;
               }
               const start = dragSingleStartRef.current;
@@ -226,6 +233,9 @@ export const WallNotesLayer = ({
                 if (id === note.id) {
                   continue;
                 }
+                if (notesById[id]?.pinned) {
+                  continue;
+                }
                 const peerNode = noteNodeRefs.current[id];
                 if (!peerNode) {
                   continue;
@@ -238,7 +248,7 @@ export const WallNotesLayer = ({
               }
             }}
             onDragEnd={(event) => {
-              if (isTimeLocked) {
+              if (isTimeLocked || isPinned) {
                 return;
               }
               const snapped = resolveSnappedPosition(note, event.target.x(), event.target.y());
@@ -252,6 +262,9 @@ export const WallNotesLayer = ({
                   const dy = snapped.y - anchor.y;
                   for (const [id, startPos] of Object.entries(startMap)) {
                     if (id === note.id) {
+                      continue;
+                    }
+                    if (notesById[id]?.pinned) {
                       continue;
                     }
                     updateNote(id, { x: startPos.x + dx, y: startPos.y + dy });
@@ -273,7 +286,7 @@ export const WallNotesLayer = ({
               dragSingleStartRef.current = null;
             }}
             onTransform={(event) => {
-              if (isTimeLocked) {
+              if (isTimeLocked || isPinned) {
                 return;
               }
               const node = event.target;
@@ -292,7 +305,7 @@ export const WallNotesLayer = ({
               }));
             }}
             onTransformEnd={(event) => {
-              if (isTimeLocked) {
+              if (isTimeLocked || isPinned) {
                 return;
               }
               const node = event.target;
@@ -319,13 +332,36 @@ export const WallNotesLayer = ({
               height={noteView.h}
               cornerRadius={14}
               fill={note.color}
-              stroke={isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
-              strokeWidth={isSelected ? 2.4 : isHovered ? 1.4 : 1}
+              stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
+              strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
               shadowColor="#101010"
               shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
               shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
               shadowOffsetY={isDragging ? 7 : 3}
             />
+            {isHighlighted && (
+              <Rect
+                width={noteView.w}
+                height={noteView.h}
+                cornerRadius={14}
+                stroke="#fbbf24"
+                strokeWidth={1.2}
+                opacity={0.8}
+                dash={[7, 4]}
+              />
+            )}
+            {isPinned && (
+              <Text
+                x={Math.max(12, noteView.w - 42)}
+                y={10}
+                width={30}
+                align="right"
+                fontSize={10}
+                fontStyle="bold"
+                fill="#334155"
+                text="PIN"
+              />
+            )}
             {showHeatmap && (
               <Rect
                 width={noteView.w}

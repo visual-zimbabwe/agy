@@ -110,6 +110,9 @@ export const useWallActions = ({
 
       runHistoryGroup(() => {
         for (const note of selectedNotes) {
+          if (note.pinned) {
+            continue;
+          }
           if (axis === "left") updateNote(note.id, { x: minX });
           if (axis === "right") updateNote(note.id, { x: maxX - note.w });
           if (axis === "center") updateNote(note.id, { x: centerX - note.w / 2 });
@@ -143,6 +146,9 @@ export const useWallActions = ({
 
       runHistoryGroup(() => {
         sorted.forEach((note, index) => {
+          if (note.pinned) {
+            return;
+          }
           if (direction === "horizontal") {
             updateNote(note.id, { x: first.x + gap * index });
           } else {

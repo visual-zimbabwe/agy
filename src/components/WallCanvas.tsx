@@ -566,10 +566,26 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
     const node = noteNodeRefs.current[ui.selectedNoteId];
     if (node) {
+      const selectedNote = renderSnapshot.notes[ui.selectedNoteId];
+      const disableResize = isTimeLocked || Boolean(selectedNote?.pinned);
+      noteTransformerRef.current.enabledAnchors(
+        disableResize
+          ? []
+          : [
+              "top-left",
+              "top-right",
+              "bottom-left",
+              "bottom-right",
+              "middle-left",
+              "middle-right",
+              "top-center",
+              "bottom-center",
+            ],
+      );
       noteTransformerRef.current.nodes([node]);
       noteTransformerRef.current.getLayer()?.batchDraw();
     }
-  }, [renderSnapshot.notes, ui.selectedNoteId]);
+  }, [isTimeLocked, renderSnapshot.notes, ui.selectedNoteId]);
 
   useEffect(() => {
     if (!ui.selectedZoneId || !zoneTransformerRef.current) {
@@ -886,6 +902,34 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       setFocusedNoteId((previous) => (previous === noteId ? undefined : noteId));
     },
     [selectNote, syncPrimarySelection],
+  );
+
+  const togglePinOnNote = useCallback(
+    (noteId: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const note = renderSnapshot.notes[noteId];
+      if (!note) {
+        return;
+      }
+      updateNote(noteId, { pinned: !note.pinned });
+    },
+    [isTimeLocked, renderSnapshot.notes],
+  );
+
+  const toggleHighlightOnNote = useCallback(
+    (noteId: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const note = renderSnapshot.notes[noteId];
+      if (!note) {
+        return;
+      }
+      updateNote(noteId, { highlighted: !note.highlighted });
+    },
+    [isTimeLocked, renderSnapshot.notes],
   );
 
   const {
@@ -1691,6 +1735,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           applyTextSizeToSelection={applyTextSizeToSelection}
           applyColorToSelection={applyColorToSelection}
           duplicateNote={duplicateNote}
+          togglePinOnNote={togglePinOnNote}
+          toggleHighlightOnNote={toggleHighlightOnNote}
           isPrimaryNoteFocused={Boolean(primarySelectedNote && focusedNoteId === primarySelectedNote.id)}
           onToggleFocusNote={toggleFocusNote}
           setLinkingFromNote={setLinkingFromNote}

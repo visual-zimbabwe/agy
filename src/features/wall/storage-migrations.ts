@@ -72,6 +72,8 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     text: asString(entry.text),
     tags: normalizeStringList(entry.tags),
     textSize: entry.textSize === "sm" || entry.textSize === "lg" ? entry.textSize : NOTE_DEFAULTS.textSize,
+    pinned: Boolean(entry.pinned),
+    highlighted: Boolean(entry.highlighted),
     x: asNumber(entry.x),
     y: asNumber(entry.y),
     w: asNumber(entry.w),

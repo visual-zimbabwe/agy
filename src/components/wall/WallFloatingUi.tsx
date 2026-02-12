@@ -45,6 +45,8 @@ type WallFloatingUiProps = {
   applyTextSizeToSelection: (size: "sm" | "md" | "lg") => void;
   applyColorToSelection: (color: string) => void;
   duplicateNote: (noteId: string) => void;
+  togglePinOnNote: (noteId: string) => void;
+  toggleHighlightOnNote: (noteId: string) => void;
   isPrimaryNoteFocused: boolean;
   onToggleFocusNote: (noteId: string) => void;
   setLinkingFromNote: (noteId?: string) => void;
@@ -103,6 +105,8 @@ export const WallFloatingUi = ({
   applyTextSizeToSelection,
   applyColorToSelection,
   duplicateNote,
+  togglePinOnNote,
+  toggleHighlightOnNote,
   isPrimaryNoteFocused,
   onToggleFocusNote,
   setLinkingFromNote,
@@ -286,6 +290,22 @@ export const WallFloatingUi = ({
             <div className="mx-1 h-5 w-px bg-zinc-300" />
             <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd + D)">
               Duplicate
+            </button>
+            <button
+              type="button"
+              onClick={() => togglePinOnNote(primarySelectedNote.id)}
+              className={primarySelectedNote.pinned ? toolbarBtnActive : toolbarBtnCompact}
+              title={primarySelectedNote.pinned ? "Unpin note" : "Pin note (prevent move/resize)"}
+            >
+              Pin
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleHighlightOnNote(primarySelectedNote.id)}
+              className={primarySelectedNote.highlighted ? toolbarBtnActive : toolbarBtnCompact}
+              title={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
+            >
+              Highlight
             </button>
             <button
               type="button"

@@ -31,6 +31,8 @@ export const createNote = (x: number, y: number, color?: string) => {
     text: "",
     tags: [],
     textSize: NOTE_DEFAULTS.textSize,
+    pinned: false,
+    highlighted: false,
     x,
     y,
     w: NOTE_DEFAULTS.width,
@@ -53,6 +55,10 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
 };
 
 export const moveNote = (noteId: string, x: number, y: number) => {
+  const note = useWallStore.getState().notes[noteId];
+  if (!note || note.pinned) {
+    return;
+  }
   useWallStore.getState().patchNote(noteId, { x, y });
 };
 
@@ -415,6 +421,8 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
         text: noteDef.text,
         tags: noteDef.tags,
         textSize: NOTE_DEFAULTS.textSize,
+        pinned: false,
+        highlighted: false,
         x: centerX + noteDef.dx,
         y: centerY + noteDef.dy,
         w: NOTE_DEFAULTS.width,
