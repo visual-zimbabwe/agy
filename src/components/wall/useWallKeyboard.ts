@@ -228,6 +228,9 @@ export const useWallKeyboard = ({
       }
 
       if (!ctrlOrMeta && !event.altKey && Number.isInteger(digit) && digit >= 1 && digit <= 9) {
+        if (!colorQuickSwitchArmedRef.current) {
+          return;
+        }
         event.preventDefault();
         applyColorByIndex(digit - 1);
         return;

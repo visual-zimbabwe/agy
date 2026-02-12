@@ -150,7 +150,7 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
             {activeSection === "keyboard" && (
               <section>
                 <h2 className="text-lg font-semibold">Keyboard Color Slots</h2>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Configure the `1-9` shortcuts used by `C` quick switch and `Shift + C` cycling.</p>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Press `C`, then `1-9` to quick-switch by slot. `Shift + C` cycles through configured slots.</p>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   {Array.from({ length: 9 }).map((_, index) => {
                     const color = keyboardColorSlots[index];

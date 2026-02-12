@@ -329,12 +329,14 @@ Expected:
 2. In `Keyboard` section, set slot `1` and slot `2` to clearly distinct custom colors.
 3. Click `Save settings`, return to `/wall`, select a note, press `C`, then press `1` and `2`.
 4. Press `Shift + C` repeatedly and verify it cycles through configured (non-empty) slots.
-5. Return to `Settings`, clear slot `2`, save, then verify `C` + `2` no longer applies a color.
-6. Refresh the page and verify slot changes persist.
+5. Without pressing `C`, press `2` and verify no color is applied.
+6. Return to `Settings`, clear slot `2`, save, then verify `C` + `2` no longer applies a color.
+7. Refresh the page and verify slot changes persist.
 
 Expected:
-- `1-9` shortcuts follow configured keyboard slots from Settings.
+- `C` then `1-9` shortcuts follow configured keyboard slots from Settings.
 - `Shift + C` cycles through currently configured slots only.
+- Pressing `1-9` without first pressing `C` does not apply a slot color.
 - Cleared slots are skipped/unavailable.
 - Slot configuration persists after refresh.
 
