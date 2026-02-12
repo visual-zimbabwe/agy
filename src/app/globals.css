@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Merriweather:wght@400;700&family=Nunito:wght@400;600;700&family=Patrick+Hand&display=swap");
 @import "tailwindcss";
 
 :root {
@@ -35,10 +36,10 @@
   --motion-slow: 320ms;
   --blur-panel: 8px;
   --z-overlay: 120;
-  --font-display: "Rockwell", "Palatino Linotype", "Book Antiqua", serif;
-  --font-body: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
+  --font-display: "Merriweather", "Palatino Linotype", "Book Antiqua", serif;
+  --font-body: "Nunito", "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
   --font-mono-stack: "JetBrains Mono", "Cascadia Code", monospace;
-  --font-hand-stack: "Comic Sans MS", "Bradley Hand", cursive;
+  --font-hand-stack: "Patrick Hand", "Bradley Hand", cursive;
 }
 
 @theme inline {

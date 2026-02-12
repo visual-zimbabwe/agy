@@ -23,6 +23,13 @@ export const NOTE_TEXT_SIZES = [
   { value: "lg", label: "L", fontSize: 20, lineHeight: 1.36 },
 ] as const;
 
+export const NOTE_TEXT_FONTS = [
+  { value: "nunito", label: "Nunito", family: "\"Nunito\", \"Trebuchet MS\", sans-serif" },
+  { value: "merriweather", label: "Merriweather", family: "\"Merriweather\", \"Palatino Linotype\", serif" },
+  { value: "jetbrains_mono", label: "JetBrains Mono", family: "\"JetBrains Mono\", \"Cascadia Code\", monospace" },
+  { value: "patrick_hand", label: "Patrick Hand", family: "\"Patrick Hand\", \"Bradley Hand\", cursive" },
+] as const;
+
 export const ZONE_DEFAULTS = {
   width: 420,
   height: 280,

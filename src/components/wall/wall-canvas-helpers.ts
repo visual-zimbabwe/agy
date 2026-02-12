@@ -1,6 +1,6 @@
 "use client";
 
-import { NOTE_DEFAULTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
+import { NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
 import type { Link, LinkType, Note, PersistedWallState, Zone } from "@/features/wall/types";
 import { clamp } from "@/lib/wall-utils";
 
@@ -223,6 +223,13 @@ const textStyleBySize = Object.fromEntries(
 ) as Record<"sm" | "md" | "lg", { fontSize: number; lineHeight: number }>;
 
 export const getNoteTextStyle = (size?: Note["textSize"]) => textStyleBySize[size ?? NOTE_DEFAULTS.textSize];
+
+const noteFontFamilyByKey = Object.fromEntries(NOTE_TEXT_FONTS.map((entry) => [entry.value, entry.family])) as Record<
+  NonNullable<Note["textFont"]>,
+  string
+>;
+
+export const getNoteTextFontFamily = (font?: Note["textFont"]) => noteFontFamilyByKey[font ?? "patrick_hand"];
 
 export const truncateNoteText = (text: string, note: Note) => {
   const style = getNoteTextStyle(note.textSize);

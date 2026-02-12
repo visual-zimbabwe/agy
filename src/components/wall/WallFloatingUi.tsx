@@ -6,6 +6,7 @@ import type { Dispatch, FocusEvent, SetStateAction } from "react";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteSwatches } from "@/components/NoteCard";
 import { NoteTextFormattingToolbar } from "@/components/wall/NoteTextFormattingToolbar";
+import { getNoteTextFontFamily } from "@/components/wall/wall-canvas-helpers";
 import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
@@ -164,6 +165,8 @@ export const WallFloatingUi = ({
             active
             value={editing.text}
             textAlign={editingNote.textAlign ?? "left"}
+            textSize={editingNote.textSize}
+            textFont={editingNote.textFont}
             onTextUpdate={(nextValue, selectionStart, selectionEnd) => {
               setEditing({ id: editing.id, text: nextValue });
               requestAnimationFrame(() => {
@@ -176,6 +179,8 @@ export const WallFloatingUi = ({
               });
             }}
             onAlignUpdate={(textAlign) => updateNote(editing.id, { textAlign })}
+            onTextSizeUpdate={(textSize) => updateNote(editing.id, { textSize })}
+            onTextFontUpdate={(textFont) => updateNote(editing.id, { textFont })}
           />
           <textarea
             ref={textareaRef}
@@ -188,6 +193,7 @@ export const WallFloatingUi = ({
               return {
                 height: `${editingNote.h * camera.zoom}px`,
                 textAlign: editingNote.textAlign ?? "left",
+                fontFamily: getNoteTextFontFamily(editingNote.textFont),
               };
             })()}
           />

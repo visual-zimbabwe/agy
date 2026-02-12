@@ -70,6 +70,14 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
   return {
     id,
     text: asString(entry.text),
+    textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
+    textFont:
+      entry.textFont === "nunito" ||
+      entry.textFont === "merriweather" ||
+      entry.textFont === "jetbrains_mono" ||
+      entry.textFont === "patrick_hand"
+        ? entry.textFont
+        : "patrick_hand",
     tags: normalizeStringList(entry.tags),
     textSize: entry.textSize === "sm" || entry.textSize === "lg" ? entry.textSize : NOTE_DEFAULTS.textSize,
     pinned: Boolean(entry.pinned),

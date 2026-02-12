@@ -1,7 +1,10 @@
+export type NoteTextFont = "nunito" | "merriweather" | "jetbrains_mono" | "patrick_hand";
+
 export type Note = {
   id: string;
   text: string;
   textAlign?: "left" | "center" | "right";
+  textFont?: NoteTextFont;
   tags: string[];
   textSize?: "sm" | "md" | "lg";
   pinned?: boolean;

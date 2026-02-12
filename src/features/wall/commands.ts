@@ -29,6 +29,8 @@ export const createNote = (x: number, y: number, color?: string) => {
   const note: Note = {
     id: makeId(),
     text: "",
+    textAlign: "left",
+    textFont: "patrick_hand",
     tags: [],
     textSize: NOTE_DEFAULTS.textSize,
     pinned: false,
@@ -419,6 +421,8 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
       const note: Note = {
         id: makeId(),
         text: noteDef.text,
+        textAlign: "left",
+        textFont: "patrick_hand",
         tags: noteDef.tags,
         textSize: NOTE_DEFAULTS.textSize,
         pinned: false,

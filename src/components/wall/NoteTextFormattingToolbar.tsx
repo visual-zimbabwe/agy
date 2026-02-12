@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { NOTE_TEXT_FONTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
+import type { Note } from "@/features/wall/types";
 
 type NoteTextAlign = "left" | "center" | "right";
 type ToolbarAction = "bold" | "italic" | "underline" | "bullet" | "number" | "multilevel";
@@ -10,8 +12,12 @@ type NoteTextFormattingToolbarProps = {
   active: boolean;
   value: string;
   textAlign: NoteTextAlign;
+  textSize?: Note["textSize"];
+  textFont?: Note["textFont"];
   onTextUpdate: (nextValue: string, selectionStart: number, selectionEnd: number) => void;
   onAlignUpdate: (align: NoteTextAlign) => void;
+  onTextSizeUpdate: (size: NonNullable<Note["textSize"]>) => void;
+  onTextFontUpdate: (font: NonNullable<Note["textFont"]>) => void;
 };
 
 type ToolbarPosition = {
@@ -256,8 +262,12 @@ export const NoteTextFormattingToolbar = ({
   active,
   value,
   textAlign,
+  textSize,
+  textFont,
   onTextUpdate,
   onAlignUpdate,
+  onTextSizeUpdate,
+  onTextFontUpdate,
 }: NoteTextFormattingToolbarProps) => {
   const [focused, setFocused] = useState(false);
   const [position, setPosition] = useState<ToolbarPosition | null>(null);
@@ -401,6 +411,33 @@ export const NoteTextFormattingToolbar = ({
           {button.label}
         </button>
       ))}
+      <div className="mx-0.5 h-4 w-px bg-zinc-300" />
+      <select
+        value={textFont ?? "patrick_hand"}
+        onChange={(event) => onTextFontUpdate(event.target.value as NonNullable<Note["textFont"]>)}
+        className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
+        title="Font family"
+        aria-label="Font family"
+      >
+        {NOTE_TEXT_FONTS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <select
+        value={textSize ?? "md"}
+        onChange={(event) => onTextSizeUpdate(event.target.value as NonNullable<Note["textSize"]>)}
+        className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
+        title="Font size"
+        aria-label="Font size"
+      >
+        {NOTE_TEXT_SIZES.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label === "S" ? "14px" : option.label === "M" ? "17px" : "20px"}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };

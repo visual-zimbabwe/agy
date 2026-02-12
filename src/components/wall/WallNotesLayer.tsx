@@ -51,6 +51,7 @@ type WallNotesLayerProps = {
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   duplicateNoteAt: (noteId: string, x: number, y: number) => void;
   getNoteTextStyle: (size?: Note["textSize"]) => { fontSize: number; lineHeight: number };
+  getNoteTextFontFamily: (font?: Note["textFont"]) => string;
   truncateNoteText: (text: string, note: Note) => string;
   noteTagChipPalette: (noteColor: string) => { bg: string; border: string; text: string };
   recencyIntensity: (updatedAt: number, referenceTs: number, windowMs?: number) => number;
@@ -94,6 +95,7 @@ export const WallNotesLayer = ({
   updateNote,
   duplicateNoteAt,
   getNoteTextStyle,
+  getNoteTextFontFamily,
   truncateNoteText,
   noteTagChipPalette,
   recencyIntensity,
@@ -199,6 +201,7 @@ export const WallNotesLayer = ({
         const textSpringFactor = 1 + (pulseScale - 1) * 0.7;
         const colorWashOpacity = colorWashOpacityByNote[note.id] ?? 0;
         const noteTextStyle = getNoteTextStyle(noteView.textSize);
+        const noteTextFontFamily = getNoteTextFontFamily(noteView.textFont);
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
@@ -498,6 +501,7 @@ export const WallNotesLayer = ({
               width={Math.max(0, noteView.w - 24)}
               height={Math.max(0, noteView.h - 56)}
               fontSize={noteTextStyle.fontSize * textSpringFactor}
+              fontFamily={noteTextFontFamily}
               fill="#1f2937"
               lineHeight={noteTextStyle.lineHeight}
               align={noteView.textAlign ?? "left"}

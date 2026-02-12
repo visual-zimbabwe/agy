@@ -21,6 +21,7 @@ import {
   dragSnapThreshold,
   fitBoundsCamera,
   getNoteTextStyle,
+  getNoteTextFontFamily,
   layoutPrefsStorageKey,
   linkColorByType,
   linkPoints,
@@ -1773,6 +1774,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               updateNote={updateNote}
               duplicateNoteAt={duplicateNoteAt}
               getNoteTextStyle={getNoteTextStyle}
+              getNoteTextFontFamily={getNoteTextFontFamily}
               truncateNoteText={truncateNoteText}
               noteTagChipPalette={noteTagChipPalette}
               recencyIntensity={recencyIntensity}
