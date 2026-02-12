@@ -1,6 +1,7 @@
 "use client";
 
 import { NoteSwatches } from "@/components/NoteCard";
+import { ProfileMenu } from "@/components/ProfileMenu";
 import { SyncStatus } from "@/components/wall/SyncStatus";
 import { WallToolbar } from "@/components/wall/WallToolbar";
 import { statusChip } from "@/components/wall/wallChromeClasses";
@@ -37,6 +38,7 @@ type WallHeaderBarProps = {
   primarySelectedNote?: Note;
   uiLastColor: string;
   statusMessage: string;
+  userEmail?: string;
   cloudWallId: string | null;
   isSyncing: boolean;
   lastSyncedAt: number | null;
@@ -78,6 +80,7 @@ export const WallHeaderBar = ({
   primarySelectedNote,
   uiLastColor,
   statusMessage,
+  userEmail,
   cloudWallId,
   isSyncing,
   lastSyncedAt,
@@ -179,14 +182,19 @@ export const WallHeaderBar = ({
         </div>
       )}
 
-      {!publishedReadOnly && (
-        <SyncStatus
-          hasCloudWall={Boolean(cloudWallId)}
-          isSyncing={isSyncing}
-          lastSyncedAt={lastSyncedAt}
-          syncError={syncError}
-          onSyncNow={onSyncNow}
-        />
+      {userEmail && (
+        <div className="pointer-events-auto fixed right-3 top-3 z-[95] flex items-center gap-2 sm:right-4 sm:top-4">
+          {!publishedReadOnly && (
+            <SyncStatus
+              hasCloudWall={Boolean(cloudWallId)}
+              isSyncing={isSyncing}
+              lastSyncedAt={lastSyncedAt}
+              syncError={syncError}
+              onSyncNow={onSyncNow}
+            />
+          )}
+          <ProfileMenu email={userEmail} onOpenShortcuts={onOpenShortcuts} />
+        </div>
       )}
     </header>
   );

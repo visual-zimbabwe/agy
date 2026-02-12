@@ -141,7 +141,11 @@ const defaultSpatialPrefs: SpatialPreferences = {
   dotGridSpacing: 32,
 };
 
-export const WallCanvas = () => {
+type WallCanvasProps = {
+  userEmail?: string;
+};
+
+export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const notesMap = useWallStore((state) => state.notes);
   const zonesMap = useWallStore((state) => state.zones);
   const zoneGroupsMap = useWallStore((state) => state.zoneGroups);
@@ -1362,6 +1366,7 @@ export const WallCanvas = () => {
         primarySelectedNote={primarySelectedNote}
         uiLastColor={ui.lastColor ?? NOTE_COLORS[0]}
         statusMessage={statusMessage}
+        userEmail={userEmail}
         cloudWallId={cloudWallId}
         isSyncing={isSyncing}
         lastSyncedAt={lastSyncedAt}
