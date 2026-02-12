@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, type MutableRefObject } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 
-import { NOTE_DEFAULTS } from "@/features/wall/constants";
+import { NOTE_COLORS, NOTE_DEFAULTS } from "@/features/wall/constants";
 import type { Note } from "@/features/wall/types";
 
 type Camera = { x: number; y: number; zoom: number };
@@ -60,6 +60,8 @@ type WallKeyboardOptions = {
   deleteLink: (linkId: string) => void;
   deleteGroup: (groupId: string) => void;
   deleteNoteGroup: (groupId: string) => void;
+  setLastColor: (color: string) => void;
+  updateNote: (noteId: string, patch: Partial<Note>) => void;
 };
 
 const isTypingInField = (event: KeyboardEvent) => {
@@ -119,8 +121,56 @@ export const useWallKeyboard = ({
   deleteLink,
   deleteGroup,
   deleteNoteGroup,
+  setLastColor,
+  updateNote,
 }: WallKeyboardOptions) => {
+  const colorQuickSwitchArmedRef = useRef(false);
+  const colorQuickSwitchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   useEffect(() => {
+    const armColorQuickSwitch = () => {
+      colorQuickSwitchArmedRef.current = true;
+      if (colorQuickSwitchTimerRef.current) {
+        clearTimeout(colorQuickSwitchTimerRef.current);
+      }
+      colorQuickSwitchTimerRef.current = setTimeout(() => {
+        colorQuickSwitchArmedRef.current = false;
+      }, 5000);
+    };
+
+    const applyColor = (color: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+
+      const targetIds = selectedNoteIds.length > 0 ? selectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
+      if (targetIds.length === 0) {
+        setLastColor(color);
+        return;
+      }
+
+      for (const noteId of targetIds) {
+        updateNote(noteId, { color });
+      }
+      setLastColor(color);
+    };
+
+    const applyColorByIndex = (index: number) => {
+      const color = NOTE_COLORS[index];
+      if (!color) {
+        return;
+      }
+      applyColor(color);
+    };
+
+    const cycleColor = () => {
+      const activeNoteId = selectedNoteIds[0] ?? ui.selectedNoteId;
+      const activeColor = activeNoteId ? notesMap[activeNoteId]?.color ?? ui.lastColor : ui.lastColor;
+      const currentIndex = NOTE_COLORS.findIndex((color) => color.toLowerCase() === activeColor.toLowerCase());
+      const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % NOTE_COLORS.length;
+      applyColorByIndex(nextIndex);
+    };
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === " ") {
         setIsSpaceDown(true);
@@ -156,6 +206,28 @@ export const useWallKeyboard = ({
 
       const key = event.key.toLowerCase();
       const ctrlOrMeta = event.ctrlKey || event.metaKey;
+      const digit = Number.parseInt(event.key, 10);
+
+      if (!ctrlOrMeta && !event.altKey && event.shiftKey && key === "c") {
+        event.preventDefault();
+        cycleColor();
+        return;
+      }
+
+      if (!ctrlOrMeta && !event.altKey && !event.shiftKey && key === "c") {
+        event.preventDefault();
+        armColorQuickSwitch();
+        return;
+      }
+
+      if (!ctrlOrMeta && !event.altKey && Number.isInteger(digit) && digit >= 1 && digit <= 9) {
+        if (!colorQuickSwitchArmedRef.current) {
+          return;
+        }
+        event.preventDefault();
+        applyColorByIndex(digit - 1);
+        return;
+      }
 
       if (!ctrlOrMeta && key === "t") {
         event.preventDefault();
@@ -381,6 +453,9 @@ export const useWallKeyboard = ({
     window.addEventListener("keyup", onKeyUp);
 
     return () => {
+      if (colorQuickSwitchTimerRef.current) {
+        clearTimeout(colorQuickSwitchTimerRef.current);
+      }
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
@@ -421,10 +496,12 @@ export const useWallKeyboard = ({
     setShowHeatmap,
     setTimelineIndex,
     setTimelineMode,
+    setLastColor,
     timelineEntriesLength,
     timelineModeRef,
     ui,
     undo,
+    updateNote,
     viewport,
   ]);
 };

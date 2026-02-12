@@ -764,6 +764,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     deleteLink,
     deleteGroup,
     deleteNoteGroup,
+    setLastColor,
+    updateNote,
   });
 
   const { jumpToTimelineDay } = useWallTimeline({
