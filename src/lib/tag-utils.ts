@@ -7,8 +7,9 @@ const tagPattern = /#([a-zA-Z0-9_-]+)/g;
 
 export const extractInlineTags = (raw: string): string[] =>
   [...raw.matchAll(tagPattern)]
-    .map((match) => match[1].toLowerCase())
-    .filter(Boolean);
+    .map((match) => match[1])
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.toLowerCase());
 
 export const stripInlineTags = (raw: string): string =>
   raw
@@ -25,4 +26,3 @@ export const parseTaggedText = (raw: string): TaggedTextParse => {
     tags,
   };
 };
-

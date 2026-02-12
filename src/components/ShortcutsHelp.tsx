@@ -10,21 +10,21 @@ type ShortcutsHelpProps = {
 };
 
 const shortcuts = [
-  ["N / Ctrl+N", "New note"],
-  ["Q / Ctrl+J", "Toggle quick capture bar"],
+  ["N or Ctrl/Cmd + N", "New note"],
+  ["Q or Ctrl/Cmd + J", "Toggle quick capture bar"],
   ["Ctrl/Cmd + Shift + V", "Start/stop quick-capture voice dictation"],
   ["P", "Toggle presentation mode"],
   ["Ctrl/Cmd + Enter", "Capture quick-capture lines as notes"],
   ["Enter", "Edit selected note text"],
-  ["Ctrl+K", "Open search"],
-  ["Ctrl+L", "Start link from selected note"],
+  ["Ctrl/Cmd + K", "Open search"],
+  ["Ctrl/Cmd + L", "Start link from selected note"],
   ["Ctrl/Cmd + A", "Select all visible notes"],
   ["T", "Toggle timeline mode"],
   ["H", "Toggle recently changed heatmap"],
   ["Ctrl/Cmd + Z", "Undo last change"],
   ["Ctrl/Cmd + Shift + Z", "Redo change"],
   ["Delete / Backspace", "Delete selected note, zone, link, or group"],
-  ["Ctrl+D or Shift+D", "Duplicate selected note"],
+  ["Ctrl/Cmd + D or Shift + D", "Duplicate selected note"],
   ["Alt + Drag", "Duplicate a note while dragging"],
   ["Shift + Drag", "Lock drag movement to one axis"],
   ["Space + Drag", "Pan wall"],
@@ -42,7 +42,7 @@ export const ShortcutsHelp = ({ open, onClose }: ShortcutsHelpProps) => {
     <ModalShell
       open={open}
       onClose={onClose}
-      title="Keyboard Shortcuts"
+      title="Keyboard shortcuts"
       maxWidthClassName="max-w-xl"
     >
       <div className="space-y-2">

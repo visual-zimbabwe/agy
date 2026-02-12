@@ -24,16 +24,16 @@ Date: 2026-02-11
 - Done when: new feature work no longer lands in orchestration files by default.
 
 ## Priority 2: Medium Effort, Strong Maintainability Gain
-1. Normalize UI text/icon encoding and copy consistency.
+1. Normalize UI text/icon encoding and copy consistency. (Done - 2026-02-12)
 - Fix mojibake-style symbols and prefer explicit ASCII-safe symbols/components.
 - Audit labels/tooltips for consistency (`Sync now`, `Reset`, `Keys`, etc.).
-2. Strengthen shared class composition.
+2. Strengthen shared class composition. (Done - 2026-02-12)
 - Promote repeated utility class strings into `src/components/wall/wallChromeClasses.ts` or UI primitives.
 - Done when: repeated surface/button styles are centralized.
-3. Add stricter TypeScript and lint guardrails.
+3. Add stricter TypeScript and lint guardrails. (Done - 2026-02-12)
 - Enable additional TS strictness where safe (`noUncheckedIndexedAccess` staged rollout).
 - Add lint rules for file-size warnings or complexity in wall surfaces.
-4. Add scripted repo health checks.
+4. Add scripted repo health checks. (Done - 2026-02-12)
 - Add `npm run check:types` (if split from build), `npm run check:deadcode` (optional), and duplicate style detection (lightweight script).
 
 ## Priority 3: Larger Additions (Strategic)

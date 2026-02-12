@@ -5,12 +5,12 @@
 - Add tooltips for all controls with shortcut hints.
 - Improve mobile/tablet behavior (collapsible side panels).
 
-2. Performance and correctness
+2. Performance and correctness (Done)
 - Profile drag/multi-select with 300+ notes and optimize re-renders.
 - Add memoization around heavy derived lists (recall/tag groups/paths) where needed.
 - Add regression checks for the two hook/state errors you hit.
 
-3. Undo/redo hardening
+3. Undo/redo hardening (Done)
 - Group related operations into single history entries (bulk move, align, template apply).
 - Add visible history depth indicator and “clear history” safety option.
 
@@ -24,7 +24,7 @@
 - Keep context bar minimal and show only truly selection-relevant actions.
 - Add “Customize layout” toggles to hide panels per user preference.
 
-6. Data and backup safety
+6. Data and backup safety (Done)
 - Add explicit “Export JSON / Import JSON” for full wall backup/restore.
 - Add optional auto-backup download reminder (daily/weekly).
 

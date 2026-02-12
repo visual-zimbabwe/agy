@@ -1,5 +1,6 @@
 import { useWallStore } from "@/features/wall/store";
 import type { Note, PersistedWallState } from "@/features/wall/types";
+import { beforeEach, describe, expect, it } from "vitest";
 
 const emptySnapshot: PersistedWallState = {
   notes: {},
@@ -42,13 +43,28 @@ describe("wall store history", () => {
     state.patchNote("note-1", { text: "Updated" });
 
     expect(useWallStore.getState().historyPast.length).toBeGreaterThan(0);
-    expect(useWallStore.getState().notes["note-1"].text).toBe("Updated");
+    const updated = useWallStore.getState().notes["note-1"];
+    expect(updated).toBeDefined();
+    if (!updated) {
+      return;
+    }
+    expect(updated.text).toBe("Updated");
 
     state.undo();
-    expect(useWallStore.getState().notes["note-1"].text).toBe("Hello");
+    const undone = useWallStore.getState().notes["note-1"];
+    expect(undone).toBeDefined();
+    if (!undone) {
+      return;
+    }
+    expect(undone.text).toBe("Hello");
 
     state.redo();
-    expect(useWallStore.getState().notes["note-1"].text).toBe("Updated");
+    const redone = useWallStore.getState().notes["note-1"];
+    expect(redone).toBeDefined();
+    if (!redone) {
+      return;
+    }
+    expect(redone.text).toBe("Updated");
   });
 
   it("groups history operations into a single undo step", () => {
@@ -63,8 +79,13 @@ describe("wall store history", () => {
 
     expect(useWallStore.getState().historyPast).toHaveLength(1);
     state.undo();
-    expect(useWallStore.getState().notes["note-1"].x).toBe(0);
-    expect(useWallStore.getState().notes["note-1"].y).toBe(0);
+    const restored = useWallStore.getState().notes["note-1"];
+    expect(restored).toBeDefined();
+    if (!restored) {
+      return;
+    }
+    expect(restored.x).toBe(0);
+    expect(restored.y).toBe(0);
   });
 
   it("removes links attached to a deleted note", () => {

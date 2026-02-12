@@ -10,6 +10,7 @@ import {
 import { NOTE_COLORS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
 import type { PersistedWallState } from "@/features/wall/types";
+import { beforeEach, describe, expect, it } from "vitest";
 
 const emptySnapshot: PersistedWallState = {
   notes: {},
@@ -56,8 +57,13 @@ describe("wall commands", () => {
 
     const links = Object.values(useWallStore.getState().links);
     expect(links).toHaveLength(1);
-    expect(links[0].fromNoteId).toBe(fromId);
-    expect(links[0].toNoteId).toBe(toId);
+    const [firstLink] = links;
+    expect(firstLink).toBeDefined();
+    if (!firstLink) {
+      return;
+    }
+    expect(firstLink.fromNoteId).toBe(fromId);
+    expect(firstLink.toNoteId).toBe(toId);
   });
 
   it("applies template with grouped zones and notes", () => {
@@ -79,8 +85,17 @@ describe("wall commands", () => {
     assignZoneToGroup(zoneId, targetGroupId);
 
     const state = useWallStore.getState();
-    expect(state.zoneGroups[sourceGroupId].zoneIds).not.toContain(zoneId);
-    expect(state.zoneGroups[targetGroupId].zoneIds).toEqual([zoneId]);
-    expect(state.zones[zoneId].groupId).toBe(targetGroupId);
+    const sourceGroup = state.zoneGroups[sourceGroupId];
+    const targetGroup = state.zoneGroups[targetGroupId];
+    const zone = state.zones[zoneId];
+    expect(sourceGroup).toBeDefined();
+    expect(targetGroup).toBeDefined();
+    expect(zone).toBeDefined();
+    if (!sourceGroup || !targetGroup || !zone) {
+      return;
+    }
+    expect(sourceGroup.zoneIds).not.toContain(zoneId);
+    expect(targetGroup.zoneIds).toEqual([zoneId]);
+    expect(zone.groupId).toBe(targetGroupId);
   });
 });

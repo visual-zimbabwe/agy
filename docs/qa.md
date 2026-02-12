@@ -332,7 +332,7 @@ Expected:
 1. Open `/wall` on desktop width (>= 1200px).
 2. Verify top bar controls display icon + label pairs with tighter spacing.
 3. Hover each top bar control and verify tooltip text appears; confirm shortcut hints show for:
-   `Search`, `Capture`, `Undo`, `Redo`, `Present`, `Timeline`, `Heatmap`, `Keys`.
+   `Search`, `Capture`, `Undo`, `Redo`, `Present`, `Timeline`, `Heatmap`, `Shortcuts`.
 4. Verify left tools rail controls display icon + label pairs and tooltips, including:
    `New Note`, `New Zone`, `Box Select`, `Start Link`, `Detect Clusters`.
 5. Resize viewport to tablet/mobile width (< 1120px).
@@ -413,3 +413,15 @@ Expected:
 - Sync status updates (`Syncing...`, `Last synced`) behave consistently.
 - Cross-device sync works for create/edit/delete.
 - Accounts remain isolated via RLS.
+
+## Priority 2 Maintainability Guardrails (2026-02-12)
+1. Run `npm run lint`.
+2. Run `npm run check:types`.
+3. Run `npm run check:deadcode`.
+4. Run `npm run check:styles:duplicates`.
+
+Expected:
+- Lint warnings/errors stay within accepted thresholds and new wall complexity/size warnings remain visible.
+- Type check passes with `noUncheckedIndexedAccess` enabled.
+- Dead-code check passes for wall domain and shared lib modules.
+- Duplicate wall class check reports no repeated long class literals needing extraction.

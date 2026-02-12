@@ -126,19 +126,20 @@ export const WallFloatingUi = ({
   onResetZoom,
 }: WallFloatingUiProps) => {
   const zoomPercent = Math.round(camera.zoom * 100);
+  const editingNote = editing ? notesById[editing.id] : undefined;
+  const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
 
   return (
     <>
-      {editing && notesById[editing.id] && !isTimeLocked && (
+      {editing && editingNote && !isTimeLocked && (
         <div
           className="absolute z-[46]"
           style={(() => {
-            const note = notesById[editing.id];
-            const screen = toScreenPoint(note.x, note.y, camera);
+            const screen = toScreenPoint(editingNote.x, editingNote.y, camera);
             return {
               left: `${screen.x}px`,
               top: `${screen.y}px`,
-              width: `${note.w * camera.zoom}px`,
+              width: `${editingNote.w * camera.zoom}px`,
             };
           })()}
         >
@@ -149,15 +150,14 @@ export const WallFloatingUi = ({
             onBlur={handleEditorBlur}
             className="w-full resize-none rounded-xl border border-zinc-700/40 bg-white/95 p-3 text-[16px] leading-6 shadow-xl outline-none"
             style={(() => {
-              const note = notesById[editing.id];
-              return { height: `${note.h * camera.zoom}px` };
+              return { height: `${editingNote.h * camera.zoom}px` };
             })()}
           />
           <div data-note-edit-tags="true" className="mt-2 rounded-xl border border-zinc-200 bg-white/95 p-2 shadow-lg">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Tags</p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {notesById[editing.id].tags.length === 0 && <span className="text-[11px] text-zinc-500">No tags yet.</span>}
-              {notesById[editing.id].tags.map((tag) => (
+              {editingNote.tags.length === 0 && <span className="text-[11px] text-zinc-500">No tags yet.</span>}
+              {editingNote.tags.map((tag) => (
                 <span key={`edit-tag-${tag}`} className="inline-flex items-center gap-1 rounded-full border border-zinc-300 bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-700">
                   <button
                     type="button"
@@ -178,8 +178,9 @@ export const WallFloatingUi = ({
                     onClick={() => removeTagFromNote(editing.id, tag)}
                     className="text-zinc-500 hover:text-red-700"
                     title="Delete tag"
+                    aria-label={`Delete tag ${tag}`}
                   >
-                    ×
+                    x
                   </button>
                 </span>
               ))}
@@ -275,7 +276,7 @@ export const WallFloatingUi = ({
             <div className="mx-1 h-5 w-px bg-zinc-300" />
             <NoteSwatches value={primarySelectedNote.color} onSelect={applyColorToSelection} />
             <div className="mx-1 h-5 w-px bg-zinc-300" />
-            <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd+D)">
+            <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd + D)">
               Duplicate
             </button>
             <button
@@ -296,7 +297,7 @@ export const WallFloatingUi = ({
               type="button"
               onClick={() => setLinkingFromNote(primarySelectedNote.id)}
               className={linkingFromNoteId ? toolbarBtnActive : toolbarBtnCompact}
-              title="Start link (Ctrl/Cmd+L)"
+              title="Start link (Ctrl/Cmd + L)"
             >
               Link
             </button>
@@ -332,12 +333,12 @@ export const WallFloatingUi = ({
         onResetZoom={onResetZoom}
       />
 
-      {timelineMode && timelineEntries.length > 0 && (
+      {timelineMode && timelineEntries.length > 0 && currentTimelineEntry && (
         <WallTimelineDock
           timelineEntriesLength={timelineEntries.length}
           timelineIndex={timelineIndex}
           isTimelinePlaying={isTimelinePlaying}
-          currentTimestamp={timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)].ts}
+          currentTimestamp={currentTimelineEntry.ts}
           onTogglePlay={() => setIsTimelinePlaying((value) => !value)}
           onStart={() => setTimelineIndex(0)}
           onLatest={() => setTimelineIndex(timelineEntries.length - 1)}

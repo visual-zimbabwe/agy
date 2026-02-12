@@ -99,7 +99,11 @@ export const CalendarHeatmap = ({ timestamps, onSelectDay }: CalendarHeatmapProp
   gridWeeks.forEach((col, index) => {
     const firstDayInWeek = col.find((d) => d !== null);
     if (firstDayInWeek && firstDayInWeek.month !== lastMonth) {
-      monthLabels.push({ index, label: monthShort[firstDayInWeek.month] });
+      const label = monthShort[firstDayInWeek.month];
+      if (!label) {
+        return;
+      }
+      monthLabels.push({ index, label });
       lastMonth = firstDayInWeek.month;
     }
   });

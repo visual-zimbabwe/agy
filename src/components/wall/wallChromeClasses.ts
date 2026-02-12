@@ -28,3 +28,15 @@ export const toolbarDivider = "mx-1 h-6 w-px bg-[var(--color-border)]";
 export const toolbarLabel = "text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]";
 export const toolbarHistoryPill =
   "rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)]";
+
+export const wallPanelSurface =
+  "pointer-events-auto absolute z-40 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)] transition-[transform,opacity] duration-[var(--motion-normal)] ease-out motion-panel-enter";
+
+export const panelCloseBtn =
+  "rounded border border-[var(--color-border)] px-1.5 py-0.5 text-[10px] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
+
+export const statusChip =
+  "inline-flex w-fit items-center gap-2 self-start rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] motion-panel-enter";
+
+export const brandChip =
+  "inline-flex w-fit items-center gap-2 self-start rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]";

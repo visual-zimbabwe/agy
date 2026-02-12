@@ -118,19 +118,19 @@ export const WallToolbar = ({
             </ControlTooltip>
           </>
         )}
-        <ControlTooltip label="Open search palette" shortcut="Ctrl/Cmd+K">
-          <button type="button" onClick={onOpenSearch} className={toolbarBtn} title="Open search palette (Ctrl/Cmd+K)">
+        <ControlTooltip label="Open search palette" shortcut="Ctrl/Cmd + K">
+          <button type="button" onClick={onOpenSearch} className={toolbarBtn} title="Open search palette (Ctrl/Cmd + K)">
             <Icon name="search" />
             <span>Search</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Toggle quick capture" shortcut="Q or Ctrl/Cmd+J">
+        <ControlTooltip label="Toggle quick capture" shortcut="Q or Ctrl/Cmd + J">
           <button
             type="button"
             onClick={onToggleQuickCapture}
             disabled={isTimeLocked}
             className={quickCaptureOpen ? toolbarBtnActive : toolbarBtn}
-            title="Toggle quick capture (Q or Ctrl/Cmd+J)"
+            title="Toggle quick capture (Q or Ctrl/Cmd + J)"
           >
             <Icon name="capture" />
             <span>Capture</span>
@@ -142,14 +142,14 @@ export const WallToolbar = ({
             <span>Export</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Undo last action" shortcut="Ctrl/Cmd+Z">
-          <button type="button" onClick={onUndo} disabled={!canUndo || isTimeLocked} className={toolbarBtn} title="Undo (Ctrl/Cmd+Z)">
+        <ControlTooltip label="Undo last action" shortcut="Ctrl/Cmd + Z">
+          <button type="button" onClick={onUndo} disabled={!canUndo || isTimeLocked} className={toolbarBtn} title="Undo (Ctrl/Cmd + Z)">
             <Icon name="undo" />
             <span>Undo</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Redo last action" shortcut="Ctrl/Cmd+Shift+Z">
-          <button type="button" onClick={onRedo} disabled={!canRedo || isTimeLocked} className={toolbarBtn} title="Redo (Ctrl/Cmd+Shift+Z)">
+        <ControlTooltip label="Redo last action" shortcut="Ctrl/Cmd + Shift + Z">
+          <button type="button" onClick={onRedo} disabled={!canRedo || isTimeLocked} className={toolbarBtn} title="Redo (Ctrl/Cmd + Shift + Z)">
             <Icon name="redo" />
             <span>Redo</span>
           </button>
@@ -171,7 +171,7 @@ export const WallToolbar = ({
         <ControlTooltip label="Reset camera to fit content">
           <button type="button" onClick={onResetView} className={toolbarBtn} title="Reset camera to fit content">
             <Icon name="reset" />
-            <span>Reset</span>
+            <span>Reset view</span>
           </button>
         </ControlTooltip>
         <ControlTooltip label="Toggle timeline mode" shortcut="T">
@@ -199,7 +199,7 @@ export const WallToolbar = ({
         <ControlTooltip label="Open keyboard shortcuts" shortcut="?">
           <button type="button" onClick={onOpenShortcuts} className={toolbarBtn} title="Open keyboard shortcuts (?)">
             <Icon name="shortcuts" />
-            <span>Keys</span>
+            <span>Shortcuts</span>
           </button>
         </ControlTooltip>
       </div>

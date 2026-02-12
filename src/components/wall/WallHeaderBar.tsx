@@ -2,6 +2,7 @@
 
 import { NoteSwatches } from "@/components/NoteCard";
 import { WallToolbar } from "@/components/wall/WallToolbar";
+import { brandChip, statusChip } from "@/components/wall/wallChromeClasses";
 import { NOTE_DEFAULTS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
 import type { Note } from "@/features/wall/types";
 
@@ -119,7 +120,7 @@ export const WallHeaderBar = ({
 }: WallHeaderBarProps) => {
   return (
     <header className="mx-2 mt-2 flex flex-col gap-1.5 md:mx-3 md:mt-3">
-      <div className="inline-flex w-fit items-center gap-2 self-start rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
+      <div className={brandChip}>
         <span className="font-semibold tracking-[0.14em] uppercase">Idea-Wall</span>
         <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 text-[10px] text-[var(--color-text)]">
           {presentationMode ? "Presentation Mode" : "Studio Mode"}
@@ -215,18 +216,18 @@ export const WallHeaderBar = ({
       )}
 
       {statusMessage && (
-        <div className="inline-flex w-fit max-w-[min(96vw,40rem)] self-start items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] motion-panel-enter">
+        <div className={`${statusChip} max-w-[min(96vw,40rem)]`}>
           <span className="truncate">{statusMessage}</span>
         </div>
       )}
 
       {!publishedReadOnly && (
-        <div className="inline-flex w-fit items-center gap-2 self-start rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] motion-panel-enter">
+        <div className={statusChip}>
           <button
             type="button"
             onClick={onSyncNow}
             disabled={!cloudWallId || isSyncing}
-            className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] disabled:opacity-50"
+            className={toolbarBtnCompact}
           >
             {isSyncing ? "Syncing..." : "Sync now"}
           </button>

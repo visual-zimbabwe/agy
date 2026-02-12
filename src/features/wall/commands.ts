@@ -9,6 +9,10 @@ const makeId = () => {
   return Math.random().toString(36).slice(2, 11);
 };
 
+const firstColor = (palette: readonly string[], fallback: string) => palette[0] ?? fallback;
+const randomColor = (palette: readonly string[], fallback: string) =>
+  palette[Math.floor(Math.random() * palette.length)] ?? firstColor(palette, fallback);
+
 const withHistoryGroup = <T>(run: () => T): T => {
   const state = useWallStore.getState();
   state.beginHistoryGroup();
@@ -21,7 +25,7 @@ const withHistoryGroup = <T>(run: () => T): T => {
 
 export const createNote = (x: number, y: number, color?: string) => {
   const now = Date.now();
-  const chosenColor = color ?? useWallStore.getState().ui.lastColor ?? NOTE_COLORS[0];
+  const chosenColor = color ?? useWallStore.getState().ui.lastColor ?? firstColor(NOTE_COLORS, "#FEEA89");
   const note: Note = {
     id: makeId(),
     text: "",
@@ -108,7 +112,7 @@ export const createZone = (x: number, y: number, label = "New Zone") => {
     y,
     w: ZONE_DEFAULTS.width,
     h: ZONE_DEFAULTS.height,
-    color: ZONE_COLORS[Math.floor(Math.random() * ZONE_COLORS.length)],
+    color: randomColor(ZONE_COLORS, "#FFF4CC"),
     createdAt: now,
     updatedAt: now,
   };
@@ -138,7 +142,7 @@ export const createZoneGroup = (label: string, zoneIds: string[] = []) => {
     const group: ZoneGroup = {
       id: makeId(),
       label: label.trim() || "Group",
-      color: GROUP_COLORS[Math.floor(Math.random() * GROUP_COLORS.length)],
+      color: randomColor(GROUP_COLORS, "#C7D2FE"),
       zoneIds: [...new Set(zoneIds)],
       collapsed: false,
       createdAt: now,
@@ -301,7 +305,7 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
         y: centerY + zoneDef.dy,
         w: zoneDef.w ?? ZONE_DEFAULTS.width,
         h: zoneDef.h ?? ZONE_DEFAULTS.height,
-        color: zoneDef.color ?? ZONE_COLORS[Math.floor(Math.random() * ZONE_COLORS.length)],
+        color: zoneDef.color ?? randomColor(ZONE_COLORS, "#FFF4CC"),
         groupId: undefined,
         createdAt: now,
         updatedAt: now,
@@ -325,7 +329,7 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
         y: centerY + noteDef.dy,
         w: NOTE_DEFAULTS.width,
         h: NOTE_DEFAULTS.height,
-        color: noteDef.color ?? NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)],
+        color: noteDef.color ?? randomColor(NOTE_COLORS, "#FEEA89"),
         createdAt: now,
         updatedAt: now,
       };

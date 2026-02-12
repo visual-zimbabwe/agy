@@ -1,6 +1,7 @@
 "use client";
 
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
+import { panelCloseBtn, wallPanelSurface } from "@/components/wall/wallChromeClasses";
 import type { LinkType } from "@/features/wall/types";
 
 type LinkTypeOption = {
@@ -55,7 +56,7 @@ export const WallToolsPanel = ({
 }: WallToolsPanelProps) => {
   return (
     <aside
-      className={`pointer-events-auto absolute z-40 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)] transition-[transform,opacity] duration-[var(--motion-normal)] ease-out motion-panel-enter ${
+      className={`${wallPanelSurface} p-2 ${
         isCompactLayout
           ? `left-2 top-7 w-[min(18rem,calc(100%-1rem))] ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
           : `left-3 top-8 w-44 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
@@ -67,15 +68,15 @@ export const WallToolsPanel = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded border border-[var(--color-border)] px-1.5 py-0.5 text-[10px] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]"
+            className={panelCloseBtn}
           >
             Close
           </button>
         )}
       </div>
       <div className="space-y-1">
-        <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd+N" className="relative block">
-          <button type="button" onClick={onCreateNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtnPrimary}`} title="Create note (N or Ctrl/Cmd+N)">
+        <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd + N" className="relative block">
+          <button type="button" onClick={onCreateNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtnPrimary}`} title="Create note (N or Ctrl/Cmd + N)">
             <Icon name="note" />
             <span>New Note</span>
           </button>
@@ -97,13 +98,13 @@ export const WallToolsPanel = ({
             <span>Box Select</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Start linking from selected note" shortcut="Ctrl/Cmd+L" className="relative block">
+        <ControlTooltip label="Start linking from selected note" shortcut="Ctrl/Cmd + L" className="relative block">
           <button
             type="button"
             onClick={onStartLinking}
             disabled={!selectedNoteId || isTimeLocked}
             className={`w-full justify-start ${linkingFromNoteId ? toolbarBtnActive : toolbarBtn}`}
-            title="Start linking (Ctrl/Cmd+L)"
+            title="Start linking (Ctrl/Cmd + L)"
           >
             <Icon name="link" />
             <span>{linkingFromNoteId ? "Pick Link Target" : "Start Link"}</span>

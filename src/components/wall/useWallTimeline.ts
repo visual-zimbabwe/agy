@@ -47,7 +47,11 @@ export const useWallTimeline = ({
 
       const index = (() => {
         for (let i = timelineEntries.length - 1; i >= 0; i -= 1) {
-          const candidate = new Date(timelineEntries[i].ts);
+          const entry = timelineEntries[i];
+          if (!entry) {
+            continue;
+          }
+          const candidate = new Date(entry.ts);
           const key = `${candidate.getFullYear()}-${String(candidate.getMonth() + 1).padStart(2, "0")}-${String(candidate.getDate()).padStart(
             2,
             "0",
