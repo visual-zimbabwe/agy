@@ -10,6 +10,7 @@ type Viewport = { w: number; h: number };
 type CaptureItem = { text: string; tags: string[] };
 type AlignAxis = "left" | "center" | "right" | "top" | "middle" | "bottom";
 type DistributeDirection = "horizontal" | "vertical";
+type NoteVerticalAlign = "top" | "middle" | "bottom";
 
 type UseWallActionsOptions = {
   isTimeLocked: boolean;
@@ -117,6 +118,19 @@ export const useWallActions = ({
       const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : selectedNoteId ? [selectedNoteId] : [];
       for (const id of targetIds) {
         updateNote(id, { textColor });
+      }
+    },
+    [activeSelectedNoteIds, isTimeLocked, selectedNoteId, updateNote],
+  );
+
+  const applyTextVerticalAlignToSelection = useCallback(
+    (textVAlign: NoteVerticalAlign) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : selectedNoteId ? [selectedNoteId] : [];
+      for (const id of targetIds) {
+        updateNote(id, { textVAlign });
       }
     },
     [activeSelectedNoteIds, isTimeLocked, selectedNoteId, updateNote],
@@ -294,6 +308,7 @@ export const useWallActions = ({
     applyTextSizeToSelection,
     applyTextFontToSelection,
     applyTextColorToSelection,
+    applyTextVerticalAlignToSelection,
     alignSelected,
     distributeSelected,
     makeNoteAtViewportCenter,

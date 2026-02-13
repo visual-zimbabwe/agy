@@ -50,6 +50,7 @@ type WallFloatingUiProps = {
   applyTextSizeToSelection: (sizePx: number) => void;
   applyTextFontToSelection: (font: NoteTextFont) => void;
   applyTextColorToSelection: (color: string) => void;
+  applyTextVerticalAlignToSelection: (align: "top" | "middle" | "bottom") => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   duplicateNote: (noteId: string) => void;
   togglePinOnNote: (noteId: string) => void;
@@ -114,6 +115,7 @@ export const WallFloatingUi = ({
   applyTextSizeToSelection,
   applyTextFontToSelection,
   applyTextColorToSelection,
+  applyTextVerticalAlignToSelection,
   updateNote,
   duplicateNote,
   togglePinOnNote,
@@ -359,6 +361,17 @@ export const WallFloatingUi = ({
                   {size}px
                 </option>
               ))}
+            </select>
+            <select
+              value={primarySelectedNote.textVAlign ?? NOTE_DEFAULTS.textVAlign}
+              onChange={(event) => applyTextVerticalAlignToSelection(event.target.value as "top" | "middle" | "bottom")}
+              className={`w-[5.9rem] ${toolbarBtnCompact}`}
+              title="Vertical align"
+              aria-label="Vertical align"
+            >
+              <option value="top">Top</option>
+              <option value="middle">Middle</option>
+              <option value="bottom">Bottom</option>
             </select>
             <label className={toolbarBtnCompact}>
               <span className="sr-only">Note text color</span>

@@ -114,8 +114,9 @@ Expected:
 8. Change `Font family` in the micro-toolbar and verify note text updates immediately in editor and on canvas.
 9. Change `Font size` in the micro-toolbar and verify note text scales immediately in editor and on canvas.
 10. Change `Text color` in the micro-toolbar and verify note text color updates immediately in editor and on canvas.
-11. With a note selected (not in edit mode), use quick-action `Note text color` control and verify color updates for all selected notes.
-12. With notes selected but not in text edit mode, verify no text-formatting controls are visible in header/quick-action toolbars.
+11. With a note selected (not in edit mode), use quick-action `Vertical align` (`Top`, `Middle`, `Bottom`) and verify alignment updates for all selected notes.
+12. With a note selected (not in edit mode), use quick-action `Note text color` control and verify color updates for all selected notes.
+13. With notes selected but not in text edit mode, verify no text-formatting controls are visible in header/quick-action toolbars.
 
 Expected:
 - Formatting controls exist only during note text editing.
