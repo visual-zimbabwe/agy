@@ -98,6 +98,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
   return {
     id,
     text: asString(entry.text),
+    imageUrl: asString(entry.imageUrl).trim() || undefined,
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
     textVAlign: entry.textVAlign === "middle" || entry.textVAlign === "bottom" ? entry.textVAlign : NOTE_DEFAULTS.textVAlign,
     textFont: normalizeNoteFont(entry.textFont),

@@ -29,6 +29,7 @@ export const createNote = (x: number, y: number, color?: string) => {
   const note: Note = {
     id: makeId(),
     text: "",
+    imageUrl: undefined,
     textAlign: "left",
     textVAlign: NOTE_DEFAULTS.textVAlign,
     textFont: "nunito",
@@ -424,6 +425,7 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
       const note: Note = {
         id: makeId(),
         text: noteDef.text,
+        imageUrl: undefined,
         textAlign: "left",
         textVAlign: NOTE_DEFAULTS.textVAlign,
         textFont: "nunito",

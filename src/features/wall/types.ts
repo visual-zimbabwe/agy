@@ -23,6 +23,7 @@ export type NoteTextFont =
 export type Note = {
   id: string;
   text: string;
+  imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";
   textFont?: NoteTextFont;

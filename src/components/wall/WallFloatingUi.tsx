@@ -179,6 +179,7 @@ export const WallFloatingUi = ({
             textAlign={editingNote.textAlign ?? "left"}
             textVAlign={editingNote.textVAlign ?? NOTE_DEFAULTS.textVAlign}
             textColor={editingNote.textColor}
+            imageUrl={editingNote.imageUrl}
             textSizePx={editingNote.textSizePx}
             textFont={editingNote.textFont}
             onTextUpdate={(nextValue, selectionStart, selectionEnd) => {
@@ -199,6 +200,10 @@ export const WallFloatingUi = ({
             }}
             onTextColorUpdate={(textColor) => {
               updateNote(editing.id, { textColor });
+              requestAnimationFrame(() => textareaRef.current?.focus());
+            }}
+            onImageUrlUpdate={(imageUrl) => {
+              updateNote(editing.id, { imageUrl });
               requestAnimationFrame(() => textareaRef.current?.focus());
             }}
             onTextSizeUpdate={(textSizePx) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
-import { Group, Rect, Text } from "react-konva";
+import { Group, Image as KonvaImage, Rect, Text } from "react-konva";
 import type Konva from "konva";
 
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
@@ -105,6 +105,7 @@ export const WallNotesLayer = ({
   const previousTextSizeRef = useRef<Record<string, string>>({});
   const [colorWashOpacityByNote, setColorWashOpacityByNote] = useState<Record<string, number>>({});
   const [sizePulseScaleByNote, setSizePulseScaleByNote] = useState<Record<string, number>>({});
+  const [loadedImagesByUrl, setLoadedImagesByUrl] = useState<Record<string, HTMLImageElement>>({});
   const colorWashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
   const sizePulseTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -175,6 +176,32 @@ export const WallNotesLayer = ({
   }, [visibleNotes]);
 
   useEffect(() => {
+    let cancelled = false;
+    const urls = [...new Set(visibleNotes.map((note) => note.imageUrl?.trim()).filter((url): url is string => Boolean(url)))];
+    const nextLoads = urls.filter((url) => !loadedImagesByUrl[url]);
+    for (const url of nextLoads) {
+      const image = new window.Image();
+      image.decoding = "async";
+      image.crossOrigin = "anonymous";
+      image.onload = () => {
+        if (cancelled) {
+          return;
+        }
+        setLoadedImagesByUrl((previous) => {
+          if (previous[url] === image) {
+            return previous;
+          }
+          return { ...previous, [url]: image };
+        });
+      };
+      image.src = url;
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [loadedImagesByUrl, visibleNotes]);
+
+  useEffect(() => {
     const colorWashTimers = colorWashTimersRef.current;
     const sizePulseTimers = sizePulseTimersRef.current;
     return () => {
@@ -206,6 +233,13 @@ export const WallNotesLayer = ({
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
         const tagPalette = noteTagChipPalette(noteView.color);
+        const imageUrl = noteView.imageUrl?.trim();
+        const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
+        const imageFrameHeight = imageUrl
+          ? Math.max(44, Math.min(noteView.h * 0.48, noteView.w * 0.62, Math.max(44, noteView.h - 78)))
+          : 0;
+        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0);
+        const textHeight = Math.max(0, noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0));
 
         return (
           <Group
@@ -495,11 +529,47 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
+            {imageUrl && (
+              <>
+                <Rect
+                  x={12}
+                  y={12}
+                  width={Math.max(0, noteView.w - 24)}
+                  height={imageFrameHeight}
+                  cornerRadius={10}
+                  fill="#ffffff"
+                  opacity={0.4}
+                  stroke="#1f2937"
+                  strokeWidth={0.5}
+                />
+                {noteImage ? (
+                  <KonvaImage
+                    x={12}
+                    y={12}
+                    width={Math.max(0, noteView.w - 24)}
+                    height={imageFrameHeight}
+                    image={noteImage}
+                    cornerRadius={10}
+                    listening={false}
+                  />
+                ) : (
+                  <Text
+                    x={18}
+                    y={12 + imageFrameHeight / 2 - 6}
+                    width={Math.max(0, noteView.w - 36)}
+                    align="center"
+                    fontSize={10}
+                    fill="#334155"
+                    text="Loading image..."
+                  />
+                )}
+              </>
+            )}
             <Text
               x={12}
-              y={12}
+              y={textY}
               width={Math.max(0, noteView.w - 24)}
-              height={Math.max(0, noteView.h - 56)}
+              height={textHeight}
               fontSize={noteTextStyle.fontSize * textSpringFactor}
               fontFamily={noteTextFontFamily}
               fill={noteView.textColor ?? NOTE_DEFAULTS.textColor}

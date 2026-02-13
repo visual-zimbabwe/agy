@@ -15,12 +15,14 @@ type NoteTextFormattingToolbarProps = {
   textAlign: NoteTextAlign;
   textVAlign: NoteTextVAlign;
   textColor?: string;
+  imageUrl?: string;
   textSizePx?: number;
   textFont?: Note["textFont"];
   onTextUpdate: (nextValue: string, selectionStart: number, selectionEnd: number) => void;
   onAlignUpdate: (align: NoteTextAlign) => void;
   onVerticalAlignUpdate: (align: NoteTextVAlign) => void;
   onTextColorUpdate: (color: string) => void;
+  onImageUrlUpdate: (url?: string) => void;
   onTextSizeUpdate: (sizePx: number) => void;
   onTextFontUpdate: (font: NonNullable<Note["textFont"]>) => void;
 };
@@ -269,12 +271,14 @@ export const NoteTextFormattingToolbar = ({
   textAlign,
   textVAlign,
   textColor,
+  imageUrl,
   textSizePx,
   textFont,
   onTextUpdate,
   onAlignUpdate,
   onVerticalAlignUpdate,
   onTextColorUpdate,
+  onImageUrlUpdate,
   onTextSizeUpdate,
   onTextFontUpdate,
 }: NoteTextFormattingToolbarProps) => {
@@ -435,6 +439,23 @@ export const NoteTextFormattingToolbar = ({
       </button>
       <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("multilevel")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" title="Multilevel list">
         Multi
+      </button>
+      <button
+        type="button"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => {
+          const next = window.prompt("Image URL", imageUrl ?? "");
+          if (next === null) {
+            return;
+          }
+          const normalized = next.trim();
+          onImageUrlUpdate(normalized || undefined);
+        }}
+        className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
+        title="Insert image URL"
+        aria-label="Insert image URL"
+      >
+        Img
       </button>
       <div className="mx-0.5 h-4 w-px bg-zinc-300" />
       {alignButtons.map((button) => (

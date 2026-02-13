@@ -117,7 +117,8 @@ Expected:
 11. With a note selected (not in edit mode), use quick-action `Horizontal align` (`Left`, `Center`, `Right`) and verify alignment updates for all selected notes.
 12. With a note selected (not in edit mode), use quick-action `Vertical align` (`Top`, `Middle`, `Bottom`) and verify alignment updates for all selected notes.
 13. With a note selected (not in edit mode), use quick-action `Note text color` control and verify color updates for all selected notes.
-14. With notes selected but not in text edit mode, verify no text-formatting controls are visible in header/quick-action toolbars.
+14. In note edit mode, click `Img`, insert a valid image URL, and verify image appears inside the note while text remains editable.
+15. With notes selected but not in text edit mode, verify no text-formatting controls are visible in header/quick-action toolbars.
 
 Expected:
 - Formatting controls exist only during note text editing.
@@ -127,6 +128,7 @@ Expected:
 - Vertical text alignment persists for each note after exiting and re-entering edit mode.
 - Font family and text size selections persist for each note.
 - Text color selections persist for each note.
+- Image URL insertion shows image inside note and persists after blur/reopen.
 
 ## Milestone 2 - Pan, Zoom, Infinite Wall
 1. Hold `Space` and drag to pan.
