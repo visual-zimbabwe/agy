@@ -106,6 +106,7 @@ export const WallNotesLayer = ({
   const [colorWashOpacityByNote, setColorWashOpacityByNote] = useState<Record<string, number>>({});
   const [sizePulseScaleByNote, setSizePulseScaleByNote] = useState<Record<string, number>>({});
   const [loadedImagesByUrl, setLoadedImagesByUrl] = useState<Record<string, HTMLImageElement>>({});
+  const [failedImagesByUrl, setFailedImagesByUrl] = useState<Record<string, true>>({});
   const colorWashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
   const sizePulseTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -178,11 +179,10 @@ export const WallNotesLayer = ({
   useEffect(() => {
     let cancelled = false;
     const urls = [...new Set(visibleNotes.map((note) => note.imageUrl?.trim()).filter((url): url is string => Boolean(url)))];
-    const nextLoads = urls.filter((url) => !loadedImagesByUrl[url]);
+    const nextLoads = urls.filter((url) => !loadedImagesByUrl[url] && !failedImagesByUrl[url]);
     for (const url of nextLoads) {
       const image = new window.Image();
       image.decoding = "async";
-      image.crossOrigin = "anonymous";
       image.onload = () => {
         if (cancelled) {
           return;
@@ -194,12 +194,23 @@ export const WallNotesLayer = ({
           return { ...previous, [url]: image };
         });
       };
+      image.onerror = () => {
+        if (cancelled) {
+          return;
+        }
+        setFailedImagesByUrl((previous) => {
+          if (previous[url]) {
+            return previous;
+          }
+          return { ...previous, [url]: true };
+        });
+      };
       image.src = url;
     }
     return () => {
       cancelled = true;
     };
-  }, [loadedImagesByUrl, visibleNotes]);
+  }, [failedImagesByUrl, loadedImagesByUrl, visibleNotes]);
 
   useEffect(() => {
     const colorWashTimers = colorWashTimersRef.current;
@@ -560,7 +571,7 @@ export const WallNotesLayer = ({
                     align="center"
                     fontSize={10}
                     fill="#334155"
-                    text="Loading image..."
+                    text={failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image..."}
                   />
                 )}
               </>
