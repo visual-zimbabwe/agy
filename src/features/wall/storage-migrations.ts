@@ -99,6 +99,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     id,
     text: asString(entry.text),
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
+    textVAlign: entry.textVAlign === "middle" || entry.textVAlign === "bottom" ? entry.textVAlign : NOTE_DEFAULTS.textVAlign,
     textFont: normalizeNoteFont(entry.textFont),
     textColor: asString(entry.textColor, NOTE_DEFAULTS.textColor),
     textSizePx:

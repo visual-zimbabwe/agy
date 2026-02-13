@@ -5,6 +5,7 @@ import { NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/featur
 import type { Note } from "@/features/wall/types";
 
 type NoteTextAlign = "left" | "center" | "right";
+type NoteTextVAlign = "top" | "middle" | "bottom";
 type ToolbarAction = "bold" | "italic" | "underline" | "bullet" | "number" | "multilevel";
 
 type NoteTextFormattingToolbarProps = {
@@ -12,11 +13,13 @@ type NoteTextFormattingToolbarProps = {
   active: boolean;
   value: string;
   textAlign: NoteTextAlign;
+  textVAlign: NoteTextVAlign;
   textColor?: string;
   textSizePx?: number;
   textFont?: Note["textFont"];
   onTextUpdate: (nextValue: string, selectionStart: number, selectionEnd: number) => void;
   onAlignUpdate: (align: NoteTextAlign) => void;
+  onVerticalAlignUpdate: (align: NoteTextVAlign) => void;
   onTextColorUpdate: (color: string) => void;
   onTextSizeUpdate: (sizePx: number) => void;
   onTextFontUpdate: (font: NonNullable<Note["textFont"]>) => void;
@@ -264,11 +267,13 @@ export const NoteTextFormattingToolbar = ({
   active,
   value,
   textAlign,
+  textVAlign,
   textColor,
   textSizePx,
   textFont,
   onTextUpdate,
   onAlignUpdate,
+  onVerticalAlignUpdate,
   onTextColorUpdate,
   onTextSizeUpdate,
   onTextFontUpdate,
@@ -376,6 +381,15 @@ export const NoteTextFormattingToolbar = ({
     [],
   );
 
+  const verticalAlignButtons = useMemo(
+    () => [
+      { id: "top", label: "T", title: "Align top" },
+      { id: "middle", label: "M", title: "Align middle" },
+      { id: "bottom", label: "B", title: "Align bottom" },
+    ] as const,
+    [],
+  );
+
   if (!visible) {
     return null;
   }
@@ -431,6 +445,24 @@ export const NoteTextFormattingToolbar = ({
           onClick={() => onAlignUpdate(button.id)}
           className={`rounded border px-2 py-1 text-[11px] ${
             textAlign === button.id
+              ? "border-sky-500 bg-sky-50 text-sky-700"
+              : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
+          }`}
+          title={button.title}
+          aria-label={button.title}
+        >
+          {button.label}
+        </button>
+      ))}
+      <div className="mx-0.5 h-4 w-px bg-zinc-300" />
+      {verticalAlignButtons.map((button) => (
+        <button
+          key={button.id}
+          type="button"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => onVerticalAlignUpdate(button.id)}
+          className={`rounded border px-2 py-1 text-[11px] ${
+            textVAlign === button.id
               ? "border-sky-500 bg-sky-50 text-sky-700"
               : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
           }`}

@@ -110,17 +110,19 @@ Expected:
 4. Select text and apply `Bold`, `Italic`, and `Underline`.
 5. Select one or more lines and apply `Bulleted`, `Numbered`, and `Multilevel`.
 6. Toggle `Align Left`, `Align Center`, and `Align Right` while editing, then blur and re-open editor.
-7. Change `Font family` in the micro-toolbar and verify note text updates immediately in editor and on canvas.
-8. Change `Font size` in the micro-toolbar and verify note text scales immediately in editor and on canvas.
-9. Change `Text color` in the micro-toolbar and verify note text color updates immediately in editor and on canvas.
-10. With a note selected (not in edit mode), use quick-action `Note text color` control and verify color updates for all selected notes.
-11. With notes selected but not in text edit mode, verify no text-formatting controls are visible in header/quick-action toolbars.
+7. Toggle vertical align `Top`, `Middle`, and `Bottom` while editing, then blur and re-open editor.
+8. Change `Font family` in the micro-toolbar and verify note text updates immediately in editor and on canvas.
+9. Change `Font size` in the micro-toolbar and verify note text scales immediately in editor and on canvas.
+10. Change `Text color` in the micro-toolbar and verify note text color updates immediately in editor and on canvas.
+11. With a note selected (not in edit mode), use quick-action `Note text color` control and verify color updates for all selected notes.
+12. With notes selected but not in text edit mode, verify no text-formatting controls are visible in header/quick-action toolbars.
 
 Expected:
 - Formatting controls exist only during note text editing.
 - Toolbar tracks text selection/caret context and stays near the edited text.
 - Toolbar hides instantly when text editing ends.
 - Text alignment persists for each note after exiting and re-entering edit mode.
+- Vertical text alignment persists for each note after exiting and re-entering edit mode.
 - Font family and text size selections persist for each note.
 - Text color selections persist for each note.
 

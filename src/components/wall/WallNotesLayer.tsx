@@ -505,6 +505,7 @@ export const WallNotesLayer = ({
               fill={noteView.textColor ?? NOTE_DEFAULTS.textColor}
               lineHeight={noteTextStyle.lineHeight}
               align={noteView.textAlign ?? "left"}
+              verticalAlign={noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign}
               text={truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit"}
               onClick={(event) => {
                 if (isTimeLocked) {

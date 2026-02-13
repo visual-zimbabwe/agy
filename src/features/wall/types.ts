@@ -24,6 +24,7 @@ export type Note = {
   id: string;
   text: string;
   textAlign?: "left" | "center" | "right";
+  textVAlign?: "top" | "middle" | "bottom";
   textFont?: NoteTextFont;
   textColor?: string;
   textSizePx?: number;

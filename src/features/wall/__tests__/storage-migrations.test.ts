@@ -30,6 +30,7 @@ describe("storage migrations", () => {
     expect(normalized.noteGroups).toEqual({});
     expect(normalized.links).toEqual({});
     expect(normalized.notes.n1?.tags).toEqual([]);
+    expect(normalized.notes.n1?.textVAlign).toBe("top");
     expect(normalized.notes.n1?.textColor).toBe("#1F2937");
     expect(normalized.notes.n1?.textSize).toBe("md");
     expect(normalized.zones).toEqual({});
