@@ -25,6 +25,7 @@ export type Note = {
   text: string;
   textAlign?: "left" | "center" | "right";
   textFont?: NoteTextFont;
+  textColor?: string;
   textSizePx?: number;
   tags: string[];
   textSize?: "sm" | "md" | "lg";

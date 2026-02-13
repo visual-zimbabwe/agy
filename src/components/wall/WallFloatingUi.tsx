@@ -7,7 +7,7 @@ import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteSwatches } from "@/components/NoteCard";
 import { NoteTextFormattingToolbar } from "@/components/wall/NoteTextFormattingToolbar";
 import { getNoteTextFontFamily, getNoteTextStyle } from "@/components/wall/wall-canvas-helpers";
-import { NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
+import { NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
 import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
@@ -49,6 +49,7 @@ type WallFloatingUiProps = {
   applyColorToSelection: (color: string) => void;
   applyTextSizeToSelection: (sizePx: number) => void;
   applyTextFontToSelection: (font: NoteTextFont) => void;
+  applyTextColorToSelection: (color: string) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   duplicateNote: (noteId: string) => void;
   togglePinOnNote: (noteId: string) => void;
@@ -112,6 +113,7 @@ export const WallFloatingUi = ({
   applyColorToSelection,
   applyTextSizeToSelection,
   applyTextFontToSelection,
+  applyTextColorToSelection,
   updateNote,
   duplicateNote,
   togglePinOnNote,
@@ -171,6 +173,7 @@ export const WallFloatingUi = ({
             active
             value={editing.text}
             textAlign={editingNote.textAlign ?? "left"}
+            textColor={editingNote.textColor}
             textSizePx={editingNote.textSizePx}
             textFont={editingNote.textFont}
             onTextUpdate={(nextValue, selectionStart, selectionEnd) => {
@@ -185,6 +188,10 @@ export const WallFloatingUi = ({
               });
             }}
             onAlignUpdate={(textAlign) => updateNote(editing.id, { textAlign })}
+            onTextColorUpdate={(textColor) => {
+              updateNote(editing.id, { textColor });
+              requestAnimationFrame(() => textareaRef.current?.focus());
+            }}
             onTextSizeUpdate={(textSizePx) => {
               updateNote(editing.id, { textSizePx });
               requestAnimationFrame(() => textareaRef.current?.focus());
@@ -206,6 +213,7 @@ export const WallFloatingUi = ({
                 height: `${editingNote.h * camera.zoom}px`,
                 textAlign: editingNote.textAlign ?? "left",
                 fontFamily: getNoteTextFontFamily(editingNote.textFont),
+                color: editingNote.textColor ?? NOTE_DEFAULTS.textColor,
                 fontSize: `${editingTextStyle.fontSize}px`,
                 lineHeight: `${editingTextStyle.lineHeight}`,
               };
@@ -346,6 +354,17 @@ export const WallFloatingUi = ({
                 </option>
               ))}
             </select>
+            <label className={toolbarBtnCompact}>
+              <span className="sr-only">Note text color</span>
+              <input
+                type="color"
+                value={primarySelectedNote.textColor ?? NOTE_DEFAULTS.textColor}
+                onChange={(event) => applyTextColorToSelection(event.target.value.toUpperCase())}
+                className="h-5 w-7 cursor-pointer rounded border border-zinc-300 bg-white p-0"
+                title="Note text color"
+                aria-label="Note text color"
+              />
+            </label>
             <div className="mx-1 h-5 w-px bg-zinc-300" />
             <NoteSwatches value={primarySelectedNote.color} onSelect={applyColorToSelection} showCustomColorAdd />
             <div className="mx-1 h-5 w-px bg-zinc-300" />

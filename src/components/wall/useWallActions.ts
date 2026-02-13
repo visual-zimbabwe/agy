@@ -109,6 +109,19 @@ export const useWallActions = ({
     [activeSelectedNoteIds, isTimeLocked, selectedNoteId, updateNote],
   );
 
+  const applyTextColorToSelection = useCallback(
+    (textColor: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const targetIds = activeSelectedNoteIds.length > 0 ? activeSelectedNoteIds : selectedNoteId ? [selectedNoteId] : [];
+      for (const id of targetIds) {
+        updateNote(id, { textColor });
+      }
+    },
+    [activeSelectedNoteIds, isTimeLocked, selectedNoteId, updateNote],
+  );
+
   const alignSelected = useCallback(
     (axis: AlignAxis) => {
       if (isTimeLocked || selectedNotes.length < 2) {
@@ -280,6 +293,7 @@ export const useWallActions = ({
     applyColorToSelection,
     applyTextSizeToSelection,
     applyTextFontToSelection,
+    applyTextColorToSelection,
     alignSelected,
     distributeSelected,
     makeNoteAtViewportCenter,

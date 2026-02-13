@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
+import { NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
 import type { Note } from "@/features/wall/types";
 
 type NoteTextAlign = "left" | "center" | "right";
@@ -12,10 +12,12 @@ type NoteTextFormattingToolbarProps = {
   active: boolean;
   value: string;
   textAlign: NoteTextAlign;
+  textColor?: string;
   textSizePx?: number;
   textFont?: Note["textFont"];
   onTextUpdate: (nextValue: string, selectionStart: number, selectionEnd: number) => void;
   onAlignUpdate: (align: NoteTextAlign) => void;
+  onTextColorUpdate: (color: string) => void;
   onTextSizeUpdate: (sizePx: number) => void;
   onTextFontUpdate: (font: NonNullable<Note["textFont"]>) => void;
 };
@@ -262,10 +264,12 @@ export const NoteTextFormattingToolbar = ({
   active,
   value,
   textAlign,
+  textColor,
   textSizePx,
   textFont,
   onTextUpdate,
   onAlignUpdate,
+  onTextColorUpdate,
   onTextSizeUpdate,
   onTextFontUpdate,
 }: NoteTextFormattingToolbarProps) => {
@@ -450,6 +454,17 @@ export const NoteTextFormattingToolbar = ({
           </option>
         ))}
       </select>
+      <label className="inline-flex items-center">
+        <span className="sr-only">Text color</span>
+        <input
+          type="color"
+          value={textColor ?? NOTE_DEFAULTS.textColor}
+          onChange={(event) => onTextColorUpdate(event.target.value.toUpperCase())}
+          className="h-7 w-8 cursor-pointer rounded border border-zinc-300 bg-white p-0.5"
+          title="Text color"
+          aria-label="Text color"
+        />
+      </label>
       <select
         value={textSizePx ?? 16}
         onChange={(event) => onTextSizeUpdate(Number(event.target.value))}

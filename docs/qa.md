@@ -112,7 +112,9 @@ Expected:
 6. Toggle `Align Left`, `Align Center`, and `Align Right` while editing, then blur and re-open editor.
 7. Change `Font family` in the micro-toolbar and verify note text updates immediately in editor and on canvas.
 8. Change `Font size` in the micro-toolbar and verify note text scales immediately in editor and on canvas.
-9. With notes selected but not in text edit mode, verify no text-formatting controls are visible in header/quick-action toolbars.
+9. Change `Text color` in the micro-toolbar and verify note text color updates immediately in editor and on canvas.
+10. With a note selected (not in edit mode), use quick-action `Note text color` control and verify color updates for all selected notes.
+11. With notes selected but not in text edit mode, verify no text-formatting controls are visible in header/quick-action toolbars.
 
 Expected:
 - Formatting controls exist only during note text editing.
@@ -120,6 +122,7 @@ Expected:
 - Toolbar hides instantly when text editing ends.
 - Text alignment persists for each note after exiting and re-entering edit mode.
 - Font family and text size selections persist for each note.
+- Text color selections persist for each note.
 
 ## Milestone 2 - Pan, Zoom, Infinite Wall
 1. Hold `Space` and drag to pan.

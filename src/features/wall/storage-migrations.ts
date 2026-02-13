@@ -100,6 +100,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     text: asString(entry.text),
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
     textFont: normalizeNoteFont(entry.textFont),
+    textColor: asString(entry.textColor, NOTE_DEFAULTS.textColor),
     textSizePx:
       typeof entry.textSizePx === "number" && Number.isFinite(entry.textSizePx) ? Math.max(8, Math.min(72, entry.textSizePx)) : NOTE_DEFAULTS.textSizePx,
     tags: normalizeStringList(entry.tags),

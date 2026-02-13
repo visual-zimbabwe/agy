@@ -1028,6 +1028,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     applyColorToSelection,
     applyTextSizeToSelection,
     applyTextFontToSelection,
+    applyTextColorToSelection,
     makeNoteAtViewportCenter,
     makeZoneAtViewportCenter,
     applySelectedTemplate,
@@ -1835,6 +1836,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           applyColorToSelection={applyColorToSelection}
           applyTextSizeToSelection={applyTextSizeToSelection}
           applyTextFontToSelection={applyTextFontToSelection}
+          applyTextColorToSelection={applyTextColorToSelection}
           updateNote={updateNote}
           duplicateNote={duplicateNote}
           togglePinOnNote={togglePinOnNote}

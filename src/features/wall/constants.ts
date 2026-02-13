@@ -14,6 +14,7 @@ export const NOTE_DEFAULTS = {
   height: 160,
   minWidth: 140,
   minHeight: 110,
+  textColor: "#1F2937",
   textSizePx: 16,
   textSize: "md" as const,
 };
