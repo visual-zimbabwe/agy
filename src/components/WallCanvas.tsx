@@ -1029,6 +1029,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     applyTextSizeToSelection,
     applyTextFontToSelection,
     applyTextColorToSelection,
+    applyTextHorizontalAlignToSelection,
     applyTextVerticalAlignToSelection,
     makeNoteAtViewportCenter,
     makeZoneAtViewportCenter,
@@ -1838,6 +1839,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           applyTextSizeToSelection={applyTextSizeToSelection}
           applyTextFontToSelection={applyTextFontToSelection}
           applyTextColorToSelection={applyTextColorToSelection}
+          applyTextHorizontalAlignToSelection={applyTextHorizontalAlignToSelection}
           applyTextVerticalAlignToSelection={applyTextVerticalAlignToSelection}
           updateNote={updateNote}
           duplicateNote={duplicateNote}

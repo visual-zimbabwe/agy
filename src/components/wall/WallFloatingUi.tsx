@@ -50,6 +50,7 @@ type WallFloatingUiProps = {
   applyTextSizeToSelection: (sizePx: number) => void;
   applyTextFontToSelection: (font: NoteTextFont) => void;
   applyTextColorToSelection: (color: string) => void;
+  applyTextHorizontalAlignToSelection: (align: "left" | "center" | "right") => void;
   applyTextVerticalAlignToSelection: (align: "top" | "middle" | "bottom") => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   duplicateNote: (noteId: string) => void;
@@ -115,6 +116,7 @@ export const WallFloatingUi = ({
   applyTextSizeToSelection,
   applyTextFontToSelection,
   applyTextColorToSelection,
+  applyTextHorizontalAlignToSelection,
   applyTextVerticalAlignToSelection,
   updateNote,
   duplicateNote,
@@ -361,6 +363,17 @@ export const WallFloatingUi = ({
                   {size}px
                 </option>
               ))}
+            </select>
+            <select
+              value={primarySelectedNote.textAlign ?? "left"}
+              onChange={(event) => applyTextHorizontalAlignToSelection(event.target.value as "left" | "center" | "right")}
+              className={`w-[6.2rem] ${toolbarBtnCompact}`}
+              title="Horizontal align"
+              aria-label="Horizontal align"
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
             </select>
             <select
               value={primarySelectedNote.textVAlign ?? NOTE_DEFAULTS.textVAlign}
