@@ -247,7 +247,7 @@ export const WallNotesLayer = ({
         const imageUrl = noteView.imageUrl?.trim();
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
         const imageFrameHeight = imageUrl
-          ? Math.max(44, Math.min(noteView.h * 0.48, noteView.w * 0.62, Math.max(44, noteView.h - 78)))
+          ? Math.max(44, Math.min(noteView.h * 0.58, Math.max(44, noteView.h - 70)))
           : 0;
         const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0);
         const textHeight = Math.max(0, noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0));
