@@ -207,10 +207,11 @@ export const WallFloatingUi = ({
             value={editing.text}
             onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
             onBlur={handleEditorBlur}
-            className="w-full resize-none rounded-xl border border-zinc-700/40 bg-white/95 p-3 shadow-xl outline-none"
+            className="w-full resize-none rounded-xl border border-zinc-700/40 p-3 shadow-xl outline-none"
             style={(() => {
               return {
                 height: `${editingNote.h * camera.zoom}px`,
+                backgroundColor: editingNote.color,
                 textAlign: editingNote.textAlign ?? "left",
                 fontFamily: getNoteTextFontFamily(editingNote.textFont),
                 color: editingNote.textColor ?? NOTE_DEFAULTS.textColor,
