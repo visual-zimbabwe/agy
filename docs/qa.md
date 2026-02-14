@@ -562,6 +562,24 @@ Expected:
 - Accounts remain isolated via RLS.
 - Note formatting (`textAlign`, `textVAlign`, `textColor`) survives app/browser restarts and cloud rehydration.
 
+## Cloud Sync Regression - Note Groups and Note State (2026-02-14)
+1. Sign in on device A and create 3 notes.
+2. Select 2 notes and create a `Note Group`.
+3. Pin one grouped note and highlight the other.
+4. Click `Sync now` and wait for `Last synced`.
+5. Reload `/wall` on device A.
+6. Sign in on device B with the same account and open `/wall`.
+7. Verify note group exists with the same members.
+8. Verify pinned note remains pinned (cannot drag/resize).
+9. Verify highlighted note remains highlighted.
+10. On device B, unpin/highlight toggle both notes, modify note-group membership, then click `Sync now`.
+11. Refresh device A and verify changes propagate.
+
+Expected:
+- `noteGroups` persist through cloud sync and hydration.
+- `pinned` and `highlighted` persist through cloud sync and hydration.
+- Cross-device edits to note-group membership and note state converge after sync.
+
 ## Priority 2 Maintainability Guardrails (2026-02-12)
 1. Run `npm run lint`.
 2. Run `npm run check:types`.
