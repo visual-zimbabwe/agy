@@ -36,6 +36,8 @@ type WallToolsPanelProps = {
   onToggleDotMatrix: () => void;
   onToggleSnapToGuides: () => void;
   onToggleSnapToGrid: () => void;
+  controlsMode: "basic" | "advanced";
+  onControlsModeChange: (mode: "basic" | "advanced") => void;
 };
 
 export const WallToolsPanel = ({
@@ -65,7 +67,11 @@ export const WallToolsPanel = ({
   onToggleDotMatrix,
   onToggleSnapToGuides,
   onToggleSnapToGrid,
+  controlsMode,
+  onControlsModeChange,
 }: WallToolsPanelProps) => {
+  const advancedMode = controlsMode === "advanced";
+
   return (
     <aside
       className={`${wallPanelSurface} p-3 ${
@@ -76,6 +82,30 @@ export const WallToolsPanel = ({
     >
       <div className="mb-3 flex items-center justify-between px-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Tools</p>
+        <div className="inline-flex rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5">
+          <button
+            type="button"
+            onClick={() => onControlsModeChange("basic")}
+            className={`rounded-[calc(var(--radius-sm)-2px)] px-2 py-1 text-[10px] font-semibold ${
+              !advancedMode
+                ? "bg-[var(--color-accent-strong)] text-[var(--color-accent-foreground)]"
+                : "text-[var(--color-text-muted)]"
+            }`}
+          >
+            Basic
+          </button>
+          <button
+            type="button"
+            onClick={() => onControlsModeChange("advanced")}
+            className={`rounded-[calc(var(--radius-sm)-2px)] px-2 py-1 text-[10px] font-semibold ${
+              advancedMode
+                ? "bg-[var(--color-accent-strong)] text-[var(--color-accent-foreground)]"
+                : "text-[var(--color-text-muted)]"
+            }`}
+          >
+            Advanced
+          </button>
+        </div>
         {isCompactLayout && (
           <button
             type="button"
@@ -99,18 +129,22 @@ export const WallToolsPanel = ({
             <span>New Frame</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Create suggested column area" className="relative block" side="right">
-          <button type="button" onClick={() => onCreateZone("column")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create column at viewport center">
-            <Icon name="zone" />
-            <span>New Column</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create suggested swimlane area" className="relative block" side="right">
-          <button type="button" onClick={() => onCreateZone("swimlane")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create swimlane at viewport center">
-            <Icon name="zone" />
-            <span>New Swimlane</span>
-          </button>
-        </ControlTooltip>
+        {advancedMode && (
+          <ControlTooltip label="Create suggested column area" className="relative block" side="right">
+            <button type="button" onClick={() => onCreateZone("column")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create column at viewport center">
+              <Icon name="zone" />
+              <span>New Column</span>
+            </button>
+          </ControlTooltip>
+        )}
+        {advancedMode && (
+          <ControlTooltip label="Create suggested swimlane area" className="relative block" side="right">
+            <button type="button" onClick={() => onCreateZone("swimlane")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create swimlane at viewport center">
+              <Icon name="zone" />
+              <span>New Swimlane</span>
+            </button>
+          </ControlTooltip>
+        )}
         <ControlTooltip label="Toggle box selection mode" className="relative block" side="right">
           <button
             type="button"
@@ -134,60 +168,70 @@ export const WallToolsPanel = ({
             <span>{linkingFromNoteId ? "Pick Link Target" : "Start Link"}</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Pick link type" className="relative block" side="right">
-          <select value={linkType} onChange={(event) => onLinkTypeChange(event.target.value as LinkType)} className={`w-full ${toolbarSelect}`} title="Pick link type">
-            {linkTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </ControlTooltip>
-        <ControlTooltip label="Toggle automatic cluster outlines" className="relative block" side="right">
-          <button
-            type="button"
-            onClick={onToggleClusters}
-            className={`w-full justify-start ${showClusters ? toolbarBtnActive : toolbarBtn}`}
-            title="Toggle cluster outlines"
-          >
-            <Icon name="cluster" />
-            <span>Detect Clusters</span>
-          </button>
-        </ControlTooltip>
-        <div className="my-2 border-t border-[var(--color-border)]/70" />
-        <ControlTooltip label="Toggle subtle dot matrix helper" className="relative block" side="right">
-          <button
-            type="button"
-            onClick={onToggleDotMatrix}
-            className={`w-full justify-start ${showDotMatrix ? toolbarBtnActive : toolbarBtn}`}
-            title="Toggle subtle dot matrix helper"
-          >
-            <Icon name="layout" />
-            <span>Dot Matrix</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Toggle drag-time guide snapping" className="relative block" side="right">
-          <button
-            type="button"
-            onClick={onToggleSnapToGuides}
-            className={`w-full justify-start ${snapToGuides ? toolbarBtnActive : toolbarBtn}`}
-            title="Toggle drag-time guide snapping"
-          >
-            <Icon name="layout" />
-            <span>Snap Guides</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Toggle drag-time grid snapping" className="relative block" side="right">
-          <button
-            type="button"
-            onClick={onToggleSnapToGrid}
-            className={`w-full justify-start ${snapToGrid ? toolbarBtnActive : toolbarBtn}`}
-            title="Toggle drag-time grid snapping"
-          >
-            <Icon name="layout" />
-            <span>Snap Grid</span>
-          </button>
-        </ControlTooltip>
+        {advancedMode && (
+          <ControlTooltip label="Pick link type" className="relative block" side="right">
+            <select value={linkType} onChange={(event) => onLinkTypeChange(event.target.value as LinkType)} className={`w-full ${toolbarSelect}`} title="Pick link type">
+              {linkTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </ControlTooltip>
+        )}
+        {advancedMode && (
+          <ControlTooltip label="Toggle automatic cluster outlines" className="relative block" side="right">
+            <button
+              type="button"
+              onClick={onToggleClusters}
+              className={`w-full justify-start ${showClusters ? toolbarBtnActive : toolbarBtn}`}
+              title="Toggle cluster outlines"
+            >
+              <Icon name="cluster" />
+              <span>Detect Clusters</span>
+            </button>
+          </ControlTooltip>
+        )}
+        {advancedMode && <div className="my-2 border-t border-[var(--color-border)]/70" />}
+        {advancedMode && (
+          <ControlTooltip label="Toggle subtle dot matrix helper" className="relative block" side="right">
+            <button
+              type="button"
+              onClick={onToggleDotMatrix}
+              className={`w-full justify-start ${showDotMatrix ? toolbarBtnActive : toolbarBtn}`}
+              title="Toggle subtle dot matrix helper"
+            >
+              <Icon name="layout" />
+              <span>Dot Matrix</span>
+            </button>
+          </ControlTooltip>
+        )}
+        {advancedMode && (
+          <ControlTooltip label="Toggle drag-time guide snapping" className="relative block" side="right">
+            <button
+              type="button"
+              onClick={onToggleSnapToGuides}
+              className={`w-full justify-start ${snapToGuides ? toolbarBtnActive : toolbarBtn}`}
+              title="Toggle drag-time guide snapping"
+            >
+              <Icon name="layout" />
+              <span>Snap Guides</span>
+            </button>
+          </ControlTooltip>
+        )}
+        {advancedMode && (
+          <ControlTooltip label="Toggle drag-time grid snapping" className="relative block" side="right">
+            <button
+              type="button"
+              onClick={onToggleSnapToGrid}
+              className={`w-full justify-start ${snapToGrid ? toolbarBtnActive : toolbarBtn}`}
+              title="Toggle drag-time grid snapping"
+            >
+              <Icon name="layout" />
+              <span>Snap Grid</span>
+            </button>
+          </ControlTooltip>
+        )}
       </div>
     </aside>
   );

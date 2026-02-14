@@ -437,6 +437,22 @@ Expected:
 - Context bar remains minimal and appears only when selection-dependent actions are relevant.
 - Layout preference toggles persist across reloads and control panel visibility reliably.
 
+## Progressive Disclosure - Basic/Advanced Controls
+1. Open `/wall` and verify `Tools` and `Details` panels show a `Basic / Advanced` toggle.
+2. Set mode to `Basic` and verify advanced controls are hidden:
+   - Tools: `New Column`, `New Swimlane`, `Link Type`, `Detect Clusters`, `Dot Matrix`, `Snap Guides`, `Snap Grid`.
+   - Details: `History`, `Zone Groups`, `Note Groups`, `Tag Groups (Auto)` sections.
+3. Confirm core controls remain visible in `Basic` mode:
+   - Tools: `New Note`, `New Frame`, `Box Select`, `Start Link`.
+   - Details: `Templates`, `Selection Tags`, `Recall`.
+4. Switch to `Advanced` and verify hidden controls/sections return.
+5. Refresh the page and verify the selected mode persists.
+
+Expected:
+- Basic mode reduces cognitive load by exposing only core workflows.
+- Advanced mode restores power-user controls without leaving the current view.
+- Mode selection persists across reloads.
+
 ## Note Design - Pro Interaction Pass
 1. Select one note and press `Enter`; verify inline editor opens.
 2. Click directly on note text; verify editor opens without requiring double-click.

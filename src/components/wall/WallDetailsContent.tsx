@@ -16,6 +16,7 @@ type TemplateOption = {
 };
 
 type WallDetailsContentProps = {
+  controlsMode: "basic" | "advanced";
   templateType: TemplateType;
   templateOptions: readonly TemplateOption[];
   isTimeLocked: boolean;
@@ -88,6 +89,7 @@ type WallDetailsContentProps = {
 };
 
 export const WallDetailsContent = ({
+  controlsMode,
   templateType,
   templateOptions,
   isTimeLocked,
@@ -158,6 +160,8 @@ export const WallDetailsContent = ({
   autoTagGroups,
   onFocusBounds,
 }: WallDetailsContentProps) => {
+  const advancedMode = controlsMode === "advanced";
+
   return (
     <>
       <TemplatesSection
@@ -176,18 +180,6 @@ export const WallDetailsContent = ({
         displayedTags={displayedTags}
         isTimeLocked={isTimeLocked}
         onRemoveTag={onRemoveTag}
-      />
-      <HistorySection
-        detailsSectionsOpen={detailsSectionsOpen}
-        onToggleDetailsSection={onToggleDetailsSection}
-        timelineEntriesCount={timelineEntriesCount}
-        visibleNotesCount={visibleNotesCount}
-        historyUndoDepth={historyUndoDepth}
-        historyRedoDepth={historyRedoDepth}
-        notes={notes}
-        onJumpStale={onJumpStale}
-        onJumpPriority={onJumpPriority}
-        onClearHistory={onClearHistory}
       />
       <RecallSection
         detailsSectionsOpen={detailsSectionsOpen}
@@ -208,52 +200,72 @@ export const WallDetailsContent = ({
         onApplySavedRecallSearch={onApplySavedRecallSearch}
         onDeleteSavedRecallSearch={onDeleteSavedRecallSearch}
       />
-      <ZoneGroupsSection
-        detailsSectionsOpen={detailsSectionsOpen}
-        onToggleDetailsSection={onToggleDetailsSection}
-        groupLabelInput={groupLabelInput}
-        onGroupLabelInputChange={onGroupLabelInputChange}
-        selectedZone={selectedZone}
-        selectedGroup={selectedGroup}
-        selectedZoneId={selectedZoneId}
-        zoneGroups={zoneGroups}
-        isTimeLocked={isTimeLocked}
-        onCreateGroupFromSelectedZone={onCreateGroupFromSelectedZone}
-        onAssignZoneToGroup={onAssignZoneToGroup}
-        onSelectGroup={onSelectGroup}
-        onToggleGroupCollapse={onToggleGroupCollapse}
-        onCollapseAllGroups={onCollapseAllGroups}
-        onExpandAllGroups={onExpandAllGroups}
-        onDeleteGroup={onDeleteGroup}
-        onClearNoteSelection={onClearNoteSelection}
-      />
-      <NoteGroupsSection
-        detailsSectionsOpen={detailsSectionsOpen}
-        onToggleDetailsSection={onToggleDetailsSection}
-        noteGroupLabelInput={noteGroupLabelInput}
-        onNoteGroupLabelInputChange={onNoteGroupLabelInputChange}
-        selectedNoteGroup={selectedNoteGroup}
-        activeSelectedNoteIds={activeSelectedNoteIds}
-        noteGroups={noteGroups}
-        isTimeLocked={isTimeLocked}
-        onCreateGroupFromSelection={onCreateGroupFromSelection}
-        onSelectNoteGroup={onSelectNoteGroup}
-        onToggleNoteGroupCollapse={onToggleNoteGroupCollapse}
-        onCollapseAllNoteGroups={onCollapseAllNoteGroups}
-        onExpandAllNoteGroups={onExpandAllNoteGroups}
-        onDeleteNoteGroup={onDeleteNoteGroup}
-        onAddSelectionToNoteGroup={onAddSelectionToNoteGroup}
-        onRemoveSelectionFromNoteGroup={onRemoveSelectionFromNoteGroup}
-        onSelectNotesForGroup={onSelectNotesForGroup}
-      />
-      <TagGroupsSection
-        detailsSectionsOpen={detailsSectionsOpen}
-        onToggleDetailsSection={onToggleDetailsSection}
-        showAutoTagGroups={showAutoTagGroups}
-        onToggleAutoTagGroups={onToggleAutoTagGroups}
-        autoTagGroups={autoTagGroups}
-        onFocusBounds={onFocusBounds}
-      />
+      {advancedMode && (
+        <HistorySection
+          detailsSectionsOpen={detailsSectionsOpen}
+          onToggleDetailsSection={onToggleDetailsSection}
+          timelineEntriesCount={timelineEntriesCount}
+          visibleNotesCount={visibleNotesCount}
+          historyUndoDepth={historyUndoDepth}
+          historyRedoDepth={historyRedoDepth}
+          notes={notes}
+          onJumpStale={onJumpStale}
+          onJumpPriority={onJumpPriority}
+          onClearHistory={onClearHistory}
+        />
+      )}
+      {advancedMode && (
+        <ZoneGroupsSection
+          detailsSectionsOpen={detailsSectionsOpen}
+          onToggleDetailsSection={onToggleDetailsSection}
+          groupLabelInput={groupLabelInput}
+          onGroupLabelInputChange={onGroupLabelInputChange}
+          selectedZone={selectedZone}
+          selectedGroup={selectedGroup}
+          selectedZoneId={selectedZoneId}
+          zoneGroups={zoneGroups}
+          isTimeLocked={isTimeLocked}
+          onCreateGroupFromSelectedZone={onCreateGroupFromSelectedZone}
+          onAssignZoneToGroup={onAssignZoneToGroup}
+          onSelectGroup={onSelectGroup}
+          onToggleGroupCollapse={onToggleGroupCollapse}
+          onCollapseAllGroups={onCollapseAllGroups}
+          onExpandAllGroups={onExpandAllGroups}
+          onDeleteGroup={onDeleteGroup}
+          onClearNoteSelection={onClearNoteSelection}
+        />
+      )}
+      {advancedMode && (
+        <NoteGroupsSection
+          detailsSectionsOpen={detailsSectionsOpen}
+          onToggleDetailsSection={onToggleDetailsSection}
+          noteGroupLabelInput={noteGroupLabelInput}
+          onNoteGroupLabelInputChange={onNoteGroupLabelInputChange}
+          selectedNoteGroup={selectedNoteGroup}
+          activeSelectedNoteIds={activeSelectedNoteIds}
+          noteGroups={noteGroups}
+          isTimeLocked={isTimeLocked}
+          onCreateGroupFromSelection={onCreateGroupFromSelection}
+          onSelectNoteGroup={onSelectNoteGroup}
+          onToggleNoteGroupCollapse={onToggleNoteGroupCollapse}
+          onCollapseAllNoteGroups={onCollapseAllNoteGroups}
+          onExpandAllNoteGroups={onExpandAllNoteGroups}
+          onDeleteNoteGroup={onDeleteNoteGroup}
+          onAddSelectionToNoteGroup={onAddSelectionToNoteGroup}
+          onRemoveSelectionFromNoteGroup={onRemoveSelectionFromNoteGroup}
+          onSelectNotesForGroup={onSelectNotesForGroup}
+        />
+      )}
+      {advancedMode && (
+        <TagGroupsSection
+          detailsSectionsOpen={detailsSectionsOpen}
+          onToggleDetailsSection={onToggleDetailsSection}
+          showAutoTagGroups={showAutoTagGroups}
+          onToggleAutoTagGroups={onToggleAutoTagGroups}
+          autoTagGroups={autoTagGroups}
+          onFocusBounds={onFocusBounds}
+        />
+      )}
     </>
   );
 };

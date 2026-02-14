@@ -212,6 +212,7 @@ export const recencyIntensity = (updatedAt: number, referenceTs: number, windowM
 export const makeDownloadId = () => new Date().toISOString().replace(/[:.]/g, "-");
 export const recallStorageKey = "idea-wall-recall-searches";
 export const layoutPrefsStorageKey = "idea-wall-layout-prefs";
+export const controlsModeStorageKey = "idea-wall-controls-mode";
 export const spatialPrefsStorageKey = "idea-wall-spatial-prefs";
 export const backupReminderCadenceStorageKey = "idea-wall-backup-reminder-cadence";
 export const backupReminderLastPromptStorageKey = "idea-wall-backup-reminder-last-prompt";

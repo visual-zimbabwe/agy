@@ -15,6 +15,7 @@ import {
   backupReminderCadenceStorageKey,
   backupReminderLastPromptStorageKey,
   compactPanelBreakpoint,
+  controlsModeStorageKey,
   downloadDataUrl,
   downloadJsonFile,
   downloadTextFile,
@@ -123,6 +124,7 @@ type SpatialPreferences = {
   snapToGrid: boolean;
   dotGridSpacing: number;
 };
+type ControlsMode = "basic" | "advanced";
 type GuideLineState = {
   vertical?: { x: number; y1: number; y2: number; distance?: number };
   horizontal?: { y: number; x1: number; x2: number; distance?: number };
@@ -224,6 +226,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [recallDateFilter, setRecallDateFilter] = useState<RecallDateFilter>("all");
   const [savedRecallSearches, setSavedRecallSearches] = useState<SavedRecallSearch[]>([]);
   const [layoutPrefs, setLayoutPrefs] = useState<LayoutPreferences>(defaultLayoutPrefs);
+  const [controlsMode, setControlsMode] = useState<ControlsMode>("basic");
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
   const [spatialPrefs, setSpatialPrefs] = useState<SpatialPreferences>(defaultSpatialPrefs);
   const [backupReminderCadence, setBackupReminderCadence] = useState<"off" | "daily" | "weekly">("off");
@@ -406,6 +409,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
 
     try {
+      const controlsModeRaw = window.localStorage.getItem(controlsModeStorageKey);
+      if (controlsModeRaw === "basic" || controlsModeRaw === "advanced") {
+        setControlsMode(controlsModeRaw);
+      }
+    } catch {
+      // Ignore malformed controls mode payloads and keep defaults.
+    }
+
+    try {
       const spatialRaw = window.localStorage.getItem(spatialPrefsStorageKey);
       if (spatialRaw) {
         const parsed = JSON.parse(spatialRaw) as Partial<SpatialPreferences>;
@@ -442,6 +454,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
     window.localStorage.setItem(layoutPrefsStorageKey, JSON.stringify(layoutPrefs));
   }, [clientPrefsLoaded, layoutPrefs]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !clientPrefsLoaded) {
+      return;
+    }
+    window.localStorage.setItem(controlsModeStorageKey, controlsMode);
+  }, [clientPrefsLoaded, controlsMode]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !clientPrefsLoaded) {
@@ -1585,6 +1604,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onToggleSnapToGrid={() =>
               setSpatialPrefs((previous) => ({ ...previous, snapToGrid: !previous.snapToGrid }))
             }
+            controlsMode={controlsMode}
+            onControlsModeChange={setControlsMode}
           />
         )}
 
@@ -1892,6 +1913,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onToggleAutoTagGroups={() => setShowAutoTagGroups((value) => !value)}
           autoTagGroups={autoTagGroups}
           onFocusBounds={focusBounds}
+          controlsMode={controlsMode}
+          onControlsModeChange={setControlsMode}
         />
 
       </div>
