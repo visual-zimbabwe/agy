@@ -227,7 +227,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [savedRecallSearches, setSavedRecallSearches] = useState<SavedRecallSearch[]>([]);
   const [layoutPrefs, setLayoutPrefs] = useState<LayoutPreferences>(defaultLayoutPrefs);
   const [controlsMode, setControlsMode] = useState<ControlsMode>("basic");
-  const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
   const [spatialPrefs, setSpatialPrefs] = useState<SpatialPreferences>(defaultSpatialPrefs);
   const [backupReminderCadence, setBackupReminderCadence] = useState<"off" | "daily" | "weekly">("off");
   const [detailsSectionsOpen, setDetailsSectionsOpen] = useState<DetailsSectionState>({
@@ -1024,10 +1023,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   const { stepZoom, resetZoom } = useWallZoomControls({ camera, viewport, setCamera });
 
-  const { setLayoutPreference, toggleDetailsSection, togglePresentationMode, toggleReadingMode, toggleTimelineMode, saveCurrentRecallSearch, applySavedRecallSearch } = useWallUiActions({
+  const { toggleDetailsSection, togglePresentationMode, toggleReadingMode, toggleTimelineMode, saveCurrentRecallSearch, applySavedRecallSearch } = useWallUiActions({
     readingMode, presentationMode, timelineEntriesLength: timelineEntries.length, timelineModeRef, setPresentationMode, setPresentationIndex, setReadingMode,
-    setQuickCaptureOpen, setSearchOpen: setSearchOpenTracked, setExportOpen: setExportOpenTracked, setTimelineMode, setTimelineIndex, setIsTimelinePlaying, setLeftPanelOpen,
-    setRightPanelOpen, setLayoutPrefs, setDetailsSectionsOpen, recallQuery, recallZoneId, recallTag, recallDateFilter,
+    setQuickCaptureOpen, setSearchOpen: setSearchOpenTracked, setExportOpen: setExportOpenTracked, setTimelineMode, setTimelineIndex, setIsTimelinePlaying,
+    setDetailsSectionsOpen, recallQuery, recallZoneId, recallTag, recallDateFilter,
     savedRecallSearchesLength: savedRecallSearches.length, setSavedRecallSearches, setRecallQuery, setRecallZoneId, setRecallTag, setRecallDateFilter,
   });
 
@@ -1364,13 +1363,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: closeRightPanel,
       },
       {
-        id: "toggle-layout-settings",
-        label: layoutMenuOpen ? "Close layout settings" : "Open layout settings",
-        description: "Choose which wall chrome elements are visible.",
-        keywords: ["layout", "preferences", "visibility"],
-        onSelect: () => setLayoutMenuOpen((previous) => !previous),
-      },
-      {
         id: "toggle-box-select",
         label: boxSelectMode ? "Disable box select mode" : "Enable box select mode",
         description: "Switch drag behavior to marquee selection.",
@@ -1435,7 +1427,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       canRedo,
       canUndo,
       isTimeLocked,
-      layoutMenuOpen,
       leftPanelOpen,
       makeNoteAtViewportCenter,
       makeZoneAtViewportCenter,
@@ -1478,7 +1469,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         layoutPrefs={layoutPrefs}
         leftPanelOpen={leftPanelOpen}
         rightPanelOpen={rightPanelOpen}
-        layoutMenuOpen={layoutMenuOpen}
         quickCaptureOpen={quickCaptureOpen}
         isTimeLocked={isTimeLocked}
         hasContextActions={hasContextActions}
@@ -1501,7 +1491,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onToggleQuickCapture={() => setQuickCaptureOpen((previous) => !previous)}
         onTogglePresentationMode={togglePresentationMode}
         onOpenShortcuts={() => setShortcutsOpenTracked(true)}
-        onSetLayoutPreference={setLayoutPreference}
         onApplyColorToSelection={applyColorToSelection}
         onSyncNow={syncNow}
       />
@@ -1606,7 +1595,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               setSpatialPrefs((previous) => ({ ...previous, snapToGrid: !previous.snapToGrid }))
             }
             controlsMode={controlsMode}
-            onControlsModeChange={setControlsMode}
           />
         )}
 
@@ -1914,7 +1902,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           autoTagGroups={autoTagGroups}
           onFocusBounds={focusBounds}
           controlsMode={controlsMode}
-          onControlsModeChange={setControlsMode}
         />
 
       </div>

@@ -426,46 +426,34 @@ Expected:
 4. Clear note selection and verify top `Context` bar is hidden.
 5. Select one note and verify `Context` bar appears with only relevant controls (`Color`, `Tags`).
 6. Select two or more notes and verify alignment/distribution controls appear.
-7. Click top-bar `Layout` and disable `Tools Panel`; verify left panel disappears.
-8. Disable `Details Panel`; verify right panel disappears.
-9. Disable `Context Bar`; verify it stays hidden even with selected notes.
+7. Open `Settings > Advanced`, disable `Show Tools panel controls`, save, and verify `Tools` pill is hidden on `/wall`.
+8. Disable `Show Details panel controls`, save, and verify `Details` pill is hidden on `/wall`.
+9. Disable `Show context bar`, save, and verify context bar stays hidden even with selected notes.
 10. Refresh the page and verify layout preferences persist.
-11. Re-enable all layout toggles and verify full layout is restored.
+11. Re-enable all related settings and verify full layout is restored.
 
 Expected:
 - Dense right-panel sections are organized with collapsible accordions.
 - Context bar remains minimal and appears only when selection-dependent actions are relevant.
 - Layout preference toggles persist across reloads and control panel visibility reliably.
 
-## Progressive Disclosure - Basic/Advanced Controls
-1. Open `/wall` and verify `Tools` and `Details` panels show a `Basic / Advanced` toggle.
-2. Set mode to `Basic` and verify advanced controls are hidden:
-   - Tools: `New Column`, `New Swimlane`, `Link Type`, `Detect Clusters`, `Dot Matrix`, `Snap Guides`, `Snap Grid`.
-   - Details: `History`, `Zone Groups`, `Note Groups`, `Tag Groups (Auto)` sections.
-3. Confirm core controls remain visible in `Basic` mode:
-   - Tools: `New Note`, `New Frame`, `Box Select`, `Start Link`.
-   - Details: `Templates`, `Selection Tags`, `Recall`.
-4. Switch to `Advanced` and verify hidden controls/sections return.
-5. Refresh the page and verify the selected mode persists.
+## Wall UI Preferences in Settings
+1. Open profile menu on `/wall` and click `Settings`.
+2. Go to `Advanced`.
+3. Toggle each option and click `Save settings`:
+   - `Show Tools panel controls`
+   - `Show Details panel controls`
+   - `Show context bar`
+   - `Show note tags on cards`
+   - `Wall controls density` (`Basic` / `Advanced`)
+4. Return to `/wall` and verify each saved preference applies.
+5. Refresh `/wall` and verify preferences persist.
+6. Verify `Tools` and `Details` pills remain visible in top toolbar when their respective settings are enabled.
 
 Expected:
-- Basic mode reduces cognitive load by exposing only core workflows.
-- Advanced mode restores power-user controls without leaving the current view.
-- Mode selection persists across reloads.
-
-## Contextual Chrome - Selection-Driven Tools
-1. Open `/wall` with no selected note.
-2. Verify persistent top-left action cluster is hidden, while centered command button remains visible.
-3. Verify tools side panel is not shown by default with no selection.
-4. Select a note.
-5. Verify top-left action cluster reappears and contextual quick actions appear near selection.
-6. Open tools panel, then clear selection; verify tools panel stays visible only while explicitly open.
-7. Close tools panel and clear selection again; verify chrome returns to minimal state.
-
-Expected:
-- Wall chrome is minimal at rest and emphasizes the canvas.
-- Tools/actions appear contextually when a selection exists.
-- Command palette remains continuously accessible as global entry point.
+- Low-usage display toggles are configured in Settings, not top-level wall chrome.
+- Wall respects saved layout and controls-density preferences.
+- Settings changes persist across sessions.
 
 ## Note Design - Pro Interaction Pass
 1. Select one note and press `Enter`; verify inline editor opens.

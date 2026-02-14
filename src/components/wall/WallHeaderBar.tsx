@@ -20,7 +20,6 @@ type WallHeaderBarProps = {
   layoutPrefs: LayoutPrefs;
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
-  layoutMenuOpen: boolean;
   quickCaptureOpen: boolean;
   isTimeLocked: boolean;
   hasContextActions: boolean;
@@ -43,7 +42,6 @@ type WallHeaderBarProps = {
   onToggleQuickCapture: () => void;
   onTogglePresentationMode: () => void;
   onOpenShortcuts: () => void;
-  onSetLayoutPreference: (key: "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags", value: boolean) => void;
   onApplyColorToSelection: (color: string) => void;
   onSyncNow: () => void;
 };
@@ -54,7 +52,6 @@ export const WallHeaderBar = ({
   layoutPrefs,
   leftPanelOpen,
   rightPanelOpen,
-  layoutMenuOpen,
   quickCaptureOpen,
   isTimeLocked,
   hasContextActions,
@@ -77,7 +74,6 @@ export const WallHeaderBar = ({
   onToggleQuickCapture,
   onTogglePresentationMode,
   onOpenShortcuts,
-  onSetLayoutPreference,
   onApplyColorToSelection,
   onSyncNow,
 }: WallHeaderBarProps) => {
@@ -89,7 +85,6 @@ export const WallHeaderBar = ({
         layoutPrefs={layoutPrefs}
         leftPanelOpen={leftPanelOpen}
         rightPanelOpen={rightPanelOpen}
-        layoutMenuOpen={layoutMenuOpen}
         quickCaptureOpen={quickCaptureOpen}
         isTimeLocked={isTimeLocked}
         onToggleLeftPanel={onToggleLeftPanel}
@@ -97,7 +92,6 @@ export const WallHeaderBar = ({
         onOpenCommandPalette={onOpenCommandPalette}
         onToggleQuickCapture={onToggleQuickCapture}
         onTogglePresentationMode={onTogglePresentationMode}
-        onSetLayoutPreference={onSetLayoutPreference}
       />
 
       {!publishedReadOnly && !presentationMode && layoutPrefs.showContextBar && hasContextActions && (

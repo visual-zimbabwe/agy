@@ -19,9 +19,6 @@ type UseWallUiActionsOptions = {
   setTimelineMode: Dispatch<SetStateAction<boolean>>;
   setTimelineIndex: Dispatch<SetStateAction<number>>;
   setIsTimelinePlaying: Dispatch<SetStateAction<boolean>>;
-  setLeftPanelOpen: Dispatch<SetStateAction<boolean>>;
-  setRightPanelOpen: Dispatch<SetStateAction<boolean>>;
-  setLayoutPrefs: Dispatch<SetStateAction<Record<"showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags", boolean>>>;
   setDetailsSectionsOpen: Dispatch<SetStateAction<Record<DetailsSectionKey, boolean>>>;
   recallQuery: string;
   recallZoneId: string;
@@ -49,9 +46,6 @@ export const useWallUiActions = ({
   setTimelineMode,
   setTimelineIndex,
   setIsTimelinePlaying,
-  setLeftPanelOpen,
-  setRightPanelOpen,
-  setLayoutPrefs,
   setDetailsSectionsOpen,
   recallQuery,
   recallZoneId,
@@ -64,21 +58,6 @@ export const useWallUiActions = ({
   setRecallTag,
   setRecallDateFilter,
 }: UseWallUiActionsOptions) => {
-  const setLayoutPreference = useCallback(
-    (key: "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags", value: boolean) => {
-      if (!value) {
-        if (key === "showToolsPanel") {
-          setLeftPanelOpen(false);
-        }
-        if (key === "showDetailsPanel") {
-          setRightPanelOpen(false);
-        }
-      }
-      setLayoutPrefs((previous) => ({ ...previous, [key]: value }));
-    },
-    [setLayoutPrefs, setLeftPanelOpen, setRightPanelOpen],
-  );
-
   const toggleDetailsSection = useCallback(
     (key: DetailsSectionKey) => {
       setDetailsSectionsOpen((previous) => ({ ...previous, [key]: !previous[key] }));
@@ -151,7 +130,6 @@ export const useWallUiActions = ({
   );
 
   return {
-    setLayoutPreference,
     toggleDetailsSection,
     togglePresentationMode,
     toggleReadingMode,

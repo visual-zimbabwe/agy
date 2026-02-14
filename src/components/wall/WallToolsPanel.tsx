@@ -37,7 +37,6 @@ type WallToolsPanelProps = {
   onToggleSnapToGuides: () => void;
   onToggleSnapToGrid: () => void;
   controlsMode: "basic" | "advanced";
-  onControlsModeChange: (mode: "basic" | "advanced") => void;
 };
 
 export const WallToolsPanel = ({
@@ -68,7 +67,6 @@ export const WallToolsPanel = ({
   onToggleSnapToGuides,
   onToggleSnapToGrid,
   controlsMode,
-  onControlsModeChange,
 }: WallToolsPanelProps) => {
   const advancedMode = controlsMode === "advanced";
 
@@ -82,30 +80,6 @@ export const WallToolsPanel = ({
     >
       <div className="mb-3 flex items-center justify-between px-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Tools</p>
-        <div className="inline-flex rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5">
-          <button
-            type="button"
-            onClick={() => onControlsModeChange("basic")}
-            className={`rounded-[calc(var(--radius-sm)-2px)] px-2 py-1 text-[10px] font-semibold ${
-              !advancedMode
-                ? "bg-[var(--color-accent-strong)] text-[var(--color-accent-foreground)]"
-                : "text-[var(--color-text-muted)]"
-            }`}
-          >
-            Basic
-          </button>
-          <button
-            type="button"
-            onClick={() => onControlsModeChange("advanced")}
-            className={`rounded-[calc(var(--radius-sm)-2px)] px-2 py-1 text-[10px] font-semibold ${
-              advancedMode
-                ? "bg-[var(--color-accent-strong)] text-[var(--color-accent-foreground)]"
-                : "text-[var(--color-text-muted)]"
-            }`}
-          >
-            Advanced
-          </button>
-        </div>
         {isCompactLayout && (
           <button
             type="button"

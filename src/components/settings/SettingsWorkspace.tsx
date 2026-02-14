@@ -5,11 +5,28 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
+import { controlsModeStorageKey, layoutPrefsStorageKey } from "@/components/wall/wall-canvas-helpers";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots, writeKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import { applyPreferencesToDocument, persistPreferences, readStoredPreferences, type ThemePreference } from "@/lib/preferences";
 
 type SettingsWorkspaceProps = {
   userEmail: string;
+};
+
+type WallLayoutPrefs = {
+  showToolsPanel: boolean;
+  showDetailsPanel: boolean;
+  showContextBar: boolean;
+  showNoteTags: boolean;
+};
+
+type ControlsMode = "basic" | "advanced";
+
+const defaultWallLayoutPrefs: WallLayoutPrefs = {
+  showToolsPanel: true,
+  showDetailsPanel: true,
+  showContextBar: false,
+  showNoteTags: false,
 };
 
 type SettingsSectionId = "general" | "appearance" | "accessibility" | "keyboard" | "advanced";
@@ -28,6 +45,33 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
   const [reduceMotion, setReduceMotion] = useState(() => readStoredPreferences().reduceMotion);
   const [compactMode, setCompactMode] = useState(() => readStoredPreferences().compactMode);
   const [keyboardColorSlots, setKeyboardColorSlots] = useState<Array<string | null>>(() => readKeyboardColorSlots());
+  const [wallLayoutPrefs, setWallLayoutPrefs] = useState<WallLayoutPrefs>(() => {
+    if (typeof window === "undefined") {
+      return defaultWallLayoutPrefs;
+    }
+    try {
+      const raw = window.localStorage.getItem(layoutPrefsStorageKey);
+      if (!raw) {
+        return defaultWallLayoutPrefs;
+      }
+      const parsed = JSON.parse(raw) as Partial<WallLayoutPrefs>;
+      return {
+        showToolsPanel: parsed.showToolsPanel ?? defaultWallLayoutPrefs.showToolsPanel,
+        showDetailsPanel: parsed.showDetailsPanel ?? defaultWallLayoutPrefs.showDetailsPanel,
+        showContextBar: parsed.showContextBar ?? defaultWallLayoutPrefs.showContextBar,
+        showNoteTags: parsed.showNoteTags ?? defaultWallLayoutPrefs.showNoteTags,
+      };
+    } catch {
+      return defaultWallLayoutPrefs;
+    }
+  });
+  const [controlsMode, setControlsMode] = useState<ControlsMode>(() => {
+    if (typeof window === "undefined") {
+      return "basic";
+    }
+    const raw = window.localStorage.getItem(controlsModeStorageKey);
+    return raw === "advanced" ? "advanced" : "basic";
+  });
   const [savedAt, setSavedAt] = useState<number>(() => Date.now());
 
   const preferenceState = useMemo(
@@ -39,6 +83,8 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
     persistPreferences(preferenceState);
     applyPreferencesToDocument(preferenceState);
     writeKeyboardColorSlots(keyboardColorSlots);
+    window.localStorage.setItem(layoutPrefsStorageKey, JSON.stringify(wallLayoutPrefs));
+    window.localStorage.setItem(controlsModeStorageKey, controlsMode);
     setSavedAt(Date.now());
   };
 
@@ -195,9 +241,63 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
             {activeSection === "advanced" && (
               <section>
                 <h2 className="text-lg font-semibold">Advanced</h2>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Reserved for future exports, backup controls, and experimental tools.</p>
-                <div className="mt-4 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border-muted)] bg-[var(--color-surface)] px-4 py-3">
-                  <p className="text-sm text-[var(--color-text-muted)]">No advanced settings yet.</p>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Configure wall chrome visibility and detail density.</p>
+                <div className="mt-4 space-y-3">
+                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
+                    <span>Show Tools panel controls</span>
+                    <input
+                      type="checkbox"
+                      checked={wallLayoutPrefs.showToolsPanel}
+                      onChange={(event) =>
+                        setWallLayoutPrefs((previous) => ({ ...previous, showToolsPanel: event.target.checked }))
+                      }
+                      className="h-4 w-4 accent-[var(--color-accent-strong)]"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
+                    <span>Show Details panel controls</span>
+                    <input
+                      type="checkbox"
+                      checked={wallLayoutPrefs.showDetailsPanel}
+                      onChange={(event) =>
+                        setWallLayoutPrefs((previous) => ({ ...previous, showDetailsPanel: event.target.checked }))
+                      }
+                      className="h-4 w-4 accent-[var(--color-accent-strong)]"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
+                    <span>Show context bar</span>
+                    <input
+                      type="checkbox"
+                      checked={wallLayoutPrefs.showContextBar}
+                      onChange={(event) =>
+                        setWallLayoutPrefs((previous) => ({ ...previous, showContextBar: event.target.checked }))
+                      }
+                      className="h-4 w-4 accent-[var(--color-accent-strong)]"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
+                    <span>Show note tags on cards</span>
+                    <input
+                      type="checkbox"
+                      checked={wallLayoutPrefs.showNoteTags}
+                      onChange={(event) =>
+                        setWallLayoutPrefs((previous) => ({ ...previous, showNoteTags: event.target.checked }))
+                      }
+                      className="h-4 w-4 accent-[var(--color-accent-strong)]"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
+                    <span>Wall controls density</span>
+                    <select
+                      value={controlsMode}
+                      onChange={(event) => setControlsMode(event.target.value as ControlsMode)}
+                      className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs"
+                    >
+                      <option value="basic">Basic</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </label>
                 </div>
               </section>
             )}

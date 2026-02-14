@@ -4,8 +4,6 @@ import { ControlTooltip, Icon } from "@/components/wall/WallControls";
 import {
   toolbarBtn,
   toolbarBtnActive,
-  toolbarLabel,
-  toolbarSurface,
 } from "@/components/wall/wallChromeClasses";
 
 type LayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags";
@@ -17,7 +15,6 @@ type WallToolbarProps = {
   layoutPrefs: LayoutPreferences;
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
-  layoutMenuOpen: boolean;
   quickCaptureOpen: boolean;
   isTimeLocked: boolean;
   onToggleLeftPanel: () => void;
@@ -25,7 +22,6 @@ type WallToolbarProps = {
   onOpenCommandPalette: () => void;
   onToggleQuickCapture: () => void;
   onTogglePresentationMode: () => void;
-  onSetLayoutPreference: (key: LayoutPreferenceKey, value: boolean) => void;
 };
 
 export const WallToolbar = ({
@@ -34,7 +30,6 @@ export const WallToolbar = ({
   layoutPrefs,
   leftPanelOpen,
   rightPanelOpen,
-  layoutMenuOpen,
   quickCaptureOpen,
   isTimeLocked,
   onToggleLeftPanel,
@@ -42,7 +37,6 @@ export const WallToolbar = ({
   onOpenCommandPalette,
   onToggleQuickCapture,
   onTogglePresentationMode,
-  onSetLayoutPreference,
 }: WallToolbarProps) => {
   const showSecondaryActions = !presentationMode;
   const toolsAction = !publishedReadOnly && !presentationMode && layoutPrefs.showToolsPanel;
@@ -123,47 +117,6 @@ export const WallToolbar = ({
         </ControlTooltip>
       </div>
 
-      {!presentationMode && layoutMenuOpen && (
-        <div className={`${toolbarSurface} flex flex-wrap items-center gap-4`}>
-          <span className={toolbarLabel}>Customize Layout</span>
-          <label className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text)]">
-            <input
-              type="checkbox"
-              checked={layoutPrefs.showToolsPanel}
-              onChange={(event) => onSetLayoutPreference("showToolsPanel", event.target.checked)}
-              className="h-3.5 w-3.5 accent-[var(--color-accent-strong)]"
-            />
-            <span>Tools Panel</span>
-          </label>
-          <label className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text)]">
-            <input
-              type="checkbox"
-              checked={layoutPrefs.showDetailsPanel}
-              onChange={(event) => onSetLayoutPreference("showDetailsPanel", event.target.checked)}
-              className="h-3.5 w-3.5 accent-[var(--color-accent-strong)]"
-            />
-            <span>Details Panel</span>
-          </label>
-          <label className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text)]">
-            <input
-              type="checkbox"
-              checked={layoutPrefs.showContextBar}
-              onChange={(event) => onSetLayoutPreference("showContextBar", event.target.checked)}
-              className="h-3.5 w-3.5 accent-[var(--color-accent-strong)]"
-            />
-            <span>Context Bar</span>
-          </label>
-          <label className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text)]">
-            <input
-              type="checkbox"
-              checked={layoutPrefs.showNoteTags}
-              onChange={(event) => onSetLayoutPreference("showNoteTags", event.target.checked)}
-              className="h-3.5 w-3.5 accent-[var(--color-accent-strong)]"
-            />
-            <span>Tags on Notes</span>
-          </label>
-        </div>
-      )}
     </>
   );
 };

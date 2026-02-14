@@ -81,7 +81,6 @@ type WallDetailsSidebarProps = {
   autoTagGroups: Array<{ tag: string; noteIds: string[]; bounds: Bounds }>;
   onFocusBounds: (bounds: Bounds) => void;
   controlsMode: "basic" | "advanced";
-  onControlsModeChange: (mode: "basic" | "advanced") => void;
 };
 
 export const WallDetailsSidebar = ({
@@ -159,7 +158,6 @@ export const WallDetailsSidebar = ({
   autoTagGroups,
   onFocusBounds,
   controlsMode,
-  onControlsModeChange,
 }: WallDetailsSidebarProps) => {
   if (presentationMode || !showDetailsPanel) {
     return null;
@@ -170,8 +168,6 @@ export const WallDetailsSidebar = ({
       isCompactLayout={isCompactLayout}
       rightPanelOpen={rightPanelOpen}
       onClose={onClose}
-      controlsMode={controlsMode}
-      onControlsModeChange={onControlsModeChange}
     >
       <WallDetailsContent
         controlsMode={controlsMode}
