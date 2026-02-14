@@ -38,7 +38,7 @@ export const WallDetailsPanel = ({
         )}
       </div>
       <p className="mt-1.5 text-xs leading-5 text-[var(--color-text-muted)]">Tags, templates, history and recall controls for the current wall.</p>
-      <div className="mt-2 min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="mt-2 min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-1">
         {children}
       </div>
     </aside>

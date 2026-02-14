@@ -22,7 +22,7 @@ export const RecallSection = ({
   onDeleteSavedRecallSearch,
 }: RecallSectionProps) => {
   return (
-    <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+    <div className="mt-3 min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
       <button
         type="button"
         onClick={() => onToggleDetailsSection("recall")}
@@ -40,11 +40,11 @@ export const RecallSection = ({
             placeholder="Find text or #tag..."
             className="mt-2 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
           />
-          <div className="mt-2 grid grid-cols-3 gap-2">
+          <div className="mt-2 min-w-0 grid grid-cols-3 gap-2">
             <select
               value={recallZoneId}
               onChange={(event) => onRecallZoneIdChange(event.target.value)}
-              className="col-span-1 min-w-0 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+              className="col-span-1 min-w-0 w-full max-w-full truncate rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
             >
               <option value="">All zones</option>
               {visibleZones.map((zone) => (
@@ -56,7 +56,7 @@ export const RecallSection = ({
             <select
               value={recallTag}
               onChange={(event) => onRecallTagChange(event.target.value)}
-              className="col-span-1 min-w-0 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+              className="col-span-1 min-w-0 w-full max-w-full truncate rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
             >
               <option value="">All tags</option>
               {availableRecallTags.map((tag) => (
@@ -68,7 +68,7 @@ export const RecallSection = ({
             <select
               value={recallDateFilter}
               onChange={(event) => onRecallDateFilterChange(event.target.value as typeof recallDateFilter)}
-              className="col-span-1 min-w-0 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+              className="col-span-1 min-w-0 w-full max-w-full truncate rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
             >
               <option value="all">All dates</option>
               <option value="today">Today</option>
