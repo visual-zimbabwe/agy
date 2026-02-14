@@ -1802,7 +1802,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           setLinkMenu={setLinkMenu}
           deleteLink={deleteLink}
           updateLinkType={updateLinkType}
-          onOpenCommandPalette={() => setSearchOpenTracked(true)}
           showHeatmap={showHeatmap}
           timelineEntries={timelineEntries}
           jumpToTimelineDay={jumpToTimelineDay}

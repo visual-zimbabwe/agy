@@ -66,7 +66,6 @@ type WallFloatingUiProps = {
   setLinkMenu: Dispatch<SetStateAction<LinkContextMenuState>>;
   deleteLink: (linkId: string) => void;
   updateLinkType: (linkId: string, type: LinkType) => void;
-  onOpenCommandPalette: () => void;
   showHeatmap: boolean;
   timelineEntries: Array<{ ts: number }>;
   jumpToTimelineDay: (day: string) => void;
@@ -131,7 +130,6 @@ export const WallFloatingUi = ({
   setLinkMenu,
   deleteLink,
   updateLinkType,
-  onOpenCommandPalette,
   showHeatmap,
   timelineEntries,
   jumpToTimelineDay,
@@ -470,18 +468,6 @@ export const WallFloatingUi = ({
                     aria-label={isPrimaryNoteFocused ? "Exit focus mode" : "Focus note"}
                   >
                     {isPrimaryNoteFocused ? "Exit Focus" : "Focus"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenCommandPalette();
-                      setQuickActionsOverflowOpen(false);
-                    }}
-                    className={`w-full justify-start ${toolbarBtnCompact}`}
-                    title="Open command palette (Ctrl/Cmd + K)"
-                    aria-label="Open command palette"
-                  >
-                    Command Palette
                   </button>
                 </div>
               </div>

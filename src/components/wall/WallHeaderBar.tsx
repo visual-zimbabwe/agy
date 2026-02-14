@@ -97,7 +97,6 @@ export const WallHeaderBar = ({
         onOpenCommandPalette={onOpenCommandPalette}
         onToggleQuickCapture={onToggleQuickCapture}
         onTogglePresentationMode={onTogglePresentationMode}
-        onOpenShortcuts={onOpenShortcuts}
         onSetLayoutPreference={onSetLayoutPreference}
       />
 

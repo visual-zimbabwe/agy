@@ -27,7 +27,6 @@ type WallToolbarProps = {
   onOpenCommandPalette: () => void;
   onToggleQuickCapture: () => void;
   onTogglePresentationMode: () => void;
-  onOpenShortcuts: () => void;
   onSetLayoutPreference: (key: LayoutPreferenceKey, value: boolean) => void;
 };
 
@@ -45,7 +44,6 @@ export const WallToolbar = ({
   onOpenCommandPalette,
   onToggleQuickCapture,
   onTogglePresentationMode,
-  onOpenShortcuts,
   onSetLayoutPreference,
 }: WallToolbarProps) => {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
@@ -154,30 +152,6 @@ export const WallToolbar = ({
                     <span>{leftPanelOpen ? "Hide tools panel" : "Show tools panel"}</span>
                   </button>
                 )}
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    onOpenCommandPalette();
-                    closeMoreMenu();
-                  }}
-                  className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-xs text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]"
-                >
-                  <span>Open command palette</span>
-                  <span className="text-[10px] text-[var(--color-text-muted)]">Ctrl/Cmd + K</span>
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    onOpenShortcuts();
-                    closeMoreMenu();
-                  }}
-                  className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-xs text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]"
-                >
-                  <span>Open keyboard shortcuts</span>
-                  <span className="text-[10px] text-[var(--color-text-muted)]">?</span>
-                </button>
               </div>
             )}
           </div>
