@@ -1186,6 +1186,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     selectedZone,
     selectedGroup,
     selectedNoteGroup,
+    hasNoteSelection,
     showContextColor,
     hasContextActions,
     displayedTags,
@@ -1480,6 +1481,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         layoutMenuOpen={layoutMenuOpen}
         quickCaptureOpen={quickCaptureOpen}
         isTimeLocked={isTimeLocked}
+        hasNoteSelection={hasNoteSelection}
         hasContextActions={hasContextActions}
         showContextColor={showContextColor}
         toolbarSurface={toolbarSurface}
@@ -1565,7 +1567,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           />
         )}
 
-        {!isChromeHidden && !publishedReadOnly && layoutPrefs.showToolsPanel && (
+        {!isChromeHidden && !publishedReadOnly && layoutPrefs.showToolsPanel && (hasNoteSelection || leftPanelOpen) && (
           <WallToolsPanel
             isCompactLayout={isCompactLayout}
             leftPanelOpen={leftPanelOpen}

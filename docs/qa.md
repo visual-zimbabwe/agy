@@ -453,6 +453,20 @@ Expected:
 - Advanced mode restores power-user controls without leaving the current view.
 - Mode selection persists across reloads.
 
+## Contextual Chrome - Selection-Driven Tools
+1. Open `/wall` with no selected note.
+2. Verify persistent top-left action cluster is hidden, while centered command button remains visible.
+3. Verify tools side panel is not shown by default with no selection.
+4. Select a note.
+5. Verify top-left action cluster reappears and contextual quick actions appear near selection.
+6. Open tools panel, then clear selection; verify tools panel stays visible only while explicitly open.
+7. Close tools panel and clear selection again; verify chrome returns to minimal state.
+
+Expected:
+- Wall chrome is minimal at rest and emphasizes the canvas.
+- Tools/actions appear contextually when a selection exists.
+- Command palette remains continuously accessible as global entry point.
+
 ## Note Design - Pro Interaction Pass
 1. Select one note and press `Enter`; verify inline editor opens.
 2. Click directly on note text; verify editor opens without requiring double-click.

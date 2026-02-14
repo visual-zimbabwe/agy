@@ -80,6 +80,7 @@ export const useWallViewState = ({
     selectedZone,
     selectedGroup,
     selectedNoteGroup,
+    hasNoteSelection,
     showContextColor,
     hasContextActions,
     displayedTags,
