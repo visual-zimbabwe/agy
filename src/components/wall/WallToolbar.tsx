@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
 import {
   toolbarBtn,
@@ -48,39 +46,8 @@ export const WallToolbar = ({
   onTogglePresentationMode,
   onSetLayoutPreference,
 }: WallToolbarProps) => {
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const moreMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!moreMenuOpen) {
-      return;
-    }
-
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (target && moreMenuRef.current?.contains(target)) {
-        return;
-      }
-      setMoreMenuOpen(false);
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMoreMenuOpen(false);
-      }
-    };
-
-    window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [moreMenuOpen]);
-
-  const closeMoreMenu = () => setMoreMenuOpen(false);
-
-  const showSecondaryActions = hasNoteSelection || leftPanelOpen || rightPanelOpen || quickCaptureOpen || moreMenuOpen;
+  const showSecondaryActions = hasNoteSelection || leftPanelOpen || rightPanelOpen || quickCaptureOpen;
+  const toolsAction = !publishedReadOnly && !presentationMode && layoutPrefs.showToolsPanel && (hasNoteSelection || leftPanelOpen);
   const detailsAction = !presentationMode && layoutPrefs.showDetailsPanel && (hasNoteSelection || rightPanelOpen);
 
   return (
@@ -112,6 +79,19 @@ export const WallToolbar = ({
           </ControlTooltip>
           {showSecondaryActions && (
             <>
+            {toolsAction && (
+              <ControlTooltip label={leftPanelOpen ? "Hide tools panel" : "Show tools panel"} side="top">
+                <button
+                  type="button"
+                  onClick={onToggleLeftPanel}
+                  className={leftPanelOpen ? toolbarBtnActive : toolbarBtn}
+                  title={leftPanelOpen ? "Hide tools panel" : "Show tools panel"}
+                >
+                  <Icon name="panel-left" />
+                  <span>Tools</span>
+                </button>
+              </ControlTooltip>
+            )}
             {detailsAction && (
               <ControlTooltip label={rightPanelOpen ? "Hide details panel" : "Show details panel"} side="top">
                 <button
@@ -125,41 +105,6 @@ export const WallToolbar = ({
                 </button>
               </ControlTooltip>
             )}
-            <div className="relative" ref={moreMenuRef}>
-              <ControlTooltip label="More actions" side="bottom">
-                <button
-                  type="button"
-                  onClick={() => setMoreMenuOpen((open) => !open)}
-                  aria-haspopup="menu"
-                  aria-expanded={moreMenuOpen}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1"
-                  title="More actions"
-                >
-                  <span aria-hidden>...</span>
-                  <span className="sr-only">More actions</span>
-                </button>
-              </ControlTooltip>
-              {moreMenuOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 top-[calc(100%+0.45rem)] z-50 min-w-48 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-1.5 shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)]"
-                >
-                  {!publishedReadOnly && layoutPrefs.showToolsPanel && !presentationMode && (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        onToggleLeftPanel();
-                        closeMoreMenu();
-                      }}
-                      className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-xs text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]"
-                    >
-                      <span>{leftPanelOpen ? "Hide tools panel" : "Show tools panel"}</span>
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
             </>
           )}
         </div>
