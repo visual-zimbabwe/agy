@@ -69,11 +69,9 @@ import {
   toolbarSurface,
 } from "@/components/wall/wallChromeClasses";
 import {
-  addNotesToNoteGroup,
   applyTemplate,
   assignZoneToGroup,
   createNote,
-  createNoteGroup,
   createLink,
   createZone,
   createZoneGroup,
@@ -85,11 +83,8 @@ import {
   duplicateNote,
   duplicateNoteAt,
   moveNote,
-  removeNotesFromNoteGroup,
-  setAllNoteGroupsCollapsed,
   moveZone,
   setAllGroupsCollapsed,
-  toggleNoteGroupCollapse,
   toggleGroupCollapse,
   updateNote,
   updateLinkType,
@@ -202,7 +197,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [editTagInput, setEditTagInput] = useState("");
   const [editTagRenameFrom, setEditTagRenameFrom] = useState<string | null>(null);
   const [groupLabelInput, setGroupLabelInput] = useState("New Group");
-  const [noteGroupLabelInput, setNoteGroupLabelInput] = useState("New Note Group");
   const [showAutoTagGroups, setShowAutoTagGroups] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
@@ -232,8 +226,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [detailsSectionsOpen, setDetailsSectionsOpen] = useState<DetailsSectionState>({
     history: false,
     recall: true,
-    zoneGroups: false,
-    noteGroups: false,
+    zoneGroups: true,
     tagGroups: false,
   });
   const [presentationMode, setPresentationMode] = useState(false);
@@ -282,7 +275,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const notes = useMemo(() => Object.values(renderSnapshot.notes), [renderSnapshot.notes]);
   const zones = useMemo(() => Object.values(renderSnapshot.zones), [renderSnapshot.zones]);
   const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
-  const noteGroups = useMemo(() => Object.values(renderSnapshot.noteGroups), [renderSnapshot.noteGroups]);
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
   const isTimeLocked = timelineMode || publishedReadOnly || presentationMode || readingMode;
   const isChromeHidden = presentationMode || readingMode;
@@ -859,7 +851,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     notes,
     zones,
     zoneGroups,
-    noteGroups,
     links,
     selectedNoteId: ui.selectedNoteId,
     recallQuery,
@@ -1044,60 +1035,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setAllGroupsCollapsed(false);
   }, [isTimeLocked]);
 
-  const createNoteGroupFromSelection = useCallback(() => {
-    if (isTimeLocked || activeSelectedNoteIds.length === 0) {
-      return;
-    }
-    createNoteGroup(noteGroupLabelInput.trim() || "Note Group", activeSelectedNoteIds);
-  }, [activeSelectedNoteIds, isTimeLocked, noteGroupLabelInput]);
-
-  const addSelectionToNoteGroup = useCallback(
-    (groupId: string) => {
-      if (isTimeLocked || activeSelectedNoteIds.length === 0) {
-        return;
-      }
-      addNotesToNoteGroup(groupId, activeSelectedNoteIds);
-    },
-    [activeSelectedNoteIds, isTimeLocked],
-  );
-
-  const removeSelectionFromNoteGroup = useCallback(
-    (groupId: string) => {
-      if (isTimeLocked || activeSelectedNoteIds.length === 0) {
-        return;
-      }
-      removeNotesFromNoteGroup(groupId, activeSelectedNoteIds);
-    },
-    [activeSelectedNoteIds, isTimeLocked],
-  );
-
-  const selectNotesForGroup = useCallback(
-    (groupId: string) => {
-      const group = renderSnapshot.noteGroups[groupId];
-      if (!group) {
-        return;
-      }
-      const ids = group.noteIds.filter((id) => Boolean(renderSnapshot.notes[id]));
-      syncPrimarySelection(ids);
-      selectNoteGroup(groupId);
-    },
-    [renderSnapshot.noteGroups, renderSnapshot.notes, selectNoteGroup, syncPrimarySelection],
-  );
-
-  const collapseAllNoteGroups = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    setAllNoteGroupsCollapsed(true);
-  }, [isTimeLocked]);
-
-  const expandAllNoteGroups = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    setAllNoteGroupsCollapsed(false);
-  }, [isTimeLocked]);
-
   useEffect(() => {
     const visibleNoteIdSet = new Set(renderVisibleNotes.map((note) => note.id));
     const visibleZoneIdSet = new Set(renderVisibleZones.map((zone) => zone.id));
@@ -1184,7 +1121,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     primarySelectedNote,
     selectedZone,
     selectedGroup,
-    selectedNoteGroup,
     hasNoteSelection,
     showContextColor,
     hasContextActions,
@@ -1883,20 +1819,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onExpandAllGroups={expandAllZoneGroups}
           onDeleteGroup={deleteGroup}
           onClearNoteSelection={clearNoteSelection}
-          noteGroupLabelInput={noteGroupLabelInput}
-          onNoteGroupLabelInputChange={setNoteGroupLabelInput}
-          selectedNoteGroup={selectedNoteGroup}
-          activeSelectedNoteIds={activeSelectedNoteIds}
-          noteGroups={noteGroups}
-          onCreateGroupFromSelection={createNoteGroupFromSelection}
-          onSelectNoteGroup={selectNoteGroup}
-          onToggleNoteGroupCollapse={toggleNoteGroupCollapse}
-          onCollapseAllNoteGroups={collapseAllNoteGroups}
-          onExpandAllNoteGroups={expandAllNoteGroups}
-          onDeleteNoteGroup={deleteNoteGroup}
-          onAddSelectionToNoteGroup={addSelectionToNoteGroup}
-          onRemoveSelectionFromNoteGroup={removeSelectionFromNoteGroup}
-          onSelectNotesForGroup={selectNotesForGroup}
           showAutoTagGroups={showAutoTagGroups}
           onToggleAutoTagGroups={() => setShowAutoTagGroups((value) => !value)}
           autoTagGroups={autoTagGroups}

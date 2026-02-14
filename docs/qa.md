@@ -201,7 +201,7 @@ Expected:
 - Deleting a selected link removes it permanently.
 - Right-click menu appears on links with actions applied immediately.
 
-## Structure Primitives - Tags, Templates, Zone Groups, Note Groups
+## Structure Primitives - Tags, Templates, and Zone Groups
 1. Select a note and add two tags via the `Selection Tags` controls in the `Details` panel.
 2. Open search (`Ctrl/Cmd + K`) and search by one of those tags.
 3. Choose each template in the template dropdown and click `Apply Template`.
@@ -212,19 +212,14 @@ Expected:
 8. Refresh page.
 9. Add the same tag to at least two notes and verify an automatic `Tag Groups (Auto)` entry appears.
 10. Click the tag-group entry and verify camera jumps to the grouped notes.
-11. Multi-select at least 2 notes, enter a name in `Note Groups`, and click `Group Selected`.
-12. Select that note group entry and verify all member notes become selected.
-13. Collapse the note group and verify grouped notes (and their links) are hidden.
-14. Expand the group, add current selection to it, then remove one selected note from it.
-15. Refresh page and verify note-group membership and collapse state persist.
+11. Toggle `Tag Signals (Auto)` visibility and verify auto-tag overlays show/hide.
 
 Expected:
 - Tags are displayed on notes and searchable.
 - Template creates a pre-structured layout with zones, notes, and grouped zones.
 - Collapsing a zone group hides grouped zones and notes inside those zones.
 - Zone groups, assignments, and collapse state persist after refresh.
-- Tags with 2+ notes are shown as automatic groups with outlines and panel entries.
-- Note groups can be created from arbitrary selection, updated, collapsed, and persisted.
+- Tags with 2+ notes are shown as automatic signals with outlines and panel entries.
 
 ## Multi-Select Workflows
 1. Enable `Box Select` and drag over several notes.
@@ -421,7 +416,7 @@ Expected:
 
 ## IA Cleanup - Accordions, Minimal Context, Layout Preferences
 1. Open `/wall` with default layout.
-2. In the `Details` panel, verify `History`, `Recall`, `Zone Groups`, `Note Groups`, and `Tag Groups (Auto)` sections can each be expanded/collapsed independently.
+2. In the `Details` panel, verify `History`, `Recall`, `Zone Groups`, and `Tag Signals (Auto)` sections can each be expanded/collapsed independently.
 3. Confirm `Templates` and `Selection Tags` remain visible without needing expansion.
 4. Clear note selection and verify top `Context` bar is hidden.
 5. Select one note and verify `Context` bar appears with only relevant controls (`Color`, `Tags`).

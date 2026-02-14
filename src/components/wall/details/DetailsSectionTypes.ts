@@ -1,4 +1,4 @@
-import type { Note, NoteGroup, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Note, Zone, ZoneGroup } from "@/features/wall/types";
 
 export type RecallDateFilter = "all" | "today" | "7d" | "30d";
 
@@ -11,7 +11,7 @@ export type SavedRecallSearch = {
   dateFilter: RecallDateFilter;
 };
 
-export type DetailsSectionKey = "history" | "recall" | "zoneGroups" | "noteGroups" | "tagGroups";
+export type DetailsSectionKey = "history" | "recall" | "zoneGroups" | "tagGroups";
 export type DetailsSectionState = Record<DetailsSectionKey, boolean>;
 
 export type AutoTagGroup = {
@@ -80,24 +80,4 @@ export type TagGroupsSectionProps = {
   onToggleAutoTagGroups: () => void;
   autoTagGroups: AutoTagGroup[];
   onFocusBounds: (bounds: { x: number; y: number; w: number; h: number }) => void;
-};
-
-export type NoteGroupsSectionProps = {
-  detailsSectionsOpen: DetailsSectionState;
-  onToggleDetailsSection: (key: DetailsSectionKey) => void;
-  noteGroupLabelInput: string;
-  onNoteGroupLabelInputChange: (value: string) => void;
-  selectedNoteGroup?: NoteGroup;
-  activeSelectedNoteIds: string[];
-  noteGroups: NoteGroup[];
-  isTimeLocked: boolean;
-  onCreateGroupFromSelection: () => void;
-  onSelectNoteGroup: (groupId?: string) => void;
-  onToggleNoteGroupCollapse: (groupId: string) => void;
-  onCollapseAllNoteGroups: () => void;
-  onExpandAllNoteGroups: () => void;
-  onDeleteNoteGroup: (groupId: string) => void;
-  onAddSelectionToNoteGroup: (groupId: string) => void;
-  onRemoveSelectionFromNoteGroup: (groupId: string) => void;
-  onSelectNotesForGroup: (groupId: string) => void;
 };

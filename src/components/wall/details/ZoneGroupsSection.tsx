@@ -28,12 +28,12 @@ export const ZoneGroupsSection = ({
         onClick={() => onToggleDetailsSection("zoneGroups")}
         className="flex w-full items-center justify-between text-left"
       >
-        <h3 className="text-sm font-semibold text-zinc-900">Zone Groups</h3>
+        <h3 className="text-sm font-semibold text-zinc-900">Zones (Primary Structure)</h3>
         <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.zoneGroups ? "Hide" : "Show"}</span>
       </button>
       {detailsSectionsOpen.zoneGroups && (
         <>
-          <p className="mt-1 text-xs text-zinc-600">Collapse groups to hide grouped zones and their notes.</p>
+          <p className="mt-1 text-xs text-zinc-600">Use zones to organize the wall. Grouping here controls zone visibility and contained notes.</p>
           <div className="mt-2 flex items-center gap-2">
             <button
               type="button"

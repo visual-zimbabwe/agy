@@ -25,7 +25,7 @@ const shortcuts = [
   ["H", "Toggle recently changed heatmap"],
   ["Ctrl/Cmd + Z", "Undo last change"],
   ["Ctrl/Cmd + Shift + Z", "Redo change"],
-  ["Delete / Backspace", "Delete selected note, zone, link, zone group, or note group"],
+  ["Delete / Backspace", "Delete selected note, zone, link, or zone group"],
   ["Ctrl/Cmd + D or Shift + D", "Duplicate selected note"],
   ["Alt + Drag", "Duplicate a note while dragging"],
   ["Shift + Drag", "Lock drag movement to one axis"],

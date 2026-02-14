@@ -6,7 +6,7 @@ import Fuse from "fuse.js";
 import type { RecallDateFilter } from "@/components/wall/details/DetailsSectionTypes";
 import { zoneContainsNote, noteInAnyZone, graphPathLinks } from "@/components/wall/wall-canvas-helpers";
 import { computeContentBounds, detectClusters, clamp } from "@/lib/wall-utils";
-import type { Link, Note, NoteGroup, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Link, Note, Zone, ZoneGroup } from "@/features/wall/types";
 
 type Bounds = { x: number; y: number; w: number; h: number };
 type TagGroup = { tag: string; noteIds: string[]; bounds: Bounds };
@@ -16,7 +16,6 @@ type UseWallDerivedDataOptions = {
   notes: Note[];
   zones: Zone[];
   zoneGroups: ZoneGroup[];
-  noteGroups: NoteGroup[];
   links: Link[];
   selectedNoteId?: string;
   recallQuery: string;
@@ -35,7 +34,6 @@ export const useWallDerivedData = ({
   notes,
   zones,
   zoneGroups,
-  noteGroups,
   links,
   selectedNoteId,
   recallQuery,
@@ -53,30 +51,14 @@ export const useWallDerivedData = ({
     () => new Set(zoneGroups.filter((group) => group.collapsed).map((group) => group.id)),
     [zoneGroups],
   );
-  const collapsedNoteIdSet = useMemo(() => {
-    const ids = new Set<string>();
-    for (const group of noteGroups) {
-      if (!group.collapsed) {
-        continue;
-      }
-      for (const noteId of group.noteIds) {
-        ids.add(noteId);
-      }
-    }
-    return ids;
-  }, [noteGroups]);
   const visibleZones = useMemo(
     () => zones.filter((zone) => !zone.groupId || !collapsedGroupIds.has(zone.groupId)),
     [collapsedGroupIds, zones],
   );
   const hiddenNotes = useMemo(() => {
     const collapsedZones = zones.filter((zone) => zone.groupId && collapsedGroupIds.has(zone.groupId));
-    const zoneHidden = new Set(notes.filter((note) => noteInAnyZone(note, collapsedZones)).map((note) => note.id));
-    for (const noteId of collapsedNoteIdSet) {
-      zoneHidden.add(noteId);
-    }
-    return zoneHidden;
-  }, [collapsedGroupIds, collapsedNoteIdSet, notes, zones]);
+    return new Set(notes.filter((note) => noteInAnyZone(note, collapsedZones)).map((note) => note.id));
+  }, [collapsedGroupIds, notes, zones]);
   const baseVisibleNotes = useMemo(() => notes.filter((note) => !hiddenNotes.has(note.id)), [hiddenNotes, notes]);
   const recallFuse = useMemo(
     () =>

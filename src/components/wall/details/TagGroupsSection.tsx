@@ -17,13 +17,13 @@ export const TagGroupsSection = ({
         onClick={() => onToggleDetailsSection("tagGroups")}
         className="flex w-full items-center justify-between text-left"
       >
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Tag Groups (Auto)</h4>
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Tag Signals (Auto)</h4>
         <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.tagGroups ? "Hide" : "Show"}</span>
       </button>
       {detailsSectionsOpen.tagGroups && (
         <>
           <div className="mb-1 mt-2 flex items-center justify-between">
-            <span className="text-[11px] text-zinc-600">Auto-detected from shared tags.</span>
+            <span className="text-[11px] text-zinc-600">Secondary insights from shared tags, not structural groups.</span>
             <button type="button" onClick={onToggleAutoTagGroups} className="rounded-md border border-zinc-300 px-2 py-0.5 text-[10px]">
               {showAutoTagGroups ? "Hide" : "Show"}
             </button>
