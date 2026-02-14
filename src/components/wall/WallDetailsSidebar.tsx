@@ -5,6 +5,7 @@ import { WallDetailsContent } from "@/components/wall/WallDetailsContent";
 import type { DetailsSectionKey, DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { TEMPLATE_TYPES } from "@/features/wall/constants";
 import type { Bounds, Note, TemplateType, Zone, ZoneGroup } from "@/features/wall/types";
+import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 
 type WallDetailsSidebarProps = {
   presentationMode: boolean;
@@ -66,6 +67,9 @@ type WallDetailsSidebarProps = {
   onToggleAutoTagGroups: () => void;
   autoTagGroups: Array<{ tag: string; noteIds: string[]; bounds: Bounds }>;
   onFocusBounds: (bounds: Bounds) => void;
+  smartMergeSuggestions: Array<SmartMergeSuggestion & { keepNoteText: string; mergeNoteText: string }>;
+  onPreviewSmartMerge: (suggestion: SmartMergeSuggestion) => void;
+  onMergeSmartSuggestion: (suggestion: SmartMergeSuggestion) => void;
   controlsMode: "basic" | "advanced";
 };
 
@@ -129,6 +133,9 @@ export const WallDetailsSidebar = ({
   onToggleAutoTagGroups,
   autoTagGroups,
   onFocusBounds,
+  smartMergeSuggestions,
+  onPreviewSmartMerge,
+  onMergeSmartSuggestion,
   controlsMode,
 }: WallDetailsSidebarProps) => {
   if (presentationMode || !showDetailsPanel) {
@@ -198,6 +205,9 @@ export const WallDetailsSidebar = ({
         onToggleAutoTagGroups={onToggleAutoTagGroups}
         autoTagGroups={autoTagGroups}
         onFocusBounds={onFocusBounds}
+        smartMergeSuggestions={smartMergeSuggestions}
+        onPreviewSmartMerge={onPreviewSmartMerge}
+        onMergeSmartSuggestion={onMergeSmartSuggestion}
       />
     </WallDetailsPanel>
   );

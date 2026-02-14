@@ -1,4 +1,5 @@
 import type { Note, Zone, ZoneGroup } from "@/features/wall/types";
+import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 
 export type RecallDateFilter = "all" | "today" | "7d" | "30d";
 
@@ -11,7 +12,7 @@ export type SavedRecallSearch = {
   dateFilter: RecallDateFilter;
 };
 
-export type DetailsSectionKey = "history" | "recall" | "zoneGroups" | "tagGroups";
+export type DetailsSectionKey = "history" | "recall" | "zoneGroups" | "tagGroups" | "smartMerge";
 export type DetailsSectionState = Record<DetailsSectionKey, boolean>;
 
 export type AutoTagGroup = {
@@ -80,4 +81,18 @@ export type TagGroupsSectionProps = {
   onToggleAutoTagGroups: () => void;
   autoTagGroups: AutoTagGroup[];
   onFocusBounds: (bounds: { x: number; y: number; w: number; h: number }) => void;
+};
+
+export type SmartMergeSectionItem = SmartMergeSuggestion & {
+  keepNoteText: string;
+  mergeNoteText: string;
+};
+
+export type SmartMergeSectionProps = {
+  detailsSectionsOpen: DetailsSectionState;
+  onToggleDetailsSection: (key: DetailsSectionKey) => void;
+  isTimeLocked: boolean;
+  suggestions: SmartMergeSectionItem[];
+  onPreview: (suggestion: SmartMergeSuggestion) => void;
+  onMerge: (suggestion: SmartMergeSuggestion) => void;
 };

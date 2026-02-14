@@ -8,6 +8,7 @@ import {
   createZone,
   createZoneGroup,
   duplicateNote,
+  mergeNotes,
   removeNotesFromNoteGroup,
   toggleNoteGroupCollapse,
 } from "@/features/wall/commands";
@@ -133,5 +134,27 @@ describe("wall commands", () => {
     }
     expect(group.noteIds).toEqual([secondId, thirdId]);
     expect(group.collapsed).toBe(true);
+  });
+
+  it("merges notes and rewires relationships", () => {
+    const keepId = createNote(0, 0);
+    const mergeId = createNote(240, 0);
+    const tailId = createNote(480, 0);
+    const state = useWallStore.getState();
+    state.patchNote(keepId, { text: "Launch checklist", tags: ["release"] });
+    state.patchNote(mergeId, { text: "launch checklist", tags: ["ops"] });
+    const groupId = createNoteGroup("Merge Group", [mergeId]);
+    createLink(mergeId, tailId, "dependency");
+
+    mergeNotes(keepId, mergeId);
+
+    const next = useWallStore.getState();
+    expect(next.notes[mergeId]).toBeUndefined();
+    expect(next.notes[keepId]?.tags).toEqual(["release", "ops"]);
+    expect(next.noteGroups[groupId]?.noteIds).toEqual([keepId]);
+    const links = Object.values(next.links);
+    expect(links).toHaveLength(1);
+    expect(links[0]?.fromNoteId).toBe(keepId);
+    expect(links[0]?.toNoteId).toBe(tailId);
   });
 });

@@ -262,6 +262,21 @@ Expected:
 - Combined filters narrow the visible note set.
 - Stale and priority jumps reliably focus the target notes.
 
+## Smart Merge Suggestions
+1. Create two notes with near-identical text and one unrelated note.
+2. Open `Details` panel and expand `Smart Merge`.
+3. Verify duplicate/similar suggestion appears with match score and note previews.
+4. Click `Preview` on a suggestion and verify camera focuses both notes with dual selection.
+5. Click `Merge`, confirm prompt, and verify merge note is removed.
+6. Verify kept note combines tags/text as expected and remains selected.
+7. If merged note had links or note-group membership, verify they now point to the kept note.
+8. Press `Ctrl/Cmd + Z` once and verify the entire merge operation is undone in one step.
+
+Expected:
+- Smart Merge only proposes likely duplicates/similar notes from currently visible notes.
+- Preview is non-destructive and centers the candidate pair.
+- Merge is explicit (with confirmation), undoable as one grouped action, and preserves relationships.
+
 ## Undo/Redo History
 1. Create three notes and move one note.
 2. Press `Ctrl/Cmd + Z` repeatedly and confirm actions revert in reverse order.

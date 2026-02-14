@@ -72,6 +72,99 @@ export const deleteNote = (noteId: string) => {
   useWallStore.getState().removeNote(noteId);
 };
 
+const normalizeNoteText = (text: string) => text.trim().toLowerCase().replace(/\s+/g, " ").replace(/[^a-z0-9 ]+/g, "");
+
+const mergeNoteText = (left: string, right: string) => {
+  const leftTrimmed = left.trim();
+  const rightTrimmed = right.trim();
+  if (!leftTrimmed) {
+    return rightTrimmed;
+  }
+  if (!rightTrimmed) {
+    return leftTrimmed;
+  }
+
+  const leftNormalized = normalizeNoteText(leftTrimmed);
+  const rightNormalized = normalizeNoteText(rightTrimmed);
+  if (leftNormalized && rightNormalized) {
+    if (leftNormalized === rightNormalized) {
+      return leftTrimmed.length >= rightTrimmed.length ? leftTrimmed : rightTrimmed;
+    }
+    if (leftNormalized.includes(rightNormalized)) {
+      return leftTrimmed;
+    }
+    if (rightNormalized.includes(leftNormalized)) {
+      return rightTrimmed;
+    }
+  }
+
+  return `${leftTrimmed}\n\n${rightTrimmed}`;
+};
+
+export const mergeNotes = (keepNoteId: string, mergeNoteId: string) => {
+  if (keepNoteId === mergeNoteId) {
+    return;
+  }
+
+  withHistoryGroup(() => {
+    const state = useWallStore.getState();
+    const keep = state.notes[keepNoteId];
+    const merge = state.notes[mergeNoteId];
+    if (!keep || !merge) {
+      return;
+    }
+
+    const mergedTags = [...new Set([...keep.tags, ...merge.tags])];
+    state.patchNote(keepNoteId, {
+      text: mergeNoteText(keep.text, merge.text),
+      tags: mergedTags,
+      highlighted: true,
+    });
+
+    const links = Object.values(state.links);
+    for (const link of links) {
+      if (link.fromNoteId !== mergeNoteId && link.toNoteId !== mergeNoteId) {
+        continue;
+      }
+
+      const fromNoteId = link.fromNoteId === mergeNoteId ? keepNoteId : link.fromNoteId;
+      const toNoteId = link.toNoteId === mergeNoteId ? keepNoteId : link.toNoteId;
+      if (fromNoteId === toNoteId) {
+        state.removeLink(link.id);
+        continue;
+      }
+
+      const hasDuplicate = Object.values(useWallStore.getState().links).some(
+        (candidate) =>
+          candidate.id !== link.id &&
+          candidate.fromNoteId === fromNoteId &&
+          candidate.toNoteId === toNoteId &&
+          candidate.type === link.type,
+      );
+      if (hasDuplicate) {
+        state.removeLink(link.id);
+        continue;
+      }
+
+      state.patchLink(link.id, { fromNoteId, toNoteId });
+    }
+
+    for (const noteGroup of Object.values(state.noteGroups)) {
+      if (!noteGroup.noteIds.includes(mergeNoteId)) {
+        continue;
+      }
+      const nextIds = [...new Set(noteGroup.noteIds.map((noteId) => (noteId === mergeNoteId ? keepNoteId : noteId)))];
+      state.patchNoteGroup(noteGroup.id, { noteIds: nextIds });
+    }
+
+    state.removeNote(mergeNoteId);
+    state.selectNote(keepNoteId);
+    if (state.ui.linkingFromNoteId === mergeNoteId) {
+      state.setLinkingFromNote(keepNoteId);
+    }
+  });
+};
+
 export const duplicateNote = (noteId: string) => {
   const { notes, upsertNote, selectNote } = useWallStore.getState();
   const current = notes[noteId];

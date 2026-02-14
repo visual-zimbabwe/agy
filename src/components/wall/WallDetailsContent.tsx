@@ -4,10 +4,12 @@ import type { Note, TemplateType, Zone, ZoneGroup } from "@/features/wall/types"
 import { HistorySection } from "@/components/wall/details/HistorySection";
 import { RecallSection } from "@/components/wall/details/RecallSection";
 import { SelectionTagsSection } from "@/components/wall/details/SelectionTagsSection";
+import { SmartMergeSection } from "@/components/wall/details/SmartMergeSection";
 import { TagGroupsSection } from "@/components/wall/details/TagGroupsSection";
 import { type AutoTagGroup, type DetailsSectionKey, type DetailsSectionState, type RecallDateFilter, type SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { TemplatesSection } from "@/components/wall/details/TemplatesSection";
 import { ZoneGroupsSection } from "@/components/wall/details/ZoneGroupsSection";
+import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 
 type TemplateOption = {
   value: TemplateType;
@@ -71,6 +73,9 @@ type WallDetailsContentProps = {
   onToggleAutoTagGroups: () => void;
   autoTagGroups: AutoTagGroup[];
   onFocusBounds: (bounds: { x: number; y: number; w: number; h: number }) => void;
+  smartMergeSuggestions: Array<SmartMergeSuggestion & { keepNoteText: string; mergeNoteText: string }>;
+  onPreviewSmartMerge: (suggestion: SmartMergeSuggestion) => void;
+  onMergeSmartSuggestion: (suggestion: SmartMergeSuggestion) => void;
 };
 
 export const WallDetailsContent = ({
@@ -130,6 +135,9 @@ export const WallDetailsContent = ({
   onToggleAutoTagGroups,
   autoTagGroups,
   onFocusBounds,
+  smartMergeSuggestions,
+  onPreviewSmartMerge,
+  onMergeSmartSuggestion,
 }: WallDetailsContentProps) => {
   const advancedMode = controlsMode === "advanced";
 
@@ -214,6 +222,14 @@ export const WallDetailsContent = ({
           onFocusBounds={onFocusBounds}
         />
       )}
+      <SmartMergeSection
+        detailsSectionsOpen={detailsSectionsOpen}
+        onToggleDetailsSection={onToggleDetailsSection}
+        isTimeLocked={isTimeLocked}
+        suggestions={smartMergeSuggestions}
+        onPreview={onPreviewSmartMerge}
+        onMerge={onMergeSmartSuggestion}
+      />
     </>
   );
 };

@@ -6,6 +6,7 @@ import Fuse from "fuse.js";
 import type { RecallDateFilter } from "@/components/wall/details/DetailsSectionTypes";
 import { zoneContainsNote, noteInAnyZone, graphPathLinks } from "@/components/wall/wall-canvas-helpers";
 import { computeContentBounds, detectClusters, clamp } from "@/lib/wall-utils";
+import { findSmartMergeSuggestions, type SmartMergeSuggestion } from "@/lib/smart-merge";
 import type { Link, Note, Zone, ZoneGroup } from "@/features/wall/types";
 
 type Bounds = { x: number; y: number; w: number; h: number };
@@ -212,6 +213,10 @@ export const useWallDerivedData = ({
   }, [autoTagGroups]);
   const clusterBounds = useMemo(() => detectClusters(visibleNotes), [visibleNotes]);
   const pathLinkIds = useMemo(() => graphPathLinks(selectedNoteId, visibleLinks), [selectedNoteId, visibleLinks]);
+  const smartMergeSuggestions = useMemo<SmartMergeSuggestion[]>(
+    () => findSmartMergeSuggestions(visibleNotes),
+    [visibleNotes],
+  );
 
   return {
     visibleZones,
@@ -223,5 +228,6 @@ export const useWallDerivedData = ({
     autoTagLabelLayout,
     clusterBounds,
     pathLinkIds,
+    smartMergeSuggestions,
   };
 };

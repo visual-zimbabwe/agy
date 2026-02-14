@@ -84,6 +84,7 @@ import {
   duplicateNoteAt,
   moveNote,
   moveZone,
+  mergeNotes,
   setAllGroupsCollapsed,
   toggleGroupCollapse,
   updateNote,
@@ -95,6 +96,7 @@ import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
+import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
 
@@ -228,6 +230,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     recall: true,
     zoneGroups: true,
     tagGroups: false,
+    smartMerge: true,
   });
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
@@ -847,6 +850,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     autoTagLabelLayout,
     clusterBounds,
     pathLinkIds,
+    smartMergeSuggestions,
   } = useWallDerivedData({
     notes,
     zones,
@@ -1013,6 +1017,61 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   });
 
   const { stepZoom, resetZoom } = useWallZoomControls({ camera, viewport, setCamera });
+  const smartMergeItems = useMemo(
+    () =>
+      smartMergeSuggestions
+        .map((suggestion) => {
+          const keepNote = renderSnapshot.notes[suggestion.keepNoteId];
+          const mergeNote = renderSnapshot.notes[suggestion.mergeNoteId];
+          if (!keepNote || !mergeNote) {
+            return null;
+          }
+          return {
+            ...suggestion,
+            keepNoteText: keepNote.text,
+            mergeNoteText: mergeNote.text,
+          };
+        })
+        .filter((item): item is SmartMergeSuggestion & { keepNoteText: string; mergeNoteText: string } => Boolean(item)),
+    [renderSnapshot.notes, smartMergeSuggestions],
+  );
+
+  const previewSmartMerge = useCallback(
+    (suggestion: SmartMergeSuggestion) => {
+      const keepNote = renderSnapshot.notes[suggestion.keepNoteId];
+      const mergeNote = renderSnapshot.notes[suggestion.mergeNoteId];
+      if (!keepNote || !mergeNote) {
+        return;
+      }
+      syncPrimarySelection([keepNote.id, mergeNote.id]);
+      selectNote(keepNote.id);
+      const bounds = computeContentBounds([keepNote, mergeNote], []);
+      if (bounds) {
+        focusBounds(bounds);
+      }
+    },
+    [focusBounds, renderSnapshot.notes, selectNote, syncPrimarySelection],
+  );
+
+  const applySmartMerge = useCallback(
+    (suggestion: SmartMergeSuggestion) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const keepNote = renderSnapshot.notes[suggestion.keepNoteId];
+      const mergeNote = renderSnapshot.notes[suggestion.mergeNoteId];
+      if (!keepNote || !mergeNote) {
+        return;
+      }
+      const ok = window.confirm("Merge these notes? The second note will be removed.");
+      if (!ok) {
+        return;
+      }
+      mergeNotes(suggestion.keepNoteId, suggestion.mergeNoteId);
+      syncPrimarySelection([suggestion.keepNoteId]);
+    },
+    [isTimeLocked, renderSnapshot.notes, syncPrimarySelection],
+  );
 
   const { toggleDetailsSection, togglePresentationMode, toggleReadingMode, toggleTimelineMode, saveCurrentRecallSearch, applySavedRecallSearch } = useWallUiActions({
     readingMode, presentationMode, timelineEntriesLength: timelineEntries.length, timelineModeRef, setPresentationMode, setPresentationIndex, setReadingMode,
@@ -1823,6 +1882,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onToggleAutoTagGroups={() => setShowAutoTagGroups((value) => !value)}
           autoTagGroups={autoTagGroups}
           onFocusBounds={focusBounds}
+          smartMergeSuggestions={smartMergeItems}
+          onPreviewSmartMerge={previewSmartMerge}
+          onMergeSmartSuggestion={applySmartMerge}
           controlsMode={controlsMode}
         />
 
