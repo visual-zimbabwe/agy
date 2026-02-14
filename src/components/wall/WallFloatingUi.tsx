@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
@@ -155,6 +155,7 @@ export const WallFloatingUi = ({
   const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const editingTextStyle = getNoteTextStyle(editingNote?.textSize, editingNote?.textSizePx);
+  const [quickActionsOverflowOpen, setQuickActionsOverflowOpen] = useState(false);
 
   return (
     <>
@@ -340,69 +341,16 @@ export const WallFloatingUi = ({
           style={{ left: `${quickActionScreen.x}px`, top: `${quickActionScreen.y}px` }}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <div role="toolbar" aria-label="Note quick actions" className="flex items-center gap-1">
-            <select
-              value={primarySelectedNote.textFont ?? "nunito"}
-              onChange={(event) => applyTextFontToSelection(event.target.value as NonNullable<Note["textFont"]>)}
-              className={`w-[9rem] ${toolbarBtnCompact}`}
-              title="Note font"
-              aria-label="Note font"
-            >
-              {NOTE_TEXT_FONTS.map((option) => (
-                <option key={`quick-font-${option.value}`} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={primarySelectedNote.textSizePx ?? 16}
-              onChange={(event) => applyTextSizeToSelection(Number(event.target.value))}
-              className={`w-[5.4rem] ${toolbarBtnCompact}`}
-              title="Note size"
-              aria-label="Note size"
-            >
-              {NOTE_TEXT_SIZE_OPTIONS.map((size) => (
-                <option key={`quick-size-${size}`} value={size}>
-                  {size}px
-                </option>
-              ))}
-            </select>
-            <select
-              value={primarySelectedNote.textAlign ?? "left"}
-              onChange={(event) => applyTextHorizontalAlignToSelection(event.target.value as "left" | "center" | "right")}
-              className={`w-[6.2rem] ${toolbarBtnCompact}`}
-              title="Horizontal align"
-              aria-label="Horizontal align"
-            >
-              <option value="left">Left</option>
-              <option value="center">Center</option>
-              <option value="right">Right</option>
-            </select>
-            <select
-              value={primarySelectedNote.textVAlign ?? NOTE_DEFAULTS.textVAlign}
-              onChange={(event) => applyTextVerticalAlignToSelection(event.target.value as "top" | "middle" | "bottom")}
-              className={`w-[5.9rem] ${toolbarBtnCompact}`}
-              title="Vertical align"
-              aria-label="Vertical align"
-            >
-              <option value="top">Top</option>
-              <option value="middle">Middle</option>
-              <option value="bottom">Bottom</option>
-            </select>
-            <label className={toolbarBtnCompact}>
-              <span className="sr-only">Note text color</span>
+          <div role="toolbar" aria-label="Note quick actions" className="relative flex items-center gap-1">
+            <label className={toolbarBtnCompact} title="Note color" aria-label="Note color">
+              <span className="text-[11px]">Color</span>
               <input
                 type="color"
-                value={primarySelectedNote.textColor ?? NOTE_DEFAULTS.textColor}
-                onChange={(event) => applyTextColorToSelection(event.target.value.toUpperCase())}
-                className="h-5 w-7 cursor-pointer rounded border border-zinc-300 bg-white p-0"
-                title="Note text color"
-                aria-label="Note text color"
+                value={primarySelectedNote.color}
+                onChange={(event) => applyColorToSelection(event.target.value.toUpperCase())}
+                className="h-5 w-6 cursor-pointer rounded border border-zinc-300 bg-white p-0"
               />
             </label>
-            <div className="mx-1 h-5 w-px bg-zinc-300" />
-            <NoteSwatches value={primarySelectedNote.color} onSelect={applyColorToSelection} showCustomColorAdd />
-            <div className="mx-1 h-5 w-px bg-zinc-300" />
             <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd + D)">
               Duplicate
             </button>
@@ -417,35 +365,127 @@ export const WallFloatingUi = ({
             </button>
             <button
               type="button"
-              onClick={() => toggleHighlightOnNote(primarySelectedNote.id)}
-              className={primarySelectedNote.highlighted ? toolbarBtnActive : toolbarBtnCompact}
-              title={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
-              aria-label={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
+              onClick={() => setQuickActionsOverflowOpen((open) => !open)}
+              className={quickActionsOverflowOpen ? toolbarBtnActive : toolbarBtnCompact}
+              title="More note actions"
+              aria-label="More note actions"
             >
-              Highlight
+              More
             </button>
-            <button
-              type="button"
-              onClick={() => onToggleFocusNote(primarySelectedNote.id)}
-              className={isPrimaryNoteFocused ? toolbarBtnActive : toolbarBtnCompact}
-              title={isPrimaryNoteFocused ? "Exit focus mode" : "Focus this note"}
-              aria-label={isPrimaryNoteFocused ? "Exit focus mode" : "Focus note"}
-            >
-              Focus
-            </button>
-            <button
-              type="button"
-              onClick={() => setLinkingFromNote(primarySelectedNote.id)}
-              className={linkingFromNoteId ? toolbarBtnActive : toolbarBtnCompact}
-              title="Start link (Ctrl/Cmd + L)"
-              aria-label="Start link from selected note"
-            >
-              Link
-            </button>
-            <div className="mx-1 h-5 w-px bg-zinc-300" />
-            <button type="button" onClick={onOpenCommandPalette} className={toolbarBtnCompact} title="Open command palette (Ctrl/Cmd + K)" aria-label="Open command palette">
-              Cmd/Ctrl+K
-            </button>
+            {quickActionsOverflowOpen && (
+              <div className="absolute right-0 top-[calc(100%+0.45rem)] z-50 min-w-56 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)]">
+                <div className="space-y-1.5">
+                  <select
+                    value={primarySelectedNote.textFont ?? "nunito"}
+                    onChange={(event) => applyTextFontToSelection(event.target.value as NonNullable<Note["textFont"]>)}
+                    className={`w-full ${toolbarBtnCompact}`}
+                    title="Note font"
+                    aria-label="Note font"
+                  >
+                    {NOTE_TEXT_FONTS.map((option) => (
+                      <option key={`quick-font-${option.value}`} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={primarySelectedNote.textSizePx ?? 16}
+                    onChange={(event) => applyTextSizeToSelection(Number(event.target.value))}
+                    className={`w-full ${toolbarBtnCompact}`}
+                    title="Note size"
+                    aria-label="Note size"
+                  >
+                    {NOTE_TEXT_SIZE_OPTIONS.map((size) => (
+                      <option key={`quick-size-${size}`} value={size}>
+                        {size}px
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={primarySelectedNote.textAlign ?? "left"}
+                    onChange={(event) => applyTextHorizontalAlignToSelection(event.target.value as "left" | "center" | "right")}
+                    className={`w-full ${toolbarBtnCompact}`}
+                    title="Horizontal align"
+                    aria-label="Horizontal align"
+                  >
+                    <option value="left">Left align</option>
+                    <option value="center">Center align</option>
+                    <option value="right">Right align</option>
+                  </select>
+                  <select
+                    value={primarySelectedNote.textVAlign ?? NOTE_DEFAULTS.textVAlign}
+                    onChange={(event) => applyTextVerticalAlignToSelection(event.target.value as "top" | "middle" | "bottom")}
+                    className={`w-full ${toolbarBtnCompact}`}
+                    title="Vertical align"
+                    aria-label="Vertical align"
+                  >
+                    <option value="top">Top align</option>
+                    <option value="middle">Middle align</option>
+                    <option value="bottom">Bottom align</option>
+                  </select>
+                  <label className={`w-full justify-between ${toolbarBtnCompact}`}>
+                    <span>Text color</span>
+                    <input
+                      type="color"
+                      value={primarySelectedNote.textColor ?? NOTE_DEFAULTS.textColor}
+                      onChange={(event) => applyTextColorToSelection(event.target.value.toUpperCase())}
+                      className="h-5 w-7 cursor-pointer rounded border border-zinc-300 bg-white p-0"
+                      title="Note text color"
+                      aria-label="Note text color"
+                    />
+                  </label>
+                  <div className="my-1 h-px bg-[var(--color-border)]" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLinkingFromNote(primarySelectedNote.id);
+                      setQuickActionsOverflowOpen(false);
+                    }}
+                    className={`w-full justify-start ${linkingFromNoteId ? toolbarBtnActive : toolbarBtnCompact}`}
+                    title="Start link (Ctrl/Cmd + L)"
+                    aria-label="Start link from selected note"
+                  >
+                    Link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleHighlightOnNote(primarySelectedNote.id);
+                      setQuickActionsOverflowOpen(false);
+                    }}
+                    className={`w-full justify-start ${primarySelectedNote.highlighted ? toolbarBtnActive : toolbarBtnCompact}`}
+                    title={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
+                    aria-label={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
+                  >
+                    {primarySelectedNote.highlighted ? "Unhighlight" : "Highlight"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onToggleFocusNote(primarySelectedNote.id);
+                      setQuickActionsOverflowOpen(false);
+                    }}
+                    className={`w-full justify-start ${isPrimaryNoteFocused ? toolbarBtnActive : toolbarBtnCompact}`}
+                    title={isPrimaryNoteFocused ? "Exit focus mode" : "Focus this note"}
+                    aria-label={isPrimaryNoteFocused ? "Exit focus mode" : "Focus note"}
+                  >
+                    {isPrimaryNoteFocused ? "Exit Focus" : "Focus"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenCommandPalette();
+                      setQuickActionsOverflowOpen(false);
+                    }}
+                    className={`w-full justify-start ${toolbarBtnCompact}`}
+                    title="Open command palette (Ctrl/Cmd + K)"
+                    aria-label="Open command palette"
+                  >
+                    Command Palette
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
