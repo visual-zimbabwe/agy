@@ -1481,7 +1481,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         layoutMenuOpen={layoutMenuOpen}
         quickCaptureOpen={quickCaptureOpen}
         isTimeLocked={isTimeLocked}
-        hasNoteSelection={hasNoteSelection}
         hasContextActions={hasContextActions}
         showContextColor={showContextColor}
         toolbarSurface={toolbarSurface}

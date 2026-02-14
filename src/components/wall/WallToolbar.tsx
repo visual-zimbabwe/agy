@@ -20,7 +20,6 @@ type WallToolbarProps = {
   layoutMenuOpen: boolean;
   quickCaptureOpen: boolean;
   isTimeLocked: boolean;
-  hasNoteSelection: boolean;
   onToggleLeftPanel: () => void;
   onToggleRightPanel: () => void;
   onOpenCommandPalette: () => void;
@@ -38,7 +37,6 @@ export const WallToolbar = ({
   layoutMenuOpen,
   quickCaptureOpen,
   isTimeLocked,
-  hasNoteSelection,
   onToggleLeftPanel,
   onToggleRightPanel,
   onOpenCommandPalette,
@@ -46,9 +44,9 @@ export const WallToolbar = ({
   onTogglePresentationMode,
   onSetLayoutPreference,
 }: WallToolbarProps) => {
-  const showSecondaryActions = hasNoteSelection || leftPanelOpen || rightPanelOpen || quickCaptureOpen;
-  const toolsAction = !publishedReadOnly && !presentationMode && layoutPrefs.showToolsPanel && (hasNoteSelection || leftPanelOpen);
-  const detailsAction = !presentationMode && layoutPrefs.showDetailsPanel && (hasNoteSelection || rightPanelOpen);
+  const showSecondaryActions = !presentationMode;
+  const toolsAction = !publishedReadOnly && !presentationMode && layoutPrefs.showToolsPanel;
+  const detailsAction = !presentationMode && layoutPrefs.showDetailsPanel;
 
   return (
     <>

@@ -23,7 +23,6 @@ type WallHeaderBarProps = {
   layoutMenuOpen: boolean;
   quickCaptureOpen: boolean;
   isTimeLocked: boolean;
-  hasNoteSelection: boolean;
   hasContextActions: boolean;
   showContextColor: boolean;
   toolbarSurface: string;
@@ -58,7 +57,6 @@ export const WallHeaderBar = ({
   layoutMenuOpen,
   quickCaptureOpen,
   isTimeLocked,
-  hasNoteSelection,
   hasContextActions,
   showContextColor,
   toolbarSurface,
@@ -94,7 +92,6 @@ export const WallHeaderBar = ({
         layoutMenuOpen={layoutMenuOpen}
         quickCaptureOpen={quickCaptureOpen}
         isTimeLocked={isTimeLocked}
-        hasNoteSelection={hasNoteSelection}
         onToggleLeftPanel={onToggleLeftPanel}
         onToggleRightPanel={onToggleRightPanel}
         onOpenCommandPalette={onOpenCommandPalette}
