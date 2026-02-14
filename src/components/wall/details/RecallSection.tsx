@@ -40,7 +40,7 @@ export const RecallSection = ({
             placeholder="Find text or #tag..."
             className="mt-2 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
           />
-          <div className="mt-2 min-w-0 grid grid-cols-3 gap-2">
+          <div className="mt-2 min-w-0 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <select
               value={recallZoneId}
               onChange={(event) => onRecallZoneIdChange(event.target.value)}
@@ -68,7 +68,7 @@ export const RecallSection = ({
             <select
               value={recallDateFilter}
               onChange={(event) => onRecallDateFilterChange(event.target.value as typeof recallDateFilter)}
-              className="col-span-1 min-w-0 w-full max-w-full truncate rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+              className="col-span-1 min-w-0 w-full max-w-full truncate rounded-lg border border-zinc-300 px-2 py-1.5 text-xs sm:col-span-2"
             >
               <option value="all">All dates</option>
               <option value="today">Today</option>
