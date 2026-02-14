@@ -41,7 +41,11 @@ export const RecallSection = ({
             className="mt-2 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
           />
           <div className="mt-2 grid grid-cols-3 gap-2">
-            <select value={recallZoneId} onChange={(event) => onRecallZoneIdChange(event.target.value)} className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs">
+            <select
+              value={recallZoneId}
+              onChange={(event) => onRecallZoneIdChange(event.target.value)}
+              className="col-span-1 min-w-0 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+            >
               <option value="">All zones</option>
               {visibleZones.map((zone) => (
                 <option key={`filter-zone-${zone.id}`} value={zone.id}>
@@ -49,7 +53,11 @@ export const RecallSection = ({
                 </option>
               ))}
             </select>
-            <select value={recallTag} onChange={(event) => onRecallTagChange(event.target.value)} className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs">
+            <select
+              value={recallTag}
+              onChange={(event) => onRecallTagChange(event.target.value)}
+              className="col-span-1 min-w-0 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+            >
               <option value="">All tags</option>
               {availableRecallTags.map((tag) => (
                 <option key={`filter-tag-${tag}`} value={tag}>
@@ -60,7 +68,7 @@ export const RecallSection = ({
             <select
               value={recallDateFilter}
               onChange={(event) => onRecallDateFilterChange(event.target.value as typeof recallDateFilter)}
-              className="col-span-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
+              className="col-span-1 min-w-0 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-xs"
             >
               <option value="all">All dates</option>
               <option value="today">Today</option>
