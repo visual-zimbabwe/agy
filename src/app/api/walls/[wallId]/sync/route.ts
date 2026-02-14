@@ -15,6 +15,8 @@ const noteSchema = z.object({
   textVAlign: z.enum(["top", "middle", "bottom"]).optional(),
   textFont: z.string().optional(),
   textColor: z.string().optional(),
+  pinned: z.boolean().optional(),
+  highlighted: z.boolean().optional(),
   tags: z.array(z.string()),
   textSize: z.enum(["sm", "md", "lg"]).optional(),
   textSizePx: z.number().int().min(8).max(72).optional(),
@@ -102,8 +104,12 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.text_align does not exist") ||
         message.includes("column notes.text_v_align does not exist") ||
         message.includes("column notes.text_font does not exist") ||
-        message.includes("column notes.text_color does not exist")),
+        message.includes("column notes.text_color does not exist") ||
+        message.includes("column notes.pinned does not exist") ||
+        message.includes("column notes.highlighted does not exist")),
   );
+const isMissingNoteGroupsTableError = (message?: string) =>
+  Boolean(message && message.includes('relation "public.note_groups" does not exist'));
 
 export async function POST(request: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
@@ -154,6 +160,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   const notes = Object.values(snapshot.notes);
   const zones = Object.values(snapshot.zones);
   const zoneGroups = Object.values(snapshot.zoneGroups);
+  const noteGroups = Object.values(snapshot.noteGroups);
   const links = Object.values(snapshot.links);
 
   const upsertNotes = async (includeFormatting: boolean) =>
@@ -170,6 +177,8 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               text_v_align: note.textVAlign ?? null,
               text_font: note.textFont ?? null,
               text_color: note.textColor ?? null,
+              pinned: note.pinned ?? false,
+              highlighted: note.highlighted ?? false,
             }
           : {}),
         tags: note.tags,
@@ -259,6 +268,28 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     return NextResponse.json({ error: groupsUpsert.error.message }, { status: 500 });
   }
 
+  const noteGroupsUpsert = noteGroups.length
+    ? await auth.supabase.from("note_groups").upsert(
+      noteGroups.map((group) => ({
+        id: group.id,
+        wall_id: wallId,
+        owner_id: auth.user.id,
+        label: group.label,
+        color: group.color,
+        note_ids: group.noteIds,
+        collapsed: group.collapsed,
+        created_at: toIso(group.createdAt),
+        updated_at: toIso(group.updatedAt),
+        deleted_at: null,
+      })),
+      { onConflict: "id" },
+    )
+    : { error: null };
+
+  if (noteGroupsUpsert.error && !isMissingNoteGroupsTableError(noteGroupsUpsert.error.message)) {
+    return NextResponse.json({ error: noteGroupsUpsert.error.message }, { status: 500 });
+  }
+
   const linksUpsert = links.length
     ? await auth.supabase.from("links").upsert(
       links.map((link) => ({
@@ -281,7 +312,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     return NextResponse.json({ error: linksUpsert.error.message }, { status: 500 });
   }
 
-  const deleteMissing = async (table: "notes" | "zones" | "zone_groups" | "links", ids: string[]) => {
+  const deleteMissing = async (table: "notes" | "zones" | "zone_groups" | "note_groups" | "links", ids: string[]) => {
     const base = auth.supabase.from(table).delete().eq("wall_id", wallId).eq("owner_id", auth.user.id);
     if (ids.length === 0) {
       return base;
@@ -289,20 +320,27 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     return base.not("id", "in", buildInFilter(ids));
   };
 
-  const [notesDelete, zonesDelete, groupsDelete, linksDelete] = await Promise.all([
+  const [notesDelete, zonesDelete, groupsDelete, noteGroupsDelete, linksDelete] = await Promise.all([
     deleteMissing("notes", notes.map((entity) => entity.id)),
     deleteMissing("zones", zones.map((entity) => entity.id)),
     deleteMissing("zone_groups", zoneGroups.map((entity) => entity.id)),
+    deleteMissing("note_groups", noteGroups.map((entity) => entity.id)),
     deleteMissing("links", links.map((entity) => entity.id)),
   ]);
 
-  if (notesDelete.error || zonesDelete.error || groupsDelete.error || linksDelete.error) {
+  const noteGroupsDeleteError =
+    noteGroupsDelete.error && !isMissingNoteGroupsTableError(noteGroupsDelete.error.message)
+      ? noteGroupsDelete.error
+      : null;
+
+  if (notesDelete.error || zonesDelete.error || groupsDelete.error || noteGroupsDeleteError || linksDelete.error) {
     return NextResponse.json(
       {
         error:
           notesDelete.error?.message ??
           zonesDelete.error?.message ??
           groupsDelete.error?.message ??
+          noteGroupsDeleteError?.message ??
           linksDelete.error?.message ??
           "Delete sync failed",
       },

@@ -45,6 +45,8 @@ export type Database = {
           text_v_align: string | null;
           text_font: string | null;
           text_color: string | null;
+          pinned: boolean;
+          highlighted: boolean;
           tags: unknown;
           text_size: string | null;
           x: number;
@@ -66,6 +68,8 @@ export type Database = {
           text_v_align?: string | null;
           text_font?: string | null;
           text_color?: string | null;
+          pinned?: boolean;
+          highlighted?: boolean;
           tags?: unknown;
           text_size?: string | null;
           x: number;
@@ -84,6 +88,8 @@ export type Database = {
           text_v_align?: string | null;
           text_font?: string | null;
           text_color?: string | null;
+          pinned?: boolean;
+          highlighted?: boolean;
           tags?: unknown;
           text_size?: string | null;
           x?: number;
@@ -172,6 +178,41 @@ export type Database = {
           label?: string;
           color?: string;
           zone_ids?: unknown;
+          collapsed?: boolean;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Relationships: [];
+      };
+      note_groups: {
+        Row: {
+          id: string;
+          wall_id: string;
+          owner_id: string;
+          label: string;
+          color: string;
+          note_ids: unknown;
+          collapsed: boolean;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id: string;
+          wall_id: string;
+          owner_id: string;
+          label: string;
+          color: string;
+          note_ids?: unknown;
+          collapsed?: boolean;
+          created_at: string;
+          updated_at: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          label?: string;
+          color?: string;
+          note_ids?: unknown;
           collapsed?: boolean;
           updated_at?: string;
           deleted_at?: string | null;

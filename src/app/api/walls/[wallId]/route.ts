@@ -29,8 +29,12 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.text_align does not exist") ||
         message.includes("column notes.text_v_align does not exist") ||
         message.includes("column notes.text_font does not exist") ||
-        message.includes("column notes.text_color does not exist")),
+        message.includes("column notes.text_color does not exist") ||
+        message.includes("column notes.pinned does not exist") ||
+        message.includes("column notes.highlighted does not exist")),
   );
+const isMissingNoteGroupsTableError = (message?: string) =>
+  Boolean(message && message.includes('relation "public.note_groups" does not exist'));
 
 export async function GET(_: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
@@ -45,7 +49,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
 
   const wallId = parsedParams.data.wallId;
 
-  const [wallResult, groupsResult, linksResult] = await Promise.all([
+  const [wallResult, groupsResult, noteGroupsResult, linksResult] = await Promise.all([
     auth.supabase
       .from("walls")
       .select("id,camera_x,camera_y,camera_zoom,last_color")
@@ -55,6 +59,12 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     auth.supabase
       .from("zone_groups")
       .select("id,label,color,zone_ids,collapsed,created_at,updated_at")
+      .eq("wall_id", wallId)
+      .eq("owner_id", auth.user.id)
+      .is("deleted_at", null),
+    auth.supabase
+      .from("note_groups")
+      .select("id,label,color,note_ids,collapsed,created_at,updated_at")
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null),
@@ -80,9 +90,17 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     );
   }
 
+  let noteGroupsData = noteGroupsResult.data ?? [];
+  if (noteGroupsResult.error) {
+    if (!isMissingNoteGroupsTableError(noteGroupsResult.error.message)) {
+      return NextResponse.json({ error: noteGroupsResult.error.message }, { status: 500 });
+    }
+    noteGroupsData = [];
+  }
+
   const notesWithFormattingResult = await auth.supabase
     .from("notes")
-    .select("id,text,image_url,text_align,text_v_align,text_font,text_color,tags,text_size,x,y,w,h,color,created_at,updated_at")
+    .select("id,text,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,tags,text_size,x,y,w,h,color,created_at,updated_at")
     .eq("wall_id", wallId)
     .eq("owner_id", auth.user.id)
     .is("deleted_at", null);
@@ -105,6 +123,8 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       text_v_align: null,
       text_font: null,
       text_color: null,
+      pinned: false,
+      highlighted: false,
     })) ?? [];
   } else if (notesWithFormattingResult.error) {
     return NextResponse.json({ error: notesWithFormattingResult.error.message }, { status: 500 });
@@ -138,6 +158,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     notes: notesData ?? [],
     zones: zonesData ?? [],
     zoneGroups: groupsResult.data ?? [],
+    noteGroups: noteGroupsData,
     links: linksResult.data ?? [],
   });
 

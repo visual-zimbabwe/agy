@@ -29,6 +29,7 @@ describe("cloud rows mapping", () => {
       ],
       zones: [],
       zoneGroups: [],
+      noteGroups: [],
       links: [],
     });
 
@@ -61,6 +62,7 @@ describe("cloud rows mapping", () => {
       ],
       zones: [],
       zoneGroups: [],
+      noteGroups: [],
       links: [],
     });
 
@@ -69,5 +71,46 @@ describe("cloud rows mapping", () => {
     expect(note?.textVAlign).toBe(NOTE_DEFAULTS.textVAlign);
     expect(note?.textColor).toBe(NOTE_DEFAULTS.textColor);
     expect(note?.textFont).toBe("nunito");
+  });
+
+  it("maps note groups and note state fields from cloud rows", () => {
+    const snapshot = rowsToSnapshot({
+      wall: { camera_x: 0, camera_y: 0, camera_zoom: 1, last_color: null },
+      notes: [
+        {
+          id: "n1",
+          text: "Pinned",
+          pinned: true,
+          highlighted: true,
+          tags: [],
+          text_size: null,
+          x: 0,
+          y: 0,
+          w: 200,
+          h: 140,
+          color: "#FEEA89",
+          created_at: "2026-02-14T08:00:00.000Z",
+          updated_at: "2026-02-14T09:00:00.000Z",
+        },
+      ],
+      zones: [],
+      zoneGroups: [],
+      noteGroups: [
+        {
+          id: "g1",
+          label: "Group",
+          color: "#C7D2FE",
+          note_ids: ["n1"],
+          collapsed: false,
+          created_at: "2026-02-14T08:00:00.000Z",
+          updated_at: "2026-02-14T09:00:00.000Z",
+        },
+      ],
+      links: [],
+    });
+
+    expect(snapshot.notes.n1?.pinned).toBe(true);
+    expect(snapshot.notes.n1?.highlighted).toBe(true);
+    expect(snapshot.noteGroups.g1?.noteIds).toEqual(["n1"]);
   });
 });

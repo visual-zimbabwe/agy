@@ -16,6 +16,8 @@ type NoteRow = {
   text_v_align?: string | null;
   text_font?: string | null;
   text_color?: string | null;
+  pinned?: boolean | null;
+  highlighted?: boolean | null;
   tags: unknown;
   text_size: string | null;
   x: number;
@@ -74,6 +76,16 @@ type ZoneGroupRow = {
   label: string;
   color: string;
   zone_ids: unknown;
+  collapsed: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type NoteGroupRow = {
+  id: string;
+  label: string;
+  color: string;
+  note_ids: unknown;
   collapsed: boolean;
   created_at: string;
   updated_at: string;
@@ -152,6 +164,7 @@ export const rowsToSnapshot = (rows: {
   notes: NoteRow[];
   zones: ZoneRow[];
   zoneGroups: ZoneGroupRow[];
+  noteGroups: NoteGroupRow[];
   links: LinkRow[];
 }): PersistedWallState => ({
   notes: Object.fromEntries(
@@ -166,6 +179,8 @@ export const rowsToSnapshot = (rows: {
         textVAlign: note.text_v_align === "middle" || note.text_v_align === "bottom" ? note.text_v_align : NOTE_DEFAULTS.textVAlign,
         textFont: normalizeNoteFont(note.text_font),
         textColor: typeof note.text_color === "string" && note.text_color ? note.text_color : NOTE_DEFAULTS.textColor,
+        pinned: Boolean(note.pinned),
+        highlighted: Boolean(note.highlighted),
         tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
         x: note.x,
         y: note.y,
@@ -209,7 +224,20 @@ export const rowsToSnapshot = (rows: {
       },
     ]),
   ),
-  noteGroups: {},
+  noteGroups: Object.fromEntries(
+    rows.noteGroups.map((group) => [
+      group.id,
+      {
+        id: group.id,
+        label: group.label,
+        color: group.color,
+        noteIds: Array.isArray(group.note_ids) ? (group.note_ids as string[]) : [],
+        collapsed: group.collapsed,
+        createdAt: fromIso(group.created_at),
+        updatedAt: fromIso(group.updated_at),
+      },
+    ]),
+  ),
   links: Object.fromEntries(
     rows.links.map((link) => [
       link.id,
