@@ -22,6 +22,15 @@ const patchWallSchema = z.object({
 
 const isMissingZoneKindColumnError = (message?: string) =>
   Boolean(message && message.includes("column zones.kind does not exist"));
+const isMissingNoteFormattingColumnError = (message?: string) =>
+  Boolean(
+    message &&
+      (message.includes("column notes.image_url does not exist") ||
+        message.includes("column notes.text_align does not exist") ||
+        message.includes("column notes.text_v_align does not exist") ||
+        message.includes("column notes.text_font does not exist") ||
+        message.includes("column notes.text_color does not exist")),
+  );
 
 export async function GET(_: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
@@ -36,19 +45,13 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
 
   const wallId = parsedParams.data.wallId;
 
-  const [wallResult, notesResult, groupsResult, linksResult] = await Promise.all([
+  const [wallResult, groupsResult, linksResult] = await Promise.all([
     auth.supabase
       .from("walls")
       .select("id,camera_x,camera_y,camera_zoom,last_color")
       .eq("id", wallId)
       .eq("owner_id", auth.user.id)
       .maybeSingle(),
-    auth.supabase
-      .from("notes")
-      .select("id,text,tags,text_size,x,y,w,h,color,created_at,updated_at")
-      .eq("wall_id", wallId)
-      .eq("owner_id", auth.user.id)
-      .is("deleted_at", null),
     auth.supabase
       .from("zone_groups")
       .select("id,label,color,zone_ids,collapsed,created_at,updated_at")
@@ -67,17 +70,44 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     return NextResponse.json({ error: "Wall not found" }, { status: 404 });
   }
 
-  if (notesResult.error || groupsResult.error || linksResult.error) {
+  if (groupsResult.error || linksResult.error) {
     return NextResponse.json(
       {
         error:
-          notesResult.error?.message ??
-          groupsResult.error?.message ??
-          linksResult.error?.message ??
-          "Query failed",
+          groupsResult.error?.message ?? linksResult.error?.message ?? "Query failed",
       },
       { status: 500 },
     );
+  }
+
+  const notesWithFormattingResult = await auth.supabase
+    .from("notes")
+    .select("id,text,image_url,text_align,text_v_align,text_font,text_color,tags,text_size,x,y,w,h,color,created_at,updated_at")
+    .eq("wall_id", wallId)
+    .eq("owner_id", auth.user.id)
+    .is("deleted_at", null);
+
+  let notesData = notesWithFormattingResult.data;
+  if (notesWithFormattingResult.error && isMissingNoteFormattingColumnError(notesWithFormattingResult.error.message)) {
+    const notesLegacyResult = await auth.supabase
+      .from("notes")
+      .select("id,text,tags,text_size,x,y,w,h,color,created_at,updated_at")
+      .eq("wall_id", wallId)
+      .eq("owner_id", auth.user.id)
+      .is("deleted_at", null);
+    if (notesLegacyResult.error) {
+      return NextResponse.json({ error: notesLegacyResult.error.message }, { status: 500 });
+    }
+    notesData = notesLegacyResult.data?.map((note) => ({
+      ...note,
+      image_url: null,
+      text_align: null,
+      text_v_align: null,
+      text_font: null,
+      text_color: null,
+    })) ?? [];
+  } else if (notesWithFormattingResult.error) {
+    return NextResponse.json({ error: notesWithFormattingResult.error.message }, { status: 500 });
   }
 
   const zonesWithKindResult = await auth.supabase
@@ -105,7 +135,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
 
   const snapshot = rowsToSnapshot({
     wall: wallResult.data,
-    notes: notesResult.data ?? [],
+    notes: notesData ?? [],
     zones: zonesData ?? [],
     zoneGroups: groupsResult.data ?? [],
     links: linksResult.data ?? [],

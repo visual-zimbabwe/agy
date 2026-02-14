@@ -507,12 +507,14 @@ Expected:
 8. Modify wall on device B, sync, then refresh device A and verify updates propagate.
 9. Turn off network, make local edits, turn network back on, click `Sync now`, verify changes persist and error clears.
 10. Sign in with a second account and verify it does not see the first account's wall.
+11. While signed in, set a note's `Horizontal align`, `Vertical align`, and `Text color`; wait for sync, then close browser, restart `npm run dev`, and reopen `/wall`.
 
 Expected:
 - `/wall` is protected for unauthenticated users.
 - Sync status updates (`Syncing...`, `Last synced`) behave consistently.
 - Cross-device sync works for create/edit/delete.
 - Accounts remain isolated via RLS.
+- Note formatting (`textAlign`, `textVAlign`, `textColor`) survives app/browser restarts and cloud rehydration.
 
 ## Priority 2 Maintainability Guardrails (2026-02-12)
 1. Run `npm run lint`.

@@ -1,3 +1,4 @@
+import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import type { PersistedWallState } from "@/features/wall/types";
 
 type WallRow = {
@@ -10,6 +11,11 @@ type WallRow = {
 type NoteRow = {
   id: string;
   text: string;
+  image_url?: string | null;
+  text_align?: string | null;
+  text_v_align?: string | null;
+  text_font?: string | null;
+  text_color?: string | null;
   tags: unknown;
   text_size: string | null;
   x: number;
@@ -19,6 +25,34 @@ type NoteRow = {
   color: string;
   created_at: string;
   updated_at: string;
+};
+
+const normalizeNoteFont = (value: string | null | undefined) => {
+  if (
+    value === "roboto" ||
+    value === "open_sans" ||
+    value === "lato" ||
+    value === "montserrat" ||
+    value === "poppins" ||
+    value === "nunito" ||
+    value === "source_sans_3" ||
+    value === "inter" ||
+    value === "raleway" ||
+    value === "ubuntu" ||
+    value === "playfair_display" ||
+    value === "merriweather" ||
+    value === "pt_sans" ||
+    value === "noto_sans" ||
+    value === "work_sans" ||
+    value === "oswald" ||
+    value === "rubik" ||
+    value === "fira_sans" ||
+    value === "josefin_sans" ||
+    value === "quicksand"
+  ) {
+    return value;
+  }
+  return "nunito";
 };
 
 type ZoneRow = {
@@ -127,6 +161,11 @@ export const rowsToSnapshot = (rows: {
         ...parseTextSize(note.text_size),
         id: note.id,
         text: note.text,
+        imageUrl: note.image_url?.trim() || undefined,
+        textAlign: note.text_align === "center" || note.text_align === "right" ? note.text_align : "left",
+        textVAlign: note.text_v_align === "middle" || note.text_v_align === "bottom" ? note.text_v_align : NOTE_DEFAULTS.textVAlign,
+        textFont: normalizeNoteFont(note.text_font),
+        textColor: typeof note.text_color === "string" && note.text_color ? note.text_color : NOTE_DEFAULTS.textColor,
         tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
         x: note.x,
         y: note.y,

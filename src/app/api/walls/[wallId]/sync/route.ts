@@ -10,6 +10,11 @@ const paramsSchema = z.object({
 const noteSchema = z.object({
   id: z.string().min(1),
   text: z.string(),
+  imageUrl: z.string().optional(),
+  textAlign: z.enum(["left", "center", "right"]).optional(),
+  textVAlign: z.enum(["top", "middle", "bottom"]).optional(),
+  textFont: z.string().optional(),
+  textColor: z.string().optional(),
   tags: z.array(z.string()),
   textSize: z.enum(["sm", "md", "lg"]).optional(),
   textSizePx: z.number().int().min(8).max(72).optional(),
@@ -90,6 +95,15 @@ const buildInFilter = (ids: string[]) =>
 
 const isMissingZoneKindColumnError = (message?: string) =>
   Boolean(message && message.includes("column zones.kind does not exist"));
+const isMissingNoteFormattingColumnError = (message?: string) =>
+  Boolean(
+    message &&
+      (message.includes("column notes.image_url does not exist") ||
+        message.includes("column notes.text_align does not exist") ||
+        message.includes("column notes.text_v_align does not exist") ||
+        message.includes("column notes.text_font does not exist") ||
+        message.includes("column notes.text_color does not exist")),
+  );
 
 export async function POST(request: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
@@ -142,13 +156,22 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   const zoneGroups = Object.values(snapshot.zoneGroups);
   const links = Object.values(snapshot.links);
 
-  const notesUpsert = notes.length
-    ? await auth.supabase.from("notes").upsert(
+  const upsertNotes = async (includeFormatting: boolean) =>
+    auth.supabase.from("notes").upsert(
       notes.map((note) => ({
         id: note.id,
         wall_id: wallId,
         owner_id: auth.user.id,
         text: note.text,
+        ...(includeFormatting
+          ? {
+              image_url: note.imageUrl?.trim() || null,
+              text_align: note.textAlign ?? null,
+              text_v_align: note.textVAlign ?? null,
+              text_font: note.textFont ?? null,
+              text_color: note.textColor ?? null,
+            }
+          : {}),
         tags: note.tags,
         text_size: toStoredTextSize(note),
         x: note.x,
@@ -161,8 +184,18 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
         deleted_at: null,
       })),
       { onConflict: "id" },
-    )
-    : { error: null };
+    );
+
+  let notesUpsert = { error: null as { message: string } | null };
+  if (notes.length) {
+    const withFormatting = await upsertNotes(true);
+    if (withFormatting.error && isMissingNoteFormattingColumnError(withFormatting.error.message)) {
+      const legacy = await upsertNotes(false);
+      notesUpsert = { error: legacy.error ? { message: legacy.error.message } : null };
+    } else {
+      notesUpsert = { error: withFormatting.error ? { message: withFormatting.error.message } : null };
+    }
+  }
 
   if (notesUpsert.error) {
     return NextResponse.json({ error: notesUpsert.error.message }, { status: 500 });

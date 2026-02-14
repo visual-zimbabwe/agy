@@ -40,6 +40,11 @@ export type Database = {
           wall_id: string;
           owner_id: string;
           text: string;
+          image_url: string | null;
+          text_align: string | null;
+          text_v_align: string | null;
+          text_font: string | null;
+          text_color: string | null;
           tags: unknown;
           text_size: string | null;
           x: number;
@@ -56,6 +61,11 @@ export type Database = {
           wall_id: string;
           owner_id: string;
           text: string;
+          image_url?: string | null;
+          text_align?: string | null;
+          text_v_align?: string | null;
+          text_font?: string | null;
+          text_color?: string | null;
           tags?: unknown;
           text_size?: string | null;
           x: number;
@@ -69,6 +79,11 @@ export type Database = {
         };
         Update: {
           text?: string;
+          image_url?: string | null;
+          text_align?: string | null;
+          text_v_align?: string | null;
+          text_font?: string | null;
+          text_color?: string | null;
           tags?: unknown;
           text_size?: string | null;
           x?: number;
