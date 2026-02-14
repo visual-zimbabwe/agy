@@ -80,37 +80,38 @@ export const WallToolbar = ({
 
   const closeMoreMenu = () => setMoreMenuOpen(false);
 
-  const showContextualActions = hasNoteSelection || leftPanelOpen || rightPanelOpen || quickCaptureOpen || moreMenuOpen;
+  const showSecondaryActions = hasNoteSelection || leftPanelOpen || rightPanelOpen || quickCaptureOpen || moreMenuOpen;
   const detailsAction = !presentationMode && layoutPrefs.showDetailsPanel && (hasNoteSelection || rightPanelOpen);
 
   return (
     <>
       <div className="relative flex w-full items-center justify-start">
-        {showContextualActions && (
-          <div className="inline-flex items-center gap-1.5">
-            <ControlTooltip label="Toggle quick capture" shortcut="Q or Ctrl/Cmd + J" side="bottom">
-              <button
-                type="button"
-                onClick={onToggleQuickCapture}
-                disabled={isTimeLocked}
-                className={quickCaptureOpen ? toolbarBtnActive : toolbarBtn}
-                title="Toggle quick capture (Q or Ctrl/Cmd + J)"
-              >
-                <Icon name="capture" />
-                <span>Capture</span>
-              </button>
-            </ControlTooltip>
-            <ControlTooltip label="Toggle presentation mode" shortcut="P" side="top">
-              <button
-                type="button"
-                onClick={onTogglePresentationMode}
-                className={presentationMode ? toolbarBtnActive : toolbarBtn}
-                title="Toggle presentation mode (P)"
-              >
-                <Icon name="present" />
-                <span>Present</span>
-              </button>
-            </ControlTooltip>
+        <div className="inline-flex items-center gap-1.5">
+          <ControlTooltip label="Toggle quick capture" shortcut="Q or Ctrl/Cmd + J" side="bottom">
+            <button
+              type="button"
+              onClick={onToggleQuickCapture}
+              disabled={isTimeLocked}
+              className={quickCaptureOpen ? toolbarBtnActive : toolbarBtn}
+              title="Toggle quick capture (Q or Ctrl/Cmd + J)"
+            >
+              <Icon name="capture" />
+              <span>Capture</span>
+            </button>
+          </ControlTooltip>
+          <ControlTooltip label="Toggle presentation mode" shortcut="P" side="top">
+            <button
+              type="button"
+              onClick={onTogglePresentationMode}
+              className={presentationMode ? toolbarBtnActive : toolbarBtn}
+              title="Toggle presentation mode (P)"
+            >
+              <Icon name="present" />
+              <span>Present</span>
+            </button>
+          </ControlTooltip>
+          {showSecondaryActions && (
+            <>
             {detailsAction && (
               <ControlTooltip label={rightPanelOpen ? "Hide details panel" : "Show details panel"} side="top">
                 <button
@@ -159,8 +160,9 @@ export const WallToolbar = ({
                 </div>
               )}
             </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
         <ControlTooltip label="Command palette (Ctrl+K)" side="bottom">
           <button
             type="button"
