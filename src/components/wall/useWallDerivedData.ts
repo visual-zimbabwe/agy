@@ -27,6 +27,7 @@ type UseWallDerivedDataOptions = {
   wallClockTs: number;
   presentationMode: boolean;
   presentationIndex: number;
+  presentationCameraEnabled?: boolean;
   viewport: { w: number; h: number };
   setCamera: (camera: { x: number; y: number; zoom: number }) => void;
 };
@@ -45,6 +46,7 @@ export const useWallDerivedData = ({
   wallClockTs,
   presentationMode,
   presentationIndex,
+  presentationCameraEnabled = true,
   viewport,
   setCamera,
 }: UseWallDerivedDataOptions) => {
@@ -128,7 +130,7 @@ export const useWallDerivedData = ({
   }, [presentationIndex, presentationMode, presentationNotes]);
 
   useEffect(() => {
-    if (!presentationTarget) {
+    if (!presentationTarget || !presentationCameraEnabled) {
       return;
     }
     const zoom = 1.25;
@@ -137,7 +139,7 @@ export const useWallDerivedData = ({
       x: viewport.w / 2 - (presentationTarget.x + presentationTarget.w / 2) * zoom,
       y: viewport.h / 2 - (presentationTarget.y + presentationTarget.h / 2) * zoom,
     });
-  }, [presentationTarget, setCamera, viewport.h, viewport.w]);
+  }, [presentationCameraEnabled, presentationTarget, setCamera, viewport.h, viewport.w]);
 
   const autoTagGroups = useMemo<TagGroup[]>(() => {
     const byTag = new Map<string, Note[]>();

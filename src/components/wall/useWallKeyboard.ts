@@ -32,6 +32,7 @@ type WallKeyboardOptions = {
   isTimeLocked: boolean;
   readingMode: boolean;
   presentationMode: boolean;
+  presentationLength: number;
   timelineEntriesLength: number;
   timelineModeRef: MutableRefObject<boolean>;
   setIsSpaceDown: (value: boolean) => void;
@@ -91,6 +92,7 @@ export const useWallKeyboard = ({
   isTimeLocked,
   readingMode,
   presentationMode,
+  presentationLength,
   timelineEntriesLength,
   timelineModeRef,
   setIsSpaceDown,
@@ -288,7 +290,7 @@ export const useWallKeyboard = ({
 
       if (presentationMode && (event.key === "ArrowRight" || event.key === "ArrowDown")) {
         event.preventDefault();
-        setPresentationIndex((previous) => Math.min(previous + 1, Math.max(0, notes.length - 1)));
+        setPresentationIndex((previous) => Math.min(previous + 1, Math.max(0, presentationLength - 1)));
         return;
       }
 
@@ -481,6 +483,7 @@ export const useWallKeyboard = ({
     notes,
     notesMap,
     openEditor,
+    presentationLength,
     presentationMode,
     readingMode,
     redo,

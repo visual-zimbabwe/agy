@@ -327,6 +327,24 @@ Expected:
 - Presentation mode supports focused note-by-note walkthrough.
 - Published snapshot link opens a read-only wall state without mutation controls.
 
+## Presentation Polish - Narrative Paths
+1. Enter presentation mode (`P`) on `/wall`.
+2. In the presentation dock, click `New Path` and create a named narrative path.
+3. Pan/zoom camera to first storytelling frame and click `Add Step`.
+4. Enter talking points in the dock textarea.
+5. Move camera to two additional frames and click `Add Step` for each.
+6. Use `Prev` and `Next` in the dock (and arrow keys) to navigate steps.
+7. On one step, move camera slightly and click `Update View`.
+8. Verify talking points and camera framing stay attached to each step while navigating.
+9. Click `Delete Step` and verify step list/index updates safely.
+10. Exit presentation mode, refresh page, re-enter presentation mode, and reselect the path from dropdown.
+
+Expected:
+- Narrative paths persist locally with saved camera waypoints and step notes.
+- Presentation navigation follows selected path steps when a path is active.
+- `Update View` updates only the active step camera without creating duplicates.
+- Deleting a step keeps navigation stable and never crashes at index boundaries.
+
 ## Data Backup - JSON Export/Import and Reminder
 1. Open `Export` modal and click `Export JSON`.
 2. Verify a backup file is downloaded (filename starts with `idea-wall-backup-`).

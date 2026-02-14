@@ -214,6 +214,7 @@ export const recallStorageKey = "idea-wall-recall-searches";
 export const layoutPrefsStorageKey = "idea-wall-layout-prefs";
 export const controlsModeStorageKey = "idea-wall-controls-mode";
 export const spatialPrefsStorageKey = "idea-wall-spatial-prefs";
+export const presentationPathsStorageKey = "idea-wall-presentation-paths";
 export const backupReminderCadenceStorageKey = "idea-wall-backup-reminder-cadence";
 export const backupReminderLastPromptStorageKey = "idea-wall-backup-reminder-last-prompt";
 export const compactPanelBreakpoint = 1120;

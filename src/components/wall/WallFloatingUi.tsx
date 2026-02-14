@@ -76,7 +76,17 @@ type WallFloatingUiProps = {
   setTimelineIndex: Dispatch<SetStateAction<number>>;
   presentationMode: boolean;
   presentationIndex: number;
-  presentationNotesLength: number;
+  presentationLength: number;
+  presentationModeType: "notes" | "narrative";
+  narrativePaths: Array<{ id: string; title: string; stepsCount: number }>;
+  activeNarrativePathId: string;
+  activeStepTalkingPoints: string;
+  onCreateNarrativePath: () => void;
+  onPathChange: (pathId: string) => void;
+  onAddNarrativeStep: () => void;
+  onDeleteNarrativeStep: () => void;
+  onUpdateStepTalkingPoints: (value: string) => void;
+  onCaptureNarrativeStepCamera: () => void;
   setPresentationIndex: Dispatch<SetStateAction<number>>;
   setPresentationMode: Dispatch<SetStateAction<boolean>>;
   onZoomIn: () => void;
@@ -140,7 +150,17 @@ export const WallFloatingUi = ({
   setTimelineIndex,
   presentationMode,
   presentationIndex,
-  presentationNotesLength,
+  presentationLength,
+  presentationModeType,
+  narrativePaths,
+  activeNarrativePathId,
+  activeStepTalkingPoints,
+  onCreateNarrativePath,
+  onPathChange,
+  onAddNarrativeStep,
+  onDeleteNarrativeStep,
+  onUpdateStepTalkingPoints,
+  onCaptureNarrativeStepCamera,
   setPresentationIndex,
   setPresentationMode,
   onZoomIn,
@@ -550,10 +570,20 @@ export const WallFloatingUi = ({
 
       {presentationMode && (
         <WallPresentationDock
+          mode={presentationModeType}
           presentationIndex={presentationIndex}
-          presentationNotesLength={presentationNotesLength}
+          presentationLength={presentationLength}
+          narrativePaths={narrativePaths}
+          activeNarrativePathId={activeNarrativePathId}
+          activeStepTalkingPoints={activeStepTalkingPoints}
           onPrev={() => setPresentationIndex((previous) => Math.max(previous - 1, 0))}
-          onNext={() => setPresentationIndex((previous) => Math.min(previous + 1, Math.max(0, presentationNotesLength - 1)))}
+          onNext={() => setPresentationIndex((previous) => Math.min(previous + 1, Math.max(0, presentationLength - 1)))}
+          onCreateNarrativePath={onCreateNarrativePath}
+          onPathChange={onPathChange}
+          onAddStep={onAddNarrativeStep}
+          onDeleteStep={onDeleteNarrativeStep}
+          onUpdateTalkingPoints={onUpdateStepTalkingPoints}
+          onCaptureStepCamera={onCaptureNarrativeStepCamera}
           onExit={() => setPresentationMode(false)}
         />
       )}

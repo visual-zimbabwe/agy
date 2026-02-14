@@ -29,6 +29,7 @@ import {
   linkStrokeByType,
   makeDownloadId,
   noteTagChipPalette,
+  presentationPathsStorageKey,
   recallStorageKey,
   recencyIntensity,
   spatialPrefsStorageKey,
@@ -96,6 +97,14 @@ import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
+import {
+  addPresentationStep,
+  clampPresentationIndex,
+  createPresentationPath,
+  makeDefaultPathTitle,
+  parsePresentationPathsPayload,
+  type PresentationPath,
+} from "@/lib/presentation-paths";
 import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
@@ -237,6 +246,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
   const [touchPaletteNoteId, setTouchPaletteNoteId] = useState<string | undefined>(undefined);
   const [presentationIndex, setPresentationIndex] = useState(0);
+  const [presentationPaths, setPresentationPaths] = useState<PresentationPath[]>([]);
+  const [activePresentationPathId, setActivePresentationPathId] = useState("");
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [clientPrefsLoaded, setClientPrefsLoaded] = useState(false);
@@ -283,6 +294,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const isChromeHidden = presentationMode || readingMode;
   const isCompactLayout = viewport.w < compactPanelBreakpoint;
   timelineModeRef.current = timelineMode;
+  const activePresentationPath = useMemo(
+    () => presentationPaths.find((path) => path.id === activePresentationPathId),
+    [activePresentationPathId, presentationPaths],
+  );
+  const activePresentationSteps = activePresentationPath?.steps ?? [];
+  const hasNarrativePresentation = activePresentationSteps.length > 0;
+  const presentationLengthForKeyboard = hasNarrativePresentation ? activePresentationSteps.length : notes.length;
 
   const commitEditedNoteText = useCallback((noteId: string, rawText: string) => {
     const current = renderSnapshot.notes[noteId];
@@ -427,6 +445,16 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       // Ignore malformed persisted spatial payloads and keep defaults.
     }
 
+    try {
+      const narrativeRaw = window.localStorage.getItem(presentationPathsStorageKey);
+      if (narrativeRaw) {
+        const parsedPaths = parsePresentationPathsPayload(narrativeRaw);
+        setPresentationPaths(parsedPaths);
+      }
+    } catch {
+      // Ignore malformed persisted narrative payloads and keep defaults.
+    }
+
     const cadenceRaw = window.localStorage.getItem(backupReminderCadenceStorageKey);
     setBackupReminderCadence(cadenceRaw === "daily" || cadenceRaw === "weekly" ? cadenceRaw : "off");
 
@@ -467,8 +495,27 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     if (typeof window === "undefined" || !clientPrefsLoaded) {
       return;
     }
+    window.localStorage.setItem(presentationPathsStorageKey, JSON.stringify(presentationPaths));
+  }, [clientPrefsLoaded, presentationPaths]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !clientPrefsLoaded) {
+      return;
+    }
     window.localStorage.setItem(backupReminderCadenceStorageKey, backupReminderCadence);
   }, [backupReminderCadence, clientPrefsLoaded]);
+
+  useEffect(() => {
+    if (!activePresentationPathId) {
+      return;
+    }
+    if (!activePresentationPath) {
+      setActivePresentationPathId("");
+      setPresentationIndex(0);
+      return;
+    }
+    setPresentationIndex((previous) => clampPresentationIndex(previous, activePresentationSteps.length || 1));
+  }, [activePresentationPath, activePresentationPathId, activePresentationSteps.length]);
 
   const syncSnapshotToCloud = useCallback(
     async (wallId: string, snapshot: PersistedWallState) => {
@@ -769,6 +816,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     isTimeLocked,
     readingMode,
     presentationMode,
+    presentationLength: presentationLengthForKeyboard,
     timelineEntriesLength: timelineEntries.length,
     timelineModeRef,
     setIsSpaceDown,
@@ -865,6 +913,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     wallClockTs,
     presentationMode,
     presentationIndex,
+    presentationCameraEnabled: !hasNarrativePresentation,
     viewport,
     setCamera,
   });
@@ -881,6 +930,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const renderVisibleZones = useMemo(() => (focusedNote ? [] : visibleZones), [focusedNote, visibleZones]);
   const renderVisibleLinks = useMemo(() => (focusedNote ? [] : visibleLinks), [focusedNote, visibleLinks]);
   const renderPathLinkIds = useMemo(() => (focusedNote ? new Set<string>() : pathLinkIds), [focusedNote, pathLinkIds]);
+  const presentationModeType: "notes" | "narrative" = hasNarrativePresentation ? "narrative" : "notes";
+  const presentationLength = presentationModeType === "narrative" ? activePresentationSteps.length : presentationNotes.length;
+  const activePresentationStep =
+    presentationModeType === "narrative"
+      ? activePresentationSteps[clampPresentationIndex(presentationIndex, activePresentationSteps.length)]
+      : undefined;
   const maxViewportWidth = typeof window !== "undefined" ? window.innerWidth : viewport.w;
   const maxViewportHeight = typeof window !== "undefined" ? window.innerHeight : viewport.h;
   const {
@@ -911,6 +966,17 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     gridSize: spatialPrefs.dotGridSpacing,
     setGuideLines,
   });
+
+  useEffect(() => {
+    setPresentationIndex((previous) => clampPresentationIndex(previous, presentationLength || 1));
+  }, [presentationLength]);
+
+  useEffect(() => {
+    if (!presentationMode || !activePresentationStep) {
+      return;
+    }
+    setCamera(activePresentationStep.camera);
+  }, [activePresentationStep, presentationMode, setCamera]);
 
   const selectSingleNote = (noteId: string) => {
     syncPrimarySelection([noteId]);
@@ -1017,6 +1083,117 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   });
 
   const { stepZoom, resetZoom } = useWallZoomControls({ camera, viewport, setCamera });
+  const narrativePathOptions = useMemo(
+    () =>
+      presentationPaths.map((path) => ({
+        id: path.id,
+        title: path.title,
+        stepsCount: path.steps.length,
+      })),
+    [presentationPaths],
+  );
+
+  const createNarrativePath = useCallback(() => {
+    if (publishedReadOnly) {
+      return;
+    }
+    const defaultTitle = makeDefaultPathTitle(presentationPaths);
+    const provided = window.prompt("Name this narrative path", defaultTitle);
+    if (provided === null) {
+      return;
+    }
+    const path = createPresentationPath(provided.trim() || defaultTitle);
+    setPresentationPaths((previous) => [path, ...previous]);
+    setActivePresentationPathId(path.id);
+    setPresentationIndex(0);
+  }, [presentationPaths, publishedReadOnly]);
+
+  const addNarrativeStep = useCallback(() => {
+    if (publishedReadOnly) {
+      return;
+    }
+    const now = Date.now();
+    let targetPathId = activePresentationPathId;
+    if (!targetPathId) {
+      const created = createPresentationPath(makeDefaultPathTitle(presentationPaths), now);
+      setPresentationPaths((previous) => [created, ...previous]);
+      targetPathId = created.id;
+      setActivePresentationPathId(created.id);
+    }
+
+    setPresentationPaths((previous) =>
+      previous.map((path) => (path.id === targetPathId ? addPresentationStep(path, camera, now) : path)),
+    );
+
+    const nextLength = activePresentationPath?.steps.length ?? 0;
+    setPresentationIndex(nextLength);
+  }, [activePresentationPath, activePresentationPathId, camera, presentationPaths, publishedReadOnly]);
+
+  const updateNarrativeTalkingPoints = useCallback(
+    (value: string) => {
+      if (!activePresentationPathId || !activePresentationStep || publishedReadOnly) {
+        return;
+      }
+      setPresentationPaths((previous) =>
+        previous.map((path) => {
+          if (path.id !== activePresentationPathId) {
+            return path;
+          }
+          return {
+            ...path,
+            updatedAt: Date.now(),
+            steps: path.steps.map((step) => (step.id === activePresentationStep.id ? { ...step, talkingPoints: value } : step)),
+          };
+        }),
+      );
+    },
+    [activePresentationPathId, activePresentationStep, publishedReadOnly],
+  );
+
+  const captureNarrativeStepCamera = useCallback(() => {
+    if (!activePresentationPathId || !activePresentationStep || publishedReadOnly) {
+      return;
+    }
+    setPresentationPaths((previous) =>
+      previous.map((path) => {
+        if (path.id !== activePresentationPathId) {
+          return path;
+        }
+        return {
+          ...path,
+          updatedAt: Date.now(),
+          steps: path.steps.map((step) => (step.id === activePresentationStep.id ? { ...step, camera: { ...camera } } : step)),
+        };
+      }),
+    );
+  }, [activePresentationPathId, activePresentationStep, camera, publishedReadOnly]);
+
+  const deleteNarrativeStep = useCallback(() => {
+    if (!activePresentationPathId || !activePresentationStep || publishedReadOnly) {
+      return;
+    }
+    setPresentationPaths((previous) =>
+      previous
+        .map((path) => {
+          if (path.id !== activePresentationPathId) {
+            return path;
+          }
+          return {
+            ...path,
+            updatedAt: Date.now(),
+            steps: path.steps.filter((step) => step.id !== activePresentationStep.id),
+          };
+        })
+        .filter((path) => path.steps.length > 0 || path.id !== activePresentationPathId),
+    );
+    setPresentationIndex((previous) => Math.max(0, previous - 1));
+  }, [activePresentationPathId, activePresentationStep, publishedReadOnly]);
+
+  const handleNarrativePathChange = useCallback((pathId: string) => {
+    setActivePresentationPathId(pathId);
+    setPresentationIndex(0);
+  }, []);
+
   const smartMergeItems = useMemo(
     () =>
       smartMergeSuggestions
@@ -1796,7 +1973,17 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           setTimelineIndex={setTimelineIndex}
           presentationMode={presentationMode}
           presentationIndex={presentationIndex}
-          presentationNotesLength={presentationNotes.length}
+          presentationLength={presentationLength}
+          presentationModeType={presentationModeType}
+          narrativePaths={narrativePathOptions}
+          activeNarrativePathId={activePresentationPathId}
+          activeStepTalkingPoints={activePresentationStep?.talkingPoints ?? ""}
+          onCreateNarrativePath={createNarrativePath}
+          onPathChange={handleNarrativePathChange}
+          onAddNarrativeStep={addNarrativeStep}
+          onDeleteNarrativeStep={deleteNarrativeStep}
+          onUpdateStepTalkingPoints={updateNarrativeTalkingPoints}
+          onCaptureNarrativeStepCamera={captureNarrativeStepCamera}
           setPresentationIndex={setPresentationIndex}
           setPresentationMode={setPresentationMode}
           onZoomIn={() => stepZoom("in")}
