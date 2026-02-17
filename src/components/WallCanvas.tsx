@@ -843,16 +843,20 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     if (isTimeLocked) {
       return;
     }
+    const seedTextColor = ui.selectedNoteId ? renderSnapshot.notes[ui.selectedNoteId]?.textColor : undefined;
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
     const id = createQuoteNote(
       world.x - NOTE_DEFAULTS.width / 2,
       world.y - NOTE_DEFAULTS.height / 2,
       ui.lastColor ?? NOTE_COLORS[0],
     );
+    updateNote(id, {
+      textColor: seedTextColor ?? NOTE_DEFAULTS.textColor,
+    });
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, selectNote, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, renderSnapshot.notes, selectNote, ui.lastColor, ui.selectedNoteId, viewport.h, viewport.w]);
 
   const toggleVocabularyFlip = useCallback(
     (noteId: string) => {
