@@ -113,4 +113,49 @@ describe("cloud rows mapping", () => {
     expect(snapshot.notes.n1?.highlighted).toBe(true);
     expect(snapshot.noteGroups.g1?.noteIds).toEqual(["n1"]);
   });
+
+  it("maps vocabulary payload from cloud rows", () => {
+    const snapshot = rowsToSnapshot({
+      wall: { camera_x: 0, camera_y: 0, camera_zoom: 1, last_color: null },
+      notes: [
+        {
+          id: "v1",
+          text: "cogent",
+          vocabulary: {
+            word: "cogent",
+            sourceContext: "The argument was cogent.",
+            guessMeaning: "clear",
+            meaning: "convincing and clear",
+            ownSentence: "Her point was cogent.",
+            flipped: true,
+            nextReviewAt: 1000,
+            lastReviewedAt: 900,
+            intervalDays: 3,
+            reviewsCount: 2,
+            lapses: 1,
+            isFocus: false,
+            lastOutcome: "good",
+          },
+          tags: ["vocab"],
+          text_size: null,
+          x: 0,
+          y: 0,
+          w: 200,
+          h: 140,
+          color: "#FEEA89",
+          created_at: "2026-02-14T08:00:00.000Z",
+          updated_at: "2026-02-14T09:00:00.000Z",
+        },
+      ],
+      zones: [],
+      zoneGroups: [],
+      noteGroups: [],
+      links: [],
+    });
+
+    const vocabulary = snapshot.notes.v1?.vocabulary;
+    expect(vocabulary?.word).toBe("cogent");
+    expect(vocabulary?.flipped).toBe(true);
+    expect(vocabulary?.lastOutcome).toBe("good");
+  });
 });

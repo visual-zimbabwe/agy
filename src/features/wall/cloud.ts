@@ -1,5 +1,5 @@
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
-import type { PersistedWallState } from "@/features/wall/types";
+import type { PersistedWallState, VocabularyNote, VocabularyReviewOutcome } from "@/features/wall/types";
 
 type WallRow = {
   camera_x: number;
@@ -18,6 +18,7 @@ type NoteRow = {
   text_color?: string | null;
   pinned?: boolean | null;
   highlighted?: boolean | null;
+  vocabulary?: unknown;
   tags: unknown;
   text_size: string | null;
   x: number;
@@ -159,6 +160,37 @@ const parseTextSize = (raw: string | null): { textSize?: "sm" | "md" | "lg"; tex
   return {};
 };
 
+const parseVocabulary = (raw: unknown): VocabularyNote | undefined => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const value = raw as Record<string, unknown>;
+  const asString = (entry: unknown) => (typeof entry === "string" ? entry : "");
+  const asNumber = (entry: unknown, fallback = 0) => (typeof entry === "number" && Number.isFinite(entry) ? entry : fallback);
+  const asBoolean = (entry: unknown, fallback = false) => (typeof entry === "boolean" ? entry : fallback);
+  const outcome = value.lastOutcome;
+  const lastOutcome: VocabularyReviewOutcome | undefined =
+    outcome === "again" || outcome === "hard" || outcome === "good" || outcome === "easy" ? outcome : undefined;
+
+  const lapses = Math.max(0, asNumber(value.lapses, 0));
+  return {
+    word: asString(value.word),
+    sourceContext: asString(value.sourceContext),
+    guessMeaning: asString(value.guessMeaning),
+    meaning: asString(value.meaning),
+    ownSentence: asString(value.ownSentence),
+    flipped: asBoolean(value.flipped, false),
+    nextReviewAt: asNumber(value.nextReviewAt, Date.now()),
+    lastReviewedAt: typeof value.lastReviewedAt === "number" ? asNumber(value.lastReviewedAt) : undefined,
+    intervalDays: Math.max(0, asNumber(value.intervalDays, 0)),
+    reviewsCount: Math.max(0, asNumber(value.reviewsCount, 0)),
+    lapses,
+    isFocus: asBoolean(value.isFocus, lapses >= 3),
+    lastOutcome,
+  };
+};
+
 export const rowsToSnapshot = (rows: {
   wall: WallRow;
   notes: NoteRow[];
@@ -181,6 +213,7 @@ export const rowsToSnapshot = (rows: {
         textColor: typeof note.text_color === "string" && note.text_color ? note.text_color : NOTE_DEFAULTS.textColor,
         pinned: Boolean(note.pinned),
         highlighted: Boolean(note.highlighted),
+        vocabulary: parseVocabulary(note.vocabulary),
         tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
         x: note.x,
         y: note.y,

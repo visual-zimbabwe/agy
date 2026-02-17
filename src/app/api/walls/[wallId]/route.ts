@@ -33,6 +33,8 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.pinned does not exist") ||
         message.includes("column notes.highlighted does not exist")),
   );
+const isMissingNoteVocabularyColumnError = (message?: string) =>
+  Boolean(message && message.includes("column notes.vocabulary does not exist"));
 const isMissingNoteGroupsTableError = (message?: string) =>
   Boolean(message && message.includes('relation "public.note_groups" does not exist'));
 
@@ -100,13 +102,46 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
 
   const notesWithFormattingResult = await auth.supabase
     .from("notes")
-    .select("id,text,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,tags,text_size,x,y,w,h,color,created_at,updated_at")
+    .select("id,text,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,tags,text_size,x,y,w,h,color,created_at,updated_at")
     .eq("wall_id", wallId)
     .eq("owner_id", auth.user.id)
     .is("deleted_at", null);
 
   let notesData = notesWithFormattingResult.data;
-  if (notesWithFormattingResult.error && isMissingNoteFormattingColumnError(notesWithFormattingResult.error.message)) {
+  if (notesWithFormattingResult.error && isMissingNoteVocabularyColumnError(notesWithFormattingResult.error.message)) {
+    const notesWithoutVocabularyResult = await auth.supabase
+      .from("notes")
+      .select("id,text,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,tags,text_size,x,y,w,h,color,created_at,updated_at")
+      .eq("wall_id", wallId)
+      .eq("owner_id", auth.user.id)
+      .is("deleted_at", null);
+    if (notesWithoutVocabularyResult.error && isMissingNoteFormattingColumnError(notesWithoutVocabularyResult.error.message)) {
+      const notesLegacyResult = await auth.supabase
+        .from("notes")
+        .select("id,text,tags,text_size,x,y,w,h,color,created_at,updated_at")
+        .eq("wall_id", wallId)
+        .eq("owner_id", auth.user.id)
+        .is("deleted_at", null);
+      if (notesLegacyResult.error) {
+        return NextResponse.json({ error: notesLegacyResult.error.message }, { status: 500 });
+      }
+      notesData = notesLegacyResult.data?.map((note) => ({
+        ...note,
+        image_url: null,
+        text_align: null,
+        text_v_align: null,
+        text_font: null,
+        text_color: null,
+        pinned: false,
+        highlighted: false,
+        vocabulary: null,
+      })) ?? [];
+    } else if (notesWithoutVocabularyResult.error) {
+      return NextResponse.json({ error: notesWithoutVocabularyResult.error.message }, { status: 500 });
+    } else {
+      notesData = notesWithoutVocabularyResult.data?.map((note) => ({ ...note, vocabulary: null })) ?? [];
+    }
+  } else if (notesWithFormattingResult.error && isMissingNoteFormattingColumnError(notesWithFormattingResult.error.message)) {
     const notesLegacyResult = await auth.supabase
       .from("notes")
       .select("id,text,tags,text_size,x,y,w,h,color,created_at,updated_at")
@@ -122,10 +157,11 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       text_align: null,
       text_v_align: null,
       text_font: null,
-      text_color: null,
-      pinned: false,
-      highlighted: false,
-    })) ?? [];
+        text_color: null,
+        pinned: false,
+        highlighted: false,
+        vocabulary: null,
+      })) ?? [];
   } else if (notesWithFormattingResult.error) {
     return NextResponse.json({ error: notesWithFormattingResult.error.message }, { status: 500 });
   }

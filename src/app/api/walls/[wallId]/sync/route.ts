@@ -7,6 +7,22 @@ const paramsSchema = z.object({
   wallId: z.string().uuid(),
 });
 
+const vocabularySchema = z.object({
+  word: z.string(),
+  sourceContext: z.string(),
+  guessMeaning: z.string(),
+  meaning: z.string(),
+  ownSentence: z.string(),
+  flipped: z.boolean().optional(),
+  nextReviewAt: z.number(),
+  lastReviewedAt: z.number().optional(),
+  intervalDays: z.number(),
+  reviewsCount: z.number(),
+  lapses: z.number(),
+  isFocus: z.boolean(),
+  lastOutcome: z.enum(["again", "hard", "good", "easy"]).optional(),
+});
+
 const noteSchema = z.object({
   id: z.string().min(1),
   text: z.string(),
@@ -27,6 +43,7 @@ const noteSchema = z.object({
   color: z.string(),
   createdAt: z.number(),
   updatedAt: z.number(),
+  vocabulary: vocabularySchema.optional(),
 });
 
 const zoneSchema = z.object({
@@ -108,6 +125,8 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.pinned does not exist") ||
         message.includes("column notes.highlighted does not exist")),
   );
+const isMissingNoteVocabularyColumnError = (message?: string) =>
+  Boolean(message && message.includes("column notes.vocabulary does not exist"));
 const isMissingNoteGroupsTableError = (message?: string) =>
   Boolean(message && message.includes('relation "public.note_groups" does not exist'));
 
@@ -163,7 +182,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   const noteGroups = Object.values(snapshot.noteGroups);
   const links = Object.values(snapshot.links);
 
-  const upsertNotes = async (includeFormatting: boolean) =>
+  const upsertNotes = async ({ includeFormatting, includeVocabulary }: { includeFormatting: boolean; includeVocabulary: boolean }) =>
     auth.supabase.from("notes").upsert(
       notes.map((note) => ({
         id: note.id,
@@ -179,6 +198,11 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               text_color: note.textColor ?? null,
               pinned: note.pinned ?? false,
               highlighted: note.highlighted ?? false,
+            }
+          : {}),
+        ...(includeVocabulary
+          ? {
+              vocabulary: note.vocabulary ?? null,
             }
           : {}),
         tags: note.tags,
@@ -197,12 +221,24 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
 
   let notesUpsert = { error: null as { message: string } | null };
   if (notes.length) {
-    const withFormatting = await upsertNotes(true);
-    if (withFormatting.error && isMissingNoteFormattingColumnError(withFormatting.error.message)) {
-      const legacy = await upsertNotes(false);
-      notesUpsert = { error: legacy.error ? { message: legacy.error.message } : null };
+    const withFormattingAndVocabulary = await upsertNotes({ includeFormatting: true, includeVocabulary: true });
+    if (withFormattingAndVocabulary.error) {
+      if (isMissingNoteVocabularyColumnError(withFormattingAndVocabulary.error.message)) {
+        const withFormatting = await upsertNotes({ includeFormatting: true, includeVocabulary: false });
+        if (withFormatting.error && isMissingNoteFormattingColumnError(withFormatting.error.message)) {
+          const legacy = await upsertNotes({ includeFormatting: false, includeVocabulary: false });
+          notesUpsert = { error: legacy.error ? { message: legacy.error.message } : null };
+        } else {
+          notesUpsert = { error: withFormatting.error ? { message: withFormatting.error.message } : null };
+        }
+      } else if (isMissingNoteFormattingColumnError(withFormattingAndVocabulary.error.message)) {
+        const legacy = await upsertNotes({ includeFormatting: false, includeVocabulary: false });
+        notesUpsert = { error: legacy.error ? { message: legacy.error.message } : null };
+      } else {
+        notesUpsert = { error: { message: withFormattingAndVocabulary.error.message } };
+      }
     } else {
-      notesUpsert = { error: withFormatting.error ? { message: withFormatting.error.message } : null };
+      notesUpsert = { error: null };
     }
   }
 

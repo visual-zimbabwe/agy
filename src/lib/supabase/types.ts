@@ -47,6 +47,7 @@ export type Database = {
           text_color: string | null;
           pinned: boolean;
           highlighted: boolean;
+          vocabulary: unknown;
           tags: unknown;
           text_size: string | null;
           x: number;
@@ -70,6 +71,7 @@ export type Database = {
           text_color?: string | null;
           pinned?: boolean;
           highlighted?: boolean;
+          vocabulary?: unknown;
           tags?: unknown;
           text_size?: string | null;
           x: number;
@@ -90,6 +92,7 @@ export type Database = {
           text_color?: string | null;
           pinned?: boolean;
           highlighted?: boolean;
+          vocabulary?: unknown;
           tags?: unknown;
           text_size?: string | null;
           x?: number;
