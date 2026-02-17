@@ -49,6 +49,7 @@ type WallNotesLayerProps = {
   runHistoryGroup: (action: () => void) => void;
   moveNote: (noteId: string, x: number, y: number) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
+  toggleVocabularyFlip: (noteId: string) => void;
   duplicateNoteAt: (noteId: string, x: number, y: number) => void;
   getNoteTextStyle: (size?: Note["textSize"], textSizePx?: number) => { fontSize: number; lineHeight: number };
   getNoteTextFontFamily: (font?: Note["textFont"]) => string;
@@ -93,6 +94,7 @@ export const WallNotesLayer = ({
   runHistoryGroup,
   moveNote,
   updateNote,
+  toggleVocabularyFlip,
   duplicateNoteAt,
   getNoteTextStyle,
   getNoteTextFontFamily,
@@ -240,6 +242,14 @@ export const WallNotesLayer = ({
         const colorWashOpacity = colorWashOpacityByNote[note.id] ?? 0;
         const noteTextStyle = getNoteTextStyle(noteView.textSize, noteView.textSizePx);
         const noteTextFontFamily = getNoteTextFontFamily(noteView.textFont);
+        const vocabulary = noteView.vocabulary;
+        const isVocabulary = Boolean(vocabulary);
+        const isVocabularyBack = Boolean(vocabulary?.flipped);
+        const noteTextContent = isVocabulary
+          ? isVocabularyBack
+            ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
+            : vocabulary?.word?.trim() || "Add word in Word Review"
+          : truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit";
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
@@ -585,18 +595,41 @@ export const WallNotesLayer = ({
               fontFamily={noteTextFontFamily}
               fill={noteView.textColor ?? NOTE_DEFAULTS.textColor}
               lineHeight={noteTextStyle.lineHeight}
-              align={noteView.textAlign ?? "left"}
+              align={isVocabulary ? "center" : (noteView.textAlign ?? "left")}
               verticalAlign={noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign}
-              text={truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit"}
+              text={noteTextContent}
               onClick={(event) => {
                 if (isTimeLocked) {
                   return;
                 }
                 event.cancelBubble = true;
                 selectSingleNote(note.id);
-                openEditor(note.id, noteView.text);
+                if (isVocabulary) {
+                  toggleVocabularyFlip(note.id);
+                } else {
+                  openEditor(note.id, noteView.text);
+                }
               }}
             />
+            {isVocabulary && (
+              <Text
+                x={12}
+                y={Math.max(10, noteView.h - 23)}
+                width={Math.max(0, noteView.w - 24)}
+                align="center"
+                fontSize={10}
+                fontStyle="bold"
+                fill="#334155"
+                text={isVocabularyBack ? "Back • Tap to flip" : "Front • Tap to flip"}
+                onClick={(event) => {
+                  if (isTimeLocked) {
+                    return;
+                  }
+                  event.cancelBubble = true;
+                  toggleVocabularyFlip(note.id);
+                }}
+              />
+            )}
             {showNoteTags &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>

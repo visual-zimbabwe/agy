@@ -55,6 +55,7 @@ type WallDetailsSidebarProps = {
   reviewedTodayCount: number;
   reviewRevealMeaning: boolean;
   onToggleRevealMeaning: () => void;
+  onToggleFlipCard: () => void;
   onCreateWordNote: () => void;
   onFocusNextDueWord: () => void;
   onUpdateVocabularyField: (
@@ -134,6 +135,7 @@ export const WallDetailsSidebar = ({
   reviewedTodayCount,
   reviewRevealMeaning,
   onToggleRevealMeaning,
+  onToggleFlipCard,
   onCreateWordNote,
   onFocusNextDueWord,
   onUpdateVocabularyField,
@@ -216,6 +218,7 @@ export const WallDetailsSidebar = ({
         reviewedTodayCount={reviewedTodayCount}
         reviewRevealMeaning={reviewRevealMeaning}
         onToggleRevealMeaning={onToggleRevealMeaning}
+        onToggleFlipCard={onToggleFlipCard}
         onCreateWordNote={onCreateWordNote}
         onFocusNextDueWord={onFocusNextDueWord}
         onUpdateVocabularyField={onUpdateVocabularyField}

@@ -59,6 +59,7 @@ type WallKeyboardOptions = {
   undo: () => void;
   setLinkingFromNote: (noteId?: string) => void;
   duplicateNote: (noteId: string) => void;
+  toggleVocabularyFlip: (noteId: string) => void;
   deleteNote: (noteId: string) => void;
   deleteZone: (zoneId: string) => void;
   deleteLink: (linkId: string) => void;
@@ -120,6 +121,7 @@ export const useWallKeyboard = ({
   undo,
   setLinkingFromNote,
   duplicateNote,
+  toggleVocabularyFlip,
   deleteNote,
   deleteZone,
   deleteLink,
@@ -283,6 +285,12 @@ export const useWallKeyboard = ({
           setSearchOpen(false);
           setExportOpen(false);
         }
+        return;
+      }
+
+      if (!ctrlOrMeta && key === "f" && ui.selectedNoteId && notesMap[ui.selectedNoteId]?.vocabulary) {
+        event.preventDefault();
+        toggleVocabularyFlip(ui.selectedNoteId);
         return;
       }
 
@@ -505,6 +513,7 @@ export const useWallKeyboard = ({
     setIsSpaceDown,
     setIsTimelinePlaying,
     setLinkingFromNote,
+    toggleVocabularyFlip,
     setPresentationIndex,
     setPresentationMode,
     setReadingMode,

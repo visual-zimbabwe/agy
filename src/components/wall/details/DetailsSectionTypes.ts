@@ -65,6 +65,7 @@ export type VocabularySectionProps = {
   reviewedTodayCount: number;
   reviewRevealMeaning: boolean;
   onToggleRevealMeaning: () => void;
+  onToggleFlipCard: () => void;
   onCreateWordNote: () => void;
   onFocusNextDueWord: () => void;
   onUpdateVocabularyField: (

@@ -13,6 +13,7 @@ export const VocabularySection = ({
   reviewedTodayCount,
   reviewRevealMeaning,
   onToggleRevealMeaning,
+  onToggleFlipCard,
   onCreateWordNote,
   onFocusNextDueWord,
   onUpdateVocabularyField,
@@ -44,6 +45,9 @@ export const VocabularySection = ({
             </button>
             <button type="button" onClick={onToggleRevealMeaning} disabled={!isSelectedNoteVocabulary} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] disabled:opacity-45">
               {reviewRevealMeaning ? "Hide Meaning" : "Reveal Meaning"}
+            </button>
+            <button type="button" onClick={onToggleFlipCard} disabled={!isSelectedNoteVocabulary || isTimeLocked} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] disabled:opacity-45">
+              Flip Card
             </button>
           </div>
           {!isSelectedNoteVocabulary && <p className="mt-2 text-[11px] text-zinc-500">Select a word note to edit and review it.</p>}

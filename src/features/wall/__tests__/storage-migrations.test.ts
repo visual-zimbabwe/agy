@@ -140,6 +140,7 @@ describe("storage migrations", () => {
             guessMeaning: "clear",
             meaning: "convincing and clear",
             ownSentence: "Her essay was cogent and easy to follow.",
+            flipped: true,
             nextReviewAt: 1000,
             lastReviewedAt: 900,
             intervalDays: 3,
@@ -160,5 +161,6 @@ describe("storage migrations", () => {
     expect(normalized?.notes.v1?.vocabulary?.word).toBe("cogent");
     expect(normalized?.notes.v1?.vocabulary?.nextReviewAt).toBe(1000);
     expect(normalized?.notes.v1?.vocabulary?.lastOutcome).toBe("good");
+    expect(normalized?.notes.v1?.vocabulary?.flipped).toBe(true);
   });
 });

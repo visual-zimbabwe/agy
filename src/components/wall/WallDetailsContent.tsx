@@ -63,6 +63,7 @@ type WallDetailsContentProps = {
   reviewedTodayCount: number;
   reviewRevealMeaning: boolean;
   onToggleRevealMeaning: () => void;
+  onToggleFlipCard: () => void;
   onCreateWordNote: () => void;
   onFocusNextDueWord: () => void;
   onUpdateVocabularyField: (
@@ -138,6 +139,7 @@ export const WallDetailsContent = ({
   reviewedTodayCount,
   reviewRevealMeaning,
   onToggleRevealMeaning,
+  onToggleFlipCard,
   onCreateWordNote,
   onFocusNextDueWord,
   onUpdateVocabularyField,
@@ -215,6 +217,7 @@ export const WallDetailsContent = ({
         reviewedTodayCount={reviewedTodayCount}
         reviewRevealMeaning={reviewRevealMeaning}
         onToggleRevealMeaning={onToggleRevealMeaning}
+        onToggleFlipCard={onToggleFlipCard}
         onCreateWordNote={onCreateWordNote}
         onFocusNextDueWord={onFocusNextDueWord}
         onUpdateVocabularyField={onUpdateVocabularyField}

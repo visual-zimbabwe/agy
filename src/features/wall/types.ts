@@ -28,6 +28,7 @@ export type VocabularyNote = {
   guessMeaning: string;
   meaning: string;
   ownSentence: string;
+  flipped: boolean;
   nextReviewAt: number;
   lastReviewedAt?: number;
   intervalDays: number;

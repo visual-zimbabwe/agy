@@ -19,6 +19,7 @@ const shortcuts = [
   ["Enter", "Edit selected note text"],
   ["Ctrl/Cmd + K", "Open search"],
   ["Ctrl/Cmd + L", "Start link from selected note"],
+  ["F", "Flip selected word flashcard"],
   ["C then 1-9", "Color quick-switch: assign palette color by index"],
   ["Shift + C", "Cycle selected note color"],
   ["Ctrl/Cmd + A", "Select all visible notes"],

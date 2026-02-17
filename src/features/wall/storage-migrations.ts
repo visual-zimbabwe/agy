@@ -29,6 +29,7 @@ const normalizeVocabulary = (value: unknown) => {
     guessMeaning: asString(value.guessMeaning),
     meaning: asString(value.meaning),
     ownSentence: asString(value.ownSentence),
+    flipped: Boolean(value.flipped),
     nextReviewAt,
     lastReviewedAt: typeof value.lastReviewedAt === "number" ? asNumber(value.lastReviewedAt) : undefined,
     intervalDays,

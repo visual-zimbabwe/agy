@@ -837,6 +837,25 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setReviewRevealMeaning(false);
   }, [camera, isTimeLocked, selectNote, ui.lastColor, viewport.h, viewport.w]);
 
+  const toggleVocabularyFlip = useCallback(
+    (noteId: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const note = renderSnapshot.notes[noteId];
+      if (!note?.vocabulary) {
+        return;
+      }
+      updateNote(noteId, {
+        vocabulary: {
+          ...note.vocabulary,
+          flipped: !note.vocabulary.flipped,
+        },
+      });
+    },
+    [isTimeLocked, renderSnapshot.notes],
+  );
+
   useWallKeyboard({
     camera,
     viewport,
@@ -884,6 +903,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     undo,
     setLinkingFromNote,
     duplicateNote,
+    toggleVocabularyFlip,
     deleteNote,
     deleteZone,
     deleteLink,
@@ -1499,6 +1519,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: focusNextDueWord,
       },
       {
+        id: "flip-word-card",
+        label: "Flip selected word card",
+        description: "Toggle front/back for the selected vocabulary flashcard.",
+        shortcut: "F",
+        keywords: ["flashcard", "flip", "word", "vocabulary"],
+        disabled: isTimeLocked || !selectedVocabularyNote,
+        onSelect: () => {
+          if (selectedVocabularyNote) {
+            toggleVocabularyFlip(selectedVocabularyNote.id);
+          }
+        },
+      },
+      {
         id: "new-frame",
         label: "Create frame zone",
         description: "Add a frame zone at viewport center.",
@@ -1711,6 +1744,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
       readingMode,
+      selectedVocabularyNote,
       presentationMode,
       quickCaptureOpen,
       redo,
@@ -1735,6 +1769,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       collapseAllZoneGroups,
       expandAllZoneGroups,
       setShowClusters,
+      toggleVocabularyFlip,
       ui.showClusters,
       undo,
       focusNextDueWord,
@@ -1999,6 +2034,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               runHistoryGroup={runHistoryGroup}
               moveNote={moveNote}
               updateNote={updateNote}
+              toggleVocabularyFlip={toggleVocabularyFlip}
               duplicateNoteAt={duplicateNoteAt}
               getNoteTextStyle={getNoteTextStyle}
               getNoteTextFontFamily={getNoteTextFontFamily}
@@ -2168,6 +2204,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           reviewedTodayCount={reviewedTodayCount}
           reviewRevealMeaning={reviewRevealMeaning}
           onToggleRevealMeaning={() => setReviewRevealMeaning((previous) => !previous)}
+          onToggleFlipCard={() => {
+            if (selectedVocabularyNote) {
+              toggleVocabularyFlip(selectedVocabularyNote.id);
+            }
+          }}
           onCreateWordNote={makeWordNoteAtViewportCenter}
           onFocusNextDueWord={focusNextDueWord}
           onUpdateVocabularyField={updateVocabularyField}

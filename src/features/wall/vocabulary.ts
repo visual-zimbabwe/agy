@@ -9,6 +9,7 @@ export const createVocabularyNote = (now = Date.now()): VocabularyNote => ({
   guessMeaning: "",
   meaning: "",
   ownSentence: "",
+  flipped: false,
   nextReviewAt: now,
   intervalDays: 0,
   reviewsCount: 0,
