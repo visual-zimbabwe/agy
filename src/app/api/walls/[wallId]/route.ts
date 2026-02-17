@@ -28,6 +28,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
       (message.includes("column notes.note_kind does not exist") ||
         message.includes("column notes.quote_author does not exist") ||
         message.includes("column notes.quote_source does not exist") ||
+        message.includes("column notes.canon does not exist") ||
         message.includes("column notes.text_size does not exist") ||
       (message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
@@ -107,7 +108,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   const notesWithFormattingResult = await auth.supabase
     .from("notes")
     .select(
-      "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,tags,text_size,x,y,w,h,color,created_at,updated_at",
+      "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,tags,text_size,x,y,w,h,color,created_at,updated_at",
     )
     .eq("wall_id", wallId)
     .eq("owner_id", auth.user.id)
@@ -118,7 +119,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     const notesWithoutVocabularyResult = await auth.supabase
       .from("notes")
       .select(
-        "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,tags,text_size,x,y,w,h,color,created_at,updated_at",
+        "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,tags,text_size,x,y,w,h,color,created_at,updated_at",
       )
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
@@ -139,6 +140,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
         note_kind: "standard",
         quote_author: null,
         quote_source: null,
+        canon: null,
         text_align: null,
         text_v_align: null,
         text_font: null,
@@ -167,6 +169,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       note_kind: "standard",
       quote_author: null,
       quote_source: null,
+      canon: null,
       image_url: null,
       text_align: null,
       text_v_align: null,

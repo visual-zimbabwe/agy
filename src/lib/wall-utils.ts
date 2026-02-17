@@ -132,6 +132,16 @@ export const notesToMarkdown = (notes: Note[], zones: Zone[]) => {
     if (note.quoteSource) {
       lines.push(`- quoteSource: ${note.quoteSource}`);
     }
+    if (note.canon) {
+      lines.push(`- canonMode: ${note.canon.mode}`);
+      if (note.canon.title) {
+        lines.push(`- canonTitle: ${note.canon.title}`);
+      }
+      if (note.canon.mode === "list") {
+        const listCount = note.canon.items.filter((item) => item.title.trim() || item.text.trim()).length;
+        lines.push(`- canonItems: ${listCount}`);
+      }
+    }
     if (note.tags.length > 0) {
       lines.push(`- tags: ${note.tags.join(", ")}`);
     }

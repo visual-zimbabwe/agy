@@ -40,7 +40,22 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
   const notesFuse = useMemo(
     () =>
       new Fuse(notes, {
-        keys: ["text", "quoteAuthor", "quoteSource", "tags", "vocabulary.word", "vocabulary.meaning", "vocabulary.sourceContext"],
+        keys: [
+          "text",
+          "quoteAuthor",
+          "quoteSource",
+          "canon.title",
+          "canon.statement",
+          "canon.interpretation",
+          "canon.example",
+          "canon.source",
+          "canon.items.title",
+          "canon.items.text",
+          "tags",
+          "vocabulary.word",
+          "vocabulary.meaning",
+          "vocabulary.sourceContext",
+        ],
         threshold: 0.35,
         ignoreLocation: true,
       }),
@@ -215,6 +230,20 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
           }
 
           const note = result.note;
+          const noteTitle =
+            note.noteKind === "canon"
+              ? note.canon?.title?.trim() || note.text.trim().split("\n")[0]
+              : note.text.trim().split("\n")[0];
+          const notePreview =
+            note.noteKind === "canon"
+              ? note.canon?.mode === "list"
+                ? note.canon.items
+                    .filter((item) => item.title.trim() || item.text.trim())
+                    .slice(0, 2)
+                    .map((item, index) => `${index + 1}. ${item.title.trim() || item.text.trim()}`)
+                    .join(" ")
+                : [note.canon?.statement, note.canon?.interpretation].filter(Boolean).join(" ")
+              : note.text;
           return (
             <button
               type="button"
@@ -230,13 +259,13 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
             >
               <div className="mb-0.5 flex items-center justify-between gap-3">
                 <p className="line-clamp-1 text-sm font-medium text-[var(--color-text)]">
-                  {note.text.trim().split("\n")[0] || "Untitled note"}
+                  {noteTitle || "Untitled note"}
                 </p>
                 <span className="rounded border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px] text-[var(--color-text-muted)]">
-                  {note.noteKind === "quote" ? "Quote" : "Note"}
+                  {note.noteKind === "quote" ? "Quote" : note.noteKind === "canon" ? "Canon" : "Note"}
                 </span>
               </div>
-              <p className="line-clamp-2 text-xs text-[var(--color-text-muted)]">{note.text || "(empty note)"}</p>
+              <p className="line-clamp-2 text-xs text-[var(--color-text-muted)]">{notePreview || "(empty note)"}</p>
               {(note.quoteAuthor || note.quoteSource) && (
                 <p className="mt-1 line-clamp-1 text-[11px] italic text-[var(--color-text-muted)]">
                   {[note.quoteAuthor, note.quoteSource].filter(Boolean).join(" - ")}

@@ -38,12 +38,29 @@ export type VocabularyNote = {
   lastOutcome?: VocabularyReviewOutcome;
 };
 
+export type CanonListItem = {
+  id: string;
+  title: string;
+  text: string;
+};
+
+export type CanonNote = {
+  mode: "single" | "list";
+  title: string;
+  statement: string;
+  interpretation: string;
+  example: string;
+  source: string;
+  items: CanonListItem[];
+};
+
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote";
+  noteKind?: "standard" | "quote" | "canon";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
+  canon?: CanonNote;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";

@@ -194,4 +194,45 @@ describe("storage migrations", () => {
     expect(normalized?.notes.q1?.quoteAuthor).toBe("Steve Jobs");
     expect(normalized?.notes.q1?.quoteSource).toBe("Stanford Commencement, 2005");
   });
+
+  it("normalizes canon note metadata when present", () => {
+    const normalized = normalizePersistedWallState({
+      notes: {
+        c1: {
+          id: "c1",
+          noteKind: "canon",
+          text: "",
+          canon: {
+            mode: "list",
+            title: "Ten Commandments",
+            statement: "",
+            interpretation: "",
+            example: "",
+            source: "",
+            items: [
+              { id: "i1", title: "First", text: "No other gods before me." },
+              { id: "i2", title: "Second", text: "No idols." },
+            ],
+          },
+          tags: ["canon"],
+          x: 0,
+          y: 0,
+          w: 220,
+          h: 160,
+          color: "#FEEA89",
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      },
+      zones: {},
+      zoneGroups: {},
+      noteGroups: {},
+      links: {},
+      camera: { x: 0, y: 0, zoom: 1 },
+    });
+
+    expect(normalized?.notes.c1?.noteKind).toBe("canon");
+    expect(normalized?.notes.c1?.canon?.mode).toBe("list");
+    expect(normalized?.notes.c1?.canon?.items).toHaveLength(2);
+  });
 });

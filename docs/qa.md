@@ -117,6 +117,21 @@ Expected:
 - Command palette note search matches quote body, author, and source.
 - Quote/standard conversion works without losing core note content.
 
+## Canon Notes (Single + List)
+1. In `/wall`, click `New Canon` from the Tools panel (or run `Create canon note` from command palette).
+2. In edit mode, set mode to `Single` and fill `Title`, `Statement`, `Interpretation`, `Example`, and `Source`.
+3. Blur and refresh page.
+4. Reopen the same canon note and confirm the values persist.
+5. Switch mode to `List`, add at least 3 items, and fill item title/text for each.
+6. Remove one item and verify list reorders safely.
+7. Open search (`Ctrl/Cmd + K`) and search by canon title and by list item text.
+
+Expected:
+- Canon notes support both `Single` and `List` modes in one note type.
+- Single mode fields persist after refresh/sync.
+- List mode supports add/remove items and preserves ordered content.
+- Search matches canon title, statements, and list item content.
+
 ## Text Formatting Micro-Toolbar
 1. Select a note and enter text edit mode (double-click a note or press `Enter` on selected note).
 2. Verify a floating formatting toolbar appears only while the text cursor is active inside the editor.

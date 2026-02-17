@@ -1,5 +1,5 @@
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
-import type { Link, Note, NoteGroup, PersistedWallState, VocabularyReviewOutcome, Zone, ZoneGroup } from "@/features/wall/types";
+import type { CanonNote, Link, Note, NoteGroup, PersistedWallState, VocabularyReviewOutcome, Zone, ZoneGroup } from "@/features/wall/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -37,6 +37,33 @@ const normalizeVocabulary = (value: unknown) => {
     lapses,
     isFocus: typeof value.isFocus === "boolean" ? value.isFocus : lapses >= 3,
     lastOutcome,
+  };
+};
+
+const normalizeCanon = (value: unknown): CanonNote | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const mode: CanonNote["mode"] = value.mode === "list" ? "list" : "single";
+  const items = Array.isArray(value.items)
+    ? value.items
+        .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+        .map((entry) => ({
+          id: asString(entry.id) || Math.random().toString(36).slice(2, 11),
+          title: asString(entry.title),
+          text: asString(entry.text),
+        }))
+    : [];
+
+  return {
+    mode,
+    title: asString(value.title),
+    statement: asString(value.statement),
+    interpretation: asString(value.interpretation),
+    example: asString(value.example),
+    source: asString(value.source),
+    items: items.length > 0 ? items : [{ id: Math.random().toString(36).slice(2, 11), title: "", text: "" }],
   };
 };
 
@@ -127,10 +154,11 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
   }
   return {
     id,
-    noteKind: entry.noteKind === "quote" ? "quote" : "standard",
+    noteKind: entry.noteKind === "quote" || entry.noteKind === "canon" ? entry.noteKind : "standard",
     text: asString(entry.text),
     quoteAuthor: asString(entry.quoteAuthor).trim() || undefined,
     quoteSource: asString(entry.quoteSource).trim() || undefined,
+    canon: normalizeCanon(entry.canon),
     imageUrl: asString(entry.imageUrl).trim() || undefined,
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
     textVAlign: entry.textVAlign === "middle" || entry.textVAlign === "bottom" ? entry.textVAlign : NOTE_DEFAULTS.textVAlign,

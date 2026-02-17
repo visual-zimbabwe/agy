@@ -4,6 +4,7 @@ import {
   assignZoneToGroup,
   createNoteGroup,
   createLink,
+  createCanonNote,
   createNote,
   createQuoteNote,
   createZone,
@@ -60,6 +61,14 @@ describe("wall commands", () => {
     expect(quote?.noteKind).toBe("quote");
     expect(quote?.quoteAuthor).toBe("");
     expect(quote?.quoteSource).toBe("");
+  });
+
+  it("creates canon notes with single/list capable payload", () => {
+    const canonId = createCanonNote(64, 96);
+    const canon = useWallStore.getState().notes[canonId];
+    expect(canon?.noteKind).toBe("canon");
+    expect(canon?.canon?.mode).toBe("single");
+    expect(canon?.canon?.items.length).toBeGreaterThan(0);
   });
 
   it("creates links and rejects duplicate/self links", () => {

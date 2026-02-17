@@ -1,5 +1,5 @@
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
-import type { PersistedWallState, VocabularyNote, VocabularyReviewOutcome } from "@/features/wall/types";
+import type { CanonNote, PersistedWallState, VocabularyNote, VocabularyReviewOutcome } from "@/features/wall/types";
 
 type WallRow = {
   camera_x: number;
@@ -22,6 +22,7 @@ type NoteRow = {
   pinned?: boolean | null;
   highlighted?: boolean | null;
   vocabulary?: unknown;
+  canon?: unknown;
   tags: unknown;
   text_size: string | null;
   x: number;
@@ -194,6 +195,35 @@ const parseVocabulary = (raw: unknown): VocabularyNote | undefined => {
   };
 };
 
+const parseCanon = (raw: unknown): CanonNote | undefined => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const value = raw as Record<string, unknown>;
+  const asString = (entry: unknown) => (typeof entry === "string" ? entry : "");
+  const items = Array.isArray(value.items)
+    ? value.items
+        .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null && !Array.isArray(entry))
+        .map((entry, index) => ({
+          id: asString(entry.id) || `canon-item-${index + 1}`,
+          title: asString(entry.title),
+          text: asString(entry.text),
+        }))
+    : [];
+
+  const mode: CanonNote["mode"] = value.mode === "list" ? "list" : "single";
+  return {
+    mode,
+    title: asString(value.title),
+    statement: asString(value.statement),
+    interpretation: asString(value.interpretation),
+    example: asString(value.example),
+    source: asString(value.source),
+    items: items.length > 0 ? items : [{ id: "canon-item-1", title: "", text: "" }],
+  };
+};
+
 export const rowsToSnapshot = (rows: {
   wall: WallRow;
   notes: NoteRow[];
@@ -208,7 +238,7 @@ export const rowsToSnapshot = (rows: {
       {
         ...parseTextSize(note.text_size),
         id: note.id,
-        noteKind: note.note_kind === "quote" ? "quote" : "standard",
+        noteKind: note.note_kind === "quote" || note.note_kind === "canon" ? note.note_kind : "standard",
         text: note.text,
         quoteAuthor: note.quote_author?.trim() || undefined,
         quoteSource: note.quote_source?.trim() || undefined,
@@ -220,6 +250,7 @@ export const rowsToSnapshot = (rows: {
         pinned: Boolean(note.pinned),
         highlighted: Boolean(note.highlighted),
         vocabulary: parseVocabulary(note.vocabulary),
+        canon: parseCanon(note.canon),
         tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
         x: note.x,
         y: note.y,

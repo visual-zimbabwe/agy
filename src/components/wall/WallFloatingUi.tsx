@@ -170,6 +170,7 @@ export const WallFloatingUi = ({
 }: WallFloatingUiProps) => {
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
+  const editingCanon = editingNote?.canon;
   const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const editingTextStyle = getNoteTextStyle(editingNote?.textSize, editingNote?.textSizePx);
@@ -232,26 +233,174 @@ export const WallFloatingUi = ({
               requestAnimationFrame(() => textareaRef.current?.focus());
             }}
           />
-          <textarea
-            ref={textareaRef}
-            autoFocus
-            value={editing.text}
-            onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
-            onBlur={handleEditorBlur}
-            className="w-full resize-none rounded-xl border border-zinc-700/40 p-3 shadow-xl outline-none"
-            style={(() => {
-              return {
-                height: `${editingNote.h * camera.zoom}px`,
-                backgroundColor: editingNote.color,
-                textAlign: editingNote.textAlign ?? "left",
-                fontFamily: getNoteTextFontFamily(editingNote.textFont),
-                color: editingNote.textColor ?? NOTE_DEFAULTS.textColor,
-                fontSize: `${editingTextStyle.fontSize}px`,
-                lineHeight: `${editingTextStyle.lineHeight}`,
-                fontStyle: editingNote.noteKind === "quote" ? "italic" : "normal",
-              };
-            })()}
-          />
+          {editingNote.noteKind !== "canon" && (
+            <textarea
+              ref={textareaRef}
+              autoFocus
+              value={editing.text}
+              onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
+              onBlur={handleEditorBlur}
+              className="w-full resize-none rounded-xl border border-zinc-700/40 p-3 shadow-xl outline-none"
+              style={(() => {
+                return {
+                  height: `${editingNote.h * camera.zoom}px`,
+                  backgroundColor: editingNote.color,
+                  textAlign: editingNote.textAlign ?? "left",
+                  fontFamily: getNoteTextFontFamily(editingNote.textFont),
+                  color: editingNote.textColor ?? NOTE_DEFAULTS.textColor,
+                  fontSize: `${editingTextStyle.fontSize}px`,
+                  lineHeight: `${editingTextStyle.lineHeight}`,
+                  fontStyle: editingNote.noteKind === "quote" ? "italic" : "normal",
+                };
+              })()}
+            />
+          )}
+          {editingNote.noteKind === "canon" && editingCanon && (
+            <div data-note-edit-tags="true" className="rounded-xl border border-zinc-700/40 p-3 shadow-xl" style={{ backgroundColor: editingNote.color }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600">Canon Note</p>
+              <div className="mt-2 grid gap-2">
+                <input
+                  data-note-edit-tags="true"
+                  value={editingCanon.title}
+                  onChange={(event) =>
+                    updateNote(editing.id, {
+                      canon: { ...editingCanon, title: event.target.value },
+                    })
+                  }
+                  placeholder="Title (e.g., Ten Commandments)"
+                  className="min-w-0 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                />
+                <select
+                  data-note-edit-tags="true"
+                  value={editingCanon.mode}
+                  onChange={(event) =>
+                    updateNote(editing.id, {
+                      canon: {
+                        ...editingCanon,
+                        mode: event.target.value === "list" ? "list" : "single",
+                      },
+                    })
+                  }
+                  className="rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                >
+                  <option value="single">Single</option>
+                  <option value="list">List</option>
+                </select>
+                {editingCanon.mode === "single" ? (
+                  <>
+                    <textarea
+                      data-note-edit-tags="true"
+                      value={editingCanon.statement}
+                      onChange={(event) =>
+                        updateNote(editing.id, {
+                          canon: { ...editingCanon, statement: event.target.value },
+                        })
+                      }
+                      placeholder="Statement"
+                      className="min-h-16 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                    />
+                    <textarea
+                      data-note-edit-tags="true"
+                      value={editingCanon.interpretation}
+                      onChange={(event) =>
+                        updateNote(editing.id, {
+                          canon: { ...editingCanon, interpretation: event.target.value },
+                        })
+                      }
+                      placeholder="Interpretation"
+                      className="min-h-14 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                    />
+                    <input
+                      data-note-edit-tags="true"
+                      value={editingCanon.example}
+                      onChange={(event) =>
+                        updateNote(editing.id, {
+                          canon: { ...editingCanon, example: event.target.value },
+                        })
+                      }
+                      placeholder="Example"
+                      className="min-w-0 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                    />
+                    <input
+                      data-note-edit-tags="true"
+                      value={editingCanon.source}
+                      onChange={(event) =>
+                        updateNote(editing.id, {
+                          canon: { ...editingCanon, source: event.target.value },
+                        })
+                      }
+                      placeholder="Source"
+                      className="min-w-0 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {editingCanon.items.map((item, index) => (
+                        <div key={item.id} className="rounded-lg border border-zinc-300 bg-white/90 p-2">
+                          <div className="mb-1 flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-medium text-zinc-700">#{index + 1}</span>
+                            <button
+                              type="button"
+                              data-note-edit-tags="true"
+                              onClick={() => {
+                                const next = editingCanon.items.filter((entry) => entry.id !== item.id);
+                                updateNote(editing.id, {
+                                  canon: { ...editingCanon, items: next.length > 0 ? next : [{ id: `canon-item-${Date.now()}`, title: "", text: "" }] },
+                                });
+                              }}
+                              className="rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-[10px] text-zinc-600"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <input
+                            data-note-edit-tags="true"
+                            value={item.title}
+                            onChange={(event) => {
+                              const next = editingCanon.items.map((entry) =>
+                                entry.id === item.id ? { ...entry, title: event.target.value } : entry,
+                              );
+                              updateNote(editing.id, { canon: { ...editingCanon, items: next } });
+                            }}
+                            placeholder="Item title"
+                            className="mb-1 w-full rounded border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                          />
+                          <textarea
+                            data-note-edit-tags="true"
+                            value={item.text}
+                            onChange={(event) => {
+                              const next = editingCanon.items.map((entry) =>
+                                entry.id === item.id ? { ...entry, text: event.target.value } : entry,
+                              );
+                              updateNote(editing.id, { canon: { ...editingCanon, items: next } });
+                            }}
+                            placeholder="Item text"
+                            className="min-h-12 w-full rounded border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      data-note-edit-tags="true"
+                      onClick={() => {
+                        updateNote(editing.id, {
+                          canon: {
+                            ...editingCanon,
+                            items: [...editingCanon.items, { id: `canon-item-${Date.now()}`, title: "", text: "" }],
+                          },
+                        });
+                      }}
+                      className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700"
+                    >
+                      Add item
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
           {editingNote.noteKind === "quote" && (
             <div data-note-edit-tags="true" className="mt-2 rounded-xl border border-zinc-200 bg-white/95 p-2 shadow-lg">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Quote Attribution</p>
@@ -514,11 +663,13 @@ export const WallFloatingUi = ({
                   <button
                     type="button"
                     onClick={() => {
+                      const toQuote = primarySelectedNote.noteKind !== "quote";
                       updateNote(primarySelectedNote.id, {
-                        noteKind: primarySelectedNote.noteKind === "quote" ? "standard" : "quote",
-                        quoteAuthor: primarySelectedNote.noteKind === "quote" ? undefined : "",
-                        quoteSource: primarySelectedNote.noteKind === "quote" ? undefined : "",
-                        vocabulary: primarySelectedNote.noteKind === "quote" ? primarySelectedNote.vocabulary : undefined,
+                        noteKind: toQuote ? "quote" : "standard",
+                        quoteAuthor: toQuote ? "" : undefined,
+                        quoteSource: toQuote ? "" : undefined,
+                        canon: undefined,
+                        vocabulary: primarySelectedNote.vocabulary,
                       });
                       setQuickActionsOverflowOpen(false);
                     }}
@@ -527,6 +678,35 @@ export const WallFloatingUi = ({
                     aria-label={primarySelectedNote.noteKind === "quote" ? "Convert to standard note" : "Convert to quote note"}
                   >
                     {primarySelectedNote.noteKind === "quote" ? "Convert to Standard" : "Convert to Quote"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const toCanon = primarySelectedNote.noteKind !== "canon";
+                      updateNote(primarySelectedNote.id, {
+                        noteKind: toCanon ? "canon" : "standard",
+                        quoteAuthor: undefined,
+                        quoteSource: undefined,
+                        vocabulary: toCanon ? undefined : primarySelectedNote.vocabulary,
+                        canon: toCanon
+                          ? {
+                              mode: "single",
+                              title: "",
+                              statement: "",
+                              interpretation: "",
+                              example: "",
+                              source: "",
+                              items: [{ id: `canon-item-${Date.now()}`, title: "", text: "" }],
+                            }
+                          : undefined,
+                      });
+                      setQuickActionsOverflowOpen(false);
+                    }}
+                    className={`w-full justify-start ${toolbarBtnCompact}`}
+                    title={primarySelectedNote.noteKind === "canon" ? "Convert to standard note" : "Convert to canon note"}
+                    aria-label={primarySelectedNote.noteKind === "canon" ? "Convert to standard note" : "Convert to canon note"}
+                  >
+                    {primarySelectedNote.noteKind === "canon" ? "Canon -> Standard" : "Convert to Canon"}
                   </button>
                 </div>
               </div>

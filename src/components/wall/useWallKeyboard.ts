@@ -53,6 +53,7 @@ type WallKeyboardOptions = {
   setPresentationIndex: (value: number | ((previous: number) => number)) => void;
   setReadingMode: (enabled: boolean) => void;
   createNote: (x: number, y: number, color?: string) => string;
+  createCanonNote: () => void;
   createQuoteNote: () => void;
   createWordNote: () => void;
   openEditor: (noteId: string, text: string) => void;
@@ -116,6 +117,7 @@ export const useWallKeyboard = ({
   setPresentationIndex,
   setReadingMode,
   createNote,
+  createCanonNote,
   createQuoteNote,
   createWordNote,
   openEditor,
@@ -350,6 +352,12 @@ export const useWallKeyboard = ({
         return;
       }
 
+      if (!ctrlOrMeta && event.shiftKey && key === "g") {
+        event.preventDefault();
+        createCanonNote();
+        return;
+      }
+
       if (ctrlOrMeta && key === "k") {
         event.preventDefault();
         setSearchOpen(true);
@@ -500,6 +508,7 @@ export const useWallKeyboard = ({
     camera,
     clearGuideLines,
     createNote,
+    createCanonNote,
     createQuoteNote,
     createWordNote,
     deleteGroup,

@@ -73,6 +73,7 @@ import {
   applyTemplate,
   assignZoneToGroup,
   createNote,
+  createCanonNote,
   createQuoteNote,
   createLink,
   createZone,
@@ -858,6 +859,21 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     openEditor(id, "");
   }, [camera, isTimeLocked, openEditor, renderSnapshot.notes, selectNote, ui.lastColor, ui.selectedNoteId, viewport.h, viewport.w]);
 
+  const makeCanonNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const id = createCanonNote(
+      world.x - NOTE_DEFAULTS.width / 2,
+      world.y - NOTE_DEFAULTS.height / 2,
+      ui.lastColor ?? NOTE_COLORS[0],
+    );
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, "");
+  }, [camera, isTimeLocked, openEditor, selectNote, ui.lastColor, viewport.h, viewport.w]);
+
   const toggleVocabularyFlip = useCallback(
     (noteId: string) => {
       if (isTimeLocked) {
@@ -918,6 +934,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setPresentationIndex,
     setReadingMode,
     createNote,
+    createCanonNote: makeCanonNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
     createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
@@ -1525,6 +1542,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: makeNoteAtViewportCenter,
       },
       {
+        id: "new-canon-note",
+        label: "Create canon note",
+        description: "Capture a law/rule/theorem with single or list mode.",
+        shortcut: "Shift + G",
+        keywords: ["law", "rule", "theorem", "commandments", "canon"],
+        disabled: isTimeLocked,
+        onSelect: makeCanonNoteAtViewportCenter,
+      },
+      {
         id: "new-quote-note",
         label: "Create quote note",
         description: "Add a quote card with attribution fields.",
@@ -1772,6 +1798,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       isTimeLocked,
       leftPanelOpen,
       makeNoteAtViewportCenter,
+      makeCanonNoteAtViewportCenter,
       makeQuoteNoteAtViewportCenter,
       makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
@@ -1920,6 +1947,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             toolbarSelect={toolbarSelect}
             onClose={() => setLeftPanelOpen(false)}
             onCreateNote={makeNoteAtViewportCenter}
+            onCreateCanonNote={makeCanonNoteAtViewportCenter}
             onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
             onCreateWordNote={makeWordNoteAtViewportCenter}
             onCreateZone={makeZoneAtViewportCenter}

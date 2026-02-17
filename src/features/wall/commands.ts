@@ -71,6 +71,27 @@ export const createQuoteNote = (x: number, y: number, color?: string) => {
   return noteId;
 };
 
+export const createCanonNote = (x: number, y: number, color?: string) => {
+  const noteId = createNote(x, y, color);
+  useWallStore.getState().patchNote(noteId, {
+    noteKind: "canon",
+    text: "",
+    quoteAuthor: undefined,
+    quoteSource: undefined,
+    vocabulary: undefined,
+    canon: {
+      mode: "single",
+      title: "",
+      statement: "",
+      interpretation: "",
+      example: "",
+      source: "",
+      items: [{ id: makeId(), title: "", text: "" }],
+    },
+  });
+  return noteId;
+};
+
 export const updateNote = (noteId: string, patch: Partial<Note>) => {
   useWallStore.getState().patchNote(noteId, patch);
 };

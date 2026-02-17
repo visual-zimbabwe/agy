@@ -246,14 +246,30 @@ export const WallNotesLayer = ({
         const vocabulary = noteView.vocabulary;
         const isVocabulary = Boolean(vocabulary);
         const isQuote = noteView.noteKind === "quote";
+        const isCanon = noteView.noteKind === "canon";
+        const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
+        const canonListPreview = canon?.items
+          .filter((item) => item.title.trim() || item.text.trim())
+          .slice(0, 3)
+          .map((item, index) => `${index + 1}. ${item.title.trim() || item.text.trim()}`)
+          .join("\n");
+        const canonSinglePreview = [canon?.statement, canon?.interpretation, canon?.example]
+          .map((value) => value?.trim())
+          .filter(Boolean)
+          .join("\n\n");
         const noteTextContent = isVocabulary
           ? isVocabularyBack
             ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
             : vocabulary?.word?.trim() || "Add word in Word Review"
+          : isCanon
+            ? canon?.mode === "list"
+              ? canonListPreview || "Add list items"
+              : canonSinglePreview || "Add statement"
           : isQuote
             ? truncateNoteText(noteView.text, noteView) || "Add quote text"
           : truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit";
+        const canonTitle = canon?.title?.trim();
         const quoteAttribution = [noteView.quoteAuthor, noteView.quoteSource].filter(Boolean).join(" - ");
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
@@ -266,8 +282,9 @@ export const WallNotesLayer = ({
           : 0;
         const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
         const quoteMarkInset = isQuote ? 13 : 0;
-        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset;
-        const textHeight = Math.max(0, noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset);
+        const canonTitleInset = isCanon && canonTitle ? 16 : 0;
+        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset + canonTitleInset;
+        const textHeight = Math.max(0, noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset - canonTitleInset);
 
         return (
           <Group
@@ -634,6 +651,20 @@ export const WallNotesLayer = ({
                 fill={resolvedTextColor}
                 opacity={0.75}
                 text='"'
+                listening={false}
+              />
+            )}
+            {isCanon && canonTitle && (
+              <Text
+                x={12}
+                y={12}
+                width={Math.max(0, noteView.w - 24)}
+                fontSize={11}
+                fontStyle="bold"
+                fill={resolvedTextColor}
+                text={canonTitle}
+                wrap="none"
+                ellipsis
                 listening={false}
               />
             )}

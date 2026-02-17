@@ -66,7 +66,22 @@ export const useWallDerivedData = ({
   const recallFuse = useMemo(
     () =>
       new Fuse(baseVisibleNotes, {
-        keys: ["text", "quoteAuthor", "quoteSource", "tags", "vocabulary.word", "vocabulary.meaning", "vocabulary.sourceContext"],
+        keys: [
+          "text",
+          "quoteAuthor",
+          "quoteSource",
+          "canon.title",
+          "canon.statement",
+          "canon.interpretation",
+          "canon.example",
+          "canon.source",
+          "canon.items.title",
+          "canon.items.text",
+          "tags",
+          "vocabulary.word",
+          "vocabulary.meaning",
+          "vocabulary.sourceContext",
+        ],
         threshold: 0.35,
         ignoreLocation: true,
       }),

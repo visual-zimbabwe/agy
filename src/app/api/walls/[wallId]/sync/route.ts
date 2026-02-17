@@ -23,9 +23,25 @@ const vocabularySchema = z.object({
   lastOutcome: z.enum(["again", "hard", "good", "easy"]).optional(),
 });
 
+const canonItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  text: z.string(),
+});
+
+const canonSchema = z.object({
+  mode: z.enum(["single", "list"]),
+  title: z.string(),
+  statement: z.string(),
+  interpretation: z.string(),
+  example: z.string(),
+  source: z.string(),
+  items: z.array(canonItemSchema),
+});
+
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -47,6 +63,7 @@ const noteSchema = z.object({
   createdAt: z.number(),
   updatedAt: z.number(),
   vocabulary: vocabularySchema.optional(),
+  canon: canonSchema.optional(),
 });
 
 const zoneSchema = z.object({
@@ -123,6 +140,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
       (message.includes("column notes.note_kind does not exist") ||
         message.includes("column notes.quote_author does not exist") ||
         message.includes("column notes.quote_source does not exist") ||
+        message.includes("column notes.canon does not exist") ||
         message.includes("column notes.text_size does not exist") ||
       (message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
@@ -201,6 +219,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               note_kind: note.noteKind ?? "standard",
               quote_author: note.quoteAuthor?.trim() || null,
               quote_source: note.quoteSource?.trim() || null,
+              canon: note.canon ?? null,
               image_url: note.imageUrl?.trim() || null,
               text_align: note.textAlign ?? null,
               text_v_align: note.textVAlign ?? null,

@@ -43,6 +43,7 @@ export type Database = {
           text: string;
           quote_author: string | null;
           quote_source: string | null;
+          canon: unknown;
           image_url: string | null;
           text_align: string | null;
           text_v_align: string | null;
@@ -70,6 +71,7 @@ export type Database = {
           text: string;
           quote_author?: string | null;
           quote_source?: string | null;
+          canon?: unknown;
           image_url?: string | null;
           text_align?: string | null;
           text_v_align?: string | null;
@@ -94,6 +96,7 @@ export type Database = {
           text?: string;
           quote_author?: string | null;
           quote_source?: string | null;
+          canon?: unknown;
           image_url?: string | null;
           text_align?: string | null;
           text_v_align?: string | null;
