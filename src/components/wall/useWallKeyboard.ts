@@ -407,7 +407,11 @@ export const useWallKeyboard = ({
         const selected = renderNotesById[ui.selectedNoteId];
         if (selected) {
           event.preventDefault();
-          openEditor(selected.id, selected.text);
+          if (selected.vocabulary) {
+            toggleVocabularyFlip(selected.id);
+          } else {
+            openEditor(selected.id, selected.text);
+          }
         }
         return;
       }

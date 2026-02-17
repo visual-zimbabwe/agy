@@ -315,7 +315,11 @@ export const WallNotesLayer = ({
                 return;
               }
               selectSingleNote(note.id);
-              openEditor(note.id, note.text);
+              if (note.vocabulary) {
+                toggleVocabularyFlip(note.id);
+              } else {
+                openEditor(note.id, note.text);
+              }
             }}
             onTouchStart={() => {
               if (longPressTimerRef.current) {
