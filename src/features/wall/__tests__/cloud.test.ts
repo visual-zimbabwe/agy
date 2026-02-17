@@ -158,4 +158,37 @@ describe("cloud rows mapping", () => {
     expect(vocabulary?.flipped).toBe(true);
     expect(vocabulary?.lastOutcome).toBe("good");
   });
+
+  it("maps quote note metadata from cloud rows", () => {
+    const snapshot = rowsToSnapshot({
+      wall: { camera_x: 0, camera_y: 0, camera_zoom: 1, last_color: null },
+      notes: [
+        {
+          id: "q1",
+          note_kind: "quote",
+          text: "The only way out is through.",
+          quote_author: "Robert Frost",
+          quote_source: "A Servant to Servants",
+          tags: ["quote"],
+          text_size: null,
+          x: 0,
+          y: 0,
+          w: 220,
+          h: 160,
+          color: "#FEEA89",
+          created_at: "2026-02-14T08:00:00.000Z",
+          updated_at: "2026-02-14T09:00:00.000Z",
+        },
+      ],
+      zones: [],
+      zoneGroups: [],
+      noteGroups: [],
+      links: [],
+    });
+
+    const quote = snapshot.notes.q1;
+    expect(quote?.noteKind).toBe("quote");
+    expect(quote?.quoteAuthor).toBe("Robert Frost");
+    expect(quote?.quoteSource).toBe("A Servant to Servants");
+  });
 });

@@ -28,7 +28,10 @@ export const createNote = (x: number, y: number, color?: string) => {
   const chosenColor = color ?? useWallStore.getState().ui.lastColor ?? firstColor(NOTE_COLORS, "#FEEA89");
   const note: Note = {
     id: makeId(),
+    noteKind: "standard",
     text: "",
+    quoteAuthor: undefined,
+    quoteSource: undefined,
     imageUrl: undefined,
     textAlign: "left",
     textVAlign: NOTE_DEFAULTS.textVAlign,
@@ -54,6 +57,18 @@ export const createNote = (x: number, y: number, color?: string) => {
   setLastColor(chosenColor);
 
   return note.id;
+};
+
+export const createQuoteNote = (x: number, y: number, color?: string) => {
+  const noteId = createNote(x, y, color);
+  useWallStore.getState().patchNote(noteId, {
+    noteKind: "quote",
+    text: "",
+    quoteAuthor: "",
+    quoteSource: "",
+    vocabulary: undefined,
+  });
+  return noteId;
 };
 
 export const updateNote = (noteId: string, patch: Partial<Note>) => {
@@ -517,7 +532,10 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
     for (const noteDef of def.notes) {
       const note: Note = {
         id: makeId(),
+        noteKind: "standard",
         text: noteDef.text,
+        quoteAuthor: undefined,
+        quoteSource: undefined,
         imageUrl: undefined,
         textAlign: "left",
         textVAlign: NOTE_DEFAULTS.textVAlign,

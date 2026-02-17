@@ -103,6 +103,20 @@ Expected:
 - Edits save automatically while typing.
 - Dragging remains smooth.
 
+## Quote Notes
+1. In `/wall`, click `New Quote` from the Tools panel (or run `Create quote note` from command palette).
+2. Enter quote text in the note editor.
+3. Add `Author` and `Source` in the quote attribution fields.
+4. Blur editor, refresh page, and reopen the same quote note.
+5. Open search (`Ctrl/Cmd + K`) and search by quote author/source text.
+6. Select the quote and use `More > Convert to Standard`, then `More > Convert to Quote` again.
+
+Expected:
+- Quote notes render with quote styling and attribution footer.
+- Author/source attribution persists after refresh.
+- Command palette note search matches quote body, author, and source.
+- Quote/standard conversion works without losing core note content.
+
 ## Text Formatting Micro-Toolbar
 1. Select a note and enter text edit mode (double-click a note or press `Enter` on selected note).
 2. Verify a floating formatting toolbar appears only while the text cursor is active inside the editor.

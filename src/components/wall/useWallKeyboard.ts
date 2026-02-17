@@ -53,6 +53,7 @@ type WallKeyboardOptions = {
   setPresentationIndex: (value: number | ((previous: number) => number)) => void;
   setReadingMode: (enabled: boolean) => void;
   createNote: (x: number, y: number, color?: string) => string;
+  createQuoteNote: () => void;
   createWordNote: () => void;
   openEditor: (noteId: string, text: string) => void;
   redo: () => void;
@@ -115,6 +116,7 @@ export const useWallKeyboard = ({
   setPresentationIndex,
   setReadingMode,
   createNote,
+  createQuoteNote,
   createWordNote,
   openEditor,
   redo,
@@ -342,6 +344,12 @@ export const useWallKeyboard = ({
         return;
       }
 
+      if (!ctrlOrMeta && event.shiftKey && key === "q") {
+        event.preventDefault();
+        createQuoteNote();
+        return;
+      }
+
       if (ctrlOrMeta && key === "k") {
         event.preventDefault();
         setSearchOpen(true);
@@ -492,6 +500,7 @@ export const useWallKeyboard = ({
     camera,
     clearGuideLines,
     createNote,
+    createQuoteNote,
     createWordNote,
     deleteGroup,
     deleteLink,

@@ -25,7 +25,10 @@ const vocabularySchema = z.object({
 
 const noteSchema = z.object({
   id: z.string().min(1),
+  noteKind: z.enum(["standard", "quote"]).optional(),
   text: z.string(),
+  quoteAuthor: z.string().optional(),
+  quoteSource: z.string().optional(),
   imageUrl: z.string().optional(),
   textAlign: z.enum(["left", "center", "right"]).optional(),
   textVAlign: z.enum(["top", "middle", "bottom"]).optional(),
@@ -117,13 +120,17 @@ const isMissingZoneKindColumnError = (message?: string) =>
 const isMissingNoteFormattingColumnError = (message?: string) =>
   Boolean(
     message &&
+      (message.includes("column notes.note_kind does not exist") ||
+        message.includes("column notes.quote_author does not exist") ||
+        message.includes("column notes.quote_source does not exist") ||
+        message.includes("column notes.text_size does not exist") ||
       (message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
         message.includes("column notes.text_v_align does not exist") ||
         message.includes("column notes.text_font does not exist") ||
         message.includes("column notes.text_color does not exist") ||
         message.includes("column notes.pinned does not exist") ||
-        message.includes("column notes.highlighted does not exist")),
+        message.includes("column notes.highlighted does not exist"))),
   );
 const isMissingNoteVocabularyColumnError = (message?: string) =>
   Boolean(message && message.includes("column notes.vocabulary does not exist"));
@@ -191,6 +198,9 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
         text: note.text,
         ...(includeFormatting
           ? {
+              note_kind: note.noteKind ?? "standard",
+              quote_author: note.quoteAuthor?.trim() || null,
+              quote_source: note.quoteSource?.trim() || null,
               image_url: note.imageUrl?.trim() || null,
               text_align: note.textAlign ?? null,
               text_v_align: note.textVAlign ?? null,

@@ -127,7 +127,10 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
   }
   return {
     id,
+    noteKind: entry.noteKind === "quote" ? "quote" : "standard",
     text: asString(entry.text),
+    quoteAuthor: asString(entry.quoteAuthor).trim() || undefined,
+    quoteSource: asString(entry.quoteSource).trim() || undefined,
     imageUrl: asString(entry.imageUrl).trim() || undefined,
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
     textVAlign: entry.textVAlign === "middle" || entry.textVAlign === "bottom" ? entry.textVAlign : NOTE_DEFAULTS.textVAlign,

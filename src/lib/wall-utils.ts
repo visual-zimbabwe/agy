@@ -125,6 +125,13 @@ export const notesToMarkdown = (notes: Note[], zones: Zone[]) => {
     lines.push(`- position: (${Math.round(note.x)}, ${Math.round(note.y)})`);
     lines.push(`- size: ${Math.round(note.w)} x ${Math.round(note.h)}`);
     lines.push(`- color: ${note.color}`);
+    lines.push(`- kind: ${note.noteKind ?? "standard"}`);
+    if (note.quoteAuthor) {
+      lines.push(`- quoteAuthor: ${note.quoteAuthor}`);
+    }
+    if (note.quoteSource) {
+      lines.push(`- quoteSource: ${note.quoteSource}`);
+    }
     if (note.tags.length > 0) {
       lines.push(`- tags: ${note.tags.join(", ")}`);
     }

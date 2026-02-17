@@ -163,4 +163,35 @@ describe("storage migrations", () => {
     expect(normalized?.notes.v1?.vocabulary?.lastOutcome).toBe("good");
     expect(normalized?.notes.v1?.vocabulary?.flipped).toBe(true);
   });
+
+  it("normalizes quote note metadata when present", () => {
+    const normalized = normalizePersistedWallState({
+      notes: {
+        q1: {
+          id: "q1",
+          noteKind: "quote",
+          text: "Stay hungry, stay foolish.",
+          quoteAuthor: "Steve Jobs",
+          quoteSource: "Stanford Commencement, 2005",
+          tags: ["quote"],
+          x: 0,
+          y: 0,
+          w: 220,
+          h: 160,
+          color: "#FEEA89",
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      },
+      zones: {},
+      zoneGroups: {},
+      noteGroups: {},
+      links: {},
+      camera: { x: 0, y: 0, zoom: 1 },
+    });
+
+    expect(normalized?.notes.q1?.noteKind).toBe("quote");
+    expect(normalized?.notes.q1?.quoteAuthor).toBe("Steve Jobs");
+    expect(normalized?.notes.q1?.quoteSource).toBe("Stanford Commencement, 2005");
+  });
 });

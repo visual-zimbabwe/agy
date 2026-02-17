@@ -244,12 +244,16 @@ export const WallNotesLayer = ({
         const noteTextFontFamily = getNoteTextFontFamily(noteView.textFont);
         const vocabulary = noteView.vocabulary;
         const isVocabulary = Boolean(vocabulary);
+        const isQuote = noteView.noteKind === "quote";
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const noteTextContent = isVocabulary
           ? isVocabularyBack
             ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
             : vocabulary?.word?.trim() || "Add word in Word Review"
+          : isQuote
+            ? truncateNoteText(noteView.text, noteView) || "Add quote text"
           : truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit";
+        const quoteAttribution = [noteView.quoteAuthor, noteView.quoteSource].filter(Boolean).join(" - ");
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
@@ -259,8 +263,10 @@ export const WallNotesLayer = ({
         const imageFrameHeight = imageUrl
           ? Math.max(44, Math.min(noteView.h * 0.58, Math.max(44, noteView.h - 70)))
           : 0;
-        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0);
-        const textHeight = Math.max(0, noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0));
+        const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
+        const quoteMarkInset = isQuote ? 13 : 0;
+        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset;
+        const textHeight = Math.max(0, noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset);
 
         return (
           <Group
@@ -597,6 +603,7 @@ export const WallNotesLayer = ({
               height={textHeight}
               fontSize={noteTextStyle.fontSize * textSpringFactor}
               fontFamily={noteTextFontFamily}
+              fontStyle={isQuote ? "italic" : "normal"}
               fill={noteView.textColor ?? NOTE_DEFAULTS.textColor}
               lineHeight={noteTextStyle.lineHeight}
               align={isVocabulary ? "center" : (noteView.textAlign ?? "left")}
@@ -615,6 +622,33 @@ export const WallNotesLayer = ({
                 }
               }}
             />
+            {isQuote && (
+              <Text
+                x={14}
+                y={11}
+                width={24}
+                align="left"
+                fontSize={18}
+                fontStyle="bold"
+                fill="#1f2937"
+                opacity={0.75}
+                text='"'
+                listening={false}
+              />
+            )}
+            {isQuote && quoteAttribution && (
+              <Text
+                x={12}
+                y={Math.max(12, noteView.h - 25)}
+                width={Math.max(0, noteView.w - 24)}
+                align="right"
+                fontSize={10}
+                fontStyle="italic"
+                fill="#334155"
+                text={quoteAttribution}
+                listening={false}
+              />
+            )}
             {isVocabulary && (
               <Text
                 x={12}

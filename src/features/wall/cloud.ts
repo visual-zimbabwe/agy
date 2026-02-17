@@ -10,7 +10,10 @@ type WallRow = {
 
 type NoteRow = {
   id: string;
+  note_kind?: string | null;
   text: string;
+  quote_author?: string | null;
+  quote_source?: string | null;
   image_url?: string | null;
   text_align?: string | null;
   text_v_align?: string | null;
@@ -205,7 +208,10 @@ export const rowsToSnapshot = (rows: {
       {
         ...parseTextSize(note.text_size),
         id: note.id,
+        noteKind: note.note_kind === "quote" ? "quote" : "standard",
         text: note.text,
+        quoteAuthor: note.quote_author?.trim() || undefined,
+        quoteSource: note.quote_source?.trim() || undefined,
         imageUrl: note.image_url?.trim() || undefined,
         textAlign: note.text_align === "center" || note.text_align === "right" ? note.text_align : "left",
         textVAlign: note.text_v_align === "middle" || note.text_v_align === "bottom" ? note.text_v_align : NOTE_DEFAULTS.textVAlign,

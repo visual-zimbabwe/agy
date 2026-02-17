@@ -40,7 +40,10 @@ export type VocabularyNote = {
 
 export type Note = {
   id: string;
+  noteKind?: "standard" | "quote";
   text: string;
+  quoteAuthor?: string;
+  quoteSource?: string;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";

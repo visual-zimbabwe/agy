@@ -73,6 +73,7 @@ import {
   applyTemplate,
   assignZoneToGroup,
   createNote,
+  createQuoteNote,
   createLink,
   createZone,
   createZoneGroup,
@@ -838,6 +839,21 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setReviewRevealMeaning(false);
   }, [camera, isTimeLocked, selectNote, ui.lastColor, viewport.h, viewport.w]);
 
+  const makeQuoteNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const id = createQuoteNote(
+      world.x - NOTE_DEFAULTS.width / 2,
+      world.y - NOTE_DEFAULTS.height / 2,
+      ui.lastColor ?? NOTE_COLORS[0],
+    );
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, "");
+  }, [camera, isTimeLocked, openEditor, selectNote, ui.lastColor, viewport.h, viewport.w]);
+
   const toggleVocabularyFlip = useCallback(
     (noteId: string) => {
       if (isTimeLocked) {
@@ -898,6 +914,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setPresentationIndex,
     setReadingMode,
     createNote,
+    createQuoteNote: makeQuoteNoteAtViewportCenter,
     createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
     redo,
@@ -1504,6 +1521,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: makeNoteAtViewportCenter,
       },
       {
+        id: "new-quote-note",
+        label: "Create quote note",
+        description: "Add a quote card with attribution fields.",
+        shortcut: "Shift + Q",
+        keywords: ["quote", "citation", "author", "source"],
+        disabled: isTimeLocked,
+        onSelect: makeQuoteNoteAtViewportCenter,
+      },
+      {
         id: "new-word-note",
         label: "Create word note",
         description: "Capture a vocabulary card with spaced-review fields.",
@@ -1742,6 +1768,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       isTimeLocked,
       leftPanelOpen,
       makeNoteAtViewportCenter,
+      makeQuoteNoteAtViewportCenter,
       makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
       readingMode,
@@ -1889,6 +1916,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             toolbarSelect={toolbarSelect}
             onClose={() => setLeftPanelOpen(false)}
             onCreateNote={makeNoteAtViewportCenter}
+            onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
             onCreateWordNote={makeWordNoteAtViewportCenter}
             onCreateZone={makeZoneAtViewportCenter}
             onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}

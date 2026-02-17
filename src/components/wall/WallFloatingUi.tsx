@@ -248,9 +248,31 @@ export const WallFloatingUi = ({
                 color: editingNote.textColor ?? NOTE_DEFAULTS.textColor,
                 fontSize: `${editingTextStyle.fontSize}px`,
                 lineHeight: `${editingTextStyle.lineHeight}`,
+                fontStyle: editingNote.noteKind === "quote" ? "italic" : "normal",
               };
             })()}
           />
+          {editingNote.noteKind === "quote" && (
+            <div data-note-edit-tags="true" className="mt-2 rounded-xl border border-zinc-200 bg-white/95 p-2 shadow-lg">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Quote Attribution</p>
+              <div className="mt-2 grid gap-2">
+                <input
+                  data-note-edit-tags="true"
+                  value={editingNote.quoteAuthor ?? ""}
+                  onChange={(event) => updateNote(editing.id, { quoteAuthor: event.target.value })}
+                  placeholder="Author (optional)"
+                  className="min-w-0 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                />
+                <input
+                  data-note-edit-tags="true"
+                  value={editingNote.quoteSource ?? ""}
+                  onChange={(event) => updateNote(editing.id, { quoteSource: event.target.value })}
+                  placeholder="Source (optional)"
+                  className="min-w-0 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                />
+              </div>
+            </div>
+          )}
           <div data-note-edit-tags="true" className="mt-2 rounded-xl border border-zinc-200 bg-white/95 p-2 shadow-lg">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Tags</p>
             <div className="mt-1 flex flex-wrap gap-1">
@@ -488,6 +510,23 @@ export const WallFloatingUi = ({
                     aria-label={isPrimaryNoteFocused ? "Exit focus mode" : "Focus note"}
                   >
                     {isPrimaryNoteFocused ? "Exit Focus" : "Focus"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateNote(primarySelectedNote.id, {
+                        noteKind: primarySelectedNote.noteKind === "quote" ? "standard" : "quote",
+                        quoteAuthor: primarySelectedNote.noteKind === "quote" ? undefined : "",
+                        quoteSource: primarySelectedNote.noteKind === "quote" ? undefined : "",
+                        vocabulary: primarySelectedNote.noteKind === "quote" ? primarySelectedNote.vocabulary : undefined,
+                      });
+                      setQuickActionsOverflowOpen(false);
+                    }}
+                    className={`w-full justify-start ${toolbarBtnCompact}`}
+                    title={primarySelectedNote.noteKind === "quote" ? "Convert to standard note" : "Convert to quote note"}
+                    aria-label={primarySelectedNote.noteKind === "quote" ? "Convert to standard note" : "Convert to quote note"}
+                  >
+                    {primarySelectedNote.noteKind === "quote" ? "Convert to Standard" : "Convert to Quote"}
                   </button>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import {
   createNoteGroup,
   createLink,
   createNote,
+  createQuoteNote,
   createZone,
   createZoneGroup,
   duplicateNote,
@@ -51,6 +52,14 @@ describe("wall commands", () => {
     expect(notes).toHaveLength(2);
     expect(state.ui.selectedNoteId).toBeDefined();
     expect(state.ui.selectedNoteId).not.toBe(firstId);
+  });
+
+  it("creates quote notes with quote metadata fields", () => {
+    const quoteId = createQuoteNote(64, 96);
+    const quote = useWallStore.getState().notes[quoteId];
+    expect(quote?.noteKind).toBe("quote");
+    expect(quote?.quoteAuthor).toBe("");
+    expect(quote?.quoteSource).toBe("");
   });
 
   it("creates links and rejects duplicate/self links", () => {

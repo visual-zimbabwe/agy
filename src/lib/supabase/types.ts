@@ -39,7 +39,10 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          note_kind: string | null;
           text: string;
+          quote_author: string | null;
+          quote_source: string | null;
           image_url: string | null;
           text_align: string | null;
           text_v_align: string | null;
@@ -63,7 +66,10 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          note_kind?: string | null;
           text: string;
+          quote_author?: string | null;
+          quote_source?: string | null;
           image_url?: string | null;
           text_align?: string | null;
           text_v_align?: string | null;
@@ -84,7 +90,10 @@ export type Database = {
           deleted_at?: string | null;
         };
         Update: {
+          note_kind?: string | null;
           text?: string;
+          quote_author?: string | null;
+          quote_source?: string | null;
           image_url?: string | null;
           text_align?: string | null;
           text_v_align?: string | null;

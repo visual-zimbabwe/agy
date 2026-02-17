@@ -25,13 +25,17 @@ const isMissingZoneKindColumnError = (message?: string) =>
 const isMissingNoteFormattingColumnError = (message?: string) =>
   Boolean(
     message &&
+      (message.includes("column notes.note_kind does not exist") ||
+        message.includes("column notes.quote_author does not exist") ||
+        message.includes("column notes.quote_source does not exist") ||
+        message.includes("column notes.text_size does not exist") ||
       (message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
         message.includes("column notes.text_v_align does not exist") ||
         message.includes("column notes.text_font does not exist") ||
         message.includes("column notes.text_color does not exist") ||
         message.includes("column notes.pinned does not exist") ||
-        message.includes("column notes.highlighted does not exist")),
+        message.includes("column notes.highlighted does not exist"))),
   );
 const isMissingNoteVocabularyColumnError = (message?: string) =>
   Boolean(message && message.includes("column notes.vocabulary does not exist"));
@@ -102,7 +106,9 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
 
   const notesWithFormattingResult = await auth.supabase
     .from("notes")
-    .select("id,text,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,tags,text_size,x,y,w,h,color,created_at,updated_at")
+    .select(
+      "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,tags,text_size,x,y,w,h,color,created_at,updated_at",
+    )
     .eq("wall_id", wallId)
     .eq("owner_id", auth.user.id)
     .is("deleted_at", null);
@@ -111,7 +117,9 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   if (notesWithFormattingResult.error && isMissingNoteVocabularyColumnError(notesWithFormattingResult.error.message)) {
     const notesWithoutVocabularyResult = await auth.supabase
       .from("notes")
-      .select("id,text,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,tags,text_size,x,y,w,h,color,created_at,updated_at")
+      .select(
+        "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,tags,text_size,x,y,w,h,color,created_at,updated_at",
+      )
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null);
@@ -128,6 +136,9 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       notesData = notesLegacyResult.data?.map((note) => ({
         ...note,
         image_url: null,
+        note_kind: "standard",
+        quote_author: null,
+        quote_source: null,
         text_align: null,
         text_v_align: null,
         text_font: null,
@@ -153,6 +164,9 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     }
     notesData = notesLegacyResult.data?.map((note) => ({
       ...note,
+      note_kind: "standard",
+      quote_author: null,
+      quote_source: null,
       image_url: null,
       text_align: null,
       text_v_align: null,
