@@ -830,6 +830,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     updateNote(id, {
       text: "",
       tags: ["vocab"],
+      textColor: "#FFFFFF",
       vocabulary: createVocabularyNote(),
     });
     setSelectedNoteIds([id]);
