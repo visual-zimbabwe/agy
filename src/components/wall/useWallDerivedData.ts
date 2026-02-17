@@ -66,7 +66,7 @@ export const useWallDerivedData = ({
   const recallFuse = useMemo(
     () =>
       new Fuse(baseVisibleNotes, {
-        keys: ["text", "tags"],
+        keys: ["text", "tags", "vocabulary.word", "vocabulary.meaning", "vocabulary.sourceContext"],
         threshold: 0.35,
         ignoreLocation: true,
       }),

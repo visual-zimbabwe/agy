@@ -4,7 +4,7 @@ import { WallDetailsPanel } from "@/components/wall/WallDetailsPanel";
 import { WallDetailsContent } from "@/components/wall/WallDetailsContent";
 import type { DetailsSectionKey, DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { TEMPLATE_TYPES } from "@/features/wall/constants";
-import type { Bounds, Note, TemplateType, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Bounds, Note, TemplateType, VocabularyReviewOutcome, Zone, ZoneGroup } from "@/features/wall/types";
 import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 
 type WallDetailsSidebarProps = {
@@ -49,6 +49,19 @@ type WallDetailsSidebarProps = {
   savedRecallSearches: SavedRecallSearch[];
   onApplySavedRecallSearch: (item: SavedRecallSearch) => void;
   onDeleteSavedRecallSearch: (id: string) => void;
+  isSelectedNoteVocabulary: boolean;
+  vocabularyDueCount: number;
+  vocabularyFocusCount: number;
+  reviewedTodayCount: number;
+  reviewRevealMeaning: boolean;
+  onToggleRevealMeaning: () => void;
+  onCreateWordNote: () => void;
+  onFocusNextDueWord: () => void;
+  onUpdateVocabularyField: (
+    field: "word" | "sourceContext" | "guessMeaning" | "meaning" | "ownSentence",
+    value: string,
+  ) => void;
+  onReviewSelectedWord: (outcome: VocabularyReviewOutcome) => void;
   groupLabelInput: string;
   onGroupLabelInputChange: (value: string) => void;
   selectedZone?: Zone;
@@ -115,6 +128,16 @@ export const WallDetailsSidebar = ({
   savedRecallSearches,
   onApplySavedRecallSearch,
   onDeleteSavedRecallSearch,
+  isSelectedNoteVocabulary,
+  vocabularyDueCount,
+  vocabularyFocusCount,
+  reviewedTodayCount,
+  reviewRevealMeaning,
+  onToggleRevealMeaning,
+  onCreateWordNote,
+  onFocusNextDueWord,
+  onUpdateVocabularyField,
+  onReviewSelectedWord,
   groupLabelInput,
   onGroupLabelInputChange,
   selectedZone,
@@ -187,6 +210,16 @@ export const WallDetailsSidebar = ({
         savedRecallSearches={savedRecallSearches}
         onApplySavedRecallSearch={onApplySavedRecallSearch}
         onDeleteSavedRecallSearch={onDeleteSavedRecallSearch}
+        isSelectedNoteVocabulary={isSelectedNoteVocabulary}
+        vocabularyDueCount={vocabularyDueCount}
+        vocabularyFocusCount={vocabularyFocusCount}
+        reviewedTodayCount={reviewedTodayCount}
+        reviewRevealMeaning={reviewRevealMeaning}
+        onToggleRevealMeaning={onToggleRevealMeaning}
+        onCreateWordNote={onCreateWordNote}
+        onFocusNextDueWord={onFocusNextDueWord}
+        onUpdateVocabularyField={onUpdateVocabularyField}
+        onReviewSelectedWord={onReviewSelectedWord}
         groupLabelInput={groupLabelInput}
         onGroupLabelInputChange={onGroupLabelInputChange}
         selectedZone={selectedZone}

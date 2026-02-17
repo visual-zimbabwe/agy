@@ -40,7 +40,7 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
   const notesFuse = useMemo(
     () =>
       new Fuse(notes, {
-        keys: ["text", "tags"],
+        keys: ["text", "tags", "vocabulary.word", "vocabulary.meaning", "vocabulary.sourceContext"],
         threshold: 0.35,
         ignoreLocation: true,
       }),

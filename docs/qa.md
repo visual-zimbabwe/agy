@@ -262,6 +262,24 @@ Expected:
 - Combined filters narrow the visible note set.
 - Stale and priority jumps reliably focus the target notes.
 
+## Vocabulary Review Workflow
+1. Click `New Word` from `Tools` panel.
+2. Select the new card and open `Details > Word Review`.
+3. Fill `Word`, `Book context`, `Your guess`, and `Meaning`.
+4. Click `Reveal Meaning` and verify meaning preview shows/hides.
+5. Leave `Your sentence` empty and verify `Good`/`Easy` are disabled.
+6. Add `Your sentence`, then click `Good`.
+7. Verify `Due` count updates and card is no longer immediately due.
+8. Click `Review Next Due` and verify camera jumps/selects the next due vocabulary card.
+9. Grade a card as `Again` three times and verify `Focus` count increases.
+10. Refresh page and verify vocabulary fields and review schedule persist.
+
+Expected:
+- Word cards capture reading context and personal examples in one place.
+- Spaced review grades schedule future reviews and persist after refresh.
+- Context lock prevents `Good`/`Easy` before writing a personal sentence.
+- Repeated failures promote cards into `Focus` for targeted review.
+
 ## Smart Merge Suggestions
 1. Create two notes with near-identical text and one unrelated note.
 2. Open `Details` panel and expand `Smart Merge`.

@@ -119,4 +119,46 @@ describe("storage migrations", () => {
     expect(valid).toBeTruthy();
     expect(invalid).toBeNull();
   });
+
+  it("preserves vocabulary note metadata when present", () => {
+    const normalized = normalizePersistedWallState({
+      notes: {
+        v1: {
+          id: "v1",
+          text: "cogent",
+          tags: ["vocab"],
+          x: 0,
+          y: 0,
+          w: 220,
+          h: 160,
+          color: "#FEEA89",
+          createdAt: 1,
+          updatedAt: 2,
+          vocabulary: {
+            word: "cogent",
+            sourceContext: "The argument felt cogent.",
+            guessMeaning: "clear",
+            meaning: "convincing and clear",
+            ownSentence: "Her essay was cogent and easy to follow.",
+            nextReviewAt: 1000,
+            lastReviewedAt: 900,
+            intervalDays: 3,
+            reviewsCount: 2,
+            lapses: 1,
+            isFocus: false,
+            lastOutcome: "good",
+          },
+        },
+      },
+      zones: {},
+      zoneGroups: {},
+      noteGroups: {},
+      links: {},
+      camera: { x: 0, y: 0, zoom: 1 },
+    });
+
+    expect(normalized?.notes.v1?.vocabulary?.word).toBe("cogent");
+    expect(normalized?.notes.v1?.vocabulary?.nextReviewAt).toBe(1000);
+    expect(normalized?.notes.v1?.vocabulary?.lastOutcome).toBe("good");
+  });
 });

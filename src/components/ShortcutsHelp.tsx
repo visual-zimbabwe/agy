@@ -11,6 +11,7 @@ type ShortcutsHelpProps = {
 
 const shortcuts = [
   ["N or Ctrl/Cmd + N", "New note"],
+  ["Shift + W", "New word note"],
   ["Q or Ctrl/Cmd + J", "Toggle quick capture bar"],
   ["P", "Toggle presentation mode"],
   ["R", "Toggle reading mode (no tools/chrome)"],

@@ -96,6 +96,7 @@ import { LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/feature
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
+import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
 import {
   addPresentationStep,
@@ -237,10 +238,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [detailsSectionsOpen, setDetailsSectionsOpen] = useState<DetailsSectionState>({
     history: false,
     recall: true,
+    vocabulary: true,
     zoneGroups: true,
     tagGroups: false,
     smartMerge: true,
   });
+  const [reviewRevealMeaning, setReviewRevealMeaning] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
   const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
@@ -290,6 +293,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const zones = useMemo(() => Object.values(renderSnapshot.zones), [renderSnapshot.zones]);
   const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
+  const vocabularyNotes = useMemo(() => notes.filter((note) => isVocabularyNote(note)), [notes]);
+  const vocabularyDueNotes = useMemo(
+    () =>
+      [...vocabularyNotes]
+        .filter((note) => isVocabularyDue(note, wallClockTs))
+        .sort((left, right) => left.vocabulary.nextReviewAt - right.vocabulary.nextReviewAt),
+    [vocabularyNotes, wallClockTs],
+  );
+  const vocabularyFocusNotes = useMemo(() => vocabularyNotes.filter((note) => note.vocabulary.isFocus), [vocabularyNotes]);
+  const reviewedTodayCount = useMemo(() => {
+    const start = dayStartTs(wallClockTs);
+    return vocabularyNotes.filter((note) => (note.vocabulary.lastReviewedAt ?? 0) >= start).length;
+  }, [vocabularyNotes, wallClockTs]);
   const isTimeLocked = timelineMode || publishedReadOnly || presentationMode || readingMode;
   const isChromeHidden = presentationMode || readingMode;
   const isCompactLayout = viewport.w < compactPanelBreakpoint;
@@ -309,7 +325,16 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
     const parsed = parseTaggedText(rawText);
     const mergedTags = [...new Set([...current.tags, ...parsed.tags])];
-    updateNote(noteId, { text: parsed.text, tags: mergedTags });
+    updateNote(noteId, {
+      text: parsed.text,
+      tags: mergedTags,
+      vocabulary: current.vocabulary
+        ? {
+            ...current.vocabulary,
+            word: parsed.text.trim(),
+          }
+        : current.vocabulary,
+    });
   }, [renderSnapshot.notes]);
 
   const openEditor = useCallback((noteId: string, text: string) => {
@@ -796,6 +821,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     ui.selectedNoteId,
   ]);
 
+  const makeWordNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const id = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor ?? NOTE_COLORS[0]);
+    updateNote(id, {
+      text: "",
+      tags: ["vocab"],
+      vocabulary: createVocabularyNote(),
+    });
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    setReviewRevealMeaning(false);
+  }, [camera, isTimeLocked, selectNote, ui.lastColor, viewport.h, viewport.w]);
+
   useWallKeyboard({
     camera,
     viewport,
@@ -837,6 +878,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setPresentationIndex,
     setReadingMode,
     createNote,
+    createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
     redo,
     undo,
@@ -1379,6 +1421,55 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     isTimeLocked,
     publishedReadOnly,
   });
+  const selectedVocabularyNote = selectedNote && isVocabularyNote(selectedNote) ? selectedNote : undefined;
+
+  useEffect(() => {
+    setReviewRevealMeaning(false);
+  }, [selectedVocabularyNote?.id]);
+
+  const focusNextDueWord = useCallback(() => {
+    const nextDue = vocabularyDueNotes[0];
+    if (!nextDue) {
+      return;
+    }
+    setReviewRevealMeaning(false);
+    focusNote(nextDue.id);
+  }, [focusNote, vocabularyDueNotes]);
+
+  const updateVocabularyField = useCallback(
+    (field: "word" | "sourceContext" | "guessMeaning" | "meaning" | "ownSentence", value: string) => {
+      if (isTimeLocked || !selectedVocabularyNote?.vocabulary) {
+        return;
+      }
+      const nextVocabulary = {
+        ...selectedVocabularyNote.vocabulary,
+        [field]: value,
+      };
+      updateNote(selectedVocabularyNote.id, {
+        text: field === "word" ? value : selectedVocabularyNote.text,
+        vocabulary: nextVocabulary,
+      });
+    },
+    [isTimeLocked, selectedVocabularyNote],
+  );
+
+  const reviewSelectedWord = useCallback(
+    (outcome: "again" | "hard" | "good" | "easy") => {
+      if (isTimeLocked || !selectedVocabularyNote?.vocabulary) {
+        return;
+      }
+      const ownSentence = selectedVocabularyNote.vocabulary.ownSentence.trim();
+      if ((outcome === "good" || outcome === "easy") && !ownSentence) {
+        return;
+      }
+      const nextVocabulary = applyVocabularyReview(selectedVocabularyNote.vocabulary, outcome);
+      updateNote(selectedVocabularyNote.id, {
+        vocabulary: nextVocabulary,
+      });
+      setReviewRevealMeaning(false);
+    },
+    [isTimeLocked, selectedVocabularyNote],
+  );
 
   const commandPaletteCommands = useMemo<CommandPaletteCommand[]>(
     () => [
@@ -1390,6 +1481,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         keywords: ["add", "new", "sticky"],
         disabled: isTimeLocked,
         onSelect: makeNoteAtViewportCenter,
+      },
+      {
+        id: "new-word-note",
+        label: "Create word note",
+        description: "Capture a vocabulary card with spaced-review fields.",
+        keywords: ["word", "vocabulary", "flashcard", "learn"],
+        disabled: isTimeLocked,
+        onSelect: makeWordNoteAtViewportCenter,
+      },
+      {
+        id: "review-next-word",
+        label: "Review next due word",
+        description: "Jump to the most overdue vocabulary card.",
+        keywords: ["review", "due", "spaced repetition", "focus word"],
+        disabled: vocabularyDueNotes.length === 0,
+        onSelect: focusNextDueWord,
       },
       {
         id: "new-frame",
@@ -1601,6 +1708,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       isTimeLocked,
       leftPanelOpen,
       makeNoteAtViewportCenter,
+      makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
       readingMode,
       presentationMode,
@@ -1629,6 +1737,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       setShowClusters,
       ui.showClusters,
       undo,
+      focusNextDueWord,
+      vocabularyDueNotes.length,
       zoneGroups,
     ],
   );
@@ -1743,6 +1853,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             toolbarSelect={toolbarSelect}
             onClose={() => setLeftPanelOpen(false)}
             onCreateNote={makeNoteAtViewportCenter}
+            onCreateWordNote={makeWordNoteAtViewportCenter}
             onCreateZone={makeZoneAtViewportCenter}
             onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}
             boxSelectMode={boxSelectMode}
@@ -2051,6 +2162,16 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onDeleteSavedRecallSearch={(id) =>
             setSavedRecallSearches((previous) => previous.filter((entry) => entry.id !== id))
           }
+          isSelectedNoteVocabulary={Boolean(selectedVocabularyNote)}
+          vocabularyDueCount={vocabularyDueNotes.length}
+          vocabularyFocusCount={vocabularyFocusNotes.length}
+          reviewedTodayCount={reviewedTodayCount}
+          reviewRevealMeaning={reviewRevealMeaning}
+          onToggleRevealMeaning={() => setReviewRevealMeaning((previous) => !previous)}
+          onCreateWordNote={makeWordNoteAtViewportCenter}
+          onFocusNextDueWord={focusNextDueWord}
+          onUpdateVocabularyField={updateVocabularyField}
+          onReviewSelectedWord={reviewSelectedWord}
           groupLabelInput={groupLabelInput}
           onGroupLabelInputChange={setGroupLabelInput}
           selectedZone={selectedZone}

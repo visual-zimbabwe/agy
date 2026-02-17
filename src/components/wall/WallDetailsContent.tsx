@@ -6,10 +6,12 @@ import { RecallSection } from "@/components/wall/details/RecallSection";
 import { SelectionTagsSection } from "@/components/wall/details/SelectionTagsSection";
 import { SmartMergeSection } from "@/components/wall/details/SmartMergeSection";
 import { TagGroupsSection } from "@/components/wall/details/TagGroupsSection";
+import { VocabularySection } from "@/components/wall/details/VocabularySection";
 import { type AutoTagGroup, type DetailsSectionKey, type DetailsSectionState, type RecallDateFilter, type SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { TemplatesSection } from "@/components/wall/details/TemplatesSection";
 import { ZoneGroupsSection } from "@/components/wall/details/ZoneGroupsSection";
 import type { SmartMergeSuggestion } from "@/lib/smart-merge";
+import type { VocabularyReviewOutcome } from "@/features/wall/types";
 
 type TemplateOption = {
   value: TemplateType;
@@ -55,6 +57,19 @@ type WallDetailsContentProps = {
   savedRecallSearches: SavedRecallSearch[];
   onApplySavedRecallSearch: (item: SavedRecallSearch) => void;
   onDeleteSavedRecallSearch: (id: string) => void;
+  isSelectedNoteVocabulary: boolean;
+  vocabularyDueCount: number;
+  vocabularyFocusCount: number;
+  reviewedTodayCount: number;
+  reviewRevealMeaning: boolean;
+  onToggleRevealMeaning: () => void;
+  onCreateWordNote: () => void;
+  onFocusNextDueWord: () => void;
+  onUpdateVocabularyField: (
+    field: "word" | "sourceContext" | "guessMeaning" | "meaning" | "ownSentence",
+    value: string,
+  ) => void;
+  onReviewSelectedWord: (outcome: VocabularyReviewOutcome) => void;
   groupLabelInput: string;
   onGroupLabelInputChange: (value: string) => void;
   selectedZone?: Zone;
@@ -117,6 +132,16 @@ export const WallDetailsContent = ({
   savedRecallSearches,
   onApplySavedRecallSearch,
   onDeleteSavedRecallSearch,
+  isSelectedNoteVocabulary,
+  vocabularyDueCount,
+  vocabularyFocusCount,
+  reviewedTodayCount,
+  reviewRevealMeaning,
+  onToggleRevealMeaning,
+  onCreateWordNote,
+  onFocusNextDueWord,
+  onUpdateVocabularyField,
+  onReviewSelectedWord,
   groupLabelInput,
   onGroupLabelInputChange,
   selectedZone,
@@ -178,6 +203,22 @@ export const WallDetailsContent = ({
         savedRecallSearches={savedRecallSearches}
         onApplySavedRecallSearch={onApplySavedRecallSearch}
         onDeleteSavedRecallSearch={onDeleteSavedRecallSearch}
+      />
+      <VocabularySection
+        detailsSectionsOpen={detailsSectionsOpen}
+        onToggleDetailsSection={onToggleDetailsSection}
+        isTimeLocked={isTimeLocked}
+        selectedNote={selectedNoteId ? notes.find((note) => note.id === selectedNoteId) : undefined}
+        isSelectedNoteVocabulary={isSelectedNoteVocabulary}
+        vocabularyDueCount={vocabularyDueCount}
+        vocabularyFocusCount={vocabularyFocusCount}
+        reviewedTodayCount={reviewedTodayCount}
+        reviewRevealMeaning={reviewRevealMeaning}
+        onToggleRevealMeaning={onToggleRevealMeaning}
+        onCreateWordNote={onCreateWordNote}
+        onFocusNextDueWord={onFocusNextDueWord}
+        onUpdateVocabularyField={onUpdateVocabularyField}
+        onReviewSelectedWord={onReviewSelectedWord}
       />
       {advancedMode && (
         <HistorySection

@@ -20,6 +20,23 @@ export type NoteTextFont =
   | "josefin_sans"
   | "quicksand";
 
+export type VocabularyReviewOutcome = "again" | "hard" | "good" | "easy";
+
+export type VocabularyNote = {
+  word: string;
+  sourceContext: string;
+  guessMeaning: string;
+  meaning: string;
+  ownSentence: string;
+  nextReviewAt: number;
+  lastReviewedAt?: number;
+  intervalDays: number;
+  reviewsCount: number;
+  lapses: number;
+  isFocus: boolean;
+  lastOutcome?: VocabularyReviewOutcome;
+};
+
 export type Note = {
   id: string;
   text: string;
@@ -40,6 +57,7 @@ export type Note = {
   color: string;
   createdAt: number;
   updatedAt: number;
+  vocabulary?: VocabularyNote;
   deletedAt?: number;
   dirty?: boolean;
 };

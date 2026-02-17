@@ -24,6 +24,7 @@ type WallToolsPanelProps = {
   toolbarSelect: string;
   onClose: () => void;
   onCreateNote: () => void;
+  onCreateWordNote: () => void;
   onCreateZone: (kind?: ZoneKind) => void;
   onToggleBoxSelect: () => void;
   boxSelectMode: boolean;
@@ -54,6 +55,7 @@ export const WallToolsPanel = ({
   toolbarSelect,
   onClose,
   onCreateNote,
+  onCreateWordNote,
   onCreateZone,
   onToggleBoxSelect,
   boxSelectMode,
@@ -95,6 +97,12 @@ export const WallToolsPanel = ({
           <button type="button" onClick={onCreateNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtnPrimary}`} title="Create note (N or Ctrl/Cmd + N)">
             <Icon name="note" />
             <span>New Note</span>
+          </button>
+        </ControlTooltip>
+        <ControlTooltip label="Create vocabulary word note" className="relative block" side="right">
+          <button type="button" onClick={onCreateWordNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create vocabulary word note">
+            <Icon name="note" />
+            <span>New Word</span>
           </button>
         </ControlTooltip>
         <ControlTooltip label="Create zone at viewport center" className="relative block" side="right">
