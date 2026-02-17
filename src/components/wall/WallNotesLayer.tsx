@@ -623,7 +623,7 @@ export const WallNotesLayer = ({
                 align="center"
                 fontSize={10}
                 fontStyle="bold"
-                fill="#334155"
+                fill="#FFFFFF"
                 text={isVocabularyBack ? "Back • Tap to flip" : "Front • Tap to flip"}
                 onClick={(event) => {
                   if (isTimeLocked) {
