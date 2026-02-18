@@ -335,6 +335,17 @@ export const WallFloatingUi = ({
                   </>
                 ) : (
                   <>
+                    <textarea
+                      data-note-edit-tags="true"
+                      value={editingCanon.interpretation}
+                      onChange={(event) =>
+                        updateNote(editing.id, {
+                          canon: { ...editingCanon, interpretation: event.target.value },
+                        })
+                      }
+                      placeholder="List interpretation / overview"
+                      className="min-h-12 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                    />
                     <div className="space-y-2">
                       {editingCanon.items.map((item, index) => (
                         <div key={item.id} className="rounded-lg border border-zinc-300 bg-white/90 p-2">

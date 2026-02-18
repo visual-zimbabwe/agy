@@ -248,6 +248,7 @@ export const WallNotesLayer = ({
         const isQuote = noteView.noteKind === "quote";
         const isCanon = noteView.noteKind === "canon";
         const canon = noteView.canon;
+        const canonOverview = canon?.interpretation?.trim();
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
           .filter((item) => item.title.trim() || item.text.trim() || item.interpretation.trim())
@@ -286,8 +287,12 @@ export const WallNotesLayer = ({
         const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
         const quoteMarkInset = isQuote ? 13 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
+        const canonOverviewInset = isCanon && canonTitle && canonOverview ? 16 : 0;
         const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset + canonTitleInset;
-        const textHeight = Math.max(0, noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset - canonTitleInset);
+        const textHeight = Math.max(
+          0,
+          noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset - canonTitleInset - canonOverviewInset,
+        );
 
         return (
           <Group
@@ -666,6 +671,20 @@ export const WallNotesLayer = ({
                 fontStyle="bold"
                 fill={resolvedTextColor}
                 text={canonTitle}
+                wrap="none"
+                ellipsis
+                listening={false}
+              />
+            )}
+            {isCanon && canonTitle && canonOverview && (
+              <Text
+                x={12}
+                y={28}
+                width={Math.max(0, noteView.w - 24)}
+                fontSize={10}
+                fontStyle="italic"
+                fill={resolvedTextColor}
+                text={canonOverview}
                 wrap="none"
                 ellipsis
                 listening={false}
