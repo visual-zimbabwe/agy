@@ -210,8 +210,8 @@ describe("storage migrations", () => {
             example: "",
             source: "",
             items: [
-              { id: "i1", title: "First", text: "No other gods before me." },
-              { id: "i2", title: "Second", text: "No idols." },
+              { id: "i1", title: "First", text: "No other gods before me.", interpretation: "Loyalty to one God." },
+              { id: "i2", title: "Second", text: "No idols.", interpretation: "Avoid replacing worship with objects." },
             ],
           },
           tags: ["canon"],

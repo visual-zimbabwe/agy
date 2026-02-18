@@ -250,8 +250,12 @@ export const WallNotesLayer = ({
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
-          .filter((item) => item.title.trim() || item.text.trim())
-          .map((item, index) => `${index + 1}. ${item.title.trim() || item.text.trim()}`)
+          .filter((item) => item.title.trim() || item.text.trim() || item.interpretation.trim())
+          .map((item, index) => {
+            const headline = item.title.trim() || item.text.trim() || "Item";
+            const interpretation = item.interpretation.trim();
+            return interpretation ? `${index + 1}. ${headline}\n   -> ${interpretation}` : `${index + 1}. ${headline}`;
+          })
           .join("\n");
         const canonSinglePreview = [canon?.statement, canon?.interpretation, canon?.example]
           .map((value) => value?.trim())

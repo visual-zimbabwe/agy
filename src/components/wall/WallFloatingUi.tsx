@@ -346,7 +346,10 @@ export const WallFloatingUi = ({
                               onClick={() => {
                                 const next = editingCanon.items.filter((entry) => entry.id !== item.id);
                                 updateNote(editing.id, {
-                                  canon: { ...editingCanon, items: next.length > 0 ? next : [{ id: `canon-item-${Date.now()}`, title: "", text: "" }] },
+                                  canon: {
+                                    ...editingCanon,
+                                    items: next.length > 0 ? next : [{ id: `canon-item-${Date.now()}`, title: "", text: "", interpretation: "" }],
+                                  },
                                 });
                               }}
                               className="rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-[10px] text-zinc-600"
@@ -378,6 +381,18 @@ export const WallFloatingUi = ({
                             placeholder="Item text"
                             className="min-h-12 w-full rounded border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
                           />
+                          <textarea
+                            data-note-edit-tags="true"
+                            value={item.interpretation}
+                            onChange={(event) => {
+                              const next = editingCanon.items.map((entry) =>
+                                entry.id === item.id ? { ...entry, interpretation: event.target.value } : entry,
+                              );
+                              updateNote(editing.id, { canon: { ...editingCanon, items: next } });
+                            }}
+                            placeholder="Interpretation"
+                            className="mt-1 min-h-10 w-full rounded border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                          />
                         </div>
                       ))}
                     </div>
@@ -388,7 +403,7 @@ export const WallFloatingUi = ({
                         updateNote(editing.id, {
                           canon: {
                             ...editingCanon,
-                            items: [...editingCanon.items, { id: `canon-item-${Date.now()}`, title: "", text: "" }],
+                            items: [...editingCanon.items, { id: `canon-item-${Date.now()}`, title: "", text: "", interpretation: "" }],
                           },
                         });
                       }}
@@ -696,7 +711,7 @@ export const WallFloatingUi = ({
                               interpretation: "",
                               example: "",
                               source: "",
-                              items: [{ id: `canon-item-${Date.now()}`, title: "", text: "" }],
+                              items: [{ id: `canon-item-${Date.now()}`, title: "", text: "", interpretation: "" }],
                             }
                           : undefined,
                       });

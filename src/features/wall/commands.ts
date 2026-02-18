@@ -86,7 +86,7 @@ export const createCanonNote = (x: number, y: number, color?: string) => {
       interpretation: "",
       example: "",
       source: "",
-      items: [{ id: makeId(), title: "", text: "" }],
+      items: [{ id: makeId(), title: "", text: "", interpretation: "" }],
     },
   });
   return noteId;

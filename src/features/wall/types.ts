@@ -42,6 +42,7 @@ export type CanonListItem = {
   id: string;
   title: string;
   text: string;
+  interpretation: string;
 };
 
 export type CanonNote = {

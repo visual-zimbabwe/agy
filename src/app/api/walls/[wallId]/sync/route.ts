@@ -27,6 +27,7 @@ const canonItemSchema = z.object({
   id: z.string(),
   title: z.string(),
   text: z.string(),
+  interpretation: z.string().optional().default(""),
 });
 
 const canonSchema = z.object({

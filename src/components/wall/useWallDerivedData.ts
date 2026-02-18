@@ -77,6 +77,7 @@ export const useWallDerivedData = ({
           "canon.source",
           "canon.items.title",
           "canon.items.text",
+          "canon.items.interpretation",
           "tags",
           "vocabulary.word",
           "vocabulary.meaning",

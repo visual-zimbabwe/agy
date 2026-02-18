@@ -51,6 +51,7 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
           "canon.source",
           "canon.items.title",
           "canon.items.text",
+          "canon.items.interpretation",
           "tags",
           "vocabulary.word",
           "vocabulary.meaning",
@@ -238,9 +239,13 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
             note.noteKind === "canon"
               ? note.canon?.mode === "list"
                 ? note.canon.items
-                    .filter((item) => item.title.trim() || item.text.trim())
+                    .filter((item) => item.title.trim() || item.text.trim() || item.interpretation.trim())
                     .slice(0, 2)
-                    .map((item, index) => `${index + 1}. ${item.title.trim() || item.text.trim()}`)
+                    .map((item, index) => {
+                      const headline = item.title.trim() || item.text.trim() || "Item";
+                      const interpretation = item.interpretation.trim();
+                      return interpretation ? `${index + 1}. ${headline} -> ${interpretation}` : `${index + 1}. ${headline}`;
+                    })
                     .join(" ")
                 : [note.canon?.statement, note.canon?.interpretation].filter(Boolean).join(" ")
               : note.text;

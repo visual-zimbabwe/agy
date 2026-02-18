@@ -53,6 +53,7 @@ const normalizeCanon = (value: unknown): CanonNote | undefined => {
           id: asString(entry.id) || Math.random().toString(36).slice(2, 11),
           title: asString(entry.title),
           text: asString(entry.text),
+          interpretation: asString(entry.interpretation),
         }))
     : [];
 
@@ -63,7 +64,7 @@ const normalizeCanon = (value: unknown): CanonNote | undefined => {
     interpretation: asString(value.interpretation),
     example: asString(value.example),
     source: asString(value.source),
-    items: items.length > 0 ? items : [{ id: Math.random().toString(36).slice(2, 11), title: "", text: "" }],
+    items: items.length > 0 ? items : [{ id: Math.random().toString(36).slice(2, 11), title: "", text: "", interpretation: "" }],
   };
 };
 

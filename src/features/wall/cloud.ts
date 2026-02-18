@@ -209,6 +209,7 @@ const parseCanon = (raw: unknown): CanonNote | undefined => {
           id: asString(entry.id) || `canon-item-${index + 1}`,
           title: asString(entry.title),
           text: asString(entry.text),
+          interpretation: asString(entry.interpretation),
         }))
     : [];
 
@@ -220,7 +221,7 @@ const parseCanon = (raw: unknown): CanonNote | undefined => {
     interpretation: asString(value.interpretation),
     example: asString(value.example),
     source: asString(value.source),
-    items: items.length > 0 ? items : [{ id: "canon-item-1", title: "", text: "" }],
+    items: items.length > 0 ? items : [{ id: "canon-item-1", title: "", text: "", interpretation: "" }],
   };
 };
 
