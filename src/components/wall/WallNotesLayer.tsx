@@ -251,7 +251,6 @@ export const WallNotesLayer = ({
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
           .filter((item) => item.title.trim() || item.text.trim())
-          .slice(0, 3)
           .map((item, index) => `${index + 1}. ${item.title.trim() || item.text.trim()}`)
           .join("\n");
         const canonSinglePreview = [canon?.statement, canon?.interpretation, canon?.example]
