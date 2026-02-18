@@ -14,6 +14,7 @@
     "prep:web": "node ./scripts/prepare-web.mjs",
     "pack": "npm run build:web && npm run prep:web && electron-builder --dir",
     "dist": "npm run build:web && npm run prep:web && electron-builder",
+    "dist:publish": "npm run build:web && npm run prep:web && node ./scripts/publish-release.mjs",
     "smoke": "node ./scripts/smoke-check.mjs"
   },
   "devDependencies": {
@@ -22,6 +23,10 @@
     "electron": "^32.3.0",
     "electron-builder": "^24.13.3",
     "wait-on": "^8.0.5"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.6.2"
   },
   "build": {
     "appId": "com.ideawall.studio",
@@ -47,6 +52,7 @@
     "asar": true,
     "compression": "maximum",
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -61,7 +67,9 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": "always",
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     },
     "mac": {
       "target": [

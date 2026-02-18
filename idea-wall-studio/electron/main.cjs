@@ -1,6 +1,8 @@
-const { app, BrowserWindow, shell, session } = require("electron");
+const { app, BrowserWindow, dialog, shell, session } = require("electron");
 const path = require("path");
 const { fork } = require("child_process");
+const log = require("electron-log/main");
+const { autoUpdater } = require("electron-updater");
 
 const DEV_URL = "http://127.0.0.1:3000";
 const PROD_PORT = process.env.IDEA_WALL_DESKTOP_PORT || "3210";
@@ -9,6 +11,7 @@ const SERVER_READY_TIMEOUT_MS = 25000;
 let mainWindow = null;
 let webServerProcess = null;
 let baseAppUrl = null;
+let didAttemptUpdateCheck = false;
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -63,6 +66,62 @@ function stopPackagedWebServer() {
     webServerProcess.kill("SIGTERM");
   }
   webServerProcess = null;
+}
+
+function configureAutoUpdate() {
+  if (!app.isPackaged || didAttemptUpdateCheck) {
+    return;
+  }
+  if (!process.env.IDEA_WALL_AUTO_UPDATE_URL) {
+    log.info("Auto-update disabled: IDEA_WALL_AUTO_UPDATE_URL is not configured.");
+    return;
+  }
+  autoUpdater.setFeedURL({
+    provider: "generic",
+    url: process.env.IDEA_WALL_AUTO_UPDATE_URL
+  });
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.logger = log;
+
+  autoUpdater.on("error", (error) => {
+    log.error("Auto-update error:", error);
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    log.info(`Update available: ${info.version}`);
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    log.info("No updates available.");
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    dialog
+      .showMessageBox({
+        type: "info",
+        buttons: ["Restart Now", "Later"],
+        defaultId: 0,
+        cancelId: 1,
+        title: "Update ready",
+        message: `Idea Wall Studio ${info.version} has been downloaded.`,
+        detail: "Restart now to apply the update."
+      })
+      .then(({ response }) => {
+        if (response === 0) {
+          autoUpdater.quitAndInstall();
+        }
+      })
+      .catch(() => {
+        // Non-fatal if dialog cannot be shown.
+      });
+  });
+
+  didAttemptUpdateCheck = true;
+  autoUpdater.checkForUpdates().catch((error) => {
+    log.error("Update check failed:", error);
+  });
 }
 
 function applyWindowSecurity(mainUrl, webContents) {
@@ -137,12 +196,16 @@ app.on("second-instance", () => {
 });
 
 app.whenReady().then(async () => {
+  log.initialize();
+  log.info("Starting Idea Wall Studio");
+
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
     callback(false);
   });
 
   try {
     await bootstrap();
+    configureAutoUpdate();
   } catch (error) {
     console.error("Failed to start Idea Wall Studio:", error);
     app.quit();

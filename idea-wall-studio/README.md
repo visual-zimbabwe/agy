@@ -7,6 +7,7 @@ Electron desktop wrapper for the `idea-wall` Next.js app.
 - `npm install`
 - `npm run dev`
 - `npm run dist`
+- `npm run dist:publish`
 
 ## How it works
 
@@ -24,3 +25,18 @@ Electron desktop wrapper for the `idea-wall` Next.js app.
 
 - Configure code signing before distributing production installers.
 - Optional runtime port override: `IDEA_WALL_DESKTOP_PORT`.
+- Auto-update feed URL:
+  - optional for `npm run dist`
+  - required for `npm run dist:publish`
+  - required at app runtime to enable update checks in packaged app
+
+## Release Environment
+
+- Windows signing (optional but recommended for production):
+  - `CSC_LINK` / `CSC_KEY_PASSWORD` or `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD`
+- macOS signing/notarization:
+  - `APPLE_ID`
+  - `APPLE_APP_SPECIFIC_PASSWORD`
+  - `APPLE_TEAM_ID`
+- Auto-update publishing:
+  - `IDEA_WALL_AUTO_UPDATE_URL`
