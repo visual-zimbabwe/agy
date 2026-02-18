@@ -1,5 +1,23 @@
 # Idea-Wall Manual QA Checklist
 
+## Electron Desktop Packaging (2026-02-18)
+1. In `idea-wall-studio`, run `npm install`.
+2. Run `npm run dist`.
+3. Verify installer exists at `idea-wall-studio/release/Idea Wall Studio-Setup-0.1.0.exe`.
+4. Launch unpacked app from `idea-wall-studio/release/win-unpacked/Idea Wall Studio.exe`.
+5. Verify routes work in desktop app:
+   - `/` landing loads
+   - `/wall` loads and note interactions work
+   - `/login` and `/signup` render
+6. Create note(s), reload app window, verify local persistence.
+7. Open an external link from the app and verify it opens in system browser (not in-app webview).
+
+Expected:
+- Desktop package builds successfully and launches without blank-window or server-start errors.
+- Core routes and wall interactions work inside Electron.
+- IndexedDB/local persistence works across desktop relaunch.
+- External navigation is blocked in-app and delegated to system browser.
+
 ## Baseline + Guardrails (Day 1-2)
 1. Run `npm run dev`.
 2. Capture baseline screenshots with `npm run baseline:capture`.

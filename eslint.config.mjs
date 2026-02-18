@@ -26,6 +26,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "idea-wall-studio/**",
+    // Desktop packaging outputs:
+    "idea-wall-studio/node_modules/**",
+    "idea-wall-studio/.dist/**",
+    "idea-wall-studio/release/**",
+    "idea-wall-studio/dist/**",
   ]),
 ]);
 

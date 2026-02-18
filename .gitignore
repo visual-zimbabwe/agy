@@ -21,6 +21,10 @@
 
 # production
 /build
+idea-wall-studio/node_modules/
+idea-wall-studio/.dist/
+idea-wall-studio/release/
+idea-wall-studio/dist/
 
 # misc
 .DS_Store

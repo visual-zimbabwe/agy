@@ -1,0 +1,81 @@
+{
+  "name": "idea-wall-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Idea Wall Studio desktop app powered by Electron and Next.js",
+  "main": "electron/main.cjs",
+  "author": "Idea Wall Team",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev:web": "npm --prefix .. run dev",
+    "dev:electron": "wait-on tcp:3000 && electron .",
+    "dev": "concurrently -k \"npm run dev:web\" \"npm run dev:electron\"",
+    "build:web": "cross-env NEXT_OUTPUT=standalone npm --prefix .. run build",
+    "prep:web": "node ./scripts/prepare-web.mjs",
+    "pack": "npm run build:web && npm run prep:web && electron-builder --dir",
+    "dist": "npm run build:web && npm run prep:web && electron-builder",
+    "smoke": "node ./scripts/smoke-check.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^32.3.0",
+    "electron-builder": "^24.13.3",
+    "wait-on": "^8.0.5"
+  },
+  "build": {
+    "appId": "com.ideawall.studio",
+    "productName": "Idea Wall Studio",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": ".dist/web",
+        "to": "app/web",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "compression": "maximum",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity",
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office",
+      "artifactName": "${productName}-${version}.${ext}"
+    }
+  }
+}
