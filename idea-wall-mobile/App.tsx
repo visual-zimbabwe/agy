@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
-import WallCanvas, { NoteEditor } from "./src/components/WallCanvas";
+import WallCanvas, { LinkEditor, NoteEditor, SearchOverlay, ZoneEditor } from "./src/components/WallCanvas";
 import { CAMERA_DEFAULTS } from "./src/features/wall/constants";
+import { parseImportedWallJson, exportWallAsJson } from "./src/features/wall/portability";
 import { loadWallSnapshot, saveWallSnapshot } from "./src/features/wall/storage";
 import { selectPersistedSnapshot, useWallStore } from "./src/features/wall/store";
 
@@ -15,10 +16,20 @@ function WallApp() {
   const undo = useWallStore((state) => state.undo);
   const redo = useWallStore((state) => state.redo);
   const selectNote = useWallStore((state) => state.selectNote);
+  const selectZone = useWallStore((state) => state.selectZone);
+  const selectLink = useWallStore((state) => state.selectLink);
+  const selectedZoneId = useWallStore((state) => state.ui.selectedZoneId);
+  const selectedLinkId = useWallStore((state) => state.ui.selectedLinkId);
   const selectedNoteId = useWallStore((state) => state.ui.selectedNoteId);
+  const setExportOpen = useWallStore((state) => state.setExportOpen);
+  const isExportOpen = useWallStore((state) => state.ui.isExportOpen);
   const notes = useWallStore((state) => state.notes);
+  const zones = useWallStore((state) => state.zones);
+  const links = useWallStore((state) => state.links);
   const hydrated = useWallStore((state) => state.hydrated);
+  const hydrateState = useWallStore((state) => state.hydrate);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [importText, setImportText] = React.useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +44,10 @@ function WallApp() {
       }
       hydrate({
         notes: {},
+        zones: {},
+        zoneGroups: {},
+        noteGroups: {},
+        links: {},
         camera: CAMERA_DEFAULTS
       });
     };
@@ -66,6 +81,8 @@ function WallApp() {
   }, []);
 
   const selectedNote = useMemo(() => (selectedNoteId ? notes[selectedNoteId] : undefined), [notes, selectedNoteId]);
+  const selectedZone = useMemo(() => (selectedZoneId ? zones[selectedZoneId] : undefined), [selectedZoneId, zones]);
+  const selectedLink = useMemo(() => (selectedLinkId ? links[selectedLinkId] : undefined), [links, selectedLinkId]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -87,9 +104,7 @@ function WallApp() {
 
       {hydrated ? (
         <WallCanvas
-          onEditNote={(noteId) => {
-            selectNote(noteId);
-          }}
+          onOpenImportExport={() => setExportOpen(true)}
         />
       ) : (
         <View style={styles.loading}>
@@ -97,12 +112,78 @@ function WallApp() {
         </View>
       )}
 
+      <SearchOverlay />
+
       {selectedNote ? (
         <View style={styles.editorWrap}>
           <NoteEditor key={selectedNote.id} note={selectedNote} />
           <View style={styles.editorFooter}>
             <Pressable style={styles.closeButton} onPress={() => selectNote(undefined)}>
               <Text style={styles.closeButtonLabel}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {!selectedNote && selectedZone ? (
+        <View style={styles.editorWrap}>
+          <ZoneEditor key={selectedZone.id} zone={selectedZone} />
+          <View style={styles.editorFooter}>
+            <Pressable style={styles.closeButton} onPress={() => selectZone(undefined)}>
+              <Text style={styles.closeButtonLabel}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {!selectedNote && !selectedZone && selectedLink ? (
+        <View style={styles.editorWrap}>
+          <LinkEditor key={selectedLink.id} link={selectedLink} />
+          <View style={styles.editorFooter}>
+            <Pressable style={styles.closeButton} onPress={() => selectLink(undefined)}>
+              <Text style={styles.closeButtonLabel}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {isExportOpen ? (
+        <View style={styles.exportSheet}>
+          <Text style={styles.exportTitle}>Import / Export</Text>
+          <Pressable
+            style={styles.headerButton}
+            onPress={async () => {
+              const payload = exportWallAsJson(selectPersistedSnapshot(useWallStore.getState()));
+              await Share.share({ message: payload });
+            }}
+          >
+            <Text style={styles.headerButtonLabel}>Share JSON Export</Text>
+          </Pressable>
+          <TextInput
+            multiline
+            placeholder="Paste exported JSON here to import"
+            placeholderTextColor="#64748B"
+            style={styles.importInput}
+            value={importText}
+            onChangeText={setImportText}
+          />
+          <View style={styles.headerButtons}>
+            <Pressable
+              style={styles.headerButton}
+              onPress={() => {
+                const imported = parseImportedWallJson(importText);
+                if (!imported) {
+                  return;
+                }
+                hydrateState(imported);
+                setImportText("");
+                setExportOpen(false);
+              }}
+            >
+              <Text style={styles.headerButtonLabel}>Import</Text>
+            </Pressable>
+            <Pressable style={styles.headerButton} onPress={() => setExportOpen(false)}>
+              <Text style={styles.headerButtonLabel}>Close</Text>
             </Pressable>
           </View>
         </View>
@@ -179,5 +260,33 @@ const styles = StyleSheet.create({
   closeButtonLabel: {
     color: "#FFFFFF",
     fontWeight: "700"
+  },
+  exportSheet: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    top: 78,
+    bottom: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+    padding: 12,
+    gap: 10
+  },
+  exportTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A"
+  },
+  importInput: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    textAlignVertical: "top",
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    color: "#111827"
   }
 });

@@ -2,14 +2,25 @@
 
 Native mobile port of Idea Wall Studio using React Native + Expo, saved in a separate folder so the existing Electron/Next.js app remains unchanged.
 
-## Included in this migration
+## Included in second pass
 
 - Single Expo codebase for iOS + Android.
-- Infinite-style wall surface with pan + zoom.
-- Create, drag, edit, duplicate, delete, and color notes.
-- Search notes by text.
-- Undo/redo.
+- Infinite-style wall with pan + zoom.
+- Notes:
+  - standard, quote, and canon note creation
+  - drag/edit/color/tags/delete/duplicate
+- Zones:
+  - create, drag, edit label, delete
+- Links:
+  - create by selecting "Start Link" on one note then tapping another
+  - type switching and delete
+- Templates:
+  - brainstorm, retro, strategy map
+- Search overlay with camera jump.
+- Implicit cluster outlines (non-destructive).
+- Undo/redo history.
 - Local-first persistence with AsyncStorage.
+- JSON import/export flow (share export, paste import JSON).
 
 ## Run locally
 
@@ -27,5 +38,5 @@ Native mobile port of Idea Wall Studio using React Native + Expo, saved in a sep
 
 ## Notes
 
-- This is a native mobile foundation, not a full 1:1 of every advanced desktop/web wall feature yet.
 - Existing `idea-wall-studio` remains available and untouched.
+- Mobile implementation targets feature parity categories with touch-first UX; layout and interaction details are adapted for phone screens.
