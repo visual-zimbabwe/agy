@@ -19,6 +19,8 @@ const candidateOfficeBinaries = [
   process.platform === "win32" ? "libreoffice.exe" : "libreoffice",
   process.platform === "win32" ? "C:\\Program Files\\LibreOffice\\program\\soffice.exe" : undefined,
   process.platform === "win32" ? "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe" : undefined,
+  process.platform === "win32" ? "C:\\Program Files\\LibreOffice\\program\\soffice.com" : undefined,
+  process.platform === "win32" ? "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.com" : undefined,
 ].filter((value): value is string => Boolean(value));
 
 const runCommand = (command: string, args: string[], timeoutMs = 120000) =>
@@ -46,11 +48,45 @@ const runCommand = (command: string, args: string[], timeoutMs = 120000) =>
     });
   });
 
+const tryResolveWithWhere = async (command: string) => {
+  if (process.platform !== "win32") {
+    return null;
+  }
+  try {
+    const result = await runCommand("where.exe", [command], 6000);
+    if (result.code !== 0) {
+      return null;
+    }
+    const first = result.stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0);
+    return first ?? null;
+  } catch {
+    return null;
+  }
+};
+
 const detectOfficeBinary = async () => {
   if (cachedOfficeBinary !== undefined) {
     return cachedOfficeBinary;
   }
   for (const candidate of candidateOfficeBinaries) {
+    if (path.isAbsolute(candidate)) {
+      try {
+        await fs.access(candidate);
+        cachedOfficeBinary = candidate;
+        return cachedOfficeBinary;
+      } catch {
+        // Continue searching.
+      }
+      continue;
+    }
+    const resolved = await tryResolveWithWhere(candidate);
+    if (resolved) {
+      cachedOfficeBinary = resolved;
+      return cachedOfficeBinary;
+    }
     try {
       const result = await runCommand(candidate, ["--version"], 8000);
       if (result.code === 0) {
