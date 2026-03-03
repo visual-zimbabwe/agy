@@ -181,6 +181,7 @@ export const DecksWorkspace = () => {
   const [statsRange, setStatsRange] = useState("30d");
   const [stats, setStats] = useState<StatsPayload | null>(null);
   const [deckName, setDeckName] = useState("");
+  const [renameDeckName, setRenameDeckName] = useState("");
   const [newDeckParentId, setNewDeckParentId] = useState("");
   const [addDeckId, setAddDeckId] = useState("");
   const [addNoteTypeId, setAddNoteTypeId] = useState("");
@@ -294,6 +295,11 @@ export const DecksWorkspace = () => {
     })();
   }, [loadDeckData, loadImportPresets]);
 
+  useEffect(() => {
+    const selectedDeck = decks.find((deck) => deck.id === studyDeckId);
+    setRenameDeckName(selectedDeck?.name ?? "");
+  }, [decks, studyDeckId]);
+
   const selectedNoteType = useMemo(() => noteTypes.find((entry) => entry.id === addNoteTypeId) ?? null, [addNoteTypeId, noteTypes]);
   const selectedRow = useMemo(() => browseRows.find((row) => row.id === selectedRowId) ?? null, [browseRows, selectedRowId]);
   const childDecks = useMemo(() => decks.filter((deck) => deck.parent_id === studyDeckId), [decks, studyDeckId]);
@@ -337,6 +343,27 @@ export const DecksWorkspace = () => {
     setShowAnswer(false);
     await Promise.all([loadDeckData(), loadBrowse(), loadStats()]);
     setStatusMessage("Deck cleared.");
+  };
+
+  const handleRenameDeck = async () => {
+    if (!studyDeckId) {
+      throw new Error("Select a deck first.");
+    }
+    const nextName = renameDeckName.trim();
+    if (!nextName) {
+      throw new Error("Deck name cannot be empty.");
+    }
+    const response = await fetch(`/api/decks/${studyDeckId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: nextName }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Failed to rename deck.");
+    }
+    await loadDeckData();
+    setStatusMessage("Deck renamed.");
   };
 
   const handleCreateNote = async () => {
@@ -577,6 +604,17 @@ export const DecksWorkspace = () => {
               </SelectField>
               <Button onClick={() => safeRun(handleCreateDeck)} disabled={!deckName.trim()}>
                 Create Deck
+              </Button>
+              <FieldLabel htmlFor="rename-deck-name">Rename selected deck</FieldLabel>
+              <TextField
+                id="rename-deck-name"
+                value={renameDeckName}
+                onChange={(event) => setRenameDeckName(event.target.value)}
+                placeholder="New deck name"
+                disabled={!studyDeckId}
+              />
+              <Button onClick={() => safeRun(handleRenameDeck)} disabled={!studyDeckId || !renameDeckName.trim()}>
+                Rename Deck
               </Button>
               <Button variant="danger" onClick={() => safeRun(handleClearDeck)} disabled={!studyDeckId}>
                 Clear Selected Deck
