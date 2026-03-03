@@ -29,6 +29,7 @@ type WallActions = {
   setSearchOpen: (open: boolean) => void;
   setExportOpen: (open: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
+  setFileConversionOpen: (open: boolean) => void;
   setFlashNote: (noteId?: string) => void;
   setShowClusters: (show: boolean) => void;
   upsertNote: (note: Note) => void;
@@ -93,6 +94,7 @@ const initialState: WallState = {
     isSearchOpen: false,
     isExportOpen: false,
     isShortcutsOpen: false,
+    isFileConversionOpen: false,
     showClusters: false,
   },
 };
@@ -272,6 +274,14 @@ export const useWallStore = create<WallStore>((set) => ({
       ui: {
         ...state.ui,
         isShortcutsOpen: open,
+      },
+    })),
+
+  setFileConversionOpen: (open) =>
+    set((state) => ({
+      ui: {
+        ...state.ui,
+        isFileConversionOpen: open,
       },
     })),
   setFlashNote: (noteId) => set((state) => ({ ui: { ...state.ui, flashNoteId: noteId } })),

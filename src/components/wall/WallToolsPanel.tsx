@@ -39,6 +39,7 @@ type WallToolsPanelProps = {
   onToggleSnapToGuides: () => void;
   onToggleSnapToGrid: () => void;
   controlsMode: "basic" | "advanced";
+  onOpenFileConversion: (mode: "pdf_to_word" | "word_to_pdf") => void;
 };
 
 export const WallToolsPanel = ({
@@ -71,6 +72,7 @@ export const WallToolsPanel = ({
   onToggleSnapToGuides,
   onToggleSnapToGrid,
   controlsMode,
+  onOpenFileConversion,
 }: WallToolsPanelProps) => {
   const advancedMode = controlsMode === "advanced";
 
@@ -178,7 +180,29 @@ export const WallToolsPanel = ({
             </button>
           </ControlTooltip>
         )}
-        {advancedMode && <div className="my-2 border-t border-[var(--color-border)]/70" />}
+        <div className="my-2 border-t border-[var(--color-border)]/70" />
+        <ControlTooltip label="Convert PDF files to Word documents" className="relative block" side="right">
+          <button
+            type="button"
+            onClick={() => onOpenFileConversion("pdf_to_word")}
+            className={`w-full justify-start ${toolbarBtn}`}
+            title="Open PDF to Word converter"
+          >
+            <Icon name="export" />
+            <span>PDF to Word</span>
+          </button>
+        </ControlTooltip>
+        <ControlTooltip label="Convert Word documents to PDF files" className="relative block" side="right">
+          <button
+            type="button"
+            onClick={() => onOpenFileConversion("word_to_pdf")}
+            className={`w-full justify-start ${toolbarBtn}`}
+            title="Open Word to PDF converter"
+          >
+            <Icon name="export" />
+            <span>Word to PDF</span>
+          </button>
+        </ControlTooltip>
         {advancedMode && (
           <ControlTooltip label="Toggle subtle dot matrix helper" className="relative block" side="right">
             <button

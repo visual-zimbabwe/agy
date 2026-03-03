@@ -1,5 +1,7 @@
-const { app, BrowserWindow, dialog, shell, session } = require("electron");
+const { app, BrowserWindow, dialog, shell, session, ipcMain } = require("electron");
 const path = require("path");
+const fs = require("fs/promises");
+const { constants } = require("fs");
 const { fork } = require("child_process");
 const log = require("electron-log/main");
 const { autoUpdater } = require("electron-updater");
@@ -143,6 +145,115 @@ function applyWindowSecurity(mainUrl, webContents) {
   });
 }
 
+async function pathExists(targetPath) {
+  try {
+    await fs.access(targetPath, constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function splitNameAndExt(fileName) {
+  const ext = path.extname(fileName);
+  const base = fileName.slice(0, Math.max(0, fileName.length - ext.length)) || "converted-file";
+  return { base, ext };
+}
+
+function buildKeepBothPath(folderPath, fileName, index) {
+  const { base, ext } = splitNameAndExt(fileName);
+  const suffix = index <= 1 ? " (1)" : ` (${index})`;
+  return path.join(folderPath, `${base}${suffix}${ext}`);
+}
+
+function registerDesktopIpc() {
+  ipcMain.handle("desktop:pick-save-path", async (_event, payload) => {
+    const defaultPath = typeof payload?.defaultPath === "string" ? payload.defaultPath : undefined;
+    const filters = Array.isArray(payload?.filters) ? payload.filters : undefined;
+    const result = await dialog.showSaveDialog(mainWindow ?? undefined, {
+      defaultPath,
+      filters,
+      title: "Save converted file",
+    });
+    return { canceled: result.canceled, filePath: result.filePath ?? null };
+  });
+
+  ipcMain.handle("desktop:pick-folder", async () => {
+    const result = await dialog.showOpenDialog(mainWindow ?? undefined, {
+      title: "Choose output folder",
+      properties: ["openDirectory", "createDirectory"],
+    });
+    return {
+      canceled: result.canceled,
+      folderPath: result.canceled ? null : result.filePaths[0] ?? null,
+    };
+  });
+
+  ipcMain.handle("desktop:save-file", async (_event, payload) => {
+    const filePath = typeof payload?.filePath === "string" ? payload.filePath : "";
+    const base64 = typeof payload?.base64 === "string" ? payload.base64 : "";
+    if (!filePath || !base64) {
+      return { ok: false, error: "Invalid save payload." };
+    }
+    const data = Buffer.from(base64, "base64");
+    await fs.writeFile(filePath, data);
+    return { ok: true, filePath };
+  });
+
+  ipcMain.handle("desktop:write-in-folder", async (_event, payload) => {
+    const folderPath = typeof payload?.folderPath === "string" ? payload.folderPath : "";
+    const fileName = typeof payload?.fileName === "string" ? payload.fileName : "";
+    const base64 = typeof payload?.base64 === "string" ? payload.base64 : "";
+    if (!folderPath || !fileName || !base64) {
+      return { status: "error", error: "Invalid write payload." };
+    }
+
+    const data = Buffer.from(base64, "base64");
+    let targetPath = path.join(folderPath, fileName);
+    if (await pathExists(targetPath)) {
+      const conflictChoice = await dialog.showMessageBox(mainWindow ?? undefined, {
+        type: "question",
+        buttons: ["Replace", "Keep both", "Skip", "Cancel batch"],
+        defaultId: 1,
+        cancelId: 3,
+        title: "File already exists",
+        message: `${fileName} already exists in the selected folder.`,
+        detail: "Choose how to proceed.",
+      });
+      if (conflictChoice.response === 2) {
+        return { status: "skipped" };
+      }
+      if (conflictChoice.response === 3) {
+        return { status: "canceled" };
+      }
+      if (conflictChoice.response === 1) {
+        let index = 1;
+        let candidate = buildKeepBothPath(folderPath, fileName, index);
+        while (await pathExists(candidate)) {
+          index += 1;
+          candidate = buildKeepBothPath(folderPath, fileName, index);
+        }
+        targetPath = candidate;
+      }
+    }
+
+    await fs.writeFile(targetPath, data);
+    return { status: "written", filePath: targetPath };
+  });
+
+  ipcMain.handle("desktop:open-path", async (_event, payload) => {
+    const targetPath = typeof payload?.path === "string" ? payload.path : "";
+    if (!targetPath) {
+      return { ok: false, error: "Invalid path." };
+    }
+    const result = await shell.openPath(targetPath);
+    if (result) {
+      return { ok: false, error: result };
+    }
+    return { ok: true };
+  });
+}
+
 function createMainWindow(mainUrl) {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -198,6 +309,7 @@ app.on("second-instance", () => {
 app.whenReady().then(async () => {
   log.initialize();
   log.info("Starting Idea Wall Studio");
+  registerDesktopIpc();
 
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
     callback(false);

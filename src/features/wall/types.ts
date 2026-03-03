@@ -169,6 +169,7 @@ export type WallUI = {
   isSearchOpen: boolean;
   isExportOpen: boolean;
   isShortcutsOpen: boolean;
+  isFileConversionOpen: boolean;
   showClusters: boolean;
 };
 

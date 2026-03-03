@@ -1,6 +1,7 @@
 "use client";
 
 import { ExportModal } from "@/components/ExportModal";
+import { FileConversionModal } from "@/components/FileConversionModal";
 import { QuickCaptureBar } from "@/components/QuickCaptureBar";
 import { SearchPalette, type CommandPaletteCommand } from "@/components/SearchPalette";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
@@ -28,6 +29,10 @@ type WallGlobalModalsProps = {
   onBackupReminderCadenceChange: (cadence: "off" | "daily" | "weekly") => void;
   isShortcutsOpen: boolean;
   onCloseShortcuts: () => void;
+  isFileConversionOpen: boolean;
+  onCloseFileConversion: () => void;
+  onOpenFileConversion: () => void;
+  preferredFileConversionMode?: "pdf_to_word" | "word_to_pdf" | null;
 };
 
 export const WallGlobalModals = ({
@@ -52,6 +57,10 @@ export const WallGlobalModals = ({
   onBackupReminderCadenceChange,
   isShortcutsOpen,
   onCloseShortcuts,
+  isFileConversionOpen,
+  onCloseFileConversion,
+  onOpenFileConversion,
+  preferredFileConversionMode,
 }: WallGlobalModalsProps) => {
   return (
     <>
@@ -76,6 +85,12 @@ export const WallGlobalModals = ({
         onBackupReminderCadenceChange={onBackupReminderCadenceChange}
       />
       <ShortcutsHelp open={isShortcutsOpen} onClose={onCloseShortcuts} />
+      <FileConversionModal
+        open={isFileConversionOpen}
+        onClose={onCloseFileConversion}
+        onOpen={onOpenFileConversion}
+        preferredMode={preferredFileConversionMode}
+      />
     </>
   );
 };

@@ -180,6 +180,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const setSearchOpen = useWallStore((state) => state.setSearchOpen);
   const setExportOpen = useWallStore((state) => state.setExportOpen);
   const setShortcutsOpen = useWallStore((state) => state.setShortcutsOpen);
+  const setFileConversionOpen = useWallStore((state) => state.setFileConversionOpen);
   const setLastColor = useWallStore((state) => state.setLastColor);
   const setFlashNote = useWallStore((state) => state.setFlashNote);
   const setShowClusters = useWallStore((state) => state.setShowClusters);
@@ -248,6 +249,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
   const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
+  const [preferredFileConversionMode, setPreferredFileConversionMode] = useState<"pdf_to_word" | "word_to_pdf" | null>(null);
   const [presentationIndex, setPresentationIndex] = useState(0);
   const [presentationPaths, setPresentationPaths] = useState<PresentationPath[]>([]);
   const [activePresentationPathId, setActivePresentationPathId] = useState("");
@@ -738,6 +740,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     },
     [markOpenIntent, setShortcutsOpen],
   );
+
+  const openFileConversion = useCallback((conversionMode?: "pdf_to_word" | "word_to_pdf") => {
+    if (conversionMode) {
+      setPreferredFileConversionMode(conversionMode);
+    }
+    setFileConversionOpen(true);
+  }, [setFileConversionOpen]);
 
   const toggleLeftPanel = useCallback(() => {
     if (!leftPanelOpen) {
@@ -1597,6 +1606,20 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: () => setExportOpenTracked(true),
       },
       {
+        id: "convert-pdf-to-word",
+        label: "Open PDF to Word",
+        description: "Convert PDF documents into Word files.",
+        keywords: ["convert", "pdf", "word", "document"],
+        onSelect: () => openFileConversion("pdf_to_word"),
+      },
+      {
+        id: "convert-word-to-pdf",
+        label: "Open Word to PDF",
+        description: "Convert Word documents into PDF files.",
+        keywords: ["convert", "word", "pdf", "document"],
+        onSelect: () => openFileConversion("word_to_pdf"),
+      },
+      {
         id: "undo",
         label: "Undo",
         description: "Revert the last change.",
@@ -1778,6 +1801,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       resetView,
       rightPanelOpen,
       setExportOpenTracked,
+      openFileConversion,
       setShortcutsOpenTracked,
       showHeatmap,
       spatialPrefs.showDotMatrix,
@@ -1927,6 +1951,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               setSpatialPrefs((previous) => ({ ...previous, snapToGrid: !previous.snapToGrid }))
             }
             controlsMode={controlsMode}
+            onOpenFileConversion={(conversionMode) => openFileConversion(conversionMode)}
           />
         )}
 
@@ -2258,6 +2283,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onPublishSnapshot={() => { void publishReadOnlySnapshot(); }}
         backupReminderCadence={backupReminderCadence} onBackupReminderCadenceChange={setBackupReminderCadence}
         isShortcutsOpen={ui.isShortcutsOpen} onCloseShortcuts={() => setShortcutsOpenTracked(false)}
+        isFileConversionOpen={ui.isFileConversionOpen}
+        onCloseFileConversion={() => {
+          setFileConversionOpen(false);
+          setPreferredFileConversionMode(null);
+        }}
+        onOpenFileConversion={() => setFileConversionOpen(true)}
+        preferredFileConversionMode={preferredFileConversionMode}
       />
     </div>
   );
