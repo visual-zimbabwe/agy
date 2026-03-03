@@ -10,7 +10,6 @@ type LinkTypeOption = {
 };
 
 type WallToolsPanelProps = {
-  isCompactLayout: boolean;
   leftPanelOpen: boolean;
   isTimeLocked: boolean;
   selectedNoteId?: string;
@@ -43,7 +42,6 @@ type WallToolsPanelProps = {
 };
 
 export const WallToolsPanel = ({
-  isCompactLayout,
   leftPanelOpen,
   isTimeLocked,
   selectedNoteId,
@@ -78,23 +76,13 @@ export const WallToolsPanel = ({
 
   return (
     <aside
-      className={`${wallPanelSurface} p-3 ${
-        isCompactLayout
-          ? `left-3 top-8 w-[min(18rem,calc(100%-1.5rem))] ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
-          : `left-4 top-10 w-48 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`
-      }`}
+      className={`${wallPanelSurface} left-4 top-10 w-48 p-3 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`}
     >
       <div className="mb-3 flex items-center justify-between px-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Tools</p>
-        {isCompactLayout && (
-          <button
-            type="button"
-            onClick={onClose}
-            className={panelCloseBtn}
-          >
-            Close
-          </button>
-        )}
+        <button type="button" onClick={onClose} className={panelCloseBtn}>
+          Close
+        </button>
       </div>
       <div className="space-y-1.5">
         <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd + N" className="relative block" side="right">

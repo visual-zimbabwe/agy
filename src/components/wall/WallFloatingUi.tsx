@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
-import { NoteSwatches } from "@/components/NoteCard";
 import { NoteTextFormattingToolbar } from "@/components/wall/NoteTextFormattingToolbar";
 import { getNoteTextFontFamily, getNoteTextStyle } from "@/components/wall/wall-canvas-helpers";
 import { NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
@@ -40,8 +39,6 @@ type WallFloatingUiProps = {
   tagPreviewScreen?: { x: number; y: number };
   tagPreviewNote?: Note;
   tagPreviewPalette?: { bg: string; border: string; text: string };
-  touchPaletteScreen?: { x: number; y: number };
-  touchPaletteNote?: Note;
   quickActionScreen?: { x: number; y: number };
   primarySelectedNote?: Note;
   toolbarBtnActive: string;
@@ -92,7 +89,6 @@ type WallFloatingUiProps = {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
-  onCloseTouchPalette: () => void;
 };
 
 export const WallFloatingUi = ({
@@ -114,8 +110,6 @@ export const WallFloatingUi = ({
   tagPreviewScreen,
   tagPreviewNote,
   tagPreviewPalette,
-  touchPaletteScreen,
-  touchPaletteNote,
   quickActionScreen,
   primarySelectedNote,
   toolbarBtnActive,
@@ -166,7 +160,6 @@ export const WallFloatingUi = ({
   onZoomIn,
   onZoomOut,
   onResetZoom,
-  onCloseTouchPalette,
 }: WallFloatingUiProps) => {
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
@@ -738,34 +731,6 @@ export const WallFloatingUi = ({
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {touchPaletteScreen && touchPaletteNote && !editing && (
-        <div
-          className="pointer-events-auto absolute z-[46] -translate-x-1/2 -translate-y-full rounded-xl border border-zinc-300 bg-white/96 px-2 py-2 shadow-xl backdrop-blur-sm motion-toolbar-enter"
-          style={{ left: `${touchPaletteScreen.x}px`, top: `${touchPaletteScreen.y}px` }}
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold text-zinc-700">Color palette</p>
-            <button
-              type="button"
-              onClick={onCloseTouchPalette}
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-zinc-300 bg-white px-2 text-xs text-zinc-600"
-              aria-label="Close color palette"
-            >
-              Close
-            </button>
-          </div>
-          <NoteSwatches
-            value={touchPaletteNote.color}
-            onSelect={(color) => {
-              applyColorToSelection(color);
-              onCloseTouchPalette();
-            }}
-            showCustomColorAdd
-          />
         </div>
       )}
 

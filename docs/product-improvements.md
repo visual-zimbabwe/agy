@@ -32,7 +32,7 @@
 4. Interaction Polish (Done)
 - Unified motion/focus polish and cleaner wall chrome interactions.
 5. Aesthetic Pass Across Routes (Done)
-- Landing/auth/wall now share one visual system and mobile-aware layout behavior.
+- Landing/auth/wall now share one visual system and consistent layout behavior.
 6. Hardening + Documentation (Done)
 - Hardening checks run (`lint`, `check:regressions`, `build`) and architecture guidance documented.
 

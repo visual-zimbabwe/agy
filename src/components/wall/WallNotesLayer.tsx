@@ -35,7 +35,6 @@ type WallNotesLayerProps = {
   dragSingleStartRef: MutableRefObject<{ id: string; x: number; y: number; altClone: boolean } | null>;
   setHoveredNoteId: Dispatch<SetStateAction<string | undefined>>;
   setDraggingNoteId: Dispatch<SetStateAction<string | undefined>>;
-  onLongPressNote: (noteId: string) => void;
   setGuideLines: Dispatch<SetStateAction<GuideLineState>>;
   setResizingNoteDrafts: Dispatch<SetStateAction<Record<string, ResizeDraft>>>;
   syncPrimarySelection: (noteIds: string[]) => void;
@@ -80,7 +79,6 @@ export const WallNotesLayer = ({
   dragSingleStartRef,
   setHoveredNoteId,
   setDraggingNoteId,
-  onLongPressNote,
   setGuideLines,
   setResizingNoteDrafts,
   syncPrimarySelection,
@@ -111,7 +109,6 @@ export const WallNotesLayer = ({
   const [failedImagesByUrl, setFailedImagesByUrl] = useState<Record<string, true>>({});
   const colorWashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
   const sizePulseTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const reducedMotion = typeof document !== "undefined" && document.documentElement.classList.contains("motion-reduce");
@@ -218,9 +215,6 @@ export const WallNotesLayer = ({
     const colorWashTimers = colorWashTimersRef.current;
     const sizePulseTimers = sizePulseTimersRef.current;
     return () => {
-      if (longPressTimerRef.current) {
-        clearTimeout(longPressTimerRef.current);
-      }
       Object.values(colorWashTimers).forEach((timers) => timers.forEach((timer) => clearTimeout(timer)));
       Object.values(sizePulseTimers).forEach((timers) => timers.forEach((timer) => clearTimeout(timer)));
     };
@@ -346,28 +340,6 @@ export const WallNotesLayer = ({
               } else {
                 openEditor(note.id, note.text);
               }
-            }}
-            onTouchStart={() => {
-              if (longPressTimerRef.current) {
-                clearTimeout(longPressTimerRef.current);
-              }
-              longPressTimerRef.current = setTimeout(() => {
-                onLongPressNote(note.id);
-              }, 420);
-            }}
-            onTouchEnd={() => {
-              if (!longPressTimerRef.current) {
-                return;
-              }
-              clearTimeout(longPressTimerRef.current);
-              longPressTimerRef.current = null;
-            }}
-            onTouchCancel={() => {
-              if (!longPressTimerRef.current) {
-                return;
-              }
-              clearTimeout(longPressTimerRef.current);
-              longPressTimerRef.current = null;
             }}
             onDragStart={(event) => {
               if (isTimeLocked || isPinned) {

@@ -10,7 +10,6 @@ import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 type WallDetailsSidebarProps = {
   presentationMode: boolean;
   showDetailsPanel: boolean;
-  isCompactLayout: boolean;
   rightPanelOpen: boolean;
   onClose: () => void;
   templateType: TemplateType;
@@ -90,7 +89,6 @@ type WallDetailsSidebarProps = {
 export const WallDetailsSidebar = ({
   presentationMode,
   showDetailsPanel,
-  isCompactLayout,
   rightPanelOpen,
   onClose,
   templateType,
@@ -169,7 +167,6 @@ export const WallDetailsSidebar = ({
 
   return (
     <WallDetailsPanel
-      isCompactLayout={isCompactLayout}
       rightPanelOpen={rightPanelOpen}
       onClose={onClose}
     >

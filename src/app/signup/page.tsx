@@ -50,7 +50,7 @@ export default function SignupPage() {
         <div className="order-2 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-glass)] p-6 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)] lg:order-1 lg:p-8">
           <p className="text-[10px] font-semibold tracking-[0.14em] uppercase">Idea-Wall Account</p>
           <h1 className="mt-3 text-3xl leading-tight font-semibold text-[var(--color-text)] sm:text-4xl">Set up cloud sync.</h1>
-          <p className="mt-4 leading-7">Create your account to keep one wall in sync across desktop and mobile sessions.</p>
+          <p className="mt-4 leading-7">Create your account to keep one wall in sync across sessions.</p>
         </div>
 
         <Panel className="order-1 w-full p-6 motion-modal-enter sm:p-8 lg:order-2">

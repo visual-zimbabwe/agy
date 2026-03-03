@@ -9,7 +9,7 @@ Using `frontend-design`: the biggest frontend win is to separate visual system w
 ## Plan (Phased)
 1. **Baseline + Guardrails (Day 1-2)** (Done)
 - Capture current UX baselines: screenshots + short flows for `/`, `/login`, `/signup`, `/wall`.
-- Add lightweight frontend quality checklist in `docs/qa.md`: keyboard nav, focus states, mobile breakpoints, contrast, panel overlap behavior.
+- Add lightweight frontend quality checklist in `docs/qa.md`: keyboard nav, focus states, contrast, panel overlap behavior.
 - Define performance targets for wall UI (panel open latency, search palette open time, initial interactive time).
 
 2. **Design System Foundation (Week 1)** (Done)
@@ -38,7 +38,6 @@ Using `frontend-design`: the biggest frontend win is to separate visual system w
 5. **Aesthetic Pass Across Routes (Week 2-3)** (Done)
 - Redesign landing/auth/wall chrome with the same visual language.
 - Make landing and auth feel like part of the same product as the canvas (currently they feel separate).
-- Ensure mobile behavior is intentional for each route, not just responsive by default.
 
 6. **Hardening + Documentation (Week 3)** (Done)
 - Run `npm run lint`, `npm run build`, and full `docs/qa.md` checks.

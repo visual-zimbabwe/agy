@@ -22,12 +22,12 @@ Expected:
 1. Run `npm run dev`.
 2. Capture baseline screenshots with `npm run baseline:capture`.
 3. Confirm screenshot set exists in `docs/baselines/2026-02-11/`:
-   `home/login/signup/wall` for both desktop and mobile.
+   `home/login/signup/wall` for desktop.
 4. Review short route flows in `docs/baselines/2026-02-11/README.md`.
 
 Expected:
 - Baseline packet is complete and can be reused for visual diff checks.
-- Route baselines are consistent across desktop and mobile captures.
+- Route baselines are consistent across desktop captures.
 
 ## Frontend Quality Guardrails
 1. Keyboard navigation:
@@ -35,35 +35,30 @@ Expected:
    - Verify focus order is logical and no keyboard trap occurs in modal surfaces.
 2. Focus states:
    - Verify visible focus treatment for primary controls, links, inputs, and modal close buttons.
-3. Mobile breakpoints:
-   - Validate `390x844` behavior for `/`, `/login`, `/signup`, `/wall`.
+3. Layout behavior:
+   - Validate `/`, `/login`, `/signup`, `/wall` at default desktop viewport.
    - Confirm no clipped controls or horizontal overflow.
 4. Contrast:
    - Verify body text and interactive controls meet readable contrast on all primary surfaces.
 5. Panel overlap behavior (`/wall`):
-   - On compact width (`< 1120px`), open `Tools` and `Details`.
-   - Confirm overlays can be closed by backdrop and remain usable without blocking critical actions.
+   - Open `Tools` and `Details`.
+   - Confirm panel layering remains usable without blocking critical actions.
 
 Expected:
 - Keyboard-only users can complete core flows.
 - Focus visibility is clear and consistent.
-- Mobile layouts keep controls reachable without overlap regressions.
+- Layouts keep controls reachable without overlap regressions.
 - Contrast remains readable across all routes.
 - Panel layering does not trap interaction.
 
 ## Phase 5 - Aesthetic Parity Across Routes
 1. Open `/`, `/login`, `/signup`, and `/wall`.
 2. Verify each route uses the same atmosphere shell (soft gradient field + glass surfaces + tokenized borders).
-3. On mobile viewport (`390x844`), confirm:
-   - Landing top actions (`Sign in`, `Create account`) remain visible without overlap.
-   - Auth support card and auth form stack vertically with comfortable spacing.
-   - Wall account chip remains reachable at top-right and does not overlap core toolbar actions.
-4. Verify primary actions on all routes use accent button styling consistently.
-5. Verify danger states on auth/wall (`auth error`, `sync error`) use tokenized danger palette.
+3. Verify primary actions on all routes use accent button styling consistently.
+4. Verify danger states on auth/wall (`auth error`, `sync error`) use tokenized danger palette.
 
 Expected:
 - Landing, auth, and wall feel like one product with consistent visual language.
-- Mobile route behavior is intentional, readable, and touch-friendly.
 - Action hierarchy and state feedback are consistent across routes.
 
 ## Phase 6 - Hardening Execution Record (2026-02-11)
@@ -78,10 +73,6 @@ Artifacts confirmed:
 2. `docs/baselines/2026-02-11/login-desktop.png`
 3. `docs/baselines/2026-02-11/signup-desktop.png`
 4. `docs/baselines/2026-02-11/wall-desktop.png`
-5. `docs/baselines/2026-02-11/home-mobile.png`
-6. `docs/baselines/2026-02-11/login-mobile.png`
-7. `docs/baselines/2026-02-11/signup-mobile.png`
-8. `docs/baselines/2026-02-11/wall-mobile.png`
 
 ## Wall Performance Targets (Guardrails)
 Measure in warm local sessions with DevTools performance markers where possible.
@@ -441,18 +432,15 @@ Expected:
 Expected:
 - All shortcuts work without needing mouse for command invocation.
 
-## Accessibility + Touch Guardrail
+## Accessibility Guardrail
 1. On `/wall`, inspect quick-action toolbar buttons (`Text size`, `Pin`, `Highlight`, `Focus`, `Link`, align/distribute) and verify hit areas are at least ~36px.
 2. Navigate the quick-action toolbar with keyboard only (`Tab`, `Shift+Tab`, `Enter`, `Space`) and verify every action is reachable/activatable.
 3. Verify short-label buttons (`L/C/R/T/M/B`) and command button expose accessible names via screen reader/ARIA.
-4. On touch device or mobile emulator, long-press a note (~400ms) and verify a color palette opens near that note.
-5. Pick a color from long-press palette and verify color applies, palette closes, and note remains selected.
 
 Expected:
-- Toolbar controls satisfy minimum touch target size and are reliably tappable.
+- Toolbar controls satisfy minimum hit target size.
 - Keyboard-only navigation can operate all primary quick actions.
 - ARIA labels provide clear names for icon/abbreviated controls.
-- Long-press provides direct touch access to color palette.
 
 ## Settings - Keyboard Color Slots
 1. Open profile menu on `/wall` and click `Settings`.
@@ -502,15 +490,12 @@ Expected:
    `Search`, `Capture`, `Undo`, `Redo`, `Present`, `Timeline`, `Heatmap`, `Shortcuts`.
 4. Verify left tools rail controls display icon + label pairs and tooltips, including:
    `New Note`, `New Zone`, `Box Select`, `Start Link`, `Detect Clusters`.
-5. Resize viewport to tablet/mobile width (< 1120px).
-6. Verify left/right side panels are collapsed by default and can be opened using top bar `Tools` / `Details` toggles.
-7. With one or both side panels open on compact width, click the dimmed backdrop and verify panels close.
-8. Open each compact panel and use its `Close` button.
+5. Verify left/right side panels can be opened using top bar `Tools` / `Details` toggles.
+6. Open each panel and use its `Close` button.
 
 Expected:
 - Control iconography is consistent across top bar and tools rail.
 - Tooltips render for controls, with shortcut chips where available.
-- On compact layouts, side panels behave like collapsible overlays and do not permanently occupy canvas space.
 
 ## IA Cleanup - Accordions, Minimal Context, Layout Preferences
 1. Open `/wall` with default layout.

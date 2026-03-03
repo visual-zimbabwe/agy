@@ -57,11 +57,7 @@ $targets = @(
   @{ Name = "home-desktop.png"; Url = "$BaseUrl/"; Size = "1440,900" },
   @{ Name = "login-desktop.png"; Url = "$BaseUrl/login"; Size = "1440,900" },
   @{ Name = "signup-desktop.png"; Url = "$BaseUrl/signup"; Size = "1440,900" },
-  @{ Name = "wall-desktop.png"; Url = "$BaseUrl/wall?snapshot=baseline"; Size = "1440,900" },
-  @{ Name = "home-mobile.png"; Url = "$BaseUrl/"; Size = "390,844" },
-  @{ Name = "login-mobile.png"; Url = "$BaseUrl/login"; Size = "390,844" },
-  @{ Name = "signup-mobile.png"; Url = "$BaseUrl/signup"; Size = "390,844" },
-  @{ Name = "wall-mobile.png"; Url = "$BaseUrl/wall?snapshot=baseline"; Size = "390,844" }
+  @{ Name = "wall-desktop.png"; Url = "$BaseUrl/wall?snapshot=baseline"; Size = "1440,900" }
 )
 
 foreach ($target in $targets) {

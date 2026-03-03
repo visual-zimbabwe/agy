@@ -14,7 +14,6 @@ import { WallHeaderBar } from "@/components/wall/WallHeaderBar";
 import {
   backupReminderCadenceStorageKey,
   backupReminderLastPromptStorageKey,
-  compactPanelBreakpoint,
   controlsModeStorageKey,
   downloadDataUrl,
   downloadJsonFile,
@@ -249,7 +248,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
   const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
-  const [touchPaletteNoteId, setTouchPaletteNoteId] = useState<string | undefined>(undefined);
   const [presentationIndex, setPresentationIndex] = useState(0);
   const [presentationPaths, setPresentationPaths] = useState<PresentationPath[]>([]);
   const [activePresentationPathId, setActivePresentationPathId] = useState("");
@@ -310,7 +308,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   }, [vocabularyNotes, wallClockTs]);
   const isTimeLocked = timelineMode || publishedReadOnly || presentationMode || readingMode;
   const isChromeHidden = presentationMode || readingMode;
-  const isCompactLayout = viewport.w < compactPanelBreakpoint;
   timelineModeRef.current = timelineMode;
   const activePresentationPath = useMemo(
     () => presentationPaths.find((path) => path.id === activePresentationPathId),
@@ -790,7 +787,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   }, [rightPanelOpen]);
 
   useEffect(() => {
-    if (isChromeHidden || isCompactLayout || !layoutPrefs.showDetailsPanel) {
+    if (isChromeHidden || !layoutPrefs.showDetailsPanel) {
       previousSelectedNoteIdRef.current = ui.selectedNoteId;
       return;
     }
@@ -816,7 +813,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     previousSelectedNoteIdRef.current = ui.selectedNoteId;
   }, [
     isChromeHidden,
-    isCompactLayout,
     layoutPrefs.showDetailsPanel,
     markOpenIntent,
     rightPanelOpen,
@@ -1019,10 +1015,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setCamera,
   });
   const focusedNote = focusedNoteId ? renderSnapshot.notes[focusedNoteId] : undefined;
-  const touchPaletteNote = touchPaletteNoteId ? renderSnapshot.notes[touchPaletteNoteId] : undefined;
-  const touchPaletteScreen = touchPaletteNote
-    ? toScreenPoint(touchPaletteNote.x + touchPaletteNote.w / 2, touchPaletteNote.y - 18, camera)
-    : undefined;
   const isFocusMode = Boolean(focusedNote);
   const renderVisibleNotes = useMemo(
     () => (focusedNote ? visibleNotes.filter((note) => note.id === focusedNote.id) : visibleNotes),
@@ -1089,15 +1081,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       syncPrimarySelection([noteId]);
       selectNote(noteId);
       setFocusedNoteId((previous) => (previous === noteId ? undefined : noteId));
-    },
-    [selectNote, syncPrimarySelection],
-  );
-
-  const openTouchPaletteForNote = useCallback(
-    (noteId: string) => {
-      syncPrimarySelection([noteId]);
-      selectNote(noteId);
-      setTouchPaletteNoteId(noteId);
     },
     [selectNote, syncPrimarySelection],
   );
@@ -1403,21 +1386,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       setFocusedNoteId(undefined);
     }
   }, [focusedNoteId, renderSnapshot.notes, visibleNotes]);
-
-  useEffect(() => {
-    if (!touchPaletteNoteId) {
-      return;
-    }
-    const exists = Boolean(renderSnapshot.notes[touchPaletteNoteId]);
-    if (!exists) {
-      setTouchPaletteNoteId(undefined);
-      return;
-    }
-    const stillVisible = visibleNotes.some((note) => note.id === touchPaletteNoteId);
-    if (!stillVisible) {
-      setTouchPaletteNoteId(undefined);
-    }
-  }, [renderSnapshot.notes, touchPaletteNoteId, visibleNotes]);
 
   const { exportPng, exportPdf, exportMarkdown } = useWallExport({
     stageRef,
@@ -1917,23 +1885,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           </button>
         )}
 
-        {!isChromeHidden &&
-          isCompactLayout &&
-          ((layoutPrefs.showToolsPanel && leftPanelOpen) || (layoutPrefs.showDetailsPanel && rightPanelOpen)) && (
-          <button
-            type="button"
-            aria-label="Close side panels"
-            onClick={() => {
-              setLeftPanelOpen(false);
-              setRightPanelOpen(false);
-            }}
-            className="absolute inset-0 z-[34] bg-[var(--color-overlay)]"
-          />
-        )}
-
         {!isChromeHidden && !publishedReadOnly && layoutPrefs.showToolsPanel && (hasNoteSelection || leftPanelOpen) && (
           <WallToolsPanel
-            isCompactLayout={isCompactLayout}
             leftPanelOpen={leftPanelOpen}
             isTimeLocked={isTimeLocked}
             selectedNoteId={ui.selectedNoteId}
@@ -1997,7 +1950,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             clearNoteSelection();
             setEditing(null);
             setFocusedNoteId(undefined);
-            setTouchPaletteNoteId(undefined);
           }}
         >
           <Layer listening={false}>
@@ -2081,7 +2033,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               dragSingleStartRef={dragSingleStartRef}
               setHoveredNoteId={setHoveredNoteId}
               setDraggingNoteId={setDraggingNoteId}
-              onLongPressNote={openTouchPaletteForNote}
               setGuideLines={setGuideLines}
               setResizingNoteDrafts={setResizingNoteDrafts}
               syncPrimarySelection={syncPrimarySelection}
@@ -2116,7 +2067,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               guideLines={guideLines}
               noteTransformerRef={noteTransformerRef}
               zoneTransformerRef={zoneTransformerRef}
-              isCompactLayout={isCompactLayout}
               noteMinWidth={NOTE_DEFAULTS.minWidth}
               noteMinHeight={NOTE_DEFAULTS.minHeight}
               zoneMinWidth={ZONE_DEFAULTS.minWidth}
@@ -2145,8 +2095,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           tagPreviewScreen={tagPreviewScreen}
           tagPreviewNote={tagPreviewNote}
           tagPreviewPalette={tagPreviewPalette}
-          touchPaletteScreen={touchPaletteScreen}
-          touchPaletteNote={touchPaletteNote}
           quickActionScreen={quickActionScreen}
           primarySelectedNote={primarySelectedNote}
           toolbarBtnActive={toolbarBtnActive}
@@ -2197,14 +2145,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onZoomIn={() => stepZoom("in")}
           onZoomOut={() => stepZoom("out")}
           onResetZoom={resetZoom}
-          onCloseTouchPalette={() => setTouchPaletteNoteId(undefined)}
         />
         )}
 
         <WallDetailsSidebar
           presentationMode={isChromeHidden}
           showDetailsPanel={layoutPrefs.showDetailsPanel}
-          isCompactLayout={isCompactLayout}
           rightPanelOpen={rightPanelOpen}
           onClose={() => setRightPanelOpen(false)}
           templateType={ui.templateType}

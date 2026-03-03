@@ -24,7 +24,6 @@ type WallOverlaysLayerProps = {
   guideLines: GuideLineState;
   noteTransformerRef: MutableRefObject<Konva.Transformer | null>;
   zoneTransformerRef: MutableRefObject<Konva.Transformer | null>;
-  isCompactLayout: boolean;
   noteMinWidth: number;
   noteMinHeight: number;
   zoneMinWidth: number;
@@ -42,7 +41,6 @@ export const WallOverlaysLayer = ({
   guideLines,
   noteTransformerRef,
   zoneTransformerRef,
-  isCompactLayout,
   noteMinWidth,
   noteMinHeight,
   zoneMinWidth,
@@ -154,7 +152,7 @@ export const WallOverlaysLayer = ({
         rotateEnabled={false}
         borderStroke="#111827"
         anchorFill="#111827"
-        anchorSize={isCompactLayout ? 11 : 9}
+        anchorSize={9}
         enabledAnchors={[
           "top-left",
           "top-right",
@@ -180,7 +178,7 @@ export const WallOverlaysLayer = ({
         rotateEnabled={false}
         borderStroke="#334155"
         anchorFill="#334155"
-        anchorSize={isCompactLayout ? 11 : 9}
+        anchorSize={9}
         enabledAnchors={[
           "top-left",
           "top-right",

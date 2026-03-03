@@ -5,13 +5,12 @@ This baseline packet covers the Day 1-2 guardrail scope from `docs/frontend-impr
 ## Scope
 - Routes: `/`, `/login`, `/signup`, `/wall`
 - Artifacts:
-  - screenshots (desktop and mobile)
+  - screenshots (desktop)
   - short user flows
   - wall performance targets
 
 ## Screenshot Manifest
 - Desktop viewport: `1440x900`
-- Mobile viewport: `390x844`
 - Naming convention: `<route>-<viewport>.png`
 
 Expected files:
@@ -19,10 +18,6 @@ Expected files:
 2. `login-desktop.png`
 3. `signup-desktop.png`
 4. `wall-desktop.png`
-5. `home-mobile.png`
-6. `login-mobile.png`
-7. `signup-mobile.png`
-8. `wall-mobile.png`
 
 Capture command:
 
@@ -32,7 +27,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\capture-ux-baselines.ps1
 
 Notes:
 - `/wall` capture uses `http://localhost:3000/wall?snapshot=baseline` so a read-only snapshot route can load without authentication.
-- If your local `/wall` requires auth state for visual parity, capture an additional `wall-auth-desktop.png` and `wall-auth-mobile.png` after sign-in.
+- If your local `/wall` requires auth state for visual parity, capture an additional `wall-auth-desktop.png` after sign-in.
 - If headless capture fails with `Access is denied` from Chrome/Edge crashpad, run the command in a normal local terminal session (outside restricted sandboxes) and re-run.
 
 ## Short Baseline Flows
@@ -42,12 +37,12 @@ Notes:
 
 2. `/login`
 - Load route.
-- Verify form fields and primary submit button are visible above fold on desktop and mobile.
+- Verify form fields and primary submit button are visible above fold on desktop.
 - Verify link to `/signup` is visible and keyboard-focusable.
 
 3. `/signup`
 - Load route.
-- Verify form fields and primary submit button are visible above fold on desktop and mobile.
+- Verify form fields and primary submit button are visible above fold on desktop.
 - Verify link to `/login` is visible and keyboard-focusable.
 
 4. `/wall`
