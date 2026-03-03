@@ -18,6 +18,28 @@ Expected:
 - IndexedDB/local persistence works across desktop relaunch.
 - External navigation is blocked in-app and delegated to system browser.
 
+## Decks Route and Workflow (2026-03-03)
+1. Sign in and open `/decks` from landing and from `/wall` toolbar.
+2. In deck sidebar, create a root deck and one child deck.
+3. Open `Add` and create one note using each built-in note type (Basic, reversed, optional reversed, cloze).
+4. Start study on parent deck with `Include child decks` enabled; confirm cards from child deck appear.
+5. Exclude the child deck and confirm child cards are removed from current queue.
+6. In study view, click `Show Answer`, then rate cards with `Again/Hard/Good/Easy`.
+7. Open `Browse`, search cards, select rows, and run bulk `Suspend`, `Unsuspend`, and `Delete`.
+8. In Browse editor, edit prompt/answer and save.
+9. Open `Stats`, switch ranges (`7d`, `30d`, `90d`, `1y`, `deck_life`) and verify summary/workload updates.
+10. Open `Import File`, upload sample `.csv` or tab-delimited `.txt`, map columns, import notes.
+11. Save an import preset, close modal, reopen, and apply the saved preset.
+12. Verify Decks behavior in Electron app build (`idea-wall-studio`) by opening `/decks`, adding one note, and reviewing one card.
+
+Expected:
+- Decks route is reachable from both landing and wall.
+- Add/Browse/Stats/Study/Import toolbar flows work end-to-end.
+- Parent study optionally includes children and supports exclusions.
+- Card scheduling updates queue counts after rating.
+- Import mapping presets persist via cloud data and reload correctly.
+- Same Decks route/features work in web and Electron builds.
+
 ## Baseline + Guardrails (Day 1-2)
 1. Run `npm run dev`.
 2. Capture baseline screenshots with `npm run baseline:capture`.

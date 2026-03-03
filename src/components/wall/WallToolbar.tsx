@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
 import {
   toolbarBtn,
@@ -71,6 +73,12 @@ export const WallToolbar = ({
           </ControlTooltip>
           {showSecondaryActions && (
             <>
+            <ControlTooltip label="Open decks workspace" side="top">
+              <Link href="/decks" className={toolbarBtn} title="Open decks workspace">
+                <Icon name="search" />
+                <span>Decks</span>
+              </Link>
+            </ControlTooltip>
             {toolsAction && (
               <ControlTooltip label={leftPanelOpen ? "Hide tools panel" : "Show tools panel"} side="top">
                 <button

@@ -41,6 +41,12 @@ export default function Home() {
               >
                 Open Wall
               </Link>
+              <Link
+                href="/decks"
+                className="rounded-[var(--radius-lg)] bg-[var(--color-accent-strong)] px-6 py-3.5 text-sm font-semibold text-[var(--color-accent-foreground)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--color-accent)]"
+              >
+                Open Decks
+              </Link>
               <a
                 href="#features"
                 className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-6 py-3.5 text-sm font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
