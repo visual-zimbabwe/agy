@@ -142,7 +142,7 @@ const parseImportText = (raw: string): ParsedImportFile => {
   }
 
   if (contentLines.length === 0) {
-    throw new Error("Import file has no card rows.");
+    return { columns: [], rows: [] };
   }
 
   const delimiter: "," | "\t" = delimiterFromDirective ?? (contentLines[0]?.includes("\t") ? "\t" : ",");
@@ -450,6 +450,9 @@ export const DecksWorkspace = () => {
     }
     const raw = await importFile.text();
     const parsed = parseImportText(raw);
+    if (parsed.rows.length === 0) {
+      throw new Error("Import file has no card rows.");
+    }
     const frontIndex = parsed.columns.indexOf(importFrontColumn);
     const backIndex = parsed.columns.indexOf(importBackColumn);
     const tagsIndex = parsed.columns.indexOf(importTagsColumn);
@@ -831,15 +834,34 @@ export const DecksWorkspace = () => {
               setImportFile(nextFile);
               if (!nextFile) {
                 setImportColumns([]);
+                setImportFrontColumn("");
+                setImportBackColumn("");
+                setImportTagsColumn("");
                 return;
               }
-              const raw = await nextFile.text();
-              const parsed = parseImportText(raw);
-              const columns = parsed.columns;
-              setImportColumns(columns);
-              setImportFrontColumn(columns[0] ?? "");
-              setImportBackColumn(columns[1] ?? columns[0] ?? "");
-              setImportTagsColumn(columns.find((entry) => entry.toLowerCase().includes("tag")) ?? "");
+              try {
+                const raw = await nextFile.text();
+                const parsed = parseImportText(raw);
+                const columns = parsed.columns;
+                if (columns.length === 0) {
+                  setImportColumns([]);
+                  setImportFrontColumn("");
+                  setImportBackColumn("");
+                  setImportTagsColumn("");
+                  setStatusMessage("Import file has no card rows.");
+                  return;
+                }
+                setImportColumns(columns);
+                setImportFrontColumn(columns[0] ?? "");
+                setImportBackColumn(columns[1] ?? columns[0] ?? "");
+                setImportTagsColumn(columns.find((entry) => entry.toLowerCase().includes("tag")) ?? "");
+              } catch (error) {
+                setImportColumns([]);
+                setImportFrontColumn("");
+                setImportBackColumn("");
+                setImportTagsColumn("");
+                setStatusMessage(error instanceof Error ? error.message : "Unable to parse import file.");
+              }
             }}
           />
           <div className="grid gap-3 sm:grid-cols-2">
