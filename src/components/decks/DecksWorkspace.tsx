@@ -102,6 +102,67 @@ const parseDelimitedLine = (line: string, delimiter: "," | "\t") => {
   return cells;
 };
 
+type ParsedImportFile = {
+  columns: string[];
+  rows: string[][];
+};
+
+const parseSeparatorDirective = (line: string): "," | "\t" | null => {
+  const match = line.match(/^#\s*separator\s*:\s*(.+)\s*$/i);
+  if (!match) {
+    return null;
+  }
+  const value = match[1]?.trim().toLowerCase();
+  if (!value) {
+    return null;
+  }
+  if (value === "tab" || value === "\\t") {
+    return "\t";
+  }
+  if (value === "comma" || value === "csv") {
+    return ",";
+  }
+  return null;
+};
+
+const parseImportText = (raw: string): ParsedImportFile => {
+  let delimiterFromDirective: "," | "\t" | null = null;
+  const contentLines: string[] = [];
+
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+    if (trimmed.startsWith("#")) {
+      delimiterFromDirective = parseSeparatorDirective(trimmed) ?? delimiterFromDirective;
+      continue;
+    }
+    contentLines.push(trimmed);
+  }
+
+  if (contentLines.length === 0) {
+    throw new Error("Import file has no card rows.");
+  }
+
+  const delimiter: "," | "\t" = delimiterFromDirective ?? (contentLines[0]?.includes("\t") ? "\t" : ",");
+  const firstRow = parseDelimitedLine(contentLines[0] ?? "", delimiter);
+  const firstRowLower = firstRow.map((cell) => cell.toLowerCase());
+  const hasHeader =
+    firstRowLower.includes("front") ||
+    firstRowLower.includes("back") ||
+    firstRowLower.includes("tags") ||
+    firstRowLower.includes("tag");
+
+  const columns = hasHeader ? firstRow : firstRow.map((_, index) => `Column ${index + 1}`);
+  const dataLines = hasHeader ? contentLines.slice(1) : contentLines;
+  const rows = dataLines
+    .map((line) => parseDelimitedLine(line, delimiter))
+    .filter((cells) => cells.some((cell) => cell.trim().length > 0));
+
+  return { columns, rows };
+};
+
 export const DecksWorkspace = () => {
   const [view, setView] = useState<View>("decks");
   const [toolbarModal, setToolbarModal] = useState<ToolbarModal>("none");
@@ -357,28 +418,15 @@ export const DecksWorkspace = () => {
       throw new Error("Choose a CSV or TXT file.");
     }
     const raw = await importFile.text();
-    const lines = raw
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-    if (lines.length < 2) {
-      throw new Error("Import file needs a header row and at least one data row.");
-    }
-    const headerLine = lines[0];
-    if (!headerLine) {
-      throw new Error("Import header row is missing.");
-    }
-    const delimiter: "," | "\t" = headerLine.includes("\t") ? "\t" : ",";
-    const header = parseDelimitedLine(headerLine, delimiter);
-    const frontIndex = header.indexOf(importFrontColumn);
-    const backIndex = header.indexOf(importBackColumn);
-    const tagsIndex = header.indexOf(importTagsColumn);
+    const parsed = parseImportText(raw);
+    const frontIndex = parsed.columns.indexOf(importFrontColumn);
+    const backIndex = parsed.columns.indexOf(importBackColumn);
+    const tagsIndex = parsed.columns.indexOf(importTagsColumn);
     if (frontIndex < 0 || backIndex < 0) {
       throw new Error("Pick valid Front and Back columns.");
     }
     let imported = 0;
-    for (const line of lines.slice(1)) {
-      const row = parseDelimitedLine(line, delimiter);
+    for (const row of parsed.rows) {
       const front = row[frontIndex] ?? "";
       const back = row[backIndex] ?? "";
       if (!front.trim() && !back.trim()) {
@@ -740,9 +788,8 @@ export const DecksWorkspace = () => {
                 return;
               }
               const raw = await nextFile.text();
-              const firstLine = raw.split(/\r?\n/).find((line) => line.trim().length > 0) ?? "";
-              const delimiter: "," | "\t" = firstLine.includes("\t") ? "\t" : ",";
-              const columns = parseDelimitedLine(firstLine, delimiter);
+              const parsed = parseImportText(raw);
+              const columns = parsed.columns;
               setImportColumns(columns);
               setImportFrontColumn(columns[0] ?? "");
               setImportBackColumn(columns[1] ?? columns[0] ?? "");
