@@ -11,6 +11,7 @@ type ConvertMode = "pdf_to_word" | "word_to_pdf";
 
 const maxBytesPerFile = 100 * 1024 * 1024;
 const allowedWordExtensions = new Set([".doc", ".docx"]);
+let cachedOfficeBinary: string | null | undefined;
 
 const candidateOfficeBinaries = [
   process.env.SOFFICE_PATH,
@@ -20,11 +21,15 @@ const candidateOfficeBinaries = [
   process.platform === "win32" ? "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe" : undefined,
 ].filter((value): value is string => Boolean(value));
 
-const runCommand = (command: string, args: string[]) =>
+const runCommand = (command: string, args: string[], timeoutMs = 120000) =>
   new Promise<{ code: number; stdout: string; stderr: string }>((resolve, reject) => {
     const child = spawn(command, args, { windowsHide: true });
     let stdout = "";
     let stderr = "";
+    const timeout = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error(`Command timeout after ${Math.round(timeoutMs / 1000)}s`));
+    }, timeoutMs);
     child.stdout.on("data", (chunk) => {
       stdout += chunk.toString();
     });
@@ -32,25 +37,32 @@ const runCommand = (command: string, args: string[]) =>
       stderr += chunk.toString();
     });
     child.on("error", (error) => {
+      clearTimeout(timeout);
       reject(error);
     });
     child.on("close", (code) => {
+      clearTimeout(timeout);
       resolve({ code: code ?? 1, stdout, stderr });
     });
   });
 
 const detectOfficeBinary = async () => {
+  if (cachedOfficeBinary !== undefined) {
+    return cachedOfficeBinary;
+  }
   for (const candidate of candidateOfficeBinaries) {
     try {
-      const result = await runCommand(candidate, ["--version"]);
+      const result = await runCommand(candidate, ["--version"], 8000);
       if (result.code === 0) {
+        cachedOfficeBinary = candidate;
         return candidate;
       }
     } catch {
       // Try next candidate.
     }
   }
-  return null;
+  cachedOfficeBinary = null;
+  return cachedOfficeBinary;
 };
 
 const normalizeMode = (value: string): ConvertMode | null => {
@@ -129,7 +141,7 @@ export async function POST(request: Request) {
       "--outdir",
       workspace,
       inputPath,
-    ]);
+    ], 180000);
 
     if (convertResult.code !== 0) {
       const errorText = `${convertResult.stdout}\n${convertResult.stderr}`.trim();

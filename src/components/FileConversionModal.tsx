@@ -260,17 +260,21 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
     return { fileName, blob };
   };
 
-  const saveSingleResult = async (result: ConversionResult) => {
+  const saveSingleResult = async (result: ConversionResult, targetPath?: string | null) => {
     if (window.desktopApi) {
-      const pick = await window.desktopApi.pickSavePath({
-        defaultPath: result.fileName,
-        filters: [{ name: "Converted files", extensions: [extensionForMode(mode)] }],
-      });
-      if (pick.canceled || !pick.filePath) {
-        return false;
+      let filePath = targetPath ?? null;
+      if (!filePath) {
+        const pick = await window.desktopApi.pickSavePath({
+          defaultPath: result.fileName,
+          filters: [{ name: "Converted files", extensions: [extensionForMode(mode)] }],
+        });
+        if (pick.canceled || !pick.filePath) {
+          return false;
+        }
+        filePath = pick.filePath;
       }
       const base64 = await toBase64(result.blob);
-      const save = await window.desktopApi.saveFile({ filePath: pick.filePath, base64 });
+      const save = await window.desktopApi.saveFile({ filePath, base64 });
       if (!save.ok || !save.filePath) {
         throw new Error(save.error ?? "Failed to save converted file.");
       }
@@ -370,6 +374,7 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
     let failures = 0;
 
     let electronBatchFolder: string | null = null;
+    const electronSinglePathByFile = new Map<string, string>();
     if (batchEnabled && window.desktopApi) {
       const folderPick = await window.desktopApi.pickFolder();
       if (folderPick.canceled || !folderPick.folderPath) {
@@ -378,6 +383,21 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
       }
       electronBatchFolder = folderPick.folderPath;
       setLastOutputFolderPath(folderPick.folderPath);
+    } else if (!batchEnabled && window.desktopApi) {
+      const only = files[0];
+      if (!only) {
+        setIsConverting(false);
+        return;
+      }
+      const pick = await window.desktopApi.pickSavePath({
+        defaultPath: makeOutputName(only.name, mode),
+        filters: [{ name: "Converted files", extensions: [extensionForMode(mode)] }],
+      });
+      if (pick.canceled || !pick.filePath) {
+        setIsConverting(false);
+        return;
+      }
+      electronSinglePathByFile.set(only.name, pick.filePath);
     }
 
     for (let index = 0; index < files.length; index += 1) {
@@ -427,7 +447,8 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
 
         const converted = await callConvertApi(file, mode, password);
         if (!batchEnabled) {
-          const saved = await saveSingleResult(converted);
+          const singlePath = electronSinglePathByFile.get(file.name) ?? null;
+          const saved = await saveSingleResult(converted, singlePath);
           if (!saved) {
             addHistory({
               createdAt: Date.now(),
@@ -682,6 +703,9 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
           className="pointer-events-auto fixed z-[120] w-64 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3 shadow-[var(--shadow-lg)]"
           style={{ left: miniPosition.x, top: miniPosition.y }}
           onPointerDown={(event) => {
+            if (event.target !== event.currentTarget) {
+              return;
+            }
             const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
             miniDragRef.current = {
               offsetX: event.clientX - rect.left,
@@ -708,6 +732,7 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
             <button
               type="button"
               className="text-xs text-[var(--color-accent-strong)] underline"
+              onPointerDown={(event) => event.stopPropagation()}
               onClick={() => {
                 onOpen();
               }}
