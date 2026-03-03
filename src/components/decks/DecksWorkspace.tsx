@@ -193,6 +193,12 @@ export const DecksWorkspace = () => {
   const [importColumns, setImportColumns] = useState<string[]>([]);
   const [importPresets, setImportPresets] = useState<ImportPreset[]>([]);
   const [importPresetName, setImportPresetName] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ processed: number; total: number; imported: number }>({
+    processed: 0,
+    total: 0,
+    imported: 0,
+  });
   const [statusMessage, setStatusMessage] = useState("");
 
   const loadDeckData = useCallback(async () => {
@@ -450,32 +456,43 @@ export const DecksWorkspace = () => {
     if (frontIndex < 0 || backIndex < 0) {
       throw new Error("Pick valid Front and Back columns.");
     }
-    let imported = 0;
-    for (const row of parsed.rows) {
+
+    const rowsToImport = parsed.rows.filter((row) => {
       const front = row[frontIndex] ?? "";
       const back = row[backIndex] ?? "";
-      if (!front.trim() && !back.trim()) {
-        continue;
+      return Boolean(front.trim() || back.trim());
+    });
+    setIsImporting(true);
+    setImportProgress({ processed: 0, total: rowsToImport.length, imported: 0 });
+
+    let imported = 0;
+    try {
+      for (const [index, row] of rowsToImport.entries()) {
+        const front = row[frontIndex] ?? "";
+        const back = row[backIndex] ?? "";
+        const tags = tagsIndex >= 0 ? (row[tagsIndex] ?? "").split(";").map((entry) => entry.trim()).filter(Boolean) : [];
+        const noteTypeFields = toStringArray(selectedNoteType?.fields);
+        const fieldKeyA = noteTypeFields[0] ?? "Front";
+        const fieldKeyB = noteTypeFields[1] ?? "Back";
+        const response = await fetch("/api/decks/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deckId: addDeckId,
+            noteTypeId: addNoteTypeId,
+            fields: { [fieldKeyA]: front, [fieldKeyB]: back },
+            tags,
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Import failed.");
+        }
+        imported += 1;
+        setImportProgress({ processed: index + 1, total: rowsToImport.length, imported });
       }
-      const tags = tagsIndex >= 0 ? (row[tagsIndex] ?? "").split(";").map((entry) => entry.trim()).filter(Boolean) : [];
-      const noteTypeFields = toStringArray(selectedNoteType?.fields);
-      const fieldKeyA = noteTypeFields[0] ?? "Front";
-      const fieldKeyB = noteTypeFields[1] ?? "Back";
-      const response = await fetch("/api/decks/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deckId: addDeckId,
-          noteTypeId: addNoteTypeId,
-          fields: { [fieldKeyA]: front, [fieldKeyB]: back },
-          tags,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Import failed.");
-      }
-      imported += 1;
+    } finally {
+      setIsImporting(false);
     }
     setToolbarModal("none");
     setImportFile(null);
@@ -808,6 +825,7 @@ export const DecksWorkspace = () => {
           <input
             type="file"
             accept=".csv,.txt,text/csv,text/plain"
+            disabled={isImporting}
             onChange={async (event) => {
               const nextFile = event.target.files?.[0] ?? null;
               setImportFile(nextFile);
@@ -827,7 +845,7 @@ export const DecksWorkspace = () => {
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <FieldLabel>Deck</FieldLabel>
-              <SelectField value={addDeckId} onChange={(event) => setAddDeckId(event.target.value)}>
+              <SelectField value={addDeckId} onChange={(event) => setAddDeckId(event.target.value)} disabled={isImporting}>
                 {decks.map((deck) => (
                   <option key={deck.id} value={deck.id}>
                     {deck.name}
@@ -837,7 +855,7 @@ export const DecksWorkspace = () => {
             </div>
             <div>
               <FieldLabel>Note Type</FieldLabel>
-              <SelectField value={addNoteTypeId} onChange={(event) => setAddNoteTypeId(event.target.value)}>
+              <SelectField value={addNoteTypeId} onChange={(event) => setAddNoteTypeId(event.target.value)} disabled={isImporting}>
                 {noteTypes.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.name}
@@ -847,7 +865,7 @@ export const DecksWorkspace = () => {
             </div>
             <div>
               <FieldLabel>Front column</FieldLabel>
-              <SelectField value={importFrontColumn} onChange={(event) => setImportFrontColumn(event.target.value)}>
+              <SelectField value={importFrontColumn} onChange={(event) => setImportFrontColumn(event.target.value)} disabled={isImporting}>
                 <option value="">Select</option>
                 {importColumns.map((column) => (
                   <option key={column} value={column}>
@@ -858,7 +876,7 @@ export const DecksWorkspace = () => {
             </div>
             <div>
               <FieldLabel>Back column</FieldLabel>
-              <SelectField value={importBackColumn} onChange={(event) => setImportBackColumn(event.target.value)}>
+              <SelectField value={importBackColumn} onChange={(event) => setImportBackColumn(event.target.value)} disabled={isImporting}>
                 <option value="">Select</option>
                 {importColumns.map((column) => (
                   <option key={column} value={column}>
@@ -869,7 +887,7 @@ export const DecksWorkspace = () => {
             </div>
             <div>
               <FieldLabel>Tags column (optional)</FieldLabel>
-              <SelectField value={importTagsColumn} onChange={(event) => setImportTagsColumn(event.target.value)}>
+              <SelectField value={importTagsColumn} onChange={(event) => setImportTagsColumn(event.target.value)} disabled={isImporting}>
                 <option value="">None</option>
                 {importColumns.map((column) => (
                   <option key={column} value={column}>
@@ -884,22 +902,40 @@ export const DecksWorkspace = () => {
             <p className="text-sm font-semibold">Mapping presets</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {importPresets.map((preset) => (
-                <Button key={preset.id} variant="ghost" size="sm" onClick={() => applyPreset(preset)}>
+                <Button key={preset.id} variant="ghost" size="sm" onClick={() => applyPreset(preset)} disabled={isImporting}>
                   {preset.name}
                 </Button>
               ))}
             </div>
             <div className="mt-2 flex gap-2">
-              <TextField value={importPresetName} onChange={(event) => setImportPresetName(event.target.value)} placeholder="New preset name" />
-              <Button onClick={() => safeRun(handleSaveImportPreset)} disabled={!importPresetName.trim()}>
+              <TextField value={importPresetName} onChange={(event) => setImportPresetName(event.target.value)} placeholder="New preset name" disabled={isImporting} />
+              <Button onClick={() => safeRun(handleSaveImportPreset)} disabled={!importPresetName.trim() || isImporting}>
                 Save Preset
               </Button>
             </div>
           </div>
 
+          {(isImporting || importProgress.total > 0) && (
+            <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+              <div className="mb-2 flex items-center justify-between text-xs text-[var(--color-text-muted)]">
+                <span>{isImporting ? "Importing..." : "Last import"}</span>
+                <span>
+                  {importProgress.processed}/{importProgress.total} ({importProgress.total === 0 ? 0 : Math.round((importProgress.processed / importProgress.total) * 100)}%)
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-muted)]">
+                <div
+                  className="h-full bg-[var(--color-focus)] transition-[width] duration-200"
+                  style={{ width: `${importProgress.total === 0 ? 0 : (importProgress.processed / importProgress.total) * 100}%` }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-[var(--color-text-muted)]">Imported {importProgress.imported} notes.</p>
+            </div>
+          )}
+
           <div className="flex justify-end">
-            <Button onClick={() => safeRun(handleImportFile)} disabled={!importFile || !importFrontColumn || !importBackColumn}>
-              Import
+            <Button onClick={() => safeRun(handleImportFile)} disabled={!importFile || !importFrontColumn || !importBackColumn || isImporting}>
+              {isImporting ? "Importing..." : "Import"}
             </Button>
           </div>
         </div>
