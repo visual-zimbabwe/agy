@@ -308,6 +308,31 @@ export const DecksWorkspace = () => {
     setStatusMessage("Deck created.");
   };
 
+  const handleClearDeck = async () => {
+    if (!studyDeckId) {
+      throw new Error("Select a deck first.");
+    }
+    const selectedDeck = decks.find((entry) => entry.id === studyDeckId);
+    const confirmed = window.confirm(`Delete all cards and notes in "${selectedDeck?.name ?? "this deck"}"?`);
+    if (!confirmed) {
+      return;
+    }
+    const response = await fetch(`/api/decks/${studyDeckId}/clear`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Failed to clear deck.");
+    }
+    setSelectedRowId("");
+    setSelectedRowIds([]);
+    setStudyCard(null);
+    setShowAnswer(false);
+    await Promise.all([loadDeckData(), loadBrowse(), loadStats()]);
+    setStatusMessage("Deck cleared.");
+  };
+
   const handleCreateNote = async () => {
     const response = await fetch("/api/decks/notes", {
       method: "POST",
@@ -532,6 +557,9 @@ export const DecksWorkspace = () => {
               </SelectField>
               <Button onClick={() => safeRun(handleCreateDeck)} disabled={!deckName.trim()}>
                 Create Deck
+              </Button>
+              <Button variant="danger" onClick={() => safeRun(handleClearDeck)} disabled={!studyDeckId}>
+                Clear Selected Deck
               </Button>
             </div>
           </aside>

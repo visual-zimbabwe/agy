@@ -25,7 +25,7 @@ export const builtinDeckNoteTypes: DeckNoteTypeDefinition[] = [
     builtinKey: "basic",
     fields: ["Front", "Back"],
     frontTemplate: "{{Front}}",
-    backTemplate: "{{Front}}\n\n{{Back}}",
+    backTemplate: "{{Back}}",
     css: "",
   },
   {
@@ -33,7 +33,7 @@ export const builtinDeckNoteTypes: DeckNoteTypeDefinition[] = [
     builtinKey: "basic_reversed",
     fields: ["Front", "Back"],
     frontTemplate: "{{Front}}",
-    backTemplate: "{{Front}}\n\n{{Back}}",
+    backTemplate: "{{Back}}",
     css: "",
   },
   {
@@ -41,7 +41,7 @@ export const builtinDeckNoteTypes: DeckNoteTypeDefinition[] = [
     builtinKey: "basic_optional_reversed",
     fields: ["Front", "Back", "Reverse"],
     frontTemplate: "{{Front}}",
-    backTemplate: "{{Front}}\n\n{{Back}}",
+    backTemplate: "{{Back}}",
     css: "",
   },
   {
