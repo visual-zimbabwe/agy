@@ -1552,7 +1552,6 @@ export const DecksWorkspace = () => {
                 </div>
               </div>
               <div>
-                <FieldLabel>Tags</FieldLabel>
                 <div className="space-y-2">
                   <Button variant="secondary" onClick={openCustomStudyTagsModal}>
                     Choose Tags
