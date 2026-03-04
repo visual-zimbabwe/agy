@@ -4,6 +4,10 @@ import { z } from "zod";
 import { defaultFsrsParams } from "@/features/decks/note-types";
 import { requireApiUser } from "@/lib/api/auth";
 
+const hasMissingSchedulerColumnError = (message?: string) =>
+  typeof message === "string" &&
+  (message.includes("scheduler_mode") || message.includes("fsrs_params") || message.includes("fsrs_optimized_at"));
+
 const paramsSchema = z.object({
   deckId: z.string().uuid(),
 });
@@ -75,6 +79,12 @@ export async function POST(_: Request, context: { params: Promise<{ deckId: stri
     .select("id,name,scheduler_mode,fsrs_params,fsrs_optimized_at")
     .maybeSingle();
   if (updateError) {
+    if (hasMissingSchedulerColumnError(updateError.message)) {
+      return NextResponse.json(
+        { error: "FSRS options are unavailable until the latest deck migration is applied." },
+        { status: 409 },
+      );
+    }
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
   if (!deck) {

@@ -3,6 +3,10 @@ import { z } from "zod";
 
 import { requireApiUser } from "@/lib/api/auth";
 
+const hasMissingSchedulerColumnError = (message?: string) =>
+  typeof message === "string" &&
+  (message.includes("scheduler_mode") || message.includes("fsrs_params") || message.includes("fsrs_optimized_at"));
+
 const paramsSchema = z.object({
   deckId: z.string().uuid(),
 });
@@ -58,7 +62,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ deckI
     updates.fsrs_optimized_at = parsed.data.fsrsOptimizedAt;
   }
 
-  const { data, error } = await auth.supabase
+  let result = await auth.supabase
     .from("decks")
     .update(updates)
     .eq("id", parsedParams.data.deckId)
@@ -66,12 +70,43 @@ export async function PATCH(request: Request, context: { params: Promise<{ deckI
     .select("id,name,scheduler_mode,fsrs_params,fsrs_optimized_at")
     .maybeSingle();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (result.error && hasMissingSchedulerColumnError(result.error.message)) {
+    const requestedSchedulerUpdate =
+      parsed.data.schedulerMode !== undefined ||
+      parsed.data.fsrsParams !== undefined ||
+      parsed.data.fsrsOptimizedAt !== undefined;
+    if (requestedSchedulerUpdate) {
+      return NextResponse.json(
+        { error: "FSRS options are unavailable until the latest deck migration is applied." },
+        { status: 409 },
+      );
+    }
+    result = await auth.supabase
+      .from("decks")
+      .update(updates)
+      .eq("id", parsedParams.data.deckId)
+      .eq("owner_id", auth.user.id)
+      .select("id,name")
+      .maybeSingle();
+    if (!result.error && result.data) {
+      result = {
+        ...result,
+        data: {
+          ...result.data,
+          scheduler_mode: "legacy",
+          fsrs_params: null,
+          fsrs_optimized_at: null,
+        },
+      };
+    }
   }
-  if (!data) {
+
+  if (result.error) {
+    return NextResponse.json({ error: result.error.message }, { status: 500 });
+  }
+  if (!result.data) {
     return NextResponse.json({ error: "Deck not found." }, { status: 404 });
   }
 
-  return NextResponse.json({ deck: data });
+  return NextResponse.json({ deck: result.data });
 }

@@ -10,6 +10,9 @@ const BASE_DAILY_NEW_LIMIT = 20;
 const BASE_DAILY_REVIEW_LIMIT = 200;
 
 const todayKeyUtc = () => new Date().toISOString().slice(0, 10);
+const hasMissingSchedulerColumnError = (message?: string) =>
+  typeof message === "string" &&
+  (message.includes("scheduler_mode") || message.includes("fsrs_params") || message.includes("fsrs_optimized_at"));
 
 const reviewSchema = z.object({
   cardId: z.string().uuid(),
@@ -147,15 +150,24 @@ export async function POST(request: Request) {
 
   const now = new Date();
   const schedulerDeckId = parsed.data.studyDeckId ?? card.deck_id;
-  const { data: schedulerDeck, error: schedulerDeckError } = await auth.supabase
+  let schedulerDeckResult = await auth.supabase
     .from("decks")
     .select("id,scheduler_mode,fsrs_params")
     .eq("owner_id", auth.user.id)
     .eq("id", schedulerDeckId)
     .maybeSingle();
-  if (schedulerDeckError) {
-    return NextResponse.json({ error: schedulerDeckError.message }, { status: 500 });
+  if (schedulerDeckResult.error && hasMissingSchedulerColumnError(schedulerDeckResult.error.message)) {
+    schedulerDeckResult = await auth.supabase
+      .from("decks")
+      .select("id")
+      .eq("owner_id", auth.user.id)
+      .eq("id", schedulerDeckId)
+      .maybeSingle();
   }
+  if (schedulerDeckResult.error) {
+    return NextResponse.json({ error: schedulerDeckResult.error.message }, { status: 500 });
+  }
+  const schedulerDeck = schedulerDeckResult.data as { id: string; scheduler_mode?: string; fsrs_params?: unknown } | null;
   const useFsrs = schedulerDeck?.scheduler_mode === "fsrs";
   const schedule = scheduleDeckCard({
     state: card.state as CardState,
