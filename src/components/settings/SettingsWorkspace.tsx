@@ -816,22 +816,22 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                 </section>
 
                 <section className="border-b border-[var(--color-border-muted)] py-4">
-                  <h2 className="text-sm font-semibold text-[#111827]">Account Security</h2>
-                  <p className="mt-1 text-xs text-[#6b7280]">Set or change password and manage two-step verification (2FA).</p>
+                  <h2 className="text-sm font-semibold text-[var(--color-text)]">Account Security</h2>
+                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">Set or change password and manage two-step verification (2FA).</p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <input
                       value={newPassword}
                       onChange={(event) => setNewPassword(event.target.value)}
                       type="password"
                       placeholder="New password"
-                      className="rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                      className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-focus)]"
                     />
                     <input
                       value={confirmPassword}
                       onChange={(event) => setConfirmPassword(event.target.value)}
                       type="password"
                       placeholder="Confirm password"
-                      className="rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                      className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-focus)]"
                     />
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -840,7 +840,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                     </Button>
                     <span
                       className={`rounded-full border px-2 py-0.5 text-[11px] ${
-                        mfaEnabled ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-[#d1d5db] bg-[#f9fafb] text-[#6b7280]"
+                        mfaEnabled ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-muted)]"
                       }`}
                     >
                       Two-step verification: {mfaEnabled ? "Enabled" : "Disabled"}
@@ -887,8 +887,8 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                 </section>
 
                 <section className="border-b border-[var(--color-border-muted)] py-4">
-                  <h2 className="text-sm font-semibold text-[#991b1b]">Danger Zone</h2>
-                  <p className="mt-1 text-xs text-[#7f1d1d]">Global account actions that affect all signed-in sessions.</p>
+                  <h2 className="text-sm font-semibold text-rose-700">Danger Zone</h2>
+                  <p className="mt-1 text-xs text-rose-700/80">Global account actions that affect all signed-in sessions.</p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Button size="sm" variant="secondary" onClick={() => void handleGlobalLogout()} disabled={accountBusy !== null}>
                       {accountBusy === "logout" ? "Logging out..." : "Log out of all devices"}
@@ -905,10 +905,10 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                 </section>
 
                 <section className="pt-4">
-                  <p className="text-xs text-[#6b7280]">
+                  <p className="text-xs text-[var(--color-text-muted)]">
                     Global application: changes here apply to your user profile everywhere this account is used.
                   </p>
-                  {accountStatus && <p className="mt-2 text-xs text-[#374151]">{accountStatus}</p>}
+                  {accountStatus && <p className="mt-2 text-xs text-[var(--color-text)]">{accountStatus}</p>}
                 </section>
               </>
             )}
