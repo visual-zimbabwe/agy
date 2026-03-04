@@ -11,6 +11,8 @@ const PROD_PORT = process.env.IDEA_WALL_DESKTOP_PORT || "3210";
 const SERVER_READY_TIMEOUT_MS = 25000;
 
 let mainWindow = null;
+let wallWindow = null;
+let decksWindow = null;
 let webServerProcess = null;
 let baseAppUrl = null;
 let didAttemptUpdateCheck = false;
@@ -22,6 +24,28 @@ if (!gotLock) {
 
 function isSafeExternalUrl(url) {
   return /^(https?:\/\/|mailto:)/i.test(url);
+}
+
+function isInternalAppUrl(url) {
+  return Boolean(baseAppUrl && url.startsWith(baseAppUrl));
+}
+
+function classifyWindowRole(url) {
+  if (!isInternalAppUrl(url)) {
+    return "main";
+  }
+  const parsed = new URL(url);
+  if (parsed.pathname.startsWith("/decks")) {
+    return "decks";
+  }
+  if (parsed.pathname.startsWith("/wall")) {
+    return "wall";
+  }
+  return "main";
+}
+
+function getDialogParentWindow() {
+  return BrowserWindow.getFocusedWindow() ?? mainWindow ?? wallWindow ?? decksWindow ?? undefined;
 }
 
 function wait(ms) {
@@ -126,8 +150,59 @@ function configureAutoUpdate() {
   });
 }
 
+function openOrFocusInternalWindow(targetUrl) {
+  const role = classifyWindowRole(targetUrl);
+  if (role === "decks") {
+    if (decksWindow && !decksWindow.isDestroyed()) {
+      decksWindow.loadURL(targetUrl);
+      if (decksWindow.isMinimized()) {
+        decksWindow.restore();
+      }
+      decksWindow.focus();
+      return;
+    }
+    decksWindow = createAppWindow(targetUrl, "decks");
+    return;
+  }
+
+  if (role === "wall") {
+    if (wallWindow && !wallWindow.isDestroyed()) {
+      wallWindow.loadURL(targetUrl);
+      if (wallWindow.isMinimized()) {
+        wallWindow.restore();
+      }
+      wallWindow.focus();
+      return;
+    }
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadURL(targetUrl);
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.focus();
+      return;
+    }
+    wallWindow = createAppWindow(targetUrl, "wall");
+    return;
+  }
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.loadURL(targetUrl);
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.focus();
+    return;
+  }
+  mainWindow = createAppWindow(targetUrl, "main");
+}
+
 function applyWindowSecurity(mainUrl, webContents) {
   webContents.setWindowOpenHandler(({ url }) => {
+    if (isInternalAppUrl(url)) {
+      openOrFocusInternalWindow(url);
+      return { action: "deny" };
+    }
     if (isSafeExternalUrl(url)) {
       shell.openExternal(url);
     }
@@ -170,7 +245,7 @@ function registerDesktopIpc() {
   ipcMain.handle("desktop:pick-save-path", async (_event, payload) => {
     const defaultPath = typeof payload?.defaultPath === "string" ? payload.defaultPath : undefined;
     const filters = Array.isArray(payload?.filters) ? payload.filters : undefined;
-    const result = await dialog.showSaveDialog(mainWindow ?? undefined, {
+    const result = await dialog.showSaveDialog(getDialogParentWindow(), {
       defaultPath,
       filters,
       title: "Save converted file",
@@ -179,7 +254,7 @@ function registerDesktopIpc() {
   });
 
   ipcMain.handle("desktop:pick-folder", async () => {
-    const result = await dialog.showOpenDialog(mainWindow ?? undefined, {
+    const result = await dialog.showOpenDialog(getDialogParentWindow(), {
       title: "Choose output folder",
       properties: ["openDirectory", "createDirectory"],
     });
@@ -211,7 +286,7 @@ function registerDesktopIpc() {
     const data = Buffer.from(base64, "base64");
     let targetPath = path.join(folderPath, fileName);
     if (await pathExists(targetPath)) {
-      const conflictChoice = await dialog.showMessageBox(mainWindow ?? undefined, {
+      const conflictChoice = await dialog.showMessageBox(getDialogParentWindow(), {
         type: "question",
         buttons: ["Replace", "Keep both", "Skip", "Cancel batch"],
         defaultId: 1,
@@ -254,8 +329,8 @@ function registerDesktopIpc() {
   });
 }
 
-function createMainWindow(mainUrl) {
-  mainWindow = new BrowserWindow({
+function createAppWindow(mainUrl, role = "main") {
+  const nextWindow = new BrowserWindow({
     width: 1440,
     height: 920,
     minWidth: 1100,
@@ -272,17 +347,28 @@ function createMainWindow(mainUrl) {
     }
   });
 
-  applyWindowSecurity(mainUrl, mainWindow.webContents);
+  applyWindowSecurity(mainUrl, nextWindow.webContents);
 
-  mainWindow.once("ready-to-show", () => {
-    mainWindow.show();
+  nextWindow.once("ready-to-show", () => {
+    nextWindow.show();
   });
 
-  mainWindow.on("closed", () => {
-    mainWindow = null;
+  nextWindow.on("closed", () => {
+    if (role === "main") {
+      mainWindow = null;
+      return;
+    }
+    if (role === "wall") {
+      wallWindow = null;
+      return;
+    }
+    if (role === "decks") {
+      decksWindow = null;
+    }
   });
 
-  mainWindow.loadURL(mainUrl);
+  nextWindow.loadURL(mainUrl);
+  return nextWindow;
 }
 
 async function bootstrap() {
@@ -293,17 +379,18 @@ async function bootstrap() {
     await waitForServerReady(baseAppUrl, SERVER_READY_TIMEOUT_MS);
   }
 
-  createMainWindow(baseAppUrl);
+  mainWindow = createAppWindow(baseAppUrl, "main");
 }
 
 app.on("second-instance", () => {
-  if (!mainWindow) {
+  const target = BrowserWindow.getAllWindows()[0] ?? mainWindow ?? wallWindow ?? decksWindow;
+  if (!target) {
     return;
   }
-  if (mainWindow.isMinimized()) {
-    mainWindow.restore();
+  if (target.isMinimized()) {
+    target.restore();
   }
-  mainWindow.focus();
+  target.focus();
 });
 
 app.whenReady().then(async () => {
@@ -331,8 +418,8 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  if (!mainWindow && baseAppUrl) {
-    createMainWindow(baseAppUrl);
+  if (BrowserWindow.getAllWindows().length === 0 && baseAppUrl) {
+    mainWindow = createAppWindow(baseAppUrl, "main");
   }
 });
 
