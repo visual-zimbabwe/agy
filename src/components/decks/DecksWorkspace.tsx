@@ -611,6 +611,17 @@ export const DecksWorkspace = () => {
       const end = Math.round((pieOffset / pieTotal) * 360);
       return `${slice.color} ${start}deg ${end}deg`;
     });
+    const today = stats?.today ?? {
+      studied: 0,
+      minutes: 0,
+      again: 0,
+      correctPct: 0,
+      learn: 0,
+      review: 0,
+      relearn: 0,
+      filtered: 0,
+    };
+    const todayTypeTotal = Math.max(1, today.learn + today.review + today.relearn + today.filtered);
 
     return {
       forecast,
@@ -627,6 +638,8 @@ export const DecksWorkspace = () => {
       pieSlices,
       pieTotal: pieTotalRaw,
       pieGradient: `conic-gradient(${pieGradientParts.join(",")})`,
+      today,
+      todayTypeTotal,
     };
   }, [stats]);
 
@@ -1468,16 +1481,64 @@ export const DecksWorkspace = () => {
                     <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
                       <p className="text-sm font-semibold">Today</p>
                       <p className="text-xs text-[var(--color-text-muted)]">
-                        Studied <span className="font-semibold text-[var(--color-text)]">{stats.today?.studied ?? 0}</span> cards in{" "}
-                        <span className="font-semibold text-[var(--color-text)]">{stats.today?.minutes ?? 0}</span> minutes.
+                        Studied <span className="font-semibold text-[var(--color-text)]">{statsViewModel.today.studied}</span> cards in{" "}
+                        <span className="font-semibold text-[var(--color-text)]">{statsViewModel.today.minutes}</span> minutes.
                       </p>
-                      <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
-                        <p>Again: <span className="font-semibold">{stats.today?.again ?? 0}</span></p>
-                        <p>Correct: <span className="font-semibold">{stats.today?.correctPct ?? 0}%</span></p>
-                        <p>Learn: <span className="font-semibold">{stats.today?.learn ?? 0}</span></p>
-                        <p>Review: <span className="font-semibold">{stats.today?.review ?? 0}</span></p>
-                        <p>Relearn: <span className="font-semibold">{stats.today?.relearn ?? 0}</span></p>
-                        <p>Filtered: <span className="font-semibold">{stats.today?.filtered ?? 0}</span></p>
+                      <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3 lg:grid-cols-6">
+                        <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-1.5">
+                          <p className="text-[var(--color-text-muted)]">Again</p>
+                          <p className="text-sm font-semibold">{statsViewModel.today.again}</p>
+                        </div>
+                        <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-1.5">
+                          <p className="text-[var(--color-text-muted)]">Correct</p>
+                          <p className="text-sm font-semibold">{statsViewModel.today.correctPct}%</p>
+                        </div>
+                        <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-1.5">
+                          <p className="text-[var(--color-text-muted)]">Learn</p>
+                          <p className="text-sm font-semibold">{statsViewModel.today.learn}</p>
+                        </div>
+                        <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-1.5">
+                          <p className="text-[var(--color-text-muted)]">Review</p>
+                          <p className="text-sm font-semibold">{statsViewModel.today.review}</p>
+                        </div>
+                        <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-1.5">
+                          <p className="text-[var(--color-text-muted)]">Relearn</p>
+                          <p className="text-sm font-semibold">{statsViewModel.today.relearn}</p>
+                        </div>
+                        <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-1.5">
+                          <p className="text-[var(--color-text-muted)]">Filtered</p>
+                          <p className="text-sm font-semibold">{statsViewModel.today.filtered}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 space-y-2 text-xs">
+                        <div>
+                          <div className="mb-1 flex items-center justify-between">
+                            <span>Accuracy split</span>
+                            <span>{statsViewModel.today.correctPct}% correct</span>
+                          </div>
+                          <div className="flex h-2.5 overflow-hidden rounded bg-[var(--color-surface-muted)]">
+                            <div style={{ width: `${Math.max(0, Math.min(100, statsViewModel.today.correctPct))}%`, backgroundColor: "#22c55e" }} />
+                            <div style={{ width: `${Math.max(0, Math.min(100, 100 - statsViewModel.today.correctPct))}%`, backgroundColor: "#ef4444" }} />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="mb-1 flex items-center justify-between">
+                            <span>Study type mix</span>
+                            <span>{statsViewModel.todayTypeTotal} reps</span>
+                          </div>
+                          <div className="flex h-2.5 overflow-hidden rounded bg-[var(--color-surface-muted)]">
+                            <div style={{ width: `${(statsViewModel.today.learn / statsViewModel.todayTypeTotal) * 100}%`, backgroundColor: "#3b82f6" }} />
+                            <div style={{ width: `${(statsViewModel.today.review / statsViewModel.todayTypeTotal) * 100}%`, backgroundColor: "#22c55e" }} />
+                            <div style={{ width: `${(statsViewModel.today.relearn / statsViewModel.todayTypeTotal) * 100}%`, backgroundColor: "#f59e0b" }} />
+                            <div style={{ width: `${(statsViewModel.today.filtered / statsViewModel.todayTypeTotal) * 100}%`, backgroundColor: "#8b5cf6" }} />
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-2 text-[11px]">
+                            <span className="rounded px-2 py-0.5" style={{ backgroundColor: "#dbeafe", color: "#1e3a8a" }}>Learn</span>
+                            <span className="rounded px-2 py-0.5" style={{ backgroundColor: "#dcfce7", color: "#166534" }}>Review</span>
+                            <span className="rounded px-2 py-0.5" style={{ backgroundColor: "#fef3c7", color: "#92400e" }}>Relearn</span>
+                            <span className="rounded px-2 py-0.5" style={{ backgroundColor: "#ede9fe", color: "#5b21b6" }}>Filtered</span>
+                          </div>
+                        </div>
                       </div>
                       <p className="mt-2 text-xs text-[var(--color-text-muted)]">
                         Daily accuracy can swing with difficult material; use longer trends to judge long-term progress.
