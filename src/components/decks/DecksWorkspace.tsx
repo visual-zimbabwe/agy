@@ -861,7 +861,11 @@ export const DecksWorkspace = () => {
       }
       setFsrsEnabled(true);
       await loadDeckData();
-      setStatusMessage(`FSRS optimized using ${payload.optimization?.reviewsAnalyzed ?? 0} reviews.`);
+      if (payload.optimization?.fallbackToDefaults) {
+        setStatusMessage(payload.message ?? "Not enough history yet. Applied default FSRS parameters.");
+      } else {
+        setStatusMessage(`FSRS optimized using ${payload.optimization?.reviewsAnalyzed ?? 0} reviews.`);
+      }
     } finally {
       setIsOptimizingFsrs(false);
     }

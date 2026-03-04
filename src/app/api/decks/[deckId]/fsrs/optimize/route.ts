@@ -38,12 +38,7 @@ export async function POST(_: Request, context: { params: Promise<{ deckId: stri
   }
 
   const total = reviews?.length ?? 0;
-  if (total < 30) {
-    return NextResponse.json(
-      { error: "Need at least 30 reviews to optimize FSRS reliably." },
-      { status: 400 },
-    );
-  }
+  const hasEnoughHistory = total >= 30;
 
   const againCount = (reviews ?? []).filter((entry) => entry.rating === "again").length;
   const hardCount = (reviews ?? []).filter((entry) => entry.rating === "hard").length;
@@ -55,16 +50,18 @@ export async function POST(_: Request, context: { params: Promise<{ deckId: stri
   const easyRate = easyCount / total;
   const lapseRate = lapseEvents / total;
 
-  const optimizedParams = {
-    desiredRetention: clamp(0.93 - againRate * 0.22, 0.8, 0.95),
-    hardFactor: clamp(1.15 + hardRate * 0.6 - againRate * 0.25, 1.05, 1.7),
-    easyBonus: clamp(1.5 + easyRate * 1.0, 1.25, 2.4),
-    againPenalty: clamp(0.45 + againRate * 0.8 + lapseRate * 0.3, 0.25, 0.9),
-    learningStepsMinutes: againRate > 0.22 ? [1, 10, 60] : defaultFsrsParams.learningStepsMinutes,
-    lapseIntervalMinutes: clamp(Math.round(8 + againRate * 30), 5, 120),
-    minReviewDays: 1,
-    maxIntervalDays: 36500,
-  };
+  const optimizedParams = hasEnoughHistory
+    ? {
+        desiredRetention: clamp(0.93 - againRate * 0.22, 0.8, 0.95),
+        hardFactor: clamp(1.15 + hardRate * 0.6 - againRate * 0.25, 1.05, 1.7),
+        easyBonus: clamp(1.5 + easyRate * 1.0, 1.25, 2.4),
+        againPenalty: clamp(0.45 + againRate * 0.8 + lapseRate * 0.3, 0.25, 0.9),
+        learningStepsMinutes: againRate > 0.22 ? [1, 10, 60] : defaultFsrsParams.learningStepsMinutes,
+        lapseIntervalMinutes: clamp(Math.round(8 + againRate * 30), 5, 120),
+        minReviewDays: 1,
+        maxIntervalDays: 36500,
+      }
+    : defaultFsrsParams;
 
   const nowIso = new Date().toISOString();
   const { data: deck, error: updateError } = await auth.supabase
@@ -72,7 +69,7 @@ export async function POST(_: Request, context: { params: Promise<{ deckId: stri
     .update({
       scheduler_mode: "fsrs",
       fsrs_params: optimizedParams,
-      fsrs_optimized_at: nowIso,
+      fsrs_optimized_at: hasEnoughHistory ? nowIso : null,
     })
     .eq("id", deckId)
     .eq("owner_id", auth.user.id)
@@ -93,7 +90,11 @@ export async function POST(_: Request, context: { params: Promise<{ deckId: stri
 
   return NextResponse.json({
     deck,
+    message: hasEnoughHistory
+      ? undefined
+      : "Not enough history yet (minimum 30 reviews). Applied default FSRS parameters for now.",
     optimization: {
+      fallbackToDefaults: !hasEnoughHistory,
       reviewsAnalyzed: total,
       againRate: Number((againRate * 100).toFixed(1)),
       hardRate: Number((hardRate * 100).toFixed(1)),
