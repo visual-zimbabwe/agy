@@ -1390,20 +1390,30 @@ export const DecksWorkspace = () => {
               {customStudyMode === "increase_review" && (
                 <p className="mb-1 text-xs text-[var(--color-text-muted)]">Available review cards: {studyCounts.reviewCount}</p>
               )}
-              <FieldLabel>
-                {customStudyMode === "increase_new"
-                  ? "Add this many new cards to today’s study limit"
-                  : customStudyMode === "increase_review"
-                    ? "Add this many review cards to today’s study limit"
-                    : "Study up to this many matching cards"}
-              </FieldLabel>
-              <TextField
-                type="number"
-                min={1}
-                max={500}
-                value={String(customStudyLimit)}
-                onChange={(event) => setCustomStudyLimit(Math.max(1, Number(event.target.value || "1")))}
-              />
+              <div className="inline-flex items-center gap-2 text-sm whitespace-nowrap">
+                <span>
+                  {customStudyMode === "increase_new"
+                    ? "Add"
+                    : customStudyMode === "increase_review"
+                      ? "Add"
+                      : "Study up to"}
+                </span>
+                <TextField
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={String(customStudyLimit)}
+                  onChange={(event) => setCustomStudyLimit(Math.max(1, Number(event.target.value || "1")))}
+                  className="w-20"
+                />
+                <span>
+                  {customStudyMode === "increase_new"
+                    ? "new cards to today’s study limit"
+                    : customStudyMode === "increase_review"
+                      ? "review cards to today’s study limit"
+                      : "matching cards"}
+                </span>
+              </div>
             </div>
           )}
 
