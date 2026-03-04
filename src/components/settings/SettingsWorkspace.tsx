@@ -134,7 +134,12 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [accountStatus, setAccountStatus] = useState<string | null>(null);
-  const [accountBusy, setAccountBusy] = useState<"profile" | "password" | "logout" | "delete" | null>(null);
+  const [accountBusy, setAccountBusy] = useState<"profile" | "password" | "logout" | "delete" | "avatar" | "mfa" | null>(null);
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState("");
+  const [mfaQrCode, setMfaQrCode] = useState("");
+  const [mfaSecret, setMfaSecret] = useState("");
+  const [mfaVerifyCode, setMfaVerifyCode] = useState("");
 
   const preferenceState = useMemo(
     () => ({ theme, reduceMotion, compactMode }),
@@ -172,6 +177,27 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
     };
     void loadProfile();
   }, [userEmail]);
+
+  const refreshMfaState = async () => {
+    const supabase = createSupabaseBrowserClient();
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error) {
+      setAccountStatus(error.message ?? "Failed to load 2FA status.");
+      return;
+    }
+    const verifiedTotp = data.totp.find((entry) => entry.status === "verified");
+    setMfaEnabled(Boolean(verifiedTotp));
+    if (verifiedTotp) {
+      setMfaFactorId(verifiedTotp.id);
+      setMfaQrCode("");
+      setMfaSecret("");
+      setMfaVerifyCode("");
+    }
+  };
+
+  useEffect(() => {
+    void refreshMfaState();
+  }, []);
 
   const handleSaveProfileBasics = async () => {
     setAccountBusy("profile");
@@ -226,6 +252,123 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
       setAccountStatus("Password updated.");
     } catch (error) {
       setAccountStatus(error instanceof Error ? error.message : "Failed to update password.");
+    } finally {
+      setAccountBusy(null);
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    setAccountBusy("avatar");
+    setAccountStatus(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/account/avatar", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to upload avatar.");
+      }
+      setProfilePhotoUrl(payload.avatarUrl);
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: preferredName.trim() || null,
+          avatar_url: payload.avatarUrl,
+        },
+      });
+      if (error) {
+        throw error;
+      }
+      setAccountStatus("Profile image uploaded.");
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Failed to upload profile image.");
+    } finally {
+      setAccountBusy(null);
+    }
+  };
+
+  const handleStartMfaEnrollment = async () => {
+    setAccountBusy("mfa");
+    setAccountStatus(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: "Idea Wall Authenticator",
+      });
+      if (error) {
+        throw error;
+      }
+      setMfaFactorId(data.id);
+      setMfaQrCode(data.totp.qr_code);
+      setMfaSecret(data.totp.secret);
+      setMfaVerifyCode("");
+      setAccountStatus("Scan the QR code, then enter the 6-digit code to verify.");
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Failed to start 2FA setup.");
+    } finally {
+      setAccountBusy(null);
+    }
+  };
+
+  const handleVerifyMfa = async () => {
+    if (!mfaFactorId || !mfaVerifyCode.trim()) {
+      setAccountStatus("Enter the verification code from your authenticator app.");
+      return;
+    }
+    setAccountBusy("mfa");
+    setAccountStatus(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+      if (challengeError) {
+        throw challengeError;
+      }
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code: mfaVerifyCode.trim(),
+      });
+      if (verifyError) {
+        throw verifyError;
+      }
+      setAccountStatus("Two-step verification is now enabled.");
+      await refreshMfaState();
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Failed to verify 2FA.");
+    } finally {
+      setAccountBusy(null);
+    }
+  };
+
+  const handleDisableMfa = async () => {
+    if (!mfaFactorId) {
+      setAccountStatus("No verified 2FA factor found.");
+      return;
+    }
+    const confirmed = window.confirm("Disable two-step verification for this account?");
+    if (!confirmed) {
+      return;
+    }
+    setAccountBusy("mfa");
+    setAccountStatus(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaFactorId });
+      if (error) {
+        throw error;
+      }
+      setAccountStatus("Two-step verification has been disabled.");
+      setMfaEnabled(false);
+      setMfaFactorId("");
+      setMfaQrCode("");
+      setMfaSecret("");
+      setMfaVerifyCode("");
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Failed to disable 2FA.");
     } finally {
       setAccountBusy(null);
     }
@@ -324,8 +467,35 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                 <section className="border-b border-[var(--color-border-muted)] py-4">
                   <h2 className="text-sm font-semibold text-[#111827]">Profile Basics</h2>
                   <p className="mt-1 text-xs text-[#6b7280]">
-                    Change your profile photo URL, preferred name, and email address.
+                    Change your profile image, preferred name, and email address.
                   </p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="h-14 w-14 overflow-hidden rounded-full border border-[#d1d5db] bg-[#f3f4f6]">
+                      {profilePhotoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={profilePhotoUrl} alt="Profile avatar" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="grid h-full w-full place-items-center text-[10px] text-[#6b7280]">No photo</div>
+                      )}
+                    </div>
+                    <label className="inline-flex cursor-pointer items-center rounded-md border border-[#d1d5db] bg-white px-3 py-1.5 text-xs font-medium text-[#374151] hover:bg-[#f3f4f6]">
+                      Upload image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) {
+                            void handleAvatarUpload(file);
+                          }
+                          event.currentTarget.value = "";
+                        }}
+                        disabled={accountBusy !== null}
+                      />
+                    </label>
+                    <span className="text-[11px] text-[#6b7280]">Max 5MB, JPG/PNG/WEBP/GIF</span>
+                  </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <input
                       value={preferredName}
@@ -343,7 +513,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                     <input
                       value={profilePhotoUrl}
                       onChange={(event) => setProfilePhotoUrl(event.target.value)}
-                      placeholder="Profile photo URL"
+                      placeholder="Profile photo URL (optional)"
                       className="sm:col-span-2 rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
                     />
                   </div>
@@ -357,7 +527,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
 
                 <section className="border-b border-[var(--color-border-muted)] py-4">
                   <h2 className="text-sm font-semibold text-[#111827]">Account Security</h2>
-                  <p className="mt-1 text-xs text-[#6b7280]">Set or change password and review verification status.</p>
+                  <p className="mt-1 text-xs text-[#6b7280]">Set or change password and manage two-step verification (2FA).</p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <input
                       value={newPassword}
@@ -378,10 +548,52 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                     <Button size="sm" variant="secondary" onClick={() => void handleUpdatePassword()} disabled={accountBusy !== null}>
                       {accountBusy === "password" ? "Updating..." : "Update password"}
                     </Button>
-                    <span className="rounded-full border border-[#d1d5db] bg-[#f9fafb] px-2 py-0.5 text-[11px] text-[#6b7280]">
-                      Two-step verification (2FA): Not implemented yet
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                        mfaEnabled ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-[#d1d5db] bg-[#f9fafb] text-[#6b7280]"
+                      }`}
+                    >
+                      Two-step verification: {mfaEnabled ? "Enabled" : "Disabled"}
                     </span>
                   </div>
+                  {!mfaEnabled && !mfaQrCode && (
+                    <div className="mt-3">
+                      <Button size="sm" variant="secondary" onClick={() => void handleStartMfaEnrollment()} disabled={accountBusy !== null}>
+                        {accountBusy === "mfa" ? "Preparing..." : "Set up 2FA"}
+                      </Button>
+                    </div>
+                  )}
+                  {!mfaEnabled && mfaQrCode && (
+                    <div className="mt-3 rounded-md border border-[#d1d5db] bg-white p-3">
+                      <p className="text-xs text-[#374151]">Scan this QR code with your authenticator app:</p>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={mfaQrCode} alt="2FA QR Code" className="mt-2 h-36 w-36 rounded border border-[#e5e7eb]" />
+                      <p className="mt-2 break-all font-mono text-[11px] text-[#6b7280]">Secret: {mfaSecret}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <input
+                          value={mfaVerifyCode}
+                          onChange={(event) => setMfaVerifyCode(event.target.value)}
+                          placeholder="Enter 6-digit code"
+                          className="rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                        />
+                        <Button size="sm" variant="secondary" onClick={() => void handleVerifyMfa()} disabled={accountBusy !== null}>
+                          {accountBusy === "mfa" ? "Verifying..." : "Verify 2FA"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {mfaEnabled && (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => void handleDisableMfa()}
+                        disabled={accountBusy !== null}
+                        className="rounded-md border border-[#f59e0b] bg-[#fffbeb] px-3 py-1.5 text-xs font-medium text-[#92400e] disabled:opacity-60"
+                      >
+                        {accountBusy === "mfa" ? "Updating..." : "Disable 2FA"}
+                      </button>
+                    </div>
+                  )}
                 </section>
 
                 <section className="border-b border-[var(--color-border-muted)] py-4">
