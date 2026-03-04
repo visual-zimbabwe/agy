@@ -348,6 +348,9 @@ export const DecksWorkspace = () => {
     const wallStatusTick = window.setInterval(() => {
       setWallOnline(Date.now() - wallSeenAtRef.current < 20_000);
     }, 2_000);
+    const notifyDecksClosed = () => emit({ type: "decks_closed" });
+    window.addEventListener("pagehide", notifyDecksClosed);
+    window.addEventListener("beforeunload", notifyDecksClosed);
 
     channel.onmessage = (message: MessageEvent<WorkspaceEnvelope>) => {
       const payload = message.data;
@@ -383,6 +386,8 @@ export const DecksWorkspace = () => {
     return () => {
       window.clearInterval(heartbeat);
       window.clearInterval(wallStatusTick);
+      window.removeEventListener("pagehide", notifyDecksClosed);
+      window.removeEventListener("beforeunload", notifyDecksClosed);
       channel.close();
       channelRef.current = null;
     };

@@ -49,9 +49,15 @@ export const WallToolbar = ({
   const [activeDeckName, setActiveDeckName] = useState("");
   const channelRef = useRef<BroadcastChannel | null>(null);
   const windowIdRef = useRef<string>(createWorkspaceWindowId());
+  const decksSeenAtRef = useRef<number>(0);
+  const activeDeckNameRef = useRef("");
   const showSecondaryActions = !presentationMode;
   const toolsAction = !publishedReadOnly && !presentationMode && layoutPrefs.showToolsPanel;
   const detailsAction = !presentationMode && layoutPrefs.showDetailsPanel;
+
+  useEffect(() => {
+    activeDeckNameRef.current = activeDeckName;
+  }, [activeDeckName]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
@@ -73,17 +79,36 @@ export const WallToolbar = ({
     const heartbeat = () => emit({ type: "presence" });
     heartbeat();
     const timer = window.setInterval(heartbeat, 12_000);
+    const decksStatusTick = window.setInterval(() => {
+      if (!activeDeckNameRef.current) {
+        return;
+      }
+      if (Date.now() - decksSeenAtRef.current > 20_000) {
+        setActiveDeckId("");
+        setActiveDeckName("");
+      }
+    }, 2_000);
 
     channel.onmessage = (message: MessageEvent<WorkspaceEnvelope>) => {
       const payload = message.data;
       if (!payload || payload.sourceId === windowIdRef.current) {
         return;
       }
+      if (payload.sourceRole === "decks" && payload.event.type === "presence") {
+        decksSeenAtRef.current = payload.sentAt;
+        return;
+      }
       if (payload.event.type === "open_window" && payload.event.target === "wall") {
         window.focus();
         return;
       }
+      if (payload.event.type === "decks_closed") {
+        setActiveDeckId("");
+        setActiveDeckName("");
+        return;
+      }
       if (payload.event.type === "deck_selection") {
+        decksSeenAtRef.current = payload.sentAt;
         setActiveDeckId(payload.event.deckId);
         setActiveDeckName(payload.event.deckName);
       }
@@ -91,6 +116,7 @@ export const WallToolbar = ({
 
     return () => {
       window.clearInterval(timer);
+      window.clearInterval(decksStatusTick);
       channel.close();
       channelRef.current = null;
     };
