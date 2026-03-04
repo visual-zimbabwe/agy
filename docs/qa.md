@@ -11,13 +11,15 @@
 8. Press `Esc` while menu is open and verify it closes.
 9. Create one block of each core type: `Text`, `Header 1`, `Header 2`, `Header 3`, `To-do list`, `Bulleted list`, `Toggle list`, `Code`, `Quote`, `Callout`.
 10. Create one media/data block: `Image`, `Video`, `Audio`, `Google Docs`, `PDF`, `Database`, `MD file`, `Page`.
-11. Validate dark mode and light mode: menus, inputs, and dropdown surfaces must match theme tokens (no white light bleed in dark mode).
-12. Validate mobile viewport: floating block menu remains fully visible and does not obscure critical controls.
+11. Refresh browser tab after adding/editing several blocks and verify all block content/types persist.
+12. Validate dark mode and light mode: menus, inputs, and dropdown surfaces must match theme tokens (no white light bleed in dark mode).
+13. Validate mobile viewport: floating block menu remains fully visible and does not obscure critical controls.
 
 Expected:
 - `/page` is reachable and editor interactions are keyboard/mouse friendly.
 - `+` and `/` produce the same block set with searchable insertion.
 - Slash flow supports keyboard-only insertion without mouse.
+- Block content and order persist after refresh via local IndexedDB storage.
 - Floating menus and controls remain visible and unclipped across desktop/mobile and themes.
 
 ## Electron Desktop Packaging (2026-02-18)

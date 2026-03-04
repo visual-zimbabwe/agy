@@ -3,37 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
+import { createPageSnapshotSaver, loadPageSnapshot } from "@/features/page/storage";
+import type { BlockCategory, BlockType, PageBlock } from "@/features/page/types";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-
-type BlockCategory = "Basic" | "Media" | "Database" | "Advanced";
-type BlockType =
-  | "text"
-  | "h1"
-  | "h2"
-  | "h3"
-  | "todo"
-  | "bulleted"
-  | "toggle"
-  | "code"
-  | "quote"
-  | "callout"
-  | "image"
-  | "video"
-  | "audio"
-  | "google_doc"
-  | "pdf"
-  | "database"
-  | "markdown"
-  | "page";
-
-type PageBlock = {
-  id: string;
-  type: BlockType;
-  content: string;
-  checked?: boolean;
-  expanded?: boolean;
-};
 
 type BlockMenuItem = {
   type: BlockType;
@@ -74,6 +47,7 @@ const blockMenu: BlockMenuItem[] = [
 const categoryOrder: BlockCategory[] = ["Basic", "Media", "Database", "Advanced"];
 
 const idFor = () => `blk_${Math.random().toString(36).slice(2, 10)}`;
+const createEmptyPage = (): PageBlock[] => [{ id: idFor(), type: "text", content: "" }];
 
 const newBlock = (type: BlockType): PageBlock => {
   if (type === "todo") {
@@ -101,11 +75,13 @@ const parseSlashQuery = (value: string, cursor: number) => {
 };
 
 export function PageEditor() {
-  const [blocks, setBlocks] = useState<PageBlock[]>([{ id: idFor(), type: "text", content: "" }]);
+  const [blocks, setBlocks] = useState<PageBlock[]>(() => createEmptyPage());
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [menuIndex, setMenuIndex] = useState(0);
   const inputRefs = useRef<Record<string, HTMLElement | null>>({});
   const pendingFocusIdRef = useRef<string | null>(null);
+  const hasLoadedRef = useRef(false);
+  const saverRef = useRef(createPageSnapshotSaver(280));
 
   const filteredMenu = useMemo(() => {
     const query = menu?.query.trim().toLowerCase() ?? "";
@@ -150,6 +126,36 @@ export function PageEditor() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const saver = saverRef.current;
+    void (async () => {
+      try {
+        const snapshot = await loadPageSnapshot();
+        if (cancelled) {
+          return;
+        }
+        hasLoadedRef.current = true;
+        if (snapshot?.blocks?.length) {
+          setBlocks(snapshot.blocks);
+        }
+      } catch {
+        hasLoadedRef.current = true;
+      }
+    })();
+    return () => {
+      cancelled = true;
+      void saver.flush();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) {
+      return;
+    }
+    saverRef.current.schedule({ blocks, updatedAt: Date.now() });
+  }, [blocks]);
 
   const updateBlock = (blockId: string, patch: Partial<PageBlock>) => {
     setBlocks((prev) => prev.map((block) => (block.id === blockId ? { ...block, ...patch } : block)));
