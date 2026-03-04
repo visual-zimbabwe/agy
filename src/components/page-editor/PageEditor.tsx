@@ -533,23 +533,16 @@ export function PageEditor() {
         </aside>
 
         <div className="px-5 pb-20 pt-6 sm:px-8">
-          <header className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold tracking-[0.16em] text-[var(--color-text-muted)] uppercase">Page Canvas</p>
-              <h1 className="text-3xl leading-tight font-black tracking-tight">Company Home</h1>
-              <p className="mt-1 text-sm text-[var(--color-text-muted)]">Type `/` for blocks or hover left edge for `+`.</p>
-            </div>
-            <div className="flex items-center gap-2 lg:hidden">
-              <Link href="/wall" className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)]">
-                Back to Wall
-              </Link>
-              <Button size="sm" variant="primary" onClick={() => lastBlockId && insertBlockAfter(lastBlockId, "text")}>
-                New Block
-              </Button>
-            </div>
-          </header>
+          <div className="mb-2 flex items-center gap-2 lg:hidden">
+            <Link href="/wall" className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)]">
+              Back to Wall
+            </Link>
+            <Button size="sm" variant="primary" onClick={() => lastBlockId && insertBlockAfter(lastBlockId, "text")}>
+              New Block
+            </Button>
+          </div>
 
-          <article className="relative mt-8">
+          <article className="relative mt-6">
           <div className="mb-3 flex items-center justify-end">
             <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
               {blocks.length} block{blocks.length === 1 ? "" : "s"}
