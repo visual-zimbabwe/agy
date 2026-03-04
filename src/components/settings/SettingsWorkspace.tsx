@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
+import { ModalShell } from "@/components/ui/ModalShell";
 import { controlsModeStorageKey, layoutPrefsStorageKey } from "@/components/wall/wall-canvas-helpers";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots, writeKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import { applyPreferencesToDocument, persistPreferences, readStoredPreferences, type ThemePreference } from "@/lib/preferences";
@@ -93,6 +94,158 @@ const ToggleControl = ({ checked, onChange }: { checked: boolean; onChange: (che
   </button>
 );
 
+type AvatarCropModalProps = {
+  open: boolean;
+  sourceDataUrl: string;
+  zoom: number;
+  panX: number;
+  panY: number;
+  onZoomChange: (value: number) => void;
+  onPanXChange: (value: number) => void;
+  onPanYChange: (value: number) => void;
+  onClose: () => void;
+  onApply: () => void;
+  busy: boolean;
+};
+
+const drawAvatarCrop = ({
+  canvas,
+  image,
+  zoom,
+  panX,
+  panY,
+}: {
+  canvas: HTMLCanvasElement;
+  image: HTMLImageElement;
+  zoom: number;
+  panX: number;
+  panY: number;
+}) => {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return;
+  }
+  const { width: size } = canvas;
+  const baseScale = Math.max(size / image.naturalWidth, size / image.naturalHeight);
+  const scale = baseScale * zoom;
+  const drawW = image.naturalWidth * scale;
+  const drawH = image.naturalHeight * scale;
+  const maxPanX = Math.max(0, (drawW - size) / 2);
+  const maxPanY = Math.max(0, (drawH - size) / 2);
+  const offsetX = (panX / 100) * maxPanX;
+  const offsetY = (panY / 100) * maxPanY;
+  const x = (size - drawW) / 2 + offsetX;
+  const y = (size - drawH) / 2 + offsetY;
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillStyle = "#f3f4f6";
+  ctx.fillRect(0, 0, size, size);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(image, x, y, drawW, drawH);
+};
+
+const AvatarCropModal = ({
+  open,
+  sourceDataUrl,
+  zoom,
+  panX,
+  panY,
+  onZoomChange,
+  onPanXChange,
+  onPanYChange,
+  onClose,
+  onApply,
+  busy,
+}: AvatarCropModalProps) => {
+  const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (!open || !sourceDataUrl) {
+      return;
+    }
+    const image = new Image();
+    image.onload = () => setLoadedImage(image);
+    image.src = sourceDataUrl;
+  }, [open, sourceDataUrl]);
+
+  useEffect(() => {
+    if (!open || !loadedImage || !previewCanvasRef.current) {
+      return;
+    }
+    drawAvatarCrop({
+      canvas: previewCanvasRef.current,
+      image: loadedImage,
+      zoom,
+      panX,
+      panY,
+    });
+  }, [loadedImage, open, panX, panY, zoom]);
+
+  return (
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title="Crop Profile Image"
+      description="Adjust framing before upload for better face visibility and clarity."
+      maxWidthClassName="max-w-lg"
+      panelClassName="p-5"
+      contentClassName="mt-4"
+    >
+      <div className="space-y-4">
+        <div className="mx-auto w-fit rounded-full border border-[#d1d5db] bg-white p-2">
+          <canvas ref={previewCanvasRef} width={320} height={320} className="h-64 w-64 rounded-full" />
+        </div>
+        <label className="block text-xs text-[#4b5563]">
+          Zoom
+          <input
+            type="range"
+            min={1}
+            max={3}
+            step={0.01}
+            value={zoom}
+            onChange={(event) => onZoomChange(Number(event.target.value))}
+            className="mt-1 w-full"
+          />
+        </label>
+        <label className="block text-xs text-[#4b5563]">
+          Horizontal Position
+          <input
+            type="range"
+            min={-100}
+            max={100}
+            step={1}
+            value={panX}
+            onChange={(event) => onPanXChange(Number(event.target.value))}
+            className="mt-1 w-full"
+          />
+        </label>
+        <label className="block text-xs text-[#4b5563]">
+          Vertical Position
+          <input
+            type="range"
+            min={-100}
+            max={100}
+            step={1}
+            value={panY}
+            onChange={(event) => onPanYChange(Number(event.target.value))}
+            className="mt-1 w-full"
+          />
+        </label>
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={onApply} disabled={busy || !loadedImage}>
+            {busy ? "Uploading..." : "Apply & Upload"}
+          </Button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+};
+
 export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorkspaceProps) => {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("appearance");
@@ -140,6 +293,11 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   const [mfaQrCode, setMfaQrCode] = useState("");
   const [mfaSecret, setMfaSecret] = useState("");
   const [mfaVerifyCode, setMfaVerifyCode] = useState("");
+  const [avatarCropOpen, setAvatarCropOpen] = useState(false);
+  const [avatarSourceDataUrl, setAvatarSourceDataUrl] = useState("");
+  const [avatarCropZoom, setAvatarCropZoom] = useState(1);
+  const [avatarCropPanX, setAvatarCropPanX] = useState(0);
+  const [avatarCropPanY, setAvatarCropPanY] = useState(0);
 
   const preferenceState = useMemo(
     () => ({ theme, reduceMotion, compactMode }),
@@ -287,6 +445,66 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
       setAccountStatus(error instanceof Error ? error.message : "Failed to upload profile image.");
     } finally {
       setAccountBusy(null);
+    }
+  };
+
+  const beginAvatarCrop = async (file: File) => {
+    const sourceDataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(new Error("Failed to read selected image."));
+      reader.readAsDataURL(file);
+    });
+    setAvatarSourceDataUrl(sourceDataUrl);
+    setAvatarCropZoom(1);
+    setAvatarCropPanX(0);
+    setAvatarCropPanY(0);
+    setAvatarCropOpen(true);
+  };
+
+  const renderCroppedAvatarFile = async () => {
+    if (!avatarSourceDataUrl) {
+      throw new Error("No image selected.");
+    }
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Failed to load selected image."));
+      img.src = avatarSourceDataUrl;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1024;
+    drawAvatarCrop({
+      canvas,
+      image,
+      zoom: avatarCropZoom,
+      panX: avatarCropPanX,
+      panY: avatarCropPanY,
+    });
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (value) => {
+          if (!value) {
+            reject(new Error("Failed to process image."));
+            return;
+          }
+          resolve(value);
+        },
+        "image/webp",
+        0.96,
+      );
+    });
+    return new File([blob], `avatar-${Date.now()}.webp`, { type: "image/webp" });
+  };
+
+  const applyAvatarCropAndUpload = async () => {
+    try {
+      const file = await renderCroppedAvatarFile();
+      await handleAvatarUpload(file);
+      setAvatarCropOpen(false);
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Failed to process avatar image.");
     }
   };
 
@@ -487,7 +705,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                         onChange={(event) => {
                           const file = event.target.files?.[0];
                           if (file) {
-                            void handleAvatarUpload(file);
+                            void beginAvatarCrop(file);
                           }
                           event.currentTarget.value = "";
                         }}
@@ -772,12 +990,42 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   );
 
   if (embedded) {
-    return <div className="h-[min(78vh,760px)] min-h-[540px] w-full overflow-hidden rounded-xl bg-[#f7f7f6] text-[#191919]">{content}</div>;
+    return (
+      <div className="h-[min(78vh,760px)] min-h-[540px] w-full overflow-hidden rounded-xl bg-[#f7f7f6] text-[#191919]">
+        {content}
+        <AvatarCropModal
+          open={avatarCropOpen}
+          sourceDataUrl={avatarSourceDataUrl}
+          zoom={avatarCropZoom}
+          panX={avatarCropPanX}
+          panY={avatarCropPanY}
+          onZoomChange={setAvatarCropZoom}
+          onPanXChange={setAvatarCropPanX}
+          onPanYChange={setAvatarCropPanY}
+          onClose={() => setAvatarCropOpen(false)}
+          onApply={() => void applyAvatarCropAndUpload()}
+          busy={accountBusy === "avatar"}
+        />
+      </div>
+    );
   }
 
   return (
     <main className="route-shell min-h-screen bg-[#f7f7f6] text-[#191919]">
       {content}
+      <AvatarCropModal
+        open={avatarCropOpen}
+        sourceDataUrl={avatarSourceDataUrl}
+        zoom={avatarCropZoom}
+        panX={avatarCropPanX}
+        panY={avatarCropPanY}
+        onZoomChange={setAvatarCropZoom}
+        onPanXChange={setAvatarCropPanX}
+        onPanYChange={setAvatarCropPanY}
+        onClose={() => setAvatarCropOpen(false)}
+        onApply={() => void applyAvatarCropAndUpload()}
+        busy={accountBusy === "avatar"}
+      />
     </main>
   );
 };
