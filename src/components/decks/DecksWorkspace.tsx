@@ -101,6 +101,16 @@ type StatsPayload = {
   added?: Array<{ day: string; count: number }>;
   cardCounts?: { new: number; suspended: number; buried: number; reviewed: number };
   retention?: { month: number; year: number };
+  today?: {
+    studied: number;
+    minutes: number;
+    again: number;
+    correctPct: number;
+    learn: number;
+    review: number;
+    relearn: number;
+    filtered: number;
+  };
 };
 
 type ImportPreset = {
@@ -1455,6 +1465,25 @@ export const DecksWorkspace = () => {
                 </div>
                 {stats ? (
                   <>
+                    <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                      <p className="text-sm font-semibold">Today</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">
+                        Studied <span className="font-semibold text-[var(--color-text)]">{stats.today?.studied ?? 0}</span> cards in{" "}
+                        <span className="font-semibold text-[var(--color-text)]">{stats.today?.minutes ?? 0}</span> minutes.
+                      </p>
+                      <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                        <p>Again: <span className="font-semibold">{stats.today?.again ?? 0}</span></p>
+                        <p>Correct: <span className="font-semibold">{stats.today?.correctPct ?? 0}%</span></p>
+                        <p>Learn: <span className="font-semibold">{stats.today?.learn ?? 0}</span></p>
+                        <p>Review: <span className="font-semibold">{stats.today?.review ?? 0}</span></p>
+                        <p>Relearn: <span className="font-semibold">{stats.today?.relearn ?? 0}</span></p>
+                        <p>Filtered: <span className="font-semibold">{stats.today?.filtered ?? 0}</span></p>
+                      </div>
+                      <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                        Daily accuracy can swing with difficult material; use longer trends to judge long-term progress.
+                      </p>
+                    </article>
+
                     <div className="grid gap-3 sm:grid-cols-4">
                       <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3"><p className="text-xs text-[var(--color-text-muted)]">Total Cards</p><p className="text-xl font-semibold">{stats.summary.totalCards}</p></article>
                       <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3"><p className="text-xs text-[var(--color-text-muted)]">Reviews</p><p className="text-xl font-semibold">{stats.summary.totalReviews}</p></article>
@@ -1670,17 +1699,6 @@ export const DecksWorkspace = () => {
                       </div>
                     </article>
 
-                    <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
-                      <p className="text-sm font-semibold">7-day quick workload</p>
-                      <ul className="mt-2 space-y-1 text-sm">
-                        {stats.workload7.map((entry) => (
-                          <li key={entry.day} className="flex items-center justify-between">
-                            <span>{entry.day}</span>
-                            <span>{entry.due}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
                   </>
                 ) : (
                   <p className="text-sm text-[var(--color-text-muted)]">No stats yet.</p>

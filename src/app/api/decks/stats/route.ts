@@ -231,6 +231,36 @@ export async function GET(request: Request) {
     month: monthGood + monthAgain === 0 ? 0 : Math.round((monthGood / (monthGood + monthAgain)) * 100),
     year: yearGood + yearAgain === 0 ? 0 : Math.round((yearGood / (yearGood + yearAgain)) * 100),
   };
+  const todayStart = startOfDay(now);
+  const tomorrowStart = new Date(todayStart.getTime() + DAY_MS);
+  const todayReviews = (reviewsResult.data ?? []).filter((review) => {
+    if (!allowed.has(review.deck_id)) {
+      return false;
+    }
+    const reviewedAt = new Date(review.reviewed_at);
+    return reviewedAt >= todayStart && reviewedAt < tomorrowStart;
+  });
+  const todayStudied = todayReviews.length;
+  const todayAgain = todayReviews.filter((review) => review.rating === "again").length;
+  const todayCorrectPct = todayStudied === 0 ? 0 : Math.round(((todayStudied - todayAgain) / todayStudied) * 100);
+  const todayLearn = todayReviews.filter((review) => review.state_before === "new").length;
+  const todayReview = todayReviews.filter((review) => review.state_before === "review").length;
+  const todayRelearn = todayReviews.filter((review) => review.state_before === "review" && (review.rating === "again" || review.state_after === "learning")).length;
+  const todayMinutes = toPct(
+    todayReviews.reduce((sum, review) => {
+      if (review.state_before === "new") {
+        return sum + 18 / 60;
+      }
+      if (review.state_before === "learning" || (review.state_before === "review" && review.state_after === "learning")) {
+        return sum + 14 / 60;
+      }
+      if ((review.interval_days_after ?? 0) >= 21) {
+        return sum + 8 / 60;
+      }
+      return sum + 11 / 60;
+    }, 0),
+  );
+  const todayFiltered = 0;
 
   return NextResponse.json({
     summary: {
@@ -250,5 +280,15 @@ export async function GET(request: Request) {
     added: addedTimeline,
     cardCounts,
     retention,
+    today: {
+      studied: todayStudied,
+      minutes: todayMinutes,
+      again: todayAgain,
+      correctPct: todayCorrectPct,
+      learn: todayLearn,
+      review: todayReview,
+      relearn: todayRelearn,
+      filtered: todayFiltered,
+    },
   });
 }
