@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
-import { applyPreferencesToDocument, persistPreferences, readStoredPreferences, type ThemePreference } from "@/lib/preferences";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type ProfileMenuProps = {
@@ -34,9 +33,6 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileM
 
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
-  const [reduceMotion, setReduceMotion] = useState(() => readStoredPreferences().reduceMotion);
-  const [compactMode, setCompactMode] = useState(() => readStoredPreferences().compactMode);
   const [preferredName, setPreferredName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
 
@@ -58,12 +54,6 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileM
       window.removeEventListener(profileUpdatedEventName, handleProfileRefresh);
     };
   }, []);
-
-  useEffect(() => {
-    const preferences = { theme, reduceMotion, compactMode };
-    persistPreferences(preferences);
-    applyPreferencesToDocument(preferences);
-  }, [compactMode, reduceMotion, theme]);
 
   useEffect(() => {
     if (!open) {
@@ -133,40 +123,6 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileM
             <p className="truncate text-sm font-medium text-[var(--color-text)]">{preferredName || email}</p>
             {preferredName && <p className="truncate text-[11px] text-[var(--color-text-muted)]">{email}</p>}
             <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">Plan: Free</p>
-          </div>
-
-          <div className="mt-2.5 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-2.5 py-2">
-            <p className="text-[11px] text-[var(--color-text-muted)]">Preferences</p>
-            <label className="mt-1.5 flex items-center justify-between gap-2 text-xs text-[var(--color-text)]">
-              <span>Theme</span>
-              <select
-                value={theme}
-                onChange={(event) => setTheme(event.target.value as ThemePreference)}
-                className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs"
-              >
-                <option value="system">System</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </label>
-            <label className="mt-1.5 flex items-center justify-between gap-2 text-xs text-[var(--color-text)]">
-              <span>Reduce motion</span>
-              <input
-                type="checkbox"
-                checked={reduceMotion}
-                onChange={(event) => setReduceMotion(event.target.checked)}
-                className="h-3.5 w-3.5 accent-[var(--color-accent-strong)]"
-              />
-            </label>
-            <label className="mt-1.5 flex items-center justify-between gap-2 text-xs text-[var(--color-text)]">
-              <span>Compact mode</span>
-              <input
-                type="checkbox"
-                checked={compactMode}
-                onChange={(event) => setCompactMode(event.target.checked)}
-                className="h-3.5 w-3.5 accent-[var(--color-accent-strong)]"
-              />
-            </label>
           </div>
 
           <div className="mt-2 grid gap-1.5">

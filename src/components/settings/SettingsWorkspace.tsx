@@ -8,7 +8,14 @@ import { Button } from "@/components/ui/Button";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { controlsModeStorageKey, layoutPrefsStorageKey } from "@/components/wall/wall-canvas-helpers";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots, writeKeyboardColorSlots } from "@/lib/keyboard-color-slots";
-import { applyPreferencesToDocument, persistPreferences, readStoredPreferences, type ThemePreference } from "@/lib/preferences";
+import {
+  applyPreferencesToDocument,
+  persistPreferences,
+  readStoredPreferences,
+  type StartupBehavior,
+  type StartupPage,
+  type ThemePreference,
+} from "@/lib/preferences";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type SettingsWorkspaceProps = {
@@ -38,10 +45,24 @@ type SettingsSectionId = "general" | "appearance" | "accessibility" | "keyboard"
 
 const settingsSections: Array<{ id: SettingsSectionId; label: string; description: string }> = [
   { id: "general", label: "My account", description: "Profile and workspace identity." },
-  { id: "appearance", label: "My settings", description: "Theme and visual density." },
-  { id: "accessibility", label: "Accessibility", description: "Motion preferences." },
+  { id: "appearance", label: "My settings", description: "Appearance, startup, and date/time behavior." },
+  { id: "accessibility", label: "Accessibility", description: "Motion and density preferences." },
   { id: "keyboard", label: "Keyboard", description: "Shortcut color slots." },
   { id: "advanced", label: "Workspace", description: "Wall chrome and control density." },
+];
+
+const commonTimezones = [
+  "UTC",
+  "America/Vancouver",
+  "America/Los_Angeles",
+  "America/Denver",
+  "America/Chicago",
+  "America/New_York",
+  "Europe/London",
+  "Europe/Paris",
+  "Asia/Tokyo",
+  "Asia/Seoul",
+  "Australia/Sydney",
 ];
 
 const SettingRow = ({
@@ -283,10 +304,14 @@ const AvatarCropModal = ({
 
 export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorkspaceProps) => {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState<SettingsSectionId>("appearance");
+  const [activeSection, setActiveSection] = useState<SettingsSectionId>("general");
   const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
   const [reduceMotion, setReduceMotion] = useState(() => readStoredPreferences().reduceMotion);
   const [compactMode, setCompactMode] = useState(() => readStoredPreferences().compactMode);
+  const [startupBehavior, setStartupBehavior] = useState<StartupBehavior>(() => readStoredPreferences().startupBehavior);
+  const [startupDefaultPage, setStartupDefaultPage] = useState<StartupPage>(() => readStoredPreferences().startupDefaultPage);
+  const [autoTimezone, setAutoTimezone] = useState(() => readStoredPreferences().autoTimezone);
+  const [manualTimezone, setManualTimezone] = useState(() => readStoredPreferences().manualTimezone);
   const [keyboardColorSlots, setKeyboardColorSlots] = useState<Array<string | null>>(() => readKeyboardColorSlots());
   const [wallLayoutPrefs, setWallLayoutPrefs] = useState<WallLayoutPrefs>(() => {
     if (typeof window === "undefined") {
@@ -335,8 +360,8 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   const [avatarCropPanY, setAvatarCropPanY] = useState(0);
 
   const preferenceState = useMemo(
-    () => ({ theme, reduceMotion, compactMode }),
-    [compactMode, reduceMotion, theme],
+    () => ({ theme, reduceMotion, compactMode, startupBehavior, startupDefaultPage, autoTimezone, manualTimezone }),
+    [autoTimezone, compactMode, manualTimezone, reduceMotion, startupBehavior, startupDefaultPage, theme],
   );
 
   const onSavePreferences = () => {
@@ -358,6 +383,8 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
 
   const activeSectionMeta = settingsSections.find((section) => section.id === activeSection);
   const controlsModeLabel = controlsMode === "advanced" ? "Advanced" : "Basic";
+  const detectedTimezone = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
+  const effectiveTimezone = autoTimezone ? detectedTimezone : manualTimezone;
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -882,7 +909,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
               <>
                 <SettingRow
                   title="Appearance"
-                  description="Choose how Idea Wall looks on your device."
+                  description="Choose Light, Dark, or System theme."
                   control={
                     <SelectControl
                       value={theme}
@@ -897,19 +924,81 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                   }
                 />
                 <SettingRow
+                  title="On startup"
+                  description="Choose what opens when the app launches."
+                  control={
+                    <SelectControl
+                      value={startupBehavior}
+                      onChange={(value) => setStartupBehavior(value as StartupBehavior)}
+                      label="Startup behavior"
+                      options={[
+                        { value: "default_page", label: "Default page" },
+                        { value: "continue_last", label: "Continue where left off" },
+                      ]}
+                    />
+                  }
+                />
+                {startupBehavior === "default_page" && (
+                  <SettingRow
+                    title="Default page"
+                    description="Used at startup when no last-session page should be restored."
+                    control={
+                      <SelectControl
+                        value={startupDefaultPage}
+                        onChange={(value) => setStartupDefaultPage(value as StartupPage)}
+                        label="Default startup page"
+                        options={[
+                          { value: "/wall", label: "Wall" },
+                          { value: "/decks", label: "Decks" },
+                        ]}
+                      />
+                    }
+                  />
+                )}
+                <article className="border-b border-[var(--color-border-muted)] py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 pr-2">
+                      <h3 className="text-sm font-medium text-[var(--color-text)]">Date &amp; Time</h3>
+                      <p className="mt-1 text-xs text-[var(--color-text-muted)]">Set timezone automatically using your location.</p>
+                    </div>
+                    <ToggleControl checked={autoTimezone} onChange={setAutoTimezone} />
+                  </div>
+                  {!autoTimezone && (
+                    <div className="mt-3 max-w-xs">
+                      <label className="mb-1 block text-xs text-[var(--color-text-muted)]">Select city / timezone</label>
+                      <select
+                        value={manualTimezone}
+                        onChange={(event) => setManualTimezone(event.target.value)}
+                        className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-sm text-[var(--color-text)]"
+                      >
+                        {commonTimezones.map((tz) => (
+                          <option key={tz} value={tz}>
+                            {tz.replace("_", " ")}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+                    Time Zone set: <span className="font-medium text-[var(--color-text)]">{effectiveTimezone}</span>
+                  </p>
+                </article>
+              </>
+            )}
+
+            {activeSection === "accessibility" && (
+              <>
+                <SettingRow
+                  title="Reduce motion"
+                  description="Minimize non-essential animation and movement."
+                  control={<ToggleControl checked={reduceMotion} onChange={setReduceMotion} />}
+                />
+                <SettingRow
                   title="Compact mode"
                   description="Reduce spacing for denser wall controls."
                   control={<ToggleControl checked={compactMode} onChange={setCompactMode} />}
                 />
               </>
-            )}
-
-            {activeSection === "accessibility" && (
-              <SettingRow
-                title="Reduce motion"
-                description="Minimize non-essential animation and movement."
-                control={<ToggleControl checked={reduceMotion} onChange={setReduceMotion} />}
-              />
             )}
 
             {activeSection === "advanced" && (
