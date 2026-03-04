@@ -504,11 +504,12 @@ export function PageEditor() {
           </div>
         </header>
 
-        <article className="relative mt-5 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)] sm:p-6">
-          <div className="pointer-events-none absolute right-4 top-4 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-[11px] text-[var(--color-text-muted)]">
-            {blocks.length} block{blocks.length === 1 ? "" : "s"}
+        <article className="relative mt-6">
+          <div className="mb-3 flex items-center justify-end">
+            <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
+              {blocks.length} block{blocks.length === 1 ? "" : "s"}
+            </span>
           </div>
-
           <div className="space-y-1">
             {blocks.map((block) => (
               <div key={block.id} className="group relative">
