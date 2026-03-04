@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
@@ -145,6 +145,19 @@ const drawAvatarCrop = ({
   ctx.drawImage(image, x, y, drawW, drawH);
 };
 
+const clampPan = (value: number) => Math.max(-100, Math.min(100, value));
+
+const getAvatarPanMetrics = (size: number, image: HTMLImageElement, zoom: number) => {
+  const baseScale = Math.max(size / image.naturalWidth, size / image.naturalHeight);
+  const scale = baseScale * zoom;
+  const drawW = image.naturalWidth * scale;
+  const drawH = image.naturalHeight * scale;
+  return {
+    maxPanX: Math.max(0, (drawW - size) / 2),
+    maxPanY: Math.max(0, (drawH - size) / 2),
+  };
+};
+
 const AvatarCropModal = ({
   open,
   sourceDataUrl,
@@ -160,6 +173,7 @@ const AvatarCropModal = ({
 }: AvatarCropModalProps) => {
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
+  const dragStateRef = useRef<{ pointerId: number; startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
 
   useEffect(() => {
     if (!open || !sourceDataUrl) {
@@ -183,6 +197,41 @@ const AvatarCropModal = ({
     });
   }, [loadedImage, open, panX, panY, zoom]);
 
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!loadedImage || !previewCanvasRef.current) {
+      return;
+    }
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startPanX: panX,
+      startPanY: panY,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!dragStateRef.current || !loadedImage || !previewCanvasRef.current) {
+      return;
+    }
+    const drag = dragStateRef.current;
+    const size = previewCanvasRef.current.width;
+    const metrics = getAvatarPanMetrics(size, loadedImage, zoom);
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    const nextPanX = metrics.maxPanX > 0 ? clampPan(drag.startPanX + (deltaX / metrics.maxPanX) * 100) : drag.startPanX;
+    const nextPanY = metrics.maxPanY > 0 ? clampPan(drag.startPanY + (deltaY / metrics.maxPanY) * 100) : drag.startPanY;
+    onPanXChange(nextPanX);
+    onPanYChange(nextPanY);
+  };
+
+  const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (dragStateRef.current?.pointerId === event.pointerId) {
+      dragStateRef.current = null;
+    }
+  };
+
   return (
     <ModalShell
       open={open}
@@ -194,9 +243,16 @@ const AvatarCropModal = ({
       contentClassName="mt-4"
     >
       <div className="space-y-4">
-        <div className="mx-auto w-fit rounded-full border border-[#d1d5db] bg-white p-2">
-          <canvas ref={previewCanvasRef} width={320} height={320} className="h-64 w-64 rounded-full" />
+        <div
+          className="mx-auto w-fit rounded-full border border-[#d1d5db] bg-white p-2"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
+          <canvas ref={previewCanvasRef} width={320} height={320} className="h-64 w-64 cursor-grab active:cursor-grabbing rounded-full" />
         </div>
+        <p className="text-center text-xs text-[#6b7280]">Drag the image to position your face in frame.</p>
         <label className="block text-xs text-[#4b5563]">
           Zoom
           <input
@@ -206,30 +262,6 @@ const AvatarCropModal = ({
             step={0.01}
             value={zoom}
             onChange={(event) => onZoomChange(Number(event.target.value))}
-            className="mt-1 w-full"
-          />
-        </label>
-        <label className="block text-xs text-[#4b5563]">
-          Horizontal Position
-          <input
-            type="range"
-            min={-100}
-            max={100}
-            step={1}
-            value={panX}
-            onChange={(event) => onPanXChange(Number(event.target.value))}
-            className="mt-1 w-full"
-          />
-        </label>
-        <label className="block text-xs text-[#4b5563]">
-          Vertical Position
-          <input
-            type="range"
-            min={-100}
-            max={100}
-            step={1}
-            value={panY}
-            onChange={(event) => onPanYChange(Number(event.target.value))}
             className="mt-1 w-full"
           />
         </label>
