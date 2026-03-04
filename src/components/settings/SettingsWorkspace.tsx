@@ -146,6 +146,7 @@ const drawAvatarCrop = ({
 };
 
 const clampPan = (value: number) => Math.max(-100, Math.min(100, value));
+const avatarMinZoom = 1.15;
 
 const getAvatarPanMetrics = (size: number, image: HTMLImageElement, zoom: number) => {
   const baseScale = Math.max(size / image.naturalWidth, size / image.naturalHeight);
@@ -257,7 +258,7 @@ const AvatarCropModal = ({
           Zoom
           <input
             type="range"
-            min={1}
+            min={avatarMinZoom}
             max={3}
             step={0.01}
             value={zoom}
@@ -327,7 +328,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   const [mfaVerifyCode, setMfaVerifyCode] = useState("");
   const [avatarCropOpen, setAvatarCropOpen] = useState(false);
   const [avatarSourceDataUrl, setAvatarSourceDataUrl] = useState("");
-  const [avatarCropZoom, setAvatarCropZoom] = useState(1);
+  const [avatarCropZoom, setAvatarCropZoom] = useState(avatarMinZoom);
   const [avatarCropPanX, setAvatarCropPanX] = useState(0);
   const [avatarCropPanY, setAvatarCropPanY] = useState(0);
 
@@ -488,7 +489,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
       reader.readAsDataURL(file);
     });
     setAvatarSourceDataUrl(sourceDataUrl);
-    setAvatarCropZoom(1);
+    setAvatarCropZoom(avatarMinZoom);
     setAvatarCropPanX(0);
     setAvatarCropPanY(0);
     setAvatarCropOpen(true);
