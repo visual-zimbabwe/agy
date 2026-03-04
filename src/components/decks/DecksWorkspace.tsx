@@ -211,6 +211,7 @@ export const DecksWorkspace = () => {
   const channelRef = useRef<BroadcastChannel | null>(null);
   const windowIdRef = useRef<string>(createWorkspaceWindowId());
   const wallSeenAtRef = useRef<number>(0);
+  const autoStudyInitRef = useRef(false);
   const routeDeckId = searchParams.get("deckId") ?? "";
   const appliedRouteDeckIdRef = useRef<string>("");
   const isDesktop = typeof window !== "undefined" && Boolean(window.desktopMeta?.isDesktop || window.desktopApi);
@@ -325,6 +326,22 @@ export const DecksWorkspace = () => {
       safeRun(() => loadStudyCard(routeDeckId));
     }
   }, [decks, loadStudyCard, routeDeckId, safeRun]);
+
+  useEffect(() => {
+    if (autoStudyInitRef.current || routeDeckId || decks.length === 0) {
+      return;
+    }
+    const selectedId = decks.some((deck) => deck.id === studyDeckId) ? studyDeckId : decks[0]?.id ?? "";
+    if (!selectedId) {
+      return;
+    }
+    autoStudyInitRef.current = true;
+    if (selectedId !== studyDeckId) {
+      setStudyDeckId(selectedId);
+    }
+    setView("study");
+    safeRun(() => loadStudyCard(selectedId));
+  }, [decks, loadStudyCard, routeDeckId, safeRun, studyDeckId]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
