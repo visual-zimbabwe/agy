@@ -481,30 +481,75 @@ export function PageEditor() {
 
   return (
     <main className="route-shell text-[var(--color-text)]">
-      <section className="mx-auto min-h-screen w-full max-w-6xl px-5 pb-20 pt-8 sm:px-8">
-        <header className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-glass)] p-4 shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="min-h-screen w-full lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <aside className="hidden border-r border-[var(--color-border)] bg-[var(--color-surface-glass)]/95 px-4 py-5 backdrop-blur-[var(--blur-panel)] lg:block">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold">Idea-Wall Pages</p>
+            <button
+              type="button"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-muted)]"
+              onClick={() => lastBlockId && insertBlockAfter(lastBlockId, "text")}
+              aria-label="Add block"
+            >
+              +
+            </button>
+          </div>
+
+          <div className="mt-5 space-y-1">
+            <p className="px-2 text-[11px] font-semibold tracking-[0.12em] text-[var(--color-text-muted)] uppercase">Workspace</p>
+            {["Company Home", "Roadmap", "Docs", "Meeting Notes"].map((entry) => (
+              <button
+                key={entry}
+                type="button"
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition",
+                  entry === "Company Home" ? "bg-[var(--color-surface)] font-semibold text-[var(--color-text)] shadow-[var(--shadow-sm)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]",
+                )}
+              >
+                <span className="text-xs">{entry === "Company Home" ? "🏠" : "•"}</span>
+                <span>{entry}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-5 space-y-1">
+            <p className="px-2 text-[11px] font-semibold tracking-[0.12em] text-[var(--color-text-muted)] uppercase">Private</p>
+            {["Task List", "Weekly Agenda", "Reading List"].map((entry) => (
+              <button key={entry} type="button" className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface)]">
+                <span className="text-xs">•</span>
+                <span>{entry}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6 space-y-2">
+            <Button size="sm" variant="secondary" className="w-full justify-start" onClick={() => lastBlockId && insertBlockAfter(lastBlockId, "text")}>
+              + New block
+            </Button>
+            <Link href="/wall" className="inline-flex w-full items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)]">
+              Back to Wall
+            </Link>
+          </div>
+        </aside>
+
+        <div className="px-5 pb-20 pt-6 sm:px-8">
+          <header className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold tracking-[0.16em] text-[var(--color-text-muted)] uppercase">Idea-Wall Pages</p>
-              <h1 className="text-2xl leading-tight font-black tracking-tight">Block-first Page Editor</h1>
-              <p className="mt-1 text-sm text-[var(--color-text-muted)]">Use `+` or `/` to insert blocks. Features stay hidden until you need them.</p>
+              <p className="text-[11px] font-semibold tracking-[0.16em] text-[var(--color-text-muted)] uppercase">Page Canvas</p>
+              <h1 className="text-3xl leading-tight font-black tracking-tight">Company Home</h1>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">Type `/` for blocks or hover left edge for `+`.</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Link href="/wall" className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold">
+            <div className="flex items-center gap-2 lg:hidden">
+              <Link href="/wall" className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)]">
                 Back to Wall
               </Link>
               <Button size="sm" variant="primary" onClick={() => lastBlockId && insertBlockAfter(lastBlockId, "text")}>
                 New Block
               </Button>
             </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[11px] text-[var(--color-text-muted)]">Primary add shortcuts: `/` and `+`</span>
-            <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[11px] text-[var(--color-text-muted)]">Search: `/todo`, `/image`, `/database`</span>
-          </div>
-        </header>
+          </header>
 
-        <article className="relative mt-6">
+          <article className="relative mt-8">
           <div className="mb-3 flex items-center justify-end">
             <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
               {blocks.length} block{blocks.length === 1 ? "" : "s"}
@@ -612,6 +657,7 @@ export function PageEditor() {
             </div>
           )}
         </article>
+        </div>
       </section>
     </main>
   );
