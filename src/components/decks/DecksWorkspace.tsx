@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -688,6 +687,35 @@ export const DecksWorkspace = () => {
     channelRef.current.postMessage(payload);
   };
 
+  const handleBackToWall = () => {
+    if (channelRef.current) {
+      const payload: WorkspaceEnvelope = {
+        sourceId: windowIdRef.current,
+        sourceRole: "decks",
+        sentAt: Date.now(),
+        event: { type: "open_window", target: "wall" },
+      };
+      channelRef.current.postMessage(payload);
+    }
+
+    const opener = window.opener as Window | null;
+    const canFocusOpener = Boolean(opener && !opener.closed);
+    if (canFocusOpener) {
+      try {
+        opener?.focus();
+      } catch {
+        // Ignore focus errors and use route fallback.
+      }
+    }
+
+    window.close();
+    window.setTimeout(() => {
+      if (!window.closed) {
+        window.location.href = "/wall";
+      }
+    }, 120);
+  };
+
   return (
     <main className="route-shell text-[var(--color-text)]">
       <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 pb-8 pt-4 sm:px-6">
@@ -712,9 +740,13 @@ export const DecksWorkspace = () => {
             >
               Wall {wallOnline ? "Online" : "Offline"}
             </span>
-            <Link href="/wall" className="rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={handleBackToWall}
+              className="rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold"
+            >
               Back to Wall
-            </Link>
+            </button>
           </div>
         </header>
 

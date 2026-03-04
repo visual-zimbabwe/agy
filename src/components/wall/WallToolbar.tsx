@@ -98,7 +98,12 @@ export const WallToolbar = ({
 
   const openDecksWindow = () => {
     const target = activeDeckId ? `/decks?deckId=${encodeURIComponent(activeDeckId)}` : "/decks";
-    window.open(target, "idea-wall-decks-window", "width=1320,height=920");
+    const isDesktop = Boolean(window.desktopMeta?.isDesktop || window.desktopApi);
+    if (isDesktop) {
+      window.open(target, "idea-wall-decks-window", "width=1320,height=920");
+    } else {
+      window.open(target, "_blank");
+    }
     if (channelRef.current) {
       const payload: WorkspaceEnvelope = {
         sourceId: windowIdRef.current,
@@ -139,8 +144,8 @@ export const WallToolbar = ({
           </ControlTooltip>
           {showSecondaryActions && (
             <>
-            <ControlTooltip label="Open decks in separate window" side="top">
-              <button type="button" onClick={openDecksWindow} className={toolbarBtn} title="Open decks in separate window">
+            <ControlTooltip label="Open decks" side="top">
+              <button type="button" onClick={openDecksWindow} className={toolbarBtn} title="Open decks">
                 <Icon name="panel-right" />
                 <span>Decks</span>
               </button>
