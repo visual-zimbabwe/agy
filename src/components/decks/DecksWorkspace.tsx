@@ -87,6 +87,20 @@ type BrowseRow = {
 type StatsPayload = {
   summary: { totalCards: number; totalReviews: number; retentionRate: number; dueTomorrow: number };
   workload7: Array<{ day: string; due: number }>;
+  forecast?: Array<{ day: string; due: number }>;
+  forecastMode?: "daily" | "weekly";
+  reviewCount?: Array<{ day: string; newCount: number; learning: number; relearning: number; young: number; mature: number }>;
+  reviewTime?: Array<{ day: string; minutes: number }>;
+  intervals?: { under1: number; d1to6: number; d7to20: number; d21to90: number; over90: number };
+  hourly?: Array<{ hour: number; reviews: number; correctRate: number }>;
+  answerButtons?: {
+    new: { again: number; hard: number; good: number; easy: number };
+    young: { again: number; hard: number; good: number; easy: number };
+    mature: { again: number; hard: number; good: number; easy: number };
+  };
+  added?: Array<{ day: string; count: number }>;
+  cardCounts?: { new: number; suspended: number; buried: number; reviewed: number };
+  retention?: { month: number; year: number };
 };
 
 type ImportPreset = {
@@ -1383,8 +1397,138 @@ export const DecksWorkspace = () => {
                       <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3"><p className="text-xs text-[var(--color-text-muted)]">Retention</p><p className="text-xl font-semibold">{stats.summary.retentionRate}%</p></article>
                       <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3"><p className="text-xs text-[var(--color-text-muted)]">Due Tomorrow</p><p className="text-xl font-semibold">{stats.summary.dueTomorrow}</p></article>
                     </div>
+                    <div className="grid gap-3 lg:grid-cols-2">
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-sm font-semibold">Forecast</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                          Upcoming review workload ({stats.forecastMode === "weekly" ? "weekly bars" : "daily bars"}).
+                        </p>
+                        <div className="mt-2 space-y-1 text-xs">
+                          {(stats.forecast ?? []).slice(0, 16).map((entry) => {
+                            const maxDue = Math.max(1, ...((stats.forecast ?? []).map((item) => item.due)));
+                            const width = Math.max(2, Math.round((entry.due / maxDue) * 100));
+                            return (
+                              <div key={entry.day} className="flex items-center gap-2">
+                                <span className="w-20 shrink-0 text-[var(--color-text-muted)]">{entry.day}</span>
+                                <div className="h-2.5 flex-1 rounded bg-[var(--color-surface-muted)]">
+                                  <div className="h-2.5 rounded bg-[var(--color-accent-strong)]" style={{ width: `${width}%` }} />
+                                </div>
+                                <span className="w-8 text-right">{entry.due}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </article>
+
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-sm font-semibold">Review Count</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">Recent review volume by card category.</p>
+                        <div className="mt-2 max-h-52 space-y-1 overflow-auto text-xs">
+                          {(stats.reviewCount ?? []).slice(-14).map((entry) => (
+                            <div key={entry.day} className="grid grid-cols-[5.5rem_repeat(5,minmax(0,1fr))] gap-1">
+                              <span className="text-[var(--color-text-muted)]">{entry.day}</span>
+                              <span>N {entry.newCount}</span>
+                              <span>L {entry.learning}</span>
+                              <span>RL {entry.relearning}</span>
+                              <span>Y {entry.young}</span>
+                              <span>M {entry.mature}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </article>
+
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-sm font-semibold">Review Time</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">Estimated minutes spent reviewing each day.</p>
+                        <div className="mt-2 max-h-52 space-y-1 overflow-auto text-xs">
+                          {(stats.reviewTime ?? []).slice(-14).map((entry) => {
+                            const maxMinutes = Math.max(1, ...((stats.reviewTime ?? []).map((item) => item.minutes)));
+                            const width = Math.max(2, Math.round((entry.minutes / maxMinutes) * 100));
+                            return (
+                              <div key={entry.day} className="flex items-center gap-2">
+                                <span className="w-20 shrink-0 text-[var(--color-text-muted)]">{entry.day}</span>
+                                <div className="h-2.5 flex-1 rounded bg-[var(--color-surface-muted)]">
+                                  <div className="h-2.5 rounded bg-[var(--color-accent)]" style={{ width: `${width}%` }} />
+                                </div>
+                                <span className="w-10 text-right">{entry.minutes}m</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </article>
+
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-sm font-semibold">Intervals</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">Card distribution by interval length.</p>
+                        <div className="mt-2 space-y-1 text-sm">
+                          <p>&lt;1 day: {stats.intervals?.under1 ?? 0}</p>
+                          <p>1-6 days: {stats.intervals?.d1to6 ?? 0}</p>
+                          <p>7-20 days: {stats.intervals?.d7to20 ?? 0}</p>
+                          <p>21-90 days: {stats.intervals?.d21to90 ?? 0}</p>
+                          <p>&gt;90 days: {stats.intervals?.over90 ?? 0}</p>
+                        </div>
+                      </article>
+
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-sm font-semibold">Hourly Breakdown</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">When you review most and how accurate you are.</p>
+                        <div className="mt-2 max-h-52 space-y-1 overflow-auto text-xs">
+                          {(stats.hourly ?? []).filter((entry) => entry.reviews > 0).map((entry) => (
+                            <div key={entry.hour} className="flex items-center justify-between">
+                              <span>{entry.hour.toString().padStart(2, "0")}:00</span>
+                              <span>{entry.reviews} reviews</span>
+                              <span>{entry.correctRate}% correct</span>
+                            </div>
+                          ))}
+                        </div>
+                      </article>
+
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-sm font-semibold">Answer Buttons</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">Again/Hard/Good/Easy usage by card class.</p>
+                        <div className="mt-2 space-y-2 text-xs">
+                          <p>New: A {stats.answerButtons?.new.again ?? 0} | H {stats.answerButtons?.new.hard ?? 0} | G {stats.answerButtons?.new.good ?? 0} | E {stats.answerButtons?.new.easy ?? 0}</p>
+                          <p>Young: A {stats.answerButtons?.young.again ?? 0} | H {stats.answerButtons?.young.hard ?? 0} | G {stats.answerButtons?.young.good ?? 0} | E {stats.answerButtons?.young.easy ?? 0}</p>
+                          <p>Mature: A {stats.answerButtons?.mature.again ?? 0} | H {stats.answerButtons?.mature.hard ?? 0} | G {stats.answerButtons?.mature.good ?? 0} | E {stats.answerButtons?.mature.easy ?? 0}</p>
+                        </div>
+                      </article>
+
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-sm font-semibold">Added</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">Card creation timeline.</p>
+                        <div className="mt-2 max-h-52 space-y-1 overflow-auto text-xs">
+                          {(stats.added ?? []).slice(-14).map((entry) => (
+                            <div key={entry.day} className="flex items-center justify-between">
+                              <span className="text-[var(--color-text-muted)]">{entry.day}</span>
+                              <span>{entry.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </article>
+
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-sm font-semibold">Card Counts</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">Deck state breakdown.</p>
+                        <div className="mt-2 space-y-1 text-sm">
+                          <p>New: {stats.cardCounts?.new ?? 0}</p>
+                          <p>Suspended: {stats.cardCounts?.suspended ?? 0}</p>
+                          <p>Buried: {stats.cardCounts?.buried ?? 0}</p>
+                          <p>Reviewed: {stats.cardCounts?.reviewed ?? 0}</p>
+                        </div>
+                      </article>
+                    </div>
+
+                    <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                      <p className="text-sm font-semibold">Retention</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">True retention (Good vs Again).</p>
+                      <div className="mt-2 flex flex-wrap gap-4 text-sm">
+                        <p>Last 30 days: <span className="font-semibold">{stats.retention?.month ?? 0}%</span></p>
+                        <p>Last year: <span className="font-semibold">{stats.retention?.year ?? 0}%</span></p>
+                      </div>
+                    </article>
+
                     <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
-                      <p className="text-sm font-semibold">7-day workload forecast</p>
+                      <p className="text-sm font-semibold">7-day quick workload</p>
                       <ul className="mt-2 space-y-1 text-sm">
                         {stats.workload7.map((entry) => (
                           <li key={entry.day} className="flex items-center justify-between">
