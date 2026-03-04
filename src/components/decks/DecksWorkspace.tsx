@@ -1318,17 +1318,69 @@ export const DecksWorkspace = () => {
         maxWidthClassName="max-w-2xl"
       >
         <div className="space-y-4">
-          <div>
-            <FieldLabel>Mode</FieldLabel>
-            <SelectField value={customStudyMode} onChange={(event) => setCustomStudyMode(event.target.value as CustomStudyMode)}>
-              <option value="increase_new">Increase Today&apos;s New Card Limit</option>
-              <option value="increase_review">Increase Today&apos;s Review Card Limit</option>
-              <option value="forgotten">Review Forgotten Cards</option>
-              <option value="ahead">Review Ahead</option>
-              <option value="preview_new">Preview New Cards</option>
-              <option value="state_tag">Study by Card State or Tag</option>
-            </SelectField>
-          </div>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-[var(--color-text)]">Mode</legend>
+            <label className="flex cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] p-2.5">
+              <input
+                type="radio"
+                name="custom-study-mode"
+                checked={customStudyMode === "increase_new"}
+                onChange={() => setCustomStudyMode("increase_new")}
+                className="mt-0.5"
+              />
+              <span className="text-sm">Increase Today&apos;s New Card Limit</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] p-2.5">
+              <input
+                type="radio"
+                name="custom-study-mode"
+                checked={customStudyMode === "increase_review"}
+                onChange={() => setCustomStudyMode("increase_review")}
+                className="mt-0.5"
+              />
+              <span className="text-sm">Increase Today&apos;s Review Card Limit</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] p-2.5">
+              <input
+                type="radio"
+                name="custom-study-mode"
+                checked={customStudyMode === "forgotten"}
+                onChange={() => setCustomStudyMode("forgotten")}
+                className="mt-0.5"
+              />
+              <span className="text-sm">Review Forgotten Cards</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] p-2.5">
+              <input
+                type="radio"
+                name="custom-study-mode"
+                checked={customStudyMode === "ahead"}
+                onChange={() => setCustomStudyMode("ahead")}
+                className="mt-0.5"
+              />
+              <span className="text-sm">Review Ahead</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] p-2.5">
+              <input
+                type="radio"
+                name="custom-study-mode"
+                checked={customStudyMode === "preview_new"}
+                onChange={() => setCustomStudyMode("preview_new")}
+                className="mt-0.5"
+              />
+              <span className="text-sm">Preview New Cards</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] p-2.5">
+              <input
+                type="radio"
+                name="custom-study-mode"
+                checked={customStudyMode === "state_tag"}
+                onChange={() => setCustomStudyMode("state_tag")}
+                className="mt-0.5"
+              />
+              <span className="text-sm">Study by Card State or Tag</span>
+            </label>
+          </fieldset>
 
           {(customStudyMode === "increase_new" || customStudyMode === "increase_review" || customStudyMode === "state_tag") && (
             <div>
