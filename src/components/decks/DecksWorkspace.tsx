@@ -331,13 +331,14 @@ export const DecksWorkspace = () => {
     setShowAnswer(false);
   }, [excludedDeckIds, includeChildren, studyDeckId]);
 
-  const loadBrowse = useCallback(async () => {
+  const loadBrowse = useCallback(async (deckId?: string) => {
+    const effectiveDeckId = deckId ?? studyDeckId;
     const params = new URLSearchParams();
     if (browseQuery.trim()) {
       params.set("q", browseQuery.trim());
     }
-    if (studyDeckId) {
-      params.set("deckId", studyDeckId);
+    if (effectiveDeckId) {
+      params.set("deckId", effectiveDeckId);
       params.set("includeChildren", includeChildren ? "1" : "0");
       if (excludedDeckIds.length > 0) {
         params.set("excludedDeckIds", excludedDeckIds.join(","));
@@ -351,10 +352,11 @@ export const DecksWorkspace = () => {
     setBrowseRows(payload.rows ?? []);
   }, [browseQuery, excludedDeckIds, includeChildren, studyDeckId]);
 
-  const loadStats = useCallback(async () => {
+  const loadStats = useCallback(async (deckId?: string) => {
+    const effectiveDeckId = deckId ?? studyDeckId;
     const params = new URLSearchParams({ range: statsRange });
-    if (studyDeckId) {
-      params.set("deckId", studyDeckId);
+    if (effectiveDeckId) {
+      params.set("deckId", effectiveDeckId);
       params.set("includeChildren", includeChildren ? "1" : "0");
     }
     const response = await fetch(`/api/decks/stats?${params.toString()}`, { cache: "no-store" });
@@ -1121,9 +1123,19 @@ export const DecksWorkspace = () => {
                   onClick={() => {
                     resetCustomSessionState();
                     setStudyDeckId(deck.id);
-                    setView("study");
-                    setStudyStage("overview");
-                    safeRun(() => loadStudyCard(deck.id));
+                    if (view === "study" || view === "decks") {
+                      setView("study");
+                      setStudyStage("overview");
+                      safeRun(() => loadStudyCard(deck.id));
+                      return;
+                    }
+                    if (view === "stats") {
+                      safeRun(() => loadStats(deck.id));
+                      return;
+                    }
+                    if (view === "browse") {
+                      safeRun(() => loadBrowse(deck.id));
+                    }
                   }}
                   className={`w-full rounded-[var(--radius-md)] border px-3 py-2 text-left text-sm ${
                     studyDeckId === deck.id ? "border-[var(--color-focus)] bg-[var(--color-accent-soft)]" : "border-[var(--color-border)] bg-[var(--color-surface)]"
