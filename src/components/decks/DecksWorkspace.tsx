@@ -1384,6 +1384,12 @@ export const DecksWorkspace = () => {
 
           {(customStudyMode === "increase_new" || customStudyMode === "increase_review" || customStudyMode === "state_tag") && (
             <div>
+              {customStudyMode === "increase_new" && (
+                <p className="mb-1 text-xs text-[var(--color-text-muted)]">Available new cards: {studyCounts.newCount}</p>
+              )}
+              {customStudyMode === "increase_review" && (
+                <p className="mb-1 text-xs text-[var(--color-text-muted)]">Available review cards: {studyCounts.reviewCount}</p>
+              )}
               <FieldLabel>Card count</FieldLabel>
               <TextField
                 type="number"
