@@ -1102,104 +1102,90 @@ export const DecksWorkspace = () => {
     }
   };
 
-  const handleSaveStatsPdf = () => {
+  const handleSaveStatsPdf = async () => {
     if (!stats) {
       throw new Error("Load stats first.");
     }
-    const popup = window.open("", "_blank", "noopener,noreferrer");
-    if (!popup) {
-      throw new Error("Unable to open print window. Check popup blocker settings.");
-    }
-    const esc = (value: string) =>
-      value
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
+    const { jsPDF } = await import("jspdf");
     const deckName = selectedStudyDeck?.name ?? "All Decks";
-    const generatedAt = new Date().toLocaleString();
-    const title = `${deckName} Stats`;
-    const forecastRows = statsViewModel.forecast
-      .map((entry) => `<tr><td>${esc(entry.day)}</td><td style="text-align:right;">${entry.due}</td></tr>`)
-      .join("");
+    const safeDeckName = deckName.replace(/[<>:"/\\|?*]/g, "").trim() || "deck";
+    const generatedAt = new Date();
+    const fileName = `deck-stats-${safeDeckName}-${generatedAt.toISOString().slice(0, 10)}.pdf`;
     const today = statsViewModel.today;
-    const intervalRows = statsViewModel.intervals
-      .map((entry) => `<tr><td>${esc(entry.label)}</td><td style="text-align:right;">${entry.value}</td></tr>`)
-      .join("");
-    const cardRows = statsViewModel.pieSlices
-      .map((entry) => `<tr><td>${esc(entry.key)}</td><td style="text-align:right;">${entry.value}</td></tr>`)
-      .join("");
 
-    popup.document.write(`<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>${esc(title)}</title>
-    <style>
-      body { font-family: "Segoe UI", Arial, sans-serif; margin: 24px; color: #0f172a; }
-      h1, h2 { margin: 0 0 8px; }
-      h1 { font-size: 24px; }
-      h2 { font-size: 16px; margin-top: 20px; }
-      p { margin: 4px 0; }
-      .muted { color: #475569; font-size: 12px; }
-      .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
-      .card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; }
-      .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-      th, td { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 12px; text-align: left; }
-      .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-      @media print {
-        body { margin: 12mm; }
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    let y = 42;
+    const lineGap = 16;
+    const writeLine = (text: string, opts?: { size?: number; bold?: boolean }) => {
+      doc.setFont("helvetica", opts?.bold ? "bold" : "normal");
+      doc.setFontSize(opts?.size ?? 11);
+      doc.text(text, 42, y);
+      y += lineGap;
+      if (y > 790) {
+        doc.addPage();
+        y = 42;
       }
-    </style>
-  </head>
-  <body>
-    <h1>${esc(title)}</h1>
-    <p class="muted">Range: ${esc(statsRange)} | Generated: ${esc(generatedAt)}</p>
+    };
 
-    <div class="grid">
-      <div class="card"><p class="muted">Total Cards</p><p class="value">${stats.summary.totalCards}</p></div>
-      <div class="card"><p class="muted">Reviews</p><p class="value">${stats.summary.totalReviews}</p></div>
-      <div class="card"><p class="muted">Retention</p><p class="value">${stats.summary.retentionRate}%</p></div>
-      <div class="card"><p class="muted">Due Tomorrow</p><p class="value">${stats.summary.dueTomorrow}</p></div>
-    </div>
+    writeLine(`${deckName} - Statistics`, { size: 16, bold: true });
+    writeLine(`Range: ${statsRange} | Generated: ${generatedAt.toLocaleString()}`, { size: 10 });
+    y += 6;
+    writeLine("Summary", { size: 13, bold: true });
+    writeLine(`Total Cards: ${stats.summary.totalCards}`);
+    writeLine(`Reviews: ${stats.summary.totalReviews}`);
+    writeLine(`Retention: ${stats.summary.retentionRate}%`);
+    writeLine(`Due Tomorrow: ${stats.summary.dueTomorrow}`);
 
-    <h2>Today</h2>
-    <p>Studied ${today.studied} cards in ${today.minutes} minutes</p>
-    <p>Again ${today.again} | Correct ${today.correctPct}% | Learn ${today.learn} | Review ${today.review} | Relearn ${today.relearn} | Filtered ${today.filtered}</p>
+    y += 6;
+    writeLine("Today", { size: 13, bold: true });
+    writeLine(`Studied ${today.studied} cards in ${today.minutes} minutes`);
+    writeLine(`Again: ${today.again} | Correct: ${today.correctPct}%`);
+    writeLine(`Learn: ${today.learn} | Review: ${today.review} | Relearn: ${today.relearn} | Filtered: ${today.filtered}`);
 
-    <div class="twocol">
-      <div>
-        <h2>Forecast</h2>
-        <table>
-          <thead><tr><th>Day</th><th style="text-align:right;">Due</th></tr></thead>
-          <tbody>${forecastRows}</tbody>
-        </table>
-      </div>
-      <div>
-        <h2>Intervals</h2>
-        <table>
-          <thead><tr><th>Bucket</th><th style="text-align:right;">Count</th></tr></thead>
-          <tbody>${intervalRows}</tbody>
-        </table>
-      </div>
-    </div>
+    y += 6;
+    writeLine("Forecast (first 16)", { size: 13, bold: true });
+    for (const entry of statsViewModel.forecast) {
+      writeLine(`${entry.day}: ${entry.due}`);
+    }
 
-    <h2>Card Counts</h2>
-    <table>
-      <thead><tr><th>State</th><th style="text-align:right;">Count</th></tr></thead>
-      <tbody>${cardRows}</tbody>
-    </table>
+    y += 6;
+    writeLine("Intervals", { size: 13, bold: true });
+    for (const entry of statsViewModel.intervals) {
+      writeLine(`${entry.label}: ${entry.value}`);
+    }
 
-    <h2>Retention</h2>
-    <p>Last 30 days: ${stats.retention?.month ?? 0}%</p>
-    <p>Last year: ${stats.retention?.year ?? 0}%</p>
-  </body>
-</html>`);
-    popup.document.close();
-    popup.focus();
-    window.setTimeout(() => popup.print(), 150);
+    y += 6;
+    writeLine("Card Counts", { size: 13, bold: true });
+    for (const entry of statsViewModel.pieSlices) {
+      writeLine(`${entry.key}: ${entry.value}`);
+    }
+
+    y += 6;
+    writeLine("Retention", { size: 13, bold: true });
+    writeLine(`Last 30 days: ${stats.retention?.month ?? 0}%`);
+    writeLine(`Last year: ${stats.retention?.year ?? 0}%`);
+
+    if (window.desktopApi) {
+      const pick = await window.desktopApi.pickSavePath({
+        defaultPath: fileName,
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      });
+      if (pick.canceled || !pick.filePath) {
+        return;
+      }
+      const bytes = doc.output("arraybuffer");
+      const binary = Array.from(new Uint8Array(bytes), (byte) => String.fromCharCode(byte)).join("");
+      const base64 = btoa(binary);
+      const save = await window.desktopApi.saveFile({ filePath: pick.filePath, base64 });
+      if (!save.ok) {
+        throw new Error(save.error ?? "Failed to save PDF.");
+      }
+      setStatusMessage(`Saved PDF to ${save.filePath ?? pick.filePath}`);
+      return;
+    }
+
+    doc.save(fileName);
+    setStatusMessage("PDF download started.");
   };
 
   const openWallWindow = () => {
