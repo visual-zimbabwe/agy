@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { Panel } from "@/components/ui/Panel";
 import { controlsModeStorageKey, layoutPrefsStorageKey } from "@/components/wall/wall-canvas-helpers";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots, writeKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import { applyPreferencesToDocument, persistPreferences, readStoredPreferences, type ThemePreference } from "@/lib/preferences";
@@ -32,12 +31,64 @@ const defaultWallLayoutPrefs: WallLayoutPrefs = {
 type SettingsSectionId = "general" | "appearance" | "accessibility" | "keyboard" | "advanced";
 
 const settingsSections: Array<{ id: SettingsSectionId; label: string; description: string }> = [
-  { id: "general", label: "General", description: "Account and workspace defaults." },
-  { id: "appearance", label: "Appearance", description: "Theme and density controls." },
-  { id: "accessibility", label: "Accessibility", description: "Motion and readability preferences." },
-  { id: "keyboard", label: "Keyboard", description: "Shortcut behavior and color slots." },
-  { id: "advanced", label: "Advanced", description: "Reserved for future power features." },
+  { id: "general", label: "My account", description: "Profile and workspace identity." },
+  { id: "appearance", label: "My settings", description: "Theme and visual density." },
+  { id: "accessibility", label: "Accessibility", description: "Motion preferences." },
+  { id: "keyboard", label: "Keyboard", description: "Shortcut color slots." },
+  { id: "advanced", label: "Workspace", description: "Wall chrome and control density." },
 ];
+
+const SettingRow = ({
+  title,
+  description,
+  control,
+  compact = false,
+}: {
+  title: string;
+  description: string;
+  control: ReactNode;
+  compact?: boolean;
+}) => (
+  <article className={`flex items-start justify-between gap-4 border-b border-[var(--color-border-muted)] ${compact ? "py-3" : "py-4"}`}>
+    <div className="min-w-0 pr-2">
+      <h3 className="text-sm font-medium text-[var(--color-text)]">{title}</h3>
+      <p className="mt-1 text-xs text-[var(--color-text-muted)]">{description}</p>
+    </div>
+    <div className="shrink-0">{control}</div>
+  </article>
+);
+
+const SelectControl = ({ value, onChange, options, label }: { value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }>; label: string }) => (
+  <label className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs text-[var(--color-text)]">
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="min-w-24 appearance-none bg-transparent pr-3 text-right outline-none"
+      aria-label={label}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+    <span className="text-[10px] text-[var(--color-text-muted)]">v</span>
+  </label>
+);
+
+const ToggleControl = ({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) => (
+  <button
+    type="button"
+    onClick={() => onChange(!checked)}
+    role="switch"
+    aria-checked={checked}
+    className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-[#2f7adf]" : "bg-[#d1d5db]"}`}
+  >
+    <span
+      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`}
+    />
+  </button>
+);
 
 export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("appearance");
@@ -96,217 +147,218 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
     });
   };
 
-  return (
-    <main className="route-shell text-[var(--color-text)]">
-      <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-5 px-4 pb-10 pt-5 sm:px-6 sm:pt-6">
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-4 py-3 shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)] sm:px-5 sm:py-4">
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.16em] uppercase text-[var(--color-text-muted)]">Workspace Settings</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Settings Studio</h1>
-            <p className="mt-1 text-xs text-[var(--color-text-muted)]">{userEmail}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={onSavePreferences}>
-              Save settings
-            </Button>
-            <Link href="/wall" className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-muted)]">
-              Back to wall
-            </Link>
-          </div>
-        </header>
+  const activeSectionMeta = settingsSections.find((section) => section.id === activeSection);
+  const controlsModeLabel = controlsMode === "advanced" ? "Advanced" : "Basic";
 
-        <div className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
-          <Panel className="p-3">
-            <nav aria-label="Settings sections" className="space-y-1">
-              {settingsSections.map((section) => (
+  return (
+    <main className="route-shell min-h-screen bg-[#f7f7f6] text-[#191919]">
+      <section className="mx-auto flex min-h-screen w-full max-w-[1180px] gap-0 px-0">
+        <aside className="w-[260px] border-r border-[#e7e6e4] bg-[#f1f1ef] p-5">
+          <div className="rounded-lg bg-[#ececea] px-3 py-3">
+            <p className="text-xs font-semibold text-[#4b5563]">Account</p>
+            <p className="mt-1 truncate text-sm font-medium text-[#111827]">Idea Wall User</p>
+            <p className="truncate text-xs text-[#6b7280]">{userEmail}</p>
+          </div>
+
+          <nav aria-label="Settings sections" className="mt-4 space-y-1">
+            {settingsSections.map((section) => {
+              const isActive = activeSection === section.id;
+              return (
                 <button
                   key={section.id}
                   type="button"
                   onClick={() => setActiveSection(section.id)}
-                  className={`w-full rounded-[var(--radius-md)] border px-3 py-2 text-left transition-colors ${
-                    activeSection === section.id
-                      ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-text)]"
-                      : "border-transparent text-[var(--color-text-muted)] hover:border-[var(--color-border-muted)] hover:bg-[var(--color-surface-muted)]"
+                  className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors ${
+                    isActive ? "bg-[#e4e4e2] text-[#111827]" : "text-[#4b5563] hover:bg-[#e9e9e7]"
                   }`}
                 >
-                  <p className="text-sm font-medium">{section.label}</p>
-                  <p className="mt-0.5 text-[11px]">{section.description}</p>
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#9ca3af]" />
+                  <span>{section.label}</span>
                 </button>
-              ))}
-            </nav>
-          </Panel>
+              );
+            })}
+          </nav>
 
-          <Panel className="p-4 sm:p-5">
+          <div className="mt-6 flex flex-col gap-2">
+            <Button variant="secondary" size="sm" onClick={onSavePreferences}>
+              Save settings
+            </Button>
+            <Link
+              href="/wall"
+              className="inline-flex items-center justify-center rounded-md border border-[#d4d4d2] bg-white px-3 py-1.5 text-xs font-medium text-[#374151] hover:bg-[#f3f4f6]"
+            >
+              Back to wall
+            </Link>
+          </div>
+        </aside>
+
+        <article className="flex-1 bg-[#fafafa] p-5 sm:p-8">
+          <header className="border-b border-[#e5e7eb] pb-4">
+            <h1 className="text-[30px] font-semibold tracking-tight text-[#111827]">{activeSectionMeta?.label ?? "My settings"}</h1>
+            <p className="mt-1 text-sm text-[#6b7280]">{activeSectionMeta?.description ?? "Manage your preferences."}</p>
+          </header>
+
+          <section className="mt-5 max-w-3xl">
             {activeSection === "general" && (
-              <section>
-                <h2 className="text-lg font-semibold">General</h2>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">This area will grow with workspace-level controls, notifications, and integrations.</p>
-                <div className="mt-4 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border-muted)] bg-[var(--color-surface)] px-4 py-3">
-                  <p className="text-sm text-[var(--color-text-muted)]">Placeholder ready for future modules.</p>
-                </div>
-              </section>
+              <>
+                <SettingRow
+                  title="Signed in as"
+                  description="Current account email for this workspace."
+                  control={<span className="max-w-56 truncate text-xs text-[#4b5563]">{userEmail}</span>}
+                />
+                <SettingRow
+                  title="Last saved"
+                  description="Most recent local settings save time."
+                  control={<span className="text-xs text-[#4b5563]">{new Date(savedAt).toLocaleTimeString()}</span>}
+                />
+              </>
             )}
 
             {activeSection === "appearance" && (
-              <section>
-                <h2 className="text-lg font-semibold">Appearance</h2>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Control visual style and density across the wall.</p>
-                <div className="mt-4 space-y-3">
-                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
-                    <span>Theme preference</span>
-                    <select
+              <>
+                <SettingRow
+                  title="Appearance"
+                  description="Choose how Idea Wall looks on your device."
+                  control={
+                    <SelectControl
                       value={theme}
-                      onChange={(event) => setTheme(event.target.value as ThemePreference)}
-                      className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs"
-                    >
-                      <option value="system">System</option>
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                    </select>
-                  </label>
-                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
-                    <span>Compact mode</span>
-                    <input
-                      type="checkbox"
-                      checked={compactMode}
-                      onChange={(event) => setCompactMode(event.target.checked)}
-                      className="h-4 w-4 accent-[var(--color-accent-strong)]"
+                      onChange={(value) => setTheme(value as ThemePreference)}
+                      label="Theme preference"
+                      options={[
+                        { value: "system", label: "System" },
+                        { value: "light", label: "Light" },
+                        { value: "dark", label: "Dark" },
+                      ]}
                     />
-                  </label>
-                </div>
-              </section>
+                  }
+                />
+                <SettingRow
+                  title="Compact mode"
+                  description="Reduce spacing for denser wall controls."
+                  control={<ToggleControl checked={compactMode} onChange={setCompactMode} />}
+                />
+              </>
             )}
 
             {activeSection === "accessibility" && (
-              <section>
-                <h2 className="text-lg font-semibold">Accessibility</h2>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Make interactions calmer and easier to follow.</p>
-                <label className="mt-4 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
-                  <span>Reduce motion</span>
-                  <input
-                    type="checkbox"
-                    checked={reduceMotion}
-                    onChange={(event) => setReduceMotion(event.target.checked)}
-                    className="h-4 w-4 accent-[var(--color-accent-strong)]"
-                  />
-                </label>
-              </section>
+              <SettingRow
+                title="Reduce motion"
+                description="Minimize non-essential animation and movement."
+                control={<ToggleControl checked={reduceMotion} onChange={setReduceMotion} />}
+              />
+            )}
+
+            {activeSection === "advanced" && (
+              <>
+                <SettingRow
+                  title="Show Tools panel controls"
+                  description="Display quick controls for tools in wall mode."
+                  control={
+                    <ToggleControl
+                      checked={wallLayoutPrefs.showToolsPanel}
+                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showToolsPanel: checked }))}
+                    />
+                  }
+                />
+                <SettingRow
+                  title="Show Details panel controls"
+                  description="Display quick controls for details panel behavior."
+                  control={
+                    <ToggleControl
+                      checked={wallLayoutPrefs.showDetailsPanel}
+                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showDetailsPanel: checked }))}
+                    />
+                  }
+                />
+                <SettingRow
+                  title="Show context bar"
+                  description="Show contextual actions near selected content."
+                  control={
+                    <ToggleControl
+                      checked={wallLayoutPrefs.showContextBar}
+                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showContextBar: checked }))}
+                    />
+                  }
+                />
+                <SettingRow
+                  title="Show note tags on cards"
+                  description="Render tag chips directly on note cards."
+                  control={
+                    <ToggleControl
+                      checked={wallLayoutPrefs.showNoteTags}
+                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showNoteTags: checked }))}
+                    />
+                  }
+                />
+                <SettingRow
+                  title="Wall controls density"
+                  description="Choose between basic and advanced controls."
+                  control={
+                    <SelectControl
+                      value={controlsMode}
+                      onChange={(value) => setControlsMode(value as ControlsMode)}
+                      label="Wall controls density"
+                      options={[
+                        { value: "basic", label: "Basic" },
+                        { value: "advanced", label: "Advanced" },
+                      ]}
+                    />
+                  }
+                />
+              </>
             )}
 
             {activeSection === "keyboard" && (
-              <section>
-                <h2 className="text-lg font-semibold">Keyboard Color Slots</h2>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Press `C`, then `1-9` to quick-switch by slot. `Shift + C` cycles through configured slots.</p>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <>
+                <section className="border-b border-[var(--color-border-muted)] py-4">
+                  <h2 className="text-sm font-medium text-[#111827]">Keyboard color slots</h2>
+                  <p className="mt-1 text-xs text-[#6b7280]">Press `C`, then `1-9` to quick switch note color slots.</p>
+                </section>
+                <div className="grid gap-2 py-3 sm:grid-cols-2">
                   {Array.from({ length: 9 }).map((_, index) => {
                     const color = keyboardColorSlots[index];
                     const fallback = defaultKeyboardColorSlots[index] ?? "#FEEA89";
                     return (
-                      <div key={`shortcut-color-${index + 1}`} className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
-                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-xs font-semibold">
+                      <article key={`shortcut-color-${index + 1}`} className="flex items-center gap-2 rounded-md border border-[#e5e7eb] bg-white px-2.5 py-2">
+                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded border border-[#d1d5db] bg-[#f9fafb] text-xs font-semibold text-[#374151]">
                           {index + 1}
                         </span>
                         <input
                           type="color"
                           value={color ?? fallback}
                           onChange={(event) => setKeyboardSlot(index, event.target.value.toUpperCase())}
-                          className="h-7 w-9 cursor-pointer rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
+                          className="h-7 w-9 cursor-pointer rounded border border-[#d1d5db] bg-white p-0.5"
                           aria-label={`Set keyboard color slot ${index + 1}`}
                         />
-                        <span className="font-mono text-xs text-[var(--color-text-muted)]">{color ?? "Not set"}</span>
+                        <span className="font-mono text-[11px] text-[#6b7280]">{color ?? "Not set"}</span>
                         <button
                           type="button"
                           onClick={() => setKeyboardSlot(index, null)}
-                          className="ml-auto rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+                          className="ml-auto rounded border border-[#d1d5db] bg-[#f9fafb] px-2 py-0.5 text-[11px] text-[#4b5563] hover:bg-white"
                         >
                           Clear
                         </button>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
-                <div className="mt-3 flex items-center gap-2">
+                <div className="flex items-center justify-between border-t border-[#e5e7eb] py-3">
+                  <p className="text-xs text-[#6b7280]">Save settings to persist slot updates.</p>
                   <button
                     type="button"
                     onClick={() => setKeyboardColorSlots([...defaultKeyboardColorSlots])}
-                    className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+                    className="rounded border border-[#d1d5db] bg-white px-2.5 py-1 text-xs text-[#374151] hover:bg-[#f3f4f6]"
                   >
                     Reset defaults
                   </button>
-                  <p className="text-xs text-[var(--color-text-muted)]">Save settings to apply across sessions.</p>
                 </div>
-              </section>
+              </>
             )}
 
-            {activeSection === "advanced" && (
-              <section>
-                <h2 className="text-lg font-semibold">Advanced</h2>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Configure wall chrome visibility and detail density.</p>
-                <div className="mt-4 space-y-3">
-                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
-                    <span>Show Tools panel controls</span>
-                    <input
-                      type="checkbox"
-                      checked={wallLayoutPrefs.showToolsPanel}
-                      onChange={(event) =>
-                        setWallLayoutPrefs((previous) => ({ ...previous, showToolsPanel: event.target.checked }))
-                      }
-                      className="h-4 w-4 accent-[var(--color-accent-strong)]"
-                    />
-                  </label>
-                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
-                    <span>Show Details panel controls</span>
-                    <input
-                      type="checkbox"
-                      checked={wallLayoutPrefs.showDetailsPanel}
-                      onChange={(event) =>
-                        setWallLayoutPrefs((previous) => ({ ...previous, showDetailsPanel: event.target.checked }))
-                      }
-                      className="h-4 w-4 accent-[var(--color-accent-strong)]"
-                    />
-                  </label>
-                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
-                    <span>Show context bar</span>
-                    <input
-                      type="checkbox"
-                      checked={wallLayoutPrefs.showContextBar}
-                      onChange={(event) =>
-                        setWallLayoutPrefs((previous) => ({ ...previous, showContextBar: event.target.checked }))
-                      }
-                      className="h-4 w-4 accent-[var(--color-accent-strong)]"
-                    />
-                  </label>
-                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
-                    <span>Show note tags on cards</span>
-                    <input
-                      type="checkbox"
-                      checked={wallLayoutPrefs.showNoteTags}
-                      onChange={(event) =>
-                        setWallLayoutPrefs((previous) => ({ ...previous, showNoteTags: event.target.checked }))
-                      }
-                      className="h-4 w-4 accent-[var(--color-accent-strong)]"
-                    />
-                  </label>
-                  <label className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-3 py-2 text-sm">
-                    <span>Wall controls density</span>
-                    <select
-                      value={controlsMode}
-                      onChange={(event) => setControlsMode(event.target.value as ControlsMode)}
-                      className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs"
-                    >
-                      <option value="basic">Basic</option>
-                      <option value="advanced">Advanced</option>
-                    </select>
-                  </label>
-                </div>
-              </section>
-            )}
-
-            <div className="mt-6 border-t border-[var(--color-border-muted)] pt-3 text-xs text-[var(--color-text-muted)]">
-              Last saved {new Date(savedAt).toLocaleTimeString()}
-            </div>
-          </Panel>
-        </div>
+            <footer className="pt-5 text-xs text-[#6b7280]">Last saved {new Date(savedAt).toLocaleTimeString()}.</footer>
+            <p className="mt-1 text-xs text-[#9ca3af]">Current controls mode: {controlsModeLabel}.</p>
+          </section>
+        </article>
       </section>
     </main>
   );
