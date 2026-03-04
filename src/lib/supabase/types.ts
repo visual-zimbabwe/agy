@@ -276,6 +276,9 @@ export type Database = {
           name: string;
           parent_id: string | null;
           archived: boolean;
+          scheduler_mode: string;
+          fsrs_params: unknown;
+          fsrs_optimized_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -285,6 +288,9 @@ export type Database = {
           name: string;
           parent_id?: string | null;
           archived?: boolean;
+          scheduler_mode?: string;
+          fsrs_params?: unknown;
+          fsrs_optimized_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -292,6 +298,9 @@ export type Database = {
           name?: string;
           parent_id?: string | null;
           archived?: boolean;
+          scheduler_mode?: string;
+          fsrs_params?: unknown;
+          fsrs_optimized_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];

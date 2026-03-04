@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import type { CardState, ReviewRating } from "@/features/decks/note-types";
-import { scheduleDeckCard } from "@/features/decks/note-types";
+import type { CardState, FsrsParams, ReviewRating } from "@/features/decks/note-types";
+import { scheduleDeckCard, scheduleDeckCardFsrs } from "@/features/decks/note-types";
 import { requireApiUser } from "@/lib/api/auth";
 import { collectDeckAndChildrenIds, parseExcludedIds } from "@/lib/decks/tree";
 
@@ -146,6 +146,17 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
+  const schedulerDeckId = parsed.data.studyDeckId ?? card.deck_id;
+  const { data: schedulerDeck, error: schedulerDeckError } = await auth.supabase
+    .from("decks")
+    .select("id,scheduler_mode,fsrs_params")
+    .eq("owner_id", auth.user.id)
+    .eq("id", schedulerDeckId)
+    .maybeSingle();
+  if (schedulerDeckError) {
+    return NextResponse.json({ error: schedulerDeckError.message }, { status: 500 });
+  }
+  const useFsrs = schedulerDeck?.scheduler_mode === "fsrs";
   const schedule = scheduleDeckCard({
     state: card.state as CardState,
     step: card.step,
@@ -156,17 +167,32 @@ export async function POST(request: Request) {
     rating: parsed.data.rating as ReviewRating,
     now,
   });
+  const nextSchedule = useFsrs
+    ? scheduleDeckCardFsrs(
+        {
+          state: card.state as CardState,
+          step: card.step,
+          intervalDays: card.interval_days,
+          easeFactor: card.ease_factor,
+          reps: card.reps,
+          lapses: card.lapses,
+          rating: parsed.data.rating as ReviewRating,
+          now,
+        },
+        (schedulerDeck?.fsrs_params ?? null) as Partial<FsrsParams> | null,
+      )
+    : schedule;
 
   const { error: updateError } = await auth.supabase
     .from("deck_cards")
     .update({
-      state: schedule.nextState,
-      step: schedule.nextStep,
-      interval_days: schedule.nextIntervalDays,
-      ease_factor: schedule.nextEaseFactor,
-      reps: schedule.nextReps,
-      lapses: schedule.nextLapses,
-      due_at: schedule.dueAt.toISOString(),
+      state: nextSchedule.nextState,
+      step: nextSchedule.nextStep,
+      interval_days: nextSchedule.nextIntervalDays,
+      ease_factor: nextSchedule.nextEaseFactor,
+      reps: nextSchedule.nextReps,
+      lapses: nextSchedule.nextLapses,
+      due_at: nextSchedule.dueAt.toISOString(),
       last_reviewed_at: now.toISOString(),
     })
     .eq("id", card.id)
@@ -181,8 +207,8 @@ export async function POST(request: Request) {
     card_id: card.id,
     rating: parsed.data.rating,
     state_before: card.state,
-    state_after: schedule.nextState,
-    interval_days_after: schedule.nextIntervalDays,
+    state_after: nextSchedule.nextState,
+    interval_days_after: nextSchedule.nextIntervalDays,
     reviewed_at: now.toISOString(),
   });
   if (reviewError) {
@@ -234,5 +260,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, next: schedule });
+  return NextResponse.json({ ok: true, next: nextSchedule, scheduler: useFsrs ? "fsrs" : "legacy" });
 }

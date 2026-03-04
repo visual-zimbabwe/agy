@@ -23,7 +23,7 @@ export async function GET() {
   const [decksResult, noteTypesResult, cardsResult] = await Promise.all([
     auth.supabase
       .from("decks")
-      .select("id,name,parent_id,archived,created_at,updated_at")
+      .select("id,name,parent_id,archived,scheduler_mode,fsrs_params,fsrs_optimized_at,created_at,updated_at")
       .eq("owner_id", auth.user.id)
       .eq("archived", false)
       .order("name", { ascending: true }),
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       name: parsed.data.name,
       parent_id: parsed.data.parentId ?? null,
     })
-    .select("id,name,parent_id,archived,created_at,updated_at")
+    .select("id,name,parent_id,archived,scheduler_mode,fsrs_params,fsrs_optimized_at,created_at,updated_at")
     .single();
 
   if (error) {

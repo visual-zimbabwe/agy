@@ -26,6 +26,9 @@ type Deck = {
   id: string;
   name: string;
   parent_id: string | null;
+  scheduler_mode?: "legacy" | "fsrs";
+  fsrs_params?: unknown;
+  fsrs_optimized_at?: string | null;
   counts: DeckCounts;
 };
 
@@ -249,6 +252,9 @@ export const DecksWorkspace = () => {
   });
   const [wallOnline, setWallOnline] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [fsrsEnabled, setFsrsEnabled] = useState(false);
+  const [isTogglingFsrs, setIsTogglingFsrs] = useState(false);
+  const [isOptimizingFsrs, setIsOptimizingFsrs] = useState(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const windowIdRef = useRef<string>(createWorkspaceWindowId());
   const wallSeenAtRef = useRef<number>(0);
@@ -501,6 +507,7 @@ export const DecksWorkspace = () => {
   useEffect(() => {
     const selectedDeck = decks.find((deck) => deck.id === studyDeckId);
     setRenameDeckName(selectedDeck?.name ?? "");
+    setFsrsEnabled(selectedDeck?.scheduler_mode === "fsrs");
   }, [decks, studyDeckId]);
 
   useEffect(() => {
@@ -798,6 +805,51 @@ export const DecksWorkspace = () => {
       }
     } finally {
       setIsBuildingCustomStudy(false);
+    }
+  };
+
+  const handleToggleFsrs = async (enabled: boolean) => {
+    if (!studyDeckId) {
+      throw new Error("Select a deck first.");
+    }
+    setIsTogglingFsrs(true);
+    try {
+      const response = await fetch(`/api/decks/${studyDeckId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schedulerMode: enabled ? "fsrs" : "legacy" }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to update scheduler.");
+      }
+      setFsrsEnabled(enabled);
+      await loadDeckData();
+      setStatusMessage(enabled ? "FSRS enabled for this deck." : "FSRS disabled for this deck.");
+    } finally {
+      setIsTogglingFsrs(false);
+    }
+  };
+
+  const handleOptimizeFsrs = async () => {
+    if (!studyDeckId) {
+      throw new Error("Select a deck first.");
+    }
+    setIsOptimizingFsrs(true);
+    try {
+      const response = await fetch(`/api/decks/${studyDeckId}/fsrs/optimize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to optimize FSRS.");
+      }
+      setFsrsEnabled(true);
+      await loadDeckData();
+      setStatusMessage(`FSRS optimized using ${payload.optimization?.reviewsAnalyzed ?? 0} reviews.`);
+    } finally {
+      setIsOptimizingFsrs(false);
     }
   };
 
@@ -1367,9 +1419,42 @@ export const DecksWorkspace = () => {
               Clear Deck
             </Button>
           </div>
-          <p className="text-xs text-[var(--color-text-muted)]">
-            Advanced daily limits and scheduling algorithms are not configurable in this build yet.
-          </p>
+          <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">Modern Scheduler (FSRS)</p>
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  Use a memory-model scheduler instead of legacy ease/interval math.
+                </p>
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={fsrsEnabled}
+                  onChange={(event) => safeRun(() => handleToggleFsrs(event.target.checked))}
+                  disabled={!studyDeckId || isTogglingFsrs}
+                />
+                <span>{isTogglingFsrs ? "Updating..." : "Enable FSRS"}</span>
+              </label>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button
+                onClick={() => safeRun(handleOptimizeFsrs)}
+                disabled={!studyDeckId || isOptimizingFsrs}
+              >
+                {isOptimizingFsrs ? "Optimizing..." : "Optimize"}
+              </Button>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Analyze your review history and tune intervals for this deck.
+              </p>
+            </div>
+            <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+              Last optimized:{" "}
+              {selectedStudyDeck?.fsrs_optimized_at
+                ? new Date(selectedStudyDeck.fsrs_optimized_at).toLocaleString()
+                : "Never"}
+            </p>
+          </div>
         </div>
       </ModalShell>
 

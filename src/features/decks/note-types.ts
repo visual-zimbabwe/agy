@@ -186,8 +186,31 @@ export type CardSchedulingResult = {
   dueAt: Date;
 };
 
+export type FsrsParams = {
+  desiredRetention: number;
+  hardFactor: number;
+  easyBonus: number;
+  againPenalty: number;
+  learningStepsMinutes: number[];
+  lapseIntervalMinutes: number;
+  minReviewDays: number;
+  maxIntervalDays: number;
+};
+
+export const defaultFsrsParams: FsrsParams = {
+  desiredRetention: 0.9,
+  hardFactor: 1.2,
+  easyBonus: 1.65,
+  againPenalty: 0.55,
+  learningStepsMinutes: [1, 10],
+  lapseIntervalMinutes: 10,
+  minReviewDays: 1,
+  maxIntervalDays: 36500,
+};
+
 const addMinutes = (date: Date, minutes: number) => new Date(date.getTime() + minutes * 60_000);
 const addDays = (date: Date, days: number) => new Date(date.getTime() + days * 86_400_000);
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
 export const scheduleDeckCard = (input: CardSchedulingInput): CardSchedulingResult => {
   const ease = Math.max(1.3, input.easeFactor);
@@ -330,6 +353,129 @@ export const scheduleDeckCard = (input: CardSchedulingInput): CardSchedulingResu
     };
   }
   const interval = Math.max(1, Math.round(Math.max(1, input.intervalDays) * Math.max(1.6, ease)));
+  return {
+    nextState: "review",
+    nextStep: 0,
+    nextIntervalDays: interval,
+    nextEaseFactor: ease,
+    nextReps: input.reps + 1,
+    nextLapses: input.lapses,
+    dueAt: addDays(input.now, interval),
+  };
+};
+
+const normalizeFsrsParams = (input: Partial<FsrsParams> | null | undefined): FsrsParams => {
+  const merged = { ...defaultFsrsParams, ...(input ?? {}) };
+  const learningStepsMinutes = (Array.isArray(merged.learningStepsMinutes) ? merged.learningStepsMinutes : defaultFsrsParams.learningStepsMinutes)
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .slice(0, 6);
+  return {
+    desiredRetention: clamp(merged.desiredRetention, 0.7, 0.99),
+    hardFactor: clamp(merged.hardFactor, 1.05, 2.0),
+    easyBonus: clamp(merged.easyBonus, 1.2, 3.0),
+    againPenalty: clamp(merged.againPenalty, 0.2, 0.95),
+    learningStepsMinutes: learningStepsMinutes.length > 0 ? learningStepsMinutes : defaultFsrsParams.learningStepsMinutes,
+    lapseIntervalMinutes: clamp(merged.lapseIntervalMinutes, 1, 60 * 24),
+    minReviewDays: clamp(merged.minReviewDays, 1, 30),
+    maxIntervalDays: clamp(merged.maxIntervalDays, 30, 36500),
+  };
+};
+
+export const scheduleDeckCardFsrs = (input: CardSchedulingInput, rawParams?: Partial<FsrsParams> | null): CardSchedulingResult => {
+  const params = normalizeFsrsParams(rawParams);
+  const ease = Math.max(1.3, input.easeFactor);
+  const steps = params.learningStepsMinutes;
+  const firstStep = steps[0] ?? 1;
+  const secondStep = steps[Math.min(1, steps.length - 1)] ?? firstStep;
+
+  if (input.state === "new" || input.state === "learning") {
+    if (input.rating === "again") {
+      return {
+        nextState: "learning",
+        nextStep: 1,
+        nextIntervalDays: Math.max(0, input.intervalDays),
+        nextEaseFactor: Math.max(1.3, ease - 0.2),
+        nextReps: input.reps + 1,
+        nextLapses: input.lapses + 1,
+        dueAt: addMinutes(input.now, firstStep),
+      };
+    }
+    if (input.rating === "hard") {
+      return {
+        nextState: "learning",
+        nextStep: Math.max(1, input.step + 1),
+        nextIntervalDays: Math.max(0, input.intervalDays),
+        nextEaseFactor: Math.max(1.3, ease - 0.08),
+        nextReps: input.reps + 1,
+        nextLapses: input.lapses,
+        dueAt: addMinutes(input.now, secondStep),
+      };
+    }
+    if (input.rating === "easy") {
+      const interval = clamp(Math.round(params.minReviewDays * params.easyBonus), params.minReviewDays, params.maxIntervalDays);
+      return {
+        nextState: "review",
+        nextStep: 0,
+        nextIntervalDays: interval,
+        nextEaseFactor: ease + 0.12,
+        nextReps: input.reps + 1,
+        nextLapses: input.lapses,
+        dueAt: addDays(input.now, interval),
+      };
+    }
+    const interval = params.minReviewDays;
+    return {
+      nextState: "review",
+      nextStep: 0,
+      nextIntervalDays: interval,
+      nextEaseFactor: ease,
+      nextReps: input.reps + 1,
+      nextLapses: input.lapses,
+      dueAt: addDays(input.now, interval),
+    };
+  }
+
+  const stability = Math.max(1, input.intervalDays || 1);
+  const retentionBoost = clamp(1 / Math.max(0.7, params.desiredRetention), 1.01, 1.45);
+
+  if (input.rating === "again") {
+    const interval = clamp(Math.round(stability * params.againPenalty), params.minReviewDays, params.maxIntervalDays);
+    return {
+      nextState: "learning",
+      nextStep: 1,
+      nextIntervalDays: interval,
+      nextEaseFactor: Math.max(1.3, ease - 0.2),
+      nextReps: input.reps + 1,
+      nextLapses: input.lapses + 1,
+      dueAt: addMinutes(input.now, params.lapseIntervalMinutes),
+    };
+  }
+  if (input.rating === "hard") {
+    const interval = clamp(Math.round(stability * params.hardFactor), params.minReviewDays, params.maxIntervalDays);
+    return {
+      nextState: "review",
+      nextStep: 0,
+      nextIntervalDays: interval,
+      nextEaseFactor: Math.max(1.3, ease - 0.06),
+      nextReps: input.reps + 1,
+      nextLapses: input.lapses,
+      dueAt: addDays(input.now, interval),
+    };
+  }
+  if (input.rating === "easy") {
+    const interval = clamp(Math.round(stability * retentionBoost * params.easyBonus), params.minReviewDays, params.maxIntervalDays);
+    return {
+      nextState: "review",
+      nextStep: 0,
+      nextIntervalDays: interval,
+      nextEaseFactor: ease + 0.1,
+      nextReps: input.reps + 1,
+      nextLapses: input.lapses,
+      dueAt: addDays(input.now, interval),
+    };
+  }
+  const interval = clamp(Math.round(stability * retentionBoost), params.minReviewDays, params.maxIntervalDays);
   return {
     nextState: "review",
     nextStep: 0,
