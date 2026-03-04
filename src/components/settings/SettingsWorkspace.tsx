@@ -16,6 +16,8 @@ type SettingsWorkspaceProps = {
   embedded?: boolean;
 };
 
+const profileUpdatedEventName = "idea-wall-profile-updated";
+
 type WallLayoutPrefs = {
   showToolsPanel: boolean;
   showDetailsPanel: boolean;
@@ -414,6 +416,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
           ? "Profile saved. Check your inbox to confirm the new email address."
           : "Profile basics saved.",
       );
+      window.dispatchEvent(new CustomEvent(profileUpdatedEventName));
     } catch (error) {
       setAccountStatus(error instanceof Error ? error.message : "Failed to save profile basics.");
     } finally {
@@ -474,6 +477,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
         throw error;
       }
       setAccountStatus("Profile image uploaded.");
+      window.dispatchEvent(new CustomEvent(profileUpdatedEventName));
     } catch (error) {
       setAccountStatus(error instanceof Error ? error.message : "Failed to upload profile image.");
     } finally {

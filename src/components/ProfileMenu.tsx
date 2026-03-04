@@ -14,6 +14,8 @@ type ProfileMenuProps = {
   onOpenSettings: () => void;
 };
 
+const profileUpdatedEventName = "idea-wall-profile-updated";
+
 export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileMenuProps) => {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -46,7 +48,15 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileM
       setPreferredName(typeof metadata?.full_name === "string" ? metadata.full_name : "");
       setAvatarUrl(typeof metadata?.avatar_url === "string" ? metadata.avatar_url : "");
     };
+    const handleProfileRefresh = () => {
+      void loadProfile();
+    };
+
     void loadProfile();
+    window.addEventListener(profileUpdatedEventName, handleProfileRefresh);
+    return () => {
+      window.removeEventListener(profileUpdatedEventName, handleProfileRefresh);
+    };
   }, []);
 
   useEffect(() => {
