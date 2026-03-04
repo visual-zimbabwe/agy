@@ -1508,12 +1508,48 @@ export const DecksWorkspace = () => {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <FieldLabel>Select</FieldLabel>
-                <SelectField value={customStudyStateFilter} onChange={(event) => setCustomStudyStateFilter(event.target.value as CustomStateFilter)}>
-                  <option value="all_random">All cards in random order</option>
-                  <option value="all_added">All cards in order added</option>
-                  <option value="new">New cards only</option>
-                  <option value="due">Due cards only</option>
-                </SelectField>
+                <div className="space-y-1.5 rounded-[var(--radius-md)] border border-[var(--color-border)] p-2.5">
+                  <label className="flex cursor-pointer items-start gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="custom-study-state-filter"
+                      checked={customStudyStateFilter === "all_random"}
+                      onChange={() => setCustomStudyStateFilter("all_random")}
+                      className="mt-0.5"
+                    />
+                    <span>All cards in random order</span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="custom-study-state-filter"
+                      checked={customStudyStateFilter === "all_added"}
+                      onChange={() => setCustomStudyStateFilter("all_added")}
+                      className="mt-0.5"
+                    />
+                    <span>All cards in order added</span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="custom-study-state-filter"
+                      checked={customStudyStateFilter === "new"}
+                      onChange={() => setCustomStudyStateFilter("new")}
+                      className="mt-0.5"
+                    />
+                    <span>New cards only</span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="custom-study-state-filter"
+                      checked={customStudyStateFilter === "due"}
+                      onChange={() => setCustomStudyStateFilter("due")}
+                      className="mt-0.5"
+                    />
+                    <span>Due cards only</span>
+                  </label>
+                </div>
               </div>
               <div>
                 <FieldLabel>Tags</FieldLabel>
