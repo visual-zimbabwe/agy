@@ -567,6 +567,58 @@ export const DecksWorkspace = () => {
   const selectedStudyDeck = useMemo(() => decks.find((deck) => deck.id === studyDeckId) ?? null, [decks, studyDeckId]);
   const childDecks = useMemo(() => decks.filter((deck) => deck.parent_id === studyDeckId), [decks, studyDeckId]);
   const isCustomSessionActive = customSession !== null;
+  const statsViewModel = useMemo(() => {
+    const forecast = (stats?.forecast ?? []).slice(0, 16);
+    const forecastMax = Math.max(1, ...forecast.map((item) => item.due));
+    const reviewCount = (stats?.reviewCount ?? []).slice(-14);
+    const reviewTime = (stats?.reviewTime ?? []).slice(-14);
+    const reviewTimeMax = Math.max(1, ...reviewTime.map((item) => item.minutes));
+    const added = (stats?.added ?? []).slice(-14);
+    const addedMax = Math.max(1, ...added.map((item) => item.count));
+    const intervals = [
+      { label: "<1 day", value: stats?.intervals?.under1 ?? 0 },
+      { label: "1-6 days", value: stats?.intervals?.d1to6 ?? 0 },
+      { label: "7-20 days", value: stats?.intervals?.d7to20 ?? 0 },
+      { label: "21-90 days", value: stats?.intervals?.d21to90 ?? 0 },
+      { label: ">90 days", value: stats?.intervals?.over90 ?? 0 },
+    ];
+    const intervalMax = Math.max(1, ...intervals.map((item) => item.value));
+    const hourly = (stats?.hourly ?? []).filter((entry) => entry.reviews > 0);
+    const hourlyMax = Math.max(1, ...hourly.map((item) => item.reviews));
+    const cardCounts = stats?.cardCounts ?? { new: 0, suspended: 0, buried: 0, reviewed: 0 };
+    const pieSlices = [
+      { key: "New", value: cardCounts.new, color: "#3b82f6" },
+      { key: "Suspended", value: cardCounts.suspended, color: "#f59e0b" },
+      { key: "Buried", value: cardCounts.buried, color: "#64748b" },
+      { key: "Reviewed", value: cardCounts.reviewed, color: "#22c55e" },
+    ];
+    const pieTotalRaw = pieSlices.reduce((sum, entry) => sum + entry.value, 0);
+    const pieTotal = Math.max(1, pieTotalRaw);
+    let pieOffset = 0;
+    const pieGradientParts = pieSlices.map((slice) => {
+      const start = Math.round((pieOffset / pieTotal) * 360);
+      pieOffset += slice.value;
+      const end = Math.round((pieOffset / pieTotal) * 360);
+      return `${slice.color} ${start}deg ${end}deg`;
+    });
+
+    return {
+      forecast,
+      forecastMax,
+      reviewCount,
+      reviewTime,
+      reviewTimeMax,
+      added,
+      addedMax,
+      intervals,
+      intervalMax,
+      hourly,
+      hourlyMax,
+      pieSlices,
+      pieTotal: pieTotalRaw,
+      pieGradient: `conic-gradient(${pieGradientParts.join(",")})`,
+    };
+  }, [stats]);
 
   const emitDecksChanged = () => {
     if (!channelRef.current) {
@@ -1416,9 +1468,8 @@ export const DecksWorkspace = () => {
                           Upcoming review workload ({stats.forecastMode === "weekly" ? "weekly bars" : "daily bars"}).
                         </p>
                         <div className="mt-2 space-y-1 text-xs">
-                          {(stats.forecast ?? []).slice(0, 16).map((entry) => {
-                            const maxDue = Math.max(1, ...((stats.forecast ?? []).map((item) => item.due)));
-                            const width = Math.max(2, Math.round((entry.due / maxDue) * 100));
+                          {statsViewModel.forecast.map((entry) => {
+                            const width = Math.max(2, Math.round((entry.due / statsViewModel.forecastMax) * 100));
                             return (
                               <div key={entry.day} className="flex items-center gap-2">
                                 <span className="w-20 shrink-0 text-[var(--color-text-muted)]">{entry.day}</span>
@@ -1435,17 +1486,32 @@ export const DecksWorkspace = () => {
                       <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
                         <p className="text-sm font-semibold">Review Count</p>
                         <p className="text-xs text-[var(--color-text-muted)]">Recent review volume by card category.</p>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                          <span className="rounded px-2 py-0.5" style={{ backgroundColor: "#dbeafe", color: "#1e3a8a" }}>New</span>
+                          <span className="rounded px-2 py-0.5" style={{ backgroundColor: "#fde68a", color: "#92400e" }}>Learning</span>
+                          <span className="rounded px-2 py-0.5" style={{ backgroundColor: "#fed7aa", color: "#9a3412" }}>Relearning</span>
+                          <span className="rounded px-2 py-0.5" style={{ backgroundColor: "#bfdbfe", color: "#1d4ed8" }}>Young</span>
+                          <span className="rounded px-2 py-0.5" style={{ backgroundColor: "#bbf7d0", color: "#166534" }}>Mature</span>
+                        </div>
                         <div className="mt-2 max-h-52 space-y-1 overflow-auto text-xs">
-                          {(stats.reviewCount ?? []).slice(-14).map((entry) => (
-                            <div key={entry.day} className="grid grid-cols-[5.5rem_repeat(5,minmax(0,1fr))] gap-1">
-                              <span className="text-[var(--color-text-muted)]">{entry.day}</span>
-                              <span>N {entry.newCount}</span>
-                              <span>L {entry.learning}</span>
-                              <span>RL {entry.relearning}</span>
-                              <span>Y {entry.young}</span>
-                              <span>M {entry.mature}</span>
-                            </div>
-                          ))}
+                          {statsViewModel.reviewCount.map((entry) => {
+                            const total = Math.max(1, entry.newCount + entry.learning + entry.relearning + entry.young + entry.mature);
+                            return (
+                              <div key={entry.day} className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[var(--color-text-muted)]">{entry.day}</span>
+                                  <span>{total}</span>
+                                </div>
+                                <div className="flex h-2.5 overflow-hidden rounded bg-[var(--color-surface-muted)]">
+                                  <div style={{ width: `${(entry.newCount / total) * 100}%`, backgroundColor: "#3b82f6" }} />
+                                  <div style={{ width: `${(entry.learning / total) * 100}%`, backgroundColor: "#f59e0b" }} />
+                                  <div style={{ width: `${(entry.relearning / total) * 100}%`, backgroundColor: "#f97316" }} />
+                                  <div style={{ width: `${(entry.young / total) * 100}%`, backgroundColor: "#60a5fa" }} />
+                                  <div style={{ width: `${(entry.mature / total) * 100}%`, backgroundColor: "#22c55e" }} />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </article>
 
@@ -1453,9 +1519,8 @@ export const DecksWorkspace = () => {
                         <p className="text-sm font-semibold">Review Time</p>
                         <p className="text-xs text-[var(--color-text-muted)]">Estimated minutes spent reviewing each day.</p>
                         <div className="mt-2 max-h-52 space-y-1 overflow-auto text-xs">
-                          {(stats.reviewTime ?? []).slice(-14).map((entry) => {
-                            const maxMinutes = Math.max(1, ...((stats.reviewTime ?? []).map((item) => item.minutes)));
-                            const width = Math.max(2, Math.round((entry.minutes / maxMinutes) * 100));
+                          {statsViewModel.reviewTime.map((entry) => {
+                            const width = Math.max(2, Math.round((entry.minutes / statsViewModel.reviewTimeMax) * 100));
                             return (
                               <div key={entry.day} className="flex items-center gap-2">
                                 <span className="w-20 shrink-0 text-[var(--color-text-muted)]">{entry.day}</span>
@@ -1472,12 +1537,21 @@ export const DecksWorkspace = () => {
                       <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
                         <p className="text-sm font-semibold">Intervals</p>
                         <p className="text-xs text-[var(--color-text-muted)]">Card distribution by interval length.</p>
-                        <div className="mt-2 space-y-1 text-sm">
-                          <p>&lt;1 day: {stats.intervals?.under1 ?? 0}</p>
-                          <p>1-6 days: {stats.intervals?.d1to6 ?? 0}</p>
-                          <p>7-20 days: {stats.intervals?.d7to20 ?? 0}</p>
-                          <p>21-90 days: {stats.intervals?.d21to90 ?? 0}</p>
-                          <p>&gt;90 days: {stats.intervals?.over90 ?? 0}</p>
+                        <div className="mt-2 space-y-2 text-xs">
+                          {statsViewModel.intervals.map((entry) => (
+                            <div key={entry.label} className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span>{entry.label}</span>
+                                <span>{entry.value}</span>
+                              </div>
+                              <div className="h-2.5 rounded bg-[var(--color-surface-muted)]">
+                                <div
+                                  className="h-2.5 rounded bg-sky-500"
+                                  style={{ width: `${Math.max(2, Math.round((entry.value / statsViewModel.intervalMax) * 100))}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </article>
 
@@ -1485,11 +1559,19 @@ export const DecksWorkspace = () => {
                         <p className="text-sm font-semibold">Hourly Breakdown</p>
                         <p className="text-xs text-[var(--color-text-muted)]">When you review most and how accurate you are.</p>
                         <div className="mt-2 max-h-52 space-y-1 overflow-auto text-xs">
-                          {(stats.hourly ?? []).filter((entry) => entry.reviews > 0).map((entry) => (
-                            <div key={entry.hour} className="flex items-center justify-between">
-                              <span>{entry.hour.toString().padStart(2, "0")}:00</span>
-                              <span>{entry.reviews} reviews</span>
-                              <span>{entry.correctRate}% correct</span>
+                          {statsViewModel.hourly.map((entry) => (
+                            <div key={entry.hour} className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span>{entry.hour.toString().padStart(2, "0")}:00</span>
+                                <span>{entry.reviews} reviews</span>
+                                <span>{entry.correctRate}%</span>
+                              </div>
+                              <div className="h-2.5 rounded bg-[var(--color-surface-muted)]">
+                                <div
+                                  className="h-2.5 rounded bg-violet-500"
+                                  style={{ width: `${Math.max(2, Math.round((entry.reviews / statsViewModel.hourlyMax) * 100))}%` }}
+                                />
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1499,9 +1581,28 @@ export const DecksWorkspace = () => {
                         <p className="text-sm font-semibold">Answer Buttons</p>
                         <p className="text-xs text-[var(--color-text-muted)]">Again/Hard/Good/Easy usage by card class.</p>
                         <div className="mt-2 space-y-2 text-xs">
-                          <p>New: A {stats.answerButtons?.new.again ?? 0} | H {stats.answerButtons?.new.hard ?? 0} | G {stats.answerButtons?.new.good ?? 0} | E {stats.answerButtons?.new.easy ?? 0}</p>
-                          <p>Young: A {stats.answerButtons?.young.again ?? 0} | H {stats.answerButtons?.young.hard ?? 0} | G {stats.answerButtons?.young.good ?? 0} | E {stats.answerButtons?.young.easy ?? 0}</p>
-                          <p>Mature: A {stats.answerButtons?.mature.again ?? 0} | H {stats.answerButtons?.mature.hard ?? 0} | G {stats.answerButtons?.mature.good ?? 0} | E {stats.answerButtons?.mature.easy ?? 0}</p>
+                          {[
+                            { key: "new", label: "New" },
+                            { key: "young", label: "Young" },
+                            { key: "mature", label: "Mature" },
+                          ].map((group) => {
+                            const row = stats.answerButtons?.[group.key as "new" | "young" | "mature"] ?? { again: 0, hard: 0, good: 0, easy: 0 };
+                            const total = Math.max(1, row.again + row.hard + row.good + row.easy);
+                            return (
+                              <div key={group.key} className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span>{group.label}</span>
+                                  <span>A {row.again} | H {row.hard} | G {row.good} | E {row.easy}</span>
+                                </div>
+                                <div className="flex h-2.5 overflow-hidden rounded bg-[var(--color-surface-muted)]">
+                                  <div style={{ width: `${(row.again / total) * 100}%`, backgroundColor: "#ef4444" }} />
+                                  <div style={{ width: `${(row.hard / total) * 100}%`, backgroundColor: "#f59e0b" }} />
+                                  <div style={{ width: `${(row.good / total) * 100}%`, backgroundColor: "#3b82f6" }} />
+                                  <div style={{ width: `${(row.easy / total) * 100}%`, backgroundColor: "#22c55e" }} />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </article>
 
@@ -1509,10 +1610,16 @@ export const DecksWorkspace = () => {
                         <p className="text-sm font-semibold">Added</p>
                         <p className="text-xs text-[var(--color-text-muted)]">Card creation timeline.</p>
                         <div className="mt-2 max-h-52 space-y-1 overflow-auto text-xs">
-                          {(stats.added ?? []).slice(-14).map((entry) => (
-                            <div key={entry.day} className="flex items-center justify-between">
-                              <span className="text-[var(--color-text-muted)]">{entry.day}</span>
-                              <span>{entry.count}</span>
+                          {statsViewModel.added.map((entry) => (
+                            <div key={entry.day} className="flex items-center gap-2">
+                              <span className="w-20 shrink-0 text-[var(--color-text-muted)]">{entry.day}</span>
+                              <div className="h-2.5 flex-1 rounded bg-[var(--color-surface-muted)]">
+                                <div
+                                  className="h-2.5 rounded bg-emerald-500"
+                                  style={{ width: `${Math.max(2, Math.round((entry.count / statsViewModel.addedMax) * 100))}%` }}
+                                />
+                              </div>
+                              <span className="w-8 text-right">{entry.count}</span>
                             </div>
                           ))}
                         </div>
@@ -1521,11 +1628,19 @@ export const DecksWorkspace = () => {
                       <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
                         <p className="text-sm font-semibold">Card Counts</p>
                         <p className="text-xs text-[var(--color-text-muted)]">Deck state breakdown.</p>
-                        <div className="mt-2 space-y-1 text-sm">
-                          <p>New: {stats.cardCounts?.new ?? 0}</p>
-                          <p>Suspended: {stats.cardCounts?.suspended ?? 0}</p>
-                          <p>Buried: {stats.cardCounts?.buried ?? 0}</p>
-                          <p>Reviewed: {stats.cardCounts?.reviewed ?? 0}</p>
+                        <div className="mt-2 flex items-center gap-4">
+                          <div className="relative h-24 w-24 rounded-full" style={{ background: statsViewModel.pieGradient }}>
+                            <div className="absolute inset-[22px] rounded-full bg-[var(--color-surface)]" />
+                          </div>
+                          <div className="space-y-1 text-xs">
+                            {statsViewModel.pieSlices.map((slice) => (
+                              <p key={slice.key} className="flex items-center gap-2">
+                                <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: slice.color }} />
+                                <span>{slice.key}: {slice.value}</span>
+                              </p>
+                            ))}
+                            <p className="pt-1 text-[var(--color-text-muted)]">Total: {statsViewModel.pieTotal}</p>
+                          </div>
                         </div>
                       </article>
                     </div>
@@ -1533,9 +1648,25 @@ export const DecksWorkspace = () => {
                     <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
                       <p className="text-sm font-semibold">Retention</p>
                       <p className="text-xs text-[var(--color-text-muted)]">True retention (Good vs Again).</p>
-                      <div className="mt-2 flex flex-wrap gap-4 text-sm">
-                        <p>Last 30 days: <span className="font-semibold">{stats.retention?.month ?? 0}%</span></p>
-                        <p>Last year: <span className="font-semibold">{stats.retention?.year ?? 0}%</span></p>
+                      <div className="mt-2 space-y-2 text-sm">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span>Last 30 days</span>
+                            <span className="font-semibold">{stats.retention?.month ?? 0}%</span>
+                          </div>
+                          <div className="h-2.5 rounded bg-[var(--color-surface-muted)]">
+                            <div className="h-2.5 rounded bg-blue-500" style={{ width: `${Math.max(0, Math.min(100, stats.retention?.month ?? 0))}%` }} />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span>Last year</span>
+                            <span className="font-semibold">{stats.retention?.year ?? 0}%</span>
+                          </div>
+                          <div className="h-2.5 rounded bg-[var(--color-surface-muted)]">
+                            <div className="h-2.5 rounded bg-cyan-500" style={{ width: `${Math.max(0, Math.min(100, stats.retention?.year ?? 0))}%` }} />
+                          </div>
+                        </div>
                       </div>
                     </article>
 
