@@ -1,5 +1,25 @@
 # Idea-Wall Manual QA Checklist
 
+## Block Page Editor (`/page`) (2026-03-04)
+1. Open `/page` from landing (`Open Page`) and verify the editor shell renders.
+2. Hover over a block and confirm `+` appears at the left edge without clipping.
+3. Click `+` and confirm block menu opens with category groups: `Basic`, `Media`, `Database`, `Advanced`.
+4. In the `+` menu search box, type `todo` and insert `To-do list`.
+5. In a text block, type `/todo` and press `Enter` to insert a to-do block below the current block.
+6. In a text block, type `/image` and press `Enter` to insert an image block.
+7. With slash menu open, use `ArrowUp/ArrowDown` to change selection and `Enter` to insert.
+8. Press `Esc` while menu is open and verify it closes.
+9. Create one block of each core type: `Text`, `Header 1`, `Header 2`, `Header 3`, `To-do list`, `Bulleted list`, `Toggle list`, `Code`, `Quote`, `Callout`.
+10. Create one media/data block: `Image`, `Video`, `Audio`, `Google Docs`, `PDF`, `Database`, `MD file`, `Page`.
+11. Validate dark mode and light mode: menus, inputs, and dropdown surfaces must match theme tokens (no white light bleed in dark mode).
+12. Validate mobile viewport: floating block menu remains fully visible and does not obscure critical controls.
+
+Expected:
+- `/page` is reachable and editor interactions are keyboard/mouse friendly.
+- `+` and `/` produce the same block set with searchable insertion.
+- Slash flow supports keyboard-only insertion without mouse.
+- Floating menus and controls remain visible and unclipped across desktop/mobile and themes.
+
 ## Electron Desktop Packaging (2026-02-18)
 1. In `idea-wall-studio`, run `npm install`.
 2. Run `npm run dist`.
