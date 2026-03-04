@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { controlsModeStorageKey, layoutPrefsStorageKey } from "@/components/wall/wall-canvas-helpers";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots, writeKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import { applyPreferencesToDocument, persistPreferences, readStoredPreferences, type ThemePreference } from "@/lib/preferences";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type SettingsWorkspaceProps = {
   userEmail: string;
@@ -92,6 +94,7 @@ const ToggleControl = ({ checked, onChange }: { checked: boolean; onChange: (che
 );
 
 export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorkspaceProps) => {
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("appearance");
   const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
   const [reduceMotion, setReduceMotion] = useState(() => readStoredPreferences().reduceMotion);
@@ -125,6 +128,13 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
     return raw === "advanced" ? "advanced" : "basic";
   });
   const [savedAt, setSavedAt] = useState<number>(() => Date.now());
+  const [preferredName, setPreferredName] = useState("");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
+  const [profileEmail, setProfileEmail] = useState(userEmail);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [accountStatus, setAccountStatus] = useState<string | null>(null);
+  const [accountBusy, setAccountBusy] = useState<"profile" | "password" | "logout" | "delete" | null>(null);
 
   const preferenceState = useMemo(
     () => ({ theme, reduceMotion, compactMode }),
@@ -150,6 +160,114 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
 
   const activeSectionMeta = settingsSections.find((section) => section.id === activeSection);
   const controlsModeLabel = controlsMode === "advanced" ? "Advanced" : "Basic";
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data } = await supabase.auth.getUser();
+      const metadata = data.user?.user_metadata as Record<string, unknown> | undefined;
+      setPreferredName(typeof metadata?.full_name === "string" ? metadata.full_name : "");
+      setProfilePhotoUrl(typeof metadata?.avatar_url === "string" ? metadata.avatar_url : "");
+      setProfileEmail(data.user?.email ?? userEmail);
+    };
+    void loadProfile();
+  }, [userEmail]);
+
+  const handleSaveProfileBasics = async () => {
+    setAccountBusy("profile");
+    setAccountStatus(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const payload: { email?: string; data?: { full_name: string | null; avatar_url: string | null } } = {
+        data: {
+          full_name: preferredName.trim() || null,
+          avatar_url: profilePhotoUrl.trim() || null,
+        },
+      };
+      const normalizedEmail = profileEmail.trim();
+      if (normalizedEmail && normalizedEmail !== userEmail) {
+        payload.email = normalizedEmail;
+      }
+      const { error } = await supabase.auth.updateUser(payload);
+      if (error) {
+        throw error;
+      }
+      setAccountStatus(
+        normalizedEmail !== userEmail
+          ? "Profile saved. Check your inbox to confirm the new email address."
+          : "Profile basics saved.",
+      );
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Failed to save profile basics.");
+    } finally {
+      setAccountBusy(null);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (newPassword.length < 8) {
+      setAccountStatus("Password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setAccountStatus("Password confirmation does not match.");
+      return;
+    }
+    setAccountBusy("password");
+    setAccountStatus(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        throw error;
+      }
+      setNewPassword("");
+      setConfirmPassword("");
+      setAccountStatus("Password updated.");
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Failed to update password.");
+    } finally {
+      setAccountBusy(null);
+    }
+  };
+
+  const handleGlobalLogout = async () => {
+    setAccountBusy("logout");
+    setAccountStatus(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.signOut({ scope: "global" });
+      router.replace("/login");
+      router.refresh();
+    } finally {
+      setAccountBusy(null);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmation = window.prompt('Type "DELETE" to permanently delete your account.');
+    if (confirmation !== "DELETE") {
+      setAccountStatus("Account deletion cancelled.");
+      return;
+    }
+    setAccountBusy("delete");
+    setAccountStatus(null);
+    try {
+      const response = await fetch("/api/account/delete", { method: "DELETE" });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to delete account.");
+      }
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.signOut({ scope: "global" });
+      router.replace("/signup");
+      router.refresh();
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Failed to delete account.");
+    } finally {
+      setAccountBusy(null);
+    }
+  };
 
   const content = (
     <section className={`mx-auto flex w-full max-w-[1180px] gap-0 px-0 ${embedded ? "h-full min-h-0" : "min-h-screen"}`}>
@@ -203,16 +321,93 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
           <section className="mt-5 max-w-3xl">
             {activeSection === "general" && (
               <>
-                <SettingRow
-                  title="Signed in as"
-                  description="Current account email for this workspace."
-                  control={<span className="max-w-56 truncate text-xs text-[#4b5563]">{userEmail}</span>}
-                />
-                <SettingRow
-                  title="Last saved"
-                  description="Most recent local settings save time."
-                  control={<span className="text-xs text-[#4b5563]">{new Date(savedAt).toLocaleTimeString()}</span>}
-                />
+                <section className="border-b border-[var(--color-border-muted)] py-4">
+                  <h2 className="text-sm font-semibold text-[#111827]">Profile Basics</h2>
+                  <p className="mt-1 text-xs text-[#6b7280]">
+                    Change your profile photo URL, preferred name, and email address.
+                  </p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <input
+                      value={preferredName}
+                      onChange={(event) => setPreferredName(event.target.value)}
+                      placeholder="Preferred name"
+                      className="rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                    />
+                    <input
+                      value={profileEmail}
+                      onChange={(event) => setProfileEmail(event.target.value)}
+                      placeholder="Email address"
+                      type="email"
+                      className="rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                    />
+                    <input
+                      value={profilePhotoUrl}
+                      onChange={(event) => setProfilePhotoUrl(event.target.value)}
+                      placeholder="Profile photo URL"
+                      className="sm:col-span-2 rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                    />
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => void handleSaveProfileBasics()} disabled={accountBusy !== null}>
+                      {accountBusy === "profile" ? "Saving..." : "Save profile basics"}
+                    </Button>
+                    <span className="text-xs text-[#6b7280]">Signed in as {userEmail}</span>
+                  </div>
+                </section>
+
+                <section className="border-b border-[var(--color-border-muted)] py-4">
+                  <h2 className="text-sm font-semibold text-[#111827]">Account Security</h2>
+                  <p className="mt-1 text-xs text-[#6b7280]">Set or change password and review verification status.</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <input
+                      value={newPassword}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                      type="password"
+                      placeholder="New password"
+                      className="rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                    />
+                    <input
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      type="password"
+                      placeholder="Confirm password"
+                      className="rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                    />
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => void handleUpdatePassword()} disabled={accountBusy !== null}>
+                      {accountBusy === "password" ? "Updating..." : "Update password"}
+                    </Button>
+                    <span className="rounded-full border border-[#d1d5db] bg-[#f9fafb] px-2 py-0.5 text-[11px] text-[#6b7280]">
+                      Two-step verification (2FA): Not implemented yet
+                    </span>
+                  </div>
+                </section>
+
+                <section className="border-b border-[var(--color-border-muted)] py-4">
+                  <h2 className="text-sm font-semibold text-[#991b1b]">Danger Zone</h2>
+                  <p className="mt-1 text-xs text-[#7f1d1d]">Global account actions that affect all signed-in sessions.</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => void handleGlobalLogout()} disabled={accountBusy !== null}>
+                      {accountBusy === "logout" ? "Logging out..." : "Log out of all devices"}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteAccount()}
+                      disabled={accountBusy !== null}
+                      className="rounded-md border border-[#ef4444] bg-[#fef2f2] px-3 py-1.5 text-xs font-medium text-[#b91c1c] disabled:opacity-60"
+                    >
+                      {accountBusy === "delete" ? "Deleting..." : "Delete my account"}
+                    </button>
+                  </div>
+                </section>
+
+                <section className="pt-4">
+                  <p className="text-xs text-[#6b7280]">
+                    Global application: changes here apply to your user profile everywhere this account is used.
+                  </p>
+                  {accountStatus && <p className="mt-2 text-xs text-[#374151]">{accountStatus}</p>}
+                </section>
               </>
             )}
 
