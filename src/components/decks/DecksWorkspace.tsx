@@ -253,6 +253,7 @@ export const DecksWorkspace = () => {
   const [wallOnline, setWallOnline] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [fsrsEnabled, setFsrsEnabled] = useState(false);
+  const [fsrsAvailable, setFsrsAvailable] = useState(true);
   const [isTogglingFsrs, setIsTogglingFsrs] = useState(false);
   const [isOptimizingFsrs, setIsOptimizingFsrs] = useState(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -282,6 +283,7 @@ export const DecksWorkspace = () => {
     }
     setDecks(payload.decks ?? []);
     setNoteTypes(payload.noteTypes ?? []);
+    setFsrsAvailable(payload.fsrsAvailable !== false);
     if (!studyDeckId && (payload.decks?.length ?? 0) > 0) {
       setStudyDeckId(payload.decks[0].id);
     }
@@ -812,6 +814,9 @@ export const DecksWorkspace = () => {
     if (!studyDeckId) {
       throw new Error("Select a deck first.");
     }
+    if (!fsrsAvailable) {
+      throw new Error("FSRS requires the latest deck migration. Apply migrations, then try again.");
+    }
     setIsTogglingFsrs(true);
     try {
       const response = await fetch(`/api/decks/${studyDeckId}`, {
@@ -821,6 +826,9 @@ export const DecksWorkspace = () => {
       });
       const payload = await response.json();
       if (!response.ok) {
+        if (response.status === 409) {
+          setFsrsAvailable(false);
+        }
         throw new Error(payload.error ?? "Failed to update scheduler.");
       }
       setFsrsEnabled(enabled);
@@ -835,6 +843,9 @@ export const DecksWorkspace = () => {
     if (!studyDeckId) {
       throw new Error("Select a deck first.");
     }
+    if (!fsrsAvailable) {
+      throw new Error("FSRS requires the latest deck migration. Apply migrations, then try again.");
+    }
     setIsOptimizingFsrs(true);
     try {
       const response = await fetch(`/api/decks/${studyDeckId}/fsrs/optimize`, {
@@ -843,6 +854,9 @@ export const DecksWorkspace = () => {
       });
       const payload = await response.json();
       if (!response.ok) {
+        if (response.status === 409) {
+          setFsrsAvailable(false);
+        }
         throw new Error(payload.error ?? "Failed to optimize FSRS.");
       }
       setFsrsEnabled(true);
@@ -1432,7 +1446,7 @@ export const DecksWorkspace = () => {
                   type="checkbox"
                   checked={fsrsEnabled}
                   onChange={(event) => safeRun(() => handleToggleFsrs(event.target.checked))}
-                  disabled={!studyDeckId || isTogglingFsrs}
+                  disabled={!studyDeckId || isTogglingFsrs || !fsrsAvailable}
                 />
                 <span>{isTogglingFsrs ? "Updating..." : "Enable FSRS"}</span>
               </label>
@@ -1440,7 +1454,7 @@ export const DecksWorkspace = () => {
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Button
                 onClick={() => safeRun(handleOptimizeFsrs)}
-                disabled={!studyDeckId || isOptimizingFsrs}
+                disabled={!studyDeckId || isOptimizingFsrs || !fsrsAvailable}
               >
                 {isOptimizingFsrs ? "Optimizing..." : "Optimize"}
               </Button>
@@ -1448,6 +1462,11 @@ export const DecksWorkspace = () => {
                 Analyze your review history and tune intervals for this deck.
               </p>
             </div>
+            {!fsrsAvailable && (
+              <p className="mt-2 text-xs text-[var(--color-danger)]">
+                FSRS is unavailable until migration `202603040002_deck_scheduler_fsrs.sql` is applied.
+              </p>
+            )}
             <p className="mt-2 text-xs text-[var(--color-text-muted)]">
               Last optimized:{" "}
               {selectedStudyDeck?.fsrs_optimized_at

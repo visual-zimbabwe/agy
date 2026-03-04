@@ -24,6 +24,7 @@ export async function GET() {
     return NextResponse.json({ error: bootstrap.error.message }, { status: 500 });
   }
 
+  let fsrsAvailable = true;
   const [noteTypesResult, cardsResult] = await Promise.all([
     auth.supabase
       .from("deck_note_types")
@@ -45,6 +46,7 @@ export async function GET() {
     .order("name", { ascending: true });
 
   if (decksResult.error && hasMissingSchedulerColumnError(decksResult.error.message)) {
+    fsrsAvailable = false;
     const fallback = await auth.supabase
       .from("decks")
       .select("id,name,parent_id,archived,created_at,updated_at")
@@ -97,6 +99,7 @@ export async function GET() {
       counts: countsByDeck.get(deck.id) ?? { newCount: 0, learningCount: 0, reviewCount: 0 },
     })),
     noteTypes: noteTypesResult.data ?? [],
+    fsrsAvailable,
   });
 }
 
