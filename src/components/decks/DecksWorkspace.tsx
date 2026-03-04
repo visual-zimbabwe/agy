@@ -72,7 +72,7 @@ type ImportPreset = {
 };
 
 type View = "decks" | "browse" | "stats" | "study";
-type ToolbarModal = "none" | "add" | "import";
+type ToolbarModal = "none" | "add" | "import" | "options";
 
 const toStringArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) {
@@ -175,6 +175,7 @@ export const DecksWorkspace = () => {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [noteTypes, setNoteTypes] = useState<NoteType[]>([]);
   const [studyDeckId, setStudyDeckId] = useState("");
+  const [studyStage, setStudyStage] = useState<"overview" | "custom" | "session">("overview");
   const [includeChildren, setIncludeChildren] = useState(true);
   const [excludedDeckIds, setExcludedDeckIds] = useState<string[]>([]);
   const [studyCard, setStudyCard] = useState<StudyCard | null>(null);
@@ -323,6 +324,7 @@ export const DecksWorkspace = () => {
       appliedRouteDeckIdRef.current = routeDeckId;
       setStudyDeckId(routeDeckId);
       setView("study");
+      setStudyStage("overview");
       safeRun(() => loadStudyCard(routeDeckId));
     }
   }, [decks, loadStudyCard, routeDeckId, safeRun]);
@@ -340,6 +342,7 @@ export const DecksWorkspace = () => {
       setStudyDeckId(selectedId);
     }
     setView("study");
+    setStudyStage("overview");
     safeRun(() => loadStudyCard(selectedId));
   }, [decks, loadStudyCard, routeDeckId, safeRun, studyDeckId]);
 
@@ -391,6 +394,7 @@ export const DecksWorkspace = () => {
         if (deckId !== studyDeckId) {
           setStudyDeckId(deckId);
           setView("study");
+          setStudyStage("overview");
           safeRun(() => loadStudyCard(deckId));
         }
         return;
@@ -452,6 +456,7 @@ export const DecksWorkspace = () => {
 
   const selectedNoteType = useMemo(() => noteTypes.find((entry) => entry.id === addNoteTypeId) ?? null, [addNoteTypeId, noteTypes]);
   const selectedRow = useMemo(() => browseRows.find((row) => row.id === selectedRowId) ?? null, [browseRows, selectedRowId]);
+  const selectedStudyDeck = useMemo(() => decks.find((deck) => deck.id === studyDeckId) ?? null, [decks, studyDeckId]);
   const childDecks = useMemo(() => decks.filter((deck) => deck.parent_id === studyDeckId), [decks, studyDeckId]);
 
   const emitDecksChanged = () => {
@@ -703,6 +708,7 @@ export const DecksWorkspace = () => {
   const switchView = (nextView: View) => {
     setView(nextView);
     if (nextView === "study") {
+      setStudyStage("overview");
       safeRun(loadStudyCard);
     }
     if (nextView === "browse") {
@@ -756,6 +762,16 @@ export const DecksWorkspace = () => {
     }, 120);
   };
 
+  const startStudyNow = () => {
+    setStudyStage("session");
+    safeRun(loadStudyCard);
+  };
+
+  const startCustomStudy = () => {
+    setStudyStage("session");
+    safeRun(loadStudyCard);
+  };
+
   return (
     <main className="route-shell text-[var(--color-text)]">
       <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 pb-8 pt-4 sm:px-6">
@@ -803,6 +819,7 @@ export const DecksWorkspace = () => {
                   onClick={() => {
                     setStudyDeckId(deck.id);
                     setView("study");
+                    setStudyStage("overview");
                     safeRun(() => loadStudyCard(deck.id));
                   }}
                   className={`w-full rounded-[var(--radius-md)] border px-3 py-2 text-left text-sm ${
@@ -850,63 +867,125 @@ export const DecksWorkspace = () => {
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
             {view === "study" && (
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={includeChildren} onChange={(event) => setIncludeChildren(event.target.checked)} />
-                    Include child decks
-                  </label>
-                  {childDecks.length > 0 && (
-                    <SelectField
-                      value=""
-                      onChange={(event) => {
-                        const id = event.target.value;
-                        if (id && !excludedDeckIds.includes(id)) {
-                          setExcludedDeckIds((previous) => [...previous, id]);
-                        }
-                      }}
-                      className="max-w-64"
-                    >
-                      <option value="">Exclude child deck...</option>
-                      {childDecks.map((deck) => (
-                        <option key={deck.id} value={deck.id}>
-                          {deck.name}
-                        </option>
-                      ))}
-                    </SelectField>
-                  )}
-                  {excludedDeckIds.length > 0 && (
-                    <Button variant="ghost" onClick={() => setExcludedDeckIds([])}>
-                      Clear excluded
-                    </Button>
-                  )}
+                <div>
+                  <p className="text-xs font-semibold tracking-wide text-[var(--color-text-muted)] uppercase">Study Deck</p>
+                  <h2 className="mt-1 text-xl font-semibold">{selectedStudyDeck?.name ?? "Select a deck"}</h2>
                 </div>
-                <p className="text-sm text-[var(--color-text-muted)]">
-                  Queue: New {studyCounts.newCount} | Learning {studyCounts.learningCount} | Review {studyCounts.reviewCount}
-                </p>
-                {studyCard ? (
-                  <article className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
-                    <p className="text-sm font-semibold text-[var(--color-text-muted)]">Front</p>
-                    <p className="mt-2 text-xl">{studyCard.prompt}</p>
-                    {showAnswer && (
-                      <>
-                        <p className="mt-5 text-sm font-semibold text-[var(--color-text-muted)]">Back</p>
-                        <p className="mt-2 text-lg">{studyCard.answer}</p>
-                      </>
-                    )}
-                  </article>
-                ) : (
-                  <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-sm">
-                    No due cards in this deck selection.
-                  </p>
-                )}
-                {studyCard && !showAnswer && <Button onClick={() => setShowAnswer(true)}>Show Answer</Button>}
-                {studyCard && showAnswer && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => safeRun(() => handleRateCard("again"))}>Again</Button>
-                    <Button onClick={() => safeRun(() => handleRateCard("hard"))}>Hard</Button>
-                    <Button onClick={() => safeRun(() => handleRateCard("good"))}>Good</Button>
-                    <Button onClick={() => safeRun(() => handleRateCard("easy"))}>Easy</Button>
+                {studyStage === "overview" && (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-xs text-[var(--color-text-muted)]">New</p>
+                        <p className="mt-1 text-2xl font-semibold">{studyCounts.newCount}</p>
+                      </article>
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-xs text-[var(--color-text-muted)]">Learning</p>
+                        <p className="mt-1 text-2xl font-semibold">{studyCounts.learningCount}</p>
+                      </article>
+                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                        <p className="text-xs text-[var(--color-text-muted)]">To Review</p>
+                        <p className="mt-1 text-2xl font-semibold">{studyCounts.reviewCount}</p>
+                      </article>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={startStudyNow} disabled={!studyDeckId}>
+                        Study Now
+                      </Button>
+                      <Button variant="secondary" onClick={() => setStudyStage("custom")} disabled={!studyDeckId}>
+                        Custom Study
+                      </Button>
+                      <Button variant="ghost" onClick={() => setToolbarModal("options")} disabled={!studyDeckId}>
+                        Options
+                      </Button>
+                    </div>
                   </div>
+                )}
+                {(studyStage === "custom" || studyStage === "session") && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={includeChildren} onChange={(event) => setIncludeChildren(event.target.checked)} />
+                      Include child decks
+                    </label>
+                    {childDecks.length > 0 && (
+                      <SelectField
+                        value=""
+                        onChange={(event) => {
+                          const id = event.target.value;
+                          if (id && !excludedDeckIds.includes(id)) {
+                            setExcludedDeckIds((previous) => [...previous, id]);
+                          }
+                        }}
+                        className="max-w-64"
+                      >
+                        <option value="">Exclude child deck...</option>
+                        {childDecks.map((deck) => (
+                          <option key={deck.id} value={deck.id}>
+                            {deck.name}
+                          </option>
+                        ))}
+                      </SelectField>
+                    )}
+                    {excludedDeckIds.length > 0 && (
+                      <Button variant="ghost" onClick={() => setExcludedDeckIds([])}>
+                        Clear excluded
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {studyStage === "custom" && (
+                  <div className="space-y-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
+                    <p className="text-sm text-[var(--color-text-muted)]">
+                      Adjust temporary study scope, then start this custom session.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={startCustomStudy} disabled={!studyDeckId}>
+                        Start Custom Study
+                      </Button>
+                      <Button variant="ghost" onClick={() => setStudyStage("overview")}>
+                        Back to Overview
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {studyStage === "session" && (
+                  <>
+                    <p className="text-sm text-[var(--color-text-muted)]">
+                      Queue: New {studyCounts.newCount} | Learning {studyCounts.learningCount} | Review {studyCounts.reviewCount}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="ghost" onClick={() => safeRun(loadStudyCard)} disabled={!studyDeckId}>
+                        Refresh Queue
+                      </Button>
+                      <Button variant="ghost" onClick={() => setStudyStage("overview")}>
+                        Back to Overview
+                      </Button>
+                    </div>
+                    {studyCard ? (
+                      <article className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+                        <p className="text-sm font-semibold text-[var(--color-text-muted)]">Front</p>
+                        <p className="mt-2 text-xl">{studyCard.prompt}</p>
+                        {showAnswer && (
+                          <>
+                            <p className="mt-5 text-sm font-semibold text-[var(--color-text-muted)]">Back</p>
+                            <p className="mt-2 text-lg">{studyCard.answer}</p>
+                          </>
+                        )}
+                      </article>
+                    ) : (
+                      <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-sm">
+                        No due cards in this deck selection.
+                      </p>
+                    )}
+                    {studyCard && !showAnswer && <Button onClick={() => setShowAnswer(true)}>Show Answer</Button>}
+                    {studyCard && showAnswer && (
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={() => safeRun(() => handleRateCard("again"))}>Again</Button>
+                        <Button onClick={() => safeRun(() => handleRateCard("hard"))}>Hard</Button>
+                        <Button onClick={() => safeRun(() => handleRateCard("good"))}>Good</Button>
+                        <Button onClick={() => safeRun(() => handleRateCard("easy"))}>Easy</Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -1031,6 +1110,41 @@ export const DecksWorkspace = () => {
 
         {statusMessage && <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm">{statusMessage}</p>}
       </section>
+
+      <ModalShell
+        open={toolbarModal === "options"}
+        onClose={() => setToolbarModal("none")}
+        title="Deck Options"
+        description="Manage deck settings and maintenance actions."
+        maxWidthClassName="max-w-xl"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Selected deck: <span className="font-semibold text-[var(--color-text)]">{selectedStudyDeck?.name ?? "None"}</span>
+          </p>
+          <div>
+            <FieldLabel htmlFor="deck-options-rename">Deck name</FieldLabel>
+            <TextField
+              id="deck-options-rename"
+              value={renameDeckName}
+              onChange={(event) => setRenameDeckName(event.target.value)}
+              placeholder="New deck name"
+              disabled={!studyDeckId}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => safeRun(handleRenameDeck)} disabled={!studyDeckId || !renameDeckName.trim()}>
+              Save Name
+            </Button>
+            <Button variant="danger" onClick={() => safeRun(handleClearDeck)} disabled={!studyDeckId}>
+              Clear Deck
+            </Button>
+          </div>
+          <p className="text-xs text-[var(--color-text-muted)]">
+            Advanced daily limits and scheduling algorithms are not configurable in this build yet.
+          </p>
+        </div>
+      </ModalShell>
 
       <ModalShell
         open={toolbarModal === "add"}
