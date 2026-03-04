@@ -48,7 +48,7 @@ Expected:
 5. Open `Custom Study`, choose `Review Forgotten Cards`, set days, and confirm cards rated `Again` recently are queued.
 6. Open `Custom Study`, choose `Review Ahead`, set look-ahead days, and confirm future-due cards are queued.
 7. Open `Custom Study`, choose `Preview New Cards`, keep reschedule unchecked, answer cards, then refresh queue and confirm card scheduling is unchanged.
-8. Open `Custom Study`, choose `Study by Card State or Tag`, set `Card state` and `Tag`, then confirm only matching cards are queued.
+8. Open `Custom Study`, choose `Study by Card State or Tag`, click `Choose Tags`, include two tags and exclude one tag, then confirm only matching cards are queued (`include` uses OR, excluded tag is removed from results).
 9. Start one custom session, then create a new custom session with different settings and confirm the first session queue is replaced.
 10. Finish all cards in a custom session and confirm UI automatically returns to deck overview.
 

@@ -13,6 +13,8 @@ const customStudySchema = z.object({
   days: z.number().int().min(1).max(365).optional(),
   stateFilter: z.enum(["new", "due", "all"]).optional(),
   tag: z.string().trim().max(80).optional(),
+  tagsInclude: z.array(z.string().trim().min(1).max(80)).optional(),
+  tagsExclude: z.array(z.string().trim().min(1).max(80)).optional(),
   reschedule: z.boolean().optional(),
 });
 
@@ -253,7 +255,12 @@ export async function POST(request: Request) {
       .slice(0, clampLimit(input.limit, 50));
   } else if (input.mode === "state_tag") {
     const stateFilter = input.stateFilter ?? "all";
-    const tagQuery = (input.tag ?? "").trim().toLowerCase();
+    const includeTags = new Set(
+      [...(input.tagsInclude ?? []), (input.tag ?? "").trim()]
+        .map((tag) => tag.toLowerCase())
+        .filter((tag) => tag.length > 0),
+    );
+    const excludeTags = new Set((input.tagsExclude ?? []).map((tag) => tag.toLowerCase()).filter((tag) => tag.length > 0));
     const pool = cards.filter((card) => {
       if (stateFilter === "new" && card.state !== "new") {
         return false;
@@ -264,11 +271,15 @@ export async function POST(request: Request) {
           return false;
         }
       }
-      if (!tagQuery) {
+      const tags = noteTagsById.get(card.note_id) ?? [];
+      const normalizedTags = tags.map((tag) => tag.toLowerCase());
+      if (excludeTags.size > 0 && normalizedTags.some((tag) => excludeTags.has(tag))) {
+        return false;
+      }
+      if (includeTags.size === 0) {
         return true;
       }
-      const tags = noteTagsById.get(card.note_id) ?? [];
-      return tags.some((tag) => tag.toLowerCase() === tagQuery);
+      return normalizedTags.some((tag) => includeTags.has(tag));
     });
     selectedCards = pool
       .sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? "") || a.created_at.localeCompare(b.created_at))

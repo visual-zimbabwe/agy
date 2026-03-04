@@ -99,7 +99,7 @@ type ImportPreset = {
 };
 
 type View = "decks" | "browse" | "stats" | "study";
-type ToolbarModal = "none" | "add" | "import" | "options" | "customStudy";
+type ToolbarModal = "none" | "add" | "import" | "options" | "customStudy" | "customStudyTags";
 
 const toStringArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) {
@@ -233,7 +233,10 @@ export const DecksWorkspace = () => {
   const [customStudyMode, setCustomStudyMode] = useState<CustomStudyMode>("increase_new");
   const [customStudyLimit, setCustomStudyLimit] = useState(20);
   const [customStudyDays, setCustomStudyDays] = useState(7);
-  const [customStudyTag, setCustomStudyTag] = useState("");
+  const [customStudyIncludedTags, setCustomStudyIncludedTags] = useState<string[]>([]);
+  const [customStudyExcludedTags, setCustomStudyExcludedTags] = useState<string[]>([]);
+  const [customStudyAvailableTags, setCustomStudyAvailableTags] = useState<string[]>([]);
+  const [isLoadingCustomStudyTags, setIsLoadingCustomStudyTags] = useState(false);
   const [customStudyStateFilter, setCustomStudyStateFilter] = useState<CustomStateFilter>("all");
   const [customStudyReschedule, setCustomStudyReschedule] = useState(true);
   const [isBuildingCustomStudy, setIsBuildingCustomStudy] = useState(false);
@@ -501,6 +504,12 @@ export const DecksWorkspace = () => {
   }, [decks, studyDeckId]);
 
   useEffect(() => {
+    setCustomStudyIncludedTags([]);
+    setCustomStudyExcludedTags([]);
+    setCustomStudyAvailableTags([]);
+  }, [studyDeckId]);
+
+  useEffect(() => {
     setCustomStudyReschedule(customStudyMode !== "preview_new");
     if (customStudyMode === "ahead") {
       setCustomStudyDays(2);
@@ -674,6 +683,59 @@ export const DecksWorkspace = () => {
     emitDecksChanged();
   };
 
+  const loadCustomStudyTags = useCallback(async () => {
+    if (!studyDeckId) {
+      setCustomStudyAvailableTags([]);
+      return;
+    }
+    setIsLoadingCustomStudyTags(true);
+    try {
+      const params = new URLSearchParams({
+        deckId: studyDeckId,
+        includeChildren: includeChildren ? "1" : "0",
+        excludedDeckIds: excludedDeckIds.join(","),
+      });
+      const response = await fetch(`/api/decks/tags?${params.toString()}`, { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to load tags.");
+      }
+      setCustomStudyAvailableTags(Array.isArray(payload.tags) ? payload.tags.map((tag: unknown) => String(tag)) : []);
+    } finally {
+      setIsLoadingCustomStudyTags(false);
+    }
+  }, [excludedDeckIds, includeChildren, studyDeckId]);
+
+  const openCustomStudyTagsModal = () => {
+    setToolbarModal("customStudyTags");
+    safeRun(loadCustomStudyTags);
+  };
+
+  const getCustomTagMode = (tag: string) => {
+    if (customStudyIncludedTags.includes(tag)) {
+      return "include";
+    }
+    if (customStudyExcludedTags.includes(tag)) {
+      return "exclude";
+    }
+    return "none";
+  };
+
+  const cycleCustomTagMode = (tag: string) => {
+    const mode = getCustomTagMode(tag);
+    if (mode === "none") {
+      setCustomStudyIncludedTags((previous) => [...previous, tag]);
+      setCustomStudyExcludedTags((previous) => previous.filter((entry) => entry !== tag));
+      return;
+    }
+    if (mode === "include") {
+      setCustomStudyIncludedTags((previous) => previous.filter((entry) => entry !== tag));
+      setCustomStudyExcludedTags((previous) => [...previous, tag]);
+      return;
+    }
+    setCustomStudyExcludedTags((previous) => previous.filter((entry) => entry !== tag));
+  };
+
   const handleCreateCustomStudy = async () => {
     if (!studyDeckId) {
       throw new Error("Select a deck first.");
@@ -691,7 +753,8 @@ export const DecksWorkspace = () => {
           limit: customStudyLimit,
           days: customStudyDays,
           stateFilter: customStudyStateFilter,
-          tag: customStudyTag.trim(),
+          tagsInclude: customStudyIncludedTags,
+          tagsExclude: customStudyExcludedTags,
           reschedule: customStudyReschedule,
         }),
       });
@@ -1452,8 +1515,15 @@ export const DecksWorkspace = () => {
                 </SelectField>
               </div>
               <div>
-                <FieldLabel>Tag (optional)</FieldLabel>
-                <TextField value={customStudyTag} onChange={(event) => setCustomStudyTag(event.target.value)} placeholder="Chapter1" />
+                <FieldLabel>Tags</FieldLabel>
+                <div className="space-y-2">
+                  <Button variant="secondary" onClick={openCustomStudyTagsModal}>
+                    Choose Tags
+                  </Button>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    Included: {customStudyIncludedTags.length} | Excluded: {customStudyExcludedTags.length}
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -1488,6 +1558,107 @@ export const DecksWorkspace = () => {
               {isBuildingCustomStudy ? "Building..." : "OK"}
             </Button>
           </div>
+        </div>
+      </ModalShell>
+
+      <ModalShell
+        open={toolbarModal === "customStudyTags"}
+        onClose={() => setToolbarModal("customStudy")}
+        title="Choose Tags"
+        description="Pick include/exclude labels for Study by card state or tag."
+        maxWidthClassName="max-w-3xl"
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <section className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+            <p className="text-sm font-semibold">Selected Tags</p>
+            <div className="mt-3 space-y-3">
+              <div>
+                <p className="text-xs text-[var(--color-text-muted)]">Included (OR logic)</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {customStudyIncludedTags.length === 0 && <p className="text-xs text-[var(--color-text-muted)]">No included tags yet.</p>}
+                  {customStudyIncludedTags.map((tag) => (
+                    <button
+                      key={`include-${tag}`}
+                      type="button"
+                      onClick={() => cycleCustomTagMode(tag)}
+                      className="rounded-full border border-emerald-300/80 bg-emerald-100/70 px-2.5 py-1 text-xs text-emerald-900"
+                      title="Click to switch to Excluded"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-[var(--color-text-muted)]">Excluded</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {customStudyExcludedTags.length === 0 && <p className="text-xs text-[var(--color-text-muted)]">No excluded tags yet.</p>}
+                  {customStudyExcludedTags.map((tag) => (
+                    <button
+                      key={`exclude-${tag}`}
+                      type="button"
+                      onClick={() => cycleCustomTagMode(tag)}
+                      className="rounded-full border border-rose-300/80 bg-rose-100/70 px-2.5 py-1 text-xs text-rose-900"
+                      title="Click to remove"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Available Tags</p>
+              <Button size="sm" variant="ghost" onClick={() => safeRun(loadCustomStudyTags)} disabled={isLoadingCustomStudyTags}>
+                {isLoadingCustomStudyTags ? "Loading..." : "Refresh"}
+              </Button>
+            </div>
+            <div className="mt-3 max-h-72 overflow-auto">
+              {customStudyAvailableTags.length === 0 ? (
+                <p className="text-sm text-[var(--color-text-muted)]">
+                  {isLoadingCustomStudyTags ? "Loading tags..." : "No tags available in this deck scope."}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {customStudyAvailableTags.map((tag) => {
+                    const mode = getCustomTagMode(tag);
+                    const modeClass =
+                      mode === "include"
+                        ? "border-emerald-300/80 bg-emerald-100/70 text-emerald-900"
+                        : mode === "exclude"
+                          ? "border-rose-300/80 bg-rose-100/70 text-rose-900"
+                          : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]";
+                    return (
+                      <button
+                        key={`available-${tag}`}
+                        type="button"
+                        onClick={() => cycleCustomTagMode(tag)}
+                        className={`rounded-full border px-2.5 py-1 text-xs ${modeClass}`}
+                        title={mode === "none" ? "Click to include" : mode === "include" ? "Click to exclude" : "Click to clear"}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+              Click a tag to cycle: Include -&gt; Exclude -&gt; None.
+            </p>
+          </section>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => {
+            setCustomStudyIncludedTags([]);
+            setCustomStudyExcludedTags([]);
+          }}>
+            Clear Selection
+          </Button>
+          <Button onClick={() => setToolbarModal("customStudy")}>Done</Button>
         </div>
       </ModalShell>
 
