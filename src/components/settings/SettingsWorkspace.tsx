@@ -87,7 +87,7 @@ const SettingRow = ({
 );
 
 const SelectControl = ({ value, onChange, options, label }: { value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }>; label: string }) => (
-  <label className="inline-flex h-10 items-center gap-2 rounded-full border border-[#d7d1c4] bg-[#f6f4ef] px-4 text-sm text-[#1f2937] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+  <label className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-sm text-[var(--color-text)]">
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
@@ -100,7 +100,7 @@ const SelectControl = ({ value, onChange, options, label }: { value: string; onC
         </option>
       ))}
     </select>
-    <span className="text-[11px] text-[#6b7280]">▾</span>
+    <span className="text-[11px] text-[var(--color-text-muted)]">▾</span>
   </label>
 );
 
@@ -277,8 +277,8 @@ const AvatarCropModal = ({
         >
           <canvas ref={previewCanvasRef} width={320} height={320} className="h-64 w-64 cursor-grab active:cursor-grabbing rounded-full" />
         </div>
-        <p className="text-center text-xs text-[#6b7280]">Drag the image to position your face in frame.</p>
-        <label className="block text-xs text-[#4b5563]">
+        <p className="text-center text-xs text-[var(--color-text-muted)]">Drag the image to position your face in frame.</p>
+        <label className="block text-xs text-[var(--color-text-muted)]">
           Zoom
           <input
             type="range"
@@ -704,11 +704,11 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
 
   const content = (
     <section className={`mx-auto flex w-full max-w-[1180px] gap-0 px-0 ${embedded ? "h-full min-h-0" : "min-h-screen"}`}>
-        <aside className="w-[260px] border-r border-[#e7e6e4] bg-[#f1f1ef] p-5">
-          <div className="rounded-lg bg-[#ececea] px-3 py-3">
-            <p className="text-xs font-semibold text-[#4b5563]">Account</p>
-            <p className="mt-1 truncate text-sm font-medium text-[#111827]">Idea Wall User</p>
-            <p className="truncate text-xs text-[#6b7280]">{userEmail}</p>
+        <aside className="w-[260px] border-r border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3">
+            <p className="text-xs font-semibold text-[var(--color-text-muted)]">Account</p>
+            <p className="mt-1 truncate text-sm font-medium text-[var(--color-text)]">Idea Wall User</p>
+            <p className="truncate text-xs text-[var(--color-text-muted)]">{userEmail}</p>
           </div>
 
           <nav aria-label="Settings sections" className="mt-4 space-y-1">
@@ -720,7 +720,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                   type="button"
                   onClick={() => setActiveSection(section.id)}
                   className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors ${
-                    isActive ? "bg-[#e4e4e2] text-[#111827]" : "text-[#4b5563] hover:bg-[#e9e9e7]"
+                    isActive ? "bg-[var(--color-surface)] text-[var(--color-text)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
                   }`}
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-[#9ca3af]" />
@@ -737,7 +737,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
             {!embedded && (
               <Link
                 href="/wall"
-                className="inline-flex items-center justify-center rounded-md border border-[#d4d4d2] bg-white px-3 py-1.5 text-xs font-medium text-[#374151] hover:bg-[#f3f4f6]"
+                className="inline-flex items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
               >
                 Back to wall
               </Link>
@@ -745,10 +745,10 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
           </div>
         </aside>
 
-        <article className={`flex-1 bg-[#fafafa] p-5 sm:p-8 ${embedded ? "overflow-y-auto" : ""}`}>
-          <header className="border-b border-[#e5e7eb] pb-4">
-            <h1 className="text-[30px] font-semibold tracking-tight text-[#111827]">{activeSectionMeta?.label ?? "My settings"}</h1>
-            <p className="mt-1 text-sm text-[#6b7280]">{activeSectionMeta?.description ?? "Manage your preferences."}</p>
+        <article className={`flex-1 bg-[var(--color-surface)] p-5 sm:p-8 ${embedded ? "overflow-y-auto" : ""}`}>
+          <header className="border-b border-[var(--color-border)] pb-4">
+            <h1 className="text-[30px] font-semibold tracking-tight text-[var(--color-text)]">{activeSectionMeta?.label ?? "My settings"}</h1>
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">{activeSectionMeta?.description ?? "Manage your preferences."}</p>
           </header>
 
           <section className="mt-5 max-w-3xl">
@@ -760,15 +760,15 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                     Change your profile image, preferred name, and email address.
                   </p>
                   <div className="mt-3 flex items-center gap-3">
-                    <div className="h-14 w-14 overflow-hidden rounded-full border border-[#d1d5db] bg-[#f3f4f6]">
+                    <div className="h-14 w-14 overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
                       {profilePhotoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={profilePhotoUrl} alt="Profile avatar" className="h-full w-full object-cover" />
                       ) : (
-                        <div className="grid h-full w-full place-items-center text-[10px] text-[#6b7280]">No photo</div>
+                        <div className="grid h-full w-full place-items-center text-[10px] text-[var(--color-text-muted)]">No photo</div>
                       )}
                     </div>
-                    <label className="inline-flex cursor-pointer items-center rounded-md border border-[#d1d5db] bg-white px-3 py-1.5 text-xs font-medium text-[#374151] hover:bg-[#f3f4f6]">
+                    <label className="inline-flex cursor-pointer items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]">
                       Upload image
                       <input
                         type="file"
@@ -784,34 +784,34 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                         disabled={accountBusy !== null}
                       />
                     </label>
-                    <span className="text-[11px] text-[#6b7280]">Max 5MB, JPG/PNG/WEBP/GIF</span>
+                    <span className="text-[11px] text-[var(--color-text-muted)]">Max 5MB, JPG/PNG/WEBP/GIF</span>
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <input
                       value={preferredName}
                       onChange={(event) => setPreferredName(event.target.value)}
                       placeholder="Preferred name"
-                      className="rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                      className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-focus)]"
                     />
                     <input
                       value={profileEmail}
                       onChange={(event) => setProfileEmail(event.target.value)}
                       placeholder="Email address"
                       type="email"
-                      className="rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                      className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-focus)]"
                     />
                     <input
                       value={profilePhotoUrl}
                       onChange={(event) => setProfilePhotoUrl(event.target.value)}
                       placeholder="Profile photo URL (optional)"
-                      className="sm:col-span-2 rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                      className="sm:col-span-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-focus)]"
                     />
                   </div>
                   <div className="mt-3 flex items-center gap-2">
                     <Button size="sm" variant="secondary" onClick={() => void handleSaveProfileBasics()} disabled={accountBusy !== null}>
                       {accountBusy === "profile" ? "Saving..." : "Save profile basics"}
                     </Button>
-                    <span className="text-xs text-[#6b7280]">Signed in as {userEmail}</span>
+                    <span className="text-xs text-[var(--color-text-muted)]">Signed in as {userEmail}</span>
                   </div>
                 </section>
 
@@ -854,17 +854,17 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                     </div>
                   )}
                   {!mfaEnabled && mfaQrCode && (
-                    <div className="mt-3 rounded-md border border-[#d1d5db] bg-white p-3">
-                      <p className="text-xs text-[#374151]">Scan this QR code with your authenticator app:</p>
+                    <div className="mt-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                      <p className="text-xs text-[var(--color-text)]">Scan this QR code with your authenticator app:</p>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={mfaQrCode} alt="2FA QR Code" className="mt-2 h-36 w-36 rounded border border-[#e5e7eb]" />
-                      <p className="mt-2 break-all font-mono text-[11px] text-[#6b7280]">Secret: {mfaSecret}</p>
+                      <img src={mfaQrCode} alt="2FA QR Code" className="mt-2 h-36 w-36 rounded border border-[var(--color-border)]" />
+                      <p className="mt-2 break-all font-mono text-[11px] text-[var(--color-text-muted)]">Secret: {mfaSecret}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <input
                           value={mfaVerifyCode}
                           onChange={(event) => setMfaVerifyCode(event.target.value)}
                           placeholder="Enter 6-digit code"
-                          className="rounded-md border border-[#d1d5db] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#9ca3af]"
+                          className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-focus)]"
                         />
                         <Button size="sm" variant="secondary" onClick={() => void handleVerifyMfa()} disabled={accountBusy !== null}>
                           {accountBusy === "mfa" ? "Verifying..." : "Verify 2FA"}
@@ -974,7 +974,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                   {!autoTimezone && (
                     <div className="mt-3 max-w-xs">
                       <label className="mb-1 block text-xs text-[var(--color-text-muted)]">Select city / timezone</label>
-                      <label className="inline-flex w-full items-center gap-2 rounded-full border border-[#d7d1c4] bg-[#f6f4ef] px-4 py-1.5 text-sm text-[#1f2937] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+                      <label className="inline-flex w-full items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-1.5 text-sm text-[var(--color-text)]">
                         <select
                           value={manualTimezone}
                           onChange={(event) => setManualTimezone(event.target.value)}
@@ -986,7 +986,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                             </option>
                           ))}
                         </select>
-                        <span className="text-[10px] text-[#6b7280]">v</span>
+                        <span className="text-[10px] text-[var(--color-text-muted)]">v</span>
                       </label>
                     </div>
                   )}
@@ -1060,30 +1060,30 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
             {activeSection === "keyboard" && (
               <>
                 <section className="border-b border-[var(--color-border-muted)] py-4">
-                  <h2 className="text-sm font-medium text-[#111827]">Keyboard color slots</h2>
-                  <p className="mt-1 text-xs text-[#6b7280]">Press `C`, then `1-9` to quick switch note color slots.</p>
+                  <h2 className="text-sm font-medium text-[var(--color-text)]">Keyboard color slots</h2>
+                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">Press `C`, then `1-9` to quick switch note color slots.</p>
                 </section>
                 <div className="grid gap-2 py-3 sm:grid-cols-2">
                   {Array.from({ length: 9 }).map((_, index) => {
                     const color = keyboardColorSlots[index];
                     const fallback = defaultKeyboardColorSlots[index] ?? "#FEEA89";
                     return (
-                      <article key={`shortcut-color-${index + 1}`} className="flex items-center gap-2 rounded-md border border-[#e5e7eb] bg-white px-2.5 py-2">
-                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded border border-[#d1d5db] bg-[#f9fafb] text-xs font-semibold text-[#374151]">
+                      <article key={`shortcut-color-${index + 1}`} className="flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-2">
+                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-xs font-semibold text-[var(--color-text)]">
                           {index + 1}
                         </span>
                         <input
                           type="color"
                           value={color ?? fallback}
                           onChange={(event) => setKeyboardSlot(index, event.target.value.toUpperCase())}
-                          className="h-7 w-9 cursor-pointer rounded border border-[#d1d5db] bg-white p-0.5"
+                          className="h-7 w-9 cursor-pointer rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
                           aria-label={`Set keyboard color slot ${index + 1}`}
                         />
-                        <span className="font-mono text-[11px] text-[#6b7280]">{color ?? "Not set"}</span>
+                        <span className="font-mono text-[11px] text-[var(--color-text-muted)]">{color ?? "Not set"}</span>
                         <button
                           type="button"
                           onClick={() => setKeyboardSlot(index, null)}
-                          className="ml-auto rounded border border-[#d1d5db] bg-[#f9fafb] px-2 py-0.5 text-[11px] text-[#4b5563] hover:bg-white"
+                          className="ml-auto rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
                         >
                           Clear
                         </button>
@@ -1091,12 +1091,12 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                     );
                   })}
                 </div>
-                <div className="flex items-center justify-between border-t border-[#e5e7eb] py-3">
-                  <p className="text-xs text-[#6b7280]">Save settings to persist slot updates.</p>
+                <div className="flex items-center justify-between border-t border-[var(--color-border)] py-3">
+                  <p className="text-xs text-[var(--color-text-muted)]">Save settings to persist slot updates.</p>
                   <button
                     type="button"
                     onClick={() => setKeyboardColorSlots([...defaultKeyboardColorSlots])}
-                    className="rounded border border-[#d1d5db] bg-white px-2.5 py-1 text-xs text-[#374151] hover:bg-[#f3f4f6]"
+                    className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
                   >
                     Reset defaults
                   </button>
@@ -1104,8 +1104,8 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
               </>
             )}
 
-            <footer className="pt-5 text-xs text-[#6b7280]">Last saved {new Date(savedAt).toLocaleTimeString()}.</footer>
-            <p className="mt-1 text-xs text-[#9ca3af]">Current controls mode: {controlsModeLabel}.</p>
+            <footer className="pt-5 text-xs text-[var(--color-text-muted)]">Last saved {new Date(savedAt).toLocaleTimeString()}.</footer>
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">Current controls mode: {controlsModeLabel}.</p>
           </section>
         </article>
       </section>
@@ -1113,7 +1113,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
 
   if (embedded) {
     return (
-      <div className="h-[min(78vh,760px)] min-h-[540px] w-full overflow-hidden rounded-xl bg-[#f7f7f6] text-[#191919]">
+      <div className="h-[min(78vh,760px)] min-h-[540px] w-full overflow-hidden rounded-xl bg-[var(--background)] text-[var(--color-text)]">
         {content}
         <AvatarCropModal
           open={avatarCropOpen}
@@ -1133,7 +1133,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   }
 
   return (
-    <main className="route-shell min-h-screen bg-[#f7f7f6] text-[#191919]">
+    <main className="route-shell min-h-screen bg-[var(--background)] text-[var(--color-text)]">
       {content}
       <AvatarCropModal
         open={avatarCropOpen}
