@@ -213,6 +213,7 @@ export const DecksWorkspace = () => {
   const wallSeenAtRef = useRef<number>(0);
   const routeDeckId = searchParams.get("deckId") ?? "";
   const appliedRouteDeckIdRef = useRef<string>("");
+  const isDesktop = typeof window !== "undefined" && Boolean(window.desktopMeta?.isDesktop || window.desktopApi);
 
   const safeRun = useCallback((run: () => Promise<void>) => {
     void run().catch((error) => {
@@ -750,9 +751,11 @@ export const DecksWorkspace = () => {
             <Button onClick={() => switchView("stats")}>Stats</Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={openWallWindow}>
-              Open Wall Window
-            </Button>
+            {isDesktop && (
+              <Button size="sm" variant="secondary" onClick={openWallWindow}>
+                Open Wall Window
+              </Button>
+            )}
             <span
               className={`rounded-[var(--radius-md)] border px-2 py-1 text-[11px] ${
                 wallOnline
