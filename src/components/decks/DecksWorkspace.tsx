@@ -13,6 +13,14 @@ import {
 } from "@/lib/workspace-sync";
 
 type DeckCounts = { newCount: number; learningCount: number; reviewCount: number };
+type StudyLimits = {
+  effectiveNewLimit: number;
+  effectiveReviewLimit: number;
+  newServed: number;
+  reviewServed: number;
+  remainingNew: number;
+  remainingReview: number;
+};
 
 type Deck = {
   id: string;
@@ -199,6 +207,7 @@ export const DecksWorkspace = () => {
   const [excludedDeckIds, setExcludedDeckIds] = useState<string[]>([]);
   const [studyCard, setStudyCard] = useState<StudyCard | null>(null);
   const [studyCounts, setStudyCounts] = useState<DeckCounts>({ newCount: 0, learningCount: 0, reviewCount: 0 });
+  const [studyLimits, setStudyLimits] = useState<StudyLimits | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [browseRows, setBrowseRows] = useState<BrowseRow[]>([]);
   const [browseQuery, setBrowseQuery] = useState("");
@@ -293,6 +302,7 @@ export const DecksWorkspace = () => {
     }
     setStudyCard(payload.card);
     setStudyCounts(payload.counts ?? { newCount: 0, learningCount: 0, reviewCount: 0 });
+    setStudyLimits(payload.limits ?? null);
     setShowAnswer(false);
   }, [excludedDeckIds, includeChildren, studyDeckId]);
 
@@ -637,7 +647,7 @@ export const DecksWorkspace = () => {
         const response = await fetch("/api/decks/study", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cardId: studyCard.id, rating }),
+          body: JSON.stringify({ cardId: studyCard.id, rating, studyDeckId, sessionType: "custom" }),
         });
         const payload = await response.json();
         if (!response.ok) {
@@ -654,7 +664,7 @@ export const DecksWorkspace = () => {
     const response = await fetch("/api/decks/study", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cardId: studyCard.id, rating }),
+      body: JSON.stringify({ cardId: studyCard.id, rating, studyDeckId, sessionType: "default" }),
     });
     const payload = await response.json();
     if (!response.ok) {
@@ -688,6 +698,18 @@ export const DecksWorkspace = () => {
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload.error ?? "Failed to create custom study session.");
+      }
+      if (payload.override?.applied) {
+        setToolbarModal("none");
+        resetCustomSessionState();
+        setStudyStage("session");
+        await Promise.all([loadDeckData(), loadStudyCard()]);
+        setStatusMessage(
+          customStudyMode === "increase_new"
+            ? `Today's new-card limit increased by ${payload.override.increment}.`
+            : `Today's review-card limit increased by ${payload.override.increment}.`,
+        );
+        return;
       }
       const session = (payload.session ?? null) as CustomStudySessionPayload | null;
       if (!session) {
@@ -1021,6 +1043,11 @@ export const DecksWorkspace = () => {
                         <p className="mt-1 text-2xl font-semibold">{studyCounts.reviewCount}</p>
                       </article>
                     </div>
+                    {studyLimits && (
+                      <p className="text-xs text-[var(--color-text-muted)]">
+                        Today limits: New {studyLimits.remainingNew}/{studyLimits.effectiveNewLimit} remaining, Review {studyLimits.remainingReview}/{studyLimits.effectiveReviewLimit} remaining.
+                      </p>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <Button onClick={startStudyNow} disabled={!studyDeckId}>
                         Study Now
@@ -1348,22 +1375,26 @@ export const DecksWorkspace = () => {
             </div>
           )}
 
-          <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={customStudyReschedule}
-                onChange={(event) => setCustomStudyReschedule(event.target.checked)}
-              />
-              Reschedule cards based on answers in this custom session
-            </label>
-            <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-              Preview sessions default to no rescheduling. Other filtered sessions default to rescheduling.
-            </p>
-          </div>
+          {customStudyMode !== "increase_new" && customStudyMode !== "increase_review" && (
+            <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={customStudyReschedule}
+                  onChange={(event) => setCustomStudyReschedule(event.target.checked)}
+                />
+                Reschedule cards based on answers in this custom session
+              </label>
+              <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                Preview sessions default to no rescheduling. Other filtered sessions default to rescheduling.
+              </p>
+            </div>
+          )}
 
           <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3 text-sm text-[var(--color-text-muted)]">
-            Creating a new custom session replaces the previous Custom Study Session deck selection.
+            {customStudyMode === "increase_new" || customStudyMode === "increase_review"
+              ? "This updates today's limits for the selected deck and resumes normal Study Now."
+              : "Creating a new custom session replaces the previous Custom Study Session deck selection."}
           </div>
 
           <div className="flex justify-end gap-2">

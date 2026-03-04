@@ -39,6 +39,8 @@ const clampLimit = (value: number | undefined, fallback: number) => {
   return Math.max(1, Math.min(500, next));
 };
 
+const todayKeyUtc = () => new Date().toISOString().slice(0, 10);
+
 export async function POST(request: Request) {
   const auth = await requireApiUser();
   if ("response" in auth) {
@@ -103,18 +105,107 @@ export async function POST(request: Request) {
   const cards = ((cardsResult.data ?? []) as DeckCardRow[]).filter((card) => selectedSet.has(card.deck_id));
   const noteTagsById = new Map((notesResult.data ?? []).map((note) => [note.id, toTags(note.tags)]));
 
-  const dueReview = cards
-    .filter((card) => card.state === "review" && (!card.due_at || card.due_at <= nowIso))
-    .sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""));
-  const newCards = cards
-    .filter((card) => card.state === "new")
-    .sort((a, b) => a.created_at.localeCompare(b.created_at));
-
   let selectedCards: DeckCardRow[] = [];
   if (input.mode === "increase_new") {
-    selectedCards = newCards.slice(0, clampLimit(input.limit, 20));
+    const increment = clampLimit(input.limit, 20);
+    const today = todayKeyUtc();
+    const { data: existing, error: existingError } = await auth.supabase
+      .from("deck_daily_overrides")
+      .select("extra_new_limit,extra_review_limit,new_served_count,review_served_count")
+      .eq("owner_id", auth.user.id)
+      .eq("deck_id", input.deckId)
+      .eq("study_date", today)
+      .maybeSingle();
+    if (existingError) {
+      return NextResponse.json({ error: existingError.message }, { status: 500 });
+    }
+    const nextPayload = {
+      owner_id: auth.user.id,
+      deck_id: input.deckId,
+      study_date: today,
+      extra_new_limit: (existing?.extra_new_limit ?? 0) + increment,
+      extra_review_limit: existing?.extra_review_limit ?? 0,
+      new_served_count: existing?.new_served_count ?? 0,
+      review_served_count: existing?.review_served_count ?? 0,
+    };
+    const updatePayload = {
+      extra_new_limit: nextPayload.extra_new_limit,
+      extra_review_limit: nextPayload.extra_review_limit,
+      new_served_count: nextPayload.new_served_count,
+      review_served_count: nextPayload.review_served_count,
+    };
+    const write = existing
+      ? auth.supabase
+          .from("deck_daily_overrides")
+          .update(updatePayload)
+          .eq("owner_id", auth.user.id)
+          .eq("deck_id", input.deckId)
+          .eq("study_date", today)
+      : auth.supabase.from("deck_daily_overrides").insert(nextPayload);
+    const { error: writeError } = await write;
+    if (writeError) {
+      return NextResponse.json({ error: writeError.message }, { status: 500 });
+    }
+    return NextResponse.json({
+      override: {
+        applied: true,
+        mode: input.mode,
+        increment,
+        studyDate: today,
+        extraNewLimit: nextPayload.extra_new_limit,
+        extraReviewLimit: nextPayload.extra_review_limit,
+      },
+    });
   } else if (input.mode === "increase_review") {
-    selectedCards = dueReview.slice(0, clampLimit(input.limit, 50));
+    const increment = clampLimit(input.limit, 50);
+    const today = todayKeyUtc();
+    const { data: existing, error: existingError } = await auth.supabase
+      .from("deck_daily_overrides")
+      .select("extra_new_limit,extra_review_limit,new_served_count,review_served_count")
+      .eq("owner_id", auth.user.id)
+      .eq("deck_id", input.deckId)
+      .eq("study_date", today)
+      .maybeSingle();
+    if (existingError) {
+      return NextResponse.json({ error: existingError.message }, { status: 500 });
+    }
+    const nextPayload = {
+      owner_id: auth.user.id,
+      deck_id: input.deckId,
+      study_date: today,
+      extra_new_limit: existing?.extra_new_limit ?? 0,
+      extra_review_limit: (existing?.extra_review_limit ?? 0) + increment,
+      new_served_count: existing?.new_served_count ?? 0,
+      review_served_count: existing?.review_served_count ?? 0,
+    };
+    const updatePayload = {
+      extra_new_limit: nextPayload.extra_new_limit,
+      extra_review_limit: nextPayload.extra_review_limit,
+      new_served_count: nextPayload.new_served_count,
+      review_served_count: nextPayload.review_served_count,
+    };
+    const write = existing
+      ? auth.supabase
+          .from("deck_daily_overrides")
+          .update(updatePayload)
+          .eq("owner_id", auth.user.id)
+          .eq("deck_id", input.deckId)
+          .eq("study_date", today)
+      : auth.supabase.from("deck_daily_overrides").insert(nextPayload);
+    const { error: writeError } = await write;
+    if (writeError) {
+      return NextResponse.json({ error: writeError.message }, { status: 500 });
+    }
+    return NextResponse.json({
+      override: {
+        applied: true,
+        mode: input.mode,
+        increment,
+        studyDate: today,
+        extraNewLimit: nextPayload.extra_new_limit,
+        extraReviewLimit: nextPayload.extra_review_limit,
+      },
+    });
   } else if (input.mode === "forgotten") {
     const days = input.days ?? 7;
     const cutoff = new Date(now.getTime() - days * 86_400_000).toISOString();

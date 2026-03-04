@@ -43,8 +43,8 @@ Expected:
 ## Custom Study Session (2026-03-04)
 1. Open `/decks`, select a deck, and confirm `Study Deck` overview appears with `New`, `Learning`, and `To Review` counts.
 2. Click `Custom Study` and choose `Increase Today's New Card Limit`; set `Card count` and click `OK`.
-3. Confirm a custom study session starts and only the selected number of new cards appears.
-4. Return to overview, open `Custom Study`, choose `Increase Today's Review Card Limit`, and start again.
+3. Confirm deck returns to normal Study session with larger `Today limits` values shown on overview.
+4. Return to overview, open `Custom Study`, choose `Increase Today's Review Card Limit`, and apply again.
 5. Open `Custom Study`, choose `Review Forgotten Cards`, set days, and confirm cards rated `Again` recently are queued.
 6. Open `Custom Study`, choose `Review Ahead`, set look-ahead days, and confirm future-due cards are queued.
 7. Open `Custom Study`, choose `Preview New Cards`, keep reschedule unchecked, answer cards, then refresh queue and confirm card scheduling is unchanged.
@@ -54,6 +54,7 @@ Expected:
 
 Expected:
 - Custom Study modal supports all listed session modes.
+- Increase limit modes modify today's deck limits directly (not a filtered deck queue).
 - Creating a new custom session replaces the previous custom selection.
 - Preview mode does not reschedule cards unless user explicitly enables rescheduling.
 - Non-preview filtered sessions reschedule cards by default.

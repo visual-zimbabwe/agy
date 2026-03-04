@@ -461,6 +461,40 @@ export type Database = {
         };
         Relationships: [];
       };
+      deck_daily_overrides: {
+        Row: {
+          id: string;
+          owner_id: string;
+          deck_id: string;
+          study_date: string;
+          extra_new_limit: number;
+          extra_review_limit: number;
+          new_served_count: number;
+          review_served_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          deck_id: string;
+          study_date: string;
+          extra_new_limit?: number;
+          extra_review_limit?: number;
+          new_served_count?: number;
+          review_served_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          extra_new_limit?: number;
+          extra_review_limit?: number;
+          new_served_count?: number;
+          review_served_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       deck_import_presets: {
         Row: {
           id: string;
