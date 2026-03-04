@@ -1102,6 +1102,106 @@ export const DecksWorkspace = () => {
     }
   };
 
+  const handleSaveStatsPdf = () => {
+    if (!stats) {
+      throw new Error("Load stats first.");
+    }
+    const popup = window.open("", "_blank", "noopener,noreferrer");
+    if (!popup) {
+      throw new Error("Unable to open print window. Check popup blocker settings.");
+    }
+    const esc = (value: string) =>
+      value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    const deckName = selectedStudyDeck?.name ?? "All Decks";
+    const generatedAt = new Date().toLocaleString();
+    const title = `${deckName} Stats`;
+    const forecastRows = statsViewModel.forecast
+      .map((entry) => `<tr><td>${esc(entry.day)}</td><td style="text-align:right;">${entry.due}</td></tr>`)
+      .join("");
+    const today = statsViewModel.today;
+    const intervalRows = statsViewModel.intervals
+      .map((entry) => `<tr><td>${esc(entry.label)}</td><td style="text-align:right;">${entry.value}</td></tr>`)
+      .join("");
+    const cardRows = statsViewModel.pieSlices
+      .map((entry) => `<tr><td>${esc(entry.key)}</td><td style="text-align:right;">${entry.value}</td></tr>`)
+      .join("");
+
+    popup.document.write(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${esc(title)}</title>
+    <style>
+      body { font-family: "Segoe UI", Arial, sans-serif; margin: 24px; color: #0f172a; }
+      h1, h2 { margin: 0 0 8px; }
+      h1 { font-size: 24px; }
+      h2 { font-size: 16px; margin-top: 20px; }
+      p { margin: 4px 0; }
+      .muted { color: #475569; font-size: 12px; }
+      .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+      .card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; }
+      .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+      th, td { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 12px; text-align: left; }
+      .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      @media print {
+        body { margin: 12mm; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>${esc(title)}</h1>
+    <p class="muted">Range: ${esc(statsRange)} | Generated: ${esc(generatedAt)}</p>
+
+    <div class="grid">
+      <div class="card"><p class="muted">Total Cards</p><p class="value">${stats.summary.totalCards}</p></div>
+      <div class="card"><p class="muted">Reviews</p><p class="value">${stats.summary.totalReviews}</p></div>
+      <div class="card"><p class="muted">Retention</p><p class="value">${stats.summary.retentionRate}%</p></div>
+      <div class="card"><p class="muted">Due Tomorrow</p><p class="value">${stats.summary.dueTomorrow}</p></div>
+    </div>
+
+    <h2>Today</h2>
+    <p>Studied ${today.studied} cards in ${today.minutes} minutes</p>
+    <p>Again ${today.again} | Correct ${today.correctPct}% | Learn ${today.learn} | Review ${today.review} | Relearn ${today.relearn} | Filtered ${today.filtered}</p>
+
+    <div class="twocol">
+      <div>
+        <h2>Forecast</h2>
+        <table>
+          <thead><tr><th>Day</th><th style="text-align:right;">Due</th></tr></thead>
+          <tbody>${forecastRows}</tbody>
+        </table>
+      </div>
+      <div>
+        <h2>Intervals</h2>
+        <table>
+          <thead><tr><th>Bucket</th><th style="text-align:right;">Count</th></tr></thead>
+          <tbody>${intervalRows}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <h2>Card Counts</h2>
+    <table>
+      <thead><tr><th>State</th><th style="text-align:right;">Count</th></tr></thead>
+      <tbody>${cardRows}</tbody>
+    </table>
+
+    <h2>Retention</h2>
+    <p>Last 30 days: ${stats.retention?.month ?? 0}%</p>
+    <p>Last year: ${stats.retention?.year ?? 0}%</p>
+  </body>
+</html>`);
+    popup.document.close();
+    popup.focus();
+    window.setTimeout(() => popup.print(), 150);
+  };
+
   const openWallWindow = () => {
     window.open("/wall", "idea-wall-wall-window", "width=1460,height=920");
     if (!channelRef.current) {
@@ -1475,6 +1575,9 @@ export const DecksWorkspace = () => {
                     <option value="deck_life">Deck life</option>
                   </SelectField>
                   <Button onClick={() => safeRun(loadStats)}>Refresh</Button>
+                  <Button variant="secondary" onClick={() => safeRun(async () => handleSaveStatsPdf())} disabled={!stats}>
+                    Save PDF
+                  </Button>
                 </div>
                 {stats ? (
                   <>
