@@ -37,6 +37,25 @@ type StudyCard = {
   answer: string;
 };
 
+type CustomStudyMode = "increase_new" | "increase_review" | "forgotten" | "ahead" | "preview_new" | "state_tag";
+type CustomStateFilter = "new" | "due" | "all";
+
+type CustomStudySessionPayload = {
+  mode: CustomStudyMode;
+  name: string;
+  reschedule: boolean;
+  cards: Array<{
+    id: string;
+    prompt: string;
+    answer: string;
+    state: string;
+    due_at: string | null;
+    created_at: string;
+    tags: string[];
+  }>;
+  counts: DeckCounts;
+};
+
 type BrowseRow = {
   id: string;
   deck_id: string;
@@ -72,7 +91,7 @@ type ImportPreset = {
 };
 
 type View = "decks" | "browse" | "stats" | "study";
-type ToolbarModal = "none" | "add" | "import" | "options";
+type ToolbarModal = "none" | "add" | "import" | "options" | "customStudy";
 
 const toStringArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) {
@@ -175,7 +194,7 @@ export const DecksWorkspace = () => {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [noteTypes, setNoteTypes] = useState<NoteType[]>([]);
   const [studyDeckId, setStudyDeckId] = useState("");
-  const [studyStage, setStudyStage] = useState<"overview" | "custom" | "session">("overview");
+  const [studyStage, setStudyStage] = useState<"overview" | "session">("overview");
   const [includeChildren, setIncludeChildren] = useState(true);
   const [excludedDeckIds, setExcludedDeckIds] = useState<string[]>([]);
   const [studyCard, setStudyCard] = useState<StudyCard | null>(null);
@@ -202,6 +221,15 @@ export const DecksWorkspace = () => {
   const [importPresets, setImportPresets] = useState<ImportPreset[]>([]);
   const [importPresetName, setImportPresetName] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  const [customStudyMode, setCustomStudyMode] = useState<CustomStudyMode>("increase_new");
+  const [customStudyLimit, setCustomStudyLimit] = useState(20);
+  const [customStudyDays, setCustomStudyDays] = useState(7);
+  const [customStudyTag, setCustomStudyTag] = useState("");
+  const [customStudyStateFilter, setCustomStudyStateFilter] = useState<CustomStateFilter>("all");
+  const [customStudyReschedule, setCustomStudyReschedule] = useState(true);
+  const [isBuildingCustomStudy, setIsBuildingCustomStudy] = useState(false);
+  const [customSession, setCustomSession] = useState<{ mode: CustomStudyMode; reschedule: boolean; cards: StudyCard[] } | null>(null);
+  const [customSessionQueue, setCustomSessionQueue] = useState<StudyCard[]>([]);
   const [importProgress, setImportProgress] = useState<{ processed: number; total: number; imported: number }>({
     processed: 0,
     total: 0,
@@ -221,6 +249,11 @@ export const DecksWorkspace = () => {
     void run().catch((error) => {
       setStatusMessage(error instanceof Error ? error.message : "Action failed.");
     });
+  }, []);
+
+  const resetCustomSessionState = useCallback(() => {
+    setCustomSession(null);
+    setCustomSessionQueue([]);
   }, []);
 
   const loadDeckData = useCallback(async () => {
@@ -322,12 +355,13 @@ export const DecksWorkspace = () => {
     }
     if (decks.some((deck) => deck.id === routeDeckId)) {
       appliedRouteDeckIdRef.current = routeDeckId;
+      resetCustomSessionState();
       setStudyDeckId(routeDeckId);
       setView("study");
       setStudyStage("overview");
       safeRun(() => loadStudyCard(routeDeckId));
     }
-  }, [decks, loadStudyCard, routeDeckId, safeRun]);
+  }, [decks, loadStudyCard, resetCustomSessionState, routeDeckId, safeRun]);
 
   useEffect(() => {
     if (autoStudyInitRef.current || routeDeckId || decks.length === 0) {
@@ -341,10 +375,11 @@ export const DecksWorkspace = () => {
     if (selectedId !== studyDeckId) {
       setStudyDeckId(selectedId);
     }
+    resetCustomSessionState();
     setView("study");
     setStudyStage("overview");
     safeRun(() => loadStudyCard(selectedId));
-  }, [decks, loadStudyCard, routeDeckId, safeRun, studyDeckId]);
+  }, [decks, loadStudyCard, resetCustomSessionState, routeDeckId, safeRun, studyDeckId]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
@@ -392,6 +427,7 @@ export const DecksWorkspace = () => {
       if (payload.event.type === "deck_selection") {
         const deckId = payload.event.deckId;
         if (deckId !== studyDeckId) {
+          resetCustomSessionState();
           setStudyDeckId(deckId);
           setView("study");
           setStudyStage("overview");
@@ -413,7 +449,7 @@ export const DecksWorkspace = () => {
       channel.close();
       channelRef.current = null;
     };
-  }, [loadDeckData, loadStudyCard, safeRun, studyDeckId]);
+  }, [loadDeckData, loadStudyCard, resetCustomSessionState, safeRun, studyDeckId]);
 
   useEffect(() => {
     if (!channelRef.current) {
@@ -454,10 +490,39 @@ export const DecksWorkspace = () => {
     setRenameDeckName(selectedDeck?.name ?? "");
   }, [decks, studyDeckId]);
 
+  useEffect(() => {
+    setCustomStudyReschedule(customStudyMode !== "preview_new");
+    if (customStudyMode === "ahead") {
+      setCustomStudyDays(2);
+    } else if (customStudyMode === "forgotten") {
+      setCustomStudyDays(7);
+    } else if (customStudyMode === "preview_new") {
+      setCustomStudyDays(7);
+    }
+  }, [customStudyMode]);
+
+  useEffect(() => {
+    if (!customSession) {
+      return;
+    }
+    const nextCard = customSessionQueue[0] ?? null;
+    if (!nextCard) {
+      setCustomSession(null);
+      setCustomSessionQueue([]);
+      setStudyStage("overview");
+      setStatusMessage("Custom Study Session complete. Returned to deck overview.");
+      safeRun(loadStudyCard);
+      return;
+    }
+    setStudyCard(nextCard);
+    setShowAnswer(false);
+  }, [customSession, customSessionQueue, loadStudyCard, safeRun]);
+
   const selectedNoteType = useMemo(() => noteTypes.find((entry) => entry.id === addNoteTypeId) ?? null, [addNoteTypeId, noteTypes]);
   const selectedRow = useMemo(() => browseRows.find((row) => row.id === selectedRowId) ?? null, [browseRows, selectedRowId]);
   const selectedStudyDeck = useMemo(() => decks.find((deck) => deck.id === studyDeckId) ?? null, [decks, studyDeckId]);
   const childDecks = useMemo(() => decks.filter((deck) => deck.parent_id === studyDeckId), [decks, studyDeckId]);
+  const isCustomSessionActive = customSession !== null;
 
   const emitDecksChanged = () => {
     if (!channelRef.current) {
@@ -567,6 +632,25 @@ export const DecksWorkspace = () => {
     if (!studyCard) {
       return;
     }
+    if (isCustomSessionActive) {
+      if (customSession?.reschedule) {
+        const response = await fetch("/api/decks/study", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cardId: studyCard.id, rating }),
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Failed to rate card.");
+        }
+      }
+      setCustomSessionQueue((previous) => previous.filter((card) => card.id !== studyCard.id));
+      if (customSession?.reschedule) {
+        await loadDeckData();
+        emitDecksChanged();
+      }
+      return;
+    }
     const response = await fetch("/api/decks/study", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -578,6 +662,58 @@ export const DecksWorkspace = () => {
     }
     await Promise.all([loadStudyCard(), loadDeckData()]);
     emitDecksChanged();
+  };
+
+  const handleCreateCustomStudy = async () => {
+    if (!studyDeckId) {
+      throw new Error("Select a deck first.");
+    }
+    setIsBuildingCustomStudy(true);
+    try {
+      const response = await fetch("/api/decks/custom-study", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deckId: studyDeckId,
+          includeChildren,
+          excludedDeckIds,
+          mode: customStudyMode,
+          limit: customStudyLimit,
+          days: customStudyDays,
+          stateFilter: customStudyStateFilter,
+          tag: customStudyTag.trim(),
+          reschedule: customStudyReschedule,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to create custom study session.");
+      }
+      const session = (payload.session ?? null) as CustomStudySessionPayload | null;
+      if (!session) {
+        throw new Error("No custom session returned.");
+      }
+      const cards: StudyCard[] = (session.cards ?? []).map((card) => ({
+        id: card.id,
+        prompt: card.prompt,
+        answer: card.answer,
+      }));
+      setCustomSession({ mode: session.mode, reschedule: session.reschedule, cards });
+      setCustomSessionQueue(cards);
+      setStudyCounts(session.counts ?? { newCount: 0, learningCount: 0, reviewCount: 0 });
+      setToolbarModal("none");
+      setStudyStage("session");
+      setShowAnswer(false);
+      if (cards.length === 0) {
+        setStudyCard(null);
+        setStatusMessage("No cards matched this custom study selection.");
+      } else {
+        setStudyCard(cards[0] ?? null);
+        setStatusMessage(`Custom Study Session ready with ${cards.length} cards.`);
+      }
+    } finally {
+      setIsBuildingCustomStudy(false);
+    }
   };
 
   const handleBrowsePatch = async (patch: Record<string, unknown>) => {
@@ -708,6 +844,7 @@ export const DecksWorkspace = () => {
   const switchView = (nextView: View) => {
     setView(nextView);
     if (nextView === "study") {
+      resetCustomSessionState();
       setStudyStage("overview");
       safeRun(loadStudyCard);
     }
@@ -763,11 +900,7 @@ export const DecksWorkspace = () => {
   };
 
   const startStudyNow = () => {
-    setStudyStage("session");
-    safeRun(loadStudyCard);
-  };
-
-  const startCustomStudy = () => {
+    resetCustomSessionState();
     setStudyStage("session");
     safeRun(loadStudyCard);
   };
@@ -817,6 +950,7 @@ export const DecksWorkspace = () => {
                   key={deck.id}
                   type="button"
                   onClick={() => {
+                    resetCustomSessionState();
                     setStudyDeckId(deck.id);
                     setView("study");
                     setStudyStage("overview");
@@ -891,7 +1025,7 @@ export const DecksWorkspace = () => {
                       <Button onClick={startStudyNow} disabled={!studyDeckId}>
                         Study Now
                       </Button>
-                      <Button variant="secondary" onClick={() => setStudyStage("custom")} disabled={!studyDeckId}>
+                      <Button variant="secondary" onClick={() => setToolbarModal("customStudy")} disabled={!studyDeckId}>
                         Custom Study
                       </Button>
                       <Button variant="ghost" onClick={() => setToolbarModal("options")} disabled={!studyDeckId}>
@@ -900,7 +1034,7 @@ export const DecksWorkspace = () => {
                     </div>
                   </div>
                 )}
-                {(studyStage === "custom" || studyStage === "session") && (
+                {studyStage === "session" && (
                   <div className="flex flex-wrap items-center gap-3">
                     <label className="inline-flex items-center gap-2 text-sm">
                       <input type="checkbox" checked={includeChildren} onChange={(event) => setIncludeChildren(event.target.checked)} />
@@ -932,31 +1066,34 @@ export const DecksWorkspace = () => {
                     )}
                   </div>
                 )}
-                {studyStage === "custom" && (
-                  <div className="space-y-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
-                    <p className="text-sm text-[var(--color-text-muted)]">
-                      Adjust temporary study scope, then start this custom session.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button onClick={startCustomStudy} disabled={!studyDeckId}>
-                        Start Custom Study
-                      </Button>
-                      <Button variant="ghost" onClick={() => setStudyStage("overview")}>
-                        Back to Overview
-                      </Button>
-                    </div>
-                  </div>
-                )}
                 {studyStage === "session" && (
                   <>
                     <p className="text-sm text-[var(--color-text-muted)]">
                       Queue: New {studyCounts.newCount} | Learning {studyCounts.learningCount} | Review {studyCounts.reviewCount}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="ghost" onClick={() => safeRun(loadStudyCard)} disabled={!studyDeckId}>
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          if (isCustomSessionActive) {
+                            setStudyCard(customSessionQueue[0] ?? null);
+                            setShowAnswer(false);
+                            return;
+                          }
+                          safeRun(loadStudyCard);
+                        }}
+                        disabled={!studyDeckId}
+                      >
                         Refresh Queue
                       </Button>
-                      <Button variant="ghost" onClick={() => setStudyStage("overview")}>
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          resetCustomSessionState();
+                          setStudyStage("overview");
+                          safeRun(loadStudyCard);
+                        }}
+                      >
                         Back to Overview
                       </Button>
                     </div>
@@ -973,7 +1110,7 @@ export const DecksWorkspace = () => {
                       </article>
                     ) : (
                       <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-sm">
-                        No due cards in this deck selection.
+                        {isCustomSessionActive ? "No cards remaining in this Custom Study Session." : "No due cards in this deck selection."}
                       </p>
                     )}
                     {studyCard && !showAnswer && <Button onClick={() => setShowAnswer(true)}>Show Answer</Button>}
@@ -1143,6 +1280,100 @@ export const DecksWorkspace = () => {
           <p className="text-xs text-[var(--color-text-muted)]">
             Advanced daily limits and scheduling algorithms are not configurable in this build yet.
           </p>
+        </div>
+      </ModalShell>
+
+      <ModalShell
+        open={toolbarModal === "customStudy"}
+        onClose={() => setToolbarModal("none")}
+        title="Custom Study"
+        description="Temporarily bypass limits or create a focused filtered session."
+        maxWidthClassName="max-w-2xl"
+      >
+        <div className="space-y-4">
+          <div>
+            <FieldLabel>Mode</FieldLabel>
+            <SelectField value={customStudyMode} onChange={(event) => setCustomStudyMode(event.target.value as CustomStudyMode)}>
+              <option value="increase_new">Increase Today&apos;s New Card Limit</option>
+              <option value="increase_review">Increase Today&apos;s Review Card Limit</option>
+              <option value="forgotten">Review Forgotten Cards</option>
+              <option value="ahead">Review Ahead</option>
+              <option value="preview_new">Preview New Cards</option>
+              <option value="state_tag">Study by Card State or Tag</option>
+            </SelectField>
+          </div>
+
+          {(customStudyMode === "increase_new" || customStudyMode === "increase_review" || customStudyMode === "state_tag") && (
+            <div>
+              <FieldLabel>Card count</FieldLabel>
+              <TextField
+                type="number"
+                min={1}
+                max={500}
+                value={String(customStudyLimit)}
+                onChange={(event) => setCustomStudyLimit(Math.max(1, Number(event.target.value || "1")))}
+              />
+            </div>
+          )}
+
+          {(customStudyMode === "forgotten" || customStudyMode === "ahead" || customStudyMode === "preview_new") && (
+            <div>
+              <FieldLabel>
+                {customStudyMode === "ahead" ? "Look-ahead days" : customStudyMode === "preview_new" ? "Recently added within days" : "Failed within days"}
+              </FieldLabel>
+              <TextField
+                type="number"
+                min={1}
+                max={365}
+                value={String(customStudyDays)}
+                onChange={(event) => setCustomStudyDays(Math.max(1, Number(event.target.value || "1")))}
+              />
+            </div>
+          )}
+
+          {customStudyMode === "state_tag" && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <FieldLabel>Card state</FieldLabel>
+                <SelectField value={customStudyStateFilter} onChange={(event) => setCustomStudyStateFilter(event.target.value as CustomStateFilter)}>
+                  <option value="new">New only</option>
+                  <option value="due">Due only</option>
+                  <option value="all">All cards</option>
+                </SelectField>
+              </div>
+              <div>
+                <FieldLabel>Tag (optional)</FieldLabel>
+                <TextField value={customStudyTag} onChange={(event) => setCustomStudyTag(event.target.value)} placeholder="Chapter1" />
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={customStudyReschedule}
+                onChange={(event) => setCustomStudyReschedule(event.target.checked)}
+              />
+              Reschedule cards based on answers in this custom session
+            </label>
+            <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+              Preview sessions default to no rescheduling. Other filtered sessions default to rescheduling.
+            </p>
+          </div>
+
+          <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3 text-sm text-[var(--color-text-muted)]">
+            Creating a new custom session replaces the previous Custom Study Session deck selection.
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setToolbarModal("none")} disabled={isBuildingCustomStudy}>
+              Cancel
+            </Button>
+            <Button onClick={() => safeRun(handleCreateCustomStudy)} disabled={!studyDeckId || isBuildingCustomStudy}>
+              {isBuildingCustomStudy ? "Building..." : "OK"}
+            </Button>
+          </div>
         </div>
       </ModalShell>
 

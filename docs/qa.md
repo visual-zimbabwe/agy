@@ -40,6 +40,25 @@ Expected:
 - Import mapping presets persist via cloud data and reload correctly.
 - Same Decks route/features work in web and Electron builds.
 
+## Custom Study Session (2026-03-04)
+1. Open `/decks`, select a deck, and confirm `Study Deck` overview appears with `New`, `Learning`, and `To Review` counts.
+2. Click `Custom Study` and choose `Increase Today's New Card Limit`; set `Card count` and click `OK`.
+3. Confirm a custom study session starts and only the selected number of new cards appears.
+4. Return to overview, open `Custom Study`, choose `Increase Today's Review Card Limit`, and start again.
+5. Open `Custom Study`, choose `Review Forgotten Cards`, set days, and confirm cards rated `Again` recently are queued.
+6. Open `Custom Study`, choose `Review Ahead`, set look-ahead days, and confirm future-due cards are queued.
+7. Open `Custom Study`, choose `Preview New Cards`, keep reschedule unchecked, answer cards, then refresh queue and confirm card scheduling is unchanged.
+8. Open `Custom Study`, choose `Study by Card State or Tag`, set `Card state` and `Tag`, then confirm only matching cards are queued.
+9. Start one custom session, then create a new custom session with different settings and confirm the first session queue is replaced.
+10. Finish all cards in a custom session and confirm UI automatically returns to deck overview.
+
+Expected:
+- Custom Study modal supports all listed session modes.
+- Creating a new custom session replaces the previous custom selection.
+- Preview mode does not reschedule cards unless user explicitly enables rescheduling.
+- Non-preview filtered sessions reschedule cards by default.
+- Completing custom queue returns user to home deck overview automatically.
+
 ## Baseline + Guardrails (Day 1-2)
 1. Run `npm run dev`.
 2. Capture baseline screenshots with `npm run baseline:capture`.
