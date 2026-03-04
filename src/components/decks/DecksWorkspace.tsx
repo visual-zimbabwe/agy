@@ -1409,7 +1409,6 @@ export const DecksWorkspace = () => {
 
           {(customStudyMode === "forgotten" || customStudyMode === "ahead" || customStudyMode === "preview_new") && (
             <div>
-              <FieldLabel htmlFor="custom-study-days">Days Window</FieldLabel>
               <div className="inline-flex items-center gap-2 text-sm whitespace-nowrap">
                 <span>
                   {customStudyMode === "forgotten"
