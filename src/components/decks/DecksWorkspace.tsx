@@ -1112,58 +1112,274 @@ export const DecksWorkspace = () => {
     const generatedAt = new Date();
     const fileName = `deck-stats-${safeDeckName}-${generatedAt.toISOString().slice(0, 10)}.pdf`;
     const today = statsViewModel.today;
-
     const doc = new jsPDF({ unit: "pt", format: "a4" });
-    let y = 42;
-    const lineGap = 16;
-    const writeLine = (text: string, opts?: { size?: number; bold?: boolean }) => {
-      doc.setFont("helvetica", opts?.bold ? "bold" : "normal");
-      doc.setFontSize(opts?.size ?? 11);
-      doc.text(text, 42, y);
-      y += lineGap;
-      if (y > 790) {
-        doc.addPage();
-        y = 42;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 40;
+    const contentWidth = pageWidth - margin * 2;
+    const fmt = new Intl.NumberFormat();
+    const asPct = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+    const asTone = (value: number) => {
+      if (value >= 90) return "Excellent";
+      if (value >= 80) return "Strong";
+      if (value >= 70) return "Stable";
+      if (value >= 60) return "Needs attention";
+      return "Critical";
+    };
+    const rangeLabelByValue: Record<string, string> = {
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "365d": "Last 365 days",
+      all: "All time",
+    };
+    const rangeLabel = rangeLabelByValue[statsRange] ?? statsRange;
+    const shortDay = (value: string) => {
+      const date = new Date(`${value}T00:00:00`);
+      if (Number.isNaN(date.getTime())) {
+        return value;
       }
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     };
 
-    writeLine(`${deckName} - Statistics`, { size: 16, bold: true });
-    writeLine(`Range: ${statsRange} | Generated: ${generatedAt.toLocaleString()}`, { size: 10 });
-    y += 6;
-    writeLine("Summary", { size: 13, bold: true });
-    writeLine(`Total Cards: ${stats.summary.totalCards}`);
-    writeLine(`Reviews: ${stats.summary.totalReviews}`);
-    writeLine(`Retention: ${stats.summary.retentionRate}%`);
-    writeLine(`Due Tomorrow: ${stats.summary.dueTomorrow}`);
+    let y = margin + 92;
+    const ensureSpace = (required: number) => {
+      if (y + required <= pageHeight - margin) {
+        return;
+      }
+      doc.addPage();
+      y = margin;
+    };
+    const writeWrapped = (
+      text: string,
+      x: number,
+      top: number,
+      width: number,
+      options?: { size?: number; bold?: boolean; color?: [number, number, number]; lineHeight?: number },
+    ) => {
+      const size = options?.size ?? 10;
+      const lineHeight = options?.lineHeight ?? 1.35;
+      doc.setFont("helvetica", options?.bold ? "bold" : "normal");
+      doc.setFontSize(size);
+      const color = options?.color ?? [17, 24, 39];
+      doc.setTextColor(color[0], color[1], color[2]);
+      const lines = doc.splitTextToSize(text, width);
+      doc.text(lines, x, top);
+      return lines.length * size * lineHeight;
+    };
+    const sectionTitle = (title: string, subtitle?: string) => {
+      ensureSpace(subtitle ? 54 : 30);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(17, 24, 39);
+      doc.text(title, margin, y);
+      y += 16;
+      if (subtitle) {
+        const h = writeWrapped(subtitle, margin, y, contentWidth, { size: 10, color: [75, 85, 99] });
+        y += h + 8;
+      }
+    };
+    const drawProgressBar = (x: number, top: number, width: number, height: number, valuePct: number, rgb: [number, number, number]) => {
+      doc.setFillColor(229, 231, 235);
+      doc.roundedRect(x, top, width, height, 4, 4, "F");
+      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+      doc.roundedRect(x, top, Math.max(2, (width * asPct(valuePct)) / 100), height, 4, 4, "F");
+    };
+    const drawBars = (
+      title: string,
+      subtitle: string,
+      items: Array<{ label: string; value: number }>,
+      color: [number, number, number],
+      maxRows = 10,
+    ) => {
+      const rows = items.slice(0, maxRows);
+      const blockHeight = 28 + rows.length * 20 + 18;
+      ensureSpace(blockHeight);
+      sectionTitle(title, subtitle);
+      const max = Math.max(1, ...rows.map((entry) => entry.value));
+      const labelW = 120;
+      const trackW = contentWidth - labelW - 54;
+      for (const row of rows) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(55, 65, 81);
+        doc.text(row.label, margin, y + 11);
+        drawProgressBar(margin + labelW, y + 2, trackW, 10, (row.value / max) * 100, color);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(17, 24, 39);
+        doc.text(fmt.format(row.value), margin + labelW + trackW + 8, y + 11);
+        y += 18;
+      }
+      y += 8;
+    };
 
-    y += 6;
-    writeLine("Today", { size: 13, bold: true });
-    writeLine(`Studied ${today.studied} cards in ${today.minutes} minutes`);
-    writeLine(`Again: ${today.again} | Correct: ${today.correctPct}%`);
-    writeLine(`Learn: ${today.learn} | Review: ${today.review} | Relearn: ${today.relearn} | Filtered: ${today.filtered}`);
+    doc.setFillColor(12, 34, 64);
+    doc.rect(0, 0, pageWidth, 130, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.text(deckName, margin, 52, { maxWidth: contentWidth });
+    doc.setFontSize(13);
+    doc.text("Study Performance Report", margin, 74);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(206, 222, 242);
+    doc.text(`Range: ${rangeLabel}`, margin, 94);
+    doc.text(`Generated: ${generatedAt.toLocaleString()}`, margin, 110);
 
-    y += 6;
-    writeLine("Forecast (first 16)", { size: 13, bold: true });
-    for (const entry of statsViewModel.forecast) {
-      writeLine(`${entry.day}: ${entry.due}`);
+    const cardW = (contentWidth - 12) / 2;
+    const cardH = 62;
+    const cardTop = y;
+    const summaryCards = [
+      { title: "Total Cards", value: fmt.format(stats.summary.totalCards), hint: "Current active corpus", fill: [238, 248, 255] as [number, number, number] },
+      { title: "Total Reviews", value: fmt.format(stats.summary.totalReviews), hint: `${rangeLabel} activity`, fill: [240, 253, 244] as [number, number, number] },
+      { title: "Retention", value: `${asPct(stats.summary.retentionRate)}%`, hint: asTone(stats.summary.retentionRate), fill: [255, 247, 237] as [number, number, number] },
+      { title: "Due Tomorrow", value: fmt.format(stats.summary.dueTomorrow), hint: "Planned next-day load", fill: [243, 244, 246] as [number, number, number] },
+    ];
+    for (const [index, card] of summaryCards.entries()) {
+      const col = index % 2;
+      const row = Math.floor(index / 2);
+      const x = margin + col * (cardW + 12);
+      const top = cardTop + row * (cardH + 10);
+      doc.setFillColor(card.fill[0], card.fill[1], card.fill[2]);
+      doc.roundedRect(x, top, cardW, cardH, 10, 10, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(55, 65, 81);
+      doc.text(card.title, x + 12, top + 18);
+      doc.setFontSize(20);
+      doc.setTextColor(15, 23, 42);
+      doc.text(card.value, x + 12, top + 42);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(card.hint, x + cardW - 12, top + 18, { align: "right" });
     }
+    y = cardTop + cardH * 2 + 28;
 
-    y += 6;
-    writeLine("Intervals", { size: 13, bold: true });
-    for (const entry of statsViewModel.intervals) {
-      writeLine(`${entry.label}: ${entry.value}`);
+    sectionTitle(
+      "Today at a Glance",
+      `Studied ${fmt.format(today.studied)} cards in ${fmt.format(today.minutes)} minutes. Again count: ${fmt.format(today.again)}.`,
+    );
+    ensureSpace(74);
+    const correctX = margin;
+    const correctW = contentWidth / 2 - 8;
+    const mixX = margin + contentWidth / 2 + 8;
+    const mixW = contentWidth / 2 - 8;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(31, 41, 55);
+    doc.text(`Correct Answers (${asPct(today.correctPct)}%)`, correctX, y);
+    drawProgressBar(correctX, y + 8, correctW, 12, today.correctPct, [34, 197, 94]);
+    const todayTypeTotal = Math.max(1, statsViewModel.todayTypeTotal);
+    const mix = [
+      { label: "Learn", value: today.learn, color: [59, 130, 246] as [number, number, number] },
+      { label: "Review", value: today.review, color: [34, 197, 94] as [number, number, number] },
+      { label: "Relearn", value: today.relearn, color: [245, 158, 11] as [number, number, number] },
+      { label: "Filtered", value: today.filtered, color: [139, 92, 246] as [number, number, number] },
+    ];
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(31, 41, 55);
+    doc.text(`Session Mix (${fmt.format(todayTypeTotal)} reps)`, mixX, y);
+    let mixOffset = 0;
+    for (const entry of mix) {
+      const segment = (mixW * entry.value) / todayTypeTotal;
+      if (segment > 0) {
+        doc.setFillColor(entry.color[0], entry.color[1], entry.color[2]);
+        doc.roundedRect(mixX + mixOffset, y + 8, segment, 12, 2, 2, "F");
+      }
+      mixOffset += segment;
     }
-
-    y += 6;
-    writeLine("Card Counts", { size: 13, bold: true });
-    for (const entry of statsViewModel.pieSlices) {
-      writeLine(`${entry.key}: ${entry.value}`);
+    let legendY = y + 32;
+    for (const entry of mix) {
+      doc.setFillColor(entry.color[0], entry.color[1], entry.color[2]);
+      doc.rect(mixX, legendY - 7, 8, 8, "F");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(55, 65, 81);
+      const share = `${Math.round((entry.value / todayTypeTotal) * 100)}%`;
+      doc.text(`${entry.label}: ${fmt.format(entry.value)} (${share})`, mixX + 14, legendY);
+      legendY += 12;
     }
+    y += 88;
 
-    y += 6;
-    writeLine("Retention", { size: 13, bold: true });
-    writeLine(`Last 30 days: ${stats.retention?.month ?? 0}%`);
-    writeLine(`Last year: ${stats.retention?.year ?? 0}%`);
+    const forecastItems = statsViewModel.forecast.map((entry) => ({ label: shortDay(entry.day), value: entry.due }));
+    drawBars(
+      "Upcoming Workload",
+      `Projected due cards (${stats.forecastMode === "weekly" ? "weekly" : "daily"} view).`,
+      forecastItems,
+      [14, 165, 233],
+      12,
+    );
+
+    drawBars(
+      "Interval Distribution",
+      "How far cards have progressed in the spacing schedule.",
+      statsViewModel.intervals.map((entry) => ({ label: entry.label, value: entry.value })),
+      [37, 99, 235],
+      5,
+    );
+
+    const pieTotal = Math.max(1, statsViewModel.pieTotal);
+    drawBars(
+      "Card State Composition",
+      "Current card inventory by status.",
+      statsViewModel.pieSlices.map((entry) => ({ label: entry.key, value: entry.value })),
+      [16, 185, 129],
+      4,
+    );
+    ensureSpace(42);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(75, 85, 99);
+    doc.text(`Total tracked in composition: ${fmt.format(pieTotal)} cards`, margin, y);
+    y += 18;
+
+    sectionTitle("Retention Trend", "True retention benchmarked against short and long windows.");
+    ensureSpace(64);
+    const monthRetention = asPct(stats.retention?.month ?? 0);
+    const yearRetention = asPct(stats.retention?.year ?? 0);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(55, 65, 81);
+    doc.text(`Last 30 days: ${monthRetention}%`, margin, y + 10);
+    drawProgressBar(margin + 120, y + 2, contentWidth - 126, 10, monthRetention, [59, 130, 246]);
+    y += 22;
+    doc.text(`Last year: ${yearRetention}%`, margin, y + 10);
+    drawProgressBar(margin + 120, y + 2, contentWidth - 126, 10, yearRetention, [6, 182, 212]);
+    y += 26;
+
+    const forecastTotal = statsViewModel.forecast.reduce((sum, entry) => sum + entry.due, 0);
+    const firstHalf = statsViewModel.forecast.slice(0, Math.max(1, Math.floor(statsViewModel.forecast.length / 2))).reduce((sum, entry) => sum + entry.due, 0);
+    const secondHalf = statsViewModel.forecast.slice(Math.max(1, Math.floor(statsViewModel.forecast.length / 2))).reduce((sum, entry) => sum + entry.due, 0);
+    const trendDirection = firstHalf > secondHalf ? "easing" : firstHalf < secondHalf ? "rising" : "steady";
+    const strongestInterval = statsViewModel.intervals.reduce(
+      (best, entry) => (entry.value > best.value ? entry : best),
+      { label: "N/A", value: 0 },
+    );
+    const nextDayLoadPct = stats.summary.totalCards > 0 ? Math.round((stats.summary.dueTomorrow / stats.summary.totalCards) * 100) : 0;
+    const insights = [
+      `Workload is ${trendDirection}: first segment ${fmt.format(firstHalf)} due vs second segment ${fmt.format(secondHalf)} due (${fmt.format(forecastTotal)} total forecasted).`,
+      `Largest maturity bucket is "${strongestInterval.label}" with ${fmt.format(strongestInterval.value)} cards.`,
+      `Tomorrow's due load is ${fmt.format(stats.summary.dueTomorrow)} cards (${nextDayLoadPct}% of total cards).`,
+      `Overall retention is ${asPct(stats.summary.retentionRate)}% (${asTone(stats.summary.retentionRate)}).`,
+    ];
+    ensureSpace(24 + insights.length * 16);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, y, contentWidth, 18 + insights.length * 16, 8, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Interpretation", margin + 12, y + 13);
+    let insightY = y + 28;
+    for (const line of insights) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(51, 65, 85);
+      const rendered = doc.splitTextToSize(`- ${line}`, contentWidth - 24);
+      doc.text(rendered, margin + 12, insightY);
+      insightY += rendered.length * 12;
+    }
 
     if (window.desktopApi) {
       const pick = await window.desktopApi.pickSavePath({
