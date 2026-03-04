@@ -1409,20 +1409,26 @@ export const DecksWorkspace = () => {
 
           {(customStudyMode === "forgotten" || customStudyMode === "ahead" || customStudyMode === "preview_new") && (
             <div>
-              <FieldLabel>
-                {customStudyMode === "forgotten"
-                  ? "Review cards forgotten in the last X days"
-                  : customStudyMode === "ahead"
-                    ? "Review cards due in the next X days"
-                    : "Preview new cards added in the last X days"}
-              </FieldLabel>
-              <TextField
-                type="number"
-                min={1}
-                max={365}
-                value={String(customStudyDays)}
-                onChange={(event) => setCustomStudyDays(Math.max(1, Number(event.target.value || "1")))}
-              />
+              <FieldLabel htmlFor="custom-study-days">Days Window</FieldLabel>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span>
+                  {customStudyMode === "forgotten"
+                    ? "Review cards forgotten in the last"
+                    : customStudyMode === "ahead"
+                      ? "Review cards due in the next"
+                      : "Preview new cards added in the last"}
+                </span>
+                <TextField
+                  id="custom-study-days"
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={String(customStudyDays)}
+                  onChange={(event) => setCustomStudyDays(Math.max(1, Number(event.target.value || "1")))}
+                  className="w-24"
+                />
+                <span>days</span>
+              </div>
             </div>
           )}
 
