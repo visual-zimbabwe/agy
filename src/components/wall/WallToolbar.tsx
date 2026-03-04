@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
 import {
   toolbarBtn,
   toolbarBtnActive,
 } from "@/components/wall/wallChromeClasses";
+import {
+  createWorkspaceWindowId,
+  parseWorkspaceLinked,
+  workspaceChannelName,
+  workspaceLinkedStorageKey,
+  type WorkspaceEnvelope,
+} from "@/lib/workspace-sync";
 
 type LayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags";
 type LayoutPreferences = Record<LayoutPreferenceKey, boolean>;
@@ -40,9 +48,83 @@ export const WallToolbar = ({
   onToggleQuickCapture,
   onTogglePresentationMode,
 }: WallToolbarProps) => {
+  const [linkedWindows, setLinkedWindows] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+    return parseWorkspaceLinked(window.localStorage.getItem(workspaceLinkedStorageKey));
+  });
+  const [activeDeckId, setActiveDeckId] = useState("");
+  const [activeDeckName, setActiveDeckName] = useState("");
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const windowIdRef = useRef<string>(createWorkspaceWindowId());
   const showSecondaryActions = !presentationMode;
   const toolsAction = !publishedReadOnly && !presentationMode && layoutPrefs.showToolsPanel;
   const detailsAction = !presentationMode && layoutPrefs.showDetailsPanel;
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(workspaceLinkedStorageKey, linkedWindows ? "1" : "0");
+  }, [linkedWindows]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
+      return;
+    }
+    const channel = new BroadcastChannel(workspaceChannelName);
+    channelRef.current = channel;
+
+    const emit = (event: WorkspaceEnvelope["event"]) => {
+      const payload: WorkspaceEnvelope = {
+        sourceId: windowIdRef.current,
+        sourceRole: "wall",
+        sentAt: Date.now(),
+        event,
+      };
+      channel.postMessage(payload);
+    };
+
+    const heartbeat = () => emit({ type: "presence" });
+    heartbeat();
+    const timer = window.setInterval(heartbeat, 12_000);
+
+    channel.onmessage = (message: MessageEvent<WorkspaceEnvelope>) => {
+      const payload = message.data;
+      if (!payload || payload.sourceId === windowIdRef.current || !linkedWindows) {
+        return;
+      }
+      if (payload.event.type === "open_window" && payload.event.target === "wall") {
+        window.focus();
+        return;
+      }
+      if (payload.event.type === "deck_selection") {
+        setActiveDeckId(payload.event.deckId);
+        setActiveDeckName(payload.event.deckName);
+      }
+    };
+
+    return () => {
+      window.clearInterval(timer);
+      channel.close();
+      channelRef.current = null;
+    };
+  }, [linkedWindows]);
+
+  const openDecksWindow = () => {
+    const target = activeDeckId ? `/decks?deckId=${encodeURIComponent(activeDeckId)}` : "/decks";
+    window.open(target, "idea-wall-decks-window", "width=1320,height=920");
+    if (linkedWindows && channelRef.current) {
+      const payload: WorkspaceEnvelope = {
+        sourceId: windowIdRef.current,
+        sourceRole: "wall",
+        sentAt: Date.now(),
+        event: { type: "open_window", target: "decks" },
+      };
+      channelRef.current.postMessage(payload);
+    }
+  };
 
   return (
     <>
@@ -79,6 +161,28 @@ export const WallToolbar = ({
                 <span>Decks</span>
               </Link>
             </ControlTooltip>
+            <ControlTooltip label="Open decks in separate window" side="top">
+              <button type="button" onClick={openDecksWindow} className={toolbarBtn} title="Open decks in separate window">
+                <Icon name="panel-right" />
+                <span>Decks Window</span>
+              </button>
+            </ControlTooltip>
+            <ControlTooltip label={linkedWindows ? "Linked windows on" : "Linked windows off"} side="top">
+              <button
+                type="button"
+                onClick={() => setLinkedWindows((previous) => !previous)}
+                className={linkedWindows ? toolbarBtnActive : toolbarBtn}
+                title={linkedWindows ? "Disable linked windows" : "Enable linked windows"}
+              >
+                <Icon name="link" />
+                <span>Linked</span>
+              </button>
+            </ControlTooltip>
+            {linkedWindows && activeDeckName && (
+              <span className="ml-1 hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text-muted)] lg:inline-flex">
+                Deck: {activeDeckName}
+              </span>
+            )}
             {toolsAction && (
               <ControlTooltip label={leftPanelOpen ? "Hide tools panel" : "Show tools panel"} side="top">
                 <button

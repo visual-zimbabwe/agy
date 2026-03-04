@@ -1,11 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { FieldLabel, SelectField, TextAreaField, TextField } from "@/components/ui/Field";
 import { ModalShell } from "@/components/ui/ModalShell";
+import {
+  createWorkspaceWindowId,
+  parseWorkspaceLinked,
+  workspaceChannelName,
+  workspaceLinkedStorageKey,
+  type WorkspaceEnvelope,
+} from "@/lib/workspace-sync";
 
 type DeckCounts = { newCount: number; learningCount: number; reviewCount: number };
 
@@ -164,6 +172,7 @@ const parseImportText = (raw: string): ParsedImportFile => {
 };
 
 export const DecksWorkspace = () => {
+  const searchParams = useSearchParams();
   const [view, setView] = useState<View>("decks");
   const [toolbarModal, setToolbarModal] = useState<ToolbarModal>("none");
   const [decks, setDecks] = useState<Deck[]>([]);
@@ -200,7 +209,25 @@ export const DecksWorkspace = () => {
     total: 0,
     imported: 0,
   });
+  const [linkedWindows, setLinkedWindows] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+    return parseWorkspaceLinked(window.localStorage.getItem(workspaceLinkedStorageKey));
+  });
+  const [wallOnline, setWallOnline] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const windowIdRef = useRef<string>(createWorkspaceWindowId());
+  const wallSeenAtRef = useRef<number>(0);
+  const routeDeckId = searchParams.get("deckId") ?? "";
+  const appliedRouteDeckIdRef = useRef<string>("");
+
+  const safeRun = useCallback((run: () => Promise<void>) => {
+    void run().catch((error) => {
+      setStatusMessage(error instanceof Error ? error.message : "Action failed.");
+    });
+  }, []);
 
   const loadDeckData = useCallback(async () => {
     const response = await fetch("/api/decks", { cache: "no-store" });
@@ -296,6 +323,109 @@ export const DecksWorkspace = () => {
   }, [loadDeckData, loadImportPresets]);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(workspaceLinkedStorageKey, linkedWindows ? "1" : "0");
+  }, [linkedWindows]);
+
+  useEffect(() => {
+    if (!routeDeckId || decks.length === 0 || appliedRouteDeckIdRef.current === routeDeckId) {
+      return;
+    }
+    if (decks.some((deck) => deck.id === routeDeckId)) {
+      appliedRouteDeckIdRef.current = routeDeckId;
+      setStudyDeckId(routeDeckId);
+      setView("study");
+      safeRun(() => loadStudyCard(routeDeckId));
+    }
+  }, [decks, loadStudyCard, routeDeckId, safeRun]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
+      return;
+    }
+    const channel = new BroadcastChannel(workspaceChannelName);
+    channelRef.current = channel;
+
+    const emit = (event: WorkspaceEnvelope["event"]) => {
+      const payload: WorkspaceEnvelope = {
+        sourceId: windowIdRef.current,
+        sourceRole: "decks",
+        sentAt: Date.now(),
+        event,
+      };
+      channel.postMessage(payload);
+    };
+
+    const sendPresence = () => emit({ type: "presence" });
+    sendPresence();
+    const heartbeat = window.setInterval(sendPresence, 12_000);
+    const wallStatusTick = window.setInterval(() => {
+      setWallOnline(Date.now() - wallSeenAtRef.current < 20_000);
+    }, 2_000);
+
+    channel.onmessage = (message: MessageEvent<WorkspaceEnvelope>) => {
+      const payload = message.data;
+      if (!payload || payload.sourceId === windowIdRef.current) {
+        return;
+      }
+
+      if (payload.sourceRole === "wall" && payload.event.type === "presence") {
+        wallSeenAtRef.current = payload.sentAt;
+        setWallOnline(true);
+      }
+
+      if (!linkedWindows) {
+        return;
+      }
+
+      if (payload.event.type === "open_window" && payload.event.target === "decks") {
+        window.focus();
+        return;
+      }
+
+      if (payload.event.type === "deck_selection") {
+        const deckId = payload.event.deckId;
+        if (deckId !== studyDeckId) {
+          setStudyDeckId(deckId);
+          setView("study");
+          safeRun(() => loadStudyCard(deckId));
+        }
+        return;
+      }
+
+      if (payload.event.type === "decks_changed") {
+        safeRun(loadDeckData);
+      }
+    };
+
+    return () => {
+      window.clearInterval(heartbeat);
+      window.clearInterval(wallStatusTick);
+      channel.close();
+      channelRef.current = null;
+    };
+  }, [linkedWindows, loadDeckData, loadStudyCard, safeRun, studyDeckId]);
+
+  useEffect(() => {
+    if (!linkedWindows || !studyDeckId || !channelRef.current) {
+      return;
+    }
+    const selectedDeck = decks.find((deck) => deck.id === studyDeckId);
+    if (!selectedDeck) {
+      return;
+    }
+    const payload: WorkspaceEnvelope = {
+      sourceId: windowIdRef.current,
+      sourceRole: "decks",
+      sentAt: Date.now(),
+      event: { type: "deck_selection", deckId: selectedDeck.id, deckName: selectedDeck.name },
+    };
+    channelRef.current.postMessage(payload);
+  }, [decks, linkedWindows, studyDeckId]);
+
+  useEffect(() => {
     const selectedDeck = decks.find((deck) => deck.id === studyDeckId);
     setRenameDeckName(selectedDeck?.name ?? "");
   }, [decks, studyDeckId]);
@@ -303,6 +433,19 @@ export const DecksWorkspace = () => {
   const selectedNoteType = useMemo(() => noteTypes.find((entry) => entry.id === addNoteTypeId) ?? null, [addNoteTypeId, noteTypes]);
   const selectedRow = useMemo(() => browseRows.find((row) => row.id === selectedRowId) ?? null, [browseRows, selectedRowId]);
   const childDecks = useMemo(() => decks.filter((deck) => deck.parent_id === studyDeckId), [decks, studyDeckId]);
+
+  const emitDecksChanged = () => {
+    if (!linkedWindows || !channelRef.current) {
+      return;
+    }
+    const payload: WorkspaceEnvelope = {
+      sourceId: windowIdRef.current,
+      sourceRole: "decks",
+      sentAt: Date.now(),
+      event: { type: "decks_changed" },
+    };
+    channelRef.current.postMessage(payload);
+  };
 
   const handleCreateDeck = async () => {
     const response = await fetch("/api/decks", {
@@ -317,6 +460,7 @@ export const DecksWorkspace = () => {
     setDeckName("");
     setNewDeckParentId("");
     await loadDeckData();
+    emitDecksChanged();
     setStatusMessage("Deck created.");
   };
 
@@ -342,6 +486,7 @@ export const DecksWorkspace = () => {
     setStudyCard(null);
     setShowAnswer(false);
     await Promise.all([loadDeckData(), loadBrowse(), loadStats()]);
+    emitDecksChanged();
     setStatusMessage("Deck cleared.");
   };
 
@@ -363,6 +508,7 @@ export const DecksWorkspace = () => {
       throw new Error(payload.error ?? "Failed to rename deck.");
     }
     await loadDeckData();
+    emitDecksChanged();
     setStatusMessage("Deck renamed.");
   };
 
@@ -388,6 +534,7 @@ export const DecksWorkspace = () => {
     setAddFields({});
     setAddTags("");
     await loadDeckData();
+    emitDecksChanged();
     setStatusMessage("Note created.");
   };
 
@@ -405,6 +552,7 @@ export const DecksWorkspace = () => {
       throw new Error(payload.error ?? "Failed to rate card.");
     }
     await Promise.all([loadStudyCard(), loadDeckData()]);
+    emitDecksChanged();
   };
 
   const handleBrowsePatch = async (patch: Record<string, unknown>) => {
@@ -438,6 +586,7 @@ export const DecksWorkspace = () => {
     }
     setSelectedRowIds([]);
     await loadBrowse();
+    emitDecksChanged();
   };
 
   const applyPreset = (preset: ImportPreset) => {
@@ -527,13 +676,8 @@ export const DecksWorkspace = () => {
     setToolbarModal("none");
     setImportFile(null);
     await loadDeckData();
+    emitDecksChanged();
     setStatusMessage(`Import complete: ${imported} notes added.`);
-  };
-
-  const safeRun = (run: () => Promise<void>) => {
-    void run().catch((error) => {
-      setStatusMessage(error instanceof Error ? error.message : "Action failed.");
-    });
   };
 
   const switchView = (nextView: View) => {
@@ -549,6 +693,20 @@ export const DecksWorkspace = () => {
     }
   };
 
+  const openWallWindow = () => {
+    window.open("/wall", "idea-wall-wall-window", "width=1460,height=920");
+    if (!linkedWindows || !channelRef.current) {
+      return;
+    }
+    const payload: WorkspaceEnvelope = {
+      sourceId: windowIdRef.current,
+      sourceRole: "decks",
+      sentAt: Date.now(),
+      event: { type: "open_window", target: "wall" },
+    };
+    channelRef.current.postMessage(payload);
+  };
+
   return (
     <main className="route-shell text-[var(--color-text)]">
       <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 pb-8 pt-4 sm:px-6">
@@ -561,6 +719,21 @@ export const DecksWorkspace = () => {
             <Button onClick={() => switchView("stats")}>Stats</Button>
           </div>
           <div className="flex items-center gap-2">
+            <Button size="sm" variant={linkedWindows ? "secondary" : "ghost"} onClick={() => setLinkedWindows((previous) => !previous)}>
+              {linkedWindows ? "Linked: On" : "Linked: Off"}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={openWallWindow}>
+              Open Wall Window
+            </Button>
+            <span
+              className={`rounded-[var(--radius-md)] border px-2 py-1 text-[11px] ${
+                wallOnline
+                  ? "border-emerald-300/70 bg-emerald-100/70 text-emerald-900"
+                  : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]"
+              }`}
+            >
+              Wall {wallOnline ? "Online" : "Offline"}
+            </span>
             <Link href="/wall" className="rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold">
               Back to Wall
             </Link>
