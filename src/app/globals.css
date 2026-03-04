@@ -42,6 +42,61 @@
   --font-hand-stack: "Nunito", "Trebuchet MS", sans-serif;
 }
 
+html[data-theme-preference="light"] {
+  --background: #f8f6f1;
+  --foreground: #1f2430;
+  --color-surface: #fffefb;
+  --color-surface-muted: #f4f1ea;
+  --color-surface-elevated: rgb(255 255 255 / 0.94);
+  --color-surface-glass: rgb(255 255 255 / 0.8);
+  --color-border: #d9d4c7;
+  --color-border-muted: #e8e3d8;
+  --color-text: #1f2430;
+  --color-text-muted: #5f6676;
+  --color-overlay: rgb(24 32 44 / 0.2);
+}
+
+html[data-theme-preference="dark"] {
+  --background: #0e141c;
+  --foreground: #e5edf5;
+  --color-surface: #131c26;
+  --color-surface-muted: #1a2430;
+  --color-surface-elevated: rgb(19 28 38 / 0.96);
+  --color-surface-glass: rgb(19 28 38 / 0.86);
+  --color-border: #2d3a48;
+  --color-border-muted: #354454;
+  --color-text: #e5edf5;
+  --color-text-muted: #9badc1;
+  --color-accent: #4f9cd6;
+  --color-accent-strong: #2f7db8;
+  --color-accent-soft: #1f3d57;
+  --color-accent-foreground: #ecf5ff;
+  --color-overlay: rgb(7 10 16 / 0.56);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme-preference="system"] {
+    --background: #0e141c;
+    --foreground: #e5edf5;
+    --color-surface: #131c26;
+    --color-surface-muted: #1a2430;
+    --color-surface-elevated: rgb(19 28 38 / 0.96);
+    --color-surface-glass: rgb(19 28 38 / 0.86);
+    --color-border: #2d3a48;
+    --color-border-muted: #354454;
+    --color-text: #e5edf5;
+    --color-text-muted: #9badc1;
+    --color-accent: #4f9cd6;
+    --color-accent-strong: #2f7db8;
+    --color-accent-soft: #1f3d57;
+    --color-accent-foreground: #ecf5ff;
+    --color-overlay: rgb(7 10 16 / 0.56);
+    --color-atmosphere-gold: rgb(250 204 21 / 0.06);
+    --color-atmosphere-sea: rgb(56 189 248 / 0.12);
+    --color-atmosphere-mint: rgb(34 197 94 / 0.08);
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -62,7 +117,7 @@ body {
 }
 
 body {
-  background: radial-gradient(circle at top left, #fdf1b2 0, #fff6d8 35%, #f8f6f1 100%);
+  background: radial-gradient(circle at top left, #fdf1b2 0, #fff6d8 35%, var(--background) 100%);
   color: var(--foreground);
   font-family: var(--font-body);
   text-rendering: optimizeLegibility;
@@ -92,7 +147,7 @@ textarea {
     radial-gradient(circle at 10% 18%, var(--color-atmosphere-gold) 0, transparent 35%),
     radial-gradient(circle at 86% 16%, var(--color-atmosphere-sea) 0, transparent 40%),
     radial-gradient(circle at 78% 88%, var(--color-atmosphere-mint) 0, transparent 36%),
-    linear-gradient(140deg, #f8efe0 0%, #f4f7ec 55%, #ebf3f7 100%);
+    linear-gradient(140deg, color-mix(in oklab, var(--background), #f8efe0 42%) 0%, color-mix(in oklab, var(--background), #f4f7ec 42%) 55%, color-mix(in oklab, var(--background), #ebf3f7 42%) 100%);
 }
 
 .route-shell::before {

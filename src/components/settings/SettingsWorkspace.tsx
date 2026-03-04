@@ -24,6 +24,7 @@ type SettingsWorkspaceProps = {
 };
 
 const profileUpdatedEventName = "idea-wall-profile-updated";
+const preferencesUpdatedEventName = "idea-wall-preferences-updated";
 
 type WallLayoutPrefs = {
   showToolsPanel: boolean;
@@ -85,11 +86,11 @@ const SettingRow = ({
 );
 
 const SelectControl = ({ value, onChange, options, label }: { value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }>; label: string }) => (
-  <label className="inline-flex items-center gap-2 rounded-full border border-[#d7d1c4] bg-[#f6f4ef] px-4 py-1.5 text-sm text-[#1f2937] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+  <label className="inline-flex h-10 items-center gap-2 rounded-full border border-[#d7d1c4] bg-[#f6f4ef] px-4 text-sm text-[#1f2937] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="min-w-40 appearance-none bg-transparent pr-1 text-right outline-none"
+      className="min-w-44 appearance-none bg-transparent pr-1 text-right outline-none"
       aria-label={label}
     >
       {options.map((option) => (
@@ -98,7 +99,7 @@ const SelectControl = ({ value, onChange, options, label }: { value: string; onC
         </option>
       ))}
     </select>
-    <span className="text-[10px] text-[#6b7280]">v</span>
+    <span className="text-[11px] text-[#6b7280]">▾</span>
   </label>
 );
 
@@ -364,6 +365,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   const onSavePreferences = () => {
     persistPreferences(preferenceState);
     applyPreferencesToDocument(preferenceState);
+    window.dispatchEvent(new CustomEvent(preferencesUpdatedEventName));
     writeKeyboardColorSlots(keyboardColorSlots);
     window.localStorage.setItem(layoutPrefsStorageKey, JSON.stringify(wallLayoutPrefs));
     window.localStorage.setItem(controlsModeStorageKey, controlsMode);

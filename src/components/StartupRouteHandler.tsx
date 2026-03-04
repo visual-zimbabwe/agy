@@ -3,14 +3,28 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-import { preferenceStorageKeys, readStoredPreferences } from "@/lib/preferences";
+import { applyPreferencesToDocument, preferenceStorageKeys, readStoredPreferences } from "@/lib/preferences";
 
 const allowedStartupPaths = new Set(["/wall", "/decks"]);
+const preferencesUpdatedEventName = "idea-wall-preferences-updated";
 
 export const StartupRouteHandler = () => {
   const pathname = usePathname();
   const router = useRouter();
   const handledHomeRedirectRef = useRef(false);
+
+  useEffect(() => {
+    const applyLatest = () => {
+      applyPreferencesToDocument(readStoredPreferences());
+    };
+    applyLatest();
+    window.addEventListener("storage", applyLatest);
+    window.addEventListener(preferencesUpdatedEventName, applyLatest);
+    return () => {
+      window.removeEventListener("storage", applyLatest);
+      window.removeEventListener(preferencesUpdatedEventName, applyLatest);
+    };
+  }, []);
 
   useEffect(() => {
     if (!pathname) {
