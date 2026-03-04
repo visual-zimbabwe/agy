@@ -47,10 +47,14 @@ export const WallToolbar = ({
 }: WallToolbarProps) => {
   const [activeDeckId, setActiveDeckId] = useState("");
   const [activeDeckName, setActiveDeckName] = useState("");
+  const [isDecksOnline, setIsDecksOnline] = useState(false);
+  const [hasLiveDeckSelection, setHasLiveDeckSelection] = useState(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const windowIdRef = useRef<string>(createWorkspaceWindowId());
   const decksSeenAtRef = useRef<number>(0);
   const activeDeckNameRef = useRef("");
+  const isDecksOnlineRef = useRef(false);
+  const hasLiveDeckSelectionRef = useRef(false);
   const showSecondaryActions = !presentationMode;
   const toolsAction = !publishedReadOnly && !presentationMode && layoutPrefs.showToolsPanel;
   const detailsAction = !presentationMode && layoutPrefs.showDetailsPanel;
@@ -58,6 +62,14 @@ export const WallToolbar = ({
   useEffect(() => {
     activeDeckNameRef.current = activeDeckName;
   }, [activeDeckName]);
+
+  useEffect(() => {
+    isDecksOnlineRef.current = isDecksOnline;
+  }, [isDecksOnline]);
+
+  useEffect(() => {
+    hasLiveDeckSelectionRef.current = hasLiveDeckSelection;
+  }, [hasLiveDeckSelection]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
@@ -80,10 +92,12 @@ export const WallToolbar = ({
     heartbeat();
     const timer = window.setInterval(heartbeat, 12_000);
     const decksStatusTick = window.setInterval(() => {
-      if (!activeDeckNameRef.current) {
+      if (Date.now() - decksSeenAtRef.current <= 20_000) {
         return;
       }
-      if (Date.now() - decksSeenAtRef.current > 20_000) {
+      if (isDecksOnlineRef.current || hasLiveDeckSelectionRef.current || activeDeckNameRef.current) {
+        setIsDecksOnline(false);
+        setHasLiveDeckSelection(false);
         setActiveDeckId("");
         setActiveDeckName("");
       }
@@ -96,6 +110,7 @@ export const WallToolbar = ({
       }
       if (payload.sourceRole === "decks" && payload.event.type === "presence") {
         decksSeenAtRef.current = payload.sentAt;
+        setIsDecksOnline(true);
         return;
       }
       if (payload.event.type === "open_window" && payload.event.target === "wall") {
@@ -103,14 +118,24 @@ export const WallToolbar = ({
         return;
       }
       if (payload.event.type === "decks_closed") {
+        setIsDecksOnline(false);
+        setHasLiveDeckSelection(false);
         setActiveDeckId("");
         setActiveDeckName("");
         return;
       }
       if (payload.event.type === "deck_selection") {
         decksSeenAtRef.current = payload.sentAt;
+        setIsDecksOnline(true);
+        setHasLiveDeckSelection(true);
         setActiveDeckId(payload.event.deckId);
         setActiveDeckName(payload.event.deckName);
+        return;
+      }
+      if (payload.event.type === "deck_selection_cleared") {
+        setHasLiveDeckSelection(false);
+        setActiveDeckId("");
+        setActiveDeckName("");
       }
     };
 
@@ -121,6 +146,8 @@ export const WallToolbar = ({
       channelRef.current = null;
     };
   }, []);
+
+  const showDeckBadge = isDecksOnline && hasLiveDeckSelection && Boolean(activeDeckName);
 
   const openDecksWindow = () => {
     const target = activeDeckId ? `/decks?deckId=${encodeURIComponent(activeDeckId)}` : "/decks";
@@ -176,7 +203,7 @@ export const WallToolbar = ({
                 <span>Decks</span>
               </button>
             </ControlTooltip>
-            {activeDeckName && (
+            {showDeckBadge && (
               <span className="ml-1 hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text-muted)] lg:inline-flex">
                 Deck: {activeDeckName}
               </span>

@@ -394,11 +394,28 @@ export const DecksWorkspace = () => {
   }, [loadDeckData, loadStudyCard, safeRun, studyDeckId]);
 
   useEffect(() => {
-    if (!studyDeckId || !channelRef.current) {
+    if (!channelRef.current) {
+      return;
+    }
+    if (!studyDeckId) {
+      const payload: WorkspaceEnvelope = {
+        sourceId: windowIdRef.current,
+        sourceRole: "decks",
+        sentAt: Date.now(),
+        event: { type: "deck_selection_cleared" },
+      };
+      channelRef.current.postMessage(payload);
       return;
     }
     const selectedDeck = decks.find((deck) => deck.id === studyDeckId);
     if (!selectedDeck) {
+      const payload: WorkspaceEnvelope = {
+        sourceId: windowIdRef.current,
+        sourceRole: "decks",
+        sentAt: Date.now(),
+        event: { type: "deck_selection_cleared" },
+      };
+      channelRef.current.postMessage(payload);
       return;
     }
     const payload: WorkspaceEnvelope = {

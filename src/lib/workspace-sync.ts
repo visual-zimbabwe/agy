@@ -6,6 +6,7 @@ export type WorkspaceEvent =
   | { type: "presence" }
   | { type: "open_window"; target: WorkspaceRole }
   | { type: "deck_selection"; deckId: string; deckName: string }
+  | { type: "deck_selection_cleared" }
   | { type: "decks_changed" }
   | { type: "decks_closed" };
 
