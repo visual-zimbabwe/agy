@@ -11,9 +11,10 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 type ProfileMenuProps = {
   email: string;
   onOpenShortcuts: () => void;
+  onOpenSettings: () => void;
 };
 
-export const ProfileMenu = ({ email, onOpenShortcuts }: ProfileMenuProps) => {
+export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileMenuProps) => {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
@@ -146,7 +147,7 @@ export const ProfileMenu = ({ email, onOpenShortcuts }: ProfileMenuProps) => {
               className="w-full justify-start"
               role="menuitem"
               onClick={() => {
-                router.push("/settings");
+                onOpenSettings();
                 setOpen(false);
               }}
             >

@@ -42,6 +42,7 @@ type WallHeaderBarProps = {
   onToggleQuickCapture: () => void;
   onTogglePresentationMode: () => void;
   onOpenShortcuts: () => void;
+  onOpenSettings: () => void;
   onApplyColorToSelection: (color: string) => void;
   onSyncNow: () => void;
 };
@@ -74,6 +75,7 @@ export const WallHeaderBar = ({
   onToggleQuickCapture,
   onTogglePresentationMode,
   onOpenShortcuts,
+  onOpenSettings,
   onApplyColorToSelection,
   onSyncNow,
 }: WallHeaderBarProps) => {
@@ -126,7 +128,7 @@ export const WallHeaderBar = ({
               onSyncNow={onSyncNow}
             />
           )}
-          <ProfileMenu email={userEmail} onOpenShortcuts={onOpenShortcuts} />
+          <ProfileMenu email={userEmail} onOpenShortcuts={onOpenShortcuts} onOpenSettings={onOpenSettings} />
         </div>
       )}
     </header>

@@ -255,6 +255,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [activePresentationPathId, setActivePresentationPathId] = useState("");
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [clientPrefsLoaded, setClientPrefsLoaded] = useState(false);
   const previousSelectedNoteIdRef = useRef<string | undefined>(undefined);
   const detailsPanelAutoOpenedRef = useRef(false);
@@ -1859,6 +1860,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onToggleQuickCapture={() => setQuickCaptureOpen((previous) => !previous)}
         onTogglePresentationMode={togglePresentationMode}
         onOpenShortcuts={() => setShortcutsOpenTracked(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
         onApplyColorToSelection={applyColorToSelection}
         onSyncNow={syncNow}
       />
@@ -2290,7 +2292,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         }}
         onOpenFileConversion={() => setFileConversionOpen(true)}
         preferredFileConversionMode={preferredFileConversionMode}
+        isSettingsOpen={settingsOpen}
+        onCloseSettings={() => setSettingsOpen(false)}
+        userEmail={userEmail}
       />
     </div>
   );
 };
+

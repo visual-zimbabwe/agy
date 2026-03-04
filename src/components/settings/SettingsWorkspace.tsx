@@ -10,6 +10,7 @@ import { applyPreferencesToDocument, persistPreferences, readStoredPreferences, 
 
 type SettingsWorkspaceProps = {
   userEmail: string;
+  embedded?: boolean;
 };
 
 type WallLayoutPrefs = {
@@ -90,7 +91,7 @@ const ToggleControl = ({ checked, onChange }: { checked: boolean; onChange: (che
   </button>
 );
 
-export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
+export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorkspaceProps) => {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("appearance");
   const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
   const [reduceMotion, setReduceMotion] = useState(() => readStoredPreferences().reduceMotion);
@@ -150,9 +151,8 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
   const activeSectionMeta = settingsSections.find((section) => section.id === activeSection);
   const controlsModeLabel = controlsMode === "advanced" ? "Advanced" : "Basic";
 
-  return (
-    <main className="route-shell min-h-screen bg-[#f7f7f6] text-[#191919]">
-      <section className="mx-auto flex min-h-screen w-full max-w-[1180px] gap-0 px-0">
+  const content = (
+    <section className={`mx-auto flex w-full max-w-[1180px] gap-0 px-0 ${embedded ? "h-full min-h-0" : "min-h-screen"}`}>
         <aside className="w-[260px] border-r border-[#e7e6e4] bg-[#f1f1ef] p-5">
           <div className="rounded-lg bg-[#ececea] px-3 py-3">
             <p className="text-xs font-semibold text-[#4b5563]">Account</p>
@@ -183,16 +183,18 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
             <Button variant="secondary" size="sm" onClick={onSavePreferences}>
               Save settings
             </Button>
-            <Link
-              href="/wall"
-              className="inline-flex items-center justify-center rounded-md border border-[#d4d4d2] bg-white px-3 py-1.5 text-xs font-medium text-[#374151] hover:bg-[#f3f4f6]"
-            >
-              Back to wall
-            </Link>
+            {!embedded && (
+              <Link
+                href="/wall"
+                className="inline-flex items-center justify-center rounded-md border border-[#d4d4d2] bg-white px-3 py-1.5 text-xs font-medium text-[#374151] hover:bg-[#f3f4f6]"
+              >
+                Back to wall
+              </Link>
+            )}
           </div>
         </aside>
 
-        <article className="flex-1 bg-[#fafafa] p-5 sm:p-8">
+        <article className={`flex-1 bg-[#fafafa] p-5 sm:p-8 ${embedded ? "overflow-y-auto" : ""}`}>
           <header className="border-b border-[#e5e7eb] pb-4">
             <h1 className="text-[30px] font-semibold tracking-tight text-[#111827]">{activeSectionMeta?.label ?? "My settings"}</h1>
             <p className="mt-1 text-sm text-[#6b7280]">{activeSectionMeta?.description ?? "Manage your preferences."}</p>
@@ -360,6 +362,15 @@ export const SettingsWorkspace = ({ userEmail }: SettingsWorkspaceProps) => {
           </section>
         </article>
       </section>
+  );
+
+  if (embedded) {
+    return <div className="h-[min(78vh,760px)] min-h-[540px] w-full overflow-hidden rounded-xl bg-[#f7f7f6] text-[#191919]">{content}</div>;
+  }
+
+  return (
+    <main className="route-shell min-h-screen bg-[#f7f7f6] text-[#191919]">
+      {content}
     </main>
   );
 };
