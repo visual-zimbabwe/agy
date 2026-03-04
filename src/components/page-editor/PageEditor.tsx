@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 
 import { createPageSnapshotSaver, loadPageSnapshot } from "@/features/page/storage";
 import type { BlockCategory, BlockType, PageBlock } from "@/features/page/types";
@@ -289,6 +289,20 @@ export function PageEditor() {
     }
   };
 
+  const onCanvasClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+    setMenu(null);
+    if (lastBlockId) {
+      insertBlockAfter(lastBlockId, "text");
+      return;
+    }
+    const created = newBlock("text");
+    setBlocks([created]);
+    queueFocus(created.id);
+  };
+
   const renderInput = (block: PageBlock) => {
     const refSetter = (node: HTMLElement | null) => {
       inputRefs.current[block.id] = node;
@@ -543,7 +557,7 @@ export function PageEditor() {
           </div>
 
           <article className="relative mt-6">
-          <div className="space-y-1">
+          <div className="min-h-[66vh] cursor-text space-y-1 pb-16" onClick={onCanvasClick}>
             {blocks.map((block) => (
               <div key={block.id} className="group relative">
                 <button
