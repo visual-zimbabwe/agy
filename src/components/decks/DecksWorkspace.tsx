@@ -9,9 +9,7 @@ import { FieldLabel, SelectField, TextAreaField, TextField } from "@/components/
 import { ModalShell } from "@/components/ui/ModalShell";
 import {
   createWorkspaceWindowId,
-  parseWorkspaceLinked,
   workspaceChannelName,
-  workspaceLinkedStorageKey,
   type WorkspaceEnvelope,
 } from "@/lib/workspace-sync";
 
@@ -209,12 +207,6 @@ export const DecksWorkspace = () => {
     total: 0,
     imported: 0,
   });
-  const [linkedWindows, setLinkedWindows] = useState(() => {
-    if (typeof window === "undefined") {
-      return true;
-    }
-    return parseWorkspaceLinked(window.localStorage.getItem(workspaceLinkedStorageKey));
-  });
   const [wallOnline, setWallOnline] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -323,13 +315,6 @@ export const DecksWorkspace = () => {
   }, [loadDeckData, loadImportPresets]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.localStorage.setItem(workspaceLinkedStorageKey, linkedWindows ? "1" : "0");
-  }, [linkedWindows]);
-
-  useEffect(() => {
     if (!routeDeckId || decks.length === 0 || appliedRouteDeckIdRef.current === routeDeckId) {
       return;
     }
@@ -376,10 +361,6 @@ export const DecksWorkspace = () => {
         setWallOnline(true);
       }
 
-      if (!linkedWindows) {
-        return;
-      }
-
       if (payload.event.type === "open_window" && payload.event.target === "decks") {
         window.focus();
         return;
@@ -406,10 +387,10 @@ export const DecksWorkspace = () => {
       channel.close();
       channelRef.current = null;
     };
-  }, [linkedWindows, loadDeckData, loadStudyCard, safeRun, studyDeckId]);
+  }, [loadDeckData, loadStudyCard, safeRun, studyDeckId]);
 
   useEffect(() => {
-    if (!linkedWindows || !studyDeckId || !channelRef.current) {
+    if (!studyDeckId || !channelRef.current) {
       return;
     }
     const selectedDeck = decks.find((deck) => deck.id === studyDeckId);
@@ -423,7 +404,7 @@ export const DecksWorkspace = () => {
       event: { type: "deck_selection", deckId: selectedDeck.id, deckName: selectedDeck.name },
     };
     channelRef.current.postMessage(payload);
-  }, [decks, linkedWindows, studyDeckId]);
+  }, [decks, studyDeckId]);
 
   useEffect(() => {
     const selectedDeck = decks.find((deck) => deck.id === studyDeckId);
@@ -435,7 +416,7 @@ export const DecksWorkspace = () => {
   const childDecks = useMemo(() => decks.filter((deck) => deck.parent_id === studyDeckId), [decks, studyDeckId]);
 
   const emitDecksChanged = () => {
-    if (!linkedWindows || !channelRef.current) {
+    if (!channelRef.current) {
       return;
     }
     const payload: WorkspaceEnvelope = {
@@ -695,7 +676,7 @@ export const DecksWorkspace = () => {
 
   const openWallWindow = () => {
     window.open("/wall", "idea-wall-wall-window", "width=1460,height=920");
-    if (!linkedWindows || !channelRef.current) {
+    if (!channelRef.current) {
       return;
     }
     const payload: WorkspaceEnvelope = {
@@ -719,9 +700,6 @@ export const DecksWorkspace = () => {
             <Button onClick={() => switchView("stats")}>Stats</Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant={linkedWindows ? "secondary" : "ghost"} onClick={() => setLinkedWindows((previous) => !previous)}>
-              {linkedWindows ? "Linked: On" : "Linked: Off"}
-            </Button>
             <Button size="sm" variant="secondary" onClick={openWallWindow}>
               Open Wall Window
             </Button>

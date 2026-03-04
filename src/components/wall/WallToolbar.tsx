@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
@@ -10,9 +9,7 @@ import {
 } from "@/components/wall/wallChromeClasses";
 import {
   createWorkspaceWindowId,
-  parseWorkspaceLinked,
   workspaceChannelName,
-  workspaceLinkedStorageKey,
   type WorkspaceEnvelope,
 } from "@/lib/workspace-sync";
 
@@ -48,12 +45,6 @@ export const WallToolbar = ({
   onToggleQuickCapture,
   onTogglePresentationMode,
 }: WallToolbarProps) => {
-  const [linkedWindows, setLinkedWindows] = useState(() => {
-    if (typeof window === "undefined") {
-      return true;
-    }
-    return parseWorkspaceLinked(window.localStorage.getItem(workspaceLinkedStorageKey));
-  });
   const [activeDeckId, setActiveDeckId] = useState("");
   const [activeDeckName, setActiveDeckName] = useState("");
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -61,13 +52,6 @@ export const WallToolbar = ({
   const showSecondaryActions = !presentationMode;
   const toolsAction = !publishedReadOnly && !presentationMode && layoutPrefs.showToolsPanel;
   const detailsAction = !presentationMode && layoutPrefs.showDetailsPanel;
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.localStorage.setItem(workspaceLinkedStorageKey, linkedWindows ? "1" : "0");
-  }, [linkedWindows]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
@@ -92,7 +76,7 @@ export const WallToolbar = ({
 
     channel.onmessage = (message: MessageEvent<WorkspaceEnvelope>) => {
       const payload = message.data;
-      if (!payload || payload.sourceId === windowIdRef.current || !linkedWindows) {
+      if (!payload || payload.sourceId === windowIdRef.current) {
         return;
       }
       if (payload.event.type === "open_window" && payload.event.target === "wall") {
@@ -110,12 +94,12 @@ export const WallToolbar = ({
       channel.close();
       channelRef.current = null;
     };
-  }, [linkedWindows]);
+  }, []);
 
   const openDecksWindow = () => {
     const target = activeDeckId ? `/decks?deckId=${encodeURIComponent(activeDeckId)}` : "/decks";
     window.open(target, "idea-wall-decks-window", "width=1320,height=920");
-    if (linkedWindows && channelRef.current) {
+    if (channelRef.current) {
       const payload: WorkspaceEnvelope = {
         sourceId: windowIdRef.current,
         sourceRole: "wall",
@@ -155,30 +139,13 @@ export const WallToolbar = ({
           </ControlTooltip>
           {showSecondaryActions && (
             <>
-            <ControlTooltip label="Open decks workspace" side="top">
-              <Link href="/decks" className={toolbarBtn} title="Open decks workspace">
-                <Icon name="search" />
-                <span>Decks</span>
-              </Link>
-            </ControlTooltip>
             <ControlTooltip label="Open decks in separate window" side="top">
               <button type="button" onClick={openDecksWindow} className={toolbarBtn} title="Open decks in separate window">
                 <Icon name="panel-right" />
-                <span>Decks Window</span>
+                <span>Decks</span>
               </button>
             </ControlTooltip>
-            <ControlTooltip label={linkedWindows ? "Linked windows on" : "Linked windows off"} side="top">
-              <button
-                type="button"
-                onClick={() => setLinkedWindows((previous) => !previous)}
-                className={linkedWindows ? toolbarBtnActive : toolbarBtn}
-                title={linkedWindows ? "Disable linked windows" : "Enable linked windows"}
-              >
-                <Icon name="link" />
-                <span>Linked</span>
-              </button>
-            </ControlTooltip>
-            {linkedWindows && activeDeckName && (
+            {activeDeckName && (
               <span className="ml-1 hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text-muted)] lg:inline-flex">
                 Deck: {activeDeckName}
               </span>
