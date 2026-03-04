@@ -1390,7 +1390,13 @@ export const DecksWorkspace = () => {
               {customStudyMode === "increase_review" && (
                 <p className="mb-1 text-xs text-[var(--color-text-muted)]">Available review cards: {studyCounts.reviewCount}</p>
               )}
-              <FieldLabel>Card count</FieldLabel>
+              <FieldLabel>
+                {customStudyMode === "increase_new"
+                  ? "Add this many new cards to today’s study limit"
+                  : customStudyMode === "increase_review"
+                    ? "Add this many review cards to today’s study limit"
+                    : "Study up to this many matching cards"}
+              </FieldLabel>
               <TextField
                 type="number"
                 min={1}
@@ -1404,7 +1410,11 @@ export const DecksWorkspace = () => {
           {(customStudyMode === "forgotten" || customStudyMode === "ahead" || customStudyMode === "preview_new") && (
             <div>
               <FieldLabel>
-                {customStudyMode === "ahead" ? "Look-ahead days" : customStudyMode === "preview_new" ? "Recently added within days" : "Failed within days"}
+                {customStudyMode === "forgotten"
+                  ? "Review cards forgotten in the last X days"
+                  : customStudyMode === "ahead"
+                    ? "Review cards due in the next X days"
+                    : "Preview new cards added in the last X days"}
               </FieldLabel>
               <TextField
                 type="number"
