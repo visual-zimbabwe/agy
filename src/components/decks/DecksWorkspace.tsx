@@ -1552,7 +1552,7 @@ export const DecksWorkspace = () => {
                 </div>
               </div>
               <div>
-                <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button variant="secondary" onClick={openCustomStudyTagsModal}>
                     Choose Tags
                   </Button>
