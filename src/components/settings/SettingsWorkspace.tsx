@@ -10,6 +10,7 @@ import { controlsModeStorageKey, layoutPrefsStorageKey } from "@/components/wall
 import { defaultKeyboardColorSlots, readKeyboardColorSlots, writeKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import {
   applyPreferencesToDocument,
+  preferenceStorageKeys,
   persistPreferences,
   readStoredPreferences,
   type StartupBehavior,
@@ -384,6 +385,14 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   const controlsModeLabel = controlsMode === "advanced" ? "Advanced" : "Basic";
   const detectedTimezone = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
   const effectiveTimezone = autoTimezone ? detectedTimezone : manualTimezone;
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(preferenceStorageKeys.theme, theme);
+    document.documentElement.dataset.themePreference = theme;
+  }, [theme]);
 
   useEffect(() => {
     const loadProfile = async () => {
