@@ -11,7 +11,7 @@ const customStudySchema = z.object({
   mode: z.enum(["increase_new", "increase_review", "forgotten", "ahead", "preview_new", "state_tag"]),
   limit: z.number().int().min(1).max(500).optional(),
   days: z.number().int().min(1).max(365).optional(),
-  stateFilter: z.enum(["new", "due", "all"]).optional(),
+  stateFilter: z.enum(["new", "due", "all_random", "all_added", "all"]).optional(),
   tag: z.string().trim().max(80).optional(),
   tagsInclude: z.array(z.string().trim().min(1).max(80)).optional(),
   tagsExclude: z.array(z.string().trim().min(1).max(80)).optional(),
@@ -42,6 +42,21 @@ const clampLimit = (value: number | undefined, fallback: number) => {
 };
 
 const todayKeyUtc = () => new Date().toISOString().slice(0, 10);
+
+const shuffleCards = <T,>(input: T[]) => {
+  const arr = [...input];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const left = arr[i];
+    const right = arr[j];
+    if (left === undefined || right === undefined) {
+      continue;
+    }
+    arr[i] = right;
+    arr[j] = left;
+  }
+  return arr;
+};
 
 export async function POST(request: Request) {
   const auth = await requireApiUser();
@@ -254,7 +269,7 @@ export async function POST(request: Request) {
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .slice(0, clampLimit(input.limit, 50));
   } else if (input.mode === "state_tag") {
-    const stateFilter = input.stateFilter ?? "all";
+    const stateFilter = input.stateFilter === "all" ? "all_random" : input.stateFilter ?? "all_random";
     const includeTags = new Set(
       [...(input.tagsInclude ?? []), (input.tag ?? "").trim()]
         .map((tag) => tag.toLowerCase())
@@ -281,9 +296,13 @@ export async function POST(request: Request) {
       }
       return normalizedTags.some((tag) => includeTags.has(tag));
     });
-    selectedCards = pool
-      .sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? "") || a.created_at.localeCompare(b.created_at))
-      .slice(0, clampLimit(input.limit, 100));
+    const orderedPool =
+      stateFilter === "all_random"
+        ? shuffleCards(pool)
+        : stateFilter === "all_added" || stateFilter === "new"
+          ? [...pool].sort((a, b) => a.created_at.localeCompare(b.created_at))
+          : [...pool].sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? "") || a.created_at.localeCompare(b.created_at));
+    selectedCards = orderedPool.slice(0, clampLimit(input.limit, 100));
   }
 
   const counts = selectedCards.reduce(

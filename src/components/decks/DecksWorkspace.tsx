@@ -46,7 +46,7 @@ type StudyCard = {
 };
 
 type CustomStudyMode = "increase_new" | "increase_review" | "forgotten" | "ahead" | "preview_new" | "state_tag";
-type CustomStateFilter = "new" | "due" | "all";
+type CustomStateFilter = "new" | "due" | "all_random" | "all_added";
 
 type CustomStudySessionPayload = {
   mode: CustomStudyMode;
@@ -237,7 +237,7 @@ export const DecksWorkspace = () => {
   const [customStudyExcludedTags, setCustomStudyExcludedTags] = useState<string[]>([]);
   const [customStudyAvailableTags, setCustomStudyAvailableTags] = useState<string[]>([]);
   const [isLoadingCustomStudyTags, setIsLoadingCustomStudyTags] = useState(false);
-  const [customStudyStateFilter, setCustomStudyStateFilter] = useState<CustomStateFilter>("all");
+  const [customStudyStateFilter, setCustomStudyStateFilter] = useState<CustomStateFilter>("all_random");
   const [customStudyReschedule, setCustomStudyReschedule] = useState(true);
   const [isBuildingCustomStudy, setIsBuildingCustomStudy] = useState(false);
   const [customSession, setCustomSession] = useState<{ mode: CustomStudyMode; reschedule: boolean; cards: StudyCard[] } | null>(null);
@@ -1507,11 +1507,12 @@ export const DecksWorkspace = () => {
           {customStudyMode === "state_tag" && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <FieldLabel>Card state</FieldLabel>
+                <FieldLabel>Select</FieldLabel>
                 <SelectField value={customStudyStateFilter} onChange={(event) => setCustomStudyStateFilter(event.target.value as CustomStateFilter)}>
-                  <option value="new">New only</option>
-                  <option value="due">Due only</option>
-                  <option value="all">All cards</option>
+                  <option value="all_random">All cards in random order</option>
+                  <option value="all_added">All cards in order added</option>
+                  <option value="new">New cards only</option>
+                  <option value="due">Due cards only</option>
                 </SelectField>
               </div>
               <div>
@@ -1536,7 +1537,7 @@ export const DecksWorkspace = () => {
                   checked={customStudyReschedule}
                   onChange={(event) => setCustomStudyReschedule(event.target.checked)}
                 />
-                Reschedule cards based on answers in this custom session
+                Reschedule cards based on my answers in this deck
               </label>
               <p className="mt-2 text-xs text-[var(--color-text-muted)]">
                 Preview sessions default to no rescheduling. Other filtered sessions default to rescheduling.
