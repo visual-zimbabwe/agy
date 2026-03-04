@@ -35,6 +35,19 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileM
   const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
   const [reduceMotion, setReduceMotion] = useState(() => readStoredPreferences().reduceMotion);
   const [compactMode, setCompactMode] = useState(() => readStoredPreferences().compactMode);
+  const [preferredName, setPreferredName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data } = await supabase.auth.getUser();
+      const metadata = data.user?.user_metadata as Record<string, unknown> | undefined;
+      setPreferredName(typeof metadata?.full_name === "string" ? metadata.full_name : "");
+      setAvatarUrl(typeof metadata?.avatar_url === "string" ? metadata.avatar_url : "");
+    };
+    void loadProfile();
+  }, []);
 
   useEffect(() => {
     const preferences = { theme, reduceMotion, compactMode };
@@ -88,9 +101,14 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileM
         aria-controls={menuId}
         aria-haspopup="menu"
         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] text-[11px] font-semibold text-[var(--color-text)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)] transition-colors hover:bg-[var(--color-surface-muted)]"
-        title="Profile menu"
+        title={preferredName ? `${preferredName} (${email})` : email}
       >
-        {initials}
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt={preferredName || email} className="h-full w-full rounded-full object-cover" />
+        ) : (
+          initials
+        )}
       </button>
       {open && (
         <Panel
@@ -102,7 +120,8 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileM
         >
           <div className="rounded-[var(--radius-md)] border border-[var(--color-border-muted)] bg-[var(--color-surface-muted)] px-2.5 py-2">
             <p className="text-[11px] text-[var(--color-text-muted)]">Account</p>
-            <p className="truncate text-sm font-medium text-[var(--color-text)]">{email}</p>
+            <p className="truncate text-sm font-medium text-[var(--color-text)]">{preferredName || email}</p>
+            {preferredName && <p className="truncate text-[11px] text-[var(--color-text-muted)]">{email}</p>}
             <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">Plan: Free</p>
           </div>
 
