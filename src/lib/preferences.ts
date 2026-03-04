@@ -4,8 +4,6 @@ export type StartupPage = "/wall" | "/decks";
 
 export type UserPreferences = {
   theme: ThemePreference;
-  reduceMotion: boolean;
-  compactMode: boolean;
   startupBehavior: StartupBehavior;
   startupDefaultPage: StartupPage;
   autoTimezone: boolean;
@@ -14,8 +12,6 @@ export type UserPreferences = {
 
 export const preferenceStorageKeys = {
   theme: "idea-wall-pref-theme",
-  reduceMotion: "idea-wall-pref-reduced-motion",
-  compactMode: "idea-wall-pref-compact-mode",
   startupBehavior: "idea-wall-pref-startup-behavior",
   startupDefaultPage: "idea-wall-pref-startup-default-page",
   autoTimezone: "idea-wall-pref-auto-timezone",
@@ -25,8 +21,6 @@ export const preferenceStorageKeys = {
 
 const defaultPreferences: UserPreferences = {
   theme: "system",
-  reduceMotion: false,
-  compactMode: false,
   startupBehavior: "continue_last",
   startupDefaultPage: "/wall",
   autoTimezone: true,
@@ -48,8 +42,6 @@ export const readStoredPreferences = (): UserPreferences => {
   try {
     return {
       theme: normalizeThemePreference(window.localStorage.getItem(preferenceStorageKeys.theme)),
-      reduceMotion: window.localStorage.getItem(preferenceStorageKeys.reduceMotion) === "true",
-      compactMode: window.localStorage.getItem(preferenceStorageKeys.compactMode) === "true",
       startupBehavior: window.localStorage.getItem(preferenceStorageKeys.startupBehavior) === "default_page" ? "default_page" : "continue_last",
       startupDefaultPage: window.localStorage.getItem(preferenceStorageKeys.startupDefaultPage) === "/decks" ? "/decks" : "/wall",
       autoTimezone: window.localStorage.getItem(preferenceStorageKeys.autoTimezone) !== "false",
@@ -67,8 +59,6 @@ export const persistPreferences = (preferences: UserPreferences) => {
 
   try {
     window.localStorage.setItem(preferenceStorageKeys.theme, preferences.theme);
-    window.localStorage.setItem(preferenceStorageKeys.reduceMotion, String(preferences.reduceMotion));
-    window.localStorage.setItem(preferenceStorageKeys.compactMode, String(preferences.compactMode));
     window.localStorage.setItem(preferenceStorageKeys.startupBehavior, preferences.startupBehavior);
     window.localStorage.setItem(preferenceStorageKeys.startupDefaultPage, preferences.startupDefaultPage);
     window.localStorage.setItem(preferenceStorageKeys.autoTimezone, String(preferences.autoTimezone));
@@ -84,6 +74,4 @@ export const applyPreferencesToDocument = (preferences: UserPreferences) => {
   }
 
   document.documentElement.dataset.themePreference = preferences.theme;
-  document.documentElement.classList.toggle("motion-reduce", preferences.reduceMotion);
-  document.documentElement.classList.toggle("compact-mode", preferences.compactMode);
 };

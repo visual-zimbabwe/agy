@@ -41,12 +41,11 @@ const defaultWallLayoutPrefs: WallLayoutPrefs = {
   showNoteTags: false,
 };
 
-type SettingsSectionId = "general" | "appearance" | "accessibility" | "keyboard" | "advanced";
+type SettingsSectionId = "general" | "appearance" | "keyboard" | "advanced";
 
 const settingsSections: Array<{ id: SettingsSectionId; label: string; description: string }> = [
   { id: "general", label: "My account", description: "Profile and workspace identity." },
   { id: "appearance", label: "My settings", description: "Appearance, startup, and date/time behavior." },
-  { id: "accessibility", label: "Accessibility", description: "Motion and density preferences." },
   { id: "keyboard", label: "Keyboard", description: "Shortcut color slots." },
   { id: "advanced", label: "Workspace", description: "Wall chrome and control density." },
 ];
@@ -86,11 +85,11 @@ const SettingRow = ({
 );
 
 const SelectControl = ({ value, onChange, options, label }: { value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }>; label: string }) => (
-  <label className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs text-[var(--color-text)]">
+  <label className="inline-flex items-center gap-2 rounded-full border border-[#d7d1c4] bg-[#f6f4ef] px-4 py-1.5 text-sm text-[#1f2937] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="min-w-24 appearance-none bg-transparent pr-3 text-right outline-none"
+      className="min-w-40 appearance-none bg-transparent pr-1 text-right outline-none"
       aria-label={label}
     >
       {options.map((option) => (
@@ -99,7 +98,7 @@ const SelectControl = ({ value, onChange, options, label }: { value: string; onC
         </option>
       ))}
     </select>
-    <span className="text-[10px] text-[var(--color-text-muted)]">v</span>
+    <span className="text-[10px] text-[#6b7280]">v</span>
   </label>
 );
 
@@ -109,10 +108,10 @@ const ToggleControl = ({ checked, onChange }: { checked: boolean; onChange: (che
     onClick={() => onChange(!checked)}
     role="switch"
     aria-checked={checked}
-    className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-[#2f7adf]" : "bg-[#d1d5db]"}`}
+    className={`relative inline-flex h-7 w-12 overflow-hidden rounded-full border border-transparent p-[2px] transition-colors ${checked ? "bg-[#2f7adf]" : "bg-[#d1d5db]"}`}
   >
     <span
-      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`}
+      className={`absolute left-[2px] top-[2px] h-6 w-6 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.28)] transition-transform ${checked ? "translate-x-[20px]" : "translate-x-0"}`}
     />
   </button>
 );
@@ -306,8 +305,6 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("general");
   const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
-  const [reduceMotion, setReduceMotion] = useState(() => readStoredPreferences().reduceMotion);
-  const [compactMode, setCompactMode] = useState(() => readStoredPreferences().compactMode);
   const [startupBehavior, setStartupBehavior] = useState<StartupBehavior>(() => readStoredPreferences().startupBehavior);
   const [startupDefaultPage, setStartupDefaultPage] = useState<StartupPage>(() => readStoredPreferences().startupDefaultPage);
   const [autoTimezone, setAutoTimezone] = useState(() => readStoredPreferences().autoTimezone);
@@ -360,8 +357,8 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   const [avatarCropPanY, setAvatarCropPanY] = useState(0);
 
   const preferenceState = useMemo(
-    () => ({ theme, reduceMotion, compactMode, startupBehavior, startupDefaultPage, autoTimezone, manualTimezone }),
-    [autoTimezone, compactMode, manualTimezone, reduceMotion, startupBehavior, startupDefaultPage, theme],
+    () => ({ theme, startupBehavior, startupDefaultPage, autoTimezone, manualTimezone }),
+    [autoTimezone, manualTimezone, startupBehavior, startupDefaultPage, theme],
   );
 
   const onSavePreferences = () => {
@@ -966,38 +963,26 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                   {!autoTimezone && (
                     <div className="mt-3 max-w-xs">
                       <label className="mb-1 block text-xs text-[var(--color-text-muted)]">Select city / timezone</label>
-                      <select
-                        value={manualTimezone}
-                        onChange={(event) => setManualTimezone(event.target.value)}
-                        className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-sm text-[var(--color-text)]"
-                      >
-                        {commonTimezones.map((tz) => (
-                          <option key={tz} value={tz}>
-                            {tz.replace("_", " ")}
-                          </option>
-                        ))}
-                      </select>
+                      <label className="inline-flex w-full items-center gap-2 rounded-full border border-[#d7d1c4] bg-[#f6f4ef] px-4 py-1.5 text-sm text-[#1f2937] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+                        <select
+                          value={manualTimezone}
+                          onChange={(event) => setManualTimezone(event.target.value)}
+                          className="w-full appearance-none bg-transparent pr-1 text-right outline-none"
+                        >
+                          {commonTimezones.map((tz) => (
+                            <option key={tz} value={tz}>
+                              {tz.replace("_", " ")}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-[10px] text-[#6b7280]">v</span>
+                      </label>
                     </div>
                   )}
                   <p className="mt-3 text-xs text-[var(--color-text-muted)]">
                     Time Zone set: <span className="font-medium text-[var(--color-text)]">{effectiveTimezone}</span>
                   </p>
                 </article>
-              </>
-            )}
-
-            {activeSection === "accessibility" && (
-              <>
-                <SettingRow
-                  title="Reduce motion"
-                  description="Minimize non-essential animation and movement."
-                  control={<ToggleControl checked={reduceMotion} onChange={setReduceMotion} />}
-                />
-                <SettingRow
-                  title="Compact mode"
-                  description="Reduce spacing for denser wall controls."
-                  control={<ToggleControl checked={compactMode} onChange={setCompactMode} />}
-                />
               </>
             )}
 
