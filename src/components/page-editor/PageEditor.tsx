@@ -129,6 +129,8 @@ const blockGapFor = (type: BlockType) => (type === "todo" || type === "bulleted"
 
 const isBulkTodoShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
   (event.metaKey || event.ctrlKey) && (event.altKey || event.shiftKey) && (event.code === "Digit4" || event.key === "4" || event.key === "$");
+const isBulletedShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  (event.metaKey || event.ctrlKey) && event.shiftKey && (event.code === "Digit5" || event.key === "5" || event.key === "%");
 
 const wrapSelection = (value: string, start: number, end: number, prefix: string, suffix = prefix) => {
   const from = Math.min(start, end);
@@ -239,6 +241,23 @@ const acceptForIntent = (intent: FileInsertIntent) => {
 
 const blockTypeForIntent = (intent: FileInsertIntent) => intent;
 const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : 52);
+
+const nestedBulletedIds = (list: PageBlock[], parentId: string) => {
+  const start = list.findIndex((block) => block.id === parentId);
+  if (start < 0) return [] as string[];
+  const parent = list[start]!;
+  if (parent.type !== "bulleted") return [] as string[];
+  const parentIndent = parent.indent ?? 0;
+  const collected: string[] = [];
+  for (let i = start + 1; i < list.length; i += 1) {
+    const candidate = list[i]!;
+    if (candidate.type !== "bulleted") break;
+    const indent = candidate.indent ?? 0;
+    if (indent <= parentIndent) break;
+    collected.push(candidate.id);
+  }
+  return collected;
+};
 
 const relativeTimeLabel = (createdAt: number) => {
   const diff = Math.max(0, Date.now() - createdAt);
@@ -674,9 +693,16 @@ export function PageEditor() {
 
   const deleteBlocks = useCallback((targetIds: string[]) => {
     if (targetIds.length === 0) return;
-    const targetSet = new Set(targetIds);
-    setBlocks((previous) => previous.filter((block) => !targetSet.has(block.id)));
-    setSelectedBlockIds((previous) => previous.filter((id) => !targetSet.has(id)));
+    setBlocks((previous) => {
+      const expanded = new Set(targetIds);
+      for (const id of targetIds) {
+        for (const childId of nestedBulletedIds(previous, id)) {
+          expanded.add(childId);
+        }
+      }
+      setSelectedBlockIds((existing) => existing.filter((id) => !expanded.has(id)));
+      return previous.filter((block) => !expanded.has(block.id));
+    });
   }, []);
 
   const duplicateBlock = useCallback(
@@ -1004,7 +1030,7 @@ export function PageEditor() {
     [],
   );
 
-  const updateTodoIndent = useCallback(
+  const updateListIndent = useCallback(
     (block: PageBlock, delta: number) => {
       const currentIndent = block.indent ?? 0;
       const nextIndent = clamp(currentIndent + delta, 0, MAX_TODO_INDENT);
@@ -1120,6 +1146,14 @@ export function PageEditor() {
         const markerStart = cursor - 2;
         const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
         updateBlock(blockId, { type: "quote", content: nextContent, checked: undefined, indent: undefined });
+        setMenu(null);
+        return;
+      }
+      const bulletShortcut = value.slice(0, cursor).match(/(^|\n)([-*+])\s$/);
+      if (bulletShortcut) {
+        const markerStart = cursor - 2;
+        const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
+        updateBlock(blockId, { type: "bulleted", content: nextContent, checked: undefined });
         setMenu(null);
         return;
       }
@@ -1267,7 +1301,8 @@ export function PageEditor() {
         if (neighbor) {
           queueFocus(neighbor.id);
         }
-        return previous.filter((item) => item.id !== blockId);
+        const targetSet = new Set([blockId, ...nestedBulletedIds(previous, blockId)]);
+        return previous.filter((item) => !targetSet.has(item.id));
       });
     },
     [queueFocus],
@@ -1283,7 +1318,13 @@ export function PageEditor() {
         }
       }
 
-      if (block.type === "quote" && (event.metaKey || event.ctrlKey) && ["b", "i", "k"].includes(event.key.toLowerCase())) {
+      if (isBulletedShortcut(event) && block.type !== "file") {
+        event.preventDefault();
+        updateBlock(block.id, { type: "bulleted", checked: undefined, indent: block.indent });
+        return;
+      }
+
+      if ((block.type === "quote" || block.type === "bulleted") && (event.metaKey || event.ctrlKey) && ["b", "i", "k"].includes(event.key.toLowerCase())) {
         event.preventDefault();
         const start = event.currentTarget.selectionStart ?? 0;
         const end = event.currentTarget.selectionEnd ?? 0;
@@ -1337,9 +1378,9 @@ export function PageEditor() {
         return;
       }
 
-      if (event.key === "Tab" && block.type === "todo") {
+      if (event.key === "Tab" && (block.type === "todo" || block.type === "bulleted")) {
         event.preventDefault();
-        updateTodoIndent(block, event.shiftKey ? -1 : 1);
+        updateListIndent(block, event.shiftKey ? -1 : 1);
         return;
       }
 
@@ -1388,7 +1429,7 @@ export function PageEditor() {
       queueFocus,
       removeBlockAndFocusNeighbor,
       updateBlock,
-      updateTodoIndent,
+      updateListIndent,
     ],
   );
 
@@ -1436,7 +1477,8 @@ export function PageEditor() {
       setMenu(null);
       setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "", searchQuery: "" }));
       const world = worldFromClient(event.clientX, event.clientY);
-      const draggingIds = blockIds && blockIds.length > 0 ? blockIds : [block.id];
+      const draggingIds =
+        blockIds && blockIds.length > 0 ? blockIds : block.type === "bulleted" ? [block.id, ...nestedBulletedIds(blocks, block.id)] : [block.id];
       const sourceBlocks = blocks.filter((entry) => draggingIds.includes(entry.id));
       const leadBlock = sourceBlocks.find((entry) => entry.id === block.id) ?? block;
       dragRef.current = { blockId: leadBlock.id, offsetX: world.x - leadBlock.x, offsetY: world.y - leadBlock.y };
@@ -1773,11 +1815,12 @@ export function PageEditor() {
     if (block.type === "bulleted") {
       return (
         <div className="flex items-start gap-3">
-          <span className="mt-1 text-[var(--color-text-muted)]">-</span>
-          <input
+          <span className="mt-1 text-[var(--color-text-muted)]">•</span>
+          <textarea
             ref={attachInputRef as never}
             {...sharedProps}
-            className="w-full bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+            rows={1}
+            className="w-full resize-none bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
           />
         </div>
       );
