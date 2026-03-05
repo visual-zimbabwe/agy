@@ -55,28 +55,30 @@
 52. Verify todo checkbox-to-text spacing is compact and consistent with Notion-style list density (no oversized gap).
 53. In a quote block, verify default styling is visually distinct (larger italic text, left border, and indentation).
 54. In a quote block, use `Ctrl/Cmd + B`, `Ctrl/Cmd + I`, and `Ctrl/Cmd + K`; verify bold/italic/link Markdown is inserted and quote preview reflects formatting.
-55. Click a block six-dot handle, choose `Color`, and verify quote text color and quote background color both update.
-56. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
-57. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
-53. With a quote block selected, press `Enter`; verify a standard text block appears immediately below with attribution starter (`-- `).
-54. Single-click a block six-dot handle and verify block menu opens with actions: `Delete`, `Duplicate`, `Turn into`, `Turn into page`, `Copy link`, `Move to page`, `Comment`, and `Color`.
-55. Hold six-dot handle for ~250ms (or click-drag) and verify block drags without opening menu.
-56. `Ctrl/Cmd`-click three block handles to multi-select, then hold and drag one selected handle; verify selected blocks move together.
-57. In block menu, run `Duplicate` and verify exact copy appears below original.
-58. In block menu, run `Delete` and verify block is removed.
-59. In block menu, run `Turn into` to convert a text block to `Heading 2`, `To-do list`, `Numbered list`, `Toggle`, and `Quote`; verify type changes each time.
-60. In block menu, run `Turn into page`; verify block is moved to a new `doc` route and a page-link block remains in the source page.
-61. In block menu, run `Copy link`, paste in browser address bar, and verify it navigates to and focuses the target block.
-62. In block menu, use `Move to page` search/typed id to move block to another doc; verify it is removed from source and appears in destination.
-63. In block menu, run `Comment`; verify floating comment panel opens with composer (`Add a comment...`, attach, mention, send).
-64. In comment panel, type text and verify send icon becomes active (blue), then post and verify new card shows author preferred name + `Just now`.
-65. On posted comment, click the `...` menu and verify actions: `Mark as unread`, `Edit`, `Copy link`, `Mute replies`, `Delete`.
-66. In `...` menu, click `Delete`; verify confirmation modal appears with `Delete` and `Cancel`, and deleting removes the comment.
-67. Refresh browser and verify comments persist on their blocks.
-68. In block menu, apply text color and background color and verify entire block styling updates.
-69. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
-70. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
-71. Drag a list block slightly right under another list block and verify it nests (indent increases).
+55. Focus a block and press `Cmd/Ctrl + Shift + 8` (or `Cmd/Ctrl + Option + 8`); verify block converts to quote.
+56. In quote text, include inline code and `@mention` tokens and verify quote preview renders both.
+57. Click a block six-dot handle, choose `Color`, and verify quote text color and quote background color both update.
+58. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
+59. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
+60. With a quote block selected, press `Enter`; verify a standard text block appears immediately below with attribution starter (`-- `).
+61. Single-click a block six-dot handle and verify block menu opens with actions: `Delete`, `Duplicate`, `Turn into`, `Turn into page`, `Copy link`, `Move to page`, `Comment`, and `Color`.
+62. Hold six-dot handle for ~250ms (or click-drag) and verify block drags without opening menu.
+63. `Ctrl/Cmd`-click three block handles to multi-select, then hold and drag one selected handle; verify selected blocks move together.
+64. In block menu, run `Duplicate` and verify exact copy appears below original.
+65. In block menu, run `Delete` and verify block is removed.
+66. In block menu, run `Turn into` to convert a text block to `Heading 2`, `To-do list`, `Numbered list`, `Toggle`, and `Quote`; verify type changes each time.
+67. In block menu, run `Turn into page`; verify block is moved to a new `doc` route and a page-link block remains in the source page.
+68. In block menu, run `Copy link`, paste in browser address bar, and verify it navigates to and focuses the target block.
+69. In block menu, use `Move to page` search/typed id to move block to another doc; verify it is removed from source and appears in destination.
+70. In block menu, run `Comment`; verify floating comment panel opens with composer (`Add a comment...`, attach, mention, send).
+71. In comment panel, type text and verify send icon becomes active (blue), then post and verify new card shows author preferred name + `Just now`.
+72. On posted comment, click the `...` menu and verify actions: `Mark as unread`, `Edit`, `Copy link`, `Mute replies`, `Delete`.
+73. In `...` menu, click `Delete`; verify confirmation modal appears with `Delete` and `Cancel`, and deleting removes the comment.
+74. Refresh browser and verify comments persist on their blocks.
+75. In block menu, apply text color and background color and verify entire block styling updates.
+76. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
+77. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
+78. Drag a list block slightly right under another list block and verify it nests (indent increases).
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.

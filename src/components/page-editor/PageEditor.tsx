@@ -148,6 +148,10 @@ const isToggleShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextA
   (event.metaKey || event.ctrlKey) &&
   (event.altKey || event.shiftKey) &&
   (event.code === "Digit7" || event.key === "7" || event.key === "&");
+const isQuoteShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  (event.metaKey || event.ctrlKey) &&
+  (event.altKey || event.shiftKey) &&
+  (event.code === "Digit8" || event.key === "8" || event.key === "*");
 
 const wrapSelection = (value: string, start: number, end: number, prefix: string, suffix = prefix) => {
   const from = Math.min(start, end);
@@ -165,7 +169,7 @@ const renderQuoteInlineMarkdown = (raw: string) => {
   const lines = raw.split("\n");
 
   return lines.map((line, lineIndex) => {
-    const tokenRegex = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*)/g;
+    const tokenRegex = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|(@[\w.-]+))/g;
     const nodes: ReactNode[] = [];
     let pointer = 0;
     let match: RegExpExecArray | null;
@@ -191,6 +195,18 @@ const renderQuoteInlineMarkdown = (raw: string) => {
           <em key={`md-italic-${lineIndex}-${tokenIndex}`} className="italic">
             {match[5]}
           </em>,
+        );
+      } else if (match[6]) {
+        nodes.push(
+          <code key={`md-code-${lineIndex}-${tokenIndex}`} className="rounded bg-black/6 px-1 py-[1px] font-mono text-[0.88em]">
+            {match[6]}
+          </code>,
+        );
+      } else if (match[7]) {
+        nodes.push(
+          <span key={`md-mention-${lineIndex}-${tokenIndex}`} className="rounded bg-[var(--color-accent-soft)] px-1 text-[var(--color-text)]">
+            {match[7]}
+          </span>,
         );
       }
       pointer = match.index + match[0].length;
@@ -1641,6 +1657,19 @@ export function PageEditor() {
         return;
       }
 
+      if (isQuoteShortcut(event) && block.type !== "file") {
+        event.preventDefault();
+        updateBlock(block.id, {
+          type: "quote",
+          checked: undefined,
+          indent: undefined,
+          numberedFormat: undefined,
+          numberedStart: undefined,
+          richText: parseRichText(block.content),
+        });
+        return;
+      }
+
       if (event.key === " " && !event.shiftKey && !event.metaKey && !event.ctrlKey && block.type !== "file") {
         const start = event.currentTarget.selectionStart ?? 0;
         const end = event.currentTarget.selectionEnd ?? start;
@@ -2282,7 +2311,7 @@ export function PageEditor() {
       );
     }
     if (block.type === "quote") {
-      const hasMarkdownSyntax = /\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\((https?:\/\/[^\s)]+)\)/.test(block.content);
+      const hasMarkdownSyntax = /\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\((https?:\/\/[^\s)]+)\)|`[^`]+`|@[\w.-]+/.test(block.content);
       return (
         <div
           className="rounded-md border-l-4 px-4 py-2"
