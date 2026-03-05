@@ -1,6 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
-import type { PersistedPageState } from "@/features/page/types";
+import type { PageBlock, PersistedPageState } from "@/features/page/types";
 
 type PageDocRecord = {
   id: string;
@@ -21,10 +21,87 @@ class IdeaWallPageDatabase extends Dexie {
 
 const defaultPageDocId = "default";
 const db = new IdeaWallPageDatabase();
+const defaultCamera = { x: 0, y: 0, zoom: 1 } as const;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = typeof value.id === "string" && value.id.length > 0 ? value.id : `blk_${Math.random().toString(36).slice(2, 10)}`;
+  const type = typeof value.type === "string" ? value.type : "text";
+  const content = typeof value.content === "string" ? value.content : "";
+  const x = typeof value.x === "number" && Number.isFinite(value.x) ? value.x : 80;
+  const y = typeof value.y === "number" && Number.isFinite(value.y) ? value.y : 80 + index * 86;
+  const w = typeof value.w === "number" && Number.isFinite(value.w) ? value.w : 360;
+  const h = typeof value.h === "number" && Number.isFinite(value.h) ? value.h : 88;
+  const checked = typeof value.checked === "boolean" ? value.checked : undefined;
+  const expanded = typeof value.expanded === "boolean" ? value.expanded : undefined;
+
+  const fileValue = value.file;
+  const file = isRecord(fileValue) &&
+    typeof fileValue.path === "string" &&
+    typeof fileValue.name === "string" &&
+    typeof fileValue.size === "number" &&
+    typeof fileValue.mimeType === "string"
+      ? {
+          path: fileValue.path,
+          name: fileValue.name,
+          size: fileValue.size,
+          mimeType: fileValue.mimeType,
+          displayName: typeof fileValue.displayName === "string" && fileValue.displayName.trim().length > 0 ? fileValue.displayName : fileValue.name,
+        }
+      : undefined;
+
+  return {
+    id,
+    type: type as PageBlock["type"],
+    content,
+    x,
+    y,
+    w,
+    h,
+    checked,
+    expanded,
+    file,
+  };
+};
+
+const normalizeSnapshot = (value: unknown): PersistedPageState | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const blocksRaw = Array.isArray(value.blocks) ? value.blocks : [];
+  const blocks = blocksRaw.map((entry, index) => normalizeBlock(entry, index)).filter((entry): entry is PageBlock => Boolean(entry));
+
+  const cameraValue = value.camera;
+  const camera =
+    isRecord(cameraValue) &&
+    typeof cameraValue.x === "number" &&
+    typeof cameraValue.y === "number" &&
+    typeof cameraValue.zoom === "number"
+      ? { x: cameraValue.x, y: cameraValue.y, zoom: cameraValue.zoom }
+      : defaultCamera;
+
+  const updatedAt = typeof value.updatedAt === "number" ? value.updatedAt : Date.now();
+
+  return {
+    blocks,
+    camera,
+    updatedAt,
+  };
+};
 
 export const loadPageSnapshot = async (): Promise<PersistedPageState | null> => {
   const row = await db.pageDocs.get(defaultPageDocId);
-  return row?.snapshot ?? null;
+  if (!row?.snapshot) {
+    return null;
+  }
+  return normalizeSnapshot(row.snapshot);
 };
 
 export const savePageSnapshot = async (snapshot: PersistedPageState): Promise<void> => {
@@ -60,4 +137,3 @@ export const createPageSnapshotSaver = (delayMs = 300) => {
 
   return { schedule, flush };
 };
-

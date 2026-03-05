@@ -1,26 +1,33 @@
 # Idea-Wall Manual QA Checklist
 
-## Block Page Editor (`/page`) (2026-03-04)
-1. Open `/page` from landing (`Open Page`) and verify the editor shell renders.
-2. Hover over a block and confirm `+` appears at the left edge without clipping.
-3. Click `+` and confirm block menu opens with category groups: `Basic`, `Media`, `Database`, `Advanced`.
-4. In the `+` menu search box, type `todo` and insert `To-do list`.
-5. In a text block, type `/todo` and press `Enter` to insert a to-do block below the current block.
-6. In a text block, type `/image` and press `Enter` to insert an image block.
-7. With slash menu open, use `ArrowUp/ArrowDown` to change selection and `Enter` to insert.
-8. Press `Esc` while menu is open and verify it closes.
-9. Create one block of each core type: `Text`, `Header 1`, `Header 2`, `Header 3`, `To-do list`, `Bulleted list`, `Toggle list`, `Code`, `Quote`, `Callout`.
-10. Create one media/data block: `Image`, `Video`, `Audio`, `Google Docs`, `PDF`, `Database`, `MD file`, `Page`.
-11. Refresh browser tab after adding/editing several blocks and verify all block content/types persist.
-12. Validate dark mode and light mode: menus, inputs, and dropdown surfaces must match theme tokens (no white light bleed in dark mode).
-13. Validate mobile viewport: floating block menu remains fully visible and does not obscure critical controls.
+## Block Page Editor (`/page`) (2026-03-05)
+1. Open `/page` and verify there is no fixed sidebar/top toolbar.
+2. Click empty canvas on the left, center, and right; verify a new editable block appears exactly where clicked.
+3. Confirm empty editable blocks show placeholder text `Type "/" for commands`.
+4. Hold and drag empty canvas to pan.
+5. Use `Ctrl/Cmd + mouse wheel` to zoom toward cursor.
+6. Use mouse wheel (without `Ctrl/Cmd`) to pan viewport.
+7. Drag any block to a new position and verify free placement on the infinite canvas.
+8. In a text block, type `/h1`, `/h2`, `/h3`, `/todo`, `/quote`, and `/code` (one at a time), then press `Enter` and verify block type changes.
+9. While slash menu is open, use `ArrowUp/ArrowDown` and `Enter` to select a command.
+10. Press `Esc` with slash menu open and verify it closes.
+11. Right-click empty canvas and click `Upload files here`; choose at least 2 files and verify each becomes its own movable file block.
+12. Drag-and-drop multiple files from desktop onto canvas and verify each file inserts at drop area.
+13. Upload at least one image file and verify inline image preview appears in its block.
+14. Click a file block and verify it opens in a new tab.
+15. Right-click a file block and run `Rename title`; verify title changes without changing stored file.
+16. Right-click a file block and run `Delete file`; verify block is removed and backend delete succeeds.
+17. Refresh browser tab and verify blocks, camera position/zoom, and file blocks persist.
+18. Validate mobile viewport and desktop viewport: slash menu and context menus are not clipped and remain usable.
 
 Expected:
-- `/page` is reachable and editor interactions are keyboard/mouse friendly.
-- `+` and `/` produce the same block set with searchable insertion.
-- Slash flow supports keyboard-only insertion without mouse.
-- Block content and order persist after refresh via local IndexedDB storage.
-- Floating menus and controls remain visible and unclipped across desktop/mobile and themes.
+- `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
+- `Type "/" for commands` appears at the active insertion point, not fixed to left side.
+- Slash commands provide Notion-style block changes and keyboard navigation.
+- File upload works via both picker and drag-drop, including multi-file insertion.
+- Uploaded image files preview inline; non-image files render as file cards.
+- File blocks support open, rename title, delete, and drag repositioning.
+- Page state (blocks + camera) persists after refresh.
 
 ## Electron Desktop Packaging (2026-02-18)
 1. In `idea-wall-studio`, run `npm install`.
