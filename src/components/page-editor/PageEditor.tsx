@@ -267,6 +267,13 @@ const FileDocIcon = () => (
   </svg>
 );
 
+const UploadEmbedGhostIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 text-[#8d8d8d]">
+    <rect x="3.5" y="2.8" width="13" height="14.4" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M10 6.2v6.2M7.8 8.6 10 6.2l2.2 2.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export function PageEditor() {
   const router = useRouter();
   const pathname = usePathname();
@@ -2129,6 +2136,17 @@ export function PageEditor() {
               </div>
             );
           })}
+          {fileInsert.open && fileInsert.intent === "file" && (
+            <div
+              className="absolute rounded-xl border border-[#e1e1e1] bg-[#f1f1f1] px-4 py-3 text-[15px] text-[#6f6f6f]"
+              style={{ left: fileInsert.worldX, top: fileInsert.worldY, width: DOC_WIDTH }}
+            >
+              <span className="inline-flex items-center gap-2">
+                <UploadEmbedGhostIcon />
+                <span>Upload or embed a file</span>
+              </span>
+            </div>
+          )}
         </div>
         {menu && menuBlock && (
           <div
