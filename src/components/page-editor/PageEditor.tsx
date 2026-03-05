@@ -25,6 +25,7 @@ type SlashCommandId = BlockType;
 type SlashCommandGroup = "basic" | "media";
 type SlashCommand = { id: SlashCommandId; label: string; description: string; aliases: string[]; group: SlashCommandGroup; symbol?: string; trigger?: string };
 type MenuState = { blockId: string; query: string; slashRange: { start: number; end: number }; anchorX: number; anchorY: number };
+type QuickInsertMenuState = { open: boolean; blockId?: string; x: number; y: number };
 type CanvasMenuState = { open: boolean; x: number; y: number; worldX: number; worldY: number };
 type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
 type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; moveToQuery: string; searchQuery: string };
@@ -507,6 +508,7 @@ export function PageEditor() {
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const [viewport, setViewport] = useState({ w: 1200, h: 800 });
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const [quickInsertMenu, setQuickInsertMenu] = useState<QuickInsertMenuState>({ open: false, x: 0, y: 0 });
   const [menuIndex, setMenuIndex] = useState(0);
   const [canvasMenu, setCanvasMenu] = useState<CanvasMenuState>({ open: false, x: 0, y: 0, worldX: 0, worldY: 0 });
   const [fileMenu, setFileMenu] = useState<FileMenuState>({ open: false, x: 0, y: 0 });
@@ -862,6 +864,7 @@ export function PageEditor() {
     const closeMenus = () => {
       setCanvasMenu((previous) => ({ ...previous, open: false }));
       setFileMenu((previous) => ({ ...previous, open: false }));
+      setQuickInsertMenu((previous) => ({ ...previous, open: false }));
       setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "", searchQuery: "" }));
       setFileInsert((previous) => ({ ...previous, open: false }));
       setCommentPanel((previous) => ({ ...previous, open: false, menuCommentId: undefined, deleteConfirmCommentId: undefined, editingCommentId: undefined }));
@@ -1008,6 +1011,7 @@ export function PageEditor() {
       });
       setCanvasMenu((previous) => ({ ...previous, open: false }));
       setFileMenu((previous) => ({ ...previous, open: false }));
+      setQuickInsertMenu((previous) => ({ ...previous, open: false }));
       setMenu(null);
       setSelectedBlockIds((previous) => (previous.includes(blockId) ? previous : [blockId]));
     },
@@ -2107,6 +2111,7 @@ export function PageEditor() {
           setBlockMenu({ open: true, x: upEvent.clientX, y: upEvent.clientY, blockId: block.id, moveToQuery: "", searchQuery: "" });
           setCanvasMenu((previous) => ({ ...previous, open: false }));
           setFileMenu((previous) => ({ ...previous, open: false }));
+          setQuickInsertMenu((previous) => ({ ...previous, open: false }));
         }
         cleanup();
       };
@@ -2120,6 +2125,23 @@ export function PageEditor() {
       window.addEventListener("pointerup", onUp);
     },
     [beginDragBlock, selectedBlockIds],
+  );
+
+  const insertFromQuickMenu = useCallback(
+    (blockId: string, commandId: SlashCommandId) => {
+      const source = blocks.find((entry) => entry.id === blockId);
+      if (!source) return;
+      if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio") {
+        const insertionY = source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type));
+        const base = toScreenPoint(source.x, insertionY);
+        openFileInsertAt(source.x, insertionY, base.x + 10, base.y + 8, commandId);
+        setQuickInsertMenu((previous) => ({ ...previous, open: false }));
+        return;
+      }
+      insertBlockBelow(source, commandId, "");
+      setQuickInsertMenu((previous) => ({ ...previous, open: false }));
+    },
+    [blocks, insertBlockBelow, openFileInsertAt, toScreenPoint],
   );
   const openFileBlock = useCallback(
     async (block: PageBlock) => {
@@ -2665,6 +2687,36 @@ export function PageEditor() {
                     <span className="h-[2px] w-[2px] rounded-full bg-current" />
                   </span>
                 </button>
+                <button
+                  type="button"
+                  aria-label="Insert block"
+                  className={cn(
+                    "absolute -left-16 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/55 opacity-45 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] hover:opacity-100 focus-visible:opacity-100",
+                    quickInsertMenu.open && quickInsertMenu.blockId === block.id ? "bg-[var(--color-accent-soft)] text-[var(--color-text)] opacity-100" : "",
+                  )}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const nextOpen = !(quickInsertMenu.open && quickInsertMenu.blockId === block.id);
+                    if (!nextOpen) {
+                      setQuickInsertMenu((previous) => ({ ...previous, open: false }));
+                      return;
+                    }
+                    setSelectedBlockIds((previous) => (previous.includes(block.id) ? previous : [block.id]));
+                    setMenu(null);
+                    setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "", searchQuery: "" }));
+                    setCanvasMenu((previous) => ({ ...previous, open: false }));
+                    setFileMenu((previous) => ({ ...previous, open: false }));
+                    setQuickInsertMenu({
+                      open: true,
+                      blockId: block.id,
+                      x: event.clientX + 10,
+                      y: event.clientY + 8,
+                    });
+                  }}
+                >
+                  +
+                </button>
 
                 <div
                   style={{
@@ -2825,6 +2877,35 @@ export function PageEditor() {
               <span>Close menu</span>
               <span className="text-xs text-[#9a9a9a]">esc</span>
             </button>
+          </div>
+        )}
+
+        {quickInsertMenu.open && quickInsertMenu.blockId && (
+          <div
+            className="fixed z-50 w-[min(20rem,calc(100vw-1rem))] overflow-hidden rounded-xl border border-[#d8d8d8] bg-[#f9f9f9] shadow-[0_12px_28px_rgba(0,0,0,0.18)]"
+            style={{
+              left: clamp(quickInsertMenu.x, 8, Math.max(8, viewport.w - 328)),
+              top: clamp(quickInsertMenu.y, 8, Math.max(8, viewport.h - 380)),
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="border-b border-[#e5e5e5] px-3 py-2 text-xs text-[#888]">Insert block below</div>
+            <div className="max-h-[18rem] overflow-y-auto p-1.5">
+              {slashCommands.map((item) => (
+                <button
+                  key={`quick-insert-${item.id}`}
+                  type="button"
+                  className="mb-0.5 flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-[15px] text-[#2f2f2f] hover:bg-[#efefef]"
+                  onClick={() => insertFromQuickMenu(quickInsertMenu.blockId!, item.id)}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center text-[14px] text-[#4f4f4f]">{item.symbol || "•"}</span>
+                    <span>{item.label}</span>
+                  </span>
+                  <span className="text-xs text-[#949494]">{item.trigger || ""}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
