@@ -92,6 +92,7 @@ const slashCommands: SlashCommand[] = [
   { id: "h3", label: "Heading 3", description: "Small heading.", aliases: ["h3", "header3"], group: "basic", symbol: "H3", trigger: "###" },
   { id: "bulleted", label: "Bulleted list", description: "Bullet item.", aliases: ["bullet", "list"], group: "basic", symbol: "-", trigger: "-" },
   { id: "numbered", label: "Numbered list", description: "Numbered item.", aliases: ["numbered", "ordered", "ol"], group: "basic", symbol: "1.", trigger: "1." },
+  { id: "toggle", label: "Toggle list", description: "Collapsible list item.", aliases: ["toggle", "collapsible"], group: "basic", symbol: ">", trigger: ">" },
   { id: "todo", label: "To-do list", description: "Checkbox task.", aliases: ["todo", "task", "checkbox"], group: "basic", symbol: "[]", trigger: "[]" },
   { id: "file", label: "File", description: "Upload or embed a file.", aliases: ["file", "files", "upload"], group: "media", symbol: "F", trigger: "/file" },
   { id: "image", label: "Image", description: "Upload or link an image.", aliases: ["image", "photo", "img"], group: "media", symbol: "I", trigger: "/image" },
@@ -143,6 +144,10 @@ const isNumberedShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTex
   (event.metaKey || event.ctrlKey) &&
   (event.altKey || event.shiftKey) &&
   (event.code === "Digit6" || event.key === "6" || event.key === "^");
+const isToggleShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  (event.metaKey || event.ctrlKey) &&
+  (event.altKey || event.shiftKey) &&
+  (event.code === "Digit7" || event.key === "7" || event.key === "&");
 
 const wrapSelection = (value: string, start: number, end: number, prefix: string, suffix = prefix) => {
   const from = Math.min(start, end);
@@ -1368,6 +1373,22 @@ export function PageEditor() {
         setMenu(null);
         return;
       }
+      const toggleShortcut = value.slice(0, cursor).match(/(^|\n)\s*>\s$/);
+      if (toggleShortcut) {
+        const markerStart = cursor - toggleShortcut[0].length;
+        const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
+        updateBlock(blockId, {
+          type: "toggle",
+          content: nextContent,
+          richText: parseRichText(nextContent),
+          expanded: true,
+          checked: undefined,
+          numberedFormat: undefined,
+          numberedStart: undefined,
+        });
+        setMenu(null);
+        return;
+      }
       const bulletShortcut = value.slice(0, cursor).match(/(^|\n)\s*([-*+])\s$/);
       if (bulletShortcut) {
         const markerStart = cursor - bulletShortcut[0].length;
@@ -1606,20 +1627,35 @@ export function PageEditor() {
         return;
       }
 
+      if (isToggleShortcut(event) && block.type !== "file") {
+        event.preventDefault();
+        updateBlock(block.id, {
+          type: "toggle",
+          checked: undefined,
+          indent: block.indent,
+          expanded: block.expanded ?? true,
+          numberedFormat: undefined,
+          numberedStart: undefined,
+          richText: parseRichText(block.content),
+        });
+        return;
+      }
+
       if (event.key === " " && !event.shiftKey && !event.metaKey && !event.ctrlKey && block.type !== "file") {
         const start = event.currentTarget.selectionStart ?? 0;
         const end = event.currentTarget.selectionEnd ?? start;
         if (start === end) {
           const nextValue = `${block.content.slice(0, start)} ${block.content.slice(end)}`;
           const before = nextValue.slice(0, start + 1);
+          const toggleShortcut = before.match(/(^|\n)\s*>\s$/);
           const bulletShortcut = before.match(/(^|\n)\s*([-*+])\s$/);
           const numberedShortcut = before.match(/(^|\n)\s*((?:\d+|[aAiI]))\.\s$/);
-          if (bulletShortcut || numberedShortcut) {
+          if (toggleShortcut || bulletShortcut || numberedShortcut) {
             event.preventDefault();
-            const marker = bulletShortcut?.[0] ?? numberedShortcut?.[0] ?? "";
+            const marker = toggleShortcut?.[0] ?? bulletShortcut?.[0] ?? numberedShortcut?.[0] ?? "";
             const markerStart = start + 1 - marker.length;
             const nextContent = `${nextValue.slice(0, markerStart)}${nextValue.slice(start + 1)}`;
-            const nextType: BlockType = bulletShortcut ? "bulleted" : "numbered";
+            const nextType: BlockType = toggleShortcut ? "toggle" : bulletShortcut ? "bulleted" : "numbered";
             const numberedMarker = numberedShortcut?.[2] ? parseNumberedMarker(`${numberedShortcut[2]}.`) : null;
             updateBlock(block.id, {
               type: nextType,
@@ -1627,6 +1663,7 @@ export function PageEditor() {
               richText: parseRichText(nextContent),
               checked: undefined,
               indent: block.indent,
+              expanded: nextType === "toggle" ? true : undefined,
               numberedFormat: nextType === "numbered" ? numberedMarker?.format ?? block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT : undefined,
               numberedStart: nextType === "numbered" ? numberedMarker?.start : undefined,
             });
@@ -1639,6 +1676,21 @@ export function PageEditor() {
             return;
           }
         }
+      }
+
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && !menu && block.type === "toggle") {
+        event.preventDefault();
+        updateBlock(block.id, { expanded: !(block.expanded ?? true) });
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.altKey && event.key.toLowerCase() === "t") {
+        event.preventDefault();
+        setBlocks((previous) => {
+          const hasCollapsed = previous.some((entry) => entry.type === "toggle" && entry.expanded === false);
+          return previous.map((entry) => (entry.type === "toggle" ? { ...entry, expanded: hasCollapsed } : entry));
+        });
+        return;
       }
 
       if ((block.type === "quote" || isListBlockType(block.type)) && (event.metaKey || event.ctrlKey) && ["b", "i", "k"].includes(event.key.toLowerCase())) {

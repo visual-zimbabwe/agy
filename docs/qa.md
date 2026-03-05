@@ -44,15 +44,20 @@
 41. In `List options`, set `Start at` to a value > 1 and verify the first numbered item in that sequence starts at the configured index.
 42. In a numbered list item, press `Enter` in the middle of text and verify it splits into two numbered items at the caret.
 43. In an indented list item, press `Backspace` at cursor start and verify it outdents first (instead of immediately converting to text).
-44. Create a `/toggle` item with nested children, collapse it, and verify all indented descendants are hidden; expand and verify they return.
-45. Add inline markdown (`**bold**`, `*italic*`, `` `code` ``, links, `@mentions`) inside bulleted/numbered/toggle items and verify formatted preview appears when input is not focused.
-46. Drag a block slightly right and below another block to nest it; verify indent and parent linkage persist after refresh.
-47. Verify todo checkbox-to-text spacing is compact and consistent with Notion-style list density (no oversized gap).
-48. In a quote block, verify default styling is visually distinct (larger italic text, left border, and indentation).
-49. In a quote block, use `Ctrl/Cmd + B`, `Ctrl/Cmd + I`, and `Ctrl/Cmd + K`; verify bold/italic/link Markdown is inserted and quote preview reflects formatting.
-50. Click a block six-dot handle, choose `Color`, and verify quote text color and quote background color both update.
-51. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
-52. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
+44. Create a `/toggle` item and verify it renders with a collapse/expand chevron.
+45. In a text block, type `> ` at line start and verify it converts to a toggle list item.
+46. Focus a block and press `Cmd/Ctrl + Shift + 7` (or `Cmd/Ctrl + Option + 7`); verify block converts to toggle list.
+47. With a toggle item focused, press `Cmd/Ctrl + Enter`; verify that toggle opens/closes.
+48. Press `Cmd/Ctrl + Alt + T` and verify all toggle items expand when any are collapsed; press again and verify all collapse.
+49. Create a `/toggle` item with nested children, collapse it, and verify all indented descendants are hidden; expand and verify they return.
+50. Add inline markdown (`**bold**`, `*italic*`, `` `code` ``, links, `@mentions`) inside bulleted/numbered/toggle items and verify formatted preview appears when input is not focused.
+51. Drag a block slightly right and below another block to nest it; verify indent and parent linkage persist after refresh.
+52. Verify todo checkbox-to-text spacing is compact and consistent with Notion-style list density (no oversized gap).
+53. In a quote block, verify default styling is visually distinct (larger italic text, left border, and indentation).
+54. In a quote block, use `Ctrl/Cmd + B`, `Ctrl/Cmd + I`, and `Ctrl/Cmd + K`; verify bold/italic/link Markdown is inserted and quote preview reflects formatting.
+55. Click a block six-dot handle, choose `Color`, and verify quote text color and quote background color both update.
+56. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
+57. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
 53. With a quote block selected, press `Enter`; verify a standard text block appears immediately below with attribution starter (`-- `).
 54. Single-click a block six-dot handle and verify block menu opens with actions: `Delete`, `Duplicate`, `Turn into`, `Turn into page`, `Copy link`, `Move to page`, `Comment`, and `Color`.
 55. Hold six-dot handle for ~250ms (or click-drag) and verify block drags without opening menu.
@@ -80,7 +85,7 @@ Expected:
 - Bulleted lists support slash, markdown, and `Cmd/Ctrl + Shift + 5` creation flows with proper continuation/indent/outdent/end-list behaviors.
 - Numbered lists support markdown (`1. `), slash conversion, and caret-based split-on-enter behavior.
 - Numbered lists support markdown markers (`1.`, `a.`, `i.`), keyboard shortcut conversion (`Cmd/Ctrl + Shift/Option + 6`), list format switching, and custom start index.
-- Toggle lists support collapse/expand with descendant visibility and persistence.
+- Toggle lists support slash/markdown/keyboard creation, collapse/expand shortcuts, and descendant visibility persistence.
 - Slash command menu is visually compact and symbol-driven; command popup stays in viewport with reduced canvas obstruction.
 - `/file`, `/image`, `/video`, `/audio` open an insert popup with `Upload` and `Link` flows.
 - Todo items support `Tab`/`Shift + Tab` nesting and un-nesting.
