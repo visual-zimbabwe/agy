@@ -421,9 +421,28 @@ export function PageEditor() {
 
       if (event.key === "Enter" && !event.shiftKey && !menu && ["h1", "h2", "h3", "todo", "bulleted", "quote", "callout"].includes(block.type)) {
         event.preventDefault();
-        const nextType: BlockType = block.type === "todo" ? "todo" : block.type === "bulleted" ? "bulleted" : "text";
-        insertBlockBelow(block, nextType);
+        if (block.type === "todo" || block.type === "bulleted") {
+          const isEmpty = block.content.trim().length === 0;
+          if (isEmpty) {
+            updateBlock(block.id, { type: "text", checked: undefined });
+            queueFocus(block.id);
+            return;
+          }
+          insertBlockBelow(block, block.type);
+          return;
+        }
+        insertBlockBelow(block, "text");
         return;
+      }
+
+      if (event.key === "Backspace" && (block.type === "todo" || block.type === "bulleted")) {
+        const cursorStart = event.currentTarget.selectionStart ?? 0;
+        if (cursorStart === 0 && block.content.trim().length === 0) {
+          event.preventDefault();
+          updateBlock(block.id, { type: "text", checked: undefined });
+          queueFocus(block.id);
+          return;
+        }
       }
 
       if ((event.key === "Backspace" || event.key === "Delete") && block.type !== "file" && block.content.trim().length === 0) {
@@ -431,7 +450,7 @@ export function PageEditor() {
         removeBlockAndFocusNeighbor(block.id);
       }
     },
-    [activeMenuIndex, applySlashCommand, filteredMenu, insertBlockBelow, menu, removeBlockAndFocusNeighbor],
+    [activeMenuIndex, applySlashCommand, filteredMenu, insertBlockBelow, menu, queueFocus, removeBlockAndFocusNeighbor, updateBlock],
   );
 
   const beginPan = useCallback(
