@@ -1147,7 +1147,14 @@ export function PageEditor() {
       const hasAfter = afterContent.length > 0;
 
       if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio") {
-        const insertionY = hasBefore ? block.y + Math.max(block.h + blockGapFor(block.type), LINE_HEIGHT + blockGapFor(block.type)) : block.y;
+        const lineAwareTypes: BlockType[] = ["text", "callout", "code", "quote"];
+        const useLineAwarePlacement = lineAwareTypes.includes(block.type);
+        const lineOffset = useLineAwarePlacement ? Math.max(0, beforeContent.split("\n").length - 1) * LINE_HEIGHT : 0;
+        const insertionY = hasBefore
+          ? useLineAwarePlacement
+            ? block.y + lineOffset
+            : block.y + Math.max(block.h + blockGapFor(block.type), LINE_HEIGHT + blockGapFor(block.type))
+          : block.y;
         let afterBlockId: string | undefined;
         const estimatedInsertedHeight = insertedHeightForIntent(commandId);
         setBlocks((previous) => {
@@ -1169,7 +1176,6 @@ export function PageEditor() {
         const base = toScreenPoint(block.x, insertionY);
         openFileInsertAt(block.x, insertionY, base.x + 10, base.y + 8, commandId, afterBlockId);
         setMenu(null);
-        if (afterBlockId) queueFocus(afterBlockId);
         return;
       }
 
