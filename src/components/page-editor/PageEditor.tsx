@@ -67,6 +67,7 @@ const parseSlashQuery = (value: string, cursor: number) => {
 const isTextInputTarget = (target: EventTarget | null) => {
   const element = target as HTMLElement | null;
   if (!element) return false;
+  if (element.closest('[data-page-drag-handle="true"]')) return false;
   const tag = element.tagName.toLowerCase();
   if (tag === "input" || tag === "textarea" || tag === "button" || tag === "a") return true;
   return Boolean(element.closest("input,textarea,button,a"));
@@ -742,6 +743,7 @@ export function PageEditor() {
                 <button
                   type="button"
                   aria-label="Drag block"
+                  data-page-drag-handle="true"
                   className="absolute -left-9 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/55 opacity-45 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] hover:opacity-100 focus-visible:opacity-100"
                   onPointerDown={(event) => beginDragBlock(block, event)}
                 >
