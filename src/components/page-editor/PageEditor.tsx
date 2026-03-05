@@ -1165,7 +1165,7 @@ export function PageEditor() {
             const beforeBlock: PageBlock = { ...block, content: beforeContent };
             sequence.push(beforeBlock);
           }
-          if (hasAfter || !hasBefore) {
+          if (hasAfter) {
             const afterBlock = newBlock("text", block.x, insertionY + Math.max(estimatedInsertedHeight + blockGapFor(commandId), LINE_HEIGHT + blockGapFor(commandId)));
             afterBlock.content = afterContent;
             afterBlockId = afterBlock.id;
