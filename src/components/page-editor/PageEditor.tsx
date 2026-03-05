@@ -93,6 +93,7 @@ export function PageEditor() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const inputRefs = useRef<Record<string, HTMLElement | null>>({});
+  const measuredHeightsRef = useRef<Record<string, number>>({});
   const pendingFocusIdRef = useRef<string | null>(null);
   const uploadAnchorRef = useRef({ x: 120, y: 120 });
   const dragRef = useRef<{ blockId: string; offsetX: number; offsetY: number } | null>(null);
@@ -126,16 +127,19 @@ export function PageEditor() {
   }, []);
 
   const setBlockHeight = useCallback((blockId: string, height: number) => {
-    setBlocks((previous) =>
-      previous.map((block) =>
-        block.id === blockId && Math.abs(block.h - height) > 1
-          ? {
-              ...block,
-              h: height,
-            }
-          : block,
-      ),
-    );
+    setBlocks((previous) => {
+      const index = previous.findIndex((block) => block.id === blockId);
+      if (index < 0) {
+        return previous;
+      }
+      const current = previous[index]!;
+      if (Math.abs(current.h - height) <= 1) {
+        return previous;
+      }
+      const next = [...previous];
+      next[index] = { ...current, h: height };
+      return next;
+    });
   }, []);
 
   const autoSizeTextarea = useCallback(
@@ -143,6 +147,11 @@ export function PageEditor() {
       element.style.height = "0px";
       const next = Math.max(minHeight, element.scrollHeight);
       element.style.height = `${next}px`;
+      const measured = measuredHeightsRef.current[blockId];
+      if (typeof measured === "number" && Math.abs(measured - next) <= 1) {
+        return;
+      }
+      measuredHeightsRef.current[blockId] = next;
       setBlockHeight(blockId, next);
     },
     [setBlockHeight],
@@ -275,16 +284,6 @@ export function PageEditor() {
     if (!hasLoadedRef.current) return;
     saverRef.current.schedule({ blocks, camera, updatedAt: Date.now() });
   }, [blocks, camera]);
-
-  useEffect(() => {
-    for (const block of blocks) {
-      const element = inputRefs.current[block.id];
-      if (element instanceof HTMLTextAreaElement) {
-        const minHeight = block.type === "code" ? 92 : LINE_HEIGHT;
-        autoSizeTextarea(block.id, element, minHeight);
-      }
-    }
-  }, [autoSizeTextarea, blocks]);
 
   useEffect(() => {
     const imageBlocks = blocks.filter((block) => block.type === "file" && isImageMime(block.file?.mimeType) && block.file?.path);
@@ -553,10 +552,6 @@ export function PageEditor() {
   const renderInput = (block: PageBlock) => {
     const attachInputRef = (node: HTMLElement | null) => {
       inputRefs.current[block.id] = node;
-      if (node instanceof HTMLTextAreaElement) {
-        const minHeight = block.type === "code" ? 92 : LINE_HEIGHT;
-        autoSizeTextarea(block.id, node, minHeight);
-      }
     };
 
     const sharedProps = {
@@ -707,10 +702,17 @@ export function PageEditor() {
                 <button
                   type="button"
                   aria-label="Drag block"
-                  className="absolute -left-7 top-1 hidden h-5 w-5 items-center justify-center rounded text-[10px] text-[var(--color-text-muted)] group-hover:inline-flex"
+                  className="absolute -left-9 top-0 hidden h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/70 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] group-hover:inline-flex"
                   onPointerDown={(event) => beginDragBlock(block, event)}
                 >
-                  :::
+                  <span className="grid grid-cols-2 gap-[2px]">
+                    <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                    <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                    <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                    <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                    <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                    <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                  </span>
                 </button>
 
                 <div onPointerDown={(event) => beginDragBlock(block, event)}>
