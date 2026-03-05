@@ -47,28 +47,32 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
   const comments = Array.isArray(value.comments)
     ? value.comments
         .filter(
-          (comment): comment is { id: string; text: string; createdAt: number } =>
+          (comment): comment is { id: string; text: string; createdAt: number; authorName?: string; attachments?: string[]; mentions?: string[] } =>
             isRecord(comment) && typeof comment.id === "string" && typeof comment.text === "string" && typeof comment.createdAt === "number",
         )
         .map((comment) => ({
           id: comment.id,
+          authorName: typeof comment.authorName === "string" && comment.authorName.trim().length > 0 ? comment.authorName : "Bisvo",
           text: comment.text,
           createdAt: comment.createdAt,
+          attachments: Array.isArray(comment.attachments) ? comment.attachments.filter((item) => typeof item === "string") : undefined,
+          mentions: Array.isArray(comment.mentions) ? comment.mentions.filter((item) => typeof item === "string") : undefined,
         }))
     : undefined;
 
   const fileValue = value.file;
   const file = isRecord(fileValue) &&
-    typeof fileValue.path === "string" &&
     typeof fileValue.name === "string" &&
     typeof fileValue.size === "number" &&
     typeof fileValue.mimeType === "string"
       ? {
-          path: fileValue.path,
+          path: typeof fileValue.path === "string" ? fileValue.path : undefined,
           name: fileValue.name,
           size: fileValue.size,
           mimeType: fileValue.mimeType,
           displayName: typeof fileValue.displayName === "string" && fileValue.displayName.trim().length > 0 ? fileValue.displayName : fileValue.name,
+          source: fileValue.source === "embed" ? ("embed" as const) : ("upload" as const),
+          externalUrl: typeof fileValue.externalUrl === "string" ? fileValue.externalUrl : undefined,
         }
       : undefined;
 

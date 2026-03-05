@@ -48,11 +48,15 @@
 45. In block menu, run `Turn into page`; verify block is moved to a new `doc` route and a page-link block remains in the source page.
 46. In block menu, run `Copy link`, paste in browser address bar, and verify it navigates to and focuses the target block.
 47. In block menu, use `Move to page` search/typed id to move block to another doc; verify it is removed from source and appears in destination.
-48. In block menu, run `Comment`; verify thread items appear in menu and persist after refresh.
-49. In block menu, apply text color and background color and verify entire block styling updates.
-50. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
-51. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
-52. Drag a list block slightly right under another list block and verify it nests (indent increases).
+48. In block menu, run `Comment`; verify floating comment panel opens with composer (`Add a comment...`, attach, mention, send).
+49. In comment panel, type text and verify send icon becomes active (blue), then post and verify new card shows author preferred name + `Just now`.
+50. On posted comment, click the `...` menu and verify actions: `Mark as unread`, `Edit`, `Copy link`, `Mute replies`, `Delete`.
+51. In `...` menu, click `Delete`; verify confirmation modal appears with `Delete` and `Cancel`, and deleting removes the comment.
+52. Refresh browser and verify comments persist on their blocks.
+53. In block menu, apply text color and background color and verify entire block styling updates.
+54. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
+55. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
+56. Drag a list block slightly right under another list block and verify it nests (indent increases).
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
@@ -71,6 +75,7 @@ Expected:
 - File upload works via both picker and drag-drop, including multi-file insertion.
 - Uploaded image files preview inline; non-image files render as file cards.
 - File/media blocks support open/preview, download original, caption, comment, rename title, delete, and drag repositioning.
+- Comment threads use card UI with preferred-name author attribution, `...` action menu, delete confirmation modal, and attach/mention/send composer.
 - Page state (blocks + camera) persists after refresh.
 
 ## Electron Desktop Packaging (2026-02-18)

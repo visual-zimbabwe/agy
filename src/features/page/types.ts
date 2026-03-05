@@ -33,8 +33,11 @@ export type PageFileMeta = {
 
 export type PageBlockComment = {
   id: string;
+  authorName: string;
   text: string;
   createdAt: number;
+  attachments?: string[];
+  mentions?: string[];
 };
 
 export type PageBlock = {

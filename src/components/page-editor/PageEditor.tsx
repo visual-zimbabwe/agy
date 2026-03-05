@@ -19,6 +19,7 @@ import {
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
 import type { BlockType, PageBlock } from "@/features/page/types";
 import { cn } from "@/lib/cn";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type SlashCommandId = BlockType;
 type SlashCommandGroup = "basic" | "media";
@@ -30,6 +31,18 @@ type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; m
 type FileInsertIntent = "file" | "image" | "video" | "audio";
 type FileInsertMode = "upload" | "link";
 type FileInsertState = { open: boolean; intent: FileInsertIntent; mode: FileInsertMode; worldX: number; worldY: number; x: number; y: number; url: string };
+type CommentPanelState = {
+  open: boolean;
+  blockId?: string;
+  x: number;
+  y: number;
+  draft: string;
+  attachments: string[];
+  mentions: string[];
+  menuCommentId?: string;
+  deleteConfirmCommentId?: string;
+  editingCommentId?: string;
+};
 
 const DOC_WIDTH = 680;
 const LINE_HEIGHT = 32;
@@ -226,6 +239,19 @@ const acceptForIntent = (intent: FileInsertIntent) => {
 
 const blockTypeForIntent = (intent: FileInsertIntent) => intent;
 
+const relativeTimeLabel = (createdAt: number) => {
+  const diff = Math.max(0, Date.now() - createdAt);
+  if (diff < 45_000) return "Just now";
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
+const initialForName = (name: string) => (name.trim().charAt(0) || "U").toUpperCase();
+
 export function PageEditor() {
   const router = useRouter();
   const pathname = usePathname();
@@ -244,6 +270,7 @@ export function PageEditor() {
   const [availableDocIds, setAvailableDocIds] = useState<string[]>([]);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
+  const [commentAuthorName, setCommentAuthorName] = useState("Bisvo");
   const [uploadIntent, setUploadIntent] = useState<FileInsertIntent>("file");
   const [fileInsert, setFileInsert] = useState<FileInsertState>({
     open: false,
@@ -255,9 +282,19 @@ export function PageEditor() {
     y: 48,
     url: "",
   });
+  const [commentPanel, setCommentPanel] = useState<CommentPanelState>({
+    open: false,
+    x: 44,
+    y: 44,
+    draft: "",
+    attachments: [],
+    mentions: [],
+    editingCommentId: undefined,
+  });
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const commentFileInputRef = useRef<HTMLInputElement | null>(null);
   const inputRefs = useRef<Record<string, HTMLElement | null>>({});
   const measuredHeightsRef = useRef<Record<string, number>>({});
   const selectionRangesRef = useRef<Record<string, { start: number; end: number }>>({});
@@ -476,6 +513,20 @@ export function PageEditor() {
   }, [docId]);
 
   useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      const metadata = data.user?.user_metadata as Record<string, unknown> | undefined;
+      const preferred =
+        (typeof metadata?.preferred_name === "string" && metadata.preferred_name.trim()) ||
+        (typeof metadata?.full_name === "string" && metadata.full_name.trim()) ||
+        (typeof data.user?.email === "string" && data.user.email.split("@")[0]) ||
+        "Bisvo";
+      setCommentAuthorName(preferred);
+    })();
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     const saver = saverRef.current;
     hasLoadedRef.current = false;
@@ -527,6 +578,7 @@ export function PageEditor() {
       setFileMenu((previous) => ({ ...previous, open: false }));
       setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "", searchQuery: "" }));
       setFileInsert((previous) => ({ ...previous, open: false }));
+      setCommentPanel((previous) => ({ ...previous, open: false, menuCommentId: undefined, deleteConfirmCommentId: undefined, editingCommentId: undefined }));
     };
     window.addEventListener("pointerdown", closeMenus);
     return () => window.removeEventListener("pointerdown", closeMenus);
@@ -566,6 +618,18 @@ export function PageEditor() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [fileInsert.open]);
+
+  useEffect(() => {
+    if (!commentPanel.open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setCommentPanel((previous) => ({ ...previous, open: false, menuCommentId: undefined, deleteConfirmCommentId: undefined, editingCommentId: undefined }));
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [commentPanel.open]);
 
   const updateBlock = useCallback((blockId: string, patch: Partial<PageBlock>) => {
     setBlocks((previous) => previous.map((block) => (block.id === blockId ? { ...block, ...patch } : block)));
@@ -717,15 +781,99 @@ export function PageEditor() {
     [blocks, moveBlocksToDoc, pathname, router, searchParams],
   );
 
-  const addCommentToBlock = useCallback((blockId: string) => {
-    const text = window.prompt("Add comment");
-    if (!text || !text.trim()) return;
+  const openCommentPanel = useCallback(
+    (blockId: string, x: number, y: number) => {
+      const panelWidth = 360;
+      const panelHeight = 320;
+      setCanvasMenu((previous) => ({ ...previous, open: false }));
+      setFileMenu((previous) => ({ ...previous, open: false }));
+      setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "", searchQuery: "" }));
+      setCommentPanel((previous) => ({
+        ...previous,
+        open: true,
+        blockId,
+        x: clamp(x, 10, Math.max(10, viewport.w - panelWidth - 10)),
+        y: clamp(y, 10, Math.max(10, viewport.h - panelHeight - 10)),
+        menuCommentId: undefined,
+        deleteConfirmCommentId: undefined,
+        editingCommentId: undefined,
+      }));
+    },
+    [viewport.h, viewport.w],
+  );
+
+  const updateCommentInBlock = useCallback((blockId: string, commentId: string, nextText: string) => {
+    const trimmed = nextText.trim();
+    if (!trimmed) return;
     setBlocks((previous) =>
       previous.map((block) =>
         block.id === blockId
           ? {
               ...block,
-              comments: [...(block.comments ?? []), { id: idFor(), text: text.trim(), createdAt: Date.now() }],
+              comments: (block.comments ?? []).map((comment) => (comment.id === commentId ? { ...comment, text: trimmed } : comment)),
+            }
+          : block,
+      ),
+    );
+  }, []);
+
+  const postComment = useCallback(() => {
+    const blockId = commentPanel.blockId;
+    if (!blockId) return;
+    const text = commentPanel.draft.trim();
+    if (!text && commentPanel.attachments.length === 0) return;
+    if (commentPanel.editingCommentId) {
+      updateCommentInBlock(blockId, commentPanel.editingCommentId, text);
+      setCommentPanel((previous) => ({
+        ...previous,
+        draft: "",
+        attachments: [],
+        mentions: [],
+        menuCommentId: undefined,
+        deleteConfirmCommentId: undefined,
+        editingCommentId: undefined,
+      }));
+      return;
+    }
+    const mentions = Array.from(new Set((text.match(/@[\w.-]+/g) ?? []).map((token) => token.slice(1))));
+    setBlocks((previous) =>
+      previous.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              comments: [
+                ...(block.comments ?? []),
+                {
+                  id: idFor(),
+                  authorName: commentAuthorName,
+                  text,
+                  createdAt: Date.now(),
+                  attachments: commentPanel.attachments.length ? commentPanel.attachments : undefined,
+                  mentions: mentions.length ? mentions : undefined,
+                },
+              ],
+            }
+          : block,
+      ),
+    );
+    setCommentPanel((previous) => ({
+      ...previous,
+      draft: "",
+      attachments: [],
+      mentions: [],
+      menuCommentId: undefined,
+      deleteConfirmCommentId: undefined,
+      editingCommentId: undefined,
+    }));
+  }, [commentAuthorName, commentPanel.attachments, commentPanel.blockId, commentPanel.draft, commentPanel.editingCommentId, updateCommentInBlock]);
+
+  const deleteCommentFromBlock = useCallback((blockId: string, commentId: string) => {
+    setBlocks((previous) =>
+      previous.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              comments: (block.comments ?? []).filter((comment) => comment.id !== commentId),
             }
           : block,
       ),
@@ -1604,6 +1752,8 @@ export function PageEditor() {
   };
 
   const menuBlock = menu ? blocks.find((block) => block.id === menu.blockId) : undefined;
+  const commentTargetBlock = commentPanel.blockId ? blocks.find((block) => block.id === commentPanel.blockId) : undefined;
+  const canPostComment = commentPanel.draft.trim().length > 0 || commentPanel.attachments.length > 0;
   const blockMenuBlock = blockMenu.blockId ? blocks.find((block) => block.id === blockMenu.blockId) : undefined;
   const blockMenuActions = blockMenuBlock
     ? [
@@ -1681,6 +1831,21 @@ export function PageEditor() {
           const chosen = Array.from(event.target.files ?? []);
           event.currentTarget.value = "";
           void uploadFilesAt(chosen, uploadAnchorRef.current.x, uploadAnchorRef.current.y, uploadIntent);
+        }}
+      />
+      <input
+        ref={commentFileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          const names = Array.from(event.target.files ?? []).map((file) => file.name);
+          event.currentTarget.value = "";
+          if (!names.length) return;
+          setCommentPanel((previous) => ({
+            ...previous,
+            attachments: Array.from(new Set([...previous.attachments, ...names])).slice(0, 6),
+          }));
         }}
       />
 
@@ -1827,7 +1992,7 @@ export function PageEditor() {
                           className="rounded px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
                           onClick={(event) => {
                             event.stopPropagation();
-                            addCommentToBlock(block.id);
+                            openCommentPanel(block.id, event.clientX + 8, event.clientY + 8);
                           }}
                         >
                           Comment
@@ -1962,6 +2127,195 @@ export function PageEditor() {
           </div>
         )}
 
+        {commentPanel.open && commentTargetBlock && (
+          <div
+            className="absolute z-[58] w-[22rem] rounded-xl border border-[#d7d7d7] bg-[#f5f5f5] p-2 shadow-[0_14px_28px_rgba(0,0,0,0.18)]"
+            style={{ left: commentPanel.x, top: commentPanel.y }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="max-h-60 space-y-2 overflow-y-auto p-1">
+              {(commentTargetBlock.comments ?? []).length === 0 && <p className="px-1 py-2 text-sm text-[#8b8b8b]">No comments yet.</p>}
+              {(commentTargetBlock.comments ?? []).map((comment) => (
+                <article key={comment.id} className="rounded-[12px] border border-[#d9d9d9] bg-[#f7f7f7] px-3 py-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#dedede] text-[11px] text-[#9a9a9a]">
+                        {initialForName(comment.authorName || commentAuthorName)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[#2e2e2e]">{comment.authorName || commentAuthorName}</p>
+                      </div>
+                      <span className="text-xs text-[#9d9d9d]">{relativeTimeLabel(comment.createdAt)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="rounded px-1.5 py-0.5 text-[#8b8b8b] hover:bg-[#ececec] hover:text-[#3a3a3a]"
+                      onClick={() =>
+                        setCommentPanel((previous) => ({
+                          ...previous,
+                          menuCommentId: previous.menuCommentId === comment.id ? undefined : comment.id,
+                          deleteConfirmCommentId: undefined,
+                        }))
+                      }
+                    >
+                      ...
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[15px] text-[#2b2b2b]">{comment.text || <span className="text-[#9a9a9a]">Attachment only</span>}</p>
+                  {comment.attachments?.length ? (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {comment.attachments.map((attachment) => (
+                        <span key={attachment} className="rounded-md border border-[#d2d2d2] bg-white px-1.5 py-0.5 text-[11px] text-[#636363]">
+                          {attachment}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {commentPanel.menuCommentId === comment.id && (
+                    <div className="relative">
+                      <div className="absolute right-0 top-1 z-[59] min-w-44 rounded-xl border border-[#d2d2d2] bg-[#efefef] p-1.5 shadow-[0_8px_18px_rgba(0,0,0,0.14)]">
+                        <button
+                          type="button"
+                          className="block w-full rounded px-2 py-1.5 text-left text-sm text-[#333] hover:bg-[#dfdfdf]"
+                          onClick={() => setCommentPanel((previous) => ({ ...previous, menuCommentId: undefined }))}
+                        >
+                          Mark as unread
+                        </button>
+                        <button
+                          type="button"
+                          className="mt-0.5 block w-full rounded px-2 py-1.5 text-left text-sm text-[#333] hover:bg-[#dfdfdf]"
+                          onClick={() =>
+                            setCommentPanel((previous) => ({
+                              ...previous,
+                              draft: comment.text,
+                              attachments: comment.attachments ?? [],
+                              menuCommentId: undefined,
+                              editingCommentId: comment.id,
+                            }))
+                          }
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="mt-0.5 block w-full rounded px-2 py-1.5 text-left text-sm text-[#333] hover:bg-[#dfdfdf]"
+                          onClick={async () => {
+                            await copyBlockLink(commentTargetBlock.id);
+                            setCommentPanel((previous) => ({ ...previous, menuCommentId: undefined }));
+                          }}
+                        >
+                          Copy link
+                        </button>
+                        <button
+                          type="button"
+                          className="mt-0.5 block w-full rounded px-2 py-1.5 text-left text-sm text-[#333] hover:bg-[#dfdfdf]"
+                          onClick={() => setCommentPanel((previous) => ({ ...previous, menuCommentId: undefined }))}
+                        >
+                          Mute replies
+                        </button>
+                        <button
+                          type="button"
+                          className="mt-0.5 block w-full rounded px-2 py-1.5 text-left text-sm text-[#cc4f46] hover:bg-[#dfdfdf]"
+                          onClick={() => setCommentPanel((previous) => ({ ...previous, menuCommentId: undefined, deleteConfirmCommentId: comment.id }))}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+
+            {!!commentPanel.attachments.length && (
+              <div className="mt-1 flex flex-wrap gap-1 px-1">
+                {commentPanel.attachments.map((attachment) => (
+                  <button
+                    key={attachment}
+                    type="button"
+                    className="rounded-md border border-[#d2d2d2] bg-white px-1.5 py-0.5 text-[11px] text-[#666]"
+                    onClick={() => setCommentPanel((previous) => ({ ...previous, attachments: previous.attachments.filter((item) => item !== attachment) }))}
+                  >
+                    {attachment} x
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-2 flex items-center gap-2 rounded-xl border border-[#d9d9d9] bg-white px-2 py-1.5">
+              <input
+                value={commentPanel.draft}
+                onChange={(event) => setCommentPanel((previous) => ({ ...previous, draft: event.target.value }))}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    postComment();
+                  }
+                }}
+                placeholder="Add a comment..."
+                className="h-7 w-full bg-transparent text-sm text-[#333] outline-none placeholder:text-[#a2a2a2]"
+              />
+              <button
+                type="button"
+                className="rounded p-1 text-[#7d7d7d] hover:bg-[#f0f0f0] hover:text-[#4a4a4a]"
+                onClick={() => commentFileInputRef.current?.click()}
+                title="Attach file"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                className="rounded p-1 text-[#7d7d7d] hover:bg-[#f0f0f0] hover:text-[#4a4a4a]"
+                onClick={() => setCommentPanel((previous) => ({ ...previous, draft: `${previous.draft}${previous.draft.endsWith(" ") || previous.draft.length === 0 ? "" : " "}@` }))}
+                title="Mention"
+              >
+                @
+              </button>
+              <button
+                type="button"
+                className={cn("rounded-full p-1 text-xs", canPostComment ? "bg-[#2f80ed] text-white" : "bg-[#efefef] text-[#a6a6a6]")}
+                disabled={!canPostComment}
+                onClick={postComment}
+                title={commentPanel.editingCommentId ? "Save comment" : "Post comment"}
+              >
+                ^
+              </button>
+            </div>
+          </div>
+        )}
+
+        {commentPanel.open && commentPanel.deleteConfirmCommentId && commentTargetBlock && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 px-4"
+            onPointerDown={() => setCommentPanel((previous) => ({ ...previous, deleteConfirmCommentId: undefined }))}
+          >
+            <div
+              className="w-full max-w-[22rem] rounded-2xl border border-[#cecece] bg-[#f0f0f0] p-5 text-center shadow-[0_18px_30px_rgba(0,0,0,0.25)]"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <p className="text-[1.2rem] font-semibold text-[#343434]">Would you like to delete this comment?</p>
+              <button
+                type="button"
+                className="mt-4 w-full rounded-lg bg-[#e06557] px-3 py-2 text-base font-semibold text-white hover:bg-[#d35749]"
+                onClick={() => {
+                  deleteCommentFromBlock(commentTargetBlock.id, commentPanel.deleteConfirmCommentId!);
+                  setCommentPanel((previous) => ({ ...previous, deleteConfirmCommentId: undefined }));
+                }}
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="mt-2 w-full rounded-lg border border-[#d4d4d4] bg-[#f3f3f3] px-3 py-2 text-base text-[#333] hover:bg-[#ececec]"
+                onClick={() => setCommentPanel((previous) => ({ ...previous, deleteConfirmCommentId: undefined }))}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {canvasMenu.open && (
           <div
             className="fixed z-50 min-w-48 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-1.5 shadow-[var(--shadow-lg)]"
@@ -2022,7 +2376,11 @@ export function PageEditor() {
               type="button"
               className="mt-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
               onClick={() => {
-                addCommentToBlock(fileMenu.blockId!);
+                const target = blocks.find((entry) => entry.id === fileMenu.blockId!);
+                if (target) {
+                  const anchor = toScreenPoint(target.x + target.w * 0.35, target.y + target.h + 12);
+                  openCommentPanel(target.id, anchor.x, anchor.y);
+                }
                 setFileMenu({ open: false, x: 0, y: 0 });
               }}
             >
@@ -2204,7 +2562,14 @@ export function PageEditor() {
             <button
               type="button"
               className="mt-0.5 flex w-full items-center justify-between rounded-md px-1.5 py-1.5 text-left text-[1rem] hover:bg-[#ececec]"
-              onClick={() => addCommentToBlock(blockMenu.blockId!)}
+              onClick={() => {
+                const target = blocks.find((entry) => entry.id === blockMenu.blockId!);
+                if (target) {
+                  const anchor = toScreenPoint(target.x + target.w * 0.35, target.y + target.h + 12);
+                  openCommentPanel(target.id, anchor.x, anchor.y);
+                }
+                setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
+              }}
             >
               <span>Comment</span>
               <span className="text-xs text-[#989898]">Ctrl+Shift+M</span>
