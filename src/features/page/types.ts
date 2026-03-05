@@ -29,6 +29,12 @@ export type PageFileMeta = {
   displayName: string;
 };
 
+export type PageBlockComment = {
+  id: string;
+  text: string;
+  createdAt: number;
+};
+
 export type PageBlock = {
   id: string;
   type: BlockType;
@@ -37,11 +43,13 @@ export type PageBlock = {
   y: number;
   w: number;
   h: number;
+  pageId?: string;
   indent?: number;
   textColor?: string;
   backgroundColor?: string;
   checked?: boolean;
   expanded?: boolean;
+  comments?: PageBlockComment[];
   file?: PageFileMeta;
 };
 

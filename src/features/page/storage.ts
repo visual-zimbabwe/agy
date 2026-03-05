@@ -19,7 +19,7 @@ class IdeaWallPageDatabase extends Dexie {
   }
 }
 
-const defaultPageDocId = "default";
+export const defaultPageDocId = "default";
 const db = new IdeaWallPageDatabase();
 const defaultCamera = { x: 0, y: 0, zoom: 1 } as const;
 
@@ -38,11 +38,24 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
   const y = typeof value.y === "number" && Number.isFinite(value.y) ? value.y : 80 + index * 86;
   const w = typeof value.w === "number" && Number.isFinite(value.w) ? value.w : 360;
   const h = typeof value.h === "number" && Number.isFinite(value.h) ? value.h : 88;
+  const pageId = typeof value.pageId === "string" ? value.pageId : undefined;
   const indent = typeof value.indent === "number" && Number.isFinite(value.indent) ? Math.max(0, Math.floor(value.indent)) : undefined;
   const textColor = typeof value.textColor === "string" ? value.textColor : undefined;
   const backgroundColor = typeof value.backgroundColor === "string" ? value.backgroundColor : undefined;
   const checked = typeof value.checked === "boolean" ? value.checked : undefined;
   const expanded = typeof value.expanded === "boolean" ? value.expanded : undefined;
+  const comments = Array.isArray(value.comments)
+    ? value.comments
+        .filter(
+          (comment): comment is { id: string; text: string; createdAt: number } =>
+            isRecord(comment) && typeof comment.id === "string" && typeof comment.text === "string" && typeof comment.createdAt === "number",
+        )
+        .map((comment) => ({
+          id: comment.id,
+          text: comment.text,
+          createdAt: comment.createdAt,
+        }))
+    : undefined;
 
   const fileValue = value.file;
   const file = isRecord(fileValue) &&
@@ -67,11 +80,13 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
     y,
     w,
     h,
+    pageId,
     indent,
     textColor,
     backgroundColor,
     checked,
     expanded,
+    comments,
     file,
   };
 };
@@ -102,23 +117,28 @@ const normalizeSnapshot = (value: unknown): PersistedPageState | null => {
   };
 };
 
-export const loadPageSnapshot = async (): Promise<PersistedPageState | null> => {
-  const row = await db.pageDocs.get(defaultPageDocId);
+export const loadPageSnapshot = async (docId = defaultPageDocId): Promise<PersistedPageState | null> => {
+  const row = await db.pageDocs.get(docId);
   if (!row?.snapshot) {
     return null;
   }
   return normalizeSnapshot(row.snapshot);
 };
 
-export const savePageSnapshot = async (snapshot: PersistedPageState): Promise<void> => {
+export const savePageSnapshot = async (snapshot: PersistedPageState, docId = defaultPageDocId): Promise<void> => {
   await db.pageDocs.put({
-    id: defaultPageDocId,
+    id: docId,
     snapshot,
     updatedAt: Date.now(),
   });
 };
 
-export const createPageSnapshotSaver = (delayMs = 300) => {
+export const listPageDocIds = async (): Promise<string[]> => {
+  const rows = await db.pageDocs.orderBy("updatedAt").reverse().toArray();
+  return rows.map((row) => row.id);
+};
+
+export const createPageSnapshotSaver = (delayMs = 300, docId = defaultPageDocId) => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let latest: PersistedPageState | undefined;
 
@@ -128,7 +148,7 @@ export const createPageSnapshotSaver = (delayMs = 300) => {
     }
     const snapshot = latest;
     latest = undefined;
-    await savePageSnapshot(snapshot);
+    await savePageSnapshot(snapshot, docId);
   };
 
   const schedule = (snapshot: PersistedPageState) => {

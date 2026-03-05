@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Fragment,
   useCallback,
@@ -15,7 +16,7 @@ import {
   type SyntheticEvent,
 } from "react";
 
-import { createPageSnapshotSaver, loadPageSnapshot } from "@/features/page/storage";
+import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
 import type { BlockType, PageBlock } from "@/features/page/types";
 import { cn } from "@/lib/cn";
 
@@ -24,7 +25,7 @@ type SlashCommand = { id: SlashCommandId; label: string; description: string; al
 type MenuState = { blockId: string; query: string; slashRange: { start: number; end: number } };
 type CanvasMenuState = { open: boolean; x: number; y: number; worldX: number; worldY: number };
 type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
-type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string };
+type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; moveToQuery: string };
 
 const DOC_WIDTH = 680;
 const LINE_HEIGHT = 32;
@@ -33,6 +34,8 @@ const DEFAULT_BLOCK_GAP = 14;
 const INDENT_STEP = 24;
 const MAX_TODO_INDENT = 8;
 const ATTRIBUTION_PREFIX = "-- ";
+const HANDLE_DRAG_HOLD_MS = 220;
+const HANDLE_DRAG_MOVE_THRESHOLD = 4;
 
 const QUOTE_TEXT_COLORS = [
   { id: "default", label: "Default", value: "" },
@@ -48,6 +51,19 @@ const QUOTE_BACKGROUND_COLORS = [
   { id: "sky", label: "Sky", value: "#f0f9ff" },
   { id: "mint", label: "Mint", value: "#ecfdf5" },
   { id: "rose", label: "Rose", value: "#fff1f2" },
+];
+
+const TURN_INTO_TYPES: Array<{ type: BlockType; label: string }> = [
+  { type: "text", label: "Text" },
+  { type: "h1", label: "Heading 1" },
+  { type: "h2", label: "Heading 2" },
+  { type: "h3", label: "Heading 3" },
+  { type: "todo", label: "To-do list" },
+  { type: "bulleted", label: "Bulleted list" },
+  { type: "toggle", label: "Toggle" },
+  { type: "quote", label: "Quote" },
+  { type: "callout", label: "Callout" },
+  { type: "code", label: "Code" },
 ];
 
 const slashCommands: SlashCommand[] = [
@@ -173,6 +189,10 @@ const formatFileSize = (bytes: number) => {
 };
 
 export function PageEditor() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const docId = searchParams.get("doc") || defaultPageDocId;
   const [blocks, setBlocks] = useState<PageBlock[]>(() => createEmptyPage());
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const [viewport, setViewport] = useState({ w: 1200, h: 800 });
@@ -180,8 +200,10 @@ export function PageEditor() {
   const [menuIndex, setMenuIndex] = useState(0);
   const [canvasMenu, setCanvasMenu] = useState<CanvasMenuState>({ open: false, x: 0, y: 0, worldX: 0, worldY: 0 });
   const [fileMenu, setFileMenu] = useState<FileMenuState>({ open: false, x: 0, y: 0 });
-  const [blockMenu, setBlockMenu] = useState<BlockMenuState>({ open: false, x: 0, y: 0 });
+  const [blockMenu, setBlockMenu] = useState<BlockMenuState>({ open: false, x: 0, y: 0, moveToQuery: "" });
   const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
+  const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);
+  const [availableDocIds, setAvailableDocIds] = useState<string[]>([]);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
 
@@ -194,8 +216,9 @@ export function PageEditor() {
   const uploadAnchorRef = useRef({ x: 120, y: 120 });
   const dragRef = useRef<{ blockId: string; offsetX: number; offsetY: number } | null>(null);
   const panRef = useRef<{ startX: number; startY: number; cameraX: number; cameraY: number; moved: boolean } | null>(null);
+  const handleHoldRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; pressedAt: number; blockIds: string[] } | null>(null);
   const hasLoadedRef = useRef(false);
-  const saverRef = useRef(createPageSnapshotSaver(260));
+  const saverRef = useRef(createPageSnapshotSaver(260, docId));
 
   const filteredMenu = useMemo(() => {
     const query = menu?.query.trim().toLowerCase() ?? "";
@@ -357,15 +380,21 @@ export function PageEditor() {
   }, []);
 
   useEffect(() => {
+    saverRef.current = createPageSnapshotSaver(260, docId);
+  }, [docId]);
+
+  useEffect(() => {
     let cancelled = false;
     const saver = saverRef.current;
+    hasLoadedRef.current = false;
     void (async () => {
       try {
-        const snapshot = await loadPageSnapshot();
+        const snapshot = await loadPageSnapshot(docId);
         if (cancelled) return;
         hasLoadedRef.current = true;
         setBlocks(snapshot?.blocks?.length ? snapshot.blocks : createEmptyPage());
         if (snapshot?.camera) setCamera(snapshot.camera);
+        else setCamera({ x: 0, y: 0, zoom: 1 });
       } catch {
         hasLoadedRef.current = true;
       }
@@ -374,7 +403,7 @@ export function PageEditor() {
       cancelled = true;
       void saver.flush();
     };
-  }, []);
+  }, [docId]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
@@ -390,10 +419,17 @@ export function PageEditor() {
   }, [blocks, signFileUrl, signedUrls]);
 
   useEffect(() => {
+    void (async () => {
+      const ids = await listPageDocIds();
+      setAvailableDocIds(ids.length ? ids : [defaultPageDocId]);
+    })();
+  }, [blocks, docId]);
+
+  useEffect(() => {
     const closeMenus = () => {
       setCanvasMenu((previous) => ({ ...previous, open: false }));
       setFileMenu((previous) => ({ ...previous, open: false }));
-      setBlockMenu((previous) => ({ ...previous, open: false }));
+      setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "" }));
     };
     window.addEventListener("pointerdown", closeMenus);
     return () => window.removeEventListener("pointerdown", closeMenus);
@@ -424,6 +460,167 @@ export function PageEditor() {
 
   const updateBlock = useCallback((blockId: string, patch: Partial<PageBlock>) => {
     setBlocks((previous) => previous.map((block) => (block.id === blockId ? { ...block, ...patch } : block)));
+  }, []);
+
+  const deleteBlocks = useCallback((targetIds: string[]) => {
+    if (targetIds.length === 0) return;
+    const targetSet = new Set(targetIds);
+    setBlocks((previous) => previous.filter((block) => !targetSet.has(block.id)));
+    setSelectedBlockIds((previous) => previous.filter((id) => !targetSet.has(id)));
+  }, []);
+
+  const duplicateBlock = useCallback(
+    (blockId: string) => {
+      setBlocks((previous) => {
+        const index = previous.findIndex((block) => block.id === blockId);
+        if (index < 0) return previous;
+        const source = previous[index]!;
+        const duplicate: PageBlock = {
+          ...source,
+          id: idFor(),
+          y: source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type)),
+          comments: source.comments?.map((comment) => ({ ...comment, id: idFor(), createdAt: Date.now() })),
+        };
+        return [...previous.slice(0, index + 1), duplicate, ...previous.slice(index + 1)];
+      });
+    },
+    [],
+  );
+
+  const turnBlockInto = useCallback((blockId: string, nextType: BlockType) => {
+    setBlocks((previous) =>
+      previous.map((block) => {
+        if (block.id !== blockId || block.type === "file") return block;
+        return {
+          ...block,
+          type: nextType,
+          checked: nextType === "todo" ? false : undefined,
+          indent: nextType === "todo" || nextType === "bulleted" || nextType === "toggle" ? block.indent : undefined,
+          textColor: nextType === "quote" ? block.textColor : undefined,
+          backgroundColor: nextType === "quote" ? block.backgroundColor : undefined,
+        };
+      }),
+    );
+  }, []);
+
+  const copyBlockLink = useCallback(
+    async (blockId: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (docId === defaultPageDocId) {
+        params.delete("doc");
+      } else {
+        params.set("doc", docId);
+      }
+      const query = params.toString();
+      const url = `${window.location.origin}${pathname}${query ? `?${query}` : ""}#${blockId}`;
+      await navigator.clipboard.writeText(url);
+    },
+    [docId, pathname, searchParams],
+  );
+
+  const highlightBlockByHash = useCallback(
+    (blockId: string) => {
+      const target = inputRefs.current[blockId];
+      if (target) {
+        target.classList.add("ring-2", "ring-[var(--color-accent)]");
+        setTimeout(() => {
+          target.classList.remove("ring-2", "ring-[var(--color-accent)]");
+        }, 1200);
+      }
+      queueFocus(blockId);
+    },
+    [queueFocus],
+  );
+
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "").trim();
+    if (!hash) return;
+    const exists = blocks.some((block) => block.id === hash);
+    if (!exists) return;
+    highlightBlockByHash(hash);
+  }, [blocks, highlightBlockByHash]);
+
+  const moveBlocksToDoc = useCallback(
+    async (targetDocId: string, blockIds: string[]) => {
+      const uniqueTarget = targetDocId.trim() || defaultPageDocId;
+      const movingSet = new Set(blockIds);
+      if (!movingSet.size) return;
+
+      const movingBlocks = blocks.filter((block) => movingSet.has(block.id));
+      if (movingBlocks.length === 0) return;
+
+      const targetSnapshot = (await loadPageSnapshot(uniqueTarget)) ?? {
+        blocks: [],
+        camera: { x: 0, y: 0, zoom: 1 },
+        updatedAt: Date.now(),
+      };
+
+      const maxY = targetSnapshot.blocks.reduce((max, block) => Math.max(max, block.y + block.h), 100);
+      const pasted = movingBlocks.map((block, index) => ({
+        ...block,
+        y: maxY + 24 + index * Math.max(block.h + blockGapFor(block.type), LINE_HEIGHT + blockGapFor(block.type)),
+      }));
+
+      await savePageSnapshot(
+        {
+          ...targetSnapshot,
+          blocks: [...targetSnapshot.blocks, ...pasted],
+          updatedAt: Date.now(),
+        },
+        uniqueTarget,
+      );
+
+      setBlocks((previous) => previous.filter((block) => !movingSet.has(block.id)));
+      setSelectedBlockIds((previous) => previous.filter((id) => !movingSet.has(id)));
+      setAvailableDocIds((previous) => (previous.includes(uniqueTarget) ? previous : [uniqueTarget, ...previous]));
+    },
+    [blocks],
+  );
+
+  const turnBlockIntoPage = useCallback(
+    async (blockId: string) => {
+      const block = blocks.find((entry) => entry.id === blockId);
+      if (!block) return;
+      const pageDocId = `page_${Math.random().toString(36).slice(2, 8)}`;
+      const nestedIds = [blockId];
+      for (const candidate of blocks) {
+        if (candidate.id === blockId) continue;
+        if (candidate.y > block.y && Math.abs(candidate.x - block.x) <= 36) {
+          nestedIds.push(candidate.id);
+        }
+      }
+      await moveBlocksToDoc(pageDocId, nestedIds);
+      const pageBlock: PageBlock = {
+        id: idFor(),
+        type: "page",
+        content: block.content.trim() || "Untitled Page",
+        x: block.x,
+        y: block.y,
+        w: DOC_WIDTH,
+        h: LINE_HEIGHT + 8,
+        pageId: pageDocId,
+      };
+      setBlocks((previous) => [...previous, pageBlock]);
+      const next = new URLSearchParams(searchParams.toString());
+      next.set("doc", pageDocId);
+      router.push(`${pathname}?${next.toString()}`);
+    },
+    [blocks, moveBlocksToDoc, pathname, router, searchParams],
+  );
+
+  const addCommentToBlock = useCallback((blockId: string) => {
+    const text = window.prompt("Add comment");
+    if (!text || !text.trim()) return;
+    setBlocks((previous) =>
+      previous.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              comments: [...(block.comments ?? []), { id: idFor(), text: text.trim(), createdAt: Date.now() }],
+            }
+          : block,
+      ),
+    );
   }, []);
 
   const rememberSelection = useCallback((blockId: string, element: HTMLInputElement | HTMLTextAreaElement) => {
@@ -887,25 +1084,35 @@ export function PageEditor() {
   );
 
   const beginDragBlock = useCallback(
-    (block: PageBlock, event: ReactPointerEvent<HTMLElement>) => {
+    (block: PageBlock, event: ReactPointerEvent<HTMLElement>, blockIds?: string[]) => {
       if (event.button !== 0 || isTextInputTarget(event.target)) return;
       event.preventDefault();
       event.stopPropagation();
       setMenu(null);
+      setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "" }));
       const world = worldFromClient(event.clientX, event.clientY);
-      dragRef.current = { blockId: block.id, offsetX: world.x - block.x, offsetY: world.y - block.y };
+      const draggingIds = blockIds && blockIds.length > 0 ? blockIds : [block.id];
+      const sourceBlocks = blocks.filter((entry) => draggingIds.includes(entry.id));
+      const leadBlock = sourceBlocks.find((entry) => entry.id === block.id) ?? block;
+      dragRef.current = { blockId: leadBlock.id, offsetX: world.x - leadBlock.x, offsetY: world.y - leadBlock.y };
+      const startPositions = new Map(sourceBlocks.map((entry) => [entry.id, { x: entry.x, y: entry.y }]));
+      const leadStart = startPositions.get(leadBlock.id) ?? { x: leadBlock.x, y: leadBlock.y };
 
       const onMove = (moveEvent: PointerEvent) => {
         const drag = dragRef.current;
         if (!drag) return;
         const pointer = worldFromClient(moveEvent.clientX, moveEvent.clientY);
+        const nextLeadX = pointer.x - drag.offsetX;
+        const nextLeadY = pointer.y - drag.offsetY;
+        const deltaX = nextLeadX - leadStart.x;
+        const deltaY = nextLeadY - leadStart.y;
         setBlocks((previous) =>
           previous.map((entry) =>
-            entry.id === drag.blockId
+            startPositions.has(entry.id)
               ? {
                   ...entry,
-                  x: pointer.x - drag.offsetX,
-                  y: pointer.y - drag.offsetY,
+                  x: (startPositions.get(entry.id)?.x ?? entry.x) + deltaX,
+                  y: (startPositions.get(entry.id)?.y ?? entry.y) + deltaY,
                 }
               : entry,
           ),
@@ -916,21 +1123,140 @@ export function PageEditor() {
         dragRef.current = null;
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
+        setBlocks((previous) => {
+          const lead = previous.find((entry) => entry.id === leadBlock.id);
+          if (!lead) return previous;
+          const target = previous
+            .filter((entry) => entry.id !== lead.id && !startPositions.has(entry.id))
+            .find((entry) => Math.abs(entry.y - lead.y) < 80);
+          if (!target) return previous;
+
+          const next = previous.map((entry) => ({ ...entry }));
+          const leadEntry = next.find((entry) => entry.id === lead.id);
+          if (!leadEntry) return previous;
+
+          // Rearrange vertically when dropped near the same horizontal lane.
+          if (Math.abs(leadEntry.x - target.x) <= 32) {
+            leadEntry.x = target.x;
+            leadEntry.y = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
+            if (leadEntry.type === "todo" || leadEntry.type === "bulleted" || leadEntry.type === "toggle") {
+              leadEntry.indent = target.indent;
+            }
+            return next;
+          }
+
+          // Create columns by snapping to left/right side of target.
+          if (Math.abs(leadEntry.y - target.y) <= 44 && Math.abs(leadEntry.x - target.x) > 120) {
+            const horizontalOffset = leadEntry.x > target.x ? target.w * 0.55 : -target.w * 0.55;
+            leadEntry.x = target.x + horizontalOffset;
+            leadEntry.y = target.y;
+            return next;
+          }
+
+          // Nest if slightly right and below target.
+          if (leadEntry.y > target.y && leadEntry.x > target.x + 8 && leadEntry.x < target.x + 96) {
+            leadEntry.x = target.x;
+            if (leadEntry.type === "todo" || leadEntry.type === "bulleted" || leadEntry.type === "toggle") {
+              leadEntry.indent = clamp((target.indent ?? 0) + 1, 0, MAX_TODO_INDENT);
+            }
+            leadEntry.y = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
+            return next;
+          }
+
+          return previous;
+        });
       };
 
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [worldFromClient],
+    [blocks, worldFromClient],
   );
 
   const onCanvasPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.button !== 0 || event.target !== event.currentTarget) return;
       setMenu(null);
+      setSelectedBlockIds([]);
       beginPan(event);
     },
     [beginPan],
+  );
+
+  const onHandlePointerDown = useCallback(
+    (block: PageBlock, event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.metaKey || event.ctrlKey) {
+        setSelectedBlockIds((previous) => (previous.includes(block.id) ? previous.filter((id) => id !== block.id) : [...previous, block.id]));
+        return;
+      }
+
+      const activeSelection = selectedBlockIds.includes(block.id) ? selectedBlockIds : [block.id];
+      handleHoldRef.current = {
+        timer: null,
+        pressedAt: Date.now(),
+        blockIds: activeSelection,
+      };
+
+      const startX = event.clientX;
+      const startY = event.clientY;
+
+      const startDrag = (clientX: number, clientY: number) => {
+        const synthetic = {
+          ...event,
+          clientX,
+          clientY,
+          button: 0,
+          preventDefault: () => {},
+          stopPropagation: () => {},
+          target: event.target,
+        } as unknown as ReactPointerEvent<HTMLElement>;
+        beginDragBlock(block, synthetic, activeSelection);
+      };
+
+      handleHoldRef.current.timer = setTimeout(() => {
+        startDrag(startX, startY);
+      }, HANDLE_DRAG_HOLD_MS);
+
+      const onMove = (moveEvent: PointerEvent) => {
+        const hold = handleHoldRef.current;
+        if (!hold) return;
+        if (Math.abs(moveEvent.clientX - startX) + Math.abs(moveEvent.clientY - startY) > HANDLE_DRAG_MOVE_THRESHOLD) {
+          if (hold.timer) {
+            clearTimeout(hold.timer);
+            hold.timer = null;
+          }
+          startDrag(moveEvent.clientX, moveEvent.clientY);
+          handleHoldRef.current = null;
+          cleanup();
+        }
+      };
+
+      const onUp = () => {
+        const hold = handleHoldRef.current;
+        if (hold?.timer) {
+          clearTimeout(hold.timer);
+          hold.timer = null;
+          setBlockMenu({ open: true, x: startX, y: startY, blockId: block.id, moveToQuery: "" });
+          setCanvasMenu((previous) => ({ ...previous, open: false }));
+          setFileMenu((previous) => ({ ...previous, open: false }));
+        }
+        handleHoldRef.current = null;
+        cleanup();
+      };
+
+      const cleanup = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [beginDragBlock, selectedBlockIds],
   );
   const openFileBlock = useCallback(
     async (block: PageBlock) => {
@@ -1069,6 +1395,22 @@ export function PageEditor() {
         </div>
       );
     }
+    if (block.type === "page") {
+      return (
+        <button
+          type="button"
+          className="w-full rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-left text-base font-medium text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4"
+          onClick={() => {
+            if (!block.pageId) return;
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("doc", block.pageId);
+            router.push(`${pathname}?${params.toString()}`);
+          }}
+        >
+          {block.content || "Open page"}
+        </button>
+      );
+    }
     if (block.type === "quote") {
       const hasMarkdownSyntax = /\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\((https?:\/\/[^\s)]+)\)/.test(block.content);
       return (
@@ -1176,26 +1518,24 @@ export function PageEditor() {
             const imageUrl = block.file?.path ? signedUrls[block.file.path] : undefined;
             const indentOffset = block.type === "todo" ? (block.indent ?? 0) * INDENT_STEP : 0;
             return (
-              <div key={block.id} className="group pointer-events-auto absolute" style={{ left: block.x + indentOffset, top: block.y, width: DOC_WIDTH - indentOffset }}>
+              <div
+                key={block.id}
+                className={cn("group pointer-events-auto absolute rounded-md", selectedBlockIds.includes(block.id) ? "ring-2 ring-[var(--color-accent)]/60" : "")}
+                style={{ left: block.x + indentOffset, top: block.y, width: DOC_WIDTH - indentOffset }}
+                onPointerDown={(event) => {
+                  if ((event.target as HTMLElement).closest('[data-page-drag-handle="true"]')) return;
+                  setSelectedBlockIds([block.id]);
+                }}
+              >
                 <button
                   type="button"
                   aria-label="Open block menu"
                   data-page-drag-handle="true"
-                  className="absolute -left-9 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/55 opacity-45 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] hover:opacity-100 focus-visible:opacity-100"
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                  }}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (block.type === "file") {
-                      return;
-                    }
-                    setBlockMenu({ open: true, x: event.clientX, y: event.clientY, blockId: block.id });
-                    setCanvasMenu((previous) => ({ ...previous, open: false }));
-                    setFileMenu((previous) => ({ ...previous, open: false }));
-                  }}
+                  className={cn(
+                    "absolute -left-9 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/55 opacity-45 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] hover:opacity-100 focus-visible:opacity-100",
+                    selectedBlockIds.includes(block.id) ? "bg-[var(--color-accent-soft)] text-[var(--color-text)] opacity-100" : "",
+                  )}
+                  onPointerDown={(event) => onHandlePointerDown(block, event)}
                 >
                   <span className="grid grid-cols-2 gap-[2px]">
                     <span className="h-[2px] w-[2px] rounded-full bg-current" />
@@ -1207,7 +1547,14 @@ export function PageEditor() {
                   </span>
                 </button>
 
-                <div onPointerDown={(event) => beginDragBlock(block, event)}>
+                <div
+                  style={{
+                    color: block.textColor || undefined,
+                    backgroundColor: block.backgroundColor || undefined,
+                    borderRadius: block.backgroundColor ? 8 : undefined,
+                    padding: block.backgroundColor ? "6px 8px" : undefined,
+                  }}
+                >
                   {block.type === "file" && block.file ? (
                     <div
                       onContextMenu={(event) => {
@@ -1356,30 +1703,130 @@ export function PageEditor() {
           </div>
         )}
 
-        {blockMenu.open && blockMenu.blockId && blockMenuBlock && blockMenuBlock.type !== "file" && (
+        {blockMenu.open && blockMenu.blockId && blockMenuBlock && (
           <div
-            className="fixed z-50 min-w-64 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
+            className="fixed z-50 min-w-72 max-w-80 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
             style={{ left: blockMenu.x, top: blockMenu.y }}
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <p className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Turn into</p>
             <button
               type="button"
-              className="mt-1 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              className="block w-full rounded px-2.5 py-1.5 text-left text-sm text-[#f87171] hover:bg-[var(--color-surface-muted)]"
               onClick={() => {
-                turnSelectionIntoQuote(blockMenu.blockId!);
-                setBlockMenu({ open: false, x: 0, y: 0 });
+                const targets = selectedBlockIds.includes(blockMenu.blockId!) ? selectedBlockIds : [blockMenu.blockId!];
+                deleteBlocks(targets);
+                setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "" });
               }}
             >
-              Quote
+              Delete
             </button>
             <button
               type="button"
               className="mt-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
               onClick={() => {
-                addAttributionBelow(blockMenu.blockId!);
-                setBlockMenu({ open: false, x: 0, y: 0 });
+                duplicateBlock(blockMenu.blockId!);
               }}
+            >
+              Duplicate
+            </button>
+            <p className="mt-2 px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Turn into</p>
+            <div className="mt-1 grid grid-cols-2 gap-1">
+              {TURN_INTO_TYPES.map((item) => (
+                <button
+                  key={item.type}
+                  type="button"
+                  disabled={blockMenuBlock.type === "file"}
+                  className="rounded px-2 py-1 text-left text-xs text-[var(--color-text)] hover:bg-[var(--color-surface-muted)] disabled:cursor-not-allowed disabled:opacity-45"
+                  onClick={() => {
+                    if (item.type === "quote") {
+                      turnSelectionIntoQuote(blockMenu.blockId!);
+                    } else {
+                      turnBlockInto(blockMenu.blockId!, item.type);
+                    }
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              disabled={blockMenuBlock.type === "file"}
+              className="mt-2 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => {
+                void turnBlockIntoPage(blockMenu.blockId!);
+                setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "" });
+              }}
+            >
+              Turn into page
+            </button>
+            <button
+              type="button"
+              className="mt-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => {
+                void copyBlockLink(blockMenu.blockId!);
+              }}
+            >
+              Copy link
+            </button>
+            <p className="mt-2 px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Move to page</p>
+            <input
+              value={blockMenu.moveToQuery}
+              onChange={(event) => setBlockMenu((previous) => ({ ...previous, moveToQuery: event.target.value }))}
+              className="mt-1 w-full rounded border border-[var(--color-border)] bg-transparent px-2 py-1 text-xs text-[var(--color-text)] outline-none"
+              placeholder="Search or type doc id"
+            />
+            <div className="mt-1 max-h-24 space-y-0.5 overflow-auto">
+              {availableDocIds
+                .filter((id) => id.includes(blockMenu.moveToQuery.trim()))
+                .slice(0, 6)
+                .map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className="block w-full rounded px-2 py-1 text-left text-xs text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+                    onClick={() => {
+                      const targets = selectedBlockIds.includes(blockMenu.blockId!) ? selectedBlockIds : [blockMenu.blockId!];
+                      void moveBlocksToDoc(id, targets);
+                      setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "" });
+                    }}
+                  >
+                    {id}
+                  </button>
+                ))}
+            </div>
+            <button
+              type="button"
+              className="mt-1 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => {
+                if (!blockMenu.moveToQuery.trim()) return;
+                const targets = selectedBlockIds.includes(blockMenu.blockId!) ? selectedBlockIds : [blockMenu.blockId!];
+                void moveBlocksToDoc(blockMenu.moveToQuery.trim(), targets);
+                setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "" });
+              }}
+            >
+              Move to typed page
+            </button>
+            <button
+              type="button"
+              className="mt-1 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => addCommentToBlock(blockMenu.blockId!)}
+            >
+              Comment
+            </button>
+            {blockMenuBlock.comments?.length ? (
+              <div className="mt-1 max-h-24 space-y-0.5 overflow-auto rounded border border-[var(--color-border)] p-1">
+                {blockMenuBlock.comments.slice(-4).map((comment) => (
+                  <p key={comment.id} className="text-xs text-[var(--color-text-muted)]">
+                    {comment.text}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className="mt-1 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => addAttributionBelow(blockMenu.blockId!)}
             >
               Add attribution below
             </button>

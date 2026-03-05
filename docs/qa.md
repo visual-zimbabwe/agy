@@ -29,6 +29,20 @@
 26. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
 27. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
 28. With a quote block selected, press `Enter`; verify a standard text block appears immediately below with attribution starter (`-- `).
+29. Single-click a block six-dot handle and verify block menu opens with actions: `Delete`, `Duplicate`, `Turn into`, `Turn into page`, `Copy link`, `Move to page`, `Comment`, and `Color`.
+30. Hold six-dot handle for ~250ms (or click-drag) and verify block drags without opening menu.
+31. `Ctrl/Cmd`-click three block handles to multi-select, then hold and drag one selected handle; verify selected blocks move together.
+32. In block menu, run `Duplicate` and verify exact copy appears below original.
+33. In block menu, run `Delete` and verify block is removed.
+34. In block menu, run `Turn into` to convert a text block to `Heading 2`, `To-do list`, and `Quote`; verify type changes each time.
+35. In block menu, run `Turn into page`; verify block is moved to a new `doc` route and a page-link block remains in the source page.
+36. In block menu, run `Copy link`, paste in browser address bar, and verify it navigates to and focuses the target block.
+37. In block menu, use `Move to page` search/typed id to move block to another doc; verify it is removed from source and appears in destination.
+38. In block menu, run `Comment`; verify thread items appear in menu and persist after refresh.
+39. In block menu, apply text color and background color and verify entire block styling updates.
+40. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
+41. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
+42. Drag a list block slightly right under another list block and verify it nests (indent increases).
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
@@ -39,6 +53,9 @@ Expected:
 - Quote blocks are visually distinct and support inline Markdown formatting shortcuts for bold/italic/link.
 - Block handle menu supports `Turn into > Quote` and quote color controls for text/background.
 - Quote conversion shortcut (`"` + `Space` at line start) works reliably.
+- Six-dot handle single-click opens block actions; click-hold activates drag-and-drop.
+- Multi-selected blocks can be moved together from a handle drag.
+- Block menu supports delete/duplicate/turn-into/page conversion/link copying/move-to/comment/color actions.
 - File upload works via both picker and drag-drop, including multi-file insertion.
 - Uploaded image files preview inline; non-image files render as file cards.
 - File blocks support open, rename title, delete, and drag repositioning.
