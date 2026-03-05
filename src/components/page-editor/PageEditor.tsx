@@ -1287,17 +1287,17 @@ export function PageEditor() {
         setMenu(null);
         return;
       }
-      const bulletShortcut = value.slice(0, cursor).match(/(^|\n)([-*+])\s$/);
+      const bulletShortcut = value.slice(0, cursor).match(/(^|\n)\s*([-*+])\s$/);
       if (bulletShortcut) {
-        const markerStart = cursor - 2;
+        const markerStart = cursor - bulletShortcut[0].length;
         const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
         updateBlock(blockId, { type: "bulleted", content: nextContent, richText: parseRichText(nextContent), checked: undefined });
         setMenu(null);
         return;
       }
-      const numberedShortcut = value.slice(0, cursor).match(/(^|\n)(\d+)\.\s$/);
+      const numberedShortcut = value.slice(0, cursor).match(/(^|\n)\s*(\d+)\.\s$/);
       if (numberedShortcut) {
-        const markerStart = cursor - (numberedShortcut[2]?.length ?? 1) - 2;
+        const markerStart = cursor - numberedShortcut[0].length;
         const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
         updateBlock(blockId, { type: "numbered", content: nextContent, richText: parseRichText(nextContent), checked: undefined });
         setMenu(null);
@@ -1474,6 +1474,38 @@ export function PageEditor() {
         event.preventDefault();
         updateBlock(block.id, { type: "bulleted", checked: undefined, indent: block.indent, richText: parseRichText(block.content) });
         return;
+      }
+
+      if (event.key === " " && !event.shiftKey && !event.metaKey && !event.ctrlKey && block.type !== "file") {
+        const start = event.currentTarget.selectionStart ?? 0;
+        const end = event.currentTarget.selectionEnd ?? start;
+        if (start === end) {
+          const nextValue = `${block.content.slice(0, start)} ${block.content.slice(end)}`;
+          const before = nextValue.slice(0, start + 1);
+          const bulletShortcut = before.match(/(^|\n)\s*([-*+])\s$/);
+          const numberedShortcut = before.match(/(^|\n)\s*(\d+)\.\s$/);
+          if (bulletShortcut || numberedShortcut) {
+            event.preventDefault();
+            const marker = bulletShortcut?.[0] ?? numberedShortcut?.[0] ?? "";
+            const markerStart = start + 1 - marker.length;
+            const nextContent = `${nextValue.slice(0, markerStart)}${nextValue.slice(start + 1)}`;
+            const nextType: BlockType = bulletShortcut ? "bulleted" : "numbered";
+            updateBlock(block.id, {
+              type: nextType,
+              content: nextContent,
+              richText: parseRichText(nextContent),
+              checked: undefined,
+              indent: block.indent,
+            });
+            requestAnimationFrame(() => {
+              const input = inputRefs.current[block.id] as HTMLInputElement | HTMLTextAreaElement | null;
+              if (!input) return;
+              input.focus();
+              input.setSelectionRange(markerStart, markerStart);
+            });
+            return;
+          }
+        }
       }
 
       if ((block.type === "quote" || isListBlockType(block.type)) && (event.metaKey || event.ctrlKey) && ["b", "i", "k"].includes(event.key.toLowerCase())) {
