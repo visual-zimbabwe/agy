@@ -397,7 +397,7 @@ export function PageEditor() {
           return previous;
         }
         if (previous.length <= 1) {
-          return previous;
+          return [];
         }
         const neighbor = previous[index - 1] ?? previous[index + 1];
         if (neighbor) {
