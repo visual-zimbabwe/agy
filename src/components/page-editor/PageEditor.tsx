@@ -729,7 +729,7 @@ export function PageEditor() {
         }}
       >
         <div
-          className="absolute inset-0"
+          className="pointer-events-none absolute inset-0"
           style={{
             transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`,
             transformOrigin: "top left",
@@ -738,7 +738,7 @@ export function PageEditor() {
           {blocks.map((block) => {
             const imageUrl = block.file?.path ? signedUrls[block.file.path] : undefined;
             return (
-              <div key={block.id} className="group absolute" style={{ left: block.x, top: block.y, width: DOC_WIDTH }}>
+              <div key={block.id} className="group pointer-events-auto absolute" style={{ left: block.x, top: block.y, width: DOC_WIDTH }}>
                 <button
                   type="button"
                   aria-label="Drag block"
