@@ -742,7 +742,7 @@ export function PageEditor() {
                 <button
                   type="button"
                   aria-label="Drag block"
-                  className="absolute -left-9 top-0 hidden h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/70 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] group-hover:inline-flex"
+                  className="absolute -left-9 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/55 opacity-45 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] hover:opacity-100 focus-visible:opacity-100"
                   onPointerDown={(event) => beginDragBlock(block, event)}
                 >
                   <span className="grid grid-cols-2 gap-[2px]">
