@@ -38,6 +38,8 @@ export type PageBlock = {
   w: number;
   h: number;
   indent?: number;
+  textColor?: string;
+  backgroundColor?: string;
   checked?: boolean;
   expanded?: boolean;
   file?: PageFileMeta;

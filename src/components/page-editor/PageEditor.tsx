@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -10,6 +11,8 @@ import {
   type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  type SyntheticEvent,
 } from "react";
 
 import { createPageSnapshotSaver, loadPageSnapshot } from "@/features/page/storage";
@@ -21,6 +24,7 @@ type SlashCommand = { id: SlashCommandId; label: string; description: string; al
 type MenuState = { blockId: string; query: string; slashRange: { start: number; end: number } };
 type CanvasMenuState = { open: boolean; x: number; y: number; worldX: number; worldY: number };
 type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
+type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string };
 
 const DOC_WIDTH = 680;
 const LINE_HEIGHT = 32;
@@ -28,6 +32,23 @@ const LIST_ITEM_GAP = 6;
 const DEFAULT_BLOCK_GAP = 14;
 const INDENT_STEP = 24;
 const MAX_TODO_INDENT = 8;
+const ATTRIBUTION_PREFIX = "-- ";
+
+const QUOTE_TEXT_COLORS = [
+  { id: "default", label: "Default", value: "" },
+  { id: "slate", label: "Slate", value: "#334155" },
+  { id: "rose", label: "Rose", value: "#9f1239" },
+  { id: "teal", label: "Teal", value: "#0f766e" },
+  { id: "amber", label: "Amber", value: "#92400e" },
+];
+
+const QUOTE_BACKGROUND_COLORS = [
+  { id: "none", label: "None", value: "" },
+  { id: "stone", label: "Stone", value: "#f5f5f4" },
+  { id: "sky", label: "Sky", value: "#f0f9ff" },
+  { id: "mint", label: "Mint", value: "#ecfdf5" },
+  { id: "rose", label: "Rose", value: "#fff1f2" },
+];
 
 const slashCommands: SlashCommand[] = [
   { id: "text", label: "Text", description: "Plain paragraph.", aliases: ["text", "paragraph", "p"] },
@@ -73,6 +94,68 @@ const blockGapFor = (type: BlockType) => (type === "todo" || type === "bulleted"
 const isBulkTodoShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
   (event.metaKey || event.ctrlKey) && (event.altKey || event.shiftKey) && (event.code === "Digit4" || event.key === "4" || event.key === "$");
 
+const wrapSelection = (value: string, start: number, end: number, prefix: string, suffix = prefix) => {
+  const from = Math.min(start, end);
+  const to = Math.max(start, end);
+  const middle = value.slice(from, to);
+  const replacement = `${prefix}${middle || "text"}${suffix}`;
+  return {
+    nextValue: `${value.slice(0, from)}${replacement}${value.slice(to)}`,
+    nextCursorStart: from + prefix.length,
+    nextCursorEnd: from + replacement.length - suffix.length,
+  };
+};
+
+const renderQuoteInlineMarkdown = (raw: string) => {
+  const lines = raw.split("\n");
+
+  return lines.map((line, lineIndex) => {
+    const tokenRegex = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*)/g;
+    const nodes: ReactNode[] = [];
+    let pointer = 0;
+    let match: RegExpExecArray | null;
+    let tokenIndex = 0;
+    while ((match = tokenRegex.exec(line)) !== null) {
+      if (match.index > pointer) {
+        nodes.push(line.slice(pointer, match.index));
+      }
+      if (match[2] && match[3]) {
+        nodes.push(
+          <a key={`md-link-${lineIndex}-${tokenIndex}`} href={match[3]} target="_blank" rel="noopener noreferrer" className="underline decoration-current/40 underline-offset-4">
+            {match[2]}
+          </a>,
+        );
+      } else if (match[4]) {
+        nodes.push(
+          <strong key={`md-bold-${lineIndex}-${tokenIndex}`} className="font-semibold">
+            {match[4]}
+          </strong>,
+        );
+      } else if (match[5]) {
+        nodes.push(
+          <em key={`md-italic-${lineIndex}-${tokenIndex}`} className="italic">
+            {match[5]}
+          </em>,
+        );
+      }
+      pointer = match.index + match[0].length;
+      tokenIndex += 1;
+    }
+    if (pointer < line.length) {
+      nodes.push(line.slice(pointer));
+    }
+    if (nodes.length === 0) {
+      nodes.push(" ");
+    }
+    return (
+      <Fragment key={`line-${lineIndex}`}>
+        {nodes}
+        {lineIndex < lines.length - 1 ? <br /> : null}
+      </Fragment>
+    );
+  });
+};
+
 const isTextInputTarget = (target: EventTarget | null) => {
   const element = target as HTMLElement | null;
   if (!element) return false;
@@ -97,6 +180,8 @@ export function PageEditor() {
   const [menuIndex, setMenuIndex] = useState(0);
   const [canvasMenu, setCanvasMenu] = useState<CanvasMenuState>({ open: false, x: 0, y: 0, worldX: 0, worldY: 0 });
   const [fileMenu, setFileMenu] = useState<FileMenuState>({ open: false, x: 0, y: 0 });
+  const [blockMenu, setBlockMenu] = useState<BlockMenuState>({ open: false, x: 0, y: 0 });
+  const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
 
@@ -104,6 +189,7 @@ export function PageEditor() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const inputRefs = useRef<Record<string, HTMLElement | null>>({});
   const measuredHeightsRef = useRef<Record<string, number>>({});
+  const selectionRangesRef = useRef<Record<string, { start: number; end: number }>>({});
   const pendingFocusIdRef = useRef<string | null>(null);
   const uploadAnchorRef = useRef({ x: 120, y: 120 });
   const dragRef = useRef<{ blockId: string; offsetX: number; offsetY: number } | null>(null);
@@ -307,6 +393,7 @@ export function PageEditor() {
     const closeMenus = () => {
       setCanvasMenu((previous) => ({ ...previous, open: false }));
       setFileMenu((previous) => ({ ...previous, open: false }));
+      setBlockMenu((previous) => ({ ...previous, open: false }));
     };
     window.addEventListener("pointerdown", closeMenus);
     return () => window.removeEventListener("pointerdown", closeMenus);
@@ -338,6 +425,109 @@ export function PageEditor() {
   const updateBlock = useCallback((blockId: string, patch: Partial<PageBlock>) => {
     setBlocks((previous) => previous.map((block) => (block.id === blockId ? { ...block, ...patch } : block)));
   }, []);
+
+  const rememberSelection = useCallback((blockId: string, element: HTMLInputElement | HTMLTextAreaElement) => {
+    selectionRangesRef.current[blockId] = {
+      start: element.selectionStart ?? 0,
+      end: element.selectionEnd ?? 0,
+    };
+  }, []);
+
+  const addAttributionBelow = useCallback(
+    (blockId: string) => {
+      setBlocks((previous) => {
+        const index = previous.findIndex((entry) => entry.id === blockId);
+        if (index < 0) {
+          return previous;
+        }
+        const source = previous[index]!;
+        const created = newBlock("text", source.x, source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type)));
+        created.content = ATTRIBUTION_PREFIX;
+        return [...previous.slice(0, index + 1), created, ...previous.slice(index + 1)];
+      });
+    },
+    [],
+  );
+
+  const turnSelectionIntoQuote = useCallback(
+    (blockId: string) => {
+      setBlocks((previous) => {
+        const index = previous.findIndex((entry) => entry.id === blockId);
+        if (index < 0) {
+          return previous;
+        }
+        const block = previous[index]!;
+        if (block.type === "file") {
+          return previous;
+        }
+
+        const selected = selectionRangesRef.current[blockId];
+        const start = selected ? Math.max(0, Math.min(selected.start, block.content.length)) : 0;
+        const end = selected ? Math.max(0, Math.min(selected.end, block.content.length)) : block.content.length;
+        const hasSelection = end > start;
+
+        if (!hasSelection) {
+          const next = [...previous];
+          next[index] = {
+            ...block,
+            type: "quote",
+            checked: undefined,
+            indent: undefined,
+          };
+          return next;
+        }
+
+        const before = block.content.slice(0, start).trimEnd();
+        const quoteBody = block.content.slice(start, end).trim();
+        const after = block.content.slice(end).trimStart();
+        if (!quoteBody.length) {
+          return previous;
+        }
+
+        const sequence: PageBlock[] = [];
+        let currentY = block.y;
+        if (before.length) {
+          sequence.push({
+            ...block,
+            type: "text",
+            content: before,
+            checked: undefined,
+            indent: undefined,
+            textColor: undefined,
+            backgroundColor: undefined,
+          });
+          currentY += Math.max(block.h + blockGapFor("text"), LINE_HEIGHT + blockGapFor("text"));
+        }
+
+        const quoteBlock: PageBlock = {
+          id: idFor(),
+          type: "quote",
+          content: quoteBody,
+          x: block.x,
+          y: currentY,
+          w: DOC_WIDTH,
+          h: 84,
+        };
+        sequence.push(quoteBlock);
+        currentY += Math.max(quoteBlock.h + blockGapFor("quote"), LINE_HEIGHT + blockGapFor("quote"));
+
+        if (after.length) {
+          sequence.push({
+            id: idFor(),
+            type: "text",
+            content: after,
+            x: block.x,
+            y: currentY,
+            w: DOC_WIDTH,
+            h: Math.max(LINE_HEIGHT, block.h),
+          });
+        }
+
+        return [...previous.slice(0, index), ...sequence, ...previous.slice(index + 1)];
+      });
+    },
+    [],
+  );
 
   const updateTodoIndent = useCallback(
     (block: PageBlock, delta: number) => {
@@ -449,8 +639,16 @@ export function PageEditor() {
   const handleTextualChange = useCallback(
     (blockId: string, event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const value = event.target.value;
-      updateBlock(blockId, { content: value });
       const cursor = event.target.selectionStart ?? value.length;
+      const quoteShortcut = value.slice(0, cursor).match(/(^|\n)"\s$/);
+      if (quoteShortcut) {
+        const markerStart = cursor - 2;
+        const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
+        updateBlock(blockId, { type: "quote", content: nextContent, checked: undefined, indent: undefined });
+        setMenu(null);
+        return;
+      }
+      updateBlock(blockId, { content: value });
       const slash = parseSlashQuery(value, cursor);
       if (!slash) {
         setMenu((previous) => (previous?.blockId === blockId ? null : previous));
@@ -493,8 +691,11 @@ export function PageEditor() {
   );
 
   const insertBlockBelow = useCallback(
-    (source: PageBlock, type: BlockType) => {
+    (source: PageBlock, type: BlockType, initialContent = "") => {
       const created = newBlock(type, source.x, source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type)));
+      if (initialContent) {
+        created.content = initialContent;
+      }
       if ((type === "todo" || type === "bulleted") && typeof source.indent === "number" && source.indent > 0) {
         created.indent = source.indent;
       }
@@ -540,6 +741,53 @@ export function PageEditor() {
         }
       }
 
+      if (block.type === "quote" && (event.metaKey || event.ctrlKey) && ["b", "i", "k"].includes(event.key.toLowerCase())) {
+        event.preventDefault();
+        const start = event.currentTarget.selectionStart ?? 0;
+        const end = event.currentTarget.selectionEnd ?? 0;
+        const lowered = event.key.toLowerCase();
+        if (lowered === "b") {
+          const { nextValue, nextCursorStart, nextCursorEnd } = wrapSelection(block.content, start, end, "**");
+          updateBlock(block.id, { content: nextValue });
+          requestAnimationFrame(() => {
+            const input = inputRefs.current[block.id] as HTMLTextAreaElement | null;
+            if (!input) return;
+            input.focus();
+            input.setSelectionRange(nextCursorStart, nextCursorEnd);
+          });
+          return;
+        }
+        if (lowered === "i") {
+          const { nextValue, nextCursorStart, nextCursorEnd } = wrapSelection(block.content, start, end, "*");
+          updateBlock(block.id, { content: nextValue });
+          requestAnimationFrame(() => {
+            const input = inputRefs.current[block.id] as HTMLTextAreaElement | null;
+            if (!input) return;
+            input.focus();
+            input.setSelectionRange(nextCursorStart, nextCursorEnd);
+          });
+          return;
+        }
+        const selectedText = block.content.slice(Math.min(start, end), Math.max(start, end)) || "link";
+        const url = window.prompt("Paste URL", "https://");
+        if (!url) {
+          return;
+        }
+        const replacement = `[${selectedText}](${url.trim()})`;
+        const from = Math.min(start, end);
+        const to = Math.max(start, end);
+        const nextValue = `${block.content.slice(0, from)}${replacement}${block.content.slice(to)}`;
+        updateBlock(block.id, { content: nextValue });
+        requestAnimationFrame(() => {
+          const input = inputRefs.current[block.id] as HTMLTextAreaElement | null;
+          if (!input) return;
+          input.focus();
+          const caret = from + replacement.length;
+          input.setSelectionRange(caret, caret);
+        });
+        return;
+      }
+
       if (menu && menu.blockId === block.id && event.key === "Enter") {
         event.preventDefault();
         const picked = filteredMenu[activeMenuIndex];
@@ -563,6 +811,10 @@ export function PageEditor() {
             return;
           }
           insertBlockBelow(block, block.type);
+          return;
+        }
+        if (block.type === "quote") {
+          insertBlockBelow(block, "text", ATTRIBUTION_PREFIX);
           return;
         }
         insertBlockBelow(block, "text");
@@ -763,10 +1015,14 @@ export function PageEditor() {
       value: block.content,
       onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         handleTextualChange(block.id, event);
+        rememberSelection(block.id, event.target);
         if (event.target instanceof HTMLTextAreaElement) {
           const minHeight = block.type === "code" ? 92 : LINE_HEIGHT;
           autoSizeTextarea(block.id, event.target, minHeight);
         }
+      },
+      onSelect: (event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        rememberSelection(block.id, event.currentTarget);
       },
       onKeyDown: (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => onBlockKeyDown(block, event),
       placeholder: 'Type "/" for commands',
@@ -814,13 +1070,28 @@ export function PageEditor() {
       );
     }
     if (block.type === "quote") {
+      const hasMarkdownSyntax = /\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\((https?:\/\/[^\s)]+)\)/.test(block.content);
       return (
-        <textarea
-          ref={attachInputRef as never}
-          {...sharedProps}
-          rows={1}
-          className="w-full resize-none border-l-2 border-[var(--color-border)] bg-transparent pl-3 text-base italic text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
-        />
+        <div
+          className="rounded-md border-l-4 px-4 py-2"
+          style={{
+            borderLeftColor: block.textColor || "var(--color-border)",
+            backgroundColor: block.backgroundColor || "transparent",
+            color: block.textColor || "var(--color-text)",
+          }}
+        >
+          <textarea
+            ref={attachInputRef as never}
+            {...sharedProps}
+            rows={1}
+            onFocus={() => setEditingQuoteId(block.id)}
+            onBlur={() => setEditingQuoteId((previous) => (previous === block.id ? null : previous))}
+            className="w-full resize-none bg-transparent pl-1 text-[1.28rem] font-medium italic leading-9 outline-none placeholder:text-[var(--color-text-muted)]/65"
+          />
+          {hasMarkdownSyntax && editingQuoteId !== block.id && (
+            <div className="mt-1.5 pl-1 text-base leading-7 opacity-95">{renderQuoteInlineMarkdown(block.content)}</div>
+          )}
+        </div>
       );
     }
     if (block.type === "callout") {
@@ -855,6 +1126,7 @@ export function PageEditor() {
   };
 
   const menuBlock = menu ? blocks.find((block) => block.id === menu.blockId) : undefined;
+  const blockMenuBlock = blockMenu.blockId ? blocks.find((block) => block.id === blockMenu.blockId) : undefined;
   const menuAnchor = menuBlock ? toScreenPoint(menuBlock.x, menuBlock.y + menuBlock.h + 8) : { x: 0, y: 0 };
   return (
     <main className="route-shell text-[var(--color-text)]">
@@ -907,10 +1179,23 @@ export function PageEditor() {
               <div key={block.id} className="group pointer-events-auto absolute" style={{ left: block.x + indentOffset, top: block.y, width: DOC_WIDTH - indentOffset }}>
                 <button
                   type="button"
-                  aria-label="Drag block"
+                  aria-label="Open block menu"
                   data-page-drag-handle="true"
                   className="absolute -left-9 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/55 opacity-45 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] hover:opacity-100 focus-visible:opacity-100"
-                  onPointerDown={(event) => beginDragBlock(block, event)}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (block.type === "file") {
+                      return;
+                    }
+                    setBlockMenu({ open: true, x: event.clientX, y: event.clientY, blockId: block.id });
+                    setCanvasMenu((previous) => ({ ...previous, open: false }));
+                    setFileMenu((previous) => ({ ...previous, open: false }));
+                  }}
                 >
                   <span className="grid grid-cols-2 gap-[2px]">
                     <span className="h-[2px] w-[2px] rounded-full bg-current" />
@@ -1068,6 +1353,67 @@ export function PageEditor() {
             >
               Delete file
             </button>
+          </div>
+        )}
+
+        {blockMenu.open && blockMenu.blockId && blockMenuBlock && blockMenuBlock.type !== "file" && (
+          <div
+            className="fixed z-50 min-w-64 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
+            style={{ left: blockMenu.x, top: blockMenu.y }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <p className="px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Turn into</p>
+            <button
+              type="button"
+              className="mt-1 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => {
+                turnSelectionIntoQuote(blockMenu.blockId!);
+                setBlockMenu({ open: false, x: 0, y: 0 });
+              }}
+            >
+              Quote
+            </button>
+            <button
+              type="button"
+              className="mt-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => {
+                addAttributionBelow(blockMenu.blockId!);
+                setBlockMenu({ open: false, x: 0, y: 0 });
+              }}
+            >
+              Add attribution below
+            </button>
+            <p className="mt-2 px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Color</p>
+            <div className="mt-1 grid grid-cols-5 gap-1">
+              {QUOTE_TEXT_COLORS.map((color) => (
+                <button
+                  key={`text-color-${color.id}`}
+                  type="button"
+                  title={`Text: ${color.label}`}
+                  className="h-7 rounded border border-[var(--color-border)]"
+                  style={{ backgroundColor: color.value || "transparent", color: color.value || "var(--color-text)" }}
+                  onClick={() => {
+                    updateBlock(blockMenu.blockId!, { textColor: color.value || undefined });
+                  }}
+                >
+                  T
+                </button>
+              ))}
+            </div>
+            <div className="mt-1 grid grid-cols-5 gap-1">
+              {QUOTE_BACKGROUND_COLORS.map((color) => (
+                <button
+                  key={`bg-color-${color.id}`}
+                  type="button"
+                  title={`Background: ${color.label}`}
+                  className="h-7 rounded border border-[var(--color-border)]"
+                  style={{ backgroundColor: color.value || "transparent" }}
+                  onClick={() => {
+                    updateBlock(blockMenu.blockId!, { backgroundColor: color.value || undefined });
+                  }}
+                />
+              ))}
+            </div>
           </div>
         )}
 

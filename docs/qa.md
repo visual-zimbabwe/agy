@@ -23,6 +23,12 @@
 20. With an indented `/todo` item focused, press `Shift + Tab` and verify it outdents back to the parent level.
 21. In a text block containing multiple lines, select at least 2 lines and press `Ctrl/Cmd + (Option or Shift) + 4`; verify each selected line converts into its own unchecked todo item.
 22. Verify todo checkbox-to-text spacing is compact and consistent with Notion-style list density (no oversized gap).
+23. In a quote block, verify default styling is visually distinct (larger italic text, left border, and indentation).
+24. In a quote block, use `Ctrl/Cmd + B`, `Ctrl/Cmd + I`, and `Ctrl/Cmd + K`; verify bold/italic/link Markdown is inserted and quote preview reflects formatting.
+25. Click a block six-dot handle, choose `Color`, and verify quote text color and quote background color both update.
+26. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
+27. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
+28. With a quote block selected, press `Enter`; verify a standard text block appears immediately below with attribution starter (`-- `).
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
@@ -30,6 +36,9 @@ Expected:
 - Slash commands provide Notion-style block changes and keyboard navigation.
 - Todo items support `Tab`/`Shift + Tab` nesting and un-nesting.
 - Multi-line text selection supports one-shot conversion to todo checkboxes via `Ctrl/Cmd + (Option or Shift) + 4`.
+- Quote blocks are visually distinct and support inline Markdown formatting shortcuts for bold/italic/link.
+- Block handle menu supports `Turn into > Quote` and quote color controls for text/background.
+- Quote conversion shortcut (`"` + `Space` at line start) works reliably.
 - File upload works via both picker and drag-drop, including multi-file insertion.
 - Uploaded image files preview inline; non-image files render as file cards.
 - File blocks support open, rename title, delete, and drag repositioning.
