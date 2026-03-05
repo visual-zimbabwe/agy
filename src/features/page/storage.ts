@@ -26,24 +26,60 @@ const defaultCamera = { x: 0, y: 0, zoom: 1 } as const;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const validBlockTypes = new Set<PageBlock["type"]>([
+  "text",
+  "h1",
+  "h2",
+  "h3",
+  "todo",
+  "bulleted",
+  "numbered",
+  "toggle",
+  "code",
+  "quote",
+  "callout",
+  "image",
+  "video",
+  "audio",
+  "google_doc",
+  "pdf",
+  "database",
+  "markdown",
+  "page",
+  "file",
+]);
+
 const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
   if (!isRecord(value)) {
     return null;
   }
 
   const id = typeof value.id === "string" && value.id.length > 0 ? value.id : `blk_${Math.random().toString(36).slice(2, 10)}`;
-  const type = typeof value.type === "string" ? value.type : "text";
+  const rawType = typeof value.type === "string" ? value.type : "text";
+  const type = validBlockTypes.has(rawType as PageBlock["type"]) ? (rawType as PageBlock["type"]) : "text";
   const content = typeof value.content === "string" ? value.content : "";
   const x = typeof value.x === "number" && Number.isFinite(value.x) ? value.x : 80;
   const y = typeof value.y === "number" && Number.isFinite(value.y) ? value.y : 80 + index * 86;
   const w = typeof value.w === "number" && Number.isFinite(value.w) ? value.w : 360;
   const h = typeof value.h === "number" && Number.isFinite(value.h) ? value.h : 88;
   const pageId = typeof value.pageId === "string" ? value.pageId : undefined;
+  const parentId = typeof value.parentId === "string" && value.parentId.length > 0 ? value.parentId : undefined;
   const indent = typeof value.indent === "number" && Number.isFinite(value.indent) ? Math.max(0, Math.floor(value.indent)) : undefined;
   const textColor = typeof value.textColor === "string" ? value.textColor : undefined;
   const backgroundColor = typeof value.backgroundColor === "string" ? value.backgroundColor : undefined;
   const checked = typeof value.checked === "boolean" ? value.checked : undefined;
   const expanded = typeof value.expanded === "boolean" ? value.expanded : undefined;
+  const richText = Array.isArray(value.richText)
+    ? value.richText
+        .filter((entry): entry is { text: string; marks?: string[]; href?: string; mention?: string } => isRecord(entry) && typeof entry.text === "string")
+        .map((entry) => ({
+          text: entry.text,
+          marks: Array.isArray(entry.marks) ? entry.marks.filter((mark): mark is "bold" | "italic" | "code" | "link" | "mention" => ["bold", "italic", "code", "link", "mention"].includes(mark)) : undefined,
+          href: typeof entry.href === "string" ? entry.href : undefined,
+          mention: typeof entry.mention === "string" ? entry.mention : undefined,
+        }))
+        .filter((entry) => entry.text.length > 0)
+    : undefined;
   const comments = Array.isArray(value.comments)
     ? value.comments
         .filter(
@@ -85,6 +121,8 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
     w,
     h,
     pageId,
+    parentId,
+    richText,
     indent,
     textColor,
     backgroundColor,

@@ -7,6 +7,7 @@ export type BlockType =
   | "h3"
   | "todo"
   | "bulleted"
+  | "numbered"
   | "toggle"
   | "code"
   | "quote"
@@ -40,15 +41,26 @@ export type PageBlockComment = {
   mentions?: string[];
 };
 
+export type PageRichTextMark = "bold" | "italic" | "code" | "link" | "mention";
+
+export type PageRichTextSpan = {
+  text: string;
+  marks?: PageRichTextMark[];
+  href?: string;
+  mention?: string;
+};
+
 export type PageBlock = {
   id: string;
   type: BlockType;
   content: string;
+  richText?: PageRichTextSpan[];
   x: number;
   y: number;
   w: number;
   h: number;
   pageId?: string;
+  parentId?: string;
   indent?: number;
   textColor?: string;
   backgroundColor?: string;

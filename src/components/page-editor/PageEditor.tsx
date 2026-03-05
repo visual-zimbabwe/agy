@@ -49,7 +49,7 @@ const LINE_HEIGHT = 32;
 const LIST_ITEM_GAP = 6;
 const DEFAULT_BLOCK_GAP = 14;
 const INDENT_STEP = 24;
-const MAX_TODO_INDENT = 8;
+const MAX_LIST_INDENT = 8;
 const ATTRIBUTION_PREFIX = "-- ";
 const HANDLE_DRAG_HOLD_MS = 220;
 const HANDLE_DRAG_MOVE_THRESHOLD = 4;
@@ -77,6 +77,7 @@ const TURN_INTO_TYPES: Array<{ type: BlockType; label: string }> = [
   { type: "h3", label: "Heading 3" },
   { type: "todo", label: "To-do list" },
   { type: "bulleted", label: "Bulleted list" },
+  { type: "numbered", label: "Numbered list" },
   { type: "toggle", label: "Toggle" },
   { type: "quote", label: "Quote" },
   { type: "callout", label: "Callout" },
@@ -89,6 +90,7 @@ const slashCommands: SlashCommand[] = [
   { id: "h2", label: "Heading 2", description: "Medium heading.", aliases: ["h2", "header2"], group: "basic", symbol: "H2", trigger: "##" },
   { id: "h3", label: "Heading 3", description: "Small heading.", aliases: ["h3", "header3"], group: "basic", symbol: "H3", trigger: "###" },
   { id: "bulleted", label: "Bulleted list", description: "Bullet item.", aliases: ["bullet", "list"], group: "basic", symbol: "-", trigger: "-" },
+  { id: "numbered", label: "Numbered list", description: "Numbered item.", aliases: ["numbered", "ordered", "ol"], group: "basic", symbol: "1.", trigger: "1." },
   { id: "todo", label: "To-do list", description: "Checkbox task.", aliases: ["todo", "task", "checkbox"], group: "basic", symbol: "[]", trigger: "[]" },
   { id: "file", label: "File", description: "Upload or embed a file.", aliases: ["file", "files", "upload"], group: "media", symbol: "F", trigger: "/file" },
   { id: "image", label: "Image", description: "Upload or link an image.", aliases: ["image", "photo", "img"], group: "media", symbol: "I", trigger: "/image" },
@@ -102,9 +104,13 @@ const slashCommands: SlashCommand[] = [
 const idFor = () => `blk_${Math.random().toString(36).slice(2, 10)}`;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const isImageMime = (mimeType?: string) => Boolean(mimeType && mimeType.toLowerCase().startsWith("image/"));
+const isListBlockType = (type: BlockType) => type === "todo" || type === "bulleted" || type === "numbered" || type === "toggle";
+const inlineFormattingPattern = /\[[^\]]+\]\((https?:\/\/[^\s)]+)\)|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|@[\w.-]+/;
+const hasInlineFormatting = (value: string) => inlineFormattingPattern.test(value);
 
 const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   if (type === "todo") return { id: idFor(), type, content: "", checked: false, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
+  if (type === "toggle") return { id: idFor(), type, content: "", expanded: true, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "h1") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 60 };
   if (type === "h2") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 52 };
   if (type === "h3") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 44 };
@@ -125,7 +131,7 @@ const parseSlashQuery = (value: string, cursor: number) => {
   return { query: match[2] ?? "", start: slashStart, end: cursor };
 };
 
-const blockGapFor = (type: BlockType) => (type === "todo" || type === "bulleted" ? LIST_ITEM_GAP : DEFAULT_BLOCK_GAP);
+const blockGapFor = (type: BlockType) => (isListBlockType(type) ? LIST_ITEM_GAP : DEFAULT_BLOCK_GAP);
 
 const isBulkTodoShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
   (event.metaKey || event.ctrlKey) && (event.altKey || event.shiftKey) && (event.code === "Digit4" || event.key === "4" || event.key === "$");
@@ -194,6 +200,128 @@ const renderQuoteInlineMarkdown = (raw: string) => {
   });
 };
 
+const parseRichText = (raw: string) => {
+  const tokenRegex = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|(@[\w.-]+))/g;
+  const spans: NonNullable<PageBlock["richText"]> = [];
+  let pointer = 0;
+  let match: RegExpExecArray | null;
+  while ((match = tokenRegex.exec(raw)) !== null) {
+    if (match.index > pointer) {
+      spans.push({ text: raw.slice(pointer, match.index) });
+    }
+    if (match[2] && match[3]) {
+      spans.push({ text: match[2], marks: ["link"], href: match[3] });
+    } else if (match[4]) {
+      spans.push({ text: match[4], marks: ["bold"] });
+    } else if (match[5]) {
+      spans.push({ text: match[5], marks: ["italic"] });
+    } else if (match[6]) {
+      spans.push({ text: match[6], marks: ["code"] });
+    } else if (match[7]) {
+      spans.push({ text: match[7], marks: ["mention"], mention: match[7].slice(1) });
+    }
+    pointer = match.index + match[0].length;
+  }
+  if (pointer < raw.length) {
+    spans.push({ text: raw.slice(pointer) });
+  }
+  return spans.length ? spans : [{ text: raw || " " }];
+};
+
+const sameRichText = (a?: PageBlock["richText"], b?: PageBlock["richText"]) => {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i]!;
+    const right = b[i]!;
+    const leftMarks = left.marks ?? [];
+    const rightMarks = right.marks ?? [];
+    if (left.text !== right.text || left.href !== right.href || left.mention !== right.mention || leftMarks.length !== rightMarks.length) return false;
+    for (let markIndex = 0; markIndex < leftMarks.length; markIndex += 1) {
+      if (leftMarks[markIndex] !== rightMarks[markIndex]) return false;
+    }
+  }
+  return true;
+};
+
+const renderRichText = (spans?: PageBlock["richText"]) =>
+  (spans ?? []).map((span, index) => {
+    const marks = new Set(span.marks ?? []);
+    const className = cn(
+      marks.has("bold") ? "font-semibold" : "",
+      marks.has("italic") ? "italic" : "",
+      marks.has("code") ? "rounded bg-black/6 px-1 py-[1px] font-mono text-[0.88em]" : "",
+      marks.has("mention") ? "rounded bg-[var(--color-accent-soft)] px-1 text-[var(--color-text)]" : "",
+      marks.has("link") ? "underline decoration-current/40 underline-offset-4" : "",
+    );
+    if (marks.has("link") && span.href) {
+      return (
+        <a key={`rich-${index}`} href={span.href} target="_blank" rel="noopener noreferrer" className={className}>
+          {span.text}
+        </a>
+      );
+    }
+    return (
+      <span key={`rich-${index}`} className={className}>
+        {span.text}
+      </span>
+    );
+  });
+
+const descendantIds = (list: PageBlock[], parentId: string) => {
+  const start = list.findIndex((block) => block.id === parentId);
+  if (start < 0) return [] as string[];
+  const parent = list[start]!;
+  const parentIndent = parent.indent ?? 0;
+  const collected: string[] = [];
+  for (let i = start + 1; i < list.length; i += 1) {
+    const candidate = list[i]!;
+    const indent = candidate.indent ?? 0;
+    if (indent <= parentIndent) break;
+    collected.push(candidate.id);
+  }
+  return collected;
+};
+
+const withListHierarchy = (list: PageBlock[]) => {
+  const stack: Array<{ id: string; indent: number }> = [];
+  let changed = false;
+  const next = list.map((block) => {
+    const indent = block.indent ?? 0;
+    while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
+      stack.pop();
+    }
+    const parentId = stack.length ? stack[stack.length - 1]!.id : undefined;
+    stack.push({ id: block.id, indent });
+    const normalizedParentId = indent > 0 ? parentId : undefined;
+    if (block.parentId !== normalizedParentId) {
+      changed = true;
+      return { ...block, parentId: normalizedParentId };
+    }
+    return block;
+  });
+  return changed ? next : list;
+};
+
+const numberedLabelFor = (list: PageBlock[], blockId: string) => {
+  const index = list.findIndex((block) => block.id === blockId);
+  if (index < 0) return "1.";
+  const current = list[index]!;
+  if (current.type !== "numbered") return "1.";
+  const currentIndent = current.indent ?? 0;
+  let count = 1;
+  for (let i = index - 1; i >= 0; i -= 1) {
+    const candidate = list[i]!;
+    const indent = candidate.indent ?? 0;
+    if (indent < currentIndent) break;
+    if (indent > currentIndent) continue;
+    if (candidate.type !== "numbered") break;
+    count += 1;
+  }
+  return `${count}.`;
+};
+
 const isTextInputTarget = (target: EventTarget | null) => {
   const element = target as HTMLElement | null;
   if (!element) return false;
@@ -241,23 +369,6 @@ const acceptForIntent = (intent: FileInsertIntent) => {
 
 const blockTypeForIntent = (intent: FileInsertIntent) => intent;
 const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : 52);
-
-const nestedBulletedIds = (list: PageBlock[], parentId: string) => {
-  const start = list.findIndex((block) => block.id === parentId);
-  if (start < 0) return [] as string[];
-  const parent = list[start]!;
-  if (parent.type !== "bulleted") return [] as string[];
-  const parentIndent = parent.indent ?? 0;
-  const collected: string[] = [];
-  for (let i = start + 1; i < list.length; i += 1) {
-    const candidate = list[i]!;
-    if (candidate.type !== "bulleted") break;
-    const indent = candidate.indent ?? 0;
-    if (indent <= parentIndent) break;
-    collected.push(candidate.id);
-  }
-  return collected;
-};
 
 const relativeTimeLabel = (createdAt: number) => {
   const diff = Math.max(0, Date.now() - createdAt);
@@ -307,6 +418,7 @@ export function PageEditor() {
   const [fileMenu, setFileMenu] = useState<FileMenuState>({ open: false, x: 0, y: 0 });
   const [blockMenu, setBlockMenu] = useState<BlockMenuState>({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
   const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
+  const [editingTextBlockId, setEditingTextBlockId] = useState<string | null>(null);
   const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);
   const [availableDocIds, setAvailableDocIds] = useState<string[]>([]);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
@@ -605,6 +717,30 @@ export function PageEditor() {
   }, [docId]);
 
   useEffect(() => {
+    setBlocks((previous) => withListHierarchy(previous));
+  }, [blocks]);
+
+  useEffect(() => {
+    setBlocks((previous) => {
+      let changed = false;
+      const next = previous.map((block) => {
+        if (block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio") {
+          if (block.richText !== undefined) {
+            changed = true;
+            return { ...block, richText: undefined };
+          }
+          return block;
+        }
+        const nextRich = parseRichText(block.content);
+        if (sameRichText(block.richText, nextRich)) return block;
+        changed = true;
+        return { ...block, richText: nextRich };
+      });
+      return changed ? next : previous;
+    });
+  }, [blocks]);
+
+  useEffect(() => {
     if (!hasLoadedRef.current) return;
     saverRef.current.schedule({ blocks, camera, updatedAt: Date.now() });
   }, [blocks, camera]);
@@ -696,7 +832,7 @@ export function PageEditor() {
     setBlocks((previous) => {
       const expanded = new Set(targetIds);
       for (const id of targetIds) {
-        for (const childId of nestedBulletedIds(previous, id)) {
+        for (const childId of descendantIds(previous, id)) {
           expanded.add(childId);
         }
       }
@@ -731,7 +867,9 @@ export function PageEditor() {
           ...block,
           type: nextType,
           checked: nextType === "todo" ? false : undefined,
-          indent: nextType === "todo" || nextType === "bulleted" || nextType === "toggle" ? block.indent : undefined,
+          expanded: nextType === "toggle" ? block.expanded ?? true : undefined,
+          indent: isListBlockType(nextType) ? block.indent : undefined,
+          richText: parseRichText(block.content),
           textColor: nextType === "quote" ? block.textColor : undefined,
           backgroundColor: nextType === "quote" ? block.backgroundColor : undefined,
         };
@@ -1033,7 +1171,7 @@ export function PageEditor() {
   const updateListIndent = useCallback(
     (block: PageBlock, delta: number) => {
       const currentIndent = block.indent ?? 0;
-      const nextIndent = clamp(currentIndent + delta, 0, MAX_TODO_INDENT);
+      const nextIndent = clamp(currentIndent + delta, 0, MAX_LIST_INDENT);
       if (nextIndent === currentIndent) {
         return;
       }
@@ -1145,7 +1283,7 @@ export function PageEditor() {
       if (quoteShortcut) {
         const markerStart = cursor - 2;
         const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
-        updateBlock(blockId, { type: "quote", content: nextContent, checked: undefined, indent: undefined });
+        updateBlock(blockId, { type: "quote", content: nextContent, richText: parseRichText(nextContent), checked: undefined, indent: undefined });
         setMenu(null);
         return;
       }
@@ -1153,11 +1291,19 @@ export function PageEditor() {
       if (bulletShortcut) {
         const markerStart = cursor - 2;
         const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
-        updateBlock(blockId, { type: "bulleted", content: nextContent, checked: undefined });
+        updateBlock(blockId, { type: "bulleted", content: nextContent, richText: parseRichText(nextContent), checked: undefined });
         setMenu(null);
         return;
       }
-      updateBlock(blockId, { content: value });
+      const numberedShortcut = value.slice(0, cursor).match(/(^|\n)(\d+)\.\s$/);
+      if (numberedShortcut) {
+        const markerStart = cursor - (numberedShortcut[2]?.length ?? 1) - 2;
+        const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
+        updateBlock(blockId, { type: "numbered", content: nextContent, richText: parseRichText(nextContent), checked: undefined });
+        setMenu(null);
+        return;
+      }
+      updateBlock(blockId, { content: value, richText: parseRichText(value) });
       const slash = parseSlashQuery(value, cursor);
       if (!slash) {
         setMenu((previous) => (previous?.blockId === blockId ? null : previous));
@@ -1224,8 +1370,9 @@ export function PageEditor() {
         updateBlock(block.id, {
           type: commandId,
           content: "",
+          richText: parseRichText(""),
           checked: commandId === "todo" ? false : undefined,
-          indent: commandId === "todo" ? block.indent : undefined,
+          indent: isListBlockType(commandId) ? block.indent : undefined,
           w: DOC_WIDTH,
         });
         setMenu(null);
@@ -1248,6 +1395,11 @@ export function PageEditor() {
         const inserted = newBlock(commandId, block.x, insertionY);
         inserted.content = "";
         if (commandId === "todo") inserted.checked = false;
+        if (commandId === "toggle") inserted.expanded = true;
+        if (isListBlockType(commandId) && typeof block.indent === "number" && block.indent > 0) {
+          inserted.indent = block.indent;
+        }
+        inserted.richText = parseRichText(inserted.content);
         insertedId = inserted.id;
         sequence.push(inserted);
 
@@ -1272,7 +1424,7 @@ export function PageEditor() {
       if (initialContent) {
         created.content = initialContent;
       }
-      if ((type === "todo" || type === "bulleted") && typeof source.indent === "number" && source.indent > 0) {
+      if (isListBlockType(type) && typeof source.indent === "number" && source.indent > 0) {
         created.indent = source.indent;
       }
       setBlocks((previous) => {
@@ -1301,7 +1453,7 @@ export function PageEditor() {
         if (neighbor) {
           queueFocus(neighbor.id);
         }
-        const targetSet = new Set([blockId, ...nestedBulletedIds(previous, blockId)]);
+        const targetSet = new Set([blockId, ...descendantIds(previous, blockId)]);
         return previous.filter((item) => !targetSet.has(item.id));
       });
     },
@@ -1320,18 +1472,18 @@ export function PageEditor() {
 
       if (isBulletedShortcut(event) && block.type !== "file") {
         event.preventDefault();
-        updateBlock(block.id, { type: "bulleted", checked: undefined, indent: block.indent });
+        updateBlock(block.id, { type: "bulleted", checked: undefined, indent: block.indent, richText: parseRichText(block.content) });
         return;
       }
 
-      if ((block.type === "quote" || block.type === "bulleted") && (event.metaKey || event.ctrlKey) && ["b", "i", "k"].includes(event.key.toLowerCase())) {
+      if ((block.type === "quote" || isListBlockType(block.type)) && (event.metaKey || event.ctrlKey) && ["b", "i", "k"].includes(event.key.toLowerCase())) {
         event.preventDefault();
         const start = event.currentTarget.selectionStart ?? 0;
         const end = event.currentTarget.selectionEnd ?? 0;
         const lowered = event.key.toLowerCase();
         if (lowered === "b") {
           const { nextValue, nextCursorStart, nextCursorEnd } = wrapSelection(block.content, start, end, "**");
-          updateBlock(block.id, { content: nextValue });
+          updateBlock(block.id, { content: nextValue, richText: parseRichText(nextValue) });
           requestAnimationFrame(() => {
             const input = inputRefs.current[block.id] as HTMLTextAreaElement | null;
             if (!input) return;
@@ -1342,7 +1494,7 @@ export function PageEditor() {
         }
         if (lowered === "i") {
           const { nextValue, nextCursorStart, nextCursorEnd } = wrapSelection(block.content, start, end, "*");
-          updateBlock(block.id, { content: nextValue });
+          updateBlock(block.id, { content: nextValue, richText: parseRichText(nextValue) });
           requestAnimationFrame(() => {
             const input = inputRefs.current[block.id] as HTMLTextAreaElement | null;
             if (!input) return;
@@ -1360,7 +1512,7 @@ export function PageEditor() {
         const from = Math.min(start, end);
         const to = Math.max(start, end);
         const nextValue = `${block.content.slice(0, from)}${replacement}${block.content.slice(to)}`;
-        updateBlock(block.id, { content: nextValue });
+        updateBlock(block.id, { content: nextValue, richText: parseRichText(nextValue) });
         requestAnimationFrame(() => {
           const input = inputRefs.current[block.id] as HTMLTextAreaElement | null;
           if (!input) return;
@@ -1378,22 +1530,30 @@ export function PageEditor() {
         return;
       }
 
-      if (event.key === "Tab" && (block.type === "todo" || block.type === "bulleted")) {
+      if (event.key === "Tab" && isListBlockType(block.type)) {
         event.preventDefault();
         updateListIndent(block, event.shiftKey ? -1 : 1);
         return;
       }
 
-      if (event.key === "Enter" && !event.shiftKey && !menu && ["h1", "h2", "h3", "todo", "bulleted", "quote", "callout"].includes(block.type)) {
+      if (event.key === "Enter" && !event.shiftKey && !menu && ["h1", "h2", "h3", "todo", "bulleted", "numbered", "toggle", "quote", "callout"].includes(block.type)) {
         event.preventDefault();
-        if (block.type === "todo" || block.type === "bulleted") {
+        if (isListBlockType(block.type)) {
           const isEmpty = block.content.trim().length === 0;
           if (isEmpty) {
             updateBlock(block.id, { type: "text", checked: undefined, indent: undefined });
             queueFocus(block.id);
             return;
           }
-          insertBlockBelow(block, block.type);
+          const cursor = event.currentTarget.selectionStart ?? block.content.length;
+          const before = block.content.slice(0, cursor);
+          const after = block.content.slice(cursor);
+          if (cursor > 0 && cursor < block.content.length) {
+            updateBlock(block.id, { content: before });
+            insertBlockBelow(block, block.type, after);
+            return;
+          }
+          insertBlockBelow(block, block.type, "");
           return;
         }
         if (block.type === "quote") {
@@ -1404,8 +1564,13 @@ export function PageEditor() {
         return;
       }
 
-      if (event.key === "Backspace" && (block.type === "todo" || block.type === "bulleted")) {
+      if (event.key === "Backspace" && isListBlockType(block.type)) {
         const cursorStart = event.currentTarget.selectionStart ?? 0;
+        if (cursorStart === 0 && (block.indent ?? 0) > 0) {
+          event.preventDefault();
+          updateListIndent(block, -1);
+          return;
+        }
         if (cursorStart === 0 && block.content.trim().length === 0) {
           event.preventDefault();
           updateBlock(block.id, { type: "text", checked: undefined, indent: undefined });
@@ -1477,8 +1642,7 @@ export function PageEditor() {
       setMenu(null);
       setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "", searchQuery: "" }));
       const world = worldFromClient(event.clientX, event.clientY);
-      const draggingIds =
-        blockIds && blockIds.length > 0 ? blockIds : block.type === "bulleted" ? [block.id, ...nestedBulletedIds(blocks, block.id)] : [block.id];
+      const draggingIds = blockIds && blockIds.length > 0 ? blockIds : isListBlockType(block.type) ? [block.id, ...descendantIds(blocks, block.id)] : [block.id];
       const sourceBlocks = blocks.filter((entry) => draggingIds.includes(entry.id));
       const leadBlock = sourceBlocks.find((entry) => entry.id === block.id) ?? block;
       dragRef.current = { blockId: leadBlock.id, offsetX: world.x - leadBlock.x, offsetY: world.y - leadBlock.y };
@@ -1526,9 +1690,7 @@ export function PageEditor() {
           if (Math.abs(leadEntry.x - target.x) <= 32) {
             leadEntry.x = target.x;
             leadEntry.y = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
-            if (leadEntry.type === "todo" || leadEntry.type === "bulleted" || leadEntry.type === "toggle") {
-              leadEntry.indent = target.indent;
-            }
+            leadEntry.indent = target.indent;
             return next;
           }
 
@@ -1543,9 +1705,7 @@ export function PageEditor() {
           // Nest if slightly right and below target.
           if (leadEntry.y > target.y && leadEntry.x > target.x + 8 && leadEntry.x < target.x + 96) {
             leadEntry.x = target.x;
-            if (leadEntry.type === "todo" || leadEntry.type === "bulleted" || leadEntry.type === "toggle") {
-              leadEntry.indent = clamp((target.indent ?? 0) + 1, 0, MAX_TODO_INDENT);
-            }
+            leadEntry.indent = clamp((target.indent ?? 0) + 1, 0, MAX_LIST_INDENT);
             leadEntry.y = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
             return next;
           }
@@ -1779,6 +1939,8 @@ export function PageEditor() {
       onSelect: (event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         rememberSelection(block.id, event.currentTarget);
       },
+      onFocus: () => setEditingTextBlockId(block.id),
+      onBlur: () => setEditingTextBlockId((previous) => (previous === block.id ? null : previous)),
       onKeyDown: (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => onBlockKeyDown(block, event),
       placeholder: 'Type "/" for commands',
     };
@@ -1816,12 +1978,61 @@ export function PageEditor() {
       return (
         <div className="flex items-start gap-3">
           <span className="mt-1 text-[var(--color-text-muted)]">•</span>
-          <textarea
-            ref={attachInputRef as never}
-            {...sharedProps}
-            rows={1}
-            className="w-full resize-none bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
-          />
+          <div className="w-full">
+            <textarea
+              ref={attachInputRef as never}
+              {...sharedProps}
+              rows={1}
+              className="w-full resize-none bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+            />
+            {hasInlineFormatting(block.content) && editingTextBlockId !== block.id && (
+              <div className="mt-1 text-[0.95rem] leading-6 opacity-95">{renderRichText(block.richText)}</div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    if (block.type === "numbered") {
+      return (
+        <div className="flex items-start gap-2.5">
+          <span className="mt-1 min-w-[1.6rem] text-right text-[var(--color-text-muted)]">{numberedLabelFor(blocks, block.id)}</span>
+          <div className="w-full">
+            <textarea
+              ref={attachInputRef as never}
+              {...sharedProps}
+              rows={1}
+              className="w-full resize-none bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+            />
+            {hasInlineFormatting(block.content) && editingTextBlockId !== block.id && (
+              <div className="mt-1 text-[0.95rem] leading-6 opacity-95">{renderRichText(block.richText)}</div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    if (block.type === "toggle") {
+      const expanded = block.expanded ?? true;
+      return (
+        <div className="flex items-start gap-2.5">
+          <button
+            type="button"
+            className="mt-[2px] inline-flex h-6 w-6 items-center justify-center rounded text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)]"
+            onClick={() => updateBlock(block.id, { expanded: !expanded })}
+            title={expanded ? "Collapse" : "Expand"}
+          >
+            <span className={cn("inline-block transition-transform", expanded ? "rotate-90" : "")}>{">"}</span>
+          </button>
+          <div className="w-full">
+            <textarea
+              ref={attachInputRef as never}
+              {...sharedProps}
+              rows={1}
+              className="w-full resize-none bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+            />
+            {hasInlineFormatting(block.content) && editingTextBlockId !== block.id && (
+              <div className="mt-1 text-[0.95rem] leading-6 opacity-95">{renderRichText(block.richText)}</div>
+            )}
+          </div>
         </div>
       );
     }
@@ -1856,8 +2067,14 @@ export function PageEditor() {
             ref={attachInputRef as never}
             {...sharedProps}
             rows={1}
-            onFocus={() => setEditingQuoteId(block.id)}
-            onBlur={() => setEditingQuoteId((previous) => (previous === block.id ? null : previous))}
+            onFocus={() => {
+              setEditingTextBlockId(block.id);
+              setEditingQuoteId(block.id);
+            }}
+            onBlur={() => {
+              setEditingTextBlockId((previous) => (previous === block.id ? null : previous));
+              setEditingQuoteId((previous) => (previous === block.id ? null : previous));
+            }}
             className="w-full resize-none bg-transparent pl-1 text-[1.28rem] font-medium italic leading-9 outline-none placeholder:text-[var(--color-text-muted)]/65"
           />
           {hasMarkdownSyntax && editingQuoteId !== block.id && (
@@ -1899,6 +2116,23 @@ export function PageEditor() {
 
   const menuBlock = menu ? blocks.find((block) => block.id === menu.blockId) : undefined;
   const commentTargetBlock = commentPanel.blockId ? blocks.find((block) => block.id === commentPanel.blockId) : undefined;
+  const hiddenBlockIds = useMemo(() => {
+    const hidden = new Set<string>();
+    const collapsedIndentStack: number[] = [];
+    for (const block of blocks) {
+      const indent = block.indent ?? 0;
+      while (collapsedIndentStack.length && indent <= collapsedIndentStack[collapsedIndentStack.length - 1]!) {
+        collapsedIndentStack.pop();
+      }
+      if (collapsedIndentStack.length) {
+        hidden.add(block.id);
+      }
+      if (block.type === "toggle" && block.expanded === false) {
+        collapsedIndentStack.push(indent);
+      }
+    }
+    return hidden;
+  }, [blocks]);
   const canPostComment = commentPanel.draft.trim().length > 0 || commentPanel.attachments.length > 0;
   const blockMenuBlock = blockMenu.blockId ? blocks.find((block) => block.id === blockMenu.blockId) : undefined;
   const blockMenuActions = blockMenuBlock
@@ -2059,8 +2293,9 @@ export function PageEditor() {
           }}
         >
           {blocks.map((block) => {
+            if (hiddenBlockIds.has(block.id)) return null;
             const resolvedFileUrl = block.file?.externalUrl || (block.file?.path ? signedUrls[block.file.path] : undefined);
-            const indentOffset = block.type === "todo" || block.type === "bulleted" ? (block.indent ?? 0) * INDENT_STEP : 0;
+            const indentOffset = typeof block.indent === "number" && block.indent > 0 ? block.indent * INDENT_STEP : 0;
             const latestComment = block.comments?.length ? block.comments[block.comments.length - 1] : undefined;
             const showInlineFileComment = block.type === "file" && block.file ? !isImageMime(block.file.mimeType) : false;
             return (
