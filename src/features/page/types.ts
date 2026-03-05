@@ -15,6 +15,7 @@ export type BlockType =
   | "image"
   | "video"
   | "audio"
+  | "divider"
   | "google_doc"
   | "pdf"
   | "database"

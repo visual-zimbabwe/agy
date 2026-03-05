@@ -41,6 +41,7 @@ const validBlockTypes = new Set<PageBlock["type"]>([
   "image",
   "video",
   "audio",
+  "divider",
   "google_doc",
   "pdf",
   "database",

@@ -82,6 +82,7 @@ const TURN_INTO_TYPES: Array<{ type: BlockType; label: string }> = [
   { type: "toggle", label: "Toggle" },
   { type: "quote", label: "Quote" },
   { type: "callout", label: "Callout" },
+  { type: "divider", label: "Divider" },
   { type: "code", label: "Code" },
 ];
 
@@ -99,6 +100,7 @@ const slashCommands: SlashCommand[] = [
   { id: "video", label: "Video", description: "Upload or link a video.", aliases: ["video", "movie"], group: "media", symbol: "V", trigger: "/video" },
   { id: "audio", label: "Audio", description: "Upload or link audio.", aliases: ["audio", "sound"], group: "media", symbol: "A", trigger: "/audio" },
   { id: "quote", label: "Quote", description: "Quoted text.", aliases: ["quote", "citation"], group: "basic", symbol: "\"", trigger: "" },
+  { id: "divider", label: "Divider", description: "Horizontal separator.", aliases: ["divider", "div", "hr", "line"], group: "basic", symbol: "---", trigger: "---" },
   { id: "callout", label: "Callout", description: "Highlighted block.", aliases: ["callout", "note"], group: "basic", symbol: "!", trigger: "" },
   { id: "code", label: "Code", description: "Code snippet.", aliases: ["code", "snippet"], group: "basic", symbol: "</>", trigger: "" },
 ];
@@ -114,6 +116,7 @@ const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   if (type === "todo") return { id: idFor(), type, content: "", checked: false, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "numbered") return { id: idFor(), type, content: "", numberedFormat: DEFAULT_NUMBERED_FORMAT, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "toggle") return { id: idFor(), type, content: "", expanded: true, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
+  if (type === "divider") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 18 };
   if (type === "h1") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 60 };
   if (type === "h2") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 52 };
   if (type === "h3") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 44 };
@@ -955,15 +958,17 @@ export function PageEditor() {
     setBlocks((previous) =>
       previous.map((block) => {
         if (block.id !== blockId || block.type === "file") return block;
+        const nextContent = nextType === "divider" ? "" : block.content;
         return {
           ...block,
           type: nextType,
+          content: nextContent,
           checked: nextType === "todo" ? false : undefined,
           expanded: nextType === "toggle" ? block.expanded ?? true : undefined,
           indent: isListBlockType(nextType) ? block.indent : undefined,
           numberedFormat: nextType === "numbered" ? block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT : undefined,
           numberedStart: nextType === "numbered" ? block.numberedStart : undefined,
-          richText: parseRichText(block.content),
+          richText: parseRichText(nextContent),
           textColor: nextType === "quote" ? block.textColor : undefined,
           backgroundColor: nextType === "quote" ? block.backgroundColor : undefined,
         };
@@ -1389,6 +1394,23 @@ export function PageEditor() {
         setMenu(null);
         return;
       }
+      const dividerShortcut = value.slice(0, cursor).match(/(^|\n)\s*---\s$/);
+      if (dividerShortcut) {
+        const markerStart = cursor - dividerShortcut[0].length;
+        const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
+        updateBlock(blockId, {
+          type: "divider",
+          content: nextContent,
+          richText: parseRichText(nextContent),
+          checked: undefined,
+          indent: undefined,
+          expanded: undefined,
+          numberedFormat: undefined,
+          numberedStart: undefined,
+        });
+        setMenu(null);
+        return;
+      }
       const toggleShortcut = value.slice(0, cursor).match(/(^|\n)\s*>\s$/);
       if (toggleShortcut) {
         const markerStart = cursor - toggleShortcut[0].length;
@@ -1676,22 +1698,23 @@ export function PageEditor() {
         if (start === end) {
           const nextValue = `${block.content.slice(0, start)} ${block.content.slice(end)}`;
           const before = nextValue.slice(0, start + 1);
+          const dividerShortcut = before.match(/(^|\n)\s*---\s$/);
           const toggleShortcut = before.match(/(^|\n)\s*>\s$/);
           const bulletShortcut = before.match(/(^|\n)\s*([-*+])\s$/);
           const numberedShortcut = before.match(/(^|\n)\s*((?:\d+|[aAiI]))\.\s$/);
-          if (toggleShortcut || bulletShortcut || numberedShortcut) {
+          if (dividerShortcut || toggleShortcut || bulletShortcut || numberedShortcut) {
             event.preventDefault();
-            const marker = toggleShortcut?.[0] ?? bulletShortcut?.[0] ?? numberedShortcut?.[0] ?? "";
+            const marker = dividerShortcut?.[0] ?? toggleShortcut?.[0] ?? bulletShortcut?.[0] ?? numberedShortcut?.[0] ?? "";
             const markerStart = start + 1 - marker.length;
             const nextContent = `${nextValue.slice(0, markerStart)}${nextValue.slice(start + 1)}`;
-            const nextType: BlockType = toggleShortcut ? "toggle" : bulletShortcut ? "bulleted" : "numbered";
+            const nextType: BlockType = dividerShortcut ? "divider" : toggleShortcut ? "toggle" : bulletShortcut ? "bulleted" : "numbered";
             const numberedMarker = numberedShortcut?.[2] ? parseNumberedMarker(`${numberedShortcut[2]}.`) : null;
             updateBlock(block.id, {
               type: nextType,
               content: nextContent,
               richText: parseRichText(nextContent),
               checked: undefined,
-              indent: block.indent,
+              indent: nextType === "divider" ? undefined : block.indent,
               expanded: nextType === "toggle" ? true : undefined,
               numberedFormat: nextType === "numbered" ? numberedMarker?.format ?? block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT : undefined,
               numberedStart: nextType === "numbered" ? numberedMarker?.start : undefined,
@@ -1782,8 +1805,12 @@ export function PageEditor() {
         return;
       }
 
-      if (event.key === "Enter" && !event.shiftKey && !menu && ["h1", "h2", "h3", "todo", "bulleted", "numbered", "toggle", "quote", "callout"].includes(block.type)) {
+      if (event.key === "Enter" && !event.shiftKey && !menu && ["h1", "h2", "h3", "todo", "bulleted", "numbered", "toggle", "quote", "callout", "divider"].includes(block.type)) {
         event.preventDefault();
+        if (block.type === "divider") {
+          insertBlockBelow(block, "text");
+          return;
+        }
         if (isListBlockType(block.type)) {
           const isEmpty = block.content.trim().length === 0;
           if (isEmpty) {
@@ -2291,6 +2318,28 @@ export function PageEditor() {
               <div className="mt-1 text-[0.95rem] leading-6 opacity-95">{renderRichText(block.richText)}</div>
             )}
           </div>
+        </div>
+      );
+    }
+    if (block.type === "divider") {
+      return (
+        <div
+          ref={attachInputRef as never}
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              insertBlockBelow(block, "text");
+              return;
+            }
+            if (event.key === "Backspace" || event.key === "Delete") {
+              event.preventDefault();
+              removeBlockAndFocusNeighbor(block.id);
+            }
+          }}
+          className="group/divider w-full rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+        >
+          <div className="h-px w-full bg-[var(--color-border)]/95" />
         </div>
       );
     }
