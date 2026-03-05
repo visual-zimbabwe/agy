@@ -51,7 +51,6 @@ const DEFAULT_BLOCK_GAP = 14;
 const INDENT_STEP = 24;
 const MAX_LIST_INDENT = 8;
 const ATTRIBUTION_PREFIX = "-- ";
-const HANDLE_DRAG_HOLD_MS = 220;
 const HANDLE_DRAG_MOVE_THRESHOLD = 4;
 const DEFAULT_NUMBERED_FORMAT: PageNumberedFormat = "numbers";
 
@@ -551,7 +550,7 @@ export function PageEditor() {
   const uploadAfterBlockRef = useRef<string | undefined>(undefined);
   const dragRef = useRef<{ blockId: string; offsetX: number; offsetY: number } | null>(null);
   const panRef = useRef<{ startX: number; startY: number; cameraX: number; cameraY: number; moved: boolean } | null>(null);
-  const handleHoldRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; pressedAt: number; blockIds: string[] } | null>(null);
+  const handlePointerRef = useRef<{ startX: number; startY: number; moved: boolean; blockIds: string[]; blockId: string } | null>(null);
   const hasLoadedRef = useRef(false);
   const saverRef = useRef(createPageSnapshotSaver(260, docId));
 
@@ -990,6 +989,47 @@ export function PageEditor() {
     },
     [docId, pathname, searchParams],
   );
+
+  const openBlockMenuForBlock = useCallback(
+    (blockId: string) => {
+      const block = blocks.find((entry) => entry.id === blockId);
+      if (!block) return;
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      const screen = toScreenPoint(block.x, block.y);
+      const x = (containerRect ? containerRect.left : 0) + screen.x + 10;
+      const y = (containerRect ? containerRect.top : 0) + screen.y + 8;
+      setBlockMenu({
+        open: true,
+        x: clamp(x, 8, Math.max(8, window.innerWidth - 320)),
+        y: clamp(y, 8, Math.max(8, window.innerHeight - 260)),
+        blockId,
+        moveToQuery: "",
+        searchQuery: "",
+      });
+      setCanvasMenu((previous) => ({ ...previous, open: false }));
+      setFileMenu((previous) => ({ ...previous, open: false }));
+      setMenu(null);
+      setSelectedBlockIds((previous) => (previous.includes(blockId) ? previous : [blockId]));
+    },
+    [blocks, toScreenPoint],
+  );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key !== "/" || event.shiftKey || event.altKey) {
+        return;
+      }
+      if (menu || fileInsert.open || commentPanel.open) {
+        return;
+      }
+      event.preventDefault();
+      const targetId = selectedBlockIds[0] ?? editingTextBlockId ?? blocks[0]?.id;
+      if (!targetId) return;
+      openBlockMenuForBlock(targetId);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [blocks, commentPanel.open, editingTextBlockId, fileInsert.open, menu, openBlockMenuForBlock, selectedBlockIds]);
 
   const highlightBlockByHash = useCallback(
     (blockId: string) => {
@@ -2027,14 +2067,14 @@ export function PageEditor() {
       }
 
       const activeSelection = selectedBlockIds.includes(block.id) ? selectedBlockIds : [block.id];
-      handleHoldRef.current = {
-        timer: null,
-        pressedAt: Date.now(),
+      setSelectedBlockIds(activeSelection);
+      handlePointerRef.current = {
+        startX: event.clientX,
+        startY: event.clientY,
+        moved: false,
         blockIds: activeSelection,
+        blockId: block.id,
       };
-
-      const startX = event.clientX;
-      const startY = event.clientY;
 
       const startDrag = (clientX: number, clientY: number) => {
         const synthetic = {
@@ -2049,34 +2089,25 @@ export function PageEditor() {
         beginDragBlock(block, synthetic, activeSelection);
       };
 
-      handleHoldRef.current.timer = setTimeout(() => {
-        startDrag(startX, startY);
-      }, HANDLE_DRAG_HOLD_MS);
-
       const onMove = (moveEvent: PointerEvent) => {
-        const hold = handleHoldRef.current;
-        if (!hold) return;
-        if (Math.abs(moveEvent.clientX - startX) + Math.abs(moveEvent.clientY - startY) > HANDLE_DRAG_MOVE_THRESHOLD) {
-          if (hold.timer) {
-            clearTimeout(hold.timer);
-            hold.timer = null;
-          }
+        const pointer = handlePointerRef.current;
+        if (!pointer) return;
+        if (Math.abs(moveEvent.clientX - pointer.startX) + Math.abs(moveEvent.clientY - pointer.startY) > HANDLE_DRAG_MOVE_THRESHOLD) {
+          pointer.moved = true;
           startDrag(moveEvent.clientX, moveEvent.clientY);
-          handleHoldRef.current = null;
+          handlePointerRef.current = null;
           cleanup();
         }
       };
 
-      const onUp = () => {
-        const hold = handleHoldRef.current;
-        if (hold?.timer) {
-          clearTimeout(hold.timer);
-          hold.timer = null;
-          setBlockMenu({ open: true, x: startX, y: startY, blockId: block.id, moveToQuery: "", searchQuery: "" });
+      const onUp = (upEvent: PointerEvent) => {
+        const pointer = handlePointerRef.current;
+        handlePointerRef.current = null;
+        if (pointer && !pointer.moved) {
+          setBlockMenu({ open: true, x: upEvent.clientX, y: upEvent.clientY, blockId: block.id, moveToQuery: "", searchQuery: "" });
           setCanvasMenu((previous) => ({ ...previous, open: false }));
           setFileMenu((previous) => ({ ...previous, open: false }));
         }
-        handleHoldRef.current = null;
         cleanup();
       };
 
