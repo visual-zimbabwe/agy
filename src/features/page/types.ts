@@ -22,11 +22,13 @@ export type BlockType =
   | "file";
 
 export type PageFileMeta = {
-  path: string;
+  path?: string;
   name: string;
   size: number;
   mimeType: string;
   displayName: string;
+  source?: "upload" | "embed";
+  externalUrl?: string;
 };
 
 export type PageBlockComment = {

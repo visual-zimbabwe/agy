@@ -11,43 +11,55 @@
 8. In a text block, type `/h1`, `/h2`, `/h3`, `/todo`, `/quote`, and `/code` (one at a time), then press `Enter` and verify block type changes.
 9. While slash menu is open, use `ArrowUp/ArrowDown` and `Enter` to select a command.
 10. Press `Esc` with slash menu open and verify it closes.
-11. Right-click empty canvas and click `Upload files here`; choose at least 2 files and verify each becomes its own movable file block.
-12. Drag-and-drop multiple files from desktop onto canvas and verify each file inserts at drop area.
-13. Upload at least one image file and verify inline image preview appears in its block.
-14. Click a file block and verify it opens in a new tab.
-15. Right-click a file block and run `Rename title`; verify title changes without changing stored file.
-16. Right-click a file block and run `Delete file`; verify block is removed and backend delete succeeds.
-17. Refresh browser tab and verify blocks, camera position/zoom, and file blocks persist.
-18. Validate mobile viewport and desktop viewport: slash menu and context menus are not clipped and remain usable.
-19. Create three `/todo` items, focus the second item, press `Tab`, and verify it indents as a subtask under the first item.
-20. With an indented `/todo` item focused, press `Shift + Tab` and verify it outdents back to the parent level.
-21. In a text block containing multiple lines, select at least 2 lines and press `Ctrl/Cmd + (Option or Shift) + 4`; verify each selected line converts into its own unchecked todo item.
-22. Verify todo checkbox-to-text spacing is compact and consistent with Notion-style list density (no oversized gap).
-23. In a quote block, verify default styling is visually distinct (larger italic text, left border, and indentation).
-24. In a quote block, use `Ctrl/Cmd + B`, `Ctrl/Cmd + I`, and `Ctrl/Cmd + K`; verify bold/italic/link Markdown is inserted and quote preview reflects formatting.
-25. Click a block six-dot handle, choose `Color`, and verify quote text color and quote background color both update.
-26. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
-27. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
-28. With a quote block selected, press `Enter`; verify a standard text block appears immediately below with attribution starter (`-- `).
-29. Single-click a block six-dot handle and verify block menu opens with actions: `Delete`, `Duplicate`, `Turn into`, `Turn into page`, `Copy link`, `Move to page`, `Comment`, and `Color`.
-30. Hold six-dot handle for ~250ms (or click-drag) and verify block drags without opening menu.
-31. `Ctrl/Cmd`-click three block handles to multi-select, then hold and drag one selected handle; verify selected blocks move together.
-32. In block menu, run `Duplicate` and verify exact copy appears below original.
-33. In block menu, run `Delete` and verify block is removed.
-34. In block menu, run `Turn into` to convert a text block to `Heading 2`, `To-do list`, and `Quote`; verify type changes each time.
-35. In block menu, run `Turn into page`; verify block is moved to a new `doc` route and a page-link block remains in the source page.
-36. In block menu, run `Copy link`, paste in browser address bar, and verify it navigates to and focuses the target block.
-37. In block menu, use `Move to page` search/typed id to move block to another doc; verify it is removed from source and appears in destination.
-38. In block menu, run `Comment`; verify thread items appear in menu and persist after refresh.
-39. In block menu, apply text color and background color and verify entire block styling updates.
-40. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
-41. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
-42. Drag a list block slightly right under another list block and verify it nests (indent increases).
+11. In any text block, type `/file` then press `Enter`; verify file insert popover appears with `Upload` and `Link` tabs.
+12. In `/file` popover `Upload` tab, click `Choose a file`, upload a document, and verify a file block appears with file name + size metadata.
+13. In `/file` popover `Link` tab, paste a URL (PDF, Drive file, or Maps URL) and verify an embedded file block appears with inferred title and `External` size label.
+14. Type `/image`, `/video`, and `/audio` (one at a time), press `Enter`, and verify each opens the same two-option popover and inserts a specialized media block after upload/link.
+15. Hover a file/media block and verify toolbar actions appear: `Caption`, `Comment`, `Download`.
+16. Use hover toolbar `Caption`; verify caption is saved and shown under the file metadata.
+17. Use hover toolbar `Comment`; verify comment thread is added to the target block.
+18. Use hover toolbar `Download`; verify uploaded files download and embedded links open in a downloadable/openable target.
+19. Verify slash command menu visual parity: compact light menu, left-side command symbols, right-side trigger hints, and `Close menu / esc` footer.
+20. Open slash menu near each viewport edge and confirm it repositions (above/below and left/right) to stay visible while minimizing overlap with nearby canvas content.
+21. Right-click empty canvas and click `Upload files here`; choose at least 2 files and verify each becomes its own movable file block.
+22. Drag-and-drop multiple files from desktop onto canvas and verify each file inserts at drop area.
+23. Upload at least one image file and verify inline image preview appears in its block.
+24. Click a file block and verify it opens in a new tab.
+25. Right-click a file block and run `Rename title`; verify title changes without changing stored file.
+26. Right-click a file block and run `Delete file`; verify block is removed and backend delete succeeds.
+27. Refresh browser tab and verify blocks, camera position/zoom, and file blocks persist.
+28. Validate mobile viewport and desktop viewport: slash menu, file insert popover, and context menus are not clipped and remain usable.
+29. Create three `/todo` items, focus the second item, press `Tab`, and verify it indents as a subtask under the first item.
+30. With an indented `/todo` item focused, press `Shift + Tab` and verify it outdents back to the parent level.
+31. In a text block containing multiple lines, select at least 2 lines and press `Ctrl/Cmd + (Option or Shift) + 4`; verify each selected line converts into its own unchecked todo item.
+32. Verify todo checkbox-to-text spacing is compact and consistent with Notion-style list density (no oversized gap).
+33. In a quote block, verify default styling is visually distinct (larger italic text, left border, and indentation).
+34. In a quote block, use `Ctrl/Cmd + B`, `Ctrl/Cmd + I`, and `Ctrl/Cmd + K`; verify bold/italic/link Markdown is inserted and quote preview reflects formatting.
+35. Click a block six-dot handle, choose `Color`, and verify quote text color and quote background color both update.
+36. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
+37. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
+38. With a quote block selected, press `Enter`; verify a standard text block appears immediately below with attribution starter (`-- `).
+39. Single-click a block six-dot handle and verify block menu opens with actions: `Delete`, `Duplicate`, `Turn into`, `Turn into page`, `Copy link`, `Move to page`, `Comment`, and `Color`.
+40. Hold six-dot handle for ~250ms (or click-drag) and verify block drags without opening menu.
+41. `Ctrl/Cmd`-click three block handles to multi-select, then hold and drag one selected handle; verify selected blocks move together.
+42. In block menu, run `Duplicate` and verify exact copy appears below original.
+43. In block menu, run `Delete` and verify block is removed.
+44. In block menu, run `Turn into` to convert a text block to `Heading 2`, `To-do list`, and `Quote`; verify type changes each time.
+45. In block menu, run `Turn into page`; verify block is moved to a new `doc` route and a page-link block remains in the source page.
+46. In block menu, run `Copy link`, paste in browser address bar, and verify it navigates to and focuses the target block.
+47. In block menu, use `Move to page` search/typed id to move block to another doc; verify it is removed from source and appears in destination.
+48. In block menu, run `Comment`; verify thread items appear in menu and persist after refresh.
+49. In block menu, apply text color and background color and verify entire block styling updates.
+50. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
+51. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
+52. Drag a list block slightly right under another list block and verify it nests (indent increases).
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
 - `Type "/" for commands` appears at the active insertion point, not fixed to left side.
 - Slash commands provide Notion-style block changes and keyboard navigation.
+- Slash command menu is visually compact and symbol-driven; command popup stays in viewport with reduced canvas obstruction.
+- `/file`, `/image`, `/video`, `/audio` open an insert popup with `Upload` and `Link` flows.
 - Todo items support `Tab`/`Shift + Tab` nesting and un-nesting.
 - Multi-line text selection supports one-shot conversion to todo checkboxes via `Ctrl/Cmd + (Option or Shift) + 4`.
 - Quote blocks are visually distinct and support inline Markdown formatting shortcuts for bold/italic/link.
@@ -58,7 +70,7 @@ Expected:
 - Block menu supports delete/duplicate/turn-into/page conversion/link copying/move-to/comment/color actions.
 - File upload works via both picker and drag-drop, including multi-file insertion.
 - Uploaded image files preview inline; non-image files render as file cards.
-- File blocks support open, rename title, delete, and drag repositioning.
+- File/media blocks support open/preview, download original, caption, comment, rename title, delete, and drag repositioning.
 - Page state (blocks + camera) persists after refresh.
 
 ## Electron Desktop Packaging (2026-02-18)

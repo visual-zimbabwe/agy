@@ -20,12 +20,16 @@ import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnap
 import type { BlockType, PageBlock } from "@/features/page/types";
 import { cn } from "@/lib/cn";
 
-type SlashCommandId = BlockType | "upload_files";
-type SlashCommand = { id: SlashCommandId; label: string; description: string; aliases: string[] };
+type SlashCommandId = BlockType;
+type SlashCommandGroup = "basic" | "media";
+type SlashCommand = { id: SlashCommandId; label: string; description: string; aliases: string[]; group: SlashCommandGroup; symbol?: string; trigger?: string };
 type MenuState = { blockId: string; query: string; slashRange: { start: number; end: number } };
 type CanvasMenuState = { open: boolean; x: number; y: number; worldX: number; worldY: number };
 type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
 type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; moveToQuery: string; searchQuery: string };
+type FileInsertIntent = "file" | "image" | "video" | "audio";
+type FileInsertMode = "upload" | "link";
+type FileInsertState = { open: boolean; intent: FileInsertIntent; mode: FileInsertMode; worldX: number; worldY: number; x: number; y: number; url: string };
 
 const DOC_WIDTH = 680;
 const LINE_HEIGHT = 32;
@@ -67,16 +71,19 @@ const TURN_INTO_TYPES: Array<{ type: BlockType; label: string }> = [
 ];
 
 const slashCommands: SlashCommand[] = [
-  { id: "text", label: "Text", description: "Plain paragraph.", aliases: ["text", "paragraph", "p"] },
-  { id: "h1", label: "Header 1", description: "Large heading.", aliases: ["h1", "header", "title"] },
-  { id: "h2", label: "Header 2", description: "Medium heading.", aliases: ["h2", "header2"] },
-  { id: "h3", label: "Header 3", description: "Small heading.", aliases: ["h3", "header3"] },
-  { id: "todo", label: "To-do list", description: "Checkbox task.", aliases: ["todo", "task", "checkbox"] },
-  { id: "bulleted", label: "Bulleted list", description: "Bullet item.", aliases: ["bullet", "list"] },
-  { id: "quote", label: "Quote", description: "Quoted text.", aliases: ["quote", "citation"] },
-  { id: "callout", label: "Callout", description: "Highlighted block.", aliases: ["callout", "note"] },
-  { id: "code", label: "Code", description: "Code snippet.", aliases: ["code", "snippet"] },
-  { id: "upload_files", label: "Upload files", description: "Pick and insert files here.", aliases: ["upload", "file", "files"] },
+  { id: "text", label: "Text", description: "Plain paragraph.", aliases: ["text", "paragraph", "p"], group: "basic", symbol: "T", trigger: "" },
+  { id: "h1", label: "Heading 1", description: "Large heading.", aliases: ["h1", "header", "title"], group: "basic", symbol: "H1", trigger: "#" },
+  { id: "h2", label: "Heading 2", description: "Medium heading.", aliases: ["h2", "header2"], group: "basic", symbol: "H2", trigger: "##" },
+  { id: "h3", label: "Heading 3", description: "Small heading.", aliases: ["h3", "header3"], group: "basic", symbol: "H3", trigger: "###" },
+  { id: "bulleted", label: "Bulleted list", description: "Bullet item.", aliases: ["bullet", "list"], group: "basic", symbol: "-", trigger: "-" },
+  { id: "todo", label: "To-do list", description: "Checkbox task.", aliases: ["todo", "task", "checkbox"], group: "basic", symbol: "[]", trigger: "[]" },
+  { id: "file", label: "File", description: "Upload or embed a file.", aliases: ["file", "files", "upload"], group: "media", symbol: "F", trigger: "/file" },
+  { id: "image", label: "Image", description: "Upload or link an image.", aliases: ["image", "photo", "img"], group: "media", symbol: "I", trigger: "/image" },
+  { id: "video", label: "Video", description: "Upload or link a video.", aliases: ["video", "movie"], group: "media", symbol: "V", trigger: "/video" },
+  { id: "audio", label: "Audio", description: "Upload or link audio.", aliases: ["audio", "sound"], group: "media", symbol: "A", trigger: "/audio" },
+  { id: "quote", label: "Quote", description: "Quoted text.", aliases: ["quote", "citation"], group: "basic", symbol: "\"", trigger: "" },
+  { id: "callout", label: "Callout", description: "Highlighted block.", aliases: ["callout", "note"], group: "basic", symbol: "!", trigger: "" },
+  { id: "code", label: "Code", description: "Code snippet.", aliases: ["code", "snippet"], group: "basic", symbol: "</>", trigger: "" },
 ];
 
 const idFor = () => `blk_${Math.random().toString(36).slice(2, 10)}`;
@@ -182,11 +189,42 @@ const isTextInputTarget = (target: EventTarget | null) => {
 };
 
 const formatFileSize = (bytes: number) => {
+  if (bytes <= 0) return "External";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 };
+
+const inferMimeFromUrl = (url: string) => {
+  const normalized = url.toLowerCase().split(/[?#]/)[0] ?? "";
+  if (/\.(png|jpe?g|gif|webp|bmp|svg)$/.test(normalized)) return "image/*";
+  if (/\.(mp4|webm|mov|m4v|mkv|avi)$/.test(normalized)) return "video/*";
+  if (/\.(mp3|wav|ogg|m4a|aac|flac)$/.test(normalized)) return "audio/*";
+  if (/\.pdf$/.test(normalized)) return "application/pdf";
+  return "application/octet-stream";
+};
+
+const inferDisplayNameFromUrl = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname.split("/").filter(Boolean);
+    const tail = pathname[pathname.length - 1];
+    if (tail) return decodeURIComponent(tail);
+    return parsed.hostname;
+  } catch {
+    return "Embedded file";
+  }
+};
+
+const acceptForIntent = (intent: FileInsertIntent) => {
+  if (intent === "image") return "image/*";
+  if (intent === "video") return "video/*";
+  if (intent === "audio") return "audio/*";
+  return "";
+};
+
+const blockTypeForIntent = (intent: FileInsertIntent) => intent;
 
 export function PageEditor() {
   const router = useRouter();
@@ -206,6 +244,17 @@ export function PageEditor() {
   const [availableDocIds, setAvailableDocIds] = useState<string[]>([]);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
+  const [uploadIntent, setUploadIntent] = useState<FileInsertIntent>("file");
+  const [fileInsert, setFileInsert] = useState<FileInsertState>({
+    open: false,
+    intent: "file",
+    mode: "upload",
+    worldX: 120,
+    worldY: 120,
+    x: 48,
+    y: 48,
+    url: "",
+  });
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -317,7 +366,7 @@ export function PageEditor() {
   }, []);
 
   const uploadFilesAt = useCallback(
-    async (files: File[], worldX: number, worldY: number) => {
+    async (files: File[], worldX: number, worldY: number, intent: FileInsertIntent = "file") => {
       if (files.length === 0) return;
       setUploading(true);
       try {
@@ -332,24 +381,25 @@ export function PageEditor() {
 
         const createdBlocks: PageBlock[] = payload.files.map((file, index) => ({
           id: idFor(),
-          type: "file",
+          type: blockTypeForIntent(intent),
           content: "",
           x: worldX,
           y: worldY + index * 72,
           w: DOC_WIDTH,
-          h: isImageMime(file.mimeType) ? 280 : 44,
+          h: blockTypeForIntent(intent) === "image" ? 280 : blockTypeForIntent(intent) === "video" ? 220 : blockTypeForIntent(intent) === "audio" ? 88 : isImageMime(file.mimeType) ? 280 : 44,
           file: {
             path: file.path,
             name: file.name,
             displayName: file.name,
             size: file.size,
             mimeType: file.mimeType || "application/octet-stream",
+            source: "upload",
           },
         }));
         setBlocks((previous) => [...previous, ...createdBlocks]);
 
         for (const file of payload.files) {
-          if (isImageMime(file.mimeType)) void signFileUrl(file.path);
+          if (isImageMime(file.mimeType) || intent === "video" || intent === "audio") void signFileUrl(file.path);
         }
       } catch (error) {
         window.alert(error instanceof Error ? error.message : "Upload failed.");
@@ -360,10 +410,52 @@ export function PageEditor() {
     [signFileUrl],
   );
 
-  const triggerUploadPickerAt = useCallback((worldX: number, worldY: number) => {
+  const triggerUploadPickerAt = useCallback((worldX: number, worldY: number, intent: FileInsertIntent = "file") => {
     uploadAnchorRef.current = { x: worldX, y: worldY };
+    setUploadIntent(intent);
     fileInputRef.current?.click();
   }, []);
+
+  const openFileInsertAt = useCallback((worldX: number, worldY: number, screenX: number, screenY: number, intent: FileInsertIntent) => {
+    const panelWidth = 360;
+    const panelHeight = 180;
+    setFileInsert({
+      open: true,
+      intent,
+      mode: "upload",
+      worldX,
+      worldY,
+      x: clamp(screenX, 12, Math.max(12, viewport.w - panelWidth - 12)),
+      y: clamp(screenY, 12, Math.max(12, viewport.h - panelHeight - 12)),
+      url: "",
+    });
+  }, [viewport.h, viewport.w]);
+
+  const createEmbedBlock = useCallback(
+    (url: string, worldX: number, worldY: number, intent: FileInsertIntent) => {
+      const blockType = blockTypeForIntent(intent);
+      const mimeType = inferMimeFromUrl(url);
+      const created: PageBlock = {
+        id: idFor(),
+        type: blockType,
+        content: "",
+        x: worldX,
+        y: worldY,
+        w: DOC_WIDTH,
+        h: blockType === "image" ? 280 : blockType === "video" ? 220 : blockType === "audio" ? 88 : 52,
+        file: {
+          name: inferDisplayNameFromUrl(url),
+          displayName: inferDisplayNameFromUrl(url),
+          size: 0,
+          mimeType,
+          source: "embed",
+          externalUrl: url,
+        },
+      };
+      setBlocks((previous) => [...previous, created]);
+    },
+    [],
+  );
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -411,9 +503,13 @@ export function PageEditor() {
   }, [blocks, camera]);
 
   useEffect(() => {
-    const imageBlocks = blocks.filter((block) => block.type === "file" && isImageMime(block.file?.mimeType) && block.file?.path);
-    for (const block of imageBlocks) {
-      const path = block.file!.path;
+    const mediaBlocks = blocks.filter(
+      (block) =>
+        (block.type === "image" || block.type === "video" || block.type === "audio" || (block.type === "file" && isImageMime(block.file?.mimeType))) &&
+        block.file?.path,
+    );
+    for (const block of mediaBlocks) {
+      const path = block.file!.path!;
       if (!signedUrls[path]) void signFileUrl(path);
     }
   }, [blocks, signFileUrl, signedUrls]);
@@ -430,6 +526,7 @@ export function PageEditor() {
       setCanvasMenu((previous) => ({ ...previous, open: false }));
       setFileMenu((previous) => ({ ...previous, open: false }));
       setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "", searchQuery: "" }));
+      setFileInsert((previous) => ({ ...previous, open: false }));
     };
     window.addEventListener("pointerdown", closeMenus);
     return () => window.removeEventListener("pointerdown", closeMenus);
@@ -457,6 +554,18 @@ export function PageEditor() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [filteredMenu, menu]);
+
+  useEffect(() => {
+    if (!fileInsert.open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setFileInsert((previous) => ({ ...previous, open: false }));
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [fileInsert.open]);
 
   const updateBlock = useCallback((blockId: string, patch: Partial<PageBlock>) => {
     setBlocks((previous) => previous.map((block) => (block.id === blockId ? { ...block, ...patch } : block)));
@@ -851,10 +960,11 @@ export function PageEditor() {
       }
 
       const nextContent = `${block.content.slice(0, menu.slashRange.start)}${block.content.slice(menu.slashRange.end)}`;
-      if (commandId === "upload_files") {
+      if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio") {
         updateBlock(block.id, { content: nextContent });
+        const base = toScreenPoint(block.x, block.y + block.h + 12);
+        openFileInsertAt(block.x, block.y + block.h + 12, base.x + 16, base.y + 10, commandId);
         setMenu(null);
-        triggerUploadPickerAt(block.x, block.y + block.h + 12);
         return;
       }
 
@@ -868,7 +978,7 @@ export function PageEditor() {
       setMenu(null);
       queueFocus(block.id);
     },
-    [blocks, menu, queueFocus, triggerUploadPickerAt, updateBlock],
+    [blocks, menu, openFileInsertAt, queueFocus, toScreenPoint, updateBlock],
   );
 
   const insertBlockBelow = useCallback(
@@ -1244,13 +1354,42 @@ export function PageEditor() {
   );
   const openFileBlock = useCallback(
     async (block: PageBlock) => {
-      if (!block.file?.path) return;
+      if (!block.file) return;
       try {
-        const existing = signedUrls[block.file.path];
-        const url = existing ?? (await signFileUrl(block.file.path));
+        const url = block.file.externalUrl
+          ? block.file.externalUrl
+          : block.file.path
+            ? signedUrls[block.file.path] ?? (await signFileUrl(block.file.path))
+            : null;
+        if (!url) return;
         window.open(url, "_blank", "noopener,noreferrer");
       } catch (error) {
         window.alert(error instanceof Error ? error.message : "Unable to open file.");
+      }
+    },
+    [signFileUrl, signedUrls],
+  );
+
+  const downloadFileBlock = useCallback(
+    async (block: PageBlock) => {
+      if (!block.file) return;
+      try {
+        const url = block.file.externalUrl
+          ? block.file.externalUrl
+          : block.file.path
+            ? signedUrls[block.file.path] ?? (await signFileUrl(block.file.path))
+            : null;
+        if (!url) return;
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = block.file.displayName || block.file.name || "file";
+        anchor.target = "_blank";
+        anchor.rel = "noopener noreferrer";
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+      } catch (error) {
+        window.alert(error instanceof Error ? error.message : "Unable to download file.");
       }
     },
     [signFileUrl, signedUrls],
@@ -1279,7 +1418,12 @@ export function PageEditor() {
   const deleteFileBlock = useCallback(
     async (blockId: string) => {
       const block = blocks.find((entry) => entry.id === blockId);
-      if (!block?.file?.path) return;
+      if (!block?.file) return;
+      if (block.file.externalUrl) {
+        setBlocks((previous) => previous.filter((entry) => entry.id !== blockId));
+        return;
+      }
+      if (!block.file.path) return;
       try {
         const response = await fetch("/api/page/files", {
           method: "DELETE",
@@ -1295,6 +1439,14 @@ export function PageEditor() {
     },
     [blocks],
   );
+
+  const updateFileCaption = useCallback((blockId: string) => {
+    const current = blocks.find((entry) => entry.id === blockId);
+    if (!current) return;
+    const caption = window.prompt("Add caption", current.content || "");
+    if (caption === null) return;
+    updateBlock(blockId, { content: caption.trim() });
+  }, [blocks, updateBlock]);
 
   const handleWheel = useCallback(
     (event: React.WheelEvent<HTMLDivElement>) => {
@@ -1487,18 +1639,48 @@ export function PageEditor() {
   const filteredBlockMenuActions = blockMenu.searchQuery.trim()
     ? blockMenuActions.filter((item) => item.label.toLowerCase().includes(blockMenu.searchQuery.trim().toLowerCase()))
     : blockMenuActions;
-  const menuAnchor = menuBlock ? toScreenPoint(menuBlock.x, menuBlock.y + menuBlock.h + 8) : { x: 0, y: 0 };
+  const menuGroups = useMemo(
+    () => ({
+      basic: filteredMenu.filter((item) => item.group === "basic"),
+      media: filteredMenu.filter((item) => item.group === "media"),
+    }),
+    [filteredMenu],
+  );
+
+  const slashMenuLayout = useMemo(() => {
+    if (!menuBlock) return { left: 0, top: 0 };
+    const cardWidth = Math.min(360, viewport.w - 24);
+    const rowCount = Math.max(1, filteredMenu.length);
+    const estimatedHeight = clamp(84 + rowCount * 40 + (menuGroups.media.length > 0 && menuGroups.basic.length > 0 ? 24 : 0), 170, 360);
+    const blockLeft = toScreenPoint(menuBlock.x, menuBlock.y).x;
+    const blockTop = toScreenPoint(menuBlock.x, menuBlock.y).y;
+    const blockRight = blockLeft + DOC_WIDTH * camera.zoom;
+    const blockBottom = blockTop + menuBlock.h * camera.zoom;
+    const rightSpace = viewport.w - blockRight;
+    const leftSpace = blockLeft;
+    const belowSpace = viewport.h - blockBottom;
+    const aboveSpace = blockTop;
+
+    const horizontal = rightSpace >= cardWidth + 16 || rightSpace >= leftSpace ? blockRight + 12 : blockLeft - cardWidth - 12;
+    const vertical = belowSpace >= estimatedHeight + 14 || belowSpace >= aboveSpace ? blockBottom + 10 : blockTop - estimatedHeight - 10;
+
+    return {
+      left: clamp(horizontal, 8, Math.max(8, viewport.w - cardWidth - 8)),
+      top: clamp(vertical, 8, Math.max(8, viewport.h - estimatedHeight - 8)),
+    };
+  }, [camera.zoom, filteredMenu.length, menuBlock, menuGroups.basic.length, menuGroups.media.length, toScreenPoint, viewport.h, viewport.w]);
   return (
     <main className="route-shell text-[var(--color-text)]">
       <input
         ref={fileInputRef}
         type="file"
         multiple
+        accept={acceptForIntent(uploadIntent)}
         className="hidden"
         onChange={(event) => {
           const chosen = Array.from(event.target.files ?? []);
           event.currentTarget.value = "";
-          void uploadFilesAt(chosen, uploadAnchorRef.current.x, uploadAnchorRef.current.y);
+          void uploadFilesAt(chosen, uploadAnchorRef.current.x, uploadAnchorRef.current.y, uploadIntent);
         }}
       />
 
@@ -1533,7 +1715,7 @@ export function PageEditor() {
           }}
         >
           {blocks.map((block) => {
-            const imageUrl = block.file?.path ? signedUrls[block.file.path] : undefined;
+            const resolvedFileUrl = block.file?.externalUrl || (block.file?.path ? signedUrls[block.file.path] : undefined);
             const indentOffset = block.type === "todo" ? (block.indent ?? 0) * INDENT_STEP : 0;
             return (
               <div
@@ -1573,8 +1755,8 @@ export function PageEditor() {
                     padding: block.backgroundColor ? "6px 8px" : undefined,
                   }}
                 >
-                  {block.type === "file" && block.file ? (
-                    <div
+                  {(block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio") && block.file ? (
+                    <div className="relative rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]/85 p-3"
                       onContextMenu={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -1582,8 +1764,8 @@ export function PageEditor() {
                         setCanvasMenu((previous) => ({ ...previous, open: false }));
                       }}
                     >
-                      {isImageMime(block.file.mimeType) ? (
-                        imageUrl ? (
+                      {(block.type === "image" || isImageMime(block.file.mimeType)) ? (
+                        resolvedFileUrl ? (
                           <button
                             type="button"
                             className="block overflow-hidden rounded-md"
@@ -1592,10 +1774,26 @@ export function PageEditor() {
                               void openFileBlock(block);
                             }}
                           >
-                            <Image src={imageUrl} alt={block.file.displayName} width={960} height={540} unoptimized className="h-auto w-full object-contain" />
+                            <Image src={resolvedFileUrl} alt={block.file.displayName} width={960} height={540} unoptimized className="h-auto w-full object-contain" />
                           </button>
                         ) : (
                           <p className="text-sm text-[var(--color-text-muted)]">Loading image preview...</p>
+                        )
+                      ) : block.type === "video" ? (
+                        resolvedFileUrl ? (
+                          <video controls preload="metadata" className="w-full rounded-md">
+                            <source src={resolvedFileUrl} type={block.file.mimeType} />
+                          </video>
+                        ) : (
+                          <p className="text-sm text-[var(--color-text-muted)]">Loading video preview...</p>
+                        )
+                      ) : block.type === "audio" ? (
+                        resolvedFileUrl ? (
+                          <audio controls preload="metadata" className="w-full">
+                            <source src={resolvedFileUrl} type={block.file.mimeType} />
+                          </audio>
+                        ) : (
+                          <p className="text-sm text-[var(--color-text-muted)]">Loading audio preview...</p>
                         )
                       ) : (
                         <button
@@ -1609,9 +1807,42 @@ export function PageEditor() {
                           {block.file.displayName}
                         </button>
                       )}
-                      <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                      <p className="mt-2 text-xs text-[var(--color-text-muted)]">
                         {block.file.mimeType || "file"} - {formatFileSize(block.file.size)}
                       </p>
+                      {block.content.trim().length > 0 && <p className="mt-1 text-xs text-[var(--color-text-muted)]">{block.content.trim()}</p>}
+                      <div className="pointer-events-none absolute right-2 top-2 flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-1.5 py-1 opacity-0 shadow-[var(--shadow-sm)] transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+                        <button
+                          type="button"
+                          className="rounded px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            updateFileCaption(block.id);
+                          }}
+                        >
+                          Caption
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            addCommentToBlock(block.id);
+                          }}
+                        >
+                          Comment
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void downloadFileBlock(block);
+                          }}
+                        >
+                          Download
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     renderInput(block)
@@ -1623,32 +1854,111 @@ export function PageEditor() {
         </div>
         {menu && menuBlock && (
           <div
-            className="absolute z-40 w-[min(34rem,calc(100vw-2rem))] rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)]"
+            className="absolute z-40 w-[min(22.5rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-[#d8d8d8] bg-[#f9f9f9] p-0 shadow-[0_12px_28px_rgba(0,0,0,0.18)]"
             style={{
-              left: clamp(menuAnchor.x, 8, Math.max(8, viewport.w - 548)),
-              top: clamp(menuAnchor.y, 8, Math.max(8, viewport.h - 260)),
+              left: slashMenuLayout.left,
+              top: slashMenuLayout.top,
             }}
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <p className="mb-2 px-1 text-xs text-[var(--color-text-muted)]">
-              Search: <span className="font-semibold text-[var(--color-text)]">/{menu.query || "..."}</span>
-            </p>
-            {filteredMenu.length === 0 && <p className="px-2 py-1.5 text-sm text-[var(--color-text-muted)]">No matching commands.</p>}
-            {filteredMenu.map((item, idx) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => applySlashCommand(item.id)}
-                onMouseEnter={() => setMenuIndex(idx)}
-                className={cn(
-                  "mb-0.5 flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm last:mb-0",
-                  idx === activeMenuIndex ? "bg-[var(--color-accent-soft)] text-[var(--color-text)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)]",
-                )}
+            <div className="border-b border-[#e5e5e5] px-3.5 py-2.5 text-xs text-[#888]">Basic blocks</div>
+            <div className="max-h-[18rem] overflow-y-auto px-2 py-1.5">
+              {filteredMenu.length === 0 && <p className="px-2 py-1.5 text-sm text-[#8c8c8c]">No matching commands.</p>}
+              {menuGroups.basic.concat(menuGroups.media).map((item) => {
+                const idx = filteredMenu.findIndex((entry) => entry.id === item.id);
+                return (
+                  <button
+                    key={`${item.id}-${item.label}`}
+                    type="button"
+                    onClick={() => applySlashCommand(item.id)}
+                    onMouseEnter={() => setMenuIndex(idx)}
+                    className={cn(
+                      "mb-0.5 flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-[15px]",
+                      idx === activeMenuIndex ? "bg-[#ececec] text-[#111]" : "text-[#2f2f2f] hover:bg-[#efefef]",
+                    )}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center text-[14px] text-[#4f4f4f]">{item.symbol || "•"}</span>
+                      <span>{item.label}</span>
+                    </span>
+                    <span className="text-xs text-[#949494]">{item.trigger || ""}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setMenu(null)}
+              className="flex w-full items-center justify-between border-t border-[#e5e5e5] px-3.5 py-2 text-left text-[15px] text-[#2f2f2f] hover:bg-[#efefef]"
+            >
+              <span>Close menu</span>
+              <span className="text-xs text-[#9a9a9a]">esc</span>
+            </button>
+          </div>
+        )}
+
+        {fileInsert.open && (
+          <div
+            className="absolute z-50 w-[22rem] rounded-xl border border-[#d7d7d7] bg-[#f6f6f6] p-2 shadow-[0_14px_26px_rgba(0,0,0,0.2)]"
+            style={{ left: fileInsert.x, top: fileInsert.y }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center gap-1 rounded-lg border border-[#d9d9d9] bg-white p-1">
+              {(["upload", "link"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm",
+                    fileInsert.mode === tab ? "border border-[#2f80ed] bg-[#e8f1ff] text-[#1b5fc7]" : "text-[#777] hover:bg-[#f0f0f0]",
+                  )}
+                  onClick={() => setFileInsert((previous) => ({ ...previous, mode: tab }))}
+                >
+                  {tab === "upload" ? "Upload" : "Link"}
+                </button>
+              ))}
+            </div>
+            {fileInsert.mode === "upload" ? (
+              <div className="px-2 pb-2 pt-3">
+                <button
+                  type="button"
+                  className="w-full rounded-md bg-[#2f80ed] px-3 py-2 text-sm font-medium text-white hover:bg-[#206fd8]"
+                  onClick={() => {
+                    triggerUploadPickerAt(fileInsert.worldX, fileInsert.worldY, fileInsert.intent);
+                    setFileInsert((previous) => ({ ...previous, open: false }));
+                  }}
+                >
+                  Choose a file
+                </button>
+              </div>
+            ) : (
+              <form
+                className="space-y-2 px-2 pb-2 pt-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const nextUrl = fileInsert.url.trim();
+                  if (!nextUrl) return;
+                  try {
+                    const parsed = new URL(nextUrl);
+                    createEmbedBlock(parsed.toString(), fileInsert.worldX, fileInsert.worldY, fileInsert.intent);
+                    setFileInsert((previous) => ({ ...previous, open: false, url: "" }));
+                  } catch {
+                    window.alert("Please paste a valid URL.");
+                  }
+                }}
               >
-                <span>{item.label}</span>
-                <span className="text-[11px]">{item.description}</span>
-              </button>
-            ))}
+                <input
+                  type="url"
+                  value={fileInsert.url}
+                  onChange={(event) => setFileInsert((previous) => ({ ...previous, url: event.target.value }))}
+                  placeholder="Paste file URL"
+                  className="w-full rounded-md border border-[#d0d0d0] bg-white px-2.5 py-2 text-sm text-[#303030] outline-none focus:border-[#2f80ed] focus:ring-1 focus:ring-[#2f80ed]/30"
+                />
+                <button type="submit" className="w-full rounded-md bg-[#2f80ed] px-3 py-2 text-sm font-medium text-white hover:bg-[#206fd8]">
+                  Embed link
+                </button>
+              </form>
+            )}
           </div>
         )}
 
@@ -1697,6 +2007,37 @@ export function PageEditor() {
               }}
             >
               Open in new tab
+            </button>
+            <button
+              type="button"
+              className="mt-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => {
+                updateFileCaption(fileMenu.blockId!);
+                setFileMenu({ open: false, x: 0, y: 0 });
+              }}
+            >
+              Add caption
+            </button>
+            <button
+              type="button"
+              className="mt-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => {
+                addCommentToBlock(fileMenu.blockId!);
+                setFileMenu({ open: false, x: 0, y: 0 });
+              }}
+            >
+              Comment
+            </button>
+            <button
+              type="button"
+              className="mt-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => {
+                const block = blocks.find((entry) => entry.id === fileMenu.blockId);
+                if (block) void downloadFileBlock(block);
+                setFileMenu({ open: false, x: 0, y: 0 });
+              }}
+            >
+              Download original
             </button>
             <button
               type="button"
