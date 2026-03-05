@@ -24,7 +24,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 type SlashCommandId = BlockType;
 type SlashCommandGroup = "basic" | "media";
 type SlashCommand = { id: SlashCommandId; label: string; description: string; aliases: string[]; group: SlashCommandGroup; symbol?: string; trigger?: string };
-type MenuState = { blockId: string; query: string; slashRange: { start: number; end: number } };
+type MenuState = { blockId: string; query: string; slashRange: { start: number; end: number }; anchorX: number; anchorY: number };
 type CanvasMenuState = { open: boolean; x: number; y: number; worldX: number; worldY: number };
 type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
 type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; moveToQuery: string; searchQuery: string };
@@ -1106,7 +1106,11 @@ export function PageEditor() {
         setMenu((previous) => (previous?.blockId === blockId ? null : previous));
         return;
       }
-      setMenu({ blockId, query: slash.query, slashRange: { start: slash.start, end: slash.end } });
+      const rect = event.target.getBoundingClientRect();
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      const anchorX = (containerRect ? rect.left - containerRect.left : rect.left) + 12;
+      const anchorY = (containerRect ? rect.bottom - containerRect.top : rect.bottom) + 8;
+      setMenu({ blockId, query: slash.query, slashRange: { start: slash.start, end: slash.end }, anchorX, anchorY });
       setMenuIndex(0);
     },
     [updateBlock],
@@ -1832,27 +1836,23 @@ export function PageEditor() {
   );
 
   const slashMenuLayout = useMemo(() => {
-    if (!menuBlock) return { left: 0, top: 0 };
+    if (!menu) return { left: 0, top: 0 };
     const cardWidth = Math.min(360, viewport.w - 24);
     const rowCount = Math.max(1, filteredMenu.length);
     const estimatedHeight = clamp(84 + rowCount * 40 + (menuGroups.media.length > 0 && menuGroups.basic.length > 0 ? 24 : 0), 170, 360);
-    const blockLeft = toScreenPoint(menuBlock.x, menuBlock.y).x;
-    const blockTop = toScreenPoint(menuBlock.x, menuBlock.y).y;
-    const blockRight = blockLeft + DOC_WIDTH * camera.zoom;
-    const blockBottom = blockTop + menuBlock.h * camera.zoom;
-    const rightSpace = viewport.w - blockRight;
-    const leftSpace = blockLeft;
-    const belowSpace = viewport.h - blockBottom;
-    const aboveSpace = blockTop;
+    const rightSpace = viewport.w - menu.anchorX;
+    const leftSpace = menu.anchorX;
+    const belowSpace = viewport.h - menu.anchorY;
+    const aboveSpace = menu.anchorY;
 
-    const horizontal = rightSpace >= cardWidth + 16 || rightSpace >= leftSpace ? blockRight + 12 : blockLeft - cardWidth - 12;
-    const vertical = belowSpace >= estimatedHeight + 14 || belowSpace >= aboveSpace ? blockBottom + 10 : blockTop - estimatedHeight - 10;
+    const horizontal = rightSpace >= cardWidth + 10 || rightSpace >= leftSpace ? menu.anchorX : menu.anchorX - cardWidth;
+    const vertical = belowSpace >= estimatedHeight + 10 || belowSpace >= aboveSpace ? menu.anchorY : menu.anchorY - estimatedHeight - 8;
 
     return {
       left: clamp(horizontal, 8, Math.max(8, viewport.w - cardWidth - 8)),
       top: clamp(vertical, 8, Math.max(8, viewport.h - estimatedHeight - 8)),
     };
-  }, [camera.zoom, filteredMenu.length, menuBlock, menuGroups.basic.length, menuGroups.media.length, toScreenPoint, viewport.h, viewport.w]);
+  }, [filteredMenu.length, menu, menuGroups.basic.length, menuGroups.media.length, viewport.h, viewport.w]);
   return (
     <main className="route-shell text-[var(--color-text)]">
       <input
