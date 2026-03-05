@@ -252,6 +252,20 @@ const relativeTimeLabel = (createdAt: number) => {
 
 const initialForName = (name: string) => (name.trim().charAt(0) || "U").toUpperCase();
 
+const FileDocIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#5f5f5f]">
+    <path
+      d="M6.2 2.6h4.8L15.4 7v8.1a2 2 0 0 1-2 2H6.2a2 2 0 0 1-2-2V4.6a2 2 0 0 1 2-2Z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M11 2.8V7h4.2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export function PageEditor() {
   const router = useRouter();
   const pathname = usePathname();
@@ -1925,8 +1939,8 @@ export function PageEditor() {
                   {(block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio") && block.file ? (
                     <div
                       className={cn(
-                        "relative rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]/85 p-3",
-                        showInlineFileComment ? "flex items-start justify-between gap-4" : "",
+                        "relative rounded-md bg-[var(--color-surface)]/85 p-3",
+                        showInlineFileComment ? "flex items-start justify-between gap-4 border-none" : "border border-[var(--color-border)]",
                       )}
                       onContextMenu={(event) => {
                         event.preventDefault();
@@ -1974,14 +1988,18 @@ export function PageEditor() {
                               event.stopPropagation();
                               void openFileBlock(block);
                             }}
-                            className="text-left text-[15px] text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4"
+                            className="flex items-center gap-1.5 text-left"
                           >
-                            {block.file.displayName}
+                            <FileDocIcon />
+                            <span className="text-[15px] text-[var(--color-text)]">{block.file.displayName}</span>
+                            <span className="text-xs text-[var(--color-text-muted)]">{formatFileSize(block.file.size)}</span>
                           </button>
                         )}
-                        <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                          {block.file.mimeType || "file"} - {formatFileSize(block.file.size)}
-                        </p>
+                        {!showInlineFileComment && (
+                          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                            {block.file.mimeType || "file"} - {formatFileSize(block.file.size)}
+                          </p>
+                        )}
                         {block.content.trim().length > 0 && <p className="mt-1 text-xs text-[var(--color-text-muted)]">{block.content.trim()}</p>}
                       </div>
                       {showInlineFileComment && latestComment && (
