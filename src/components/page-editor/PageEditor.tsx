@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   useCallback,
   useEffect,
@@ -10,7 +11,6 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import Image from "next/image";
 
 import { createPageSnapshotSaver, loadPageSnapshot } from "@/features/page/storage";
 import type { BlockType, PageBlock } from "@/features/page/types";
@@ -21,6 +21,9 @@ type SlashCommand = { id: SlashCommandId; label: string; description: string; al
 type MenuState = { blockId: string; query: string; slashRange: { start: number; end: number } };
 type CanvasMenuState = { open: boolean; x: number; y: number; worldX: number; worldY: number };
 type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
+
+const DOC_WIDTH = 680;
+const LINE_HEIGHT = 32;
 
 const slashCommands: SlashCommand[] = [
   { id: "text", label: "Text", description: "Plain paragraph.", aliases: ["text", "paragraph", "p"] },
@@ -40,25 +43,14 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const isImageMime = (mimeType?: string) => Boolean(mimeType && mimeType.toLowerCase().startsWith("image/"));
 
 const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
-  if (type === "todo") {
-    return { id: idFor(), type, content: "", checked: false, x, y, w: 420, h: 58 };
-  }
-  if (type === "code") {
-    return { id: idFor(), type, content: "", x, y, w: 560, h: 180 };
-  }
-  if (type === "quote" || type === "callout") {
-    return { id: idFor(), type, content: "", x, y, w: 520, h: 120 };
-  }
-  if (type === "h1") {
-    return { id: idFor(), type, content: "", x, y, w: 600, h: 88 };
-  }
-  if (type === "h2") {
-    return { id: idFor(), type, content: "", x, y, w: 560, h: 78 };
-  }
-  if (type === "h3") {
-    return { id: idFor(), type, content: "", x, y, w: 520, h: 68 };
-  }
-  return { id: idFor(), type, content: "", x, y, w: 520, h: 92 };
+  if (type === "todo") return { id: idFor(), type, content: "", checked: false, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
+  if (type === "h1") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 60 };
+  if (type === "h2") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 52 };
+  if (type === "h3") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 44 };
+  if (type === "code") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 110 };
+  if (type === "quote") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 64 };
+  if (type === "callout") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 64 };
+  return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
 };
 
 const createEmptyPage = (): PageBlock[] => [newBlock("text", 120, 120)];
@@ -66,9 +58,7 @@ const createEmptyPage = (): PageBlock[] => [newBlock("text", 120, 120)];
 const parseSlashQuery = (value: string, cursor: number) => {
   const beforeCursor = value.slice(0, cursor);
   const match = beforeCursor.match(/(^|\s)\/([^\s/]*)$/);
-  if (!match || match.index === undefined) {
-    return null;
-  }
+  if (!match || match.index === undefined) return null;
   const fullMatch = match[0];
   const slashStart = match.index + fullMatch.lastIndexOf("/");
   return { query: match[2] ?? "", start: slashStart, end: cursor };
@@ -76,13 +66,9 @@ const parseSlashQuery = (value: string, cursor: number) => {
 
 const isTextInputTarget = (target: EventTarget | null) => {
   const element = target as HTMLElement | null;
-  if (!element) {
-    return false;
-  }
+  if (!element) return false;
   const tag = element.tagName.toLowerCase();
-  if (tag === "input" || tag === "textarea" || tag === "button" || tag === "a") {
-    return true;
-  }
+  if (tag === "input" || tag === "textarea" || tag === "button" || tag === "a") return true;
   return Boolean(element.closest("input,textarea,button,a"));
 };
 
@@ -117,11 +103,11 @@ export function PageEditor() {
   const filteredMenu = useMemo(() => {
     const query = menu?.query.trim().toLowerCase() ?? "";
     if (!query) return slashCommands;
-    return slashCommands.filter((item) => {
-      if (item.label.toLowerCase().includes(query)) return true;
-      if (item.description.toLowerCase().includes(query)) return true;
-      return item.aliases.some((alias) => alias.toLowerCase().includes(query));
-    });
+    return slashCommands.filter((item) =>
+      item.label.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
+      item.aliases.some((alias) => alias.toLowerCase().includes(query)),
+    );
   }, [menu?.query]);
 
   const activeMenuIndex = filteredMenu.length > 0 ? Math.min(menuIndex, filteredMenu.length - 1) : 0;
@@ -138,6 +124,29 @@ export function PageEditor() {
       }
     });
   }, []);
+
+  const setBlockHeight = useCallback((blockId: string, height: number) => {
+    setBlocks((previous) =>
+      previous.map((block) =>
+        block.id === blockId && Math.abs(block.h - height) > 1
+          ? {
+              ...block,
+              h: height,
+            }
+          : block,
+      ),
+    );
+  }, []);
+
+  const autoSizeTextarea = useCallback(
+    (blockId: string, element: HTMLTextAreaElement, minHeight = LINE_HEIGHT) => {
+      element.style.height = "0px";
+      const next = Math.max(minHeight, element.scrollHeight);
+      element.style.height = `${next}px`;
+      setBlockHeight(blockId, next);
+    },
+    [setBlockHeight],
+  );
 
   const worldFromScreen = useCallback(
     (screenX: number, screenY: number) => ({ x: (screenX - camera.x) / camera.zoom, y: (screenY - camera.y) / camera.zoom }),
@@ -193,29 +202,27 @@ export function PageEditor() {
         };
         if (!response.ok || !payload.files) throw new Error(payload.error ?? "Upload failed.");
 
-        const createdBlocks: PageBlock[] = payload.files.map((file, index) => {
-          const x = worldX + index * 20;
-          const y = worldY + index * 24;
-          const image = isImageMime(file.mimeType);
-          return {
-            id: idFor(),
-            type: "file",
-            content: "",
-            x,
-            y,
-            w: image ? 360 : 380,
-            h: image ? 260 : 92,
-            file: {
-              path: file.path,
-              name: file.name,
-              displayName: file.name,
-              size: file.size,
-              mimeType: file.mimeType || "application/octet-stream",
-            },
-          };
-        });
+        const createdBlocks: PageBlock[] = payload.files.map((file, index) => ({
+          id: idFor(),
+          type: "file",
+          content: "",
+          x: worldX,
+          y: worldY + index * 72,
+          w: DOC_WIDTH,
+          h: isImageMime(file.mimeType) ? 280 : 44,
+          file: {
+            path: file.path,
+            name: file.name,
+            displayName: file.name,
+            size: file.size,
+            mimeType: file.mimeType || "application/octet-stream",
+          },
+        }));
         setBlocks((previous) => [...previous, ...createdBlocks]);
-        for (const file of payload.files) if (isImageMime(file.mimeType)) void signFileUrl(file.path);
+
+        for (const file of payload.files) {
+          if (isImageMime(file.mimeType)) void signFileUrl(file.path);
+        }
       } catch (error) {
         window.alert(error instanceof Error ? error.message : "Upload failed.");
       } finally {
@@ -235,7 +242,10 @@ export function PageEditor() {
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (!entry) return;
-      setViewport({ w: Math.max(1, Math.round(entry.contentRect.width)), h: Math.max(1, Math.round(entry.contentRect.height)) });
+      setViewport({
+        w: Math.max(1, Math.round(entry.contentRect.width)),
+        h: Math.max(1, Math.round(entry.contentRect.height)),
+      });
     });
     observer.observe(container);
     return () => observer.disconnect();
@@ -265,6 +275,16 @@ export function PageEditor() {
     if (!hasLoadedRef.current) return;
     saverRef.current.schedule({ blocks, camera, updatedAt: Date.now() });
   }, [blocks, camera]);
+
+  useEffect(() => {
+    for (const block of blocks) {
+      const element = inputRefs.current[block.id];
+      if (element instanceof HTMLTextAreaElement) {
+        const minHeight = block.type === "code" ? 92 : LINE_HEIGHT;
+        autoSizeTextarea(block.id, element, minHeight);
+      }
+    }
+  }, [autoSizeTextarea, blocks]);
 
   useEffect(() => {
     const imageBlocks = blocks.filter((block) => block.type === "file" && isImageMime(block.file?.mimeType) && block.file?.path);
@@ -334,14 +354,21 @@ export function PageEditor() {
         setMenu(null);
         return;
       }
+
       const nextContent = `${block.content.slice(0, menu.slashRange.start)}${block.content.slice(menu.slashRange.end)}`;
       if (commandId === "upload_files") {
         updateBlock(block.id, { content: nextContent });
         setMenu(null);
-        triggerUploadPickerAt(block.x, block.y + block.h + 20);
+        triggerUploadPickerAt(block.x, block.y + block.h + 12);
         return;
       }
-      updateBlock(block.id, { type: commandId, content: nextContent, checked: commandId === "todo" ? false : undefined });
+
+      updateBlock(block.id, {
+        type: commandId,
+        content: nextContent,
+        checked: commandId === "todo" ? false : undefined,
+        w: DOC_WIDTH,
+      });
       setMenu(null);
       queueFocus(block.id);
     },
@@ -356,9 +383,10 @@ export function PageEditor() {
         if (picked) applySlashCommand(picked.id);
         return;
       }
+
       if (event.key === "Enter" && !event.shiftKey && !menu && ["h1", "h2", "h3", "todo", "bulleted", "quote", "callout"].includes(block.type)) {
         event.preventDefault();
-        const created = newBlock("text", block.x, block.y + Math.max(block.h + 20, 80));
+        const created = newBlock("text", block.x, block.y + Math.max(block.h + 14, LINE_HEIGHT + 14));
         setBlocks((previous) => [...previous, created]);
         queueFocus(created.id);
       }
@@ -368,7 +396,14 @@ export function PageEditor() {
 
   const beginPan = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
-      panRef.current = { startX: event.clientX, startY: event.clientY, cameraX: camera.x, cameraY: camera.y, moved: false };
+      panRef.current = {
+        startX: event.clientX,
+        startY: event.clientY,
+        cameraX: camera.x,
+        cameraY: camera.y,
+        moved: false,
+      };
+
       const onMove = (moveEvent: PointerEvent) => {
         const pan = panRef.current;
         if (!pan) return;
@@ -377,6 +412,7 @@ export function PageEditor() {
         if (Math.abs(dx) + Math.abs(dy) > 4) pan.moved = true;
         setCamera((previous) => ({ ...previous, x: pan.cameraX + dx, y: pan.cameraY + dy }));
       };
+
       const onUp = (upEvent: PointerEvent) => {
         const pan = panRef.current;
         panRef.current = null;
@@ -387,6 +423,7 @@ export function PageEditor() {
           addTextBlockAt(world.x, world.y);
         }
       };
+
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
@@ -394,28 +431,37 @@ export function PageEditor() {
   );
 
   const beginDragBlock = useCallback(
-    (block: PageBlock, event: ReactPointerEvent<HTMLDivElement>) => {
+    (block: PageBlock, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0 || isTextInputTarget(event.target)) return;
       event.preventDefault();
       event.stopPropagation();
       setMenu(null);
       const world = worldFromClient(event.clientX, event.clientY);
       dragRef.current = { blockId: block.id, offsetX: world.x - block.x, offsetY: world.y - block.y };
+
       const onMove = (moveEvent: PointerEvent) => {
         const drag = dragRef.current;
         if (!drag) return;
         const pointer = worldFromClient(moveEvent.clientX, moveEvent.clientY);
         setBlocks((previous) =>
           previous.map((entry) =>
-            entry.id === drag.blockId ? { ...entry, x: pointer.x - drag.offsetX, y: pointer.y - drag.offsetY } : entry,
+            entry.id === drag.blockId
+              ? {
+                  ...entry,
+                  x: pointer.x - drag.offsetX,
+                  y: pointer.y - drag.offsetY,
+                }
+              : entry,
           ),
         );
       };
+
       const onUp = () => {
         dragRef.current = null;
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
       };
+
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
@@ -451,7 +497,15 @@ export function PageEditor() {
       const nextName = window.prompt("Rename file block title", current.file.displayName);
       if (!nextName || !nextName.trim()) return previous;
       return previous.map((entry) =>
-        entry.id === blockId && entry.file ? { ...entry, file: { ...entry.file, displayName: nextName.trim() } } : entry,
+        entry.id === blockId && entry.file
+          ? {
+              ...entry,
+              file: {
+                ...entry.file,
+                displayName: nextName.trim(),
+              },
+            }
+          : entry,
       );
     });
   }, []);
@@ -482,6 +536,7 @@ export function PageEditor() {
       const rect = containerRef.current?.getBoundingClientRect();
       const screenX = rect ? event.clientX - rect.left : event.clientX;
       const screenY = rect ? event.clientY - rect.top : event.clientY;
+
       if (event.ctrlKey || event.metaKey) {
         const pointerWorld = worldFromScreen(screenX, screenY);
         const zoomFactor = event.deltaY > 0 ? 0.92 : 1.08;
@@ -489,63 +544,118 @@ export function PageEditor() {
         setCamera({ x: screenX - pointerWorld.x * nextZoom, y: screenY - pointerWorld.y * nextZoom, zoom: nextZoom });
         return;
       }
+
       setCamera((previous) => ({ ...previous, x: previous.x - event.deltaX, y: previous.y - event.deltaY }));
     },
     [camera.zoom, worldFromScreen],
   );
 
   const renderInput = (block: PageBlock) => {
-    const refSetter = (node: HTMLElement | null) => {
+    const attachInputRef = (node: HTMLElement | null) => {
       inputRefs.current[block.id] = node;
+      if (node instanceof HTMLTextAreaElement) {
+        const minHeight = block.type === "code" ? 92 : LINE_HEIGHT;
+        autoSizeTextarea(block.id, node, minHeight);
+      }
     };
 
     const sharedProps = {
       value: block.content,
-      onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handleTextualChange(block.id, event),
+      onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        handleTextualChange(block.id, event);
+        if (event.target instanceof HTMLTextAreaElement) {
+          const minHeight = block.type === "code" ? 92 : LINE_HEIGHT;
+          autoSizeTextarea(block.id, event.target, minHeight);
+        }
+      },
       onKeyDown: (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => onBlockKeyDown(block, event),
+      placeholder: 'Type "/" for commands',
     };
 
     if (block.type === "h1") {
-      return <input ref={refSetter as never} {...sharedProps} placeholder={'Type "/" for commands'} className="w-full bg-transparent text-5xl leading-tight font-black tracking-tight text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
+      return <input ref={attachInputRef as never} {...sharedProps} className="w-full bg-transparent text-5xl font-black tracking-tight text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
     }
     if (block.type === "h2") {
-      return <input ref={refSetter as never} {...sharedProps} placeholder={'Type "/" for commands'} className="w-full bg-transparent text-4xl leading-tight font-bold text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
+      return <input ref={attachInputRef as never} {...sharedProps} className="w-full bg-transparent text-4xl font-bold text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
     }
     if (block.type === "h3") {
-      return <input ref={refSetter as never} {...sharedProps} placeholder={'Type "/" for commands'} className="w-full bg-transparent text-3xl leading-tight font-semibold text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
+      return <input ref={attachInputRef as never} {...sharedProps} className="w-full bg-transparent text-3xl font-semibold text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
     }
     if (block.type === "todo") {
       return (
         <div className="flex items-start gap-3">
-          <input type="checkbox" checked={Boolean(block.checked)} onChange={(event) => updateBlock(block.id, { checked: event.target.checked })} className="mt-1.5 h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)]" />
-          <input ref={refSetter as never} {...sharedProps} placeholder={'Type "/" for commands'} className={cn("w-full bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65", block.checked ? "line-through text-[var(--color-text-muted)]" : "")} />
+          <input
+            type="checkbox"
+            checked={Boolean(block.checked)}
+            onChange={(event) => updateBlock(block.id, { checked: event.target.checked })}
+            className="mt-1.5 h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)]"
+          />
+          <input
+            ref={attachInputRef as never}
+            {...sharedProps}
+            className={cn(
+              "w-full bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65",
+              block.checked ? "line-through text-[var(--color-text-muted)]" : "",
+            )}
+          />
         </div>
       );
     }
     if (block.type === "bulleted") {
       return (
         <div className="flex items-start gap-3">
-          <span className="mt-2 text-[var(--color-text-muted)]">-</span>
-          <input ref={refSetter as never} {...sharedProps} placeholder={'Type "/" for commands'} className="w-full bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />
+          <span className="mt-1 text-[var(--color-text-muted)]">-</span>
+          <input
+            ref={attachInputRef as never}
+            {...sharedProps}
+            className="w-full bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+          />
         </div>
       );
     }
     if (block.type === "quote") {
-      return <textarea ref={refSetter as never} {...sharedProps} placeholder={'Type "/" for commands'} rows={3} className="w-full resize-y border-l-4 border-[var(--color-accent)] bg-transparent pl-4 text-base italic text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
+      return (
+        <textarea
+          ref={attachInputRef as never}
+          {...sharedProps}
+          rows={1}
+          className="w-full resize-none border-l-2 border-[var(--color-border)] bg-transparent pl-3 text-base italic text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+        />
+      );
     }
     if (block.type === "callout") {
-      return <textarea ref={refSetter as never} {...sharedProps} placeholder={'Type "/" for commands'} rows={3} className="w-full resize-y rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-accent-soft)]/40 p-3 text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
+      return (
+        <textarea
+          ref={attachInputRef as never}
+          {...sharedProps}
+          rows={1}
+          className="w-full resize-none bg-transparent text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+        />
+      );
     }
     if (block.type === "code") {
-      return <textarea ref={refSetter as never} {...sharedProps} placeholder={'Type "/" for commands'} rows={5} className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[#111827] p-3 font-mono text-sm text-[#dbeafe] outline-none placeholder:text-[#7f9dc3]" />;
+      return (
+        <textarea
+          ref={attachInputRef as never}
+          {...sharedProps}
+          rows={3}
+          className="w-full resize-none bg-transparent font-mono text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+        />
+      );
     }
 
-    return <textarea ref={refSetter as never} {...sharedProps} placeholder={'Type "/" for commands'} rows={2} className="w-full resize-y bg-transparent text-base leading-7 text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
+    return (
+      <textarea
+        ref={attachInputRef as never}
+        {...sharedProps}
+        rows={1}
+        className="w-full resize-none bg-transparent text-base leading-8 text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+      />
+    );
   };
 
   const menuBlock = menu ? blocks.find((block) => block.id === menu.blockId) : undefined;
   const menuAnchor = menuBlock ? toScreenPoint(menuBlock.x, menuBlock.y + menuBlock.h + 8) : { x: 0, y: 0 };
-
   return (
     <main className="route-shell text-[var(--color-text)]">
       <input
@@ -586,16 +696,6 @@ export function PageEditor() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: "radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-border) 50%, transparent) 1px, transparent 0)",
-            backgroundSize: `${28 * camera.zoom}px ${28 * camera.zoom}px`,
-            backgroundPosition: `${camera.x}px ${camera.y}px`,
-            opacity: 0.42,
-          }}
-        />
-
-        <div
-          className="absolute inset-0"
-          style={{
             transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`,
             transformOrigin: "top left",
           }}
@@ -603,63 +703,72 @@ export function PageEditor() {
           {blocks.map((block) => {
             const imageUrl = block.file?.path ? signedUrls[block.file.path] : undefined;
             return (
-              <div
-                key={block.id}
-                className="absolute rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)]/95 p-3 shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)]"
-                style={{ left: block.x, top: block.y, width: Math.max(220, block.w), minHeight: Math.max(56, block.h) }}
-                onPointerDown={(event) => beginDragBlock(block, event)}
-                onContextMenu={(event) => {
-                  if (block.type !== "file") return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setFileMenu({ open: true, x: event.clientX, y: event.clientY, blockId: block.id });
-                  setCanvasMenu((previous) => ({ ...previous, open: false }));
-                }}
-              >
-                {block.type === "file" && block.file ? (
-                  <div className="space-y-2">
-                    {isImageMime(block.file.mimeType) && imageUrl ? (
-                      <button
-                        type="button"
-                        className="block w-full overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)]"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void openFileBlock(block);
-                        }}
-                      >
-                        <Image src={imageUrl} alt={block.file.displayName} width={720} height={352} unoptimized className="h-44 w-full object-cover" />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void openFileBlock(block);
-                        }}
-                        className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-left text-sm hover:bg-[var(--color-accent-soft)]/30"
-                      >
-                        Open file
-                      </button>
-                    )}
-                    <div>
-                      <p className="truncate text-sm font-semibold text-[var(--color-text)]">{block.file.displayName}</p>
-                      <p className="text-xs text-[var(--color-text-muted)]">
+              <div key={block.id} className="group absolute" style={{ left: block.x, top: block.y, width: DOC_WIDTH }}>
+                <button
+                  type="button"
+                  aria-label="Drag block"
+                  className="absolute -left-7 top-1 hidden h-5 w-5 items-center justify-center rounded text-[10px] text-[var(--color-text-muted)] group-hover:inline-flex"
+                  onPointerDown={(event) => beginDragBlock(block, event)}
+                >
+                  :::
+                </button>
+
+                <div onPointerDown={(event) => beginDragBlock(block, event)}>
+                  {block.type === "file" && block.file ? (
+                    <div
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setFileMenu({ open: true, x: event.clientX, y: event.clientY, blockId: block.id });
+                        setCanvasMenu((previous) => ({ ...previous, open: false }));
+                      }}
+                    >
+                      {isImageMime(block.file.mimeType) ? (
+                        imageUrl ? (
+                          <button
+                            type="button"
+                            className="block overflow-hidden rounded-md"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void openFileBlock(block);
+                            }}
+                          >
+                            <Image src={imageUrl} alt={block.file.displayName} width={960} height={540} unoptimized className="h-auto w-full object-contain" />
+                          </button>
+                        ) : (
+                          <p className="text-sm text-[var(--color-text-muted)]">Loading image preview...</p>
+                        )
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void openFileBlock(block);
+                          }}
+                          className="text-left text-[15px] text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4"
+                        >
+                          {block.file.displayName}
+                        </button>
+                      )}
+                      <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                         {block.file.mimeType || "file"} - {formatFileSize(block.file.size)}
                       </p>
                     </div>
-                  </div>
-                ) : (
-                  renderInput(block)
-                )}
+                  ) : (
+                    renderInput(block)
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
-
         {menu && menuBlock && (
           <div
             className="absolute z-40 w-[min(34rem,calc(100vw-2rem))] rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)]"
-            style={{ left: clamp(menuAnchor.x, 8, Math.max(8, viewport.w - 548)), top: clamp(menuAnchor.y, 8, Math.max(8, viewport.h - 260)) }}
+            style={{
+              left: clamp(menuAnchor.x, 8, Math.max(8, viewport.w - 548)),
+              top: clamp(menuAnchor.y, 8, Math.max(8, viewport.h - 260)),
+            }}
             onPointerDown={(event) => event.stopPropagation()}
           >
             <p className="mb-2 px-1 text-xs text-[var(--color-text-muted)]">
