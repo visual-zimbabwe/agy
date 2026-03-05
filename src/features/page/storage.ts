@@ -65,6 +65,9 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
   const pageId = typeof value.pageId === "string" ? value.pageId : undefined;
   const parentId = typeof value.parentId === "string" && value.parentId.length > 0 ? value.parentId : undefined;
   const indent = typeof value.indent === "number" && Number.isFinite(value.indent) ? Math.max(0, Math.floor(value.indent)) : undefined;
+  const numberedFormat = value.numberedFormat === "letters" || value.numberedFormat === "roman" || value.numberedFormat === "numbers" ? value.numberedFormat : undefined;
+  const numberedStart =
+    typeof value.numberedStart === "number" && Number.isFinite(value.numberedStart) ? Math.max(1, Math.floor(value.numberedStart)) : undefined;
   const textColor = typeof value.textColor === "string" ? value.textColor : undefined;
   const backgroundColor = typeof value.backgroundColor === "string" ? value.backgroundColor : undefined;
   const checked = typeof value.checked === "boolean" ? value.checked : undefined;
@@ -124,6 +127,8 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
     parentId,
     richText,
     indent,
+    numberedFormat,
+    numberedStart,
     textColor,
     backgroundColor,
     checked,

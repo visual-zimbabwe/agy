@@ -50,6 +50,8 @@ export type PageRichTextSpan = {
   mention?: string;
 };
 
+export type PageNumberedFormat = "numbers" | "letters" | "roman";
+
 export type PageBlock = {
   id: string;
   type: BlockType;
@@ -62,6 +64,8 @@ export type PageBlock = {
   pageId?: string;
   parentId?: string;
   indent?: number;
+  numberedFormat?: PageNumberedFormat;
+  numberedStart?: number;
   textColor?: string;
   backgroundColor?: string;
   checked?: boolean;

@@ -38,36 +38,40 @@
 35. In a bulleted line, press `Shift + Enter`; verify newline/paragraph is inserted within the same bullet instead of creating a new bullet.
 36. Create a parent bullet with two indented child bullets, drag/delete the parent, and verify child bullets move/delete with it.
 37. In a text block, type `1. ` at line start and verify it converts to a numbered list item.
-38. In a numbered list item, press `Enter` in the middle of text and verify it splits into two numbered items at the caret.
-39. In an indented list item, press `Backspace` at cursor start and verify it outdents first (instead of immediately converting to text).
-40. Create a `/toggle` item with nested children, collapse it, and verify all indented descendants are hidden; expand and verify they return.
-41. Add inline markdown (`**bold**`, `*italic*`, `` `code` ``, links, `@mentions`) inside bulleted/numbered/toggle items and verify formatted preview appears when input is not focused.
-42. Drag a block slightly right and below another block to nest it; verify indent and parent linkage persist after refresh.
-43. Verify todo checkbox-to-text spacing is compact and consistent with Notion-style list density (no oversized gap).
-44. In a quote block, verify default styling is visually distinct (larger italic text, left border, and indentation).
-45. In a quote block, use `Ctrl/Cmd + B`, `Ctrl/Cmd + I`, and `Ctrl/Cmd + K`; verify bold/italic/link Markdown is inserted and quote preview reflects formatting.
-46. Click a block six-dot handle, choose `Color`, and verify quote text color and quote background color both update.
-47. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
-48. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
-49. With a quote block selected, press `Enter`; verify a standard text block appears immediately below with attribution starter (`-- `).
-50. Single-click a block six-dot handle and verify block menu opens with actions: `Delete`, `Duplicate`, `Turn into`, `Turn into page`, `Copy link`, `Move to page`, `Comment`, and `Color`.
-51. Hold six-dot handle for ~250ms (or click-drag) and verify block drags without opening menu.
-52. `Ctrl/Cmd`-click three block handles to multi-select, then hold and drag one selected handle; verify selected blocks move together.
-53. In block menu, run `Duplicate` and verify exact copy appears below original.
-54. In block menu, run `Delete` and verify block is removed.
-55. In block menu, run `Turn into` to convert a text block to `Heading 2`, `To-do list`, `Numbered list`, `Toggle`, and `Quote`; verify type changes each time.
-56. In block menu, run `Turn into page`; verify block is moved to a new `doc` route and a page-link block remains in the source page.
-57. In block menu, run `Copy link`, paste in browser address bar, and verify it navigates to and focuses the target block.
-58. In block menu, use `Move to page` search/typed id to move block to another doc; verify it is removed from source and appears in destination.
-59. In block menu, run `Comment`; verify floating comment panel opens with composer (`Add a comment...`, attach, mention, send).
-60. In comment panel, type text and verify send icon becomes active (blue), then post and verify new card shows author preferred name + `Just now`.
-61. On posted comment, click the `...` menu and verify actions: `Mark as unread`, `Edit`, `Copy link`, `Mute replies`, `Delete`.
-62. In `...` menu, click `Delete`; verify confirmation modal appears with `Delete` and `Cancel`, and deleting removes the comment.
-63. Refresh browser and verify comments persist on their blocks.
-64. In block menu, apply text color and background color and verify entire block styling updates.
-65. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
-66. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
-67. Drag a list block slightly right under another list block and verify it nests (indent increases).
+38. In a text block, type `a. ` and `i. ` at line start and verify both convert to numbered list items using alphabetic and roman markers.
+39. Focus a block and press `Cmd/Ctrl + Shift + 6` (or `Cmd/Ctrl + Option + 6`); verify block converts to numbered list.
+40. In block menu for a numbered item, open `List options`, switch among `1.`, `a.`, `i.`, and verify numbering style updates immediately.
+41. In `List options`, set `Start at` to a value > 1 and verify the first numbered item in that sequence starts at the configured index.
+42. In a numbered list item, press `Enter` in the middle of text and verify it splits into two numbered items at the caret.
+43. In an indented list item, press `Backspace` at cursor start and verify it outdents first (instead of immediately converting to text).
+44. Create a `/toggle` item with nested children, collapse it, and verify all indented descendants are hidden; expand and verify they return.
+45. Add inline markdown (`**bold**`, `*italic*`, `` `code` ``, links, `@mentions`) inside bulleted/numbered/toggle items and verify formatted preview appears when input is not focused.
+46. Drag a block slightly right and below another block to nest it; verify indent and parent linkage persist after refresh.
+47. Verify todo checkbox-to-text spacing is compact and consistent with Notion-style list density (no oversized gap).
+48. In a quote block, verify default styling is visually distinct (larger italic text, left border, and indentation).
+49. In a quote block, use `Ctrl/Cmd + B`, `Ctrl/Cmd + I`, and `Ctrl/Cmd + K`; verify bold/italic/link Markdown is inserted and quote preview reflects formatting.
+50. Click a block six-dot handle, choose `Color`, and verify quote text color and quote background color both update.
+51. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
+52. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
+53. With a quote block selected, press `Enter`; verify a standard text block appears immediately below with attribution starter (`-- `).
+54. Single-click a block six-dot handle and verify block menu opens with actions: `Delete`, `Duplicate`, `Turn into`, `Turn into page`, `Copy link`, `Move to page`, `Comment`, and `Color`.
+55. Hold six-dot handle for ~250ms (or click-drag) and verify block drags without opening menu.
+56. `Ctrl/Cmd`-click three block handles to multi-select, then hold and drag one selected handle; verify selected blocks move together.
+57. In block menu, run `Duplicate` and verify exact copy appears below original.
+58. In block menu, run `Delete` and verify block is removed.
+59. In block menu, run `Turn into` to convert a text block to `Heading 2`, `To-do list`, `Numbered list`, `Toggle`, and `Quote`; verify type changes each time.
+60. In block menu, run `Turn into page`; verify block is moved to a new `doc` route and a page-link block remains in the source page.
+61. In block menu, run `Copy link`, paste in browser address bar, and verify it navigates to and focuses the target block.
+62. In block menu, use `Move to page` search/typed id to move block to another doc; verify it is removed from source and appears in destination.
+63. In block menu, run `Comment`; verify floating comment panel opens with composer (`Add a comment...`, attach, mention, send).
+64. In comment panel, type text and verify send icon becomes active (blue), then post and verify new card shows author preferred name + `Just now`.
+65. On posted comment, click the `...` menu and verify actions: `Mark as unread`, `Edit`, `Copy link`, `Mute replies`, `Delete`.
+66. In `...` menu, click `Delete`; verify confirmation modal appears with `Delete` and `Cancel`, and deleting removes the comment.
+67. Refresh browser and verify comments persist on their blocks.
+68. In block menu, apply text color and background color and verify entire block styling updates.
+69. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
+70. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
+71. Drag a list block slightly right under another list block and verify it nests (indent increases).
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
@@ -75,6 +79,7 @@ Expected:
 - Slash commands provide Notion-style block changes and keyboard navigation.
 - Bulleted lists support slash, markdown, and `Cmd/Ctrl + Shift + 5` creation flows with proper continuation/indent/outdent/end-list behaviors.
 - Numbered lists support markdown (`1. `), slash conversion, and caret-based split-on-enter behavior.
+- Numbered lists support markdown markers (`1.`, `a.`, `i.`), keyboard shortcut conversion (`Cmd/Ctrl + Shift/Option + 6`), list format switching, and custom start index.
 - Toggle lists support collapse/expand with descendant visibility and persistence.
 - Slash command menu is visually compact and symbol-driven; command popup stays in viewport with reduced canvas obstruction.
 - `/file`, `/image`, `/video`, `/audio` open an insert popup with `Upload` and `Link` flows.

@@ -17,7 +17,7 @@ import {
 } from "react";
 
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
-import type { BlockType, PageBlock } from "@/features/page/types";
+import type { BlockType, PageBlock, PageNumberedFormat } from "@/features/page/types";
 import { cn } from "@/lib/cn";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -53,6 +53,7 @@ const MAX_LIST_INDENT = 8;
 const ATTRIBUTION_PREFIX = "-- ";
 const HANDLE_DRAG_HOLD_MS = 220;
 const HANDLE_DRAG_MOVE_THRESHOLD = 4;
+const DEFAULT_NUMBERED_FORMAT: PageNumberedFormat = "numbers";
 
 const QUOTE_TEXT_COLORS = [
   { id: "default", label: "Default", value: "" },
@@ -110,6 +111,7 @@ const hasInlineFormatting = (value: string) => inlineFormattingPattern.test(valu
 
 const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   if (type === "todo") return { id: idFor(), type, content: "", checked: false, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
+  if (type === "numbered") return { id: idFor(), type, content: "", numberedFormat: DEFAULT_NUMBERED_FORMAT, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "toggle") return { id: idFor(), type, content: "", expanded: true, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "h1") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 60 };
   if (type === "h2") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 52 };
@@ -137,6 +139,10 @@ const isBulkTodoShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTex
   (event.metaKey || event.ctrlKey) && (event.altKey || event.shiftKey) && (event.code === "Digit4" || event.key === "4" || event.key === "$");
 const isBulletedShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
   (event.metaKey || event.ctrlKey) && event.shiftKey && (event.code === "Digit5" || event.key === "5" || event.key === "%");
+const isNumberedShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  (event.metaKey || event.ctrlKey) &&
+  (event.altKey || event.shiftKey) &&
+  (event.code === "Digit6" || event.key === "6" || event.key === "^");
 
 const wrapSelection = (value: string, start: number, end: number, prefix: string, suffix = prefix) => {
   const from = Math.min(start, end);
@@ -198,6 +204,67 @@ const renderQuoteInlineMarkdown = (raw: string) => {
       </Fragment>
     );
   });
+};
+
+const toLetters = (value: number) => {
+  let remaining = Math.max(1, Math.floor(value));
+  let result = "";
+  while (remaining > 0) {
+    const current = (remaining - 1) % 26;
+    result = String.fromCharCode(97 + current) + result;
+    remaining = Math.floor((remaining - 1) / 26);
+  }
+  return result;
+};
+
+const toRoman = (value: number) => {
+  const input = Math.max(1, Math.min(3999, Math.floor(value)));
+  const table: Array<{ n: number; s: string }> = [
+    { n: 1000, s: "m" },
+    { n: 900, s: "cm" },
+    { n: 500, s: "d" },
+    { n: 400, s: "cd" },
+    { n: 100, s: "c" },
+    { n: 90, s: "xc" },
+    { n: 50, s: "l" },
+    { n: 40, s: "xl" },
+    { n: 10, s: "x" },
+    { n: 9, s: "ix" },
+    { n: 5, s: "v" },
+    { n: 4, s: "iv" },
+    { n: 1, s: "i" },
+  ];
+  let remaining = input;
+  let result = "";
+  for (const row of table) {
+    while (remaining >= row.n) {
+      result += row.s;
+      remaining -= row.n;
+    }
+  }
+  return result;
+};
+
+const formatNumberedIndex = (index: number, format: PageNumberedFormat) => {
+  if (format === "letters") return `${toLetters(index)}.`;
+  if (format === "roman") return `${toRoman(index)}.`;
+  return `${index}.`;
+};
+
+const parseNumberedMarker = (token: string): { format: PageNumberedFormat; start?: number } | null => {
+  const trimmed = token.trim().toLowerCase();
+  if (!trimmed.endsWith(".")) return null;
+  const raw = trimmed.slice(0, -1);
+  if (!raw.length) return null;
+  if (/^\d+$/.test(raw)) {
+    return {
+      format: "numbers",
+      start: Math.max(1, Number.parseInt(raw, 10) || 1),
+    };
+  }
+  if (raw === "a") return { format: "letters", start: 1 };
+  if (raw === "i") return { format: "roman", start: 1 };
+  return null;
 };
 
 const parseRichText = (raw: string) => {
@@ -310,16 +377,20 @@ const numberedLabelFor = (list: PageBlock[], blockId: string) => {
   const current = list[index]!;
   if (current.type !== "numbered") return "1.";
   const currentIndent = current.indent ?? 0;
-  let count = 1;
+  let position = 1;
+  let sequenceStart = current;
   for (let i = index - 1; i >= 0; i -= 1) {
     const candidate = list[i]!;
     const indent = candidate.indent ?? 0;
     if (indent < currentIndent) break;
     if (indent > currentIndent) continue;
     if (candidate.type !== "numbered") break;
-    count += 1;
+    sequenceStart = candidate;
+    position += 1;
   }
-  return `${count}.`;
+  const startAt = sequenceStart.numberedStart ?? 1;
+  const format = current.numberedFormat ?? sequenceStart.numberedFormat ?? DEFAULT_NUMBERED_FORMAT;
+  return formatNumberedIndex(startAt + position - 1, format);
 };
 
 const isTextInputTarget = (target: EventTarget | null) => {
@@ -869,6 +940,8 @@ export function PageEditor() {
           checked: nextType === "todo" ? false : undefined,
           expanded: nextType === "toggle" ? block.expanded ?? true : undefined,
           indent: isListBlockType(nextType) ? block.indent : undefined,
+          numberedFormat: nextType === "numbered" ? block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT : undefined,
+          numberedStart: nextType === "numbered" ? block.numberedStart : undefined,
           richText: parseRichText(block.content),
           textColor: nextType === "quote" ? block.textColor : undefined,
           backgroundColor: nextType === "quote" ? block.backgroundColor : undefined,
@@ -1283,7 +1356,15 @@ export function PageEditor() {
       if (quoteShortcut) {
         const markerStart = cursor - 2;
         const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
-        updateBlock(blockId, { type: "quote", content: nextContent, richText: parseRichText(nextContent), checked: undefined, indent: undefined });
+        updateBlock(blockId, {
+          type: "quote",
+          content: nextContent,
+          richText: parseRichText(nextContent),
+          checked: undefined,
+          indent: undefined,
+          numberedFormat: undefined,
+          numberedStart: undefined,
+        });
         setMenu(null);
         return;
       }
@@ -1291,15 +1372,34 @@ export function PageEditor() {
       if (bulletShortcut) {
         const markerStart = cursor - bulletShortcut[0].length;
         const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
-        updateBlock(blockId, { type: "bulleted", content: nextContent, richText: parseRichText(nextContent), checked: undefined });
+        updateBlock(blockId, {
+          type: "bulleted",
+          content: nextContent,
+          richText: parseRichText(nextContent),
+          checked: undefined,
+          numberedFormat: undefined,
+          numberedStart: undefined,
+        });
         setMenu(null);
         return;
       }
-      const numberedShortcut = value.slice(0, cursor).match(/(^|\n)\s*(\d+)\.\s$/);
+      const numberedShortcut = value.slice(0, cursor).match(/(^|\n)\s*((?:\d+|[aAiI]))\.\s$/);
       if (numberedShortcut) {
+        const parsed = parseNumberedMarker(numberedShortcut[2] ? `${numberedShortcut[2]}.` : "");
+        if (!parsed) {
+          updateBlock(blockId, { content: value, richText: parseRichText(value) });
+          return;
+        }
         const markerStart = cursor - numberedShortcut[0].length;
         const nextContent = `${value.slice(0, markerStart)}${value.slice(cursor)}`;
-        updateBlock(blockId, { type: "numbered", content: nextContent, richText: parseRichText(nextContent), checked: undefined });
+        updateBlock(blockId, {
+          type: "numbered",
+          content: nextContent,
+          richText: parseRichText(nextContent),
+          checked: undefined,
+          numberedFormat: parsed.format,
+          numberedStart: parsed.start,
+        });
         setMenu(null);
         return;
       }
@@ -1373,6 +1473,8 @@ export function PageEditor() {
           richText: parseRichText(""),
           checked: commandId === "todo" ? false : undefined,
           indent: isListBlockType(commandId) ? block.indent : undefined,
+          numberedFormat: commandId === "numbered" ? block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT : undefined,
+          numberedStart: commandId === "numbered" ? block.numberedStart : undefined,
           w: DOC_WIDTH,
         });
         setMenu(null);
@@ -1398,6 +1500,10 @@ export function PageEditor() {
         if (commandId === "toggle") inserted.expanded = true;
         if (isListBlockType(commandId) && typeof block.indent === "number" && block.indent > 0) {
           inserted.indent = block.indent;
+        }
+        if (commandId === "numbered") {
+          inserted.numberedFormat = block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT;
+          inserted.numberedStart = undefined;
         }
         inserted.richText = parseRichText(inserted.content);
         insertedId = inserted.id;
@@ -1426,6 +1532,10 @@ export function PageEditor() {
       }
       if (isListBlockType(type) && typeof source.indent === "number" && source.indent > 0) {
         created.indent = source.indent;
+      }
+      if (type === "numbered" && source.type === "numbered") {
+        created.numberedFormat = source.numberedFormat ?? DEFAULT_NUMBERED_FORMAT;
+        created.numberedStart = undefined;
       }
       setBlocks((previous) => {
         const index = previous.findIndex((item) => item.id === source.id);
@@ -1472,7 +1582,27 @@ export function PageEditor() {
 
       if (isBulletedShortcut(event) && block.type !== "file") {
         event.preventDefault();
-        updateBlock(block.id, { type: "bulleted", checked: undefined, indent: block.indent, richText: parseRichText(block.content) });
+        updateBlock(block.id, {
+          type: "bulleted",
+          checked: undefined,
+          indent: block.indent,
+          richText: parseRichText(block.content),
+          numberedFormat: undefined,
+          numberedStart: undefined,
+        });
+        return;
+      }
+
+      if (isNumberedShortcut(event) && block.type !== "file") {
+        event.preventDefault();
+        updateBlock(block.id, {
+          type: "numbered",
+          checked: undefined,
+          indent: block.indent,
+          numberedFormat: block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT,
+          numberedStart: block.numberedStart,
+          richText: parseRichText(block.content),
+        });
         return;
       }
 
@@ -1483,19 +1613,22 @@ export function PageEditor() {
           const nextValue = `${block.content.slice(0, start)} ${block.content.slice(end)}`;
           const before = nextValue.slice(0, start + 1);
           const bulletShortcut = before.match(/(^|\n)\s*([-*+])\s$/);
-          const numberedShortcut = before.match(/(^|\n)\s*(\d+)\.\s$/);
+          const numberedShortcut = before.match(/(^|\n)\s*((?:\d+|[aAiI]))\.\s$/);
           if (bulletShortcut || numberedShortcut) {
             event.preventDefault();
             const marker = bulletShortcut?.[0] ?? numberedShortcut?.[0] ?? "";
             const markerStart = start + 1 - marker.length;
             const nextContent = `${nextValue.slice(0, markerStart)}${nextValue.slice(start + 1)}`;
             const nextType: BlockType = bulletShortcut ? "bulleted" : "numbered";
+            const numberedMarker = numberedShortcut?.[2] ? parseNumberedMarker(`${numberedShortcut[2]}.`) : null;
             updateBlock(block.id, {
               type: nextType,
               content: nextContent,
               richText: parseRichText(nextContent),
               checked: undefined,
               indent: block.indent,
+              numberedFormat: nextType === "numbered" ? numberedMarker?.format ?? block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT : undefined,
+              numberedStart: nextType === "numbered" ? numberedMarker?.start : undefined,
             });
             requestAnimationFrame(() => {
               const input = inputRefs.current[block.id] as HTMLInputElement | HTMLTextAreaElement | null;
@@ -1573,7 +1706,13 @@ export function PageEditor() {
         if (isListBlockType(block.type)) {
           const isEmpty = block.content.trim().length === 0;
           if (isEmpty) {
-            updateBlock(block.id, { type: "text", checked: undefined, indent: undefined });
+            updateBlock(block.id, {
+              type: "text",
+              checked: undefined,
+              indent: undefined,
+              numberedFormat: undefined,
+              numberedStart: undefined,
+            });
             queueFocus(block.id);
             return;
           }
@@ -1605,7 +1744,13 @@ export function PageEditor() {
         }
         if (cursorStart === 0 && block.content.trim().length === 0) {
           event.preventDefault();
-          updateBlock(block.id, { type: "text", checked: undefined, indent: undefined });
+          updateBlock(block.id, {
+            type: "text",
+            checked: undefined,
+            indent: undefined,
+            numberedFormat: undefined,
+            numberedStart: undefined,
+          });
           queueFocus(block.id);
           return;
         }
@@ -2954,6 +3099,59 @@ export function PageEditor() {
                 </div>
               </div>
             </details>
+
+            {blockMenuBlock.type === "numbered" && (
+              <details>
+                <summary className="mt-0.5 flex cursor-pointer list-none items-center justify-between rounded-md px-1.5 py-1.5 text-[1rem] hover:bg-[#ececec]">
+                  <span>List options</span>
+                  <span className="text-[#8b8b8b]">{">"}</span>
+                </summary>
+                <div className="space-y-2 px-1 pb-1">
+                  <div className="grid grid-cols-3 gap-1">
+                    {(
+                      [
+                        { id: "numbers", label: "1." },
+                        { id: "letters", label: "a." },
+                        { id: "roman", label: "i." },
+                      ] as const
+                    ).map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={cn(
+                          "rounded border px-2 py-1 text-xs",
+                          (blockMenuBlock.numberedFormat ?? DEFAULT_NUMBERED_FORMAT) === item.id
+                            ? "border-[#2f80ed] bg-[#e8f1ff] text-[#1b5fc7]"
+                            : "border-[#d5d5d5] bg-white text-[#444] hover:bg-[#efefef]",
+                        )}
+                        onClick={() =>
+                          updateBlock(blockMenu.blockId!, {
+                            numberedFormat: item.id,
+                          })
+                        }
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="block text-xs text-[#6f6f6f]">
+                    Start at
+                    <input
+                      type="number"
+                      min={1}
+                      value={blockMenuBlock.numberedStart ?? 1}
+                      onChange={(event) => {
+                        const parsed = Number.parseInt(event.target.value, 10);
+                        updateBlock(blockMenu.blockId!, {
+                          numberedStart: Number.isFinite(parsed) && parsed > 0 ? parsed : 1,
+                        });
+                      }}
+                      className="mt-1 w-full rounded border border-[#d7d7d7] bg-white px-2 py-1 text-xs outline-none"
+                    />
+                  </label>
+                </div>
+              </details>
+            )}
 
             <div className="my-2 border-t border-[#dfdfdf]" />
 
