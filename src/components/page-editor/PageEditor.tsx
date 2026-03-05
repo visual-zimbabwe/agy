@@ -1938,6 +1938,22 @@ export function PageEditor() {
       top: clamp(vertical, 8, Math.max(8, viewport.h - estimatedHeight - 8)),
     };
   }, [filteredMenu.length, menu, menuGroups.basic.length, menuGroups.media.length, viewport.h, viewport.w]);
+
+  const fileInsertPanelPosition = useMemo(() => {
+    if (!(fileInsert.open && fileInsert.intent === "file")) {
+      return { left: fileInsert.x, top: fileInsert.y };
+    }
+    const panelWidth = 352;
+    const ghostHeight = 48;
+    const ghostScreen = toScreenPoint(fileInsert.worldX, fileInsert.worldY);
+    const ghostWidth = DOC_WIDTH * camera.zoom;
+    const left = ghostScreen.x + (ghostWidth - panelWidth) / 2;
+    const top = ghostScreen.y + ghostHeight + 10;
+    return {
+      left: clamp(left, 12, Math.max(12, viewport.w - panelWidth - 12)),
+      top: clamp(top, 12, Math.max(12, viewport.h - 196)),
+    };
+  }, [camera.zoom, fileInsert.intent, fileInsert.open, fileInsert.worldX, fileInsert.worldY, fileInsert.x, fileInsert.y, toScreenPoint, viewport.h, viewport.w]);
   return (
     <main className="route-shell text-[var(--color-text)]">
       <input
@@ -2199,7 +2215,7 @@ export function PageEditor() {
         {fileInsert.open && (
           <div
             className="absolute z-50 w-[22rem] rounded-xl border border-[#d7d7d7] bg-[#f6f6f6] p-2 shadow-[0_14px_26px_rgba(0,0,0,0.2)]"
-            style={{ left: fileInsert.x, top: fileInsert.y }}
+            style={{ left: fileInsertPanelPosition.left, top: fileInsertPanelPosition.top }}
             onPointerDown={(event) => event.stopPropagation()}
           >
             <div className="flex items-center gap-1 rounded-lg border border-[#d9d9d9] bg-white p-1">
