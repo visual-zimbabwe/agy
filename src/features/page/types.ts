@@ -37,6 +37,7 @@ export type PageBlock = {
   y: number;
   w: number;
   h: number;
+  indent?: number;
   checked?: boolean;
   expanded?: boolean;
   file?: PageFileMeta;

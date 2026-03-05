@@ -24,6 +24,10 @@ type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
 
 const DOC_WIDTH = 680;
 const LINE_HEIGHT = 32;
+const LIST_ITEM_GAP = 6;
+const DEFAULT_BLOCK_GAP = 14;
+const INDENT_STEP = 24;
+const MAX_TODO_INDENT = 8;
 
 const slashCommands: SlashCommand[] = [
   { id: "text", label: "Text", description: "Plain paragraph.", aliases: ["text", "paragraph", "p"] },
@@ -63,6 +67,11 @@ const parseSlashQuery = (value: string, cursor: number) => {
   const slashStart = match.index + fullMatch.lastIndexOf("/");
   return { query: match[2] ?? "", start: slashStart, end: cursor };
 };
+
+const blockGapFor = (type: BlockType) => (type === "todo" || type === "bulleted" ? LIST_ITEM_GAP : DEFAULT_BLOCK_GAP);
+
+const isBulkTodoShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  (event.metaKey || event.ctrlKey) && (event.altKey || event.shiftKey) && (event.code === "Digit4" || event.key === "4" || event.key === "$");
 
 const isTextInputTarget = (target: EventTarget | null) => {
   const element = target as HTMLElement | null;
@@ -330,6 +339,113 @@ export function PageEditor() {
     setBlocks((previous) => previous.map((block) => (block.id === blockId ? { ...block, ...patch } : block)));
   }, []);
 
+  const updateTodoIndent = useCallback(
+    (block: PageBlock, delta: number) => {
+      const currentIndent = block.indent ?? 0;
+      const nextIndent = clamp(currentIndent + delta, 0, MAX_TODO_INDENT);
+      if (nextIndent === currentIndent) {
+        return;
+      }
+      updateBlock(block.id, { indent: nextIndent || undefined });
+    },
+    [updateBlock],
+  );
+
+  const bulkConvertSelectionToTodos = useCallback(
+    (block: PageBlock, selectionStart: number | null, selectionEnd: number | null) => {
+      if (block.type === "file") {
+        return false;
+      }
+
+      const rawStart = selectionStart ?? 0;
+      const rawEnd = selectionEnd ?? block.content.length;
+      const isCollapsed = rawStart === rawEnd;
+      const selectedStart = isCollapsed ? 0 : Math.min(rawStart, rawEnd);
+      const selectedEnd = isCollapsed ? block.content.length : Math.max(rawStart, rawEnd);
+      const lineStart = block.content.lastIndexOf("\n", Math.max(0, selectedStart - 1)) + 1;
+      const lineEndIndex = block.content.indexOf("\n", selectedEnd);
+      const lineEnd = lineEndIndex === -1 ? block.content.length : lineEndIndex;
+
+      const selectedSlice = block.content.slice(lineStart, lineEnd);
+      const todoLines = selectedSlice
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
+      if (todoLines.length === 0) {
+        return false;
+      }
+
+      const beforeContent = block.content.slice(0, lineStart).replace(/\n+$/, "");
+      const afterContent = block.content.slice(lineEnd).replace(/^\n+/, "");
+      const spacingForTodos = LINE_HEIGHT + blockGapFor("todo");
+      const todoDrafts = todoLines.map((line) => ({
+        id: idFor(),
+        type: "todo" as const,
+        content: line,
+        checked: false,
+        x: block.x,
+        w: DOC_WIDTH,
+        h: LINE_HEIGHT,
+        indent: block.indent,
+      }));
+      const focusTargetId = beforeContent.length > 0 ? todoDrafts[0]?.id : todoDrafts[0]?.id ?? block.id;
+
+      setBlocks((previous) => {
+        const index = previous.findIndex((entry) => entry.id === block.id);
+        if (index < 0) {
+          return previous;
+        }
+
+        const sequence: PageBlock[] = [];
+        let currentY = block.y;
+
+        if (beforeContent.length > 0) {
+          sequence.push({
+            ...block,
+            type: "text",
+            content: beforeContent,
+            checked: undefined,
+            indent: undefined,
+          });
+          currentY += Math.max(block.h + blockGapFor("text"), LINE_HEIGHT + blockGapFor("text"));
+        }
+
+        for (const todoDraft of todoDrafts) {
+          sequence.push({
+            ...todoDraft,
+            y: currentY,
+          });
+          currentY += spacingForTodos;
+        }
+
+        if (afterContent.length > 0) {
+          sequence.push({
+            id: idFor(),
+            type: "text",
+            content: afterContent,
+            x: block.x,
+            y: currentY,
+            w: DOC_WIDTH,
+            h: Math.max(LINE_HEIGHT, block.h),
+          });
+        }
+
+        if (sequence.length === 0) {
+          return previous;
+        }
+
+        return [...previous.slice(0, index), ...sequence, ...previous.slice(index + 1)];
+      });
+
+      if (focusTargetId) {
+        queueFocus(focusTargetId);
+      }
+      return true;
+    },
+    [queueFocus],
+  );
+
   const handleTextualChange = useCallback(
     (blockId: string, event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const value = event.target.value;
@@ -367,6 +483,7 @@ export function PageEditor() {
         type: commandId,
         content: nextContent,
         checked: commandId === "todo" ? false : undefined,
+        indent: commandId === "todo" ? block.indent : undefined,
         w: DOC_WIDTH,
       });
       setMenu(null);
@@ -377,7 +494,10 @@ export function PageEditor() {
 
   const insertBlockBelow = useCallback(
     (source: PageBlock, type: BlockType) => {
-      const created = newBlock(type, source.x, source.y + Math.max(source.h + 14, LINE_HEIGHT + 14));
+      const created = newBlock(type, source.x, source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type)));
+      if ((type === "todo" || type === "bulleted") && typeof source.indent === "number" && source.indent > 0) {
+        created.indent = source.indent;
+      }
       setBlocks((previous) => {
         const index = previous.findIndex((item) => item.id === source.id);
         if (index < 0) {
@@ -412,10 +532,24 @@ export function PageEditor() {
 
   const onBlockKeyDown = useCallback(
     (block: PageBlock, event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (isBulkTodoShortcut(event)) {
+        const converted = bulkConvertSelectionToTodos(block, event.currentTarget.selectionStart, event.currentTarget.selectionEnd);
+        if (converted) {
+          event.preventDefault();
+          return;
+        }
+      }
+
       if (menu && menu.blockId === block.id && event.key === "Enter") {
         event.preventDefault();
         const picked = filteredMenu[activeMenuIndex];
         if (picked) applySlashCommand(picked.id);
+        return;
+      }
+
+      if (event.key === "Tab" && block.type === "todo") {
+        event.preventDefault();
+        updateTodoIndent(block, event.shiftKey ? -1 : 1);
         return;
       }
 
@@ -424,7 +558,7 @@ export function PageEditor() {
         if (block.type === "todo" || block.type === "bulleted") {
           const isEmpty = block.content.trim().length === 0;
           if (isEmpty) {
-            updateBlock(block.id, { type: "text", checked: undefined });
+            updateBlock(block.id, { type: "text", checked: undefined, indent: undefined });
             queueFocus(block.id);
             return;
           }
@@ -439,7 +573,7 @@ export function PageEditor() {
         const cursorStart = event.currentTarget.selectionStart ?? 0;
         if (cursorStart === 0 && block.content.trim().length === 0) {
           event.preventDefault();
-          updateBlock(block.id, { type: "text", checked: undefined });
+          updateBlock(block.id, { type: "text", checked: undefined, indent: undefined });
           queueFocus(block.id);
           return;
         }
@@ -450,7 +584,18 @@ export function PageEditor() {
         removeBlockAndFocusNeighbor(block.id);
       }
     },
-    [activeMenuIndex, applySlashCommand, filteredMenu, insertBlockBelow, menu, queueFocus, removeBlockAndFocusNeighbor, updateBlock],
+    [
+      activeMenuIndex,
+      applySlashCommand,
+      bulkConvertSelectionToTodos,
+      filteredMenu,
+      insertBlockBelow,
+      menu,
+      queueFocus,
+      removeBlockAndFocusNeighbor,
+      updateBlock,
+      updateTodoIndent,
+    ],
   );
 
   const beginPan = useCallback(
@@ -638,12 +783,12 @@ export function PageEditor() {
     }
     if (block.type === "todo") {
       return (
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2">
           <input
             type="checkbox"
             checked={Boolean(block.checked)}
             onChange={(event) => updateBlock(block.id, { checked: event.target.checked })}
-            className="mt-1.5 h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)]"
+            className="mt-1 h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)]"
           />
           <input
             ref={attachInputRef as never}
@@ -757,8 +902,9 @@ export function PageEditor() {
         >
           {blocks.map((block) => {
             const imageUrl = block.file?.path ? signedUrls[block.file.path] : undefined;
+            const indentOffset = block.type === "todo" ? (block.indent ?? 0) * INDENT_STEP : 0;
             return (
-              <div key={block.id} className="group pointer-events-auto absolute" style={{ left: block.x, top: block.y, width: DOC_WIDTH }}>
+              <div key={block.id} className="group pointer-events-auto absolute" style={{ left: block.x + indentOffset, top: block.y, width: DOC_WIDTH - indentOffset }}>
                 <button
                   type="button"
                   aria-label="Drag block"

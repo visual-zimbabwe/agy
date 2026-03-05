@@ -19,11 +19,17 @@
 16. Right-click a file block and run `Delete file`; verify block is removed and backend delete succeeds.
 17. Refresh browser tab and verify blocks, camera position/zoom, and file blocks persist.
 18. Validate mobile viewport and desktop viewport: slash menu and context menus are not clipped and remain usable.
+19. Create three `/todo` items, focus the second item, press `Tab`, and verify it indents as a subtask under the first item.
+20. With an indented `/todo` item focused, press `Shift + Tab` and verify it outdents back to the parent level.
+21. In a text block containing multiple lines, select at least 2 lines and press `Ctrl/Cmd + (Option or Shift) + 4`; verify each selected line converts into its own unchecked todo item.
+22. Verify todo checkbox-to-text spacing is compact and consistent with Notion-style list density (no oversized gap).
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
 - `Type "/" for commands` appears at the active insertion point, not fixed to left side.
 - Slash commands provide Notion-style block changes and keyboard navigation.
+- Todo items support `Tab`/`Shift + Tab` nesting and un-nesting.
+- Multi-line text selection supports one-shot conversion to todo checkboxes via `Ctrl/Cmd + (Option or Shift) + 4`.
 - File upload works via both picker and drag-drop, including multi-file insertion.
 - Uploaded image files preview inline; non-image files render as file cards.
 - File blocks support open, rename title, delete, and drag repositioning.

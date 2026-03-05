@@ -38,6 +38,7 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
   const y = typeof value.y === "number" && Number.isFinite(value.y) ? value.y : 80 + index * 86;
   const w = typeof value.w === "number" && Number.isFinite(value.w) ? value.w : 360;
   const h = typeof value.h === "number" && Number.isFinite(value.h) ? value.h : 88;
+  const indent = typeof value.indent === "number" && Number.isFinite(value.indent) ? Math.max(0, Math.floor(value.indent)) : undefined;
   const checked = typeof value.checked === "boolean" ? value.checked : undefined;
   const expanded = typeof value.expanded === "boolean" ? value.expanded : undefined;
 
@@ -64,6 +65,7 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
     y,
     w,
     h,
+    indent,
     checked,
     expanded,
     file,
