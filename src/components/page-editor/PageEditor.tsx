@@ -1882,6 +1882,8 @@ export function PageEditor() {
           {blocks.map((block) => {
             const resolvedFileUrl = block.file?.externalUrl || (block.file?.path ? signedUrls[block.file.path] : undefined);
             const indentOffset = block.type === "todo" ? (block.indent ?? 0) * INDENT_STEP : 0;
+            const latestComment = block.comments?.length ? block.comments[block.comments.length - 1] : undefined;
+            const showInlineFileComment = block.type === "file" && block.file ? !isImageMime(block.file.mimeType) : false;
             return (
               <div
                 key={block.id}
@@ -1921,7 +1923,11 @@ export function PageEditor() {
                   }}
                 >
                   {(block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio") && block.file ? (
-                    <div className="relative rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]/85 p-3"
+                    <div
+                      className={cn(
+                        "relative rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]/85 p-3",
+                        showInlineFileComment ? "flex items-start justify-between gap-4" : "",
+                      )}
                       onContextMenu={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -1929,53 +1935,88 @@ export function PageEditor() {
                         setCanvasMenu((previous) => ({ ...previous, open: false }));
                       }}
                     >
-                      {(block.type === "image" || isImageMime(block.file.mimeType)) ? (
-                        resolvedFileUrl ? (
+                      <div className={cn(showInlineFileComment ? "min-w-0 flex-1 pr-1" : "")}>
+                        {(block.type === "image" || isImageMime(block.file.mimeType)) ? (
+                          resolvedFileUrl ? (
+                            <button
+                              type="button"
+                              className="block overflow-hidden rounded-md"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void openFileBlock(block);
+                              }}
+                            >
+                              <Image src={resolvedFileUrl} alt={block.file.displayName} width={960} height={540} unoptimized className="h-auto w-full object-contain" />
+                            </button>
+                          ) : (
+                            <p className="text-sm text-[var(--color-text-muted)]">Loading image preview...</p>
+                          )
+                        ) : block.type === "video" ? (
+                          resolvedFileUrl ? (
+                            <video controls preload="metadata" className="w-full rounded-md">
+                              <source src={resolvedFileUrl} type={block.file.mimeType} />
+                            </video>
+                          ) : (
+                            <p className="text-sm text-[var(--color-text-muted)]">Loading video preview...</p>
+                          )
+                        ) : block.type === "audio" ? (
+                          resolvedFileUrl ? (
+                            <audio controls preload="metadata" className="w-full">
+                              <source src={resolvedFileUrl} type={block.file.mimeType} />
+                            </audio>
+                          ) : (
+                            <p className="text-sm text-[var(--color-text-muted)]">Loading audio preview...</p>
+                          )
+                        ) : (
                           <button
                             type="button"
-                            className="block overflow-hidden rounded-md"
                             onClick={(event) => {
                               event.stopPropagation();
                               void openFileBlock(block);
                             }}
+                            className="text-left text-[15px] text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4"
                           >
-                            <Image src={resolvedFileUrl} alt={block.file.displayName} width={960} height={540} unoptimized className="h-auto w-full object-contain" />
+                            {block.file.displayName}
                           </button>
-                        ) : (
-                          <p className="text-sm text-[var(--color-text-muted)]">Loading image preview...</p>
-                        )
-                      ) : block.type === "video" ? (
-                        resolvedFileUrl ? (
-                          <video controls preload="metadata" className="w-full rounded-md">
-                            <source src={resolvedFileUrl} type={block.file.mimeType} />
-                          </video>
-                        ) : (
-                          <p className="text-sm text-[var(--color-text-muted)]">Loading video preview...</p>
-                        )
-                      ) : block.type === "audio" ? (
-                        resolvedFileUrl ? (
-                          <audio controls preload="metadata" className="w-full">
-                            <source src={resolvedFileUrl} type={block.file.mimeType} />
-                          </audio>
-                        ) : (
-                          <p className="text-sm text-[var(--color-text-muted)]">Loading audio preview...</p>
-                        )
-                      ) : (
+                        )}
+                        <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                          {block.file.mimeType || "file"} - {formatFileSize(block.file.size)}
+                        </p>
+                        {block.content.trim().length > 0 && <p className="mt-1 text-xs text-[var(--color-text-muted)]">{block.content.trim()}</p>}
+                      </div>
+                      {showInlineFileComment && latestComment && (
                         <button
                           type="button"
+                          className="min-w-[18rem] max-w-[19rem] shrink-0 rounded-xl border border-[#dedede] bg-[#f7f7f7] px-4 py-2 text-left"
                           onClick={(event) => {
                             event.stopPropagation();
-                            void openFileBlock(block);
+                            const anchor = toScreenPoint(block.x + block.w - 40, block.y + block.h + 10);
+                            openCommentPanel(block.id, anchor.x, anchor.y);
                           }}
-                          className="text-left text-[15px] text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4"
                         >
-                          {block.file.displayName}
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#e2e2e2] text-[11px] text-[#9a9a9a]">
+                              {initialForName(latestComment.authorName || commentAuthorName)}
+                            </span>
+                            <span className="truncate text-sm font-semibold text-[#2f2f2f]">{latestComment.authorName || commentAuthorName}</span>
+                            <span className="text-xs text-[#9f9f9f]">{relativeTimeLabel(latestComment.createdAt)}</span>
+                          </div>
+                          <p className="mt-1 truncate text-[15px] text-[#2f2f2f]">{latestComment.text || "Attachment"}</p>
                         </button>
                       )}
-                      <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                        {block.file.mimeType || "file"} - {formatFileSize(block.file.size)}
-                      </p>
-                      {block.content.trim().length > 0 && <p className="mt-1 text-xs text-[var(--color-text-muted)]">{block.content.trim()}</p>}
+                      {showInlineFileComment && !latestComment && (
+                        <button
+                          type="button"
+                          className="min-w-[12rem] shrink-0 rounded-xl border border-dashed border-[#dadada] bg-[#fafafa] px-3 py-2 text-sm text-[#7d7d7d] hover:bg-[#f2f2f2]"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            const anchor = toScreenPoint(block.x + block.w - 40, block.y + block.h + 10);
+                            openCommentPanel(block.id, anchor.x, anchor.y);
+                          }}
+                        >
+                          Add comment
+                        </button>
+                      )}
                       <div className="pointer-events-none absolute right-2 top-2 flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-1.5 py-1 opacity-0 shadow-[var(--shadow-sm)] transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
                         <button
                           type="button"
