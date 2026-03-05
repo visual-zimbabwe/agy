@@ -25,7 +25,7 @@ type SlashCommand = { id: SlashCommandId; label: string; description: string; al
 type MenuState = { blockId: string; query: string; slashRange: { start: number; end: number } };
 type CanvasMenuState = { open: boolean; x: number; y: number; worldX: number; worldY: number };
 type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
-type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; moveToQuery: string };
+type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; moveToQuery: string; searchQuery: string };
 
 const DOC_WIDTH = 680;
 const LINE_HEIGHT = 32;
@@ -200,7 +200,7 @@ export function PageEditor() {
   const [menuIndex, setMenuIndex] = useState(0);
   const [canvasMenu, setCanvasMenu] = useState<CanvasMenuState>({ open: false, x: 0, y: 0, worldX: 0, worldY: 0 });
   const [fileMenu, setFileMenu] = useState<FileMenuState>({ open: false, x: 0, y: 0 });
-  const [blockMenu, setBlockMenu] = useState<BlockMenuState>({ open: false, x: 0, y: 0, moveToQuery: "" });
+  const [blockMenu, setBlockMenu] = useState<BlockMenuState>({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
   const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
   const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);
   const [availableDocIds, setAvailableDocIds] = useState<string[]>([]);
@@ -429,7 +429,7 @@ export function PageEditor() {
     const closeMenus = () => {
       setCanvasMenu((previous) => ({ ...previous, open: false }));
       setFileMenu((previous) => ({ ...previous, open: false }));
-      setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "" }));
+      setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "", searchQuery: "" }));
     };
     window.addEventListener("pointerdown", closeMenus);
     return () => window.removeEventListener("pointerdown", closeMenus);
@@ -629,22 +629,6 @@ export function PageEditor() {
       end: element.selectionEnd ?? 0,
     };
   }, []);
-
-  const addAttributionBelow = useCallback(
-    (blockId: string) => {
-      setBlocks((previous) => {
-        const index = previous.findIndex((entry) => entry.id === blockId);
-        if (index < 0) {
-          return previous;
-        }
-        const source = previous[index]!;
-        const created = newBlock("text", source.x, source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type)));
-        created.content = ATTRIBUTION_PREFIX;
-        return [...previous.slice(0, index + 1), created, ...previous.slice(index + 1)];
-      });
-    },
-    [],
-  );
 
   const turnSelectionIntoQuote = useCallback(
     (blockId: string) => {
@@ -1089,7 +1073,7 @@ export function PageEditor() {
       event.preventDefault();
       event.stopPropagation();
       setMenu(null);
-      setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "" }));
+      setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "", searchQuery: "" }));
       const world = worldFromClient(event.clientX, event.clientY);
       const draggingIds = blockIds && blockIds.length > 0 ? blockIds : [block.id];
       const sourceBlocks = blocks.filter((entry) => draggingIds.includes(entry.id));
@@ -1240,7 +1224,7 @@ export function PageEditor() {
         if (hold?.timer) {
           clearTimeout(hold.timer);
           hold.timer = null;
-          setBlockMenu({ open: true, x: startX, y: startY, blockId: block.id, moveToQuery: "" });
+          setBlockMenu({ open: true, x: startX, y: startY, blockId: block.id, moveToQuery: "", searchQuery: "" });
           setCanvasMenu((previous) => ({ ...previous, open: false }));
           setFileMenu((previous) => ({ ...previous, open: false }));
         }
@@ -1399,7 +1383,7 @@ export function PageEditor() {
       return (
         <button
           type="button"
-          className="w-full rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-left text-base font-medium text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4"
+          className="w-full rounded bg-[var(--color-surface-muted)] px-3 py-2 text-left text-base font-medium text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4"
           onClick={() => {
             if (!block.pageId) return;
             const params = new URLSearchParams(searchParams.toString());
@@ -1469,6 +1453,40 @@ export function PageEditor() {
 
   const menuBlock = menu ? blocks.find((block) => block.id === menu.blockId) : undefined;
   const blockMenuBlock = blockMenu.blockId ? blocks.find((block) => block.id === blockMenu.blockId) : undefined;
+  const blockMenuActions = blockMenuBlock
+    ? [
+        {
+          id: "copy_link",
+          label: "Copy link to block",
+          shortcut: "Alt+Shift+L",
+          onClick: () => {
+            void copyBlockLink(blockMenu.blockId!);
+          },
+        },
+        {
+          id: "duplicate",
+          label: "Duplicate",
+          shortcut: "Ctrl+D",
+          onClick: () => {
+            duplicateBlock(blockMenu.blockId!);
+          },
+        },
+        {
+          id: "delete",
+          label: "Delete",
+          shortcut: "Del",
+          danger: true,
+          onClick: () => {
+            const targets = selectedBlockIds.includes(blockMenu.blockId!) ? selectedBlockIds : [blockMenu.blockId!];
+            deleteBlocks(targets);
+            setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
+          },
+        },
+      ]
+    : [];
+  const filteredBlockMenuActions = blockMenu.searchQuery.trim()
+    ? blockMenuActions.filter((item) => item.label.toLowerCase().includes(blockMenu.searchQuery.trim().toLowerCase()))
+    : blockMenuActions;
   const menuAnchor = menuBlock ? toScreenPoint(menuBlock.x, menuBlock.y + menuBlock.h + 8) : { x: 0, y: 0 };
   return (
     <main className="route-shell text-[var(--color-text)]">
@@ -1520,7 +1538,7 @@ export function PageEditor() {
             return (
               <div
                 key={block.id}
-                className={cn("group pointer-events-auto absolute rounded-md", selectedBlockIds.includes(block.id) ? "ring-2 ring-[var(--color-accent)]/60" : "")}
+                className="group pointer-events-auto absolute rounded-md"
                 style={{ left: block.x + indentOffset, top: block.y, width: DOC_WIDTH - indentOffset }}
                 onPointerDown={(event) => {
                   if ((event.target as HTMLElement).closest('[data-page-drag-handle="true"]')) return;
@@ -1705,161 +1723,153 @@ export function PageEditor() {
 
         {blockMenu.open && blockMenu.blockId && blockMenuBlock && (
           <div
-            className="fixed z-50 min-w-72 max-w-80 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[var(--shadow-lg)]"
+            className="fixed z-50 w-[18rem] rounded-2xl border border-[#d7d7d7] bg-[#f7f7f7] p-2 text-[#2e2e2e] shadow-[0_12px_28px_rgba(0,0,0,0.14)]"
             style={{ left: blockMenu.x, top: blockMenu.y }}
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <button
-              type="button"
-              className="block w-full rounded px-2.5 py-1.5 text-left text-sm text-[#f87171] hover:bg-[var(--color-surface-muted)]"
-              onClick={() => {
-                const targets = selectedBlockIds.includes(blockMenu.blockId!) ? selectedBlockIds : [blockMenu.blockId!];
-                deleteBlocks(targets);
-                setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "" });
-              }}
-            >
-              Delete
-            </button>
-            <button
-              type="button"
-              className="mt-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
-              onClick={() => {
-                duplicateBlock(blockMenu.blockId!);
-              }}
-            >
-              Duplicate
-            </button>
-            <p className="mt-2 px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Turn into</p>
-            <div className="mt-1 grid grid-cols-2 gap-1">
-              {TURN_INTO_TYPES.map((item) => (
-                <button
-                  key={item.type}
-                  type="button"
-                  disabled={blockMenuBlock.type === "file"}
-                  className="rounded px-2 py-1 text-left text-xs text-[var(--color-text)] hover:bg-[var(--color-surface-muted)] disabled:cursor-not-allowed disabled:opacity-45"
-                  onClick={() => {
-                    if (item.type === "quote") {
-                      turnSelectionIntoQuote(blockMenu.blockId!);
-                    } else {
-                      turnBlockInto(blockMenu.blockId!, item.type);
-                    }
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+            <input
+              value={blockMenu.searchQuery}
+              onChange={(event) => setBlockMenu((previous) => ({ ...previous, searchQuery: event.target.value }))}
+              className="w-full rounded-lg border border-[#4b95ef] bg-white px-2 py-1.5 text-sm outline-none ring-1 ring-[#4b95ef]/25"
+              placeholder="Search actions..."
+            />
+            <p className="mt-3 px-1 text-xs font-medium text-[#727272]">{blockMenuBlock.type === "todo" ? "To-do list" : blockMenuBlock.type}</p>
+
+            <details className="mt-2">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-md px-1.5 py-1.5 text-[1rem] hover:bg-[#ececec]">
+                <span>Turn into</span>
+                <span className="text-[#8b8b8b]">{">"}</span>
+              </summary>
+              <div className="mt-1 grid grid-cols-2 gap-1 pl-1">
+                {TURN_INTO_TYPES.map((item) => (
+                  <button
+                    key={item.type}
+                    type="button"
+                    disabled={blockMenuBlock.type === "file"}
+                    className="rounded px-2 py-1 text-left text-xs hover:bg-[#ececec] disabled:cursor-not-allowed disabled:opacity-45"
+                    onClick={() => {
+                      if (item.type === "quote") {
+                        turnSelectionIntoQuote(blockMenu.blockId!);
+                      } else {
+                        turnBlockInto(blockMenu.blockId!, item.type);
+                      }
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </details>
+
+            <details>
+              <summary className="mt-0.5 flex cursor-pointer list-none items-center justify-between rounded-md px-1.5 py-1.5 text-[1rem] hover:bg-[#ececec]">
+                <span>Color</span>
+                <span className="text-[#8b8b8b]">{">"}</span>
+              </summary>
+              <div className="mt-1 space-y-1 pl-1">
+                <div className="grid grid-cols-5 gap-1">
+                  {QUOTE_TEXT_COLORS.map((color) => (
+                    <button
+                      key={`text-color-${color.id}`}
+                      type="button"
+                      title={`Text: ${color.label}`}
+                      className="h-6 rounded-md border border-[#d7d7d7] bg-white text-[11px]"
+                      style={{ color: color.value || "#2e2e2e" }}
+                      onClick={() => updateBlock(blockMenu.blockId!, { textColor: color.value || undefined })}
+                    >
+                      T
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-5 gap-1">
+                  {QUOTE_BACKGROUND_COLORS.map((color) => (
+                    <button
+                      key={`bg-color-${color.id}`}
+                      type="button"
+                      title={`Background: ${color.label}`}
+                      className="h-6 rounded-md border border-[#d7d7d7]"
+                      style={{ backgroundColor: color.value || "#ffffff" }}
+                      onClick={() => updateBlock(blockMenu.blockId!, { backgroundColor: color.value || undefined })}
+                    />
+                  ))}
+                </div>
+              </div>
+            </details>
+
+            <div className="my-2 border-t border-[#dfdfdf]" />
+
+            {filteredBlockMenuActions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className={cn(
+                  "flex w-full items-center justify-between rounded-md px-1.5 py-1.5 text-left text-[1rem] hover:bg-[#ececec]",
+                  action.danger ? "text-[#b64040]" : "text-[#2e2e2e]",
+                )}
+                onClick={action.onClick}
+              >
+                <span>{action.label}</span>
+                <span className="text-xs text-[#989898]">{action.shortcut}</span>
+              </button>
+            ))}
+
             <button
               type="button"
               disabled={blockMenuBlock.type === "file"}
-              className="mt-2 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              className="mt-0.5 flex w-full items-center justify-between rounded-md px-1.5 py-1.5 text-left text-[1rem] text-[#2e2e2e] hover:bg-[#ececec] disabled:opacity-45"
               onClick={() => {
                 void turnBlockIntoPage(blockMenu.blockId!);
-                setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "" });
+                setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
               }}
             >
-              Turn into page
+              <span>Turn into page</span>
+              <span className="text-xs text-[#989898]">Ctrl+Alt+P</span>
             </button>
+
+            <details>
+              <summary className="mt-0.5 flex cursor-pointer list-none items-center justify-between rounded-md px-1.5 py-1.5 text-[1rem] hover:bg-[#ececec]">
+                <span>Move to</span>
+                <span className="text-xs text-[#989898]">Ctrl+Shift+P</span>
+              </summary>
+              <div className="space-y-1 px-1 pb-1">
+                <input
+                  value={blockMenu.moveToQuery}
+                  onChange={(event) => setBlockMenu((previous) => ({ ...previous, moveToQuery: event.target.value }))}
+                  className="mt-1 w-full rounded border border-[#d7d7d7] bg-white px-2 py-1 text-xs outline-none"
+                  placeholder="Search page id"
+                />
+                <div className="max-h-24 space-y-0.5 overflow-auto">
+                  {availableDocIds
+                    .filter((id) => id.includes(blockMenu.moveToQuery.trim()))
+                    .slice(0, 6)
+                    .map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-[#ececec]"
+                        onClick={() => {
+                          const targets = selectedBlockIds.includes(blockMenu.blockId!) ? selectedBlockIds : [blockMenu.blockId!];
+                          void moveBlocksToDoc(id, targets);
+                          setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
+                        }}
+                      >
+                        {id}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </details>
+
             <button
               type="button"
-              className="mt-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
-              onClick={() => {
-                void copyBlockLink(blockMenu.blockId!);
-              }}
-            >
-              Copy link
-            </button>
-            <p className="mt-2 px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Move to page</p>
-            <input
-              value={blockMenu.moveToQuery}
-              onChange={(event) => setBlockMenu((previous) => ({ ...previous, moveToQuery: event.target.value }))}
-              className="mt-1 w-full rounded border border-[var(--color-border)] bg-transparent px-2 py-1 text-xs text-[var(--color-text)] outline-none"
-              placeholder="Search or type doc id"
-            />
-            <div className="mt-1 max-h-24 space-y-0.5 overflow-auto">
-              {availableDocIds
-                .filter((id) => id.includes(blockMenu.moveToQuery.trim()))
-                .slice(0, 6)
-                .map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    className="block w-full rounded px-2 py-1 text-left text-xs text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
-                    onClick={() => {
-                      const targets = selectedBlockIds.includes(blockMenu.blockId!) ? selectedBlockIds : [blockMenu.blockId!];
-                      void moveBlocksToDoc(id, targets);
-                      setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "" });
-                    }}
-                  >
-                    {id}
-                  </button>
-                ))}
-            </div>
-            <button
-              type="button"
-              className="mt-1 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
-              onClick={() => {
-                if (!blockMenu.moveToQuery.trim()) return;
-                const targets = selectedBlockIds.includes(blockMenu.blockId!) ? selectedBlockIds : [blockMenu.blockId!];
-                void moveBlocksToDoc(blockMenu.moveToQuery.trim(), targets);
-                setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "" });
-              }}
-            >
-              Move to typed page
-            </button>
-            <button
-              type="button"
-              className="mt-1 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              className="mt-0.5 flex w-full items-center justify-between rounded-md px-1.5 py-1.5 text-left text-[1rem] hover:bg-[#ececec]"
               onClick={() => addCommentToBlock(blockMenu.blockId!)}
             >
-              Comment
+              <span>Comment</span>
+              <span className="text-xs text-[#989898]">Ctrl+Shift+M</span>
             </button>
-            {blockMenuBlock.comments?.length ? (
-              <div className="mt-1 max-h-24 space-y-0.5 overflow-auto rounded border border-[var(--color-border)] p-1">
-                {blockMenuBlock.comments.slice(-4).map((comment) => (
-                  <p key={comment.id} className="text-xs text-[var(--color-text-muted)]">
-                    {comment.text}
-                  </p>
-                ))}
-              </div>
-            ) : null}
-            <button
-              type="button"
-              className="mt-1 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
-              onClick={() => addAttributionBelow(blockMenu.blockId!)}
-            >
-              Add attribution below
-            </button>
-            <p className="mt-2 px-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Color</p>
-            <div className="mt-1 grid grid-cols-5 gap-1">
-              {QUOTE_TEXT_COLORS.map((color) => (
-                <button
-                  key={`text-color-${color.id}`}
-                  type="button"
-                  title={`Text: ${color.label}`}
-                  className="h-7 rounded border border-[var(--color-border)]"
-                  style={{ backgroundColor: color.value || "transparent", color: color.value || "var(--color-text)" }}
-                  onClick={() => {
-                    updateBlock(blockMenu.blockId!, { textColor: color.value || undefined });
-                  }}
-                >
-                  T
-                </button>
-              ))}
-            </div>
-            <div className="mt-1 grid grid-cols-5 gap-1">
-              {QUOTE_BACKGROUND_COLORS.map((color) => (
-                <button
-                  key={`bg-color-${color.id}`}
-                  type="button"
-                  title={`Background: ${color.label}`}
-                  className="h-7 rounded border border-[var(--color-border)]"
-                  style={{ backgroundColor: color.value || "transparent" }}
-                  onClick={() => {
-                    updateBlock(blockMenu.blockId!, { backgroundColor: color.value || undefined });
-                  }}
-                />
-              ))}
+            <div className="mt-2 border-t border-[#dfdfdf] pt-2 text-[11px] text-[#8d8d8d]">
+              <p>Last edited in this page</p>
             </div>
           </div>
         )}
