@@ -2059,6 +2059,9 @@ export function PageEditor() {
               top: slashMenuLayout.top,
             }}
             onPointerDown={(event) => event.stopPropagation()}
+            onWheel={(event) => {
+              event.stopPropagation();
+            }}
           >
             <div className="border-b border-[#e5e5e5] px-3.5 py-2.5 text-xs text-[#888]">Basic blocks</div>
             <div className="max-h-[18rem] overflow-y-auto px-2 py-1.5">
