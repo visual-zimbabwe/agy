@@ -2060,7 +2060,7 @@ export function PageEditor() {
         >
           {blocks.map((block) => {
             const resolvedFileUrl = block.file?.externalUrl || (block.file?.path ? signedUrls[block.file.path] : undefined);
-            const indentOffset = block.type === "todo" ? (block.indent ?? 0) * INDENT_STEP : 0;
+            const indentOffset = block.type === "todo" || block.type === "bulleted" ? (block.indent ?? 0) * INDENT_STEP : 0;
             const latestComment = block.comments?.length ? block.comments[block.comments.length - 1] : undefined;
             const showInlineFileComment = block.type === "file" && block.file ? !isImageMime(block.file.mimeType) : false;
             return (
