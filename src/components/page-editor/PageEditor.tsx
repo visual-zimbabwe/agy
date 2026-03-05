@@ -30,7 +30,7 @@ type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
 type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; moveToQuery: string; searchQuery: string };
 type FileInsertIntent = "file" | "image" | "video" | "audio";
 type FileInsertMode = "upload" | "link";
-type FileInsertState = { open: boolean; intent: FileInsertIntent; mode: FileInsertMode; worldX: number; worldY: number; x: number; y: number; url: string };
+type FileInsertState = { open: boolean; intent: FileInsertIntent; mode: FileInsertMode; worldX: number; worldY: number; x: number; y: number; url: string; afterBlockId?: string };
 type CommentPanelState = {
   open: boolean;
   blockId?: string;
@@ -238,6 +238,7 @@ const acceptForIntent = (intent: FileInsertIntent) => {
 };
 
 const blockTypeForIntent = (intent: FileInsertIntent) => intent;
+const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : 52);
 
 const relativeTimeLabel = (createdAt: number) => {
   const diff = Math.max(0, Date.now() - createdAt);
@@ -314,6 +315,7 @@ export function PageEditor() {
   const selectionRangesRef = useRef<Record<string, { start: number; end: number }>>({});
   const pendingFocusIdRef = useRef<string | null>(null);
   const uploadAnchorRef = useRef({ x: 120, y: 120 });
+  const uploadAfterBlockRef = useRef<string | undefined>(undefined);
   const dragRef = useRef<{ blockId: string; offsetX: number; offsetY: number } | null>(null);
   const panRef = useRef<{ startX: number; startY: number; cameraX: number; cameraY: number; moved: boolean } | null>(null);
   const handleHoldRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; pressedAt: number; blockIds: string[] } | null>(null);
@@ -417,7 +419,7 @@ export function PageEditor() {
   }, []);
 
   const uploadFilesAt = useCallback(
-    async (files: File[], worldX: number, worldY: number, intent: FileInsertIntent = "file") => {
+    async (files: File[], worldX: number, worldY: number, intent: FileInsertIntent = "file", afterBlockId?: string) => {
       if (files.length === 0) return;
       setUploading(true);
       try {
@@ -447,7 +449,14 @@ export function PageEditor() {
             source: "upload",
           },
         }));
-        setBlocks((previous) => [...previous, ...createdBlocks]);
+        setBlocks((previous) => {
+          const appended = [...previous, ...createdBlocks];
+          if (!afterBlockId) return appended;
+          const finalBlock = createdBlocks[createdBlocks.length - 1];
+          if (!finalBlock) return appended;
+          const nextAfterY = finalBlock.y + Math.max(finalBlock.h + blockGapFor(finalBlock.type), LINE_HEIGHT + blockGapFor(finalBlock.type));
+          return appended.map((item) => (item.id === afterBlockId ? { ...item, y: nextAfterY } : item));
+        });
 
         for (const file of payload.files) {
           if (isImageMime(file.mimeType) || intent === "video" || intent === "audio") void signFileUrl(file.path);
@@ -461,13 +470,14 @@ export function PageEditor() {
     [signFileUrl],
   );
 
-  const triggerUploadPickerAt = useCallback((worldX: number, worldY: number, intent: FileInsertIntent = "file") => {
+  const triggerUploadPickerAt = useCallback((worldX: number, worldY: number, intent: FileInsertIntent = "file", afterBlockId?: string) => {
     uploadAnchorRef.current = { x: worldX, y: worldY };
+    uploadAfterBlockRef.current = afterBlockId;
     setUploadIntent(intent);
     fileInputRef.current?.click();
   }, []);
 
-  const openFileInsertAt = useCallback((worldX: number, worldY: number, screenX: number, screenY: number, intent: FileInsertIntent) => {
+  const openFileInsertAt = useCallback((worldX: number, worldY: number, screenX: number, screenY: number, intent: FileInsertIntent, afterBlockId?: string) => {
     const panelWidth = 360;
     const panelHeight = 180;
     setFileInsert({
@@ -479,11 +489,12 @@ export function PageEditor() {
       x: clamp(screenX, 12, Math.max(12, viewport.w - panelWidth - 12)),
       y: clamp(screenY, 12, Math.max(12, viewport.h - panelHeight - 12)),
       url: "",
+      afterBlockId,
     });
   }, [viewport.h, viewport.w]);
 
   const createEmbedBlock = useCallback(
-    (url: string, worldX: number, worldY: number, intent: FileInsertIntent) => {
+    (url: string, worldX: number, worldY: number, intent: FileInsertIntent, afterBlockId?: string) => {
       const blockType = blockTypeForIntent(intent);
       const mimeType = inferMimeFromUrl(url);
       const created: PageBlock = {
@@ -503,7 +514,12 @@ export function PageEditor() {
           externalUrl: url,
         },
       };
-      setBlocks((previous) => [...previous, created]);
+      setBlocks((previous) => {
+        const appended = [...previous, created];
+        if (!afterBlockId) return appended;
+        const nextAfterY = created.y + Math.max(created.h + blockGapFor(created.type), LINE_HEIGHT + blockGapFor(created.type));
+        return appended.map((item) => (item.id === afterBlockId ? { ...item, y: nextAfterY } : item));
+      });
     },
     [],
   );
@@ -1125,24 +1141,80 @@ export function PageEditor() {
         return;
       }
 
-      const nextContent = `${block.content.slice(0, menu.slashRange.start)}${block.content.slice(menu.slashRange.end)}`;
+      const beforeContent = block.content.slice(0, menu.slashRange.start);
+      const afterContent = block.content.slice(menu.slashRange.end);
+      const hasBefore = beforeContent.length > 0;
+      const hasAfter = afterContent.length > 0;
+
       if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio") {
-        updateBlock(block.id, { content: nextContent });
-        const base = toScreenPoint(block.x, block.y + block.h + 12);
-        openFileInsertAt(block.x, block.y + block.h + 12, base.x + 16, base.y + 10, commandId);
+        const insertionY = hasBefore ? block.y + Math.max(block.h + blockGapFor(block.type), LINE_HEIGHT + blockGapFor(block.type)) : block.y;
+        let afterBlockId: string | undefined;
+        const estimatedInsertedHeight = insertedHeightForIntent(commandId);
+        setBlocks((previous) => {
+          const index = previous.findIndex((entry) => entry.id === block.id);
+          if (index < 0) return previous;
+          const sequence: PageBlock[] = [];
+          if (hasBefore) {
+            const beforeBlock: PageBlock = { ...block, content: beforeContent };
+            sequence.push(beforeBlock);
+          }
+          if (hasAfter || !hasBefore) {
+            const afterBlock = newBlock("text", block.x, insertionY + Math.max(estimatedInsertedHeight + blockGapFor(commandId), LINE_HEIGHT + blockGapFor(commandId)));
+            afterBlock.content = afterContent;
+            afterBlockId = afterBlock.id;
+            sequence.push(afterBlock);
+          }
+          return [...previous.slice(0, index), ...sequence, ...previous.slice(index + 1)];
+        });
+        const base = toScreenPoint(block.x, insertionY);
+        openFileInsertAt(block.x, insertionY, base.x + 10, base.y + 8, commandId, afterBlockId);
         setMenu(null);
+        if (afterBlockId) queueFocus(afterBlockId);
         return;
       }
 
-      updateBlock(block.id, {
-        type: commandId,
-        content: nextContent,
-        checked: commandId === "todo" ? false : undefined,
-        indent: commandId === "todo" ? block.indent : undefined,
-        w: DOC_WIDTH,
+      if (!hasBefore && !hasAfter) {
+        updateBlock(block.id, {
+          type: commandId,
+          content: "",
+          checked: commandId === "todo" ? false : undefined,
+          indent: commandId === "todo" ? block.indent : undefined,
+          w: DOC_WIDTH,
+        });
+        setMenu(null);
+        queueFocus(block.id);
+        return;
+      }
+
+      let insertedId: string | undefined;
+      setBlocks((previous) => {
+        const index = previous.findIndex((entry) => entry.id === block.id);
+        if (index < 0) return previous;
+        const sequence: PageBlock[] = [];
+        let insertionY = block.y;
+        if (hasBefore) {
+          const beforeBlock: PageBlock = { ...block, content: beforeContent };
+          sequence.push(beforeBlock);
+          insertionY = beforeBlock.y + Math.max(beforeBlock.h + blockGapFor(beforeBlock.type), LINE_HEIGHT + blockGapFor(beforeBlock.type));
+        }
+
+        const inserted = newBlock(commandId, block.x, insertionY);
+        inserted.content = "";
+        if (commandId === "todo") inserted.checked = false;
+        insertedId = inserted.id;
+        sequence.push(inserted);
+
+        const nextY = inserted.y + Math.max(inserted.h + blockGapFor(inserted.type), LINE_HEIGHT + blockGapFor(inserted.type));
+        if (hasAfter) {
+          const afterBlock = newBlock("text", block.x, nextY);
+          afterBlock.content = afterContent;
+          sequence.push(afterBlock);
+        }
+        return [...previous.slice(0, index), ...sequence, ...previous.slice(index + 1)];
       });
+
       setMenu(null);
-      queueFocus(block.id);
+      if (insertedId) queueFocus(insertedId);
     },
     [blocks, menu, openFileInsertAt, queueFocus, toScreenPoint, updateBlock],
   );
@@ -1864,7 +1936,8 @@ export function PageEditor() {
         onChange={(event) => {
           const chosen = Array.from(event.target.files ?? []);
           event.currentTarget.value = "";
-          void uploadFilesAt(chosen, uploadAnchorRef.current.x, uploadAnchorRef.current.y, uploadIntent);
+          void uploadFilesAt(chosen, uploadAnchorRef.current.x, uploadAnchorRef.current.y, uploadIntent, uploadAfterBlockRef.current);
+          uploadAfterBlockRef.current = undefined;
         }}
       />
       <input
@@ -2126,7 +2199,7 @@ export function PageEditor() {
                   type="button"
                   className="w-full rounded-md bg-[#2f80ed] px-3 py-2 text-sm font-medium text-white hover:bg-[#206fd8]"
                   onClick={() => {
-                    triggerUploadPickerAt(fileInsert.worldX, fileInsert.worldY, fileInsert.intent);
+                    triggerUploadPickerAt(fileInsert.worldX, fileInsert.worldY, fileInsert.intent, fileInsert.afterBlockId);
                     setFileInsert((previous) => ({ ...previous, open: false }));
                   }}
                 >
@@ -2142,7 +2215,7 @@ export function PageEditor() {
                   if (!nextUrl) return;
                   try {
                     const parsed = new URL(nextUrl);
-                    createEmbedBlock(parsed.toString(), fileInsert.worldX, fileInsert.worldY, fileInsert.intent);
+                    createEmbedBlock(parsed.toString(), fileInsert.worldX, fileInsert.worldY, fileInsert.intent, fileInsert.afterBlockId);
                     setFileInsert((previous) => ({ ...previous, open: false, url: "" }));
                   } catch {
                     window.alert("Please paste a valid URL.");
