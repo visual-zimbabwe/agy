@@ -1771,6 +1771,26 @@ export function PageEditor() {
   const blockMenuBlock = blockMenu.blockId ? blocks.find((block) => block.id === blockMenu.blockId) : undefined;
   const blockMenuActions = blockMenuBlock
     ? [
+        ...(blockMenuBlock.type === "file" || blockMenuBlock.type === "image" || blockMenuBlock.type === "video" || blockMenuBlock.type === "audio"
+          ? [
+              {
+                id: "file_caption",
+                label: "Caption",
+                shortcut: "",
+                onClick: () => {
+                  updateFileCaption(blockMenu.blockId!);
+                },
+              },
+              {
+                id: "file_download",
+                label: "Download",
+                shortcut: "",
+                onClick: () => {
+                  void downloadFileBlock(blockMenuBlock);
+                },
+              },
+            ]
+          : []),
         {
           id: "copy_link",
           label: "Copy link to block",
@@ -2022,51 +2042,6 @@ export function PageEditor() {
                           <p className="mt-1 truncate text-[15px] text-[#2f2f2f]">{latestComment.text || "Attachment"}</p>
                         </button>
                       )}
-                      {showInlineFileComment && !latestComment && (
-                        <button
-                          type="button"
-                          className="min-w-[12rem] shrink-0 rounded-xl border border-dashed border-[#dadada] bg-[#fafafa] px-3 py-2 text-sm text-[#7d7d7d] hover:bg-[#f2f2f2]"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            const anchor = toScreenPoint(block.x + block.w - 40, block.y + block.h + 10);
-                            openCommentPanel(block.id, anchor.x, anchor.y);
-                          }}
-                        >
-                          Add comment
-                        </button>
-                      )}
-                      <div className="pointer-events-none absolute right-2 top-2 flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-1.5 py-1 opacity-0 shadow-[var(--shadow-sm)] transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
-                        <button
-                          type="button"
-                          className="rounded px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            updateFileCaption(block.id);
-                          }}
-                        >
-                          Caption
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openCommentPanel(block.id, event.clientX + 8, event.clientY + 8);
-                          }}
-                        >
-                          Comment
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void downloadFileBlock(block);
-                          }}
-                        >
-                          Download
-                        </button>
-                      </div>
                     </div>
                   ) : (
                     renderInput(block)
