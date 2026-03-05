@@ -374,6 +374,41 @@ export function PageEditor() {
     [blocks, menu, queueFocus, triggerUploadPickerAt, updateBlock],
   );
 
+  const insertBlockBelow = useCallback(
+    (source: PageBlock, type: BlockType) => {
+      const created = newBlock(type, source.x, source.y + Math.max(source.h + 14, LINE_HEIGHT + 14));
+      setBlocks((previous) => {
+        const index = previous.findIndex((item) => item.id === source.id);
+        if (index < 0) {
+          return [...previous, created];
+        }
+        return [...previous.slice(0, index + 1), created, ...previous.slice(index + 1)];
+      });
+      queueFocus(created.id);
+    },
+    [queueFocus],
+  );
+
+  const removeBlockAndFocusNeighbor = useCallback(
+    (blockId: string) => {
+      setBlocks((previous) => {
+        const index = previous.findIndex((item) => item.id === blockId);
+        if (index < 0) {
+          return previous;
+        }
+        if (previous.length <= 1) {
+          return previous;
+        }
+        const neighbor = previous[index - 1] ?? previous[index + 1];
+        if (neighbor) {
+          queueFocus(neighbor.id);
+        }
+        return previous.filter((item) => item.id !== blockId);
+      });
+    },
+    [queueFocus],
+  );
+
   const onBlockKeyDown = useCallback(
     (block: PageBlock, event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       if (menu && menu.blockId === block.id && event.key === "Enter") {
@@ -385,12 +420,17 @@ export function PageEditor() {
 
       if (event.key === "Enter" && !event.shiftKey && !menu && ["h1", "h2", "h3", "todo", "bulleted", "quote", "callout"].includes(block.type)) {
         event.preventDefault();
-        const created = newBlock("text", block.x, block.y + Math.max(block.h + 14, LINE_HEIGHT + 14));
-        setBlocks((previous) => [...previous, created]);
-        queueFocus(created.id);
+        const nextType: BlockType = block.type === "todo" ? "todo" : block.type === "bulleted" ? "bulleted" : "text";
+        insertBlockBelow(block, nextType);
+        return;
+      }
+
+      if ((event.key === "Backspace" || event.key === "Delete") && block.type !== "file" && block.content.trim().length === 0) {
+        event.preventDefault();
+        removeBlockAndFocusNeighbor(block.id);
       }
     },
-    [activeMenuIndex, applySlashCommand, filteredMenu, menu, queueFocus],
+    [activeMenuIndex, applySlashCommand, filteredMenu, insertBlockBelow, menu, removeBlockAndFocusNeighbor],
   );
 
   const beginPan = useCallback(
