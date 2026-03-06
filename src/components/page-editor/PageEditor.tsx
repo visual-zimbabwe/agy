@@ -60,21 +60,31 @@ const DEFAULT_TABLE_COLUMNS = 2;
 const TABLE_ROW_HEIGHT = 40;
 const TABLE_CONTROLS_HEIGHT = 40;
 
-const QUOTE_TEXT_COLORS = [
-  { id: "default", label: "Default", value: "" },
-  { id: "slate", label: "Slate", value: "#334155" },
-  { id: "rose", label: "Rose", value: "#9f1239" },
-  { id: "teal", label: "Teal", value: "#0f766e" },
-  { id: "amber", label: "Amber", value: "#92400e" },
-];
+const BLOCK_TEXT_COLORS = [
+  { id: "default", label: "Default text", value: "", preview: "#2e2e2e" },
+  { id: "gray", label: "Gray text", value: "#6b7280", preview: "#6b7280" },
+  { id: "brown", label: "Brown text", value: "#7c4a2d", preview: "#7c4a2d" },
+  { id: "orange", label: "Orange text", value: "#c25900", preview: "#c25900" },
+  { id: "yellow", label: "Yellow text", value: "#ad7f00", preview: "#ad7f00" },
+  { id: "green", label: "Green text", value: "#2f855a", preview: "#2f855a" },
+  { id: "blue", label: "Blue text", value: "#2f6fd6", preview: "#2f6fd6" },
+  { id: "purple", label: "Purple text", value: "#805ad5", preview: "#805ad5" },
+  { id: "pink", label: "Pink text", value: "#b83280", preview: "#b83280" },
+  { id: "red", label: "Red text", value: "#dc2626", preview: "#dc2626" },
+] as const;
 
-const QUOTE_BACKGROUND_COLORS = [
-  { id: "none", label: "None", value: "" },
-  { id: "stone", label: "Stone", value: "#f5f5f4" },
-  { id: "sky", label: "Sky", value: "#f0f9ff" },
-  { id: "mint", label: "Mint", value: "#ecfdf5" },
-  { id: "rose", label: "Rose", value: "#fff1f2" },
-];
+const BLOCK_BG_COLORS = [
+  { id: "default", label: "Default background", value: "", preview: "#ffffff" },
+  { id: "gray", label: "Gray background", value: "#f3f4f6", preview: "#f3f4f6" },
+  { id: "brown", label: "Brown background", value: "#f4eee8", preview: "#f4eee8" },
+  { id: "orange", label: "Orange background", value: "#fff1e6", preview: "#fff1e6" },
+  { id: "yellow", label: "Yellow background", value: "#fef9db", preview: "#fef9db" },
+  { id: "green", label: "Green background", value: "#ecfdf3", preview: "#ecfdf3" },
+  { id: "blue", label: "Blue background", value: "#eaf2ff", preview: "#eaf2ff" },
+  { id: "purple", label: "Purple background", value: "#f4efff", preview: "#f4efff" },
+  { id: "pink", label: "Pink background", value: "#fdf0f7", preview: "#fdf0f7" },
+  { id: "red", label: "Red background", value: "#fef0f0", preview: "#fef0f0" },
+] as const;
 
 const CODE_LANGUAGES = [
   "Plain Text",
@@ -1370,14 +1380,19 @@ export function PageEditor() {
     (blockId: string) => {
       const block = blocks.find((entry) => entry.id === blockId);
       if (!block) return;
-      const containerRect = containerRef.current?.getBoundingClientRect();
-      const screen = toScreenPoint(block.x, block.y);
-      const x = (containerRect ? containerRect.left : 0) + screen.x + 10;
-      const y = (containerRect ? containerRect.top : 0) + screen.y + 8;
+      const indentOffset = typeof block.indent === "number" && block.indent > 0 ? block.indent * INDENT_STEP : 0;
+      const screen = toScreenPoint(block.x + indentOffset, block.y);
+      const menuWidth = 288;
+      const menuHeight = 540;
+      const blockWidth = Math.max(220, DOC_WIDTH - indentOffset);
+      const leftCandidate = screen.x - menuWidth - 20;
+      const rightCandidate = screen.x + blockWidth + 20;
+      const x = leftCandidate >= 8 ? leftCandidate : rightCandidate;
+      const y = screen.y - 4;
       setBlockMenu({
         open: true,
-        x: clamp(x, 8, Math.max(8, window.innerWidth - 320)),
-        y: clamp(y, 8, Math.max(8, window.innerHeight - 260)),
+        x: clamp(x, 8, Math.max(8, window.innerWidth - menuWidth - 8)),
+        y: clamp(y, 8, Math.max(8, window.innerHeight - menuHeight - 8)),
         blockId,
         moveToQuery: "",
         searchQuery: "",
@@ -2339,7 +2354,7 @@ export function PageEditor() {
         setCamera((previous) => ({ ...previous, x: pan.cameraX + dx, y: pan.cameraY + dy }));
       };
 
-      const onUp = (upEvent: PointerEvent) => {
+      const onUp = () => {
         const pan = panRef.current;
         panRef.current = null;
         window.removeEventListener("pointermove", onMove);
@@ -2497,11 +2512,27 @@ export function PageEditor() {
         }
       };
 
-      const onUp = (upEvent: PointerEvent) => {
+      const onUp = () => {
         const pointer = handlePointerRef.current;
         handlePointerRef.current = null;
         if (pointer && !pointer.moved) {
-          setBlockMenu({ open: true, x: upEvent.clientX, y: upEvent.clientY, blockId: block.id, moveToQuery: "", searchQuery: "" });
+          const indentOffset = typeof block.indent === "number" && block.indent > 0 ? block.indent * INDENT_STEP : 0;
+          const screen = toScreenPoint(block.x + indentOffset, block.y);
+          const menuWidth = 288;
+          const menuHeight = 540;
+          const blockWidth = Math.max(220, DOC_WIDTH - indentOffset);
+          const leftCandidate = screen.x - menuWidth - 20;
+          const rightCandidate = screen.x + blockWidth + 20;
+          const x = leftCandidate >= 8 ? leftCandidate : rightCandidate;
+          const y = screen.y - 4;
+          setBlockMenu({
+            open: true,
+            x: clamp(x, 8, Math.max(8, window.innerWidth - menuWidth - 8)),
+            y: clamp(y, 8, Math.max(8, window.innerHeight - menuHeight - 8)),
+            blockId: block.id,
+            moveToQuery: "",
+            searchQuery: "",
+          });
           setCanvasMenu((previous) => ({ ...previous, open: false }));
           setFileMenu((previous) => ({ ...previous, open: false }));
           setQuickInsertMenu((previous) => ({ ...previous, open: false }));
@@ -2517,7 +2548,7 @@ export function PageEditor() {
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [beginDragBlock, selectedBlockIds],
+    [beginDragBlock, selectedBlockIds, toScreenPoint],
   );
 
   const insertFromQuickMenu = useCallback(
@@ -4148,31 +4179,38 @@ export function PageEditor() {
                 <span>Color</span>
                 <span className="text-[#8b8b8b]">{">"}</span>
               </summary>
-              <div className="mt-1 space-y-1 pl-1">
-                <div className="grid grid-cols-5 gap-1">
-                  {QUOTE_TEXT_COLORS.map((color) => (
+              <div className="mt-1 max-h-[24rem] space-y-2 overflow-y-auto pl-1 pr-1">
+                <p className="px-1 text-[11px] font-medium text-[#808080]">Text color</p>
+                <div className="space-y-0.5">
+                  {BLOCK_TEXT_COLORS.map((color) => (
                     <button
                       key={`text-color-${color.id}`}
                       type="button"
-                      title={`Text: ${color.label}`}
-                      className="h-6 rounded-md border border-[#d7d7d7] bg-white text-[11px]"
-                      style={{ color: color.value || "#2e2e2e" }}
+                      className="flex w-full items-center gap-2 rounded px-1.5 py-1 text-left text-sm text-[#2f2f2f] hover:bg-[#ececec]"
                       onClick={() => updateBlock(blockMenu.blockId!, { textColor: color.value || undefined })}
                     >
-                      T
+                      <span
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#d7d7d7] bg-white text-[15px]"
+                        style={{ color: color.preview }}
+                      >
+                        A
+                      </span>
+                      <span>{color.label}</span>
                     </button>
                   ))}
                 </div>
-                <div className="grid grid-cols-5 gap-1">
-                  {QUOTE_BACKGROUND_COLORS.map((color) => (
+                <p className="px-1 pt-2 text-[11px] font-medium text-[#808080]">Background color</p>
+                <div className="space-y-0.5 pb-1">
+                  {BLOCK_BG_COLORS.map((color) => (
                     <button
                       key={`bg-color-${color.id}`}
                       type="button"
-                      title={`Background: ${color.label}`}
-                      className="h-6 rounded-md border border-[#d7d7d7]"
-                      style={{ backgroundColor: color.value || "#ffffff" }}
+                      className="flex w-full items-center gap-2 rounded px-1.5 py-1 text-left text-sm text-[#2f2f2f] hover:bg-[#ececec]"
                       onClick={() => updateBlock(blockMenu.blockId!, { backgroundColor: color.value || undefined })}
-                    />
+                    >
+                      <span className="inline-flex h-6 w-6 rounded-md border border-[#d7d7d7]" style={{ backgroundColor: color.preview }} />
+                      <span>{color.label}</span>
+                    </button>
                   ))}
                 </div>
               </div>
