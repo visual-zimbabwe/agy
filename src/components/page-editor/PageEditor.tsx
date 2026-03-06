@@ -2673,8 +2673,10 @@ export function PageEditor() {
                   aria-label="Open block menu"
                   data-page-drag-handle="true"
                   className={cn(
-                    "absolute -left-9 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/55 opacity-45 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] hover:opacity-100 focus-visible:opacity-100",
-                    selectedBlockIds.includes(block.id) ? "bg-[var(--color-accent-soft)] text-[var(--color-text)] opacity-100" : "",
+                    "absolute -left-9 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/55 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100",
+                    selectedBlockIds.includes(block.id) || (blockMenu.open && blockMenu.blockId === block.id)
+                      ? "bg-[var(--color-accent-soft)] text-[var(--color-text)] opacity-100"
+                      : "opacity-45",
                   )}
                   onPointerDown={(event) => onHandlePointerDown(block, event)}
                 >
@@ -2691,8 +2693,10 @@ export function PageEditor() {
                   type="button"
                   aria-label="Insert block"
                   className={cn(
-                    "absolute -left-16 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/55 opacity-45 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] hover:opacity-100 focus-visible:opacity-100",
-                    quickInsertMenu.open && quickInsertMenu.blockId === block.id ? "bg-[var(--color-accent-soft)] text-[var(--color-text)] opacity-100" : "",
+                    "absolute -left-16 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-muted)]/55 transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100",
+                    quickInsertMenu.open && quickInsertMenu.blockId === block.id
+                      ? "bg-[var(--color-accent-soft)] text-[var(--color-text)] opacity-100"
+                      : "opacity-45",
                   )}
                   onPointerDown={(event) => {
                     event.preventDefault();
