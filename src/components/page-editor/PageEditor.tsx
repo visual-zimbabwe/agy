@@ -208,139 +208,222 @@ const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
 };
 
-const potteryTemplateLines: Array<{ type: BlockType; content: string }> = [
-  { type: "h1", content: "Nyanga Pottery Programme: Separate Syllabi for Forms 1-4" },
-  { type: "text", content: "Institution: Nyanga High School Marist Brothers | Learning Area: Visual and Performing Arts (Pottery) | Benchmark style: detailed syllabus architecture comparable to ECON 306 structure." },
-  { type: "text", content: "Common studio rhythm for all forms: weekly Technical Throw Down (skill drill), Main Make (major build), Group Critique (reflection), and Portfolio update." },
+type TemplateLine = { type: BlockType; content?: string; table?: PageTableData };
+type TemplateCluster = { offsetX: number; offsetY: number; lines: TemplateLine[] };
 
-  { type: "h1", content: "Form 1 Pottery Syllabus (Foundation Year)" },
-  { type: "h2", content: "Course Description" },
-  { type: "text", content: "Form 1 introduces learners to the language, safety, and physical discipline of ceramics through hand-building. Learners move from material familiarity to controlled making, while exploring Zimbabwean household pottery traditions and local motif interpretation." },
-  { type: "h2", content: "Content Objectives" },
-  { type: "numbered", content: "Define key studio terms and identify safe handling procedures for clay, tools, and drying/firing spaces." },
-  { type: "numbered", content: "Demonstrate pinch, coil, and slab methods with acceptable wall-thickness consistency." },
-  { type: "numbered", content: "Explain the function of selected traditional Zimbabwean vessel forms and symbols." },
-  { type: "numbered", content: "Maintain process evidence: sketches, experiment notes, and improvement reflections." },
-  { type: "h2", content: "Tentative Weekly Content Outline (15 Weeks)" },
-  { type: "bulleted", content: "Week 1-2: Induction, safety contract, clay preparation, wedging drills." },
-  { type: "bulleted", content: "Week 3-4: Pinch forms, proportion basics, utility bowl studies." },
-  { type: "bulleted", content: "Week 5-6: Coil construction and join-strength technical tests." },
-  { type: "bulleted", content: "Week 7-8: Slab techniques, measurement control, texture transfer." },
-  { type: "bulleted", content: "Week 9-10: Zimbabwean motif research and story tile development." },
-  { type: "bulleted", content: "Week 11-12: Handles/lids, controlled drying, defect prevention." },
-  { type: "bulleted", content: "Week 13-14: Main Make completion and peer critique cycle." },
-  { type: "bulleted", content: "Week 15: Practical assessment and portfolio conference." },
-  { type: "h2", content: "Academic Requirements and Grading (1000-point model)" },
-  { type: "bulleted", content: "Technical Throw Downs: 150 points (15%)." },
-  { type: "bulleted", content: "Main Makes (3 term projects): 250 points (25%)." },
-  { type: "bulleted", content: "Portfolio and reflection journal: 150 points (15%)." },
-  { type: "bulleted", content: "Professional studio conduct and critique: 50 points (5%)." },
-  { type: "bulleted", content: "Practical examination: 250 points (25%)." },
-  { type: "bulleted", content: "Written theory task: 100 points (10%)." },
-  { type: "bulleted", content: "Viva/oral explanation: 50 points (5%)." },
-  { type: "h2", content: "Major Assignment Detail" },
-  { type: "text", content: "Main Make A: Family Utility Set (2 bowls + 1 cup). Main Make B: Nyanga Story Tile Panel. Main Make C: Lidded Storage Pot. Alternative: Seed-saving jars for Agriculture Club." },
-  { type: "h2", content: "Form 1 Policy Notes" },
-  { type: "bulleted", content: "Attendance expected for practical continuity; missed studio work requires supervised catch-up." },
-  { type: "bulleted", content: "No unsupervised kiln access; wet-clean only for clay dust control." },
+const textbookSection = [
+  "Pottery for Beginners (Kara Leigh Ford): https://www.barnesandnoble.com/w/pottery-for-beginners-kara-leigh-ford/1137455936",
+  "The Ceramics Bible, Revised Edition (Louisa Taylor): https://www.barnesandnoble.com/w/the-ceramics-bible-revised-edition-louisa-taylor/1139993550",
+  "A Potter's Workbook (Clary Illian): https://www.barnesandnoble.com/w/a-potters-workbook-clary-illian/1122986673",
+  "Amazon search (Pottery for Beginners): https://www.amazon.com/s?k=Pottery+for+Beginners+Kara+Leigh+Ford",
+  "Amazon search (The Ceramics Bible): https://www.amazon.com/s?k=The+Ceramics+Bible+Louisa+Taylor",
+  "Amazon search (A Potter's Workbook): https://www.amazon.com/s?k=A+Potter%27s+Workbook+Clary+Illian",
+];
 
-  { type: "h1", content: "Form 2 Pottery Syllabus (Intermediate Year)" },
-  { type: "h2", content: "Course Description" },
-  { type: "text", content: "Form 2 develops consistency, wheel entry, and functional product design. Learners begin controlled repetition and test-based finishing while integrating cultural motifs into user-oriented ware." },
-  { type: "h2", content: "Content Objectives" },
-  { type: "numbered", content: "Center and throw basic cylinders and adapt them into mugs/cups." },
-  { type: "numbered", content: "Produce small sets with dimensional consistency and quality checks." },
-  { type: "numbered", content: "Plan and run glaze/slip test tiles; record outcomes and corrections." },
-  { type: "numbered", content: "Write concise design statements linking form, function, and heritage influences." },
-  { type: "h2", content: "Tentative Weekly Content Outline (15 Weeks)" },
-  { type: "bulleted", content: "Week 1-2: Wheel safety and centering fundamentals." },
-  { type: "bulleted", content: "Week 3-4: Cylinder control and mug ergonomics." },
-  { type: "bulleted", content: "Week 5-6: Handle integration and functional testing." },
-  { type: "bulleted", content: "Week 7-8: Set consistency drills and dimensional tolerances." },
-  { type: "bulleted", content: "Week 9-10: Slip/underglaze application and motif adaptation." },
-  { type: "bulleted", content: "Week 11-12: Glaze test matrix and defect diagnostics." },
-  { type: "bulleted", content: "Week 13-14: Main Make completion and critique." },
-  { type: "bulleted", content: "Week 15: Practical + written assessment." },
-  { type: "h2", content: "Academic Requirements and Grading (1000-point model)" },
-  { type: "text", content: "Weighting follows Form 1 structure; scoring standards increase for precision, repeatability, and finish quality." },
-  { type: "h2", content: "Major Assignment Detail" },
-  { type: "text", content: "Main Make A: Functional Heritage Mug Line. Main Make B: Tea-for-two set. Main Make C: Decorative Water Jug with narrative band. Alternative: Community proverb mug series." },
-  { type: "h2", content: "Form 2 Policy Notes" },
-  { type: "bulleted", content: "Every glaze test requires documented variables and observed results; undocumented tests are not graded." },
-  { type: "bulleted", content: "Set submissions must include tolerance check sheet and usability notes." },
+const gradingTableForForm = (formLabel: string): PageTableData => ({
+  rows: 8,
+  columns: 3,
+  cells: [
+    ["Component", "Weight", `${formLabel} Notes`],
+    ["Technical Throw Downs", "15%", "Weekly timed skill checks with process and safety scoring."],
+    ["Main Makes (term projects)", "25%", "Three major builds with design brief, heritage link, and critique."],
+    ["Portfolio + Reflection", "15%", "Sketches, research, tests, photos, learning journal, self-assessment."],
+    ["Professional Conduct", "5%", "Attendance, cleanup, teamwork, critique etiquette, safe studio habits."],
+    ["Practical Exam", "25%", "Timed production task with craftsmanship and function criteria."],
+    ["Written Theory Task", "10%", "Materials science, design rationale, heritage analysis, entrepreneurship."],
+    ["Viva / Presentation", "5%", "Oral defense of design and process decisions."],
+  ],
+  headerRow: true,
+});
 
-  { type: "h1", content: "Form 3 Pottery Syllabus (Advanced Practice and Enterprise)" },
-  { type: "h2", content: "Course Description" },
-  { type: "text", content: "Form 3 transitions from technique accumulation to integrated production logic. Learners tackle complex forms, narrative sculpture, and market-oriented product lines while deepening cultural interpretation and quality assurance practice." },
-  { type: "h2", content: "Content Objectives" },
-  { type: "numbered", content: "Construct advanced forms (pouring vessels, assembled profiles) with structural reliability." },
-  { type: "numbered", content: "Develop sculptural narratives using symbolic and contextual references." },
-  { type: "numbered", content: "Execute a small production run with costing, quality control, and customer feedback." },
-  { type: "numbered", content: "Evaluate own work using rubric language and propose measurable improvements." },
-  { type: "h2", content: "Tentative Weekly Content Outline (15 Weeks)" },
-  { type: "bulleted", content: "Week 1-2: Advanced wheel forms and sectional assembly." },
-  { type: "bulleted", content: "Week 3-4: Spouts, lids, and leak/flow optimization." },
-  { type: "bulleted", content: "Week 5-6: Sculptural modeling and symbolic composition." },
-  { type: "bulleted", content: "Week 7-8: Surface narrative strategies and firing choices." },
-  { type: "bulleted", content: "Week 9-10: Product line ideation and prototype cycle." },
-  { type: "bulleted", content: "Week 11-12: Costing, packaging, and market testing." },
-  { type: "bulleted", content: "Week 13-14: Final production and exhibition preparation." },
-  { type: "bulleted", content: "Week 15: Enterprise reflection and moderated assessment." },
-  { type: "h2", content: "Academic Requirements and Grading (1000-point model)" },
-  { type: "text", content: "Weighting follows common programme model with higher emphasis on product reliability, conceptual depth, and enterprise documentation quality." },
-  { type: "h2", content: "Major Assignment Detail" },
-  { type: "text", content: "Main Make A: Teapot/Jug performance challenge. Main Make B: Ubuntu in Clay sculpture. Main Make C: Three-item market-ready product line. Alternative: Relief tile mural for school entrance." },
-  { type: "h2", content: "Form 3 Policy Notes" },
-  { type: "bulleted", content: "Market-day submissions must include costing sheet, price rationale, and customer feedback record." },
-  { type: "bulleted", content: "Critical peer review participation is mandatory and graded." },
+const makeWeekDetail = (week: number, theme: string, formFocus: string) =>
+  `Week ${week}: ${theme}. This week is designed as a creative mission where learners plan, build, test, and revise one focused pottery outcome. The opening session connects heritage examples to the week's target skill, then the Technical Throw Down trains speed and control under friendly pressure. Studio time emphasizes ${formFocus}, with learners documenting choices, errors, and fixes in their portfolio logs. The week ends with a short critique circle where peers give practical feedback, celebrate improvements, and set one measurable target for the next studio cycle.`;
 
-  { type: "h1", content: "Form 4 Pottery Syllabus (Specialization and O-Level Preparation)" },
-  { type: "h2", content: "Course Description" },
-  { type: "text", content: "Form 4 functions as a pre-professional studio year. Learners design and execute capstone projects, demonstrate exam readiness, and curate public-facing work that integrates heritage interpretation, technical mastery, and enterprise presentation." },
-  { type: "h2", content: "Content Objectives" },
-  { type: "numbered", content: "Produce a defensible project proposal with references, constraints, and timeline." },
-  { type: "numbered", content: "Execute a capstone body of work with documented troubleshooting and refinement." },
-  { type: "numbered", content: "Perform timed technical tasks under exam-style conditions." },
-  { type: "numbered", content: "Present and defend design decisions orally and in writing." },
-  { type: "h2", content: "Tentative Weekly Content Outline (15 Weeks)" },
-  { type: "bulleted", content: "Week 1-2: Proposal development, benchmark analysis, and planning." },
-  { type: "bulleted", content: "Week 3-4: Prototype and precision replication tests." },
-  { type: "bulleted", content: "Week 5-6: Capstone build phase 1." },
-  { type: "bulleted", content: "Week 7-8: Defect clinic and refinement phase." },
-  { type: "bulleted", content: "Week 9-10: Capstone build phase 2 and finishing." },
-  { type: "bulleted", content: "Week 11-12: Portfolio curation and written rationale." },
-  { type: "bulleted", content: "Week 13-14: Mock practical exam and viva rehearsal." },
-  { type: "bulleted", content: "Week 15: Final exhibition, viva, and moderation." },
-  { type: "h2", content: "Academic Requirements and Grading (1000-point model)" },
-  { type: "text", content: "Common weighting applies; Form 4 grading standards prioritize independence, project management, and evidence of iterative improvement." },
-  { type: "h2", content: "Major Assignment Detail" },
-  { type: "text", content: "Main Make A: Contemporary heritage tableware brief. Main Make B: Capstone production sequence. Main Make C: Final curated showcase + enterprise pitch. Alternative: Social-impact ceramics project." },
-  { type: "h2", content: "Form 4 Policy Notes" },
-  { type: "bulleted", content: "All final submissions require full process evidence (proposal, tests, logs, reflections, final artifact images)." },
-  { type: "bulleted", content: "Mock exam attendance is compulsory except for approved documented absence." },
+const form1Description =
+  "Form 1 Pottery is a high-energy foundation course that introduces learners to clay as both a practical material and a storytelling medium. Students begin with studio orientation, safety routines, and basic clay preparation, then rapidly move into hand-building through pinch, coil, and slab methods. The course is intentionally interactive: each week includes a Technical Throw Down, a themed Main Make, and a critique session where learners learn how to speak about art confidently and respectfully. Heritage is central. Learners examine Zimbabwean household vessel traditions, local motifs, and everyday utility forms, then reinterpret them in their own projects. By the end of the course, learners can produce functional ceramic objects with growing consistency and can explain how design choices connect to purpose, identity, and culture. The tone stays playful, reflective, and ambitious so that students enjoy making while building serious technical habits. This syllabus is designed to support both teacher-led and self-directed learning through clear milestones, visible weekly targets, and portfolio-based evidence of growth.";
 
-  { type: "h1", content: "Programme-Wide Rubric and Conduct Policy (All Forms)" },
-  { type: "h2", content: "Rubric Bands" },
-  { type: "bulleted", content: "Excellent: technical control, strong concept, clear heritage grounding, complete evidence." },
-  { type: "bulleted", content: "Competent: mostly reliable execution, coherent concept, minor defects." },
-  { type: "bulleted", content: "Developing: partial control, uneven finish, limited evidence depth." },
-  { type: "bulleted", content: "Beginning: weak control, incomplete outcomes, minimal process evidence." },
-  { type: "h2", content: "Studio Conduct and Inclusion" },
-  { type: "bulleted", content: "Respectful critique, anti-harassment, and collaborative studio norms are enforced." },
-  { type: "bulleted", content: "Inclusive accommodations: adaptive tools, flexible timing, multimodal evidence, accessible layout." },
-  { type: "bulleted", content: "Health and safety compliance is non-negotiable in all practical sessions." },
+const form1Objectives =
+  "By the end of Form 1, learners should demonstrate practical confidence in core hand-building methods and be able to transform basic ideas into complete ceramic outcomes. Learners should identify and explain essential studio vocabulary, clay behavior, drying stages, and safe handling procedures for tools and shared workspaces. Learners should prepare clay correctly, join pieces with minimal failure, and maintain consistent wall thickness in beginner-level forms. Learners should use observation and sketching to study Zimbabwean vessel types and symbolic patterns, then adapt those references in age-appropriate, original designs. Learners should complete weekly challenge tasks within time limits, reflect on mistakes without fear, and use feedback to improve the next iteration. They should also build portfolio discipline by recording test results, process photos, and brief written reflections after each project cycle. Learners should communicate clearly during critiques, identify strengths and weaknesses in their own work, and propose actionable improvements. Finally, learners should show positive studio citizenship through attendance, cleanup responsibility, respectful collaboration, and safe conduct around materials and equipment.";
+
+const form2Description =
+  "Form 2 Pottery advances learners from foundational making into controlled repetition, functional design, and early wheel confidence. Students continue hand-building where needed but begin structured wheel practice through centering, cylinder control, and ergonomic mug development. Lessons remain challenge-driven and fun, with clear weekly goals and practical mini-competitions that reward precision and creativity. Cultural relevance remains essential: learners develop motif families inspired by Zimbabwean decorative language and apply them to modern utility ware such as cups, serving pieces, and water vessels. Technical depth increases through glaze and slip testing, where students compare outcomes, diagnose simple defects, and make evidence-based adjustments. The course also introduces product thinking: learners evaluate comfort, balance, durability, and user experience in their forms. By the end of Form 2, students should be able to make small coherent sets, document repeatable processes, and explain how function, heritage, and aesthetics can coexist in one object. The curriculum is built to be engaging for teens while maintaining a strong skills trajectory toward advanced study.";
+
+const form2Objectives =
+  "By the end of Form 2, learners should produce functional ceramic forms with improved consistency and measurable control over dimensions, finish quality, and usability. Learners should center clay and throw basic cylinders, then transform those forms into mugs or cups that meet simple ergonomic criteria. Learners should execute repeated forms in short production runs and track variation using tolerance checks. They should design and run glaze or slip test matrices, record variables, and interpret results in clear portfolio notes. Learners should apply motif systems drawn from Zimbabwean visual traditions with intention rather than decoration by habit, explaining symbolic choices in short written statements. Learners should participate in weekly critique using technical language, compare peer solutions constructively, and convert feedback into specific adjustments. Students should strengthen planning behavior by sequencing tasks across drying, trimming, and finishing windows. They should also begin entrepreneurship basics: simple costing, material-use estimates, and quality control expectations for school display or sale contexts. Learners should show increasing independence while still following safety rules, collaborative norms, and responsible use of shared resources.";
+
+const form3Description =
+  "Form 3 Pottery is the innovation year: learners move from skill execution to integrated problem-solving, expressive narrative work, and enterprise-focused production. Students build complex forms, including assembled vessels and sculptural pieces, while balancing technical reliability with creative risk-taking. Weekly classes retain the studio-game format, but challenges now demand stronger planning, faster diagnostics, and more independent decision-making. Heritage research deepens beyond motifs into meaning, as learners use proverbs, social themes, and community narratives to shape concept-driven work. In parallel, students develop market awareness by prototyping small product lines, testing price points, and gathering user feedback. This makes the course practical, contemporary, and motivating for high school learners who want both artistic and livelihood relevance. Reflection remains central: learners maintain technical logs, defect analyses, and revision plans that show how outcomes improve over time. By course end, learners should produce work that is technically stronger, conceptually clearer, and ready for exhibition or supervised market presentation within a school context.";
+
+const form3Objectives =
+  "By the end of Form 3, learners should demonstrate the ability to plan, produce, and refine advanced pottery outcomes that satisfy both technical and conceptual criteria. Learners should construct complex forms with stable structure, clean joins, and controlled finishing, including pouring vessels and assembled profiles. Learners should identify likely defect causes before firing and apply preventive strategies during build, drying, and glaze stages. They should create sculptural work that communicates a clear narrative, drawing on Zimbabwean social themes, symbols, and community values in a respectful and meaningful way. Learners should manage a small-batch production workflow with cost awareness, quality checkpoints, and post-production review. They should gather and interpret customer or peer feedback, then revise products to improve function, aesthetics, and durability. Students should present process evidence coherently through annotated sketches, tests, photos, and reflective writing that explains decisions and tradeoffs. They should contribute maturely to critique sessions by giving concrete, usable feedback and receiving critique without defensiveness. Learners should also model leadership in studio safety, teamwork, and resource stewardship.";
+
+const form4Description =
+  "Form 4 Pottery is a capstone year designed for specialization, exam readiness, and professional presentation. Learners are expected to work with greater independence while still benefiting from structured coaching and peer critique. The course begins with proposal writing and benchmark analysis, then progresses through prototype testing, defect correction, and full capstone production cycles. Weekly learning remains active and student-centered: each week has challenge goals, evidence requirements, and reflection checkpoints so learners can monitor growth like developing studio practitioners. Heritage integration is expected at a deeper level, with students justifying symbolism, material choices, and design language in writing and oral defense. Enterprise and curation components ensure that learners understand audience, display quality, pricing logic, and communication strategy for exhibitions or school market events. The final outcome is a portfolio-ready body of work with clear process evidence. Form 4 is intentionally demanding but motivating, helping learners transition confidently into O-Level pathways, further art study, or practical creative enterprise opportunities.";
+
+const form4Objectives =
+  "By the end of Form 4, learners should complete and defend a coherent capstone pottery project that demonstrates technical control, design maturity, and reflective decision-making. Learners should prepare formal proposals with aims, references, timeline, risk points, and resource plans. They should execute prototypes, test alternatives, and refine final forms based on documented evidence rather than guesswork. Learners should perform timed exam-style technical tasks and sustain quality under pressure through workflow planning and discipline. They should write concise but analytical rationale statements linking function, heritage interpretation, user context, and production constraints. Learners should curate final outputs for public display, making informed choices about grouping, labeling, and presentation clarity. They should communicate confidently in viva settings, answering questions about method, defects, revisions, and conceptual intent. Learners should demonstrate advanced portfolio practice through consistent logs, test boards, photography, and evaluation notes that show iterative growth across the term. Finally, learners should model professional behavior in studio ethics, collaboration, safety compliance, and responsible use of shared tools and facilities.";
+
+const assignmentDetail = (formLabel: string, assignments: string) =>
+  `${formLabel} major assignments are designed as performance journeys, not one-off submissions. ${assignments} For each assignment, learners must submit five evidence components: (1) design brief interpretation, (2) exploratory sketches and motif references, (3) process log with dated progress notes and photos, (4) technical test evidence such as joins, glaze or form trials, and (5) final reflection explaining what changed between draft and final version. Marks reward improvement and intelligent revision, not perfection on first attempt. Students are encouraged to experiment boldly, then justify their choices with evidence.`;
+
+const classPolicy =
+  "Class and lab policy: Attendance is expected because ceramics is cumulative and studio momentum matters. Late arrivals must join quietly and review posted task goals before asking for support. Every learner is responsible for station setup, cleanup, and safe return of tools before dismissal; unfinished cleanup affects participation marks. No unsupervised kiln operation is allowed. Dust control is mandatory: wet-cleaning only, no dry sweeping. During critique, students must use respectful language, give specific feedback, and avoid personal comments. Phones are permitted only for portfolio photos or teacher-approved research. Learners with accommodations may use adaptive tools, alternate timing, and multimodal evidence pathways without penalty. If materials are damaged, report immediately; honesty is valued more than concealment. In all sessions, safety, respect, and effort are non-negotiable.";
+
+const buildFormCluster = (
+  formHeading: string,
+  description: string,
+  objectives: string,
+  weeklyThemes: string[],
+  formFocus: string,
+  assignments: string,
+): TemplateLine[] => {
+  const weeklyLines = weeklyThemes.map((theme, index) => ({
+    type: "bulleted" as const,
+    content: makeWeekDetail(index + 1, theme, formFocus),
+  }));
+  return [
+    { type: "h1", content: formHeading },
+    { type: "h2", content: "Course Description (200-250 words)" },
+    { type: "text", content: description },
+    { type: "h2", content: "Course Objectives (300-350 words)" },
+    { type: "text", content: objectives },
+    { type: "h2", content: "Textbook (Recommended)" },
+    ...textbookSection.map((entry) => ({ type: "bulleted" as const, content: entry })),
+    { type: "h2", content: "Weekly Content Outline (10 Weeks)" },
+    ...weeklyLines,
+    { type: "h2", content: "Grading Table" },
+    { type: "table", table: gradingTableForForm(formHeading.split(" ")[0] ?? "Form") },
+    { type: "h2", content: "Major Assignment Detail (Expanded)" },
+    { type: "text", content: assignmentDetail(formHeading, assignments) },
+    { type: "h2", content: "Class and Lab Policy for Students (150-200 words)" },
+    { type: "text", content: classPolicy },
+  ];
+};
+
+const potteryTemplateClusters: TemplateCluster[] = [
+  {
+    offsetX: 0,
+    offsetY: 0,
+    lines: [
+      { type: "h1", content: "Nyanga Pottery Programme: Separate Syllabi for Forms 1-4" },
+      { type: "text", content: "This canvas contains four separate clusters (one per form). Pan right/down to move between Form 1, Form 2, Form 3, and Form 4 syllabi." },
+    ],
+  },
+  {
+    offsetX: 0,
+    offsetY: 260,
+    lines: buildFormCluster(
+      "Form 1 Pottery Syllabus (Detailed Cluster)",
+      form1Description,
+      form1Objectives,
+      [
+        "Studio induction, safety game, and clay bootcamp",
+        "Pinch-form mission and proportion challenge",
+        "Coil-building marathon with wall-thickness checkpoints",
+        "Slab-construction mini architecture challenge",
+        "Texture lab and motif extraction workshop",
+        "Traditional vessel interpretation sprint",
+        "Handle and lid engineering week",
+        "Drying and defect prevention clinic",
+        "Main Make final build and finishing",
+        "Exhibition day, critique, and portfolio defense",
+      ],
+      "hand-building confidence, safe routines, and clear evidence habits",
+      "Assignment A: Family Utility Set. Assignment B: Nyanga Story Tile Panel. Assignment C: Lidded Storage Pot. Alternative challenge: seed-saving jar series linked to the school garden.",
+    ),
+  },
+  {
+    offsetX: 1250,
+    offsetY: 260,
+    lines: buildFormCluster(
+      "Form 2 Pottery Syllabus (Detailed Cluster)",
+      form2Description,
+      form2Objectives,
+      [
+        "Wheel safety and centering launch challenge",
+        "Cylinder mastery and height control drill",
+        "Mug ergonomics and handle comfort testing",
+        "Set consistency and tolerance checkpoint",
+        "Surface pattern system and heritage motif remix",
+        "Slip and underglaze studio experiments",
+        "Glaze matrix testing and defect diagnosis",
+        "Functional jug design and pour-flow evaluation",
+        "Main Make polishing and display preparation",
+        "Assessment showcase and design statement defense",
+      ],
+      "wheel entry, repeatable quality, and function-driven design",
+      "Assignment A: Functional Heritage Mug Line. Assignment B: Tea-for-two service set. Assignment C: Decorative Water Jug with narrative band. Alternative challenge: community proverb mug series.",
+    ),
+  },
+  {
+    offsetX: 0,
+    offsetY: 3600,
+    lines: buildFormCluster(
+      "Form 3 Pottery Syllabus (Detailed Cluster)",
+      form3Description,
+      form3Objectives,
+      [
+        "Advanced form briefing and structural planning",
+        "Pouring vessel engineering and lid systems",
+        "Leak test protocols and usability redesign",
+        "Narrative sculpture ideation and symbolism mapping",
+        "Surface storytelling and texture sequencing",
+        "Firing strategy and failure-risk control",
+        "Product line concept and prototype sprint",
+        "Costing, pricing, and customer persona testing",
+        "Production run and quality moderation",
+        "Market presentation, critique, and reflection summit",
+      ],
+      "advanced form reliability, concept clarity, and enterprise decisions",
+      "Assignment A: Teapot/Jug performance challenge. Assignment B: Ubuntu in Clay sculpture with artist talk. Assignment C: Three-item market-ready product line with costing and feedback documentation. Alternative challenge: relief tile mural.",
+    ),
+  },
+  {
+    offsetX: 1250,
+    offsetY: 3600,
+    lines: buildFormCluster(
+      "Form 4 Pottery Syllabus (Detailed Cluster)",
+      form4Description,
+      form4Objectives,
+      [
+        "Capstone proposal lab and benchmark mapping",
+        "Prototype build and precision replication tests",
+        "Material trials and risk mitigation planning",
+        "Capstone production sprint 1",
+        "Defect clinic and targeted refinement",
+        "Capstone production sprint 2",
+        "Portfolio curation and evidence audit",
+        "Mock practical exam under timed conditions",
+        "Viva rehearsal and feedback integration",
+        "Final exhibition and professional reflection",
+      ],
+      "capstone execution, exam performance, and professional presentation",
+      "Assignment A: Contemporary Heritage Tableware brief. Assignment B: Capstone production sequence. Assignment C: Final curated showcase and enterprise pitch. Alternative challenge: social-impact ceramics innovation project.",
+    ),
+  },
 ];
 
 const potteryTemplateTitle = "Nyanga Pottery Programme: Separate Syllabi for Forms 1-4";
 
 const buildPotteryTemplateBlocks = (startX: number, startY: number): PageBlock[] => {
-  let y = startY;
-  return potteryTemplateLines.map((line) => {
-    const block = newBlock(line.type, startX, y);
-    block.content = line.content;
-    y += Math.max(block.h + 12, LINE_HEIGHT + 10);
-    return block;
-  });
+  const blocks: PageBlock[] = [];
+  for (const cluster of potteryTemplateClusters) {
+    let y = startY + cluster.offsetY;
+    const x = startX + cluster.offsetX;
+    for (const line of cluster.lines) {
+      const block = newBlock(line.type, x, y);
+      if (line.type === "table" && line.table) {
+        block.table = line.table;
+        block.h = tableHeightFor(line.table.rows);
+        block.content = "";
+      } else {
+        block.content = line.content ?? "";
+      }
+      blocks.push(block);
+      y += Math.max(block.h + 12, LINE_HEIGHT + 10);
+    }
+  }
+  return blocks;
 };
 
 const createEmptyPage = (): PageBlock[] => buildPotteryTemplateBlocks(120, 120);
@@ -4920,3 +5003,4 @@ export function PageEditor() {
     </main>
   );
 }
+
