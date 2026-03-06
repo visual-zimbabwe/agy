@@ -35,6 +35,7 @@ const validBlockTypes = new Set<PageBlock["type"]>([
   "bulleted",
   "numbered",
   "toggle",
+  "table",
   "code",
   "quote",
   "callout",
@@ -73,6 +74,33 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
   const backgroundColor = typeof value.backgroundColor === "string" ? value.backgroundColor : undefined;
   const checked = typeof value.checked === "boolean" ? value.checked : undefined;
   const expanded = typeof value.expanded === "boolean" ? value.expanded : undefined;
+  const tableValue = value.table;
+  const table =
+    isRecord(tableValue) &&
+    typeof tableValue.rows === "number" &&
+    Number.isFinite(tableValue.rows) &&
+    typeof tableValue.columns === "number" &&
+    Number.isFinite(tableValue.columns)
+      ? (() => {
+          const rows = Math.max(1, Math.min(50, Math.floor(tableValue.rows)));
+          const columns = Math.max(1, Math.min(20, Math.floor(tableValue.columns)));
+          const rawCells = Array.isArray(tableValue.cells) ? tableValue.cells : [];
+          const cells = Array.from({ length: rows }, (_, rowIndex) =>
+            Array.from({ length: columns }, (_, columnIndex) => {
+              const rawRow = Array.isArray(rawCells[rowIndex]) ? rawCells[rowIndex] : [];
+              const rawCell = rawRow[columnIndex];
+              return typeof rawCell === "string" ? rawCell : "";
+            }),
+          );
+          return {
+            rows,
+            columns,
+            cells,
+            headerRow: typeof tableValue.headerRow === "boolean" ? tableValue.headerRow : undefined,
+            headerColumn: typeof tableValue.headerColumn === "boolean" ? tableValue.headerColumn : undefined,
+          };
+        })()
+      : undefined;
   const richText = Array.isArray(value.richText)
     ? value.richText
         .filter((entry): entry is { text: string; marks?: string[]; href?: string; mention?: string } => isRecord(entry) && typeof entry.text === "string")
@@ -134,6 +162,7 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
     backgroundColor,
     checked,
     expanded,
+    table,
     comments,
     file,
   };

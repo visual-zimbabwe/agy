@@ -9,6 +9,7 @@ export type BlockType =
   | "bulleted"
   | "numbered"
   | "toggle"
+  | "table"
   | "code"
   | "quote"
   | "callout"
@@ -53,6 +54,14 @@ export type PageRichTextSpan = {
 
 export type PageNumberedFormat = "numbers" | "letters" | "roman";
 
+export type PageTableData = {
+  rows: number;
+  columns: number;
+  cells: string[][];
+  headerRow?: boolean;
+  headerColumn?: boolean;
+};
+
 export type PageBlock = {
   id: string;
   type: BlockType;
@@ -71,6 +80,7 @@ export type PageBlock = {
   backgroundColor?: string;
   checked?: boolean;
   expanded?: boolean;
+  table?: PageTableData;
   comments?: PageBlockComment[];
   file?: PageFileMeta;
 };

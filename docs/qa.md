@@ -8,7 +8,7 @@
 5. Use `Ctrl/Cmd + mouse wheel` to zoom toward cursor.
 6. Use mouse wheel (without `Ctrl/Cmd`) to pan viewport.
 7. Drag any block to a new position and verify free placement on the infinite canvas.
-8. In a text block, type `/h1`, `/h2`, `/h3`, `/todo`, `/bullet` (or `/list`), `/quote`, and `/code` (one at a time), then press `Enter` and verify block type changes.
+8. In a text block, type `/h1`, `/h2`, `/h3`, `/todo`, `/bullet` (or `/list`), `/table`, `/quote`, and `/code` (one at a time), then press `Enter` and verify block type changes.
 9. While slash menu is open, use `ArrowUp/ArrowDown` and `Enter` to select a command.
 10. Press `Esc` with slash menu open and verify it closes.
 11. In any text block, type `/file` then press `Enter`; verify file insert popover appears with `Upload` and `Link` tabs.
@@ -86,6 +86,9 @@
 83. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
 84. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
 85. Drag a list block slightly right under another list block and verify it nests (indent increases).
+86. Type `/table` and press `Enter`; verify a simple table block appears with editable cells.
+87. In a table block, click `+ Row` and `+ Column`; verify row/column counts increase and new cells are editable.
+88. In a table block, toggle `Header row` and `Header column`; verify first row/column switches to emphasized header styling.
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
@@ -94,6 +97,7 @@ Expected:
 - Bulleted lists support slash, markdown, and `Cmd/Ctrl + Shift + 5` creation flows with proper continuation/indent/outdent/end-list behaviors.
 - Numbered lists support markdown (`1. `), slash conversion, and caret-based split-on-enter behavior.
 - Numbered lists support markdown markers (`1.`, `a.`, `i.`), keyboard shortcut conversion (`Cmd/Ctrl + Shift/Option + 6`), list format switching, and custom start index.
+- `/table` creates a simple table block (non-database) with editable cells plus row/column and header toggles.
 - Toggle lists support slash/markdown/keyboard creation, collapse/expand shortcuts, and descendant visibility persistence.
 - Divider blocks support slash (`/div`/`/divider`) and markdown (`--- `) creation, and remain fixed to document block width on the infinite canvas.
 - Slash command menu is visually compact and symbol-driven; command popup stays in viewport with reduced canvas obstruction.

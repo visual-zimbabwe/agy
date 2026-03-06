@@ -17,7 +17,7 @@ import {
 } from "react";
 
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
-import type { BlockType, PageBlock, PageNumberedFormat } from "@/features/page/types";
+import type { BlockType, PageBlock, PageNumberedFormat, PageTableData } from "@/features/page/types";
 import { cn } from "@/lib/cn";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -54,6 +54,10 @@ const MAX_LIST_INDENT = 8;
 const ATTRIBUTION_PREFIX = "-- ";
 const HANDLE_DRAG_MOVE_THRESHOLD = 4;
 const DEFAULT_NUMBERED_FORMAT: PageNumberedFormat = "numbers";
+const DEFAULT_TABLE_ROWS = 3;
+const DEFAULT_TABLE_COLUMNS = 2;
+const TABLE_ROW_HEIGHT = 40;
+const TABLE_CONTROLS_HEIGHT = 40;
 
 const QUOTE_TEXT_COLORS = [
   { id: "default", label: "Default", value: "" },
@@ -80,6 +84,7 @@ const TURN_INTO_TYPES: Array<{ type: BlockType; label: string }> = [
   { type: "bulleted", label: "Bulleted list" },
   { type: "numbered", label: "Numbered list" },
   { type: "toggle", label: "Toggle" },
+  { type: "table", label: "Table" },
   { type: "quote", label: "Quote" },
   { type: "callout", label: "Callout" },
   { type: "divider", label: "Divider" },
@@ -94,6 +99,7 @@ const slashCommands: SlashCommand[] = [
   { id: "bulleted", label: "Bulleted list", description: "Bullet item.", aliases: ["bullet", "list"], group: "basic", symbol: "-", trigger: "-" },
   { id: "numbered", label: "Numbered list", description: "Numbered item.", aliases: ["numbered", "ordered", "ol"], group: "basic", symbol: "1.", trigger: "1." },
   { id: "toggle", label: "Toggle list", description: "Collapsible list item.", aliases: ["toggle", "collapsible"], group: "basic", symbol: ">", trigger: ">" },
+  { id: "table", label: "Table", description: "Simple table.", aliases: ["table", "grid", "simple table"], group: "basic", symbol: "▦", trigger: "/table" },
   { id: "todo", label: "To-do list", description: "Checkbox task.", aliases: ["todo", "task", "checkbox"], group: "basic", symbol: "[]", trigger: "[]" },
   { id: "file", label: "File", description: "Upload or embed a file.", aliases: ["file", "files", "upload"], group: "media", symbol: "F", trigger: "/file" },
   { id: "image", label: "Image", description: "Upload or link an image.", aliases: ["image", "photo", "img"], group: "media", symbol: "I", trigger: "/image" },
@@ -111,11 +117,35 @@ const isImageMime = (mimeType?: string) => Boolean(mimeType && mimeType.toLowerC
 const isListBlockType = (type: BlockType) => type === "todo" || type === "bulleted" || type === "numbered" || type === "toggle";
 const inlineFormattingPattern = /\[[^\]]+\]\((https?:\/\/[^\s)]+)\)|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|@[\w.-]+/;
 const hasInlineFormatting = (value: string) => inlineFormattingPattern.test(value);
+const createDefaultTableData = (rows = DEFAULT_TABLE_ROWS, columns = DEFAULT_TABLE_COLUMNS): PageTableData => ({
+  rows,
+  columns,
+  cells: Array.from({ length: rows }, () => Array.from({ length: columns }, () => "")),
+});
+const tableHeightFor = (rows: number) => Math.max(136, TABLE_CONTROLS_HEIGHT + rows * TABLE_ROW_HEIGHT);
+const ensureTableData = (table: PageTableData | undefined): PageTableData => {
+  if (!table) {
+    return createDefaultTableData();
+  }
+  const rows = Math.max(1, Math.floor(table.rows || DEFAULT_TABLE_ROWS));
+  const columns = Math.max(1, Math.floor(table.columns || DEFAULT_TABLE_COLUMNS));
+  const cells = Array.from({ length: rows }, (_, rowIndex) =>
+    Array.from({ length: columns }, (_, columnIndex) => table.cells?.[rowIndex]?.[columnIndex] ?? ""),
+  );
+  return {
+    rows,
+    columns,
+    cells,
+    headerRow: table.headerRow ?? false,
+    headerColumn: table.headerColumn ?? false,
+  };
+};
 
 const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   if (type === "todo") return { id: idFor(), type, content: "", checked: false, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "numbered") return { id: idFor(), type, content: "", numberedFormat: DEFAULT_NUMBERED_FORMAT, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "toggle") return { id: idFor(), type, content: "", expanded: true, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
+  if (type === "table") return { id: idFor(), type, content: "", table: createDefaultTableData(), x, y, w: DOC_WIDTH, h: tableHeightFor(DEFAULT_TABLE_ROWS) };
   if (type === "divider") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 18 };
   if (type === "h1") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 60 };
   if (type === "h2") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 52 };
@@ -960,16 +990,19 @@ export function PageEditor() {
     setBlocks((previous) =>
       previous.map((block) => {
         if (block.id !== blockId || block.type === "file") return block;
-        const nextContent = nextType === "divider" ? "" : block.content;
+        const nextContent = nextType === "divider" || nextType === "table" ? "" : block.content;
+        const nextTable = nextType === "table" ? ensureTableData(block.table) : undefined;
         return {
           ...block,
           type: nextType,
           content: nextContent,
+          h: nextType === "table" ? tableHeightFor(nextTable?.rows ?? DEFAULT_TABLE_ROWS) : block.h,
           checked: nextType === "todo" ? false : undefined,
           expanded: nextType === "toggle" ? block.expanded ?? true : undefined,
           indent: isListBlockType(nextType) ? block.indent : undefined,
           numberedFormat: nextType === "numbered" ? block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT : undefined,
           numberedStart: nextType === "numbered" ? block.numberedStart : undefined,
+          table: nextTable,
           richText: parseRichText(nextContent),
           textColor: nextType === "quote" ? block.textColor : undefined,
           backgroundColor: nextType === "quote" ? block.backgroundColor : undefined,
@@ -1570,6 +1603,7 @@ export function PageEditor() {
       }
 
       if (!hasBefore && !hasAfter) {
+        const nextTable = commandId === "table" ? createDefaultTableData() : undefined;
         updateBlock(block.id, {
           type: commandId,
           content: "",
@@ -1578,6 +1612,8 @@ export function PageEditor() {
           indent: isListBlockType(commandId) ? block.indent : undefined,
           numberedFormat: commandId === "numbered" ? block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT : undefined,
           numberedStart: commandId === "numbered" ? block.numberedStart : undefined,
+          table: nextTable,
+          h: commandId === "table" ? tableHeightFor(nextTable?.rows ?? DEFAULT_TABLE_ROWS) : block.h,
           w: DOC_WIDTH,
         });
         setMenu(null);
@@ -1607,6 +1643,10 @@ export function PageEditor() {
         if (commandId === "numbered") {
           inserted.numberedFormat = block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT;
           inserted.numberedStart = undefined;
+        }
+        if (commandId === "table") {
+          inserted.table = createDefaultTableData();
+          inserted.h = tableHeightFor(inserted.table.rows);
         }
         inserted.richText = parseRichText(inserted.content);
         insertedId = inserted.id;
@@ -2239,6 +2279,92 @@ export function PageEditor() {
     updateBlock(blockId, { content: caption.trim() });
   }, [blocks, updateBlock]);
 
+  const focusTableCell = useCallback((blockId: string, row: number, column: number) => {
+    requestAnimationFrame(() => {
+      const target = document.querySelector<HTMLInputElement>(`[data-table-cell="${blockId}:${row}:${column}"]`);
+      if (!target) return;
+      target.focus();
+      const end = target.value.length;
+      target.setSelectionRange(end, end);
+    });
+  }, []);
+
+  const updateTableCell = useCallback((blockId: string, row: number, column: number, value: string) => {
+    setBlocks((previous) =>
+      previous.map((block) => {
+        if (block.id !== blockId || block.type !== "table") {
+          return block;
+        }
+        const table = ensureTableData(block.table);
+        const nextCells = table.cells.map((entry) => [...entry]);
+        if (!nextCells[row]) {
+          return block;
+        }
+        nextCells[row]![column] = value;
+        return {
+          ...block,
+          table: {
+            ...table,
+            cells: nextCells,
+          },
+        };
+      }),
+    );
+  }, []);
+
+  const appendTableRow = useCallback((blockId: string) => {
+    setBlocks((previous) =>
+      previous.map((block) => {
+        if (block.id !== blockId || block.type !== "table") {
+          return block;
+        }
+        const table = ensureTableData(block.table);
+        const nextRows = table.rows + 1;
+        const nextCells = [...table.cells.map((entry) => [...entry]), Array.from({ length: table.columns }, () => "")];
+        return {
+          ...block,
+          table: { ...table, rows: nextRows, cells: nextCells },
+          h: tableHeightFor(nextRows),
+        };
+      }),
+    );
+  }, []);
+
+  const appendTableColumn = useCallback((blockId: string) => {
+    setBlocks((previous) =>
+      previous.map((block) => {
+        if (block.id !== blockId || block.type !== "table") {
+          return block;
+        }
+        const table = ensureTableData(block.table);
+        const nextColumns = table.columns + 1;
+        const nextCells = table.cells.map((entry) => [...entry, ""]);
+        return {
+          ...block,
+          table: { ...table, columns: nextColumns, cells: nextCells },
+        };
+      }),
+    );
+  }, []);
+
+  const toggleTableHeader = useCallback((blockId: string, key: "headerRow" | "headerColumn") => {
+    setBlocks((previous) =>
+      previous.map((block) => {
+        if (block.id !== blockId || block.type !== "table") {
+          return block;
+        }
+        const table = ensureTableData(block.table);
+        return {
+          ...block,
+          table: {
+            ...table,
+            [key]: !table[key],
+          },
+        };
+      }),
+    );
+  }, []);
+
   const handleWheel = useCallback(
     (event: React.WheelEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -2370,6 +2496,108 @@ export function PageEditor() {
             {hasInlineFormatting(block.content) && editingTextBlockId !== block.id && (
               <div className="mt-1 text-[0.95rem] leading-6 opacity-95">{renderRichText(block.richText)}</div>
             )}
+          </div>
+        </div>
+      );
+    }
+    if (block.type === "table") {
+      const table = ensureTableData(block.table);
+      return (
+        <div className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]/95">
+          <div className="flex flex-wrap items-center gap-1 border-b border-[var(--color-border)] px-2 py-1.5">
+            <button
+              type="button"
+              className="rounded px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
+              onClick={() => appendTableRow(block.id)}
+            >
+              + Row
+            </button>
+            <button
+              type="button"
+              className="rounded px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
+              onClick={() => appendTableColumn(block.id)}
+            >
+              + Column
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "rounded px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]",
+                table.headerRow ? "bg-[var(--color-accent-soft)] text-[var(--color-text)]" : "",
+              )}
+              onClick={() => toggleTableHeader(block.id, "headerRow")}
+            >
+              Header row
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "rounded px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]",
+                table.headerColumn ? "bg-[var(--color-accent-soft)] text-[var(--color-text)]" : "",
+              )}
+              onClick={() => toggleTableHeader(block.id, "headerColumn")}
+            >
+              Header column
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <div className="grid min-w-full" style={{ gridTemplateColumns: `repeat(${table.columns}, minmax(140px, 1fr))` }}>
+              {table.cells.map((row, rowIndex) =>
+                row.map((cell, columnIndex) => (
+                  <input
+                    key={`${block.id}-cell-${rowIndex}-${columnIndex}`}
+                    ref={rowIndex === 0 && columnIndex === 0 ? (attachInputRef as never) : undefined}
+                    data-table-cell={`${block.id}:${rowIndex}:${columnIndex}`}
+                    value={cell}
+                    onChange={(event) => updateTableCell(block.id, rowIndex, columnIndex, event.target.value)}
+                    onFocus={() => setEditingTextBlockId(block.id)}
+                    onBlur={() => setEditingTextBlockId((previous) => (previous === block.id ? null : previous))}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        if (rowIndex === table.rows - 1) {
+                          appendTableRow(block.id);
+                        }
+                        focusTableCell(block.id, Math.min(table.rows, rowIndex + 1), columnIndex);
+                        return;
+                      }
+                      if (event.key === "Tab") {
+                        event.preventDefault();
+                        const movingBackward = event.shiftKey;
+                        let nextRow = rowIndex;
+                        let nextColumn = columnIndex + (movingBackward ? -1 : 1);
+                        if (nextColumn >= table.columns) {
+                          nextColumn = 0;
+                          nextRow += 1;
+                        } else if (nextColumn < 0) {
+                          nextColumn = table.columns - 1;
+                          nextRow -= 1;
+                        }
+                        if (nextRow >= table.rows) {
+                          appendTableRow(block.id);
+                          nextRow = table.rows;
+                        } else if (nextRow < 0) {
+                          nextRow = 0;
+                          nextColumn = 0;
+                        }
+                        focusTableCell(block.id, nextRow, nextColumn);
+                        return;
+                      }
+                      if ((event.key === "Backspace" || event.key === "Delete") && cell.length === 0 && rowIndex === 0 && columnIndex === 0) {
+                        event.preventDefault();
+                        removeBlockAndFocusNeighbor(block.id);
+                      }
+                    }}
+                    placeholder={`Cell ${rowIndex + 1}, ${columnIndex + 1}`}
+                    className={cn(
+                      "h-10 border-b border-r border-[var(--color-border)] bg-transparent px-2.5 text-sm text-[var(--color-text)] outline-none focus:bg-[var(--color-surface-muted)]/60",
+                      table.headerRow && rowIndex === 0 ? "font-semibold" : "",
+                      table.headerColumn && columnIndex === 0 ? "font-semibold" : "",
+                    )}
+                  />
+                )),
+              )}
+            </div>
           </div>
         </div>
       );
