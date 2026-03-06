@@ -407,11 +407,14 @@ const potteryTemplateTitle = "Nyanga Pottery Programme: Separate Syllabi for For
 
 const buildPotteryTemplateBlocks = (startX: number, startY: number): PageBlock[] => {
   const blocks: PageBlock[] = [];
-  for (const cluster of potteryTemplateClusters) {
+  for (let clusterIndex = 0; clusterIndex < potteryTemplateClusters.length; clusterIndex += 1) {
+    const cluster = potteryTemplateClusters[clusterIndex]!;
     let y = startY + cluster.offsetY;
     const x = startX + cluster.offsetX;
-    for (const line of cluster.lines) {
+    for (let lineIndex = 0; lineIndex < cluster.lines.length; lineIndex += 1) {
+      const line = cluster.lines[lineIndex]!;
       const block = newBlock(line.type, x, y);
+      block.id = `tpl_${clusterIndex}_${lineIndex}`;
       if (line.type === "table" && line.table) {
         block.table = line.table;
         block.h = tableHeightFor(line.table.rows);
