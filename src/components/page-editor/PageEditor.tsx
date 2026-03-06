@@ -881,7 +881,6 @@ export function PageEditor() {
   const [availableDocIds, setAvailableDocIds] = useState<string[]>([]);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
-  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
   const [commentAuthorName, setCommentAuthorName] = useState("Bisvo");
   const [uploadIntent, setUploadIntent] = useState<FileInsertIntent>("file");
   const [fileInsert, setFileInsert] = useState<FileInsertState>({
@@ -924,49 +923,42 @@ export function PageEditor() {
   const saveDocSnapshot = useCallback(
     async (snapshot: Parameters<typeof savePageSnapshot>[0], targetDocId: string) => {
       await savePageSnapshot(snapshot, targetDocId);
-      if (!cloudSyncEnabled) {
-        return;
-      }
       try {
         await saveCloudPageSnapshot(targetDocId, snapshot);
       } catch {
         // Local persistence already succeeded.
       }
     },
-    [cloudSyncEnabled],
+    [],
   );
 
   const loadDocSnapshot = useCallback(
     async (targetDocId: string) => {
-      if (cloudSyncEnabled) {
-        try {
-          const cloudSnapshot = await loadCloudPageSnapshot(targetDocId);
-          if (cloudSnapshot) {
-            await savePageSnapshot(cloudSnapshot, targetDocId);
-          }
-        } catch {
-          // Fall back to local snapshot below.
+      try {
+        const cloudSnapshot = await loadCloudPageSnapshot(targetDocId);
+        if (cloudSnapshot) {
+          await savePageSnapshot(cloudSnapshot, targetDocId);
         }
+      } catch {
+        // Fall back to local snapshot below.
       }
       return loadPageSnapshot(targetDocId);
     },
-    [cloudSyncEnabled],
+    [],
   );
 
   const refreshAvailableDocIds = useCallback(async () => {
     const localIds = await listPageDocIds();
     let cloudIds: string[] = [];
-    if (cloudSyncEnabled) {
-      try {
-        cloudIds = await listCloudPageDocIds();
-      } catch {
-        cloudIds = [];
-      }
+    try {
+      cloudIds = await listCloudPageDocIds();
+    } catch {
+      cloudIds = [];
     }
 
     const combined = Array.from(new Set([...cloudIds, ...localIds]));
     setAvailableDocIds(combined.length ? combined : [defaultPageDocId]);
-  }, [cloudSyncEnabled]);
+  }, []);
 
   const filteredMenu = useMemo(() => {
     const query = menu?.query.trim().toLowerCase() ?? "";
@@ -1314,7 +1306,6 @@ export function PageEditor() {
     const supabase = createSupabaseBrowserClient();
     void (async () => {
       const { data } = await supabase.auth.getUser();
-      setCloudSyncEnabled(Boolean(data.user));
       const metadata = data.user?.user_metadata as Record<string, unknown> | undefined;
       const preferred =
         (typeof metadata?.preferred_name === "string" && metadata.preferred_name.trim()) ||
