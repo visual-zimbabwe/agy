@@ -2591,6 +2591,7 @@ export function PageEditor() {
       const created = newBlock(type, source.x, source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type)));
       if (initialContent) {
         created.content = initialContent;
+        created.richText = parseRichText(initialContent);
       }
       if (isListBlockType(type) && typeof source.indent === "number" && source.indent > 0) {
         created.indent = source.indent;
@@ -2808,7 +2809,7 @@ export function PageEditor() {
         return;
       }
 
-      if (event.key === "Enter" && !event.shiftKey && !menu && ["h1", "h2", "h3", "todo", "bulleted", "numbered", "toggle", "quote", "callout", "divider"].includes(block.type)) {
+      if (event.key === "Enter" && !event.shiftKey && !menu && ["text", "h1", "h2", "h3", "todo", "bulleted", "numbered", "toggle", "quote", "callout", "divider"].includes(block.type)) {
         event.preventDefault();
         if (block.type === "divider") {
           insertBlockBelow(block, "text");
@@ -2831,11 +2832,23 @@ export function PageEditor() {
           const before = block.content.slice(0, cursor);
           const after = block.content.slice(cursor);
           if (cursor > 0 && cursor < block.content.length) {
-            updateBlock(block.id, { content: before });
+            updateBlock(block.id, { content: before, richText: parseRichText(before) });
             insertBlockBelow(block, block.type, after);
             return;
           }
           insertBlockBelow(block, block.type, "");
+          return;
+        }
+        if (block.type === "text") {
+          const cursor = event.currentTarget.selectionStart ?? block.content.length;
+          const before = block.content.slice(0, cursor);
+          const after = block.content.slice(cursor);
+          if (cursor > 0 && cursor < block.content.length) {
+            updateBlock(block.id, { content: before, richText: parseRichText(before) });
+            insertBlockBelow(block, "text", after);
+            return;
+          }
+          insertBlockBelow(block, "text", "");
           return;
         }
         if (block.type === "quote") {
@@ -3413,11 +3426,25 @@ export function PageEditor() {
           autoSizeTextarea(block.id, event.target, minHeight);
         }
       },
+      onInput: (event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const target = event.currentTarget;
+        if (target instanceof HTMLTextAreaElement) {
+          const minHeight = block.type === "code" ? 92 : LINE_HEIGHT;
+          autoSizeTextarea(block.id, target, minHeight);
+        }
+      },
       onSelect: (event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         rememberSelection(block.id, event.currentTarget);
       },
       onFocus: () => setEditingTextBlockId(block.id),
-      onBlur: () => setEditingTextBlockId((previous) => (previous === block.id ? null : previous)),
+      onBlur: (event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setEditingTextBlockId((previous) => (previous === block.id ? null : previous));
+        const target = event.currentTarget;
+        if (target instanceof HTMLTextAreaElement) {
+          const minHeight = block.type === "code" ? 92 : LINE_HEIGHT;
+          autoSizeTextarea(block.id, target, minHeight);
+        }
+      },
       onKeyDown: (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => onBlockKeyDown(block, event),
       placeholder: 'Type "/" for commands',
     };
