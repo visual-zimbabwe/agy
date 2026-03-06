@@ -29,6 +29,7 @@ type QuickInsertMenuState = { open: boolean; blockId?: string; x: number; y: num
 type CanvasMenuState = { open: boolean; x: number; y: number; worldX: number; worldY: number };
 type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
 type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; moveToQuery: string; searchQuery: string };
+type CodeMenuState = { open: boolean; x: number; y: number; blockId?: string };
 type FileInsertIntent = "file" | "image" | "video" | "audio";
 type FileInsertMode = "upload" | "link";
 type FileInsertState = { open: boolean; intent: FileInsertIntent; mode: FileInsertMode; worldX: number; worldY: number; x: number; y: number; url: string; afterBlockId?: string };
@@ -563,6 +564,7 @@ export function PageEditor() {
   const [canvasMenu, setCanvasMenu] = useState<CanvasMenuState>({ open: false, x: 0, y: 0, worldX: 0, worldY: 0 });
   const [fileMenu, setFileMenu] = useState<FileMenuState>({ open: false, x: 0, y: 0 });
   const [blockMenu, setBlockMenu] = useState<BlockMenuState>({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
+  const [codeMenu, setCodeMenu] = useState<CodeMenuState>({ open: false, x: 0, y: 0 });
   const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
   const [editingTextBlockId, setEditingTextBlockId] = useState<string | null>(null);
   const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);
@@ -969,6 +971,31 @@ export function PageEditor() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [commentPanel.open]);
+
+  useEffect(() => {
+    if (!codeMenu.open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest("[data-code-menu]") || target.closest("[data-code-menu-trigger]")) {
+        return;
+      }
+      setCodeMenu((previous) => ({ ...previous, open: false }));
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [codeMenu.open]);
+
+  useEffect(() => {
+    if (!codeMenu.open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setCodeMenu((previous) => ({ ...previous, open: false }));
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [codeMenu.open]);
 
   const updateBlock = useCallback((blockId: string, patch: Partial<PageBlock>) => {
     setBlocks((previous) => previous.map((block) => (block.id === blockId ? { ...block, ...patch } : block)));
@@ -2760,50 +2787,54 @@ export function PageEditor() {
     if (block.type === "code") {
       const codeConfig = { ...createDefaultCodeData(), ...(block.code ?? {}) };
       return (
-        <div className="group/code w-full rounded-md border border-[var(--color-border)] bg-[#f7f7f5]">
-          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-2 py-1.5">
-            <div className="flex items-center gap-1.5">
-              <select
-                value={codeConfig.language}
-                onChange={(event) => updateCodeBlock(block.id, { language: event.target.value })}
-                onFocus={() => setEditingTextBlockId(block.id)}
-                className="rounded border border-transparent bg-transparent px-1.5 py-0.5 text-xs text-[var(--color-text-muted)] outline-none hover:border-[var(--color-border)] focus:border-[var(--color-border)]"
-              >
-                {CODE_LANGUAGES.map((language) => (
-                  <option key={language} value={language}>
-                    {language}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className={cn(
-                  "rounded px-1.5 py-0.5 text-xs",
-                  codeConfig.wrap ? "bg-[var(--color-accent-soft)] text-[var(--color-text)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)]",
-                )}
-                onClick={() => updateCodeBlock(block.id, { wrap: !codeConfig.wrap })}
-              >
-                Wrap
-              </button>
-            </div>
-            <div className="flex items-center gap-1 opacity-0 transition group-hover/code:opacity-100 group-focus-within/code:opacity-100">
-              <button
-                type="button"
-                className="rounded px-1.5 py-0.5 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
-                onClick={() => {
-                  void copyCodeBlock(block.id);
-                }}
-              >
-                Copy
-              </button>
-              <button
-                type="button"
-                className="rounded px-1.5 py-0.5 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
-                onClick={() => editCodeCaption(block.id)}
-              >
-                Caption
-              </button>
-            </div>
+        <div className="group/code relative w-full rounded-md border border-[var(--color-border)] bg-[#f7f7f5]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-10 border-b border-[var(--color-border)]/85" />
+          <div className="absolute right-2 top-1.5 z-[2] flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+            <select
+              value={codeConfig.language}
+              onChange={(event) => updateCodeBlock(block.id, { language: event.target.value })}
+              onFocus={() => setEditingTextBlockId(block.id)}
+              className="h-7 rounded-l-md border-r border-[var(--color-border)] bg-transparent px-2 text-xs text-[var(--color-text-muted)] outline-none"
+            >
+              {CODE_LANGUAGES.map((language) => (
+                <option key={language} value={language}>
+                  {language}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="inline-flex h-7 w-7 items-center justify-center text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
+              aria-label="Copy code"
+              onClick={() => {
+                void copyCodeBlock(block.id);
+              }}
+            >
+              ⧉
+            </button>
+            <button
+              type="button"
+              data-code-menu-trigger="true"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-r-md border-l border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
+              aria-label="Code options"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const isSame = codeMenu.open && codeMenu.blockId === block.id;
+                setCodeMenu(
+                  isSame
+                    ? { open: false, x: 0, y: 0 }
+                    : {
+                        open: true,
+                        blockId: block.id,
+                        x: event.clientX,
+                        y: event.clientY + 6,
+                      },
+                );
+              }}
+            >
+              …
+            </button>
           </div>
           <textarea
             ref={attachInputRef as never}
@@ -2811,7 +2842,7 @@ export function PageEditor() {
             rows={3}
             wrap={codeConfig.wrap ? "soft" : "off"}
             className={cn(
-              "w-full resize-none bg-transparent px-2.5 py-2 font-mono text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65",
+              "w-full resize-none bg-transparent px-4 pb-3 pt-12 font-mono text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65",
               codeConfig.wrap ? "" : "overflow-x-auto",
             )}
             style={{ whiteSpace: codeConfig.wrap ? "pre-wrap" : "pre" }}
@@ -2833,6 +2864,7 @@ export function PageEditor() {
 
   const menuBlock = menu ? blocks.find((block) => block.id === menu.blockId) : undefined;
   const commentTargetBlock = commentPanel.blockId ? blocks.find((block) => block.id === commentPanel.blockId) : undefined;
+  const codeMenuBlock = codeMenu.blockId ? blocks.find((block) => block.id === codeMenu.blockId) : undefined;
   const hiddenBlockIds = useMemo(() => {
     const hidden = new Set<string>();
     const collapsedIndentStack: number[] = [];
@@ -3267,6 +3299,39 @@ export function PageEditor() {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {codeMenu.open && codeMenu.blockId && codeMenuBlock?.type === "code" && (
+          <div
+            data-code-menu="true"
+            className="fixed z-[55] min-w-44 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-1.5 shadow-[var(--shadow-lg)]"
+            style={{
+              left: clamp(codeMenu.x, 8, Math.max(8, viewport.w - 220)),
+              top: clamp(codeMenu.y, 8, Math.max(8, viewport.h - 160)),
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => {
+                updateCodeBlock(codeMenu.blockId!, { wrap: !(codeMenuBlock.code?.wrap ?? false) });
+                setCodeMenu((previous) => ({ ...previous, open: false }));
+              }}
+            >
+              {(codeMenuBlock.code?.wrap ?? false) ? "Disable wrap code" : "Enable wrap code"}
+            </button>
+            <button
+              type="button"
+              className="mt-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+              onClick={() => {
+                editCodeCaption(codeMenu.blockId!);
+                setCodeMenu((previous) => ({ ...previous, open: false }));
+              }}
+            >
+              Caption
+            </button>
           </div>
         )}
 
