@@ -2788,7 +2788,6 @@ export function PageEditor() {
       const codeConfig = { ...createDefaultCodeData(), ...(block.code ?? {}) };
       return (
         <div className="group/code relative w-full rounded-md border border-[var(--color-border)] bg-[#f7f7f5]">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-10 border-b border-[var(--color-border)]/85" />
           <div className="absolute right-2 top-1.5 z-[2] flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
             <select
               value={codeConfig.language}
@@ -2842,7 +2841,7 @@ export function PageEditor() {
             rows={3}
             wrap={codeConfig.wrap ? "soft" : "off"}
             className={cn(
-              "w-full resize-none bg-transparent px-4 pb-3 pt-12 font-mono text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65",
+              "w-full resize-none bg-transparent px-4 pb-2 pt-10 font-mono text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65",
               codeConfig.wrap ? "" : "overflow-x-auto",
             )}
             style={{ whiteSpace: codeConfig.wrap ? "pre-wrap" : "pre" }}
