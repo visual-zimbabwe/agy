@@ -578,6 +578,87 @@ const UploadEmbedGhostIcon = () => (
 );
 
 const SlashCommandIcon = ({ id }: { id: SlashCommandId }) => {
+  if (id === "text") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="M5 5h10M10 5v10" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (id === "h1" || id === "h2" || id === "h3") {
+    const label = id.toUpperCase();
+    return <span className="text-[13px] font-medium leading-none text-[#4f4f4f]">{label[0]}{label[1]}</span>;
+  }
+  if (id === "bulleted") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <circle cx="4.2" cy="5.8" r="1.2" fill="currentColor" />
+        <circle cx="4.2" cy="10" r="1.2" fill="currentColor" />
+        <circle cx="4.2" cy="14.2" r="1.2" fill="currentColor" />
+        <path d="M7 5.8h8M7 10h8M7 14.2h8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (id === "numbered") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="M3.4 6h2M3.4 10h2M3.4 14h2M7.2 6h8M7.2 10h8M7.2 14h8" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (id === "todo") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <rect x="2.8" y="3.2" width="4.4" height="4.4" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <rect x="2.8" y="8" width="4.4" height="4.4" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <path d="m3.8 10.2 1.1 1.1 1.8-2.1M8.8 5.4h8M8.8 10.2h8" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (id === "toggle") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="m3.4 5.8 2.2 2.1-2.2 2.1M7.6 5.8h8M7.6 10h8M3.4 14.2h12.2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (id === "table") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <rect x="3.2" y="4" width="13.6" height="12" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M3.2 8h13.6M3.2 12h13.6M8 4v12M12.8 4v12" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      </svg>
+    );
+  }
+  if (id === "quote") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="M4.2 6.2h4v4h-4zM11.8 6.2h4v4h-4z" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M4.4 12.5c2 0 3.4-1.1 3.6-2.6M12 12.5c2 0 3.4-1.1 3.6-2.6" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (id === "divider") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="M3.5 10h13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (id === "callout") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="M10 3.8a4.4 4.4 0 0 1 2.9 7.7v2.7h-5.8v-2.7A4.4 4.4 0 0 1 10 3.8Zm-2 11.6h4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (id === "page") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="M5.2 3.5h7.6l2 2v11H5.2z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      </svg>
+    );
+  }
   if (id === "image") {
     return (
       <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
