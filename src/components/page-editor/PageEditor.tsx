@@ -350,14 +350,32 @@ const potteryTemplateLines: Array<{ type: BlockType; content: string }> = [
   { type: "text", content: "Legacy heading retained for compatibility. See Section 8 above for the full assessment architecture." },
 ];
 
-const createEmptyPage = (): PageBlock[] => {
-  let y = 120;
+const potteryTemplateTitle = "High School Pottery Syllabus (Forms 1-4)";
+
+const buildPotteryTemplateBlocks = (startX: number, startY: number): PageBlock[] => {
+  let y = startY;
   return potteryTemplateLines.map((line) => {
-    const block = newBlock(line.type, 120, y);
+    const block = newBlock(line.type, startX, y);
     block.content = line.content;
     y += Math.max(block.h + 12, LINE_HEIGHT + 10);
     return block;
   });
+};
+
+const createEmptyPage = (): PageBlock[] => buildPotteryTemplateBlocks(120, 120);
+
+const hasPotteryTemplate = (blocks: PageBlock[]) =>
+  blocks.some((block) => block.type === "h1" && block.content.trim() === potteryTemplateTitle);
+
+const appendPotteryTemplateOnCanvas = (blocks: PageBlock[]): PageBlock[] => {
+  if (hasPotteryTemplate(blocks)) {
+    return blocks;
+  }
+  const maxRight = blocks.reduce((max, block) => Math.max(max, block.x + Math.max(block.w || DOC_WIDTH, 0)), 120);
+  const minY = blocks.reduce((min, block) => Math.min(min, block.y), 120);
+  const startX = Math.max(120, maxRight + 320);
+  const startY = Math.max(120, minY);
+  return [...blocks, ...buildPotteryTemplateBlocks(startX, startY)];
 };
 
 const isPlaceholderPage = (blocks: PageBlock[] | undefined): boolean =>
@@ -1477,7 +1495,10 @@ export function PageEditor() {
         const snapshot = await loadDocSnapshot(docId);
         if (cancelled) return;
         hasLoadedRef.current = true;
-        setBlocks(snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks) ? snapshot.blocks : createEmptyPage());
+        const initialBlocks =
+          snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks) ? snapshot.blocks : createEmptyPage();
+        const withCurriculum = appendPotteryTemplateOnCanvas(withListHierarchy(initialBlocks));
+        setBlocks(withCurriculum);
         if (snapshot?.camera) setCamera(snapshot.camera);
         else setCamera({ x: 0, y: 0, zoom: 1 });
       } catch {
