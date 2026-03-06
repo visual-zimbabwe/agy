@@ -1259,6 +1259,7 @@ export function PageEditor() {
   const panRef = useRef<{ startX: number; startY: number; cameraX: number; cameraY: number; moved: boolean } | null>(null);
   const handlePointerRef = useRef<{ startX: number; startY: number; moved: boolean; blockIds: string[]; blockId: string } | null>(null);
   const hasLoadedRef = useRef(false);
+  const loadedNonEmptyRef = useRef(false);
   const saverRef = useRef(createPageSnapshotSaver(260, docId));
 
   const saveDocSnapshot = useCallback(
@@ -1707,20 +1708,23 @@ export function PageEditor() {
     let cancelled = false;
     const saver = saverRef.current;
     hasLoadedRef.current = false;
+    loadedNonEmptyRef.current = false;
     void (async () => {
       try {
         const snapshot = await loadDocSnapshot(docId);
         if (cancelled) return;
-        hasLoadedRef.current = true;
         const initialBlocks =
           snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks) ? snapshot.blocks : createEmptyPage();
         const withCurriculum = appendPotteryTemplateOnCanvas(withListHierarchy(initialBlocks));
         const migrated = migrateDuplicateTemplateIds(
           migrateOverlappingPotteryTemplate(migrateCompactPotteryTemplate(migrateLegacyPotteryTemplate(withCurriculum))),
         );
-        setBlocks(migrated);
+        const safeBlocks = migrated.length ? migrated : createEmptyPage();
+        setBlocks(safeBlocks);
         if (snapshot?.camera) setCamera(snapshot.camera);
         else setCamera({ x: 0, y: 0, zoom: 1 });
+        loadedNonEmptyRef.current = safeBlocks.length > 0;
+        hasLoadedRef.current = true;
       } catch {
         hasLoadedRef.current = true;
       }
@@ -1761,6 +1765,7 @@ export function PageEditor() {
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
+    if (blocks.length === 0 && loadedNonEmptyRef.current) return;
     saverRef.current.schedule({ blocks, camera, updatedAt: Date.now() });
   }, [blocks, camera]);
 
