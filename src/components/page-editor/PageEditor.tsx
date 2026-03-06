@@ -2787,7 +2787,7 @@ export function PageEditor() {
     if (block.type === "code") {
       const codeConfig = { ...createDefaultCodeData(), ...(block.code ?? {}) };
       return (
-        <div className="group/code relative w-full rounded-md border border-[var(--color-border)] bg-[#f7f7f5]">
+        <div className="group/code relative w-full rounded-md bg-[#f7f7f5]">
           <div className="absolute right-2 top-1.5 z-[2] flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
             <select
               value={codeConfig.language}
@@ -2846,7 +2846,7 @@ export function PageEditor() {
             )}
             style={{ whiteSpace: codeConfig.wrap ? "pre-wrap" : "pre" }}
           />
-          {codeConfig.caption ? <p className="border-t border-[var(--color-border)] px-2.5 py-1.5 text-xs text-[var(--color-text-muted)]">{codeConfig.caption}</p> : null}
+          {codeConfig.caption ? <p className="px-2.5 py-1.5 text-xs text-[var(--color-text-muted)]">{codeConfig.caption}</p> : null}
         </div>
       );
     }
