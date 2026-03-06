@@ -2788,12 +2788,12 @@ export function PageEditor() {
       const codeConfig = { ...createDefaultCodeData(), ...(block.code ?? {}) };
       return (
         <div className="group/code relative w-full rounded-md bg-[#f7f7f5]">
-          <div className="absolute right-2 top-1.5 z-[2] flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+          <div className="absolute right-2 top-1.5 z-[2] flex items-center rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
             <select
               value={codeConfig.language}
               onChange={(event) => updateCodeBlock(block.id, { language: event.target.value })}
               onFocus={() => setEditingTextBlockId(block.id)}
-              className="h-7 rounded-l-md border-r border-[var(--color-border)] bg-transparent px-2 text-xs text-[var(--color-text-muted)] outline-none"
+              className="h-7 rounded-l-md bg-transparent px-2 text-xs text-[var(--color-text-muted)] outline-none"
             >
               {CODE_LANGUAGES.map((language) => (
                 <option key={language} value={language}>
@@ -2814,7 +2814,7 @@ export function PageEditor() {
             <button
               type="button"
               data-code-menu-trigger="true"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-r-md border-l border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-r-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
               aria-label="Code options"
               onClick={(event) => {
                 event.preventDefault();
