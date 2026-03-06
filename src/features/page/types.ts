@@ -62,6 +62,12 @@ export type PageTableData = {
   headerColumn?: boolean;
 };
 
+export type PageCodeData = {
+  language?: string;
+  wrap?: boolean;
+  caption?: string;
+};
+
 export type PageBlock = {
   id: string;
   type: BlockType;
@@ -81,6 +87,7 @@ export type PageBlock = {
   checked?: boolean;
   expanded?: boolean;
   table?: PageTableData;
+  code?: PageCodeData;
   comments?: PageBlockComment[];
   file?: PageFileMeta;
 };

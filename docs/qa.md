@@ -89,6 +89,10 @@
 86. Type `/table` and press `Enter`; verify a simple table block appears with editable cells.
 87. In a table block, click `+ Row` and `+ Column`; verify row/column counts increase and new cells are editable.
 88. In a table block, toggle `Header row` and `Header column`; verify first row/column switches to emphasized header styling.
+89. Type `/code` and press `Enter`; verify a code block appears with language selector and `Wrap` toggle.
+90. In code block hover controls, click `Copy`; verify block content is copied to clipboard.
+91. In code block hover controls, click `Caption`, enter text, and verify caption appears under the code area and persists after refresh.
+92. In code block, disable wrap, enter a long line, and verify horizontal scrolling; enable wrap and verify long line wraps within block width.
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
@@ -98,6 +102,7 @@ Expected:
 - Numbered lists support markdown (`1. `), slash conversion, and caret-based split-on-enter behavior.
 - Numbered lists support markdown markers (`1.`, `a.`, `i.`), keyboard shortcut conversion (`Cmd/Ctrl + Shift/Option + 6`), list format switching, and custom start index.
 - `/table` creates a simple table block (non-database) with editable cells plus row/column and header toggles.
+- `/code` creates a code block with language selection, wrap toggle, and hover actions for copy/caption.
 - Toggle lists support slash/markdown/keyboard creation, collapse/expand shortcuts, and descendant visibility persistence.
 - Divider blocks support slash (`/div`/`/divider`) and markdown (`--- `) creation, and remain fixed to document block width on the infinite canvas.
 - Slash command menu is visually compact and symbol-driven; command popup stays in viewport with reduced canvas obstruction.

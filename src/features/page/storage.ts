@@ -101,6 +101,15 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
           };
         })()
       : undefined;
+  const codeValue = value.code;
+  const code =
+    isRecord(codeValue)
+      ? {
+          language: typeof codeValue.language === "string" && codeValue.language.trim().length > 0 ? codeValue.language.trim() : undefined,
+          wrap: typeof codeValue.wrap === "boolean" ? codeValue.wrap : undefined,
+          caption: typeof codeValue.caption === "string" ? codeValue.caption : undefined,
+        }
+      : undefined;
   const richText = Array.isArray(value.richText)
     ? value.richText
         .filter((entry): entry is { text: string; marks?: string[]; href?: string; mention?: string } => isRecord(entry) && typeof entry.text === "string")
@@ -163,6 +172,7 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
     checked,
     expanded,
     table,
+    code,
     comments,
     file,
   };

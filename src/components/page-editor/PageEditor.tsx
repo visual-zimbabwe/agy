@@ -17,7 +17,7 @@ import {
 } from "react";
 
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
-import type { BlockType, PageBlock, PageNumberedFormat, PageTableData } from "@/features/page/types";
+import type { BlockType, PageBlock, PageCodeData, PageNumberedFormat, PageTableData } from "@/features/page/types";
 import { cn } from "@/lib/cn";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -75,6 +75,21 @@ const QUOTE_BACKGROUND_COLORS = [
   { id: "rose", label: "Rose", value: "#fff1f2" },
 ];
 
+const CODE_LANGUAGES = [
+  "Plain Text",
+  "JavaScript",
+  "TypeScript",
+  "TSX",
+  "JSX",
+  "JSON",
+  "HTML",
+  "CSS",
+  "SQL",
+  "Python",
+  "Bash",
+  "Markdown",
+] as const;
+
 const TURN_INTO_TYPES: Array<{ type: BlockType; label: string }> = [
   { type: "text", label: "Text" },
   { type: "h1", label: "Heading 1" },
@@ -108,7 +123,7 @@ const slashCommands: SlashCommand[] = [
   { id: "quote", label: "Quote", description: "Quoted text.", aliases: ["quote", "citation"], group: "basic", symbol: "\"", trigger: "" },
   { id: "divider", label: "Divider", description: "Horizontal separator.", aliases: ["divider", "div", "hr", "line"], group: "basic", symbol: "---", trigger: "---" },
   { id: "callout", label: "Callout", description: "Highlighted block.", aliases: ["callout", "note"], group: "basic", symbol: "!", trigger: "" },
-  { id: "code", label: "Code", description: "Code snippet.", aliases: ["code", "snippet"], group: "basic", symbol: "</>", trigger: "" },
+  { id: "code", label: "Code", description: "Code snippet.", aliases: ["code", "snippet"], group: "basic", symbol: "</>", trigger: "/code" },
 ];
 
 const idFor = () => `blk_${Math.random().toString(36).slice(2, 10)}`;
@@ -121,6 +136,11 @@ const createDefaultTableData = (rows = DEFAULT_TABLE_ROWS, columns = DEFAULT_TAB
   rows,
   columns,
   cells: Array.from({ length: rows }, () => Array.from({ length: columns }, () => "")),
+});
+const createDefaultCodeData = (): PageCodeData => ({
+  language: "Plain Text",
+  wrap: false,
+  caption: "",
 });
 const tableHeightFor = (rows: number) => Math.max(136, TABLE_CONTROLS_HEIGHT + rows * TABLE_ROW_HEIGHT);
 const ensureTableData = (table: PageTableData | undefined): PageTableData => {
@@ -150,7 +170,7 @@ const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   if (type === "h1") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 60 };
   if (type === "h2") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 52 };
   if (type === "h3") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 44 };
-  if (type === "code") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 110 };
+  if (type === "code") return { id: idFor(), type, content: "", code: createDefaultCodeData(), x, y, w: DOC_WIDTH, h: 110 };
   if (type === "quote") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 64 };
   if (type === "callout") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 64 };
   return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
@@ -992,6 +1012,7 @@ export function PageEditor() {
         if (block.id !== blockId || block.type === "file") return block;
         const nextContent = nextType === "divider" || nextType === "table" ? "" : block.content;
         const nextTable = nextType === "table" ? ensureTableData(block.table) : undefined;
+        const nextCode = nextType === "code" ? { ...createDefaultCodeData(), ...(block.code ?? {}) } : undefined;
         return {
           ...block,
           type: nextType,
@@ -1003,6 +1024,7 @@ export function PageEditor() {
           numberedFormat: nextType === "numbered" ? block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT : undefined,
           numberedStart: nextType === "numbered" ? block.numberedStart : undefined,
           table: nextTable,
+          code: nextCode,
           richText: parseRichText(nextContent),
           textColor: nextType === "quote" ? block.textColor : undefined,
           backgroundColor: nextType === "quote" ? block.backgroundColor : undefined,
@@ -1455,6 +1477,12 @@ export function PageEditor() {
     (blockId: string, event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const value = event.target.value;
       const cursor = event.target.selectionStart ?? value.length;
+      const block = blocks.find((entry) => entry.id === blockId);
+      if (block?.type === "code") {
+        updateBlock(blockId, { content: value });
+        setMenu((previous) => (previous?.blockId === blockId ? null : previous));
+        return;
+      }
       const quoteShortcut = value.slice(0, cursor).match(/(^|\n)"\s$/);
       if (quoteShortcut) {
         const markerStart = cursor - 2;
@@ -1552,7 +1580,7 @@ export function PageEditor() {
       setMenu({ blockId, query: slash.query, slashRange: { start: slash.start, end: slash.end }, anchorX, anchorY });
       setMenuIndex(0);
     },
-    [updateBlock],
+    [blocks, updateBlock],
   );
 
   const applySlashCommand = useCallback(
@@ -1604,6 +1632,7 @@ export function PageEditor() {
 
       if (!hasBefore && !hasAfter) {
         const nextTable = commandId === "table" ? createDefaultTableData() : undefined;
+        const nextCode = commandId === "code" ? createDefaultCodeData() : undefined;
         updateBlock(block.id, {
           type: commandId,
           content: "",
@@ -1613,6 +1642,7 @@ export function PageEditor() {
           numberedFormat: commandId === "numbered" ? block.numberedFormat ?? DEFAULT_NUMBERED_FORMAT : undefined,
           numberedStart: commandId === "numbered" ? block.numberedStart : undefined,
           table: nextTable,
+          code: nextCode,
           h: commandId === "table" ? tableHeightFor(nextTable?.rows ?? DEFAULT_TABLE_ROWS) : block.h,
           w: DOC_WIDTH,
         });
@@ -1647,6 +1677,9 @@ export function PageEditor() {
         if (commandId === "table") {
           inserted.table = createDefaultTableData();
           inserted.h = tableHeightFor(inserted.table.rows);
+        }
+        if (commandId === "code") {
+          inserted.code = createDefaultCodeData();
         }
         inserted.richText = parseRichText(inserted.content);
         insertedId = inserted.id;
@@ -2279,6 +2312,49 @@ export function PageEditor() {
     updateBlock(blockId, { content: caption.trim() });
   }, [blocks, updateBlock]);
 
+  const updateCodeBlock = useCallback((blockId: string, patch: Partial<PageCodeData>) => {
+    setBlocks((previous) =>
+      previous.map((block) => {
+        if (block.id !== blockId || block.type !== "code") {
+          return block;
+        }
+        return {
+          ...block,
+          code: {
+            ...createDefaultCodeData(),
+            ...(block.code ?? {}),
+            ...patch,
+          },
+        };
+      }),
+    );
+  }, []);
+
+  const copyCodeBlock = useCallback(
+    async (blockId: string) => {
+      const block = blocks.find((entry) => entry.id === blockId);
+      if (!block || block.type !== "code") return;
+      try {
+        await navigator.clipboard.writeText(block.content || "");
+      } catch {
+        window.alert("Unable to copy code.");
+      }
+    },
+    [blocks],
+  );
+
+  const editCodeCaption = useCallback(
+    (blockId: string) => {
+      const block = blocks.find((entry) => entry.id === blockId);
+      if (!block || block.type !== "code") return;
+      const currentCaption = block.code?.caption ?? "";
+      const nextCaption = window.prompt("Code caption", currentCaption);
+      if (nextCaption === null) return;
+      updateCodeBlock(blockId, { caption: nextCaption.trim() });
+    },
+    [blocks, updateCodeBlock],
+  );
+
   const focusTableCell = useCallback((blockId: string, row: number, column: number) => {
     requestAnimationFrame(() => {
       const target = document.querySelector<HTMLInputElement>(`[data-table-cell="${blockId}:${row}:${column}"]`);
@@ -2682,13 +2758,66 @@ export function PageEditor() {
       );
     }
     if (block.type === "code") {
+      const codeConfig = { ...createDefaultCodeData(), ...(block.code ?? {}) };
       return (
-        <textarea
-          ref={attachInputRef as never}
-          {...sharedProps}
-          rows={3}
-          className="w-full resize-none bg-transparent font-mono text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
-        />
+        <div className="group/code w-full rounded-md border border-[var(--color-border)] bg-[#f7f7f5]">
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-2 py-1.5">
+            <div className="flex items-center gap-1.5">
+              <select
+                value={codeConfig.language}
+                onChange={(event) => updateCodeBlock(block.id, { language: event.target.value })}
+                onFocus={() => setEditingTextBlockId(block.id)}
+                className="rounded border border-transparent bg-transparent px-1.5 py-0.5 text-xs text-[var(--color-text-muted)] outline-none hover:border-[var(--color-border)] focus:border-[var(--color-border)]"
+              >
+                {CODE_LANGUAGES.map((language) => (
+                  <option key={language} value={language}>
+                    {language}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className={cn(
+                  "rounded px-1.5 py-0.5 text-xs",
+                  codeConfig.wrap ? "bg-[var(--color-accent-soft)] text-[var(--color-text)]" : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)]",
+                )}
+                onClick={() => updateCodeBlock(block.id, { wrap: !codeConfig.wrap })}
+              >
+                Wrap
+              </button>
+            </div>
+            <div className="flex items-center gap-1 opacity-0 transition group-hover/code:opacity-100 group-focus-within/code:opacity-100">
+              <button
+                type="button"
+                className="rounded px-1.5 py-0.5 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
+                onClick={() => {
+                  void copyCodeBlock(block.id);
+                }}
+              >
+                Copy
+              </button>
+              <button
+                type="button"
+                className="rounded px-1.5 py-0.5 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
+                onClick={() => editCodeCaption(block.id)}
+              >
+                Caption
+              </button>
+            </div>
+          </div>
+          <textarea
+            ref={attachInputRef as never}
+            {...sharedProps}
+            rows={3}
+            wrap={codeConfig.wrap ? "soft" : "off"}
+            className={cn(
+              "w-full resize-none bg-transparent px-2.5 py-2 font-mono text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65",
+              codeConfig.wrap ? "" : "overflow-x-auto",
+            )}
+            style={{ whiteSpace: codeConfig.wrap ? "pre-wrap" : "pre" }}
+          />
+          {codeConfig.caption ? <p className="border-t border-[var(--color-border)] px-2.5 py-1.5 text-xs text-[var(--color-text-muted)]">{codeConfig.caption}</p> : null}
+        </div>
       );
     }
 
@@ -3623,6 +3752,44 @@ export function PageEditor() {
                       className="mt-1 w-full rounded border border-[#d7d7d7] bg-white px-2 py-1 text-xs outline-none"
                     />
                   </label>
+                </div>
+              </details>
+            )}
+            {blockMenuBlock.type === "code" && (
+              <details>
+                <summary className="mt-0.5 flex cursor-pointer list-none items-center justify-between rounded-md px-1.5 py-1.5 text-[1rem] hover:bg-[#ececec]">
+                  <span>Code options</span>
+                  <span className="text-[#8b8b8b]">{">"}</span>
+                </summary>
+                <div className="space-y-2 px-1 pb-1">
+                  <label className="block text-xs text-[#6f6f6f]">
+                    Language
+                    <select
+                      value={blockMenuBlock.code?.language ?? "Plain Text"}
+                      onChange={(event) => updateCodeBlock(blockMenu.blockId!, { language: event.target.value })}
+                      className="mt-1 w-full rounded border border-[#d7d7d7] bg-white px-2 py-1 text-xs outline-none"
+                    >
+                      {CODE_LANGUAGES.map((language) => (
+                        <option key={language} value={language}>
+                          {language}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="w-full rounded border border-[#d7d7d7] bg-white px-2 py-1 text-left text-xs text-[#444] hover:bg-[#efefef]"
+                    onClick={() => updateCodeBlock(blockMenu.blockId!, { wrap: !(blockMenuBlock.code?.wrap ?? false) })}
+                  >
+                    {(blockMenuBlock.code?.wrap ?? false) ? "Disable wrap code" : "Enable wrap code"}
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded border border-[#d7d7d7] bg-white px-2 py-1 text-left text-xs text-[#444] hover:bg-[#efefef]"
+                    onClick={() => editCodeCaption(blockMenu.blockId!)}
+                  >
+                    Edit caption
+                  </button>
                 </div>
               </details>
             )}
