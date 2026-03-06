@@ -1026,6 +1026,21 @@ const normalizeCameraState = (camera: { x: number; y: number; zoom: number } | n
   const safeY = clamp(camera.y, -20000, 20000);
   return { x: safeX, y: safeY, zoom: safeZoom };
 };
+const hasVisibleBlockInViewport = (blocks: PageBlock[], camera: { x: number; y: number; zoom: number }, viewport: { w: number; h: number }) =>
+  blocks.some((block) => {
+    const left = block.x * camera.zoom + camera.x;
+    const top = block.y * camera.zoom + camera.y;
+    const width = Math.max(40, (block.w || DOC_WIDTH) * camera.zoom);
+    const height = Math.max(24, block.h * camera.zoom);
+    return left + width >= 0 && left <= viewport.w && top + height >= 0 && top <= viewport.h;
+  });
+
+const cameraForBlocks = (blocks: PageBlock[]) => {
+  if (!blocks.length) return { x: 0, y: 0, zoom: 1 };
+  const minX = Math.min(...blocks.map((block) => block.x));
+  const minY = Math.min(...blocks.map((block) => block.y));
+  return { x: 120 - minX, y: 120 - minY, zoom: 1 };
+};
 
 const relativeTimeLabel = (createdAt: number) => {
   const diff = Math.max(0, Date.now() - createdAt);
@@ -1732,7 +1747,9 @@ export function PageEditor() {
         setBlocks(safeBlocks);
         lastNonEmptyBlocksRef.current = safeBlocks;
         const hasUsableSnapshotBlocks = Boolean(snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks));
-        setCamera(hasUsableSnapshotBlocks ? normalizeCameraState(snapshot?.camera ?? null) : { x: 0, y: 0, zoom: 1 });
+        const candidateCamera = hasUsableSnapshotBlocks ? normalizeCameraState(snapshot?.camera ?? null) : { x: 0, y: 0, zoom: 1 };
+        const nextCamera = hasVisibleBlockInViewport(safeBlocks, candidateCamera, viewport) ? candidateCamera : cameraForBlocks(safeBlocks);
+        setCamera(nextCamera);
         loadedNonEmptyRef.current = safeBlocks.length > 0;
         hasLoadedRef.current = true;
       } catch {
@@ -1743,7 +1760,7 @@ export function PageEditor() {
       cancelled = true;
       void saver.flush();
     };
-  }, [docId, loadDocSnapshot]);
+  }, [docId, loadDocSnapshot, viewport]);
 
   useEffect(() => {
     setBlocks((previous) => {
