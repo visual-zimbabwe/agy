@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
+import { listCloudPageDocIds, loadCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
 import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageEmbedData, PageNumberedFormat, PageTableData } from "@/features/page/types";
 import { cn } from "@/lib/cn";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -880,6 +881,7 @@ export function PageEditor() {
   const [availableDocIds, setAvailableDocIds] = useState<string[]>([]);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
+  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
   const [commentAuthorName, setCommentAuthorName] = useState("Bisvo");
   const [uploadIntent, setUploadIntent] = useState<FileInsertIntent>("file");
   const [fileInsert, setFileInsert] = useState<FileInsertState>({
@@ -918,6 +920,53 @@ export function PageEditor() {
   const handlePointerRef = useRef<{ startX: number; startY: number; moved: boolean; blockIds: string[]; blockId: string } | null>(null);
   const hasLoadedRef = useRef(false);
   const saverRef = useRef(createPageSnapshotSaver(260, docId));
+
+  const saveDocSnapshot = useCallback(
+    async (snapshot: Parameters<typeof savePageSnapshot>[0], targetDocId: string) => {
+      await savePageSnapshot(snapshot, targetDocId);
+      if (!cloudSyncEnabled) {
+        return;
+      }
+      try {
+        await saveCloudPageSnapshot(targetDocId, snapshot);
+      } catch {
+        // Local persistence already succeeded.
+      }
+    },
+    [cloudSyncEnabled],
+  );
+
+  const loadDocSnapshot = useCallback(
+    async (targetDocId: string) => {
+      if (cloudSyncEnabled) {
+        try {
+          const cloudSnapshot = await loadCloudPageSnapshot(targetDocId);
+          if (cloudSnapshot) {
+            await savePageSnapshot(cloudSnapshot, targetDocId);
+          }
+        } catch {
+          // Fall back to local snapshot below.
+        }
+      }
+      return loadPageSnapshot(targetDocId);
+    },
+    [cloudSyncEnabled],
+  );
+
+  const refreshAvailableDocIds = useCallback(async () => {
+    const localIds = await listPageDocIds();
+    let cloudIds: string[] = [];
+    if (cloudSyncEnabled) {
+      try {
+        cloudIds = await listCloudPageDocIds();
+      } catch {
+        cloudIds = [];
+      }
+    }
+
+    const combined = Array.from(new Set([...cloudIds, ...localIds]));
+    setAvailableDocIds(combined.length ? combined : [defaultPageDocId]);
+  }, [cloudSyncEnabled]);
 
   const filteredMenu = useMemo(() => {
     const query = menu?.query.trim().toLowerCase() ?? "";
@@ -1258,13 +1307,14 @@ export function PageEditor() {
   }, []);
 
   useEffect(() => {
-    saverRef.current = createPageSnapshotSaver(260, docId);
-  }, [docId]);
+    saverRef.current = createPageSnapshotSaver(260, docId, saveDocSnapshot);
+  }, [docId, saveDocSnapshot]);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     void (async () => {
       const { data } = await supabase.auth.getUser();
+      setCloudSyncEnabled(Boolean(data.user));
       const metadata = data.user?.user_metadata as Record<string, unknown> | undefined;
       const preferred =
         (typeof metadata?.preferred_name === "string" && metadata.preferred_name.trim()) ||
@@ -1281,7 +1331,7 @@ export function PageEditor() {
     hasLoadedRef.current = false;
     void (async () => {
       try {
-        const snapshot = await loadPageSnapshot(docId);
+        const snapshot = await loadDocSnapshot(docId);
         if (cancelled) return;
         hasLoadedRef.current = true;
         setBlocks(snapshot?.blocks?.length ? snapshot.blocks : createEmptyPage());
@@ -1295,7 +1345,7 @@ export function PageEditor() {
       cancelled = true;
       void saver.flush();
     };
-  }, [docId]);
+  }, [docId, loadDocSnapshot]);
 
   useEffect(() => {
     setBlocks((previous) => withListHierarchy(previous));
@@ -1358,11 +1408,8 @@ export function PageEditor() {
   }, [blocks, requestBookmarkPreview]);
 
   useEffect(() => {
-    void (async () => {
-      const ids = await listPageDocIds();
-      setAvailableDocIds(ids.length ? ids : [defaultPageDocId]);
-    })();
-  }, [blocks, docId]);
+    void refreshAvailableDocIds();
+  }, [blocks, docId, refreshAvailableDocIds]);
 
   useEffect(() => {
     const closeMenus = () => {
@@ -1625,7 +1672,7 @@ export function PageEditor() {
       const movingBlocks = blocks.filter((block) => movingSet.has(block.id));
       if (movingBlocks.length === 0) return;
 
-      const targetSnapshot = (await loadPageSnapshot(uniqueTarget)) ?? {
+      const targetSnapshot = (await loadDocSnapshot(uniqueTarget)) ?? {
         blocks: [],
         camera: { x: 0, y: 0, zoom: 1 },
         updatedAt: Date.now(),
@@ -1637,7 +1684,7 @@ export function PageEditor() {
         y: maxY + 24 + index * Math.max(block.h + blockGapFor(block.type), LINE_HEIGHT + blockGapFor(block.type)),
       }));
 
-      await savePageSnapshot(
+      await saveDocSnapshot(
         {
           ...targetSnapshot,
           blocks: [...targetSnapshot.blocks, ...pasted],
@@ -1650,7 +1697,7 @@ export function PageEditor() {
       setSelectedBlockIds((previous) => previous.filter((id) => !movingSet.has(id)));
       setAvailableDocIds((previous) => (previous.includes(uniqueTarget) ? previous : [uniqueTarget, ...previous]));
     },
-    [blocks],
+    [blocks, loadDocSnapshot, saveDocSnapshot],
   );
 
   const turnBlockIntoPage = useCallback(

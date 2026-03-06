@@ -34,6 +34,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      page_docs: {
+        Row: {
+          id: string;
+          owner_id: string;
+          doc_id: string;
+          snapshot: unknown;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          doc_id: string;
+          snapshot?: unknown;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          doc_id?: string;
+          snapshot?: unknown;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       notes: {
         Row: {
           id: string;

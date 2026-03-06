@@ -250,7 +250,11 @@ export const listPageDocIds = async (): Promise<string[]> => {
   return rows.map((row) => row.id);
 };
 
-export const createPageSnapshotSaver = (delayMs = 300, docId = defaultPageDocId) => {
+export const createPageSnapshotSaver = (
+  delayMs = 300,
+  docId = defaultPageDocId,
+  persist: (snapshot: PersistedPageState, docId: string) => Promise<void> = savePageSnapshot,
+) => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let latest: PersistedPageState | undefined;
 
@@ -260,7 +264,7 @@ export const createPageSnapshotSaver = (delayMs = 300, docId = defaultPageDocId)
     }
     const snapshot = latest;
     latest = undefined;
-    await savePageSnapshot(snapshot, docId);
+    await persist(snapshot, docId);
   };
 
   const schedule = (snapshot: PersistedPageState) => {
