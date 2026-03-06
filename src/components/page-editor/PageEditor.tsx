@@ -396,6 +396,7 @@ const potteryTemplateClusters: TemplateCluster[] = [
 ];
 
 const potteryTemplateForm1Title = "Form 1 Pottery Syllabus (Detailed Cluster)";
+const legacyPotteryTemplateTitle = "Nyanga Pottery Programme: Separate Syllabi for Forms 1-4 (Horizontal Pages)";
 
 const buildPotteryTemplateBlocks = (startX: number, startY: number): PageBlock[] => {
   const blocks: PageBlock[] = [];
@@ -435,6 +436,18 @@ const appendPotteryTemplateOnCanvas = (blocks: PageBlock[]): PageBlock[] => {
   const startX = Math.max(120, maxRight + 320);
   const startY = Math.max(120, minY);
   return [...blocks, ...buildPotteryTemplateBlocks(startX, startY)];
+};
+
+const migrateLegacyPotteryTemplate = (blocks: PageBlock[]): PageBlock[] => {
+  const hasLegacyHeader = blocks.some((block) => block.type === "h1" && block.content.trim() === legacyPotteryTemplateTitle);
+  if (!hasLegacyHeader) {
+    return blocks;
+  }
+  const legacyTemplateBlocks = blocks.filter((block) => block.id.startsWith("tpl_"));
+  const retained = blocks.filter((block) => !block.id.startsWith("tpl_"));
+  const startX = legacyTemplateBlocks.length ? Math.min(...legacyTemplateBlocks.map((block) => block.x)) : 120;
+  const startY = legacyTemplateBlocks.length ? Math.min(...legacyTemplateBlocks.map((block) => block.y)) : 120;
+  return [...retained, ...buildPotteryTemplateBlocks(startX, startY)];
 };
 
 const isPlaceholderPage = (blocks: PageBlock[] | undefined): boolean =>
@@ -1557,7 +1570,8 @@ export function PageEditor() {
         const initialBlocks =
           snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks) ? snapshot.blocks : createEmptyPage();
         const withCurriculum = appendPotteryTemplateOnCanvas(withListHierarchy(initialBlocks));
-        setBlocks(withCurriculum);
+        const migrated = migrateLegacyPotteryTemplate(withCurriculum);
+        setBlocks(migrated);
         if (snapshot?.camera) setCamera(snapshot.camera);
         else setCamera({ x: 0, y: 0, zoom: 1 });
       } catch {
