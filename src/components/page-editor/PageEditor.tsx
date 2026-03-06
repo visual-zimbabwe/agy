@@ -214,24 +214,25 @@ type TemplateCluster = { offsetX: number; offsetY: number; lines: TemplateLine[]
 const estimateTemplateBlockHeight = (type: BlockType, content: string): number => {
   const text = (content || "").trim();
   if (!text.length) return LINE_HEIGHT;
+  const explicitLineBreaks = text.split("\n").length - 1;
   if (type === "h1") {
-    const lines = Math.max(1, Math.ceil(text.length / 26));
-    return Math.max(60, lines * 56);
+    const lines = Math.max(1, Math.ceil(text.length / 24) + explicitLineBreaks);
+    return Math.max(64, lines * 58 + 8);
   }
   if (type === "h2") {
-    const lines = Math.max(1, Math.ceil(text.length / 34));
-    return Math.max(52, lines * 44);
+    const lines = Math.max(1, Math.ceil(text.length / 30) + explicitLineBreaks);
+    return Math.max(56, lines * 46 + 8);
   }
   if (type === "h3") {
-    const lines = Math.max(1, Math.ceil(text.length / 42));
-    return Math.max(44, lines * 36);
+    const lines = Math.max(1, Math.ceil(text.length / 38) + explicitLineBreaks);
+    return Math.max(48, lines * 38 + 8);
   }
   if (type === "bulleted" || type === "numbered" || type === "toggle") {
-    const lines = Math.max(1, Math.ceil(text.length / 84));
-    return Math.max(LINE_HEIGHT, lines * 26 + 8);
+    const lines = Math.max(1, Math.ceil(text.length / 72) + explicitLineBreaks);
+    return Math.max(LINE_HEIGHT + 6, lines * 28 + 18);
   }
-  const lines = Math.max(1, Math.ceil(text.length / 96));
-  return Math.max(LINE_HEIGHT, lines * 28 + 10);
+  const lines = Math.max(1, Math.ceil(text.length / 82) + explicitLineBreaks);
+  return Math.max(LINE_HEIGHT + 8, lines * 30 + 20);
 };
 
 const textbookSection = [
@@ -484,6 +485,39 @@ const migrateCompactPotteryTemplate = (blocks: PageBlock[]): PageBlock[] => {
       block.h <= 48,
   ).length;
   if (compactLongTextCount < 4) return blocks;
+  const retained = blocks.filter((block) => !block.id.startsWith("tpl_"));
+  const startX = Math.min(...templateBlocks.map((block) => block.x));
+  const startY = Math.min(...templateBlocks.map((block) => block.y));
+  return [...retained, ...buildPotteryTemplateBlocks(startX, startY)];
+};
+
+const migrateOverlappingPotteryTemplate = (blocks: PageBlock[]): PageBlock[] => {
+  const templateBlocks = blocks.filter((block) => block.id.startsWith("tpl_"));
+  if (!templateBlocks.length) return blocks;
+  const groups = new Map<number, PageBlock[]>();
+  for (const block of templateBlocks) {
+    const bucket = Math.round(block.x / 100);
+    const current = groups.get(bucket) ?? [];
+    current.push(block);
+    groups.set(bucket, current);
+  }
+
+  let hasOverlap = false;
+  for (const group of groups.values()) {
+    const ordered = [...group].sort((a, b) => a.y - b.y);
+    for (let index = 0; index < ordered.length - 1; index += 1) {
+      const current = ordered[index]!;
+      const next = ordered[index + 1]!;
+      const minNextY = current.y + current.h + 8;
+      if (next.y < minNextY) {
+        hasOverlap = true;
+        break;
+      }
+    }
+    if (hasOverlap) break;
+  }
+
+  if (!hasOverlap) return blocks;
   const retained = blocks.filter((block) => !block.id.startsWith("tpl_"));
   const startX = Math.min(...templateBlocks.map((block) => block.x));
   const startY = Math.min(...templateBlocks.map((block) => block.y));
@@ -1619,7 +1653,7 @@ export function PageEditor() {
         const initialBlocks =
           snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks) ? snapshot.blocks : createEmptyPage();
         const withCurriculum = appendPotteryTemplateOnCanvas(withListHierarchy(initialBlocks));
-        const migrated = migrateCompactPotteryTemplate(migrateLegacyPotteryTemplate(withCurriculum));
+        const migrated = migrateOverlappingPotteryTemplate(migrateCompactPotteryTemplate(migrateLegacyPotteryTemplate(withCurriculum)));
         setBlocks(migrated);
         if (snapshot?.camera) setCamera(snapshot.camera);
         else setCamera({ x: 0, y: 0, zoom: 1 });
