@@ -346,11 +346,7 @@ const buildPotteryTemplateBlocks = (startX: number, startY: number): PageBlock[]
 const createEmptyPage = (): PageBlock[] => buildPotteryTemplateBlocks(120, 120);
 
 const hasPotteryTemplate = (blocks: PageBlock[]) =>
-  blocks.some(
-    (block) =>
-      block.type === "h1" &&
-      (block.content.trim() === potteryTemplateTitle || block.content.trim() === "High School Pottery Syllabus (Forms 1-4)"),
-  );
+  blocks.some((block) => block.type === "h1" && block.content.trim() === potteryTemplateTitle);
 
 const appendPotteryTemplateOnCanvas = (blocks: PageBlock[]): PageBlock[] => {
   if (hasPotteryTemplate(blocks)) {
