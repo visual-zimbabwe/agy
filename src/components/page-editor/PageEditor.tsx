@@ -813,6 +813,23 @@ const descendantIds = (list: PageBlock[], parentId: string) => {
   return collected;
 };
 
+const reflowAfterRemovingBlocks = (list: PageBlock[], removedIds: Set<string>) => {
+  if (!removedIds.size) return list;
+  const removedBlocks = list.filter((block) => removedIds.has(block.id)).sort((a, b) => a.y - b.y);
+  if (!removedBlocks.length) return list;
+  const shifted = list.map((block) => ({ ...block }));
+  for (const removed of removedBlocks) {
+    const lift = Math.max(removed.h + blockGapFor(removed.type), LINE_HEIGHT + blockGapFor(removed.type));
+    for (const candidate of shifted) {
+      if (removedIds.has(candidate.id)) continue;
+      if (Math.abs(candidate.x - removed.x) > DOC_WIDTH * 0.55) continue;
+      if (candidate.y <= removed.y) continue;
+      candidate.y -= lift;
+    }
+  }
+  return shifted.filter((block) => !removedIds.has(block.id));
+};
+
 const withListHierarchy = (list: PageBlock[]) => {
   const stack: Array<{ id: string; indent: number }> = [];
   let changed = false;
@@ -1864,7 +1881,7 @@ export function PageEditor() {
         }
       }
       setSelectedBlockIds((existing) => existing.filter((id) => !expanded.has(id)));
-      return previous.filter((block) => !expanded.has(block.id));
+      return reflowAfterRemovingBlocks(previous, expanded);
     });
   }, []);
 
@@ -2663,7 +2680,7 @@ export function PageEditor() {
           queueFocus(neighbor.id);
         }
         const targetSet = new Set([blockId, ...descendantIds(previous, blockId)]);
-        return previous.filter((item) => !targetSet.has(item.id));
+        return reflowAfterRemovingBlocks(previous, targetSet);
       });
     },
     [queueFocus],
@@ -2912,6 +2929,48 @@ export function PageEditor() {
             numberedStart: undefined,
           });
           queueFocus(block.id);
+          return;
+        }
+      }
+
+      if (event.key === "Backspace" && block.type === "text") {
+        const cursorStart = event.currentTarget.selectionStart ?? 0;
+        const cursorEnd = event.currentTarget.selectionEnd ?? cursorStart;
+        if (cursorStart === 0 && cursorEnd === 0 && block.content.length > 0) {
+          event.preventDefault();
+          let mergeTargetId: string | undefined;
+          let mergeTargetCursor = 0;
+          setBlocks((previous) => {
+            const index = previous.findIndex((entry) => entry.id === block.id);
+            if (index <= 0) return previous;
+            let previousTextIndex = -1;
+            for (let i = index - 1; i >= 0; i -= 1) {
+              const candidate = previous[i]!;
+              if (Math.abs(candidate.x - block.x) > DOC_WIDTH * 0.55) continue;
+              if (candidate.type !== "text") break;
+              previousTextIndex = i;
+              break;
+            }
+            if (previousTextIndex < 0) return previous;
+            const prior = previous[previousTextIndex]!;
+            const mergedContent = `${prior.content}${block.content}`;
+            mergeTargetId = prior.id;
+            mergeTargetCursor = prior.content.length;
+            const removeSet = new Set([block.id, ...descendantIds(previous, block.id)]);
+            const patched = previous.map((entry, entryIndex) =>
+              entryIndex === previousTextIndex ? { ...entry, content: mergedContent, richText: parseRichText(mergedContent) } : entry,
+            );
+            return reflowAfterRemovingBlocks(patched, removeSet);
+          });
+          if (mergeTargetId) {
+            queueFocus(mergeTargetId);
+            requestAnimationFrame(() => {
+              const target = inputRefs.current[mergeTargetId!] as HTMLInputElement | HTMLTextAreaElement | null;
+              if (!target) return;
+              target.focus();
+              target.setSelectionRange(mergeTargetCursor, mergeTargetCursor);
+            });
+          }
           return;
         }
       }
