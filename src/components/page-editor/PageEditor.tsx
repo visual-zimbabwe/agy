@@ -1267,6 +1267,8 @@ export function PageEditor() {
   const handlePointerRef = useRef<{ startX: number; startY: number; moved: boolean; blockIds: string[]; blockId: string } | null>(null);
   const hasLoadedRef = useRef(false);
   const loadedNonEmptyRef = useRef(false);
+  const lastNonEmptyBlocksRef = useRef<PageBlock[] | null>(null);
+  const recoveringFromEmptyRef = useRef(false);
   const saverRef = useRef(createPageSnapshotSaver(260, docId));
 
   const saveDocSnapshot = useCallback(
@@ -1728,6 +1730,7 @@ export function PageEditor() {
         );
         const safeBlocks = migrated.length ? migrated : createEmptyPage();
         setBlocks(safeBlocks);
+        lastNonEmptyBlocksRef.current = safeBlocks;
         const hasUsableSnapshotBlocks = Boolean(snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks));
         setCamera(hasUsableSnapshotBlocks ? normalizeCameraState(snapshot?.camera ?? null) : { x: 0, y: 0, zoom: 1 });
         loadedNonEmptyRef.current = safeBlocks.length > 0;
@@ -1775,6 +1778,21 @@ export function PageEditor() {
     if (blocks.length === 0 && loadedNonEmptyRef.current) return;
     saverRef.current.schedule({ blocks, camera, updatedAt: Date.now() });
   }, [blocks, camera]);
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    if (blocks.length > 0) {
+      lastNonEmptyBlocksRef.current = blocks;
+      recoveringFromEmptyRef.current = false;
+      return;
+    }
+    if (recoveringFromEmptyRef.current) return;
+    const fallback = lastNonEmptyBlocksRef.current;
+    if (!fallback || fallback.length === 0) return;
+    recoveringFromEmptyRef.current = true;
+    setBlocks(fallback);
+    setCamera((previous) => normalizeCameraState(previous));
+  }, [blocks]);
 
   useEffect(() => {
     const mediaBlocks = blocks.filter(
