@@ -169,7 +169,7 @@ const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   if (type === "numbered") return { id: idFor(), type, content: "", numberedFormat: DEFAULT_NUMBERED_FORMAT, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "toggle") return { id: idFor(), type, content: "", expanded: true, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "table") return { id: idFor(), type, content: "", table: createDefaultTableData(), x, y, w: DOC_WIDTH, h: tableHeightFor(DEFAULT_TABLE_ROWS) };
-  if (type === "bookmark") return { id: idFor(), type, content: "", bookmark: inferBookmarkDataFromUrl("https://"), x, y, w: DOC_WIDTH, h: 122 };
+  if (type === "bookmark") return { id: idFor(), type, content: "", bookmark: inferBookmarkDataFromUrl(""), x, y, w: DOC_WIDTH, h: 178 };
   if (type === "divider") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 18 };
   if (type === "h1") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 60 };
   if (type === "h2") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 52 };
@@ -510,6 +510,15 @@ const inferDisplayNameFromUrl = (url: string) => {
 };
 
 const inferBookmarkDataFromUrl = (url: string): PageBookmarkData => {
+  if (!url.trim()) {
+    return {
+      url: "",
+      title: "",
+      hostname: "",
+      description: "",
+      imageUrl: undefined,
+    };
+  }
   try {
     const parsed = new URL(url);
     const pathname = parsed.pathname.split("/").filter(Boolean);
@@ -543,7 +552,7 @@ const blockTypeForIntent = (intent: FileInsertIntent): BlockType => {
   if (intent === "bookmark") return "bookmark";
   return intent;
 };
-const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : intent === "bookmark" ? 122 : 52);
+const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : intent === "bookmark" ? 178 : 52);
 
 const relativeTimeLabel = (createdAt: number) => {
   const diff = Math.max(0, Date.now() - createdAt);
@@ -1031,6 +1040,40 @@ export function PageEditor() {
       // Keep fallback bookmark card if preview fetch fails.
     }
   }, []);
+
+  const submitBookmarkUrl = useCallback(
+    (blockId: string, rawUrl: string) => {
+      const nextUrl = rawUrl.trim();
+      if (!nextUrl) {
+        window.alert("Please paste a valid URL.");
+        return;
+      }
+      try {
+        const parsed = new URL(nextUrl);
+        if (!(parsed.protocol === "http:" || parsed.protocol === "https:")) {
+          throw new Error("Unsupported protocol");
+        }
+        const bookmark = inferBookmarkDataFromUrl(parsed.toString());
+        const cacheKey = `${blockId}:${bookmark.url}`;
+        bookmarkPreviewRequestedRef.current.add(cacheKey);
+        setBlocks((previous) =>
+          previous.map((block) =>
+            block.id === blockId && block.type === "bookmark"
+              ? {
+                  ...block,
+                  bookmark,
+                  h: 122,
+                }
+              : block,
+          ),
+        );
+        void requestBookmarkPreview(blockId, bookmark.url);
+      } catch {
+        window.alert("Please paste a valid URL.");
+      }
+    },
+    [requestBookmarkPreview],
+  );
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -1281,12 +1324,17 @@ export function PageEditor() {
         const nextContent = nextType === "divider" || nextType === "table" || nextType === "bookmark" ? "" : block.content;
         const nextTable = nextType === "table" ? ensureTableData(block.table) : undefined;
         const nextCode = nextType === "code" ? { ...createDefaultCodeData(), ...(block.code ?? {}) } : undefined;
-        const nextBookmark = nextType === "bookmark" ? inferBookmarkDataFromUrl(block.content.trim() || "https://") : undefined;
+        const nextBookmark = nextType === "bookmark" ? inferBookmarkDataFromUrl(block.content.trim()) : undefined;
         return {
           ...block,
           type: nextType,
           content: nextContent,
-          h: nextType === "table" ? tableHeightFor(nextTable?.rows ?? DEFAULT_TABLE_ROWS) : block.h,
+          h:
+            nextType === "table"
+              ? tableHeightFor(nextTable?.rows ?? DEFAULT_TABLE_ROWS)
+              : nextType === "bookmark"
+                ? (nextBookmark?.url ? 122 : 178)
+                : block.h,
           checked: nextType === "todo" ? false : undefined,
           expanded: nextType === "toggle" ? block.expanded ?? true : undefined,
           indent: isListBlockType(nextType) ? block.indent : undefined,
@@ -1867,7 +1915,7 @@ export function PageEditor() {
       const hasBefore = beforeContent.length > 0;
       const hasAfter = afterContent.length > 0;
 
-      if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio" || commandId === "bookmark") {
+      if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio") {
         const lineAwareTypes: BlockType[] = ["text", "callout", "code", "quote"];
         const useLineAwarePlacement = lineAwareTypes.includes(block.type);
         const lineOffset = useLineAwarePlacement ? Math.max(0, beforeContent.split("\n").length - 1) * LINE_HEIGHT : 0;
@@ -1903,6 +1951,7 @@ export function PageEditor() {
       if (!hasBefore && !hasAfter) {
         const nextTable = commandId === "table" ? createDefaultTableData() : undefined;
         const nextCode = commandId === "code" ? createDefaultCodeData() : undefined;
+        const nextBookmark = commandId === "bookmark" ? inferBookmarkDataFromUrl("") : undefined;
         updateBlock(block.id, {
           type: commandId,
           content: "",
@@ -1913,7 +1962,8 @@ export function PageEditor() {
           numberedStart: commandId === "numbered" ? block.numberedStart : undefined,
           table: nextTable,
           code: nextCode,
-          h: commandId === "table" ? tableHeightFor(nextTable?.rows ?? DEFAULT_TABLE_ROWS) : block.h,
+          bookmark: nextBookmark,
+          h: commandId === "table" ? tableHeightFor(nextTable?.rows ?? DEFAULT_TABLE_ROWS) : commandId === "bookmark" ? 178 : block.h,
           w: DOC_WIDTH,
         });
         setMenu(null);
@@ -2474,7 +2524,7 @@ export function PageEditor() {
     (blockId: string, commandId: SlashCommandId) => {
       const source = blocks.find((entry) => entry.id === blockId);
       if (!source) return;
-      if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio" || commandId === "bookmark") {
+      if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio") {
         const insertionY = source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type));
         const base = toScreenPoint(source.x, insertionY);
         openFileInsertAt(source.x, insertionY, base.x + 10, base.y + 8, commandId);
@@ -3178,7 +3228,8 @@ export function PageEditor() {
                   if (!nextUrl) return;
                   try {
                     const parsed = new URL(nextUrl.trim());
-                    updateBlock(blockMenuBlock.id, { bookmark: inferBookmarkDataFromUrl(parsed.toString()) });
+                    updateBlock(blockMenuBlock.id, { bookmark: inferBookmarkDataFromUrl(parsed.toString()), h: 122, content: "" });
+                    void requestBookmarkPreview(blockMenuBlock.id, parsed.toString());
                   } catch {
                     window.alert("Please paste a valid URL.");
                   }
@@ -3400,27 +3451,59 @@ export function PageEditor() {
                   }}
                 >
                   {block.type === "bookmark" && block.bookmark ? (
-                    <button
-                      type="button"
-                      className="w-full rounded-md bg-[var(--color-surface)]/85 px-3 py-2.5 text-left"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        window.open(block.bookmark!.url, "_blank", "noopener,noreferrer");
-                      }}
-                    >
-                      <div className="flex items-stretch gap-3">
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[15px] font-medium text-[var(--color-text)]">{block.bookmark.title || block.bookmark.url}</p>
-                          {block.bookmark.description ? <p className="mt-1 text-sm text-[var(--color-text-muted)]">{block.bookmark.description}</p> : null}
-                          <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">{block.bookmark.hostname || block.bookmark.url}</p>
-                        </div>
-                        {block.bookmark.imageUrl ? (
-                          <div className="h-[88px] w-[156px] shrink-0 overflow-hidden rounded">
-                            <Image src={block.bookmark.imageUrl} alt={block.bookmark.title || "Bookmark preview"} width={312} height={176} unoptimized className="h-full w-full object-cover" />
+                    block.bookmark.url ? (
+                      <button
+                        type="button"
+                        className="w-full rounded-md bg-[var(--color-surface)]/85 px-3 py-2.5 text-left"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          window.open(block.bookmark!.url, "_blank", "noopener,noreferrer");
+                        }}
+                      >
+                        <div className="flex items-stretch gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[15px] font-medium text-[var(--color-text)]">{block.bookmark.title || block.bookmark.url}</p>
+                            {block.bookmark.description ? <p className="mt-1 text-sm text-[var(--color-text-muted)]">{block.bookmark.description}</p> : null}
+                            <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">{block.bookmark.hostname || block.bookmark.url}</p>
                           </div>
-                        ) : null}
+                          {block.bookmark.imageUrl ? (
+                            <div className="h-[88px] w-[156px] shrink-0 overflow-hidden rounded">
+                              <Image src={block.bookmark.imageUrl} alt={block.bookmark.title || "Bookmark preview"} width={312} height={176} unoptimized className="h-full w-full object-cover" />
+                            </div>
+                          ) : null}
+                        </div>
+                      </button>
+                    ) : (
+                      <div className="w-full rounded-md bg-[var(--color-surface)]/85 px-3 py-3">
+                        <div className="flex items-center gap-2 text-[16px] text-[var(--color-text-muted)]">
+                          <SlashCommandIcon id="bookmark" />
+                          <span>Add a web bookmark</span>
+                        </div>
+                        <form
+                          className="mx-auto mt-3 w-full max-w-[30rem] rounded-xl border border-[var(--color-border)]/65 bg-[var(--color-surface)] p-3 shadow-[var(--shadow-sm)]"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            submitBookmarkUrl(block.id, block.content);
+                          }}
+                        >
+                          <input
+                            ref={(node) => {
+                              inputRefs.current[block.id] = node;
+                            }}
+                            value={block.content}
+                            onChange={(event) => updateBlock(block.id, { content: event.target.value })}
+                            onFocus={() => setEditingTextBlockId(block.id)}
+                            onBlur={() => setEditingTextBlockId((previous) => (previous === block.id ? null : previous))}
+                            placeholder="Paste in https://..."
+                            className="w-full rounded-md bg-[var(--color-surface-muted)]/55 px-2.5 py-2 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/80"
+                          />
+                          <button type="submit" className="mt-2 w-full rounded-md bg-[#2f80ed] px-3 py-2 text-sm font-medium text-white hover:bg-[#206fd8]">
+                            Create bookmark
+                          </button>
+                          <p className="mt-2 text-center text-xs text-[var(--color-text-muted)]">Create a visual bookmark from a link.</p>
+                        </form>
                       </div>
-                    </button>
+                    )
                   ) : (block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio") && block.file ? (
                     <div
                       className={cn(
