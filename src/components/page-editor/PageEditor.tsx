@@ -1426,8 +1426,12 @@ export function PageEditor() {
   }, [docId, loadDocSnapshot]);
 
   useEffect(() => {
-    setBlocks((previous) => withListHierarchy(previous));
-  }, [blocks]);
+    setBlocks((previous) => {
+      const next = withListHierarchy(previous);
+      return next === previous ? previous : next;
+    });
+    // Run once on mount; avoid state feedback loops tied directly to `blocks`.
+  }, []);
 
   useEffect(() => {
     setBlocks((previous) => {
