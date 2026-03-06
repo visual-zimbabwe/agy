@@ -509,23 +509,6 @@ const parseRichText = (raw: string) => {
   return spans.length ? spans : [{ text: raw || " " }];
 };
 
-const sameRichText = (a?: PageBlock["richText"], b?: PageBlock["richText"]) => {
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i += 1) {
-    const left = a[i]!;
-    const right = b[i]!;
-    const leftMarks = left.marks ?? [];
-    const rightMarks = right.marks ?? [];
-    if (left.text !== right.text || left.href !== right.href || left.mention !== right.mention || leftMarks.length !== rightMarks.length) return false;
-    for (let markIndex = 0; markIndex < leftMarks.length; markIndex += 1) {
-      if (leftMarks[markIndex] !== rightMarks[markIndex]) return false;
-    }
-  }
-  return true;
-};
-
 const renderRichText = (spans?: PageBlock["richText"]) =>
   (spans ?? []).map((span, index) => {
     const marks = new Set(span.marks ?? []);
@@ -1432,26 +1415,6 @@ export function PageEditor() {
     });
     // Run once on mount; avoid state feedback loops tied directly to `blocks`.
   }, []);
-
-  useEffect(() => {
-    setBlocks((previous) => {
-      let changed = false;
-      const next = previous.map((block) => {
-        if (block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio" || block.type === "bookmark" || block.type === "embed") {
-          if (block.richText !== undefined) {
-            changed = true;
-            return { ...block, richText: undefined };
-          }
-          return block;
-        }
-        const nextRich = parseRichText(block.content);
-        if (sameRichText(block.richText, nextRich)) return block;
-        changed = true;
-        return { ...block, richText: nextRich };
-      });
-      return changed ? next : previous;
-    });
-  }, [blocks]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
