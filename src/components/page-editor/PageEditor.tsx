@@ -1019,6 +1019,13 @@ const blockTypeForIntent = (intent: FileInsertIntent): BlockType => {
   return intent;
 };
 const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : intent === "bookmark" ? 178 : 52);
+const normalizeCameraState = (camera: { x: number; y: number; zoom: number } | null | undefined) => {
+  if (!camera) return { x: 0, y: 0, zoom: 1 };
+  const safeZoom = clamp(camera.zoom, 0.28, 2.4);
+  const safeX = clamp(camera.x, -20000, 20000);
+  const safeY = clamp(camera.y, -20000, 20000);
+  return { x: safeX, y: safeY, zoom: safeZoom };
+};
 
 const relativeTimeLabel = (createdAt: number) => {
   const diff = Math.max(0, Date.now() - createdAt);
@@ -1721,8 +1728,8 @@ export function PageEditor() {
         );
         const safeBlocks = migrated.length ? migrated : createEmptyPage();
         setBlocks(safeBlocks);
-        if (snapshot?.camera) setCamera(snapshot.camera);
-        else setCamera({ x: 0, y: 0, zoom: 1 });
+        const hasUsableSnapshotBlocks = Boolean(snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks));
+        setCamera(hasUsableSnapshotBlocks ? normalizeCameraState(snapshot?.camera ?? null) : { x: 0, y: 0, zoom: 1 });
         loadedNonEmptyRef.current = safeBlocks.length > 0;
         hasLoadedRef.current = true;
       } catch {
