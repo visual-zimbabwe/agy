@@ -17,6 +17,7 @@ export type BlockType =
   | "video"
   | "audio"
   | "bookmark"
+  | "embed"
   | "divider"
   | "google_doc"
   | "pdf"
@@ -77,6 +78,13 @@ export type PageBookmarkData = {
   imageUrl?: string;
 };
 
+export type PageEmbedData = {
+  url?: string;
+  embedUrl?: string;
+  provider?: string;
+  title?: string;
+};
+
 export type PageBlock = {
   id: string;
   type: BlockType;
@@ -98,6 +106,7 @@ export type PageBlock = {
   table?: PageTableData;
   code?: PageCodeData;
   bookmark?: PageBookmarkData;
+  embed?: PageEmbedData;
   comments?: PageBlockComment[];
   file?: PageFileMeta;
 };

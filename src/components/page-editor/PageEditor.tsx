@@ -17,7 +17,7 @@ import {
 } from "react";
 
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
-import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageNumberedFormat, PageTableData } from "@/features/page/types";
+import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageEmbedData, PageNumberedFormat, PageTableData } from "@/features/page/types";
 import { cn } from "@/lib/cn";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -116,6 +116,7 @@ const TURN_INTO_TYPES: Array<{ type: BlockType; label: string }> = [
   { type: "divider", label: "Divider" },
   { type: "code", label: "Code" },
   { type: "bookmark", label: "Web bookmark" },
+  { type: "embed", label: "Embed" },
 ];
 
 const slashCommands: SlashCommand[] = [
@@ -133,6 +134,7 @@ const slashCommands: SlashCommand[] = [
   { id: "video", label: "Video", description: "Upload or link a video.", aliases: ["video", "movie"], group: "media", symbol: "V", trigger: "/video" },
   { id: "audio", label: "Audio", description: "Upload or link audio.", aliases: ["audio", "sound"], group: "media", symbol: "A", trigger: "/audio" },
   { id: "bookmark", label: "Web bookmark", description: "Create a link preview.", aliases: ["bookmark", "web bookmark", "web", "link"], group: "media", symbol: "↗", trigger: "/bookmark" },
+  { id: "embed", label: "Embed", description: "Embed from a URL.", aliases: ["embed", "iframe", "media embed"], group: "media", symbol: "◫", trigger: "/embed" },
   { id: "quote", label: "Quote", description: "Quoted text.", aliases: ["quote", "citation"], group: "basic", symbol: "\"", trigger: "" },
   { id: "divider", label: "Divider", description: "Horizontal separator.", aliases: ["divider", "div", "hr", "line"], group: "basic", symbol: "---", trigger: "---" },
   { id: "callout", label: "Callout", description: "Highlighted block.", aliases: ["callout", "note"], group: "basic", symbol: "!", trigger: "" },
@@ -180,6 +182,7 @@ const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   if (type === "toggle") return { id: idFor(), type, content: "", expanded: true, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "table") return { id: idFor(), type, content: "", table: createDefaultTableData(), x, y, w: DOC_WIDTH, h: tableHeightFor(DEFAULT_TABLE_ROWS) };
   if (type === "bookmark") return { id: idFor(), type, content: "", bookmark: inferBookmarkDataFromUrl(""), x, y, w: DOC_WIDTH, h: 178 };
+  if (type === "embed") return { id: idFor(), type, content: "", embed: { url: "", embedUrl: "", provider: "", title: "" }, x, y, w: DOC_WIDTH, h: 178 };
   if (type === "divider") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 18 };
   if (type === "h1") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 60 };
   if (type === "h2") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 52 };
@@ -550,6 +553,71 @@ const inferBookmarkDataFromUrl = (url: string): PageBookmarkData => {
   }
 };
 
+const inferEmbedDataFromUrl = (rawUrl: string): PageEmbedData => {
+  const value = rawUrl.trim();
+  if (!value) {
+    return { url: "", embedUrl: "", provider: "", title: "" };
+  }
+  try {
+    const parsed = new URL(value);
+    const host = parsed.hostname.toLowerCase();
+    const title = parsed.hostname.replace(/^www\./, "");
+
+    if (host.includes("youtube.com") || host.includes("youtu.be")) {
+      const videoId = host.includes("youtu.be")
+        ? parsed.pathname.split("/").filter(Boolean)[0]
+        : parsed.searchParams.get("v") ?? parsed.pathname.split("/").filter(Boolean).at(-1);
+      if (videoId) {
+        return {
+          url: parsed.toString(),
+          embedUrl: `https://www.youtube.com/embed/${videoId}`,
+          provider: "YouTube",
+          title,
+        };
+      }
+    }
+
+    if (host.includes("vimeo.com")) {
+      const videoId = parsed.pathname.split("/").filter(Boolean).at(-1);
+      if (videoId && /^\d+$/.test(videoId)) {
+        return {
+          url: parsed.toString(),
+          embedUrl: `https://player.vimeo.com/video/${videoId}`,
+          provider: "Vimeo",
+          title,
+        };
+      }
+    }
+
+    if (host.includes("figma.com")) {
+      return {
+        url: parsed.toString(),
+        embedUrl: `https://www.figma.com/embed?embed_host=idea-wall&url=${encodeURIComponent(parsed.toString())}`,
+        provider: "Figma",
+        title,
+      };
+    }
+
+    if (host.includes("docs.google.com")) {
+      return {
+        url: parsed.toString(),
+        embedUrl: parsed.toString(),
+        provider: "Google Docs",
+        title,
+      };
+    }
+
+    return {
+      url: parsed.toString(),
+      embedUrl: parsed.toString(),
+      provider: parsed.hostname.replace(/^www\./, ""),
+      title,
+    };
+  } catch {
+    return { url: value, embedUrl: "", provider: "", title: value };
+  }
+};
+
 const acceptForIntent = (intent: FileInsertIntent) => {
   if (intent === "image") return "image/*";
   if (intent === "video") return "video/*";
@@ -729,6 +797,14 @@ const SlashCommandIcon = ({ id }: { id: SlashCommandId }) => {
     return (
       <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
         <path d="M6 3.5h8a1 1 0 0 1 1 1v11l-5-2.8-5 2.8v-11a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (id === "embed") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <rect x="3" y="4" width="14" height="12" rx="1.8" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <path d="m8 8 4 2-4 2Z" fill="currentColor" />
       </svg>
     );
   }
@@ -1084,6 +1160,39 @@ export function PageEditor() {
     },
     [requestBookmarkPreview],
   );
+
+  const submitEmbedUrl = useCallback((blockId: string, rawUrl: string) => {
+    const nextUrl = rawUrl.trim();
+    if (!nextUrl) {
+      window.alert("Please paste a valid URL.");
+      return;
+    }
+    try {
+      const parsed = new URL(nextUrl);
+      if (!(parsed.protocol === "http:" || parsed.protocol === "https:")) {
+        throw new Error("Unsupported protocol");
+      }
+      const embed = inferEmbedDataFromUrl(parsed.toString());
+      if (!embed.embedUrl) {
+        window.alert("Unable to embed this URL.");
+        return;
+      }
+      setBlocks((previous) =>
+        previous.map((block) =>
+          block.id === blockId && block.type === "embed"
+            ? {
+                ...block,
+                content: "",
+                embed,
+                h: 332,
+              }
+            : block,
+        ),
+      );
+    } catch {
+      window.alert("Please paste a valid URL.");
+    }
+  }, []);
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -1147,7 +1256,7 @@ export function PageEditor() {
     setBlocks((previous) => {
       let changed = false;
       const next = previous.map((block) => {
-        if (block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio" || block.type === "bookmark") {
+        if (block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio" || block.type === "bookmark" || block.type === "embed") {
           if (block.richText !== undefined) {
             changed = true;
             return { ...block, richText: undefined };
@@ -1331,10 +1440,11 @@ export function PageEditor() {
     setBlocks((previous) =>
       previous.map((block) => {
         if (block.id !== blockId || block.type === "file") return block;
-        const nextContent = nextType === "divider" || nextType === "table" || nextType === "bookmark" ? "" : block.content;
+        const nextContent = nextType === "divider" || nextType === "table" || nextType === "bookmark" || nextType === "embed" ? "" : block.content;
         const nextTable = nextType === "table" ? ensureTableData(block.table) : undefined;
         const nextCode = nextType === "code" ? { ...createDefaultCodeData(), ...(block.code ?? {}) } : undefined;
         const nextBookmark = nextType === "bookmark" ? inferBookmarkDataFromUrl(block.content.trim()) : undefined;
+        const nextEmbed = nextType === "embed" ? inferEmbedDataFromUrl(block.content.trim()) : undefined;
         return {
           ...block,
           type: nextType,
@@ -1344,6 +1454,8 @@ export function PageEditor() {
               ? tableHeightFor(nextTable?.rows ?? DEFAULT_TABLE_ROWS)
               : nextType === "bookmark"
                 ? (nextBookmark?.url ? 122 : 178)
+                : nextType === "embed"
+                  ? (nextEmbed?.url ? 332 : 178)
                 : block.h,
           checked: nextType === "todo" ? false : undefined,
           expanded: nextType === "toggle" ? block.expanded ?? true : undefined,
@@ -1353,6 +1465,7 @@ export function PageEditor() {
           table: nextTable,
           code: nextCode,
           bookmark: nextBookmark,
+          embed: nextEmbed,
           richText: parseRichText(nextContent),
           textColor: nextType === "quote" ? block.textColor : undefined,
           backgroundColor: nextType === "quote" ? block.backgroundColor : undefined,
@@ -1967,6 +2080,7 @@ export function PageEditor() {
         const nextTable = commandId === "table" ? createDefaultTableData() : undefined;
         const nextCode = commandId === "code" ? createDefaultCodeData() : undefined;
         const nextBookmark = commandId === "bookmark" ? inferBookmarkDataFromUrl("") : undefined;
+        const nextEmbed = commandId === "embed" ? inferEmbedDataFromUrl("") : undefined;
         updateBlock(block.id, {
           type: commandId,
           content: "",
@@ -1978,7 +2092,15 @@ export function PageEditor() {
           table: nextTable,
           code: nextCode,
           bookmark: nextBookmark,
-          h: commandId === "table" ? tableHeightFor(nextTable?.rows ?? DEFAULT_TABLE_ROWS) : commandId === "bookmark" ? 178 : block.h,
+          embed: nextEmbed,
+          h:
+            commandId === "table"
+              ? tableHeightFor(nextTable?.rows ?? DEFAULT_TABLE_ROWS)
+              : commandId === "bookmark"
+                ? 178
+                : commandId === "embed"
+                  ? 178
+                  : block.h,
           w: DOC_WIDTH,
         });
         setMenu(null);
@@ -2354,7 +2476,7 @@ export function PageEditor() {
         setCamera((previous) => ({ ...previous, x: pan.cameraX + dx, y: pan.cameraY + dy }));
       };
 
-      const onUp = () => {
+      const onUp = (upEvent: PointerEvent) => {
         const pan = panRef.current;
         panRef.current = null;
         window.removeEventListener("pointermove", onMove);
@@ -3268,6 +3390,40 @@ export function PageEditor() {
               },
             ]
           : []),
+        ...(blockMenuBlock.type === "embed" && blockMenuBlock.embed
+          ? [
+              {
+                id: "embed_open",
+                label: "Open original",
+                shortcut: "",
+                onClick: () => {
+                  if (!blockMenuBlock.embed?.url) return;
+                  window.open(blockMenuBlock.embed.url, "_blank", "noopener,noreferrer");
+                },
+              },
+              {
+                id: "embed_edit",
+                label: "Edit embed link",
+                shortcut: "",
+                onClick: () => {
+                  const current = blockMenuBlock.embed?.url ?? "";
+                  const nextUrl = window.prompt("Embed URL", current);
+                  if (!nextUrl) return;
+                  try {
+                    const parsed = new URL(nextUrl.trim());
+                    const embed = inferEmbedDataFromUrl(parsed.toString());
+                    if (!embed.embedUrl) {
+                      window.alert("Unable to embed this URL.");
+                      return;
+                    }
+                    updateBlock(blockMenuBlock.id, { embed, h: 332, content: "" });
+                  } catch {
+                    window.alert("Please paste a valid URL.");
+                  }
+                },
+              },
+            ]
+          : []),
         {
           id: "copy_link",
           label: "Copy link to block",
@@ -3481,7 +3637,62 @@ export function PageEditor() {
                     padding: block.backgroundColor ? "6px 8px" : undefined,
                   }}
                 >
-                  {block.type === "bookmark" && block.bookmark ? (
+                  {block.type === "embed" && block.embed ? (
+                    block.embed.url ? (
+                      <div className="w-full rounded-md bg-[var(--color-surface)]/85 px-3 py-2.5">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="truncate text-xs text-[var(--color-text-muted)]">{block.embed.provider || block.embed.url}</p>
+                          <a
+                            href={block.embed.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-[var(--color-text-muted)] underline decoration-current/40 underline-offset-2"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            Open original
+                          </a>
+                        </div>
+                        <div className="overflow-hidden rounded bg-black/5">
+                          <iframe
+                            src={block.embed.embedUrl || block.embed.url}
+                            title={block.embed.title || "Embedded content"}
+                            className="h-[260px] w-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full rounded-md bg-[var(--color-surface)]/85 px-3 py-3">
+                        <div className="flex items-center gap-2 text-[16px] text-[var(--color-text-muted)]">
+                          <SlashCommandIcon id="embed" />
+                          <span>Embed from a link</span>
+                        </div>
+                        <form
+                          className="mx-auto mt-3 w-full max-w-[30rem] rounded-xl border border-[var(--color-border)]/65 bg-[var(--color-surface)] p-3 shadow-[var(--shadow-sm)]"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            submitEmbedUrl(block.id, block.content);
+                          }}
+                        >
+                          <input
+                            ref={(node) => {
+                              inputRefs.current[block.id] = node;
+                            }}
+                            value={block.content}
+                            onChange={(event) => updateBlock(block.id, { content: event.target.value })}
+                            onFocus={() => setEditingTextBlockId(block.id)}
+                            onBlur={() => setEditingTextBlockId((previous) => (previous === block.id ? null : previous))}
+                            placeholder="Paste in https://..."
+                            className="w-full rounded-md bg-[var(--color-surface-muted)]/55 px-2.5 py-2 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/80"
+                          />
+                          <button type="submit" className="mt-2 w-full rounded-md bg-[#2f80ed] px-3 py-2 text-sm font-medium text-white hover:bg-[#206fd8]">
+                            Create embed
+                          </button>
+                        </form>
+                      </div>
+                    )
+                  ) : block.type === "bookmark" && block.bookmark ? (
                     block.bookmark.url ? (
                       <button
                         type="button"

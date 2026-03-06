@@ -98,6 +98,8 @@
 94a. After bookmark insertion, verify title/description/thumbnail metadata loads when available from target site.
 95. Type `/video`, paste a YouTube/Vimeo embed URL, and verify video renders as an embedded frame when direct media source is unavailable.
 96. Type `/audio`, paste an embeddable audio URL, and verify audio renders either native player (direct file URL) or embedded frame fallback.
+97. Type `/embed` and verify an inline composer appears with URL input and `Create embed`.
+98. Paste a YouTube or Vimeo URL into `/embed` composer, submit, and verify embedded preview renders with `Open original` link.
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
@@ -110,6 +112,7 @@ Expected:
 - `/code` creates a code block with language selection, wrap toggle, and hover actions for copy/caption.
 - `Web bookmark` command inserts a link-preview style block from URL input and supports open/edit from block menu.
 - Bookmark previews should show site metadata (title/description/image) when retrievable, with graceful fallback when unavailable.
+- `/embed` creates an inline embed block that normalizes supported providers (YouTube/Vimeo/Figma/Docs) and renders iframe preview.
 - Toggle lists support slash/markdown/keyboard creation, collapse/expand shortcuts, and descendant visibility persistence.
 - Divider blocks support slash (`/div`/`/divider`) and markdown (`--- `) creation, and remain fixed to document block width on the infinite canvas.
 - Slash command menu is visually compact and symbol-driven; command popup stays in viewport with reduced canvas obstruction.
