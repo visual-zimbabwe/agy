@@ -1315,15 +1315,22 @@ export function PageEditor() {
 
   const queueFocus = useCallback((blockId: string) => {
     pendingFocusIdRef.current = blockId;
-    requestAnimationFrame(() => {
+    let attempts = 0;
+    const tryFocus = () => {
       const pendingId = pendingFocusIdRef.current;
       if (!pendingId) return;
       const element = inputRefs.current[pendingId];
       if (element && typeof (element as HTMLInputElement | HTMLTextAreaElement).focus === "function") {
         (element as HTMLInputElement | HTMLTextAreaElement).focus();
         pendingFocusIdRef.current = null;
+        return;
       }
-    });
+      attempts += 1;
+      if (attempts < 6) {
+        requestAnimationFrame(tryFocus);
+      }
+    };
+    requestAnimationFrame(tryFocus);
   }, []);
 
   const setBlockHeight = useCallback((blockId: string, height: number) => {
