@@ -2791,7 +2791,9 @@ export function PageEditor() {
           <div
             className={cn(
               "absolute right-2 top-1.5 z-[2] flex items-center rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-sm)] transition-opacity",
-              codeMenu.open && codeMenu.blockId === block.id ? "opacity-100" : "pointer-events-none opacity-0 group-focus-within/code:pointer-events-auto group-focus-within/code:opacity-100",
+              codeMenu.open && codeMenu.blockId === block.id
+                ? "opacity-100"
+                : "pointer-events-none opacity-0 group-hover/code:pointer-events-auto group-hover/code:opacity-100 group-focus-within/code:pointer-events-auto group-focus-within/code:opacity-100",
             )}
           >
             <select
