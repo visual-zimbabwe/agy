@@ -1284,6 +1284,7 @@ export function PageEditor() {
   const loadedNonEmptyRef = useRef(false);
   const lastNonEmptyBlocksRef = useRef<PageBlock[] | null>(null);
   const recoveringFromEmptyRef = useRef(false);
+  const viewportRef = useRef(viewport);
   const saverRef = useRef(createPageSnapshotSaver(260, docId));
 
   const saveDocSnapshot = useCallback(
@@ -1711,6 +1712,10 @@ export function PageEditor() {
   }, []);
 
   useEffect(() => {
+    viewportRef.current = viewport;
+  }, [viewport]);
+
+  useEffect(() => {
     saverRef.current = createPageSnapshotSaver(260, docId, saveDocSnapshot);
   }, [docId, saveDocSnapshot]);
 
@@ -1748,7 +1753,7 @@ export function PageEditor() {
         lastNonEmptyBlocksRef.current = safeBlocks;
         const hasUsableSnapshotBlocks = Boolean(snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks));
         const candidateCamera = hasUsableSnapshotBlocks ? normalizeCameraState(snapshot?.camera ?? null) : { x: 0, y: 0, zoom: 1 };
-        const nextCamera = hasVisibleBlockInViewport(safeBlocks, candidateCamera, viewport) ? candidateCamera : cameraForBlocks(safeBlocks);
+        const nextCamera = hasVisibleBlockInViewport(safeBlocks, candidateCamera, viewportRef.current) ? candidateCamera : cameraForBlocks(safeBlocks);
         setCamera(nextCamera);
         loadedNonEmptyRef.current = safeBlocks.length > 0;
         hasLoadedRef.current = true;
@@ -1760,7 +1765,7 @@ export function PageEditor() {
       cancelled = true;
       void saver.flush();
     };
-  }, [docId, loadDocSnapshot, viewport]);
+  }, [docId, loadDocSnapshot]);
 
   useEffect(() => {
     setBlocks((previous) => {
