@@ -1897,7 +1897,14 @@ export function PageEditor() {
           y: source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type)),
           comments: source.comments?.map((comment) => ({ ...comment, id: idFor(), createdAt: Date.now() })),
         };
-        return [...previous.slice(0, index + 1), duplicate, ...previous.slice(index + 1)];
+        const downstreamShift = Math.max(duplicate.h + blockGapFor(duplicate.type), LINE_HEIGHT + blockGapFor(duplicate.type));
+        const next = previous.map((entry, entryIndex) => {
+          if (entryIndex <= index) return entry;
+          if (Math.abs(entry.x - source.x) > DOC_WIDTH * 0.55) return entry;
+          if (entry.y + 1 < duplicate.y) return entry;
+          return { ...entry, y: entry.y + downstreamShift };
+        });
+        return [...next.slice(0, index + 1), duplicate, ...next.slice(index + 1)];
       });
     },
     [],
@@ -2002,6 +2009,19 @@ export function PageEditor() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [blocks, commentPanel.open, editingTextBlockId, fileInsert.open, menu, openBlockMenuForBlock, selectedBlockIds]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.shiftKey || event.altKey || event.key.toLowerCase() !== "d") {
+        return;
+      }
+      if (!selectedBlockIds.length) return;
+      event.preventDefault();
+      duplicateBlock(selectedBlockIds[0]!);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [duplicateBlock, selectedBlockIds]);
 
   const highlightBlockByHash = useCallback(
     (blockId: string) => {
