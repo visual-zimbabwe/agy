@@ -577,6 +577,56 @@ const UploadEmbedGhostIcon = () => (
   </svg>
 );
 
+const SlashCommandIcon = ({ id }: { id: SlashCommandId }) => {
+  if (id === "image") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <rect x="2.8" y="4" width="14.4" height="11.6" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="7.2" cy="8" r="1.3" fill="currentColor" />
+        <path d="m4.8 13.5 3.2-3 2.2 2 2.7-2.5 2.2 3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (id === "video") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <rect x="2.8" y="4" width="14.4" height="11.6" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <path d="m8 7.4 4.6 2.4L8 12.2Z" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (id === "audio") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="M3.8 11.7h2.6l3.3 3V5.3l-3.3 3H3.8Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M13 7.3a4 4 0 0 1 0 5.4M15.2 5.4a6.7 6.7 0 0 1 0 9.2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (id === "code") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="m7.3 6.5-3 3.5 3 3.5M12.7 6.5l3 3.5-3 3.5M10.8 5.5 9.2 14.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (id === "file") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="M7.6 6.2v7.2a2.7 2.7 0 0 0 5.4 0V5.8a2 2 0 1 0-4 0v7.5a1.2 1.2 0 0 0 2.4 0V7.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (id === "bookmark") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <path d="M6 3.5h8a1 1 0 0 1 1 1v11l-5-2.8-5 2.8v-11a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return <span className="text-[14px] text-[#4f4f4f]">{/* fallback */}•</span>;
+};
+
 export function PageEditor() {
   const router = useRouter();
   const pathname = usePathname();
@@ -3372,7 +3422,9 @@ export function PageEditor() {
                     )}
                   >
                     <span className="flex items-center gap-2.5">
-                      <span className="inline-flex h-5 min-w-5 items-center justify-center text-[14px] text-[#4f4f4f]">{item.symbol || "•"}</span>
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center">
+                        <SlashCommandIcon id={item.id} />
+                      </span>
                       <span>{item.label}</span>
                     </span>
                     <span className="text-xs text-[#949494]">{item.trigger || ""}</span>
@@ -3410,7 +3462,9 @@ export function PageEditor() {
                   onClick={() => insertFromQuickMenu(quickInsertMenu.blockId!, item.id)}
                 >
                   <span className="flex items-center gap-2.5">
-                    <span className="inline-flex h-5 min-w-5 items-center justify-center text-[14px] text-[#4f4f4f]">{item.symbol || "•"}</span>
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center">
+                      <SlashCommandIcon id={item.id} />
+                    </span>
                     <span>{item.label}</span>
                   </span>
                   <span className="text-xs text-[#949494]">{item.trigger || ""}</span>
