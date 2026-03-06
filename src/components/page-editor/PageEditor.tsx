@@ -211,6 +211,29 @@ const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
 type TemplateLine = { type: BlockType; content?: string; table?: PageTableData };
 type TemplateCluster = { offsetX: number; offsetY: number; lines: TemplateLine[] };
 
+const estimateTemplateBlockHeight = (type: BlockType, content: string): number => {
+  const text = (content || "").trim();
+  if (!text.length) return LINE_HEIGHT;
+  if (type === "h1") {
+    const lines = Math.max(1, Math.ceil(text.length / 26));
+    return Math.max(60, lines * 56);
+  }
+  if (type === "h2") {
+    const lines = Math.max(1, Math.ceil(text.length / 34));
+    return Math.max(52, lines * 44);
+  }
+  if (type === "h3") {
+    const lines = Math.max(1, Math.ceil(text.length / 42));
+    return Math.max(44, lines * 36);
+  }
+  if (type === "bulleted" || type === "numbered" || type === "toggle") {
+    const lines = Math.max(1, Math.ceil(text.length / 84));
+    return Math.max(LINE_HEIGHT, lines * 26 + 8);
+  }
+  const lines = Math.max(1, Math.ceil(text.length / 96));
+  return Math.max(LINE_HEIGHT, lines * 28 + 10);
+};
+
 const textbookSection = [
   "Pottery for Beginners (Kara Leigh Ford): https://www.barnesandnoble.com/w/pottery-for-beginners-kara-leigh-ford/1137455936",
   "The Ceramics Bible, Revised Edition (Louisa Taylor): https://www.barnesandnoble.com/w/the-ceramics-bible-revised-edition-louisa-taylor/1139993550",
@@ -414,6 +437,7 @@ const buildPotteryTemplateBlocks = (startX: number, startY: number): PageBlock[]
         block.content = "";
       } else {
         block.content = line.content ?? "";
+        block.h = estimateTemplateBlockHeight(line.type, block.content);
       }
       blocks.push(block);
       y += Math.max(block.h + 12, LINE_HEIGHT + 10);
@@ -447,6 +471,22 @@ const migrateLegacyPotteryTemplate = (blocks: PageBlock[]): PageBlock[] => {
   const retained = blocks.filter((block) => !block.id.startsWith("tpl_"));
   const startX = legacyTemplateBlocks.length ? Math.min(...legacyTemplateBlocks.map((block) => block.x)) : 120;
   const startY = legacyTemplateBlocks.length ? Math.min(...legacyTemplateBlocks.map((block) => block.y)) : 120;
+  return [...retained, ...buildPotteryTemplateBlocks(startX, startY)];
+};
+
+const migrateCompactPotteryTemplate = (blocks: PageBlock[]): PageBlock[] => {
+  const templateBlocks = blocks.filter((block) => block.id.startsWith("tpl_"));
+  if (!templateBlocks.length) return blocks;
+  const compactLongTextCount = templateBlocks.filter(
+    (block) =>
+      (block.type === "text" || block.type === "bulleted" || block.type === "numbered" || block.type === "toggle") &&
+      block.content.trim().length > 200 &&
+      block.h <= 48,
+  ).length;
+  if (compactLongTextCount < 4) return blocks;
+  const retained = blocks.filter((block) => !block.id.startsWith("tpl_"));
+  const startX = Math.min(...templateBlocks.map((block) => block.x));
+  const startY = Math.min(...templateBlocks.map((block) => block.y));
   return [...retained, ...buildPotteryTemplateBlocks(startX, startY)];
 };
 
@@ -1579,7 +1619,7 @@ export function PageEditor() {
         const initialBlocks =
           snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks) ? snapshot.blocks : createEmptyPage();
         const withCurriculum = appendPotteryTemplateOnCanvas(withListHierarchy(initialBlocks));
-        const migrated = migrateLegacyPotteryTemplate(withCurriculum);
+        const migrated = migrateCompactPotteryTemplate(migrateLegacyPotteryTemplate(withCurriculum));
         setBlocks(migrated);
         if (snapshot?.camera) setCamera(snapshot.camera);
         else setCamera({ x: 0, y: 0, zoom: 1 });
