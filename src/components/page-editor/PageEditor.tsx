@@ -304,14 +304,6 @@ const potteryTemplateClusters: TemplateCluster[] = [
   {
     offsetX: 0,
     offsetY: 0,
-    lines: [
-      { type: "h1", content: "Nyanga Pottery Programme: Separate Syllabi for Forms 1-4" },
-      { type: "text", content: "This canvas contains four separate clusters (one per form). Pan right/down to move between Form 1, Form 2, Form 3, and Form 4 syllabi." },
-    ],
-  },
-  {
-    offsetX: 0,
-    offsetY: 260,
     lines: buildFormCluster(
       "Form 1 Pottery Syllabus (Detailed Cluster)",
       form1Description,
@@ -333,8 +325,8 @@ const potteryTemplateClusters: TemplateCluster[] = [
     ),
   },
   {
-    offsetX: 1250,
-    offsetY: 260,
+    offsetX: 1800,
+    offsetY: 0,
     lines: buildFormCluster(
       "Form 2 Pottery Syllabus (Detailed Cluster)",
       form2Description,
@@ -356,8 +348,8 @@ const potteryTemplateClusters: TemplateCluster[] = [
     ),
   },
   {
-    offsetX: 0,
-    offsetY: 3600,
+    offsetX: 3600,
+    offsetY: 0,
     lines: buildFormCluster(
       "Form 3 Pottery Syllabus (Detailed Cluster)",
       form3Description,
@@ -379,8 +371,8 @@ const potteryTemplateClusters: TemplateCluster[] = [
     ),
   },
   {
-    offsetX: 1250,
-    offsetY: 3600,
+    offsetX: 5400,
+    offsetY: 0,
     lines: buildFormCluster(
       "Form 4 Pottery Syllabus (Detailed Cluster)",
       form4Description,
@@ -403,7 +395,7 @@ const potteryTemplateClusters: TemplateCluster[] = [
   },
 ];
 
-const potteryTemplateTitle = "Nyanga Pottery Programme: Separate Syllabi for Forms 1-4";
+const potteryTemplateForm1Title = "Form 1 Pottery Syllabus (Detailed Cluster)";
 
 const buildPotteryTemplateBlocks = (startX: number, startY: number): PageBlock[] => {
   const blocks: PageBlock[] = [];
@@ -432,7 +424,7 @@ const buildPotteryTemplateBlocks = (startX: number, startY: number): PageBlock[]
 const createEmptyPage = (): PageBlock[] => buildPotteryTemplateBlocks(120, 120);
 
 const hasPotteryTemplate = (blocks: PageBlock[]) =>
-  blocks.some((block) => block.type === "h1" && block.content.trim() === potteryTemplateTitle);
+  blocks.some((block) => block.type === "h1" && block.content.trim() === potteryTemplateForm1Title);
 
 const appendPotteryTemplateOnCanvas = (blocks: PageBlock[]): PageBlock[] => {
   if (hasPotteryTemplate(blocks)) {
