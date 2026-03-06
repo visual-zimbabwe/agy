@@ -2588,26 +2588,41 @@ export function PageEditor() {
 
   const insertBlockBelow = useCallback(
     (source: PageBlock, type: BlockType, initialContent = "") => {
-      const created = newBlock(type, source.x, source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type)));
-      if (initialContent) {
-        created.content = initialContent;
-        created.richText = parseRichText(initialContent);
-      }
-      if (isListBlockType(type) && typeof source.indent === "number" && source.indent > 0) {
-        created.indent = source.indent;
-      }
-      if (type === "numbered" && source.type === "numbered") {
-        created.numberedFormat = source.numberedFormat ?? DEFAULT_NUMBERED_FORMAT;
-        created.numberedStart = undefined;
-      }
+      let insertedId: string | undefined;
       setBlocks((previous) => {
         const index = previous.findIndex((item) => item.id === source.id);
-        if (index < 0) {
-          return [...previous, created];
+        const sourceBlock = index >= 0 ? previous[index] : undefined;
+        const anchor = sourceBlock ?? source;
+        const created = newBlock(type, anchor.x, anchor.y + Math.max(anchor.h + blockGapFor(anchor.type), LINE_HEIGHT + blockGapFor(anchor.type)));
+        insertedId = created.id;
+        if (initialContent) {
+          created.content = initialContent;
+          created.richText = parseRichText(initialContent);
         }
-        return [...previous.slice(0, index + 1), created, ...previous.slice(index + 1)];
+        if (isListBlockType(type) && typeof anchor.indent === "number" && anchor.indent > 0) {
+          created.indent = anchor.indent;
+        }
+        if (type === "numbered" && anchor.type === "numbered") {
+          created.numberedFormat = anchor.numberedFormat ?? DEFAULT_NUMBERED_FORMAT;
+          created.numberedStart = undefined;
+        }
+
+        const downstreamShift = Math.max(created.h + blockGapFor(created.type), LINE_HEIGHT + blockGapFor(created.type));
+        const next = previous.map((item, itemIndex) => {
+          if (itemIndex <= index) return item;
+          if (Math.abs(item.x - anchor.x) > DOC_WIDTH * 0.55) return item;
+          if (item.y + 1 < created.y) return item;
+          return { ...item, y: item.y + downstreamShift };
+        });
+
+        if (index < 0) {
+          return [...next, created];
+        }
+        return [...next.slice(0, index + 1), created, ...next.slice(index + 1)];
       });
-      queueFocus(created.id);
+      if (insertedId) {
+        queueFocus(insertedId);
+      }
     },
     [queueFocus],
   );
