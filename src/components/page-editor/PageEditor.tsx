@@ -4139,6 +4139,7 @@ export function PageEditor() {
             className="fixed z-50 w-[18rem] rounded-2xl border border-[#d7d7d7] bg-[#f7f7f7] p-2 text-[#2e2e2e] shadow-[0_12px_28px_rgba(0,0,0,0.14)]"
             style={{ left: blockMenu.x, top: blockMenu.y }}
             onPointerDown={(event) => event.stopPropagation()}
+            onWheel={(event) => event.stopPropagation()}
           >
             <input
               value={blockMenu.searchQuery}
