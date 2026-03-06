@@ -1071,8 +1071,19 @@ export function PageEditor() {
       if (Math.abs(current.h - height) <= 1) {
         return previous;
       }
+      const delta = height - current.h;
       const next = [...previous];
       next[index] = { ...current, h: height };
+      if (Math.abs(delta) > 1) {
+        for (let i = 0; i < next.length; i += 1) {
+          if (i === index) continue;
+          const candidate = next[i]!;
+          // Keep independent side columns stable; only shift nearby same-column blocks.
+          if (candidate.y > current.y && Math.abs(candidate.x - current.x) <= DOC_WIDTH * 0.55) {
+            next[i] = { ...candidate, y: candidate.y + delta };
+          }
+        }
+      }
       return next;
     });
   }, []);
