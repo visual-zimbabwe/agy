@@ -3140,6 +3140,10 @@ export function PageEditor() {
   const renderInput = (block: PageBlock) => {
     const attachInputRef = (node: HTMLElement | null) => {
       inputRefs.current[block.id] = node;
+      if (node instanceof HTMLTextAreaElement) {
+        const minHeight = block.type === "code" ? 92 : LINE_HEIGHT;
+        autoSizeTextarea(block.id, node, minHeight);
+      }
     };
 
     const sharedProps = {
@@ -3162,13 +3166,34 @@ export function PageEditor() {
     };
 
     if (block.type === "h1") {
-      return <input ref={attachInputRef as never} {...sharedProps} className="w-full bg-transparent text-5xl font-black tracking-tight text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
+      return (
+        <textarea
+          ref={attachInputRef as never}
+          {...sharedProps}
+          rows={1}
+          className="w-full resize-none bg-transparent text-5xl leading-tight font-black tracking-tight text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+        />
+      );
     }
     if (block.type === "h2") {
-      return <input ref={attachInputRef as never} {...sharedProps} className="w-full bg-transparent text-4xl font-bold text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
+      return (
+        <textarea
+          ref={attachInputRef as never}
+          {...sharedProps}
+          rows={1}
+          className="w-full resize-none bg-transparent text-4xl leading-tight font-bold text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+        />
+      );
     }
     if (block.type === "h3") {
-      return <input ref={attachInputRef as never} {...sharedProps} className="w-full bg-transparent text-3xl font-semibold text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65" />;
+      return (
+        <textarea
+          ref={attachInputRef as never}
+          {...sharedProps}
+          rows={1}
+          className="w-full resize-none bg-transparent text-3xl leading-tight font-semibold text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]/65"
+        />
+      );
     }
     if (block.type === "todo") {
       return (
