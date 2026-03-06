@@ -119,6 +119,7 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
           title: typeof bookmarkValue.title === "string" ? bookmarkValue.title : undefined,
           hostname: typeof bookmarkValue.hostname === "string" ? bookmarkValue.hostname : undefined,
           description: typeof bookmarkValue.description === "string" ? bookmarkValue.description : undefined,
+          imageUrl: typeof bookmarkValue.imageUrl === "string" ? bookmarkValue.imageUrl : undefined,
         }
       : undefined;
   const richText = Array.isArray(value.richText)

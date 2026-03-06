@@ -74,6 +74,7 @@ export type PageBookmarkData = {
   title?: string;
   hostname?: string;
   description?: string;
+  imageUrl?: string;
 };
 
 export type PageBlock = {

@@ -169,7 +169,7 @@ const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   if (type === "numbered") return { id: idFor(), type, content: "", numberedFormat: DEFAULT_NUMBERED_FORMAT, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "toggle") return { id: idFor(), type, content: "", expanded: true, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "table") return { id: idFor(), type, content: "", table: createDefaultTableData(), x, y, w: DOC_WIDTH, h: tableHeightFor(DEFAULT_TABLE_ROWS) };
-  if (type === "bookmark") return { id: idFor(), type, content: "", bookmark: inferBookmarkDataFromUrl("https://"), x, y, w: DOC_WIDTH, h: 86 };
+  if (type === "bookmark") return { id: idFor(), type, content: "", bookmark: inferBookmarkDataFromUrl("https://"), x, y, w: DOC_WIDTH, h: 122 };
   if (type === "divider") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 18 };
   if (type === "h1") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 60 };
   if (type === "h2") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 52 };
@@ -520,11 +520,13 @@ const inferBookmarkDataFromUrl = (url: string): PageBookmarkData => {
       url: parsed.toString(),
       title,
       hostname: parsed.hostname.replace(/^www\./, ""),
+      imageUrl: undefined,
     };
   } catch {
     return {
       url,
       title: url,
+      imageUrl: undefined,
     };
   }
 };
@@ -541,7 +543,7 @@ const blockTypeForIntent = (intent: FileInsertIntent): BlockType => {
   if (intent === "bookmark") return "bookmark";
   return intent;
 };
-const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : intent === "bookmark" ? 86 : 52);
+const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : intent === "bookmark" ? 122 : 52);
 
 const relativeTimeLabel = (createdAt: number) => {
   const diff = Math.max(0, Date.now() - createdAt);
@@ -766,6 +768,7 @@ export function PageEditor() {
   const pendingFocusIdRef = useRef<string | null>(null);
   const uploadAnchorRef = useRef({ x: 120, y: 120 });
   const uploadAfterBlockRef = useRef<string | undefined>(undefined);
+  const bookmarkPreviewRequestedRef = useRef<Set<string>>(new Set());
   const dragRef = useRef<{ blockId: string; offsetX: number; offsetY: number } | null>(null);
   const panRef = useRef<{ startX: number; startY: number; cameraX: number; cameraY: number; moved: boolean } | null>(null);
   const handlePointerRef = useRef<{ startX: number; startY: number; moved: boolean; blockIds: string[]; blockId: string } | null>(null);
@@ -955,7 +958,7 @@ export function PageEditor() {
           x: worldX,
           y: worldY,
           w: DOC_WIDTH,
-          h: 86,
+          h: 122,
           bookmark,
         };
         setBlocks((previous) => {
@@ -993,6 +996,41 @@ export function PageEditor() {
     },
     [],
   );
+
+  const requestBookmarkPreview = useCallback(async (blockId: string, url: string) => {
+    try {
+      const response = await fetch(`/api/page/bookmark-preview?url=${encodeURIComponent(url)}`);
+      const payload = (await response.json().catch(() => ({}))) as {
+        title?: string;
+        description?: string;
+        imageUrl?: string;
+        hostname?: string;
+      };
+      if (!response.ok) return;
+      setBlocks((previous) =>
+        previous.map((block) => {
+          if (block.id !== blockId || block.type !== "bookmark" || !block.bookmark) {
+            return block;
+          }
+          if (block.bookmark.url !== url) {
+            return block;
+          }
+          return {
+            ...block,
+            bookmark: {
+              ...block.bookmark,
+              title: payload.title || block.bookmark.title,
+              description: payload.description || block.bookmark.description,
+              imageUrl: payload.imageUrl || block.bookmark.imageUrl,
+              hostname: payload.hostname || block.bookmark.hostname,
+            },
+          };
+        }),
+      );
+    } catch {
+      // Keep fallback bookmark card if preview fetch fails.
+    }
+  }, []);
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -1056,7 +1094,7 @@ export function PageEditor() {
     setBlocks((previous) => {
       let changed = false;
       const next = previous.map((block) => {
-        if (block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio") {
+        if (block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio" || block.type === "bookmark") {
           if (block.richText !== undefined) {
             changed = true;
             return { ...block, richText: undefined };
@@ -1088,6 +1126,25 @@ export function PageEditor() {
       if (!signedUrls[path]) void signFileUrl(path);
     }
   }, [blocks, signFileUrl, signedUrls]);
+
+  useEffect(() => {
+    const bookmarkBlocks = blocks.filter((block) => block.type === "bookmark" && block.bookmark?.url);
+    for (const block of bookmarkBlocks) {
+      const url = block.bookmark!.url.trim();
+      if (!url || url === "https://") continue;
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        continue;
+      }
+      if (!(parsed.protocol === "http:" || parsed.protocol === "https:")) continue;
+      const cacheKey = `${block.id}:${parsed.toString()}`;
+      if (bookmarkPreviewRequestedRef.current.has(cacheKey)) continue;
+      bookmarkPreviewRequestedRef.current.add(cacheKey);
+      void requestBookmarkPreview(block.id, parsed.toString());
+    }
+  }, [blocks, requestBookmarkPreview]);
 
   useEffect(() => {
     void (async () => {
@@ -3351,9 +3408,18 @@ export function PageEditor() {
                         window.open(block.bookmark!.url, "_blank", "noopener,noreferrer");
                       }}
                     >
-                      <p className="truncate text-[15px] font-medium text-[var(--color-text)]">{block.bookmark.title || block.bookmark.url}</p>
-                      <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">{block.bookmark.hostname || block.bookmark.url}</p>
-                      {block.bookmark.description ? <p className="mt-1 text-xs text-[var(--color-text-muted)]/90">{block.bookmark.description}</p> : null}
+                      <div className="flex items-stretch gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[15px] font-medium text-[var(--color-text)]">{block.bookmark.title || block.bookmark.url}</p>
+                          {block.bookmark.description ? <p className="mt-1 text-sm text-[var(--color-text-muted)]">{block.bookmark.description}</p> : null}
+                          <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">{block.bookmark.hostname || block.bookmark.url}</p>
+                        </div>
+                        {block.bookmark.imageUrl ? (
+                          <div className="h-[88px] w-[156px] shrink-0 overflow-hidden rounded">
+                            <Image src={block.bookmark.imageUrl} alt={block.bookmark.title || "Bookmark preview"} width={312} height={176} unoptimized className="h-full w-full object-cover" />
+                          </div>
+                        ) : null}
+                      </div>
                     </button>
                   ) : (block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio") && block.file ? (
                     <div
