@@ -625,23 +625,29 @@ const SlashCommandIcon = ({ id }: { id: SlashCommandId }) => {
   if (id === "table") {
     return (
       <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
-        <rect x="3.2" y="4" width="13.6" height="12" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M3.2 8h13.6M3.2 12h13.6M8 4v12M12.8 4v12" fill="none" stroke="currentColor" strokeWidth="1.3" />
+        <rect x="2.9" y="4.1" width="14.2" height="11.8" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M2.9 8h14.2M2.9 11.9h14.2M7.6 4.1v11.8M12.4 4.1v11.8" fill="none" stroke="currentColor" strokeWidth="1.2" />
       </svg>
     );
   }
   if (id === "quote") {
     return (
       <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
-        <path d="M4.2 6.2h4v4h-4zM11.8 6.2h4v4h-4z" fill="none" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M4.4 12.5c2 0 3.4-1.1 3.6-2.6M12 12.5c2 0 3.4-1.1 3.6-2.6" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        <path
+          d="M5.2 6.2c-1 0-1.8.8-1.8 1.8v1.8c0 1 .8 1.8 1.8 1.8H7l-1.2 2.2M12.2 6.2c-1 0-1.8.8-1.8 1.8v1.8c0 1 .8 1.8 1.8 1.8H14l-1.2 2.2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
   }
   if (id === "divider") {
     return (
       <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
-        <path d="M3.5 10h13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M3.2 10h13.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
       </svg>
     );
   }
