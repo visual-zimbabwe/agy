@@ -18,7 +18,7 @@ import {
 
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
 import { listCloudPageDocIds, loadCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
-import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageEmbedData, PageNumberedFormat, PageTableData } from "@/features/page/types";
+import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageEmbedData, PageNumberedFormat, PageTableData, PersistedPageState } from "@/features/page/types";
 import { cn } from "@/lib/cn";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -1275,15 +1275,34 @@ export function PageEditor() {
 
   const loadDocSnapshot = useCallback(
     async (targetDocId: string) => {
+      const localSnapshot = await loadPageSnapshot(targetDocId);
+      let cloudSnapshot: PersistedPageState | null = null;
       try {
-        const cloudSnapshot = await loadCloudPageSnapshot(targetDocId);
-        if (cloudSnapshot) {
-          await savePageSnapshot(cloudSnapshot, targetDocId);
-        }
+        cloudSnapshot = await loadCloudPageSnapshot(targetDocId);
       } catch {
-        // Fall back to local snapshot below.
+        cloudSnapshot = null;
       }
-      return loadPageSnapshot(targetDocId);
+
+      const localUpdatedAt = localSnapshot?.updatedAt ?? 0;
+      const cloudUpdatedAt = cloudSnapshot?.updatedAt ?? 0;
+
+      if (cloudSnapshot && cloudUpdatedAt > localUpdatedAt) {
+        await savePageSnapshot(cloudSnapshot, targetDocId);
+        return cloudSnapshot;
+      }
+
+      if (localSnapshot) {
+        if (!cloudSnapshot || localUpdatedAt > cloudUpdatedAt) {
+          try {
+            await saveCloudPageSnapshot(targetDocId, localSnapshot);
+          } catch {
+            // Local snapshot remains the source of truth if cloud sync fails.
+          }
+        }
+        return localSnapshot;
+      }
+
+      return cloudSnapshot;
     },
     [],
   );
