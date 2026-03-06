@@ -1258,6 +1258,15 @@ export function PageEditor() {
     [setBlockHeight],
   );
 
+  const remeasureAllTextareas = useCallback(() => {
+    for (const block of blocks) {
+      const element = inputRefs.current[block.id];
+      if (!(element instanceof HTMLTextAreaElement)) continue;
+      const minHeight = block.type === "code" ? 92 : LINE_HEIGHT;
+      autoSizeTextarea(block.id, element, minHeight);
+    }
+  }, [autoSizeTextarea, blocks]);
+
   const worldFromScreen = useCallback(
     (screenX: number, screenY: number) => ({ x: (screenX - camera.x) / camera.zoom, y: (screenY - camera.y) / camera.zoom }),
     [camera.x, camera.y, camera.zoom],
@@ -1591,6 +1600,26 @@ export function PageEditor() {
     });
     // Run once on mount; avoid state feedback loops tied directly to `blocks`.
   }, []);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      remeasureAllTextareas();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [remeasureAllTextareas]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (typeof document !== "undefined" && "fonts" in document) {
+      void (document as Document & { fonts: FontFaceSet }).fonts.ready.then(() => {
+        if (cancelled) return;
+        remeasureAllTextareas();
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [docId, remeasureAllTextareas]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
