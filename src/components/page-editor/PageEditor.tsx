@@ -456,6 +456,9 @@ const appendPotteryTemplateOnCanvas = (blocks: PageBlock[]): PageBlock[] => {
   if (hasPotteryTemplate(blocks)) {
     return blocks;
   }
+  if (blocks.some((block) => block.id.startsWith("tpl_"))) {
+    return blocks;
+  }
   const maxRight = blocks.reduce((max, block) => Math.max(max, block.x + Math.max(block.w || DOC_WIDTH, 0)), 120);
   const minY = blocks.reduce((min, block) => Math.min(min, block.y), 120);
   const startX = Math.max(120, maxRight + 320);
@@ -522,6 +525,22 @@ const migrateOverlappingPotteryTemplate = (blocks: PageBlock[]): PageBlock[] => 
   const startX = Math.min(...templateBlocks.map((block) => block.x));
   const startY = Math.min(...templateBlocks.map((block) => block.y));
   return [...retained, ...buildPotteryTemplateBlocks(startX, startY)];
+};
+
+const migrateDuplicateTemplateIds = (blocks: PageBlock[]): PageBlock[] => {
+  const templateBlocks = blocks.filter((block) => block.id.startsWith("tpl_"));
+  if (!templateBlocks.length) return blocks;
+  const seen = new Set<string>();
+  for (const block of templateBlocks) {
+    if (seen.has(block.id)) {
+      const retained = blocks.filter((entry) => !entry.id.startsWith("tpl_"));
+      const startX = Math.min(...templateBlocks.map((entry) => entry.x));
+      const startY = Math.min(...templateBlocks.map((entry) => entry.y));
+      return [...retained, ...buildPotteryTemplateBlocks(startX, startY)];
+    }
+    seen.add(block.id);
+  }
+  return blocks;
 };
 
 const isPlaceholderPage = (blocks: PageBlock[] | undefined): boolean =>
@@ -1653,7 +1672,9 @@ export function PageEditor() {
         const initialBlocks =
           snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks) ? snapshot.blocks : createEmptyPage();
         const withCurriculum = appendPotteryTemplateOnCanvas(withListHierarchy(initialBlocks));
-        const migrated = migrateOverlappingPotteryTemplate(migrateCompactPotteryTemplate(migrateLegacyPotteryTemplate(withCurriculum)));
+        const migrated = migrateDuplicateTemplateIds(
+          migrateOverlappingPotteryTemplate(migrateCompactPotteryTemplate(migrateLegacyPotteryTemplate(withCurriculum))),
+        );
         setBlocks(migrated);
         if (snapshot?.camera) setCamera(snapshot.camera);
         else setCamera({ x: 0, y: 0, zoom: 1 });
