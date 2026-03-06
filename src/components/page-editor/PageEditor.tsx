@@ -2788,7 +2788,12 @@ export function PageEditor() {
       const codeConfig = { ...createDefaultCodeData(), ...(block.code ?? {}) };
       return (
         <div className="group/code relative w-full rounded-md bg-[#f7f7f5]">
-          <div className="absolute right-2 top-1.5 z-[2] flex items-center rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+          <div
+            className={cn(
+              "absolute right-2 top-1.5 z-[2] flex items-center rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-sm)] transition-opacity",
+              codeMenu.open && codeMenu.blockId === block.id ? "opacity-100" : "pointer-events-none opacity-0 group-focus-within/code:pointer-events-auto group-focus-within/code:opacity-100",
+            )}
+          >
             <select
               value={codeConfig.language}
               onChange={(event) => updateCodeBlock(block.id, { language: event.target.value })}
@@ -2832,7 +2837,11 @@ export function PageEditor() {
                 );
               }}
             >
-              …
+              <span className="inline-flex items-center justify-center gap-[2px]">
+                <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                <span className="h-[2px] w-[2px] rounded-full bg-current" />
+              </span>
             </button>
           </div>
           <textarea
