@@ -33,6 +33,10 @@ type CodeMenuState = { open: boolean; x: number; y: number; blockId?: string };
 type FileInsertIntent = "file" | "image" | "video" | "audio" | "bookmark";
 type FileInsertMode = "upload" | "link";
 type FileInsertState = { open: boolean; intent: FileInsertIntent; mode: FileInsertMode; worldX: number; worldY: number; x: number; y: number; url: string; afterBlockId?: string };
+type DragPreviewState =
+  | { mode: "insert"; x: number; y: number; width: number }
+  | { mode: "nest"; x: number; y: number; height: number }
+  | { mode: "column"; x: number; y: number; width: number; height: number };
 type CommentPanelState = {
   open: boolean;
   blockId?: string;
@@ -826,6 +830,7 @@ export function PageEditor() {
   const [fileMenu, setFileMenu] = useState<FileMenuState>({ open: false, x: 0, y: 0 });
   const [blockMenu, setBlockMenu] = useState<BlockMenuState>({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
   const [codeMenu, setCodeMenu] = useState<CodeMenuState>({ open: false, x: 0, y: 0 });
+  const [dragPreview, setDragPreview] = useState<DragPreviewState | null>(null);
   const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
   const [editingTextBlockId, setEditingTextBlockId] = useState<string | null>(null);
   const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);
@@ -2500,6 +2505,7 @@ export function PageEditor() {
       event.stopPropagation();
       setMenu(null);
       setBlockMenu((previous) => ({ ...previous, open: false, moveToQuery: "", searchQuery: "" }));
+      setDragPreview(null);
       const world = worldFromClient(event.clientX, event.clientY);
       const draggingIds = blockIds && blockIds.length > 0 ? blockIds : isListBlockType(block.type) ? [block.id, ...descendantIds(blocks, block.id)] : [block.id];
       const sourceBlocks = blocks.filter((entry) => draggingIds.includes(entry.id));
@@ -2527,10 +2533,46 @@ export function PageEditor() {
               : entry,
           ),
         );
+
+        const target = blocks
+          .filter((entry) => entry.id !== leadBlock.id && !startPositions.has(entry.id))
+          .find((entry) => Math.abs(entry.y - nextLeadY) < 80);
+        if (!target) {
+          setDragPreview(null);
+          return;
+        }
+        if (Math.abs(nextLeadX - target.x) <= 32) {
+          const previewY = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
+          setDragPreview({ mode: "insert", x: target.x, y: previewY, width: Math.max(180, target.w) });
+          return;
+        }
+        if (Math.abs(nextLeadY - target.y) <= 44 && Math.abs(nextLeadX - target.x) > 120) {
+          const horizontalOffset = nextLeadX > target.x ? target.w * 0.55 : -target.w * 0.55;
+          setDragPreview({
+            mode: "column",
+            x: target.x + horizontalOffset,
+            y: target.y,
+            width: Math.max(140, target.w * 0.45),
+            height: Math.max(LINE_HEIGHT + 8, leadBlock.h),
+          });
+          return;
+        }
+        if (nextLeadY > target.y && nextLeadX > target.x + 8 && nextLeadX < target.x + 96) {
+          const previewY = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
+          setDragPreview({
+            mode: "nest",
+            x: target.x + INDENT_STEP,
+            y: previewY - 12,
+            height: 24,
+          });
+          return;
+        }
+        setDragPreview(null);
       };
 
       const onUp = () => {
         dragRef.current = null;
+        setDragPreview(null);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         setBlocks((previous) => {
@@ -3859,6 +3901,20 @@ export function PageEditor() {
               </div>
             );
           })}
+          {dragPreview && (
+            <div className="pointer-events-none absolute" style={{ left: dragPreview.x, top: dragPreview.y }}>
+              {dragPreview.mode === "insert" ? (
+                <div className="h-0.5 rounded-full bg-[#2f80ed]" style={{ width: dragPreview.width }} />
+              ) : dragPreview.mode === "nest" ? (
+                <div className="w-0.5 rounded-full bg-[#2f80ed]" style={{ height: dragPreview.height }} />
+              ) : (
+                <div
+                  className="rounded-md border border-[#2f80ed]/80 bg-[#2f80ed]/10"
+                  style={{ width: dragPreview.width, height: dragPreview.height }}
+                />
+              )}
+            </div>
+          )}
           {fileInsert.open && fileInsert.intent === "file" && (
             <div
               className="absolute rounded-xl border border-[#e1e1e1] bg-[#f1f1f1] px-4 py-3 text-[15px] text-[#6f6f6f]"
