@@ -37,6 +37,10 @@ type DragPreviewState =
   | { mode: "insert"; x: number; y: number; width: number }
   | { mode: "nest"; x: number; y: number; height: number }
   | { mode: "column"; x: number; y: number; width: number; height: number };
+type DropIntent =
+  | { mode: "insert"; target: PageBlock; y: number }
+  | { mode: "column"; target: PageBlock; x: number; y: number; width: number; height: number }
+  | { mode: "nest"; target: PageBlock; y: number };
 type CommentPanelState = {
   open: boolean;
   blockId?: string;
@@ -58,6 +62,12 @@ const INDENT_STEP = 24;
 const MAX_LIST_INDENT = 8;
 const ATTRIBUTION_PREFIX = "-- ";
 const HANDLE_DRAG_MOVE_THRESHOLD = 4;
+const DRAG_INSERT_X_THRESHOLD = 36;
+const DRAG_TARGET_Y_THRESHOLD = 92;
+const DRAG_COLUMN_X_THRESHOLD = 116;
+const DRAG_COLUMN_Y_THRESHOLD = 52;
+const DRAG_NEST_MIN_OFFSET = 8;
+const DRAG_NEST_MAX_OFFSET = 98;
 const DEFAULT_NUMBERED_FORMAT: PageNumberedFormat = "numbers";
 const DEFAULT_TABLE_ROWS = 3;
 const DEFAULT_TABLE_COLUMNS = 2;
@@ -209,6 +219,38 @@ const parseSlashQuery = (value: string, cursor: number) => {
 };
 
 const blockGapFor = (type: BlockType) => (isListBlockType(type) ? LIST_ITEM_GAP : DEFAULT_BLOCK_GAP);
+
+const inferDropIntent = (leadX: number, leadY: number, leadH: number, candidates: PageBlock[]): DropIntent | null => {
+  const target = candidates
+    .map((entry) => ({ entry, score: Math.abs(entry.y - leadY) + Math.abs(entry.x - leadX) * 0.12 }))
+    .filter((item) => Math.abs(item.entry.y - leadY) < DRAG_TARGET_Y_THRESHOLD)
+    .sort((a, b) => a.score - b.score)[0]?.entry;
+  if (!target) return null;
+
+  if (Math.abs(leadX - target.x) <= DRAG_INSERT_X_THRESHOLD) {
+    const y = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
+    return { mode: "insert", target, y };
+  }
+
+  if (Math.abs(leadY - target.y) <= DRAG_COLUMN_Y_THRESHOLD && Math.abs(leadX - target.x) > DRAG_COLUMN_X_THRESHOLD) {
+    const horizontalOffset = leadX > target.x ? target.w * 0.55 : -target.w * 0.55;
+    return {
+      mode: "column",
+      target,
+      x: target.x + horizontalOffset,
+      y: target.y,
+      width: Math.max(140, target.w * 0.45),
+      height: Math.max(LINE_HEIGHT + 8, leadH),
+    };
+  }
+
+  if (leadY > target.y && leadX > target.x + DRAG_NEST_MIN_OFFSET && leadX < target.x + DRAG_NEST_MAX_OFFSET) {
+    const y = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
+    return { mode: "nest", target, y };
+  }
+
+  return null;
+};
 
 const isBulkTodoShortcut = (event: ReactKeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
   (event.metaKey || event.ctrlKey) && (event.altKey || event.shiftKey) && (event.code === "Digit4" || event.key === "4" || event.key === "$");
@@ -831,6 +873,7 @@ export function PageEditor() {
   const [blockMenu, setBlockMenu] = useState<BlockMenuState>({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
   const [codeMenu, setCodeMenu] = useState<CodeMenuState>({ open: false, x: 0, y: 0 });
   const [dragPreview, setDragPreview] = useState<DragPreviewState | null>(null);
+  const [snapAnimateBlockIds, setSnapAnimateBlockIds] = useState<string[]>([]);
   const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
   const [editingTextBlockId, setEditingTextBlockId] = useState<string | null>(null);
   const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);
@@ -869,6 +912,7 @@ export function PageEditor() {
   const uploadAnchorRef = useRef({ x: 120, y: 120 });
   const uploadAfterBlockRef = useRef<string | undefined>(undefined);
   const bookmarkPreviewRequestedRef = useRef<Set<string>>(new Set());
+  const snapAnimateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragRef = useRef<{ blockId: string; offsetX: number; offsetY: number } | null>(null);
   const panRef = useRef<{ startX: number; startY: number; cameraX: number; cameraY: number; moved: boolean } | null>(null);
   const handlePointerRef = useRef<{ startX: number; startY: number; moved: boolean; blockIds: string[]; blockId: string } | null>(null);
@@ -1393,6 +1437,15 @@ export function PageEditor() {
     window.addEventListener("pointerdown", onPointerDown);
     return () => window.removeEventListener("pointerdown", onPointerDown);
   }, [codeMenu.open]);
+
+  useEffect(
+    () => () => {
+      if (snapAnimateTimerRef.current) {
+        clearTimeout(snapAnimateTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!codeMenu.open) return;
@@ -2533,41 +2586,32 @@ export function PageEditor() {
               : entry,
           ),
         );
-
-        const target = blocks
-          .filter((entry) => entry.id !== leadBlock.id && !startPositions.has(entry.id))
-          .find((entry) => Math.abs(entry.y - nextLeadY) < 80);
-        if (!target) {
+        const candidates = blocks.filter((entry) => entry.id !== leadBlock.id && !startPositions.has(entry.id));
+        const intent = inferDropIntent(nextLeadX, nextLeadY, leadBlock.h, candidates);
+        if (!intent) {
           setDragPreview(null);
           return;
         }
-        if (Math.abs(nextLeadX - target.x) <= 32) {
-          const previewY = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
-          setDragPreview({ mode: "insert", x: target.x, y: previewY, width: Math.max(180, target.w) });
+        if (intent.mode === "insert") {
+          setDragPreview({ mode: "insert", x: intent.target.x, y: intent.y, width: Math.max(180, intent.target.w) });
           return;
         }
-        if (Math.abs(nextLeadY - target.y) <= 44 && Math.abs(nextLeadX - target.x) > 120) {
-          const horizontalOffset = nextLeadX > target.x ? target.w * 0.55 : -target.w * 0.55;
+        if (intent.mode === "column") {
           setDragPreview({
             mode: "column",
-            x: target.x + horizontalOffset,
-            y: target.y,
-            width: Math.max(140, target.w * 0.45),
-            height: Math.max(LINE_HEIGHT + 8, leadBlock.h),
+            x: intent.x,
+            y: intent.y,
+            width: intent.width,
+            height: intent.height,
           });
           return;
         }
-        if (nextLeadY > target.y && nextLeadX > target.x + 8 && nextLeadX < target.x + 96) {
-          const previewY = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
-          setDragPreview({
-            mode: "nest",
-            x: target.x + INDENT_STEP,
-            y: previewY - 12,
-            height: 24,
-          });
-          return;
-        }
-        setDragPreview(null);
+        setDragPreview({
+          mode: "nest",
+          x: intent.target.x + INDENT_STEP,
+          y: intent.y - 12,
+          height: 24,
+        });
       };
 
       const onUp = () => {
@@ -2578,41 +2622,44 @@ export function PageEditor() {
         setBlocks((previous) => {
           const lead = previous.find((entry) => entry.id === leadBlock.id);
           if (!lead) return previous;
-          const target = previous
-            .filter((entry) => entry.id !== lead.id && !startPositions.has(entry.id))
-            .find((entry) => Math.abs(entry.y - lead.y) < 80);
-          if (!target) return previous;
+          const candidates = previous.filter((entry) => entry.id !== lead.id && !startPositions.has(entry.id));
+          const intent = inferDropIntent(lead.x, lead.y, lead.h, candidates);
+          if (!intent) return previous;
 
           const next = previous.map((entry) => ({ ...entry }));
           const leadEntry = next.find((entry) => entry.id === lead.id);
           if (!leadEntry) return previous;
 
           // Rearrange vertically when dropped near the same horizontal lane.
-          if (Math.abs(leadEntry.x - target.x) <= 32) {
-            leadEntry.x = target.x;
-            leadEntry.y = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
-            leadEntry.indent = target.indent;
+          if (intent.mode === "insert") {
+            leadEntry.x = intent.target.x;
+            leadEntry.y = intent.y;
+            leadEntry.indent = intent.target.indent;
             return next;
           }
 
           // Create columns by snapping to left/right side of target.
-          if (Math.abs(leadEntry.y - target.y) <= 44 && Math.abs(leadEntry.x - target.x) > 120) {
-            const horizontalOffset = leadEntry.x > target.x ? target.w * 0.55 : -target.w * 0.55;
-            leadEntry.x = target.x + horizontalOffset;
-            leadEntry.y = target.y;
+          if (intent.mode === "column") {
+            leadEntry.x = intent.x;
+            leadEntry.y = intent.y;
             return next;
           }
 
           // Nest if slightly right and below target.
-          if (leadEntry.y > target.y && leadEntry.x > target.x + 8 && leadEntry.x < target.x + 96) {
-            leadEntry.x = target.x;
-            leadEntry.indent = clamp((target.indent ?? 0) + 1, 0, MAX_LIST_INDENT);
-            leadEntry.y = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
+          if (intent.mode === "nest") {
+            leadEntry.x = intent.target.x;
+            leadEntry.indent = clamp((intent.target.indent ?? 0) + 1, 0, MAX_LIST_INDENT);
+            leadEntry.y = intent.y;
             return next;
           }
 
           return previous;
         });
+        if (snapAnimateTimerRef.current) {
+          clearTimeout(snapAnimateTimerRef.current);
+        }
+        setSnapAnimateBlockIds([leadBlock.id]);
+        snapAnimateTimerRef.current = setTimeout(() => setSnapAnimateBlockIds([]), 220);
       };
 
       window.addEventListener("pointermove", onMove);
@@ -3610,7 +3657,10 @@ export function PageEditor() {
             return (
               <div
                 key={block.id}
-                className="group pointer-events-auto absolute rounded-md"
+                className={cn(
+                  "group pointer-events-auto absolute rounded-md",
+                  snapAnimateBlockIds.includes(block.id) ? "transition-[left,top] duration-200 ease-out" : "",
+                )}
                 style={{ left: block.x + indentOffset, top: block.y, width: DOC_WIDTH - indentOffset }}
                 onPointerDown={(event) => {
                   if ((event.target as HTMLElement).closest('[data-page-drag-handle="true"]')) return;
