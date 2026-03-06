@@ -208,7 +208,83 @@ const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
 };
 
-const createEmptyPage = (): PageBlock[] => [newBlock("text", 120, 120)];
+const potteryTemplateLines: Array<{ type: BlockType; content: string }> = [
+  { type: "h1", content: "High School Pottery Syllabus (Forms 1-4)" },
+  { type: "text", content: "Nyanga High School Marist Brothers, Zimbabwe | Visual and Performing Arts (Art and Design - Pottery) | 4 periods/week" },
+  { type: "h2", content: "1. Preamble" },
+  { type: "text", content: "This syllabus aligns with Zimbabwe's Heritage-Based Curriculum Framework (2024-2030). It develops practical pottery competence, heritage appreciation, creativity, innovation, entrepreneurship, and Ubuntu/Unhu values." },
+  { type: "text", content: "Teaching cycle each week: Technical Throw Down (skill drill), Main Make (project), Group Critique (reflection)." },
+  { type: "h2", content: "2. Aims" },
+  { type: "bulleted", content: "Develop safe, competent ceramic practice from Form 1 to Form 4." },
+  { type: "bulleted", content: "Preserve and reinterpret Zimbabwean pottery heritage in contemporary school work." },
+  { type: "bulleted", content: "Integrate science, design, and enterprise in practical making." },
+  { type: "bulleted", content: "Build collaboration, leadership, and constructive critique culture." },
+  { type: "h2", content: "3. Syllabus Objectives" },
+  { type: "numbered", content: "Prepare and test clay using local materials and simple quality checks." },
+  { type: "numbered", content: "Demonstrate pinch, coil, slab, wheel, joining, trimming, and finishing techniques." },
+  { type: "numbered", content: "Apply Zimbabwean motifs and symbols to functional and sculptural forms." },
+  { type: "numbered", content: "Maintain a process portfolio: research, sketches, tests, photos, reflections." },
+  { type: "numbered", content: "Cost and market selected products ethically through school enterprise events." },
+  { type: "h2", content: "4. Methodology and Time Allocation" },
+  { type: "bulleted", content: "Method: demonstration -> guided practice -> independent build -> critique -> refinement." },
+  { type: "bulleted", content: "Weekly rhythm: 1 period theory/demo, 2 periods making, 1 period finish/critique/documentation." },
+  { type: "bulleted", content: "Inclusion: adaptive tools, flexible evidence formats, role-based teamwork." },
+  { type: "h2", content: "5. Topics" },
+  { type: "bulleted", content: "Pottery heritage in Zimbabwe; safety and risk management; clay processing; hand-building; wheel work." },
+  { type: "bulleted", content: "Surface design (incising, burnishing, slip, sgraffito); firing; glaze basics and test tiles." },
+  { type: "bulleted", content: "Functional ware, sculptural ceramics, portfolio development, entrepreneurship." },
+  { type: "h2", content: "6. Scope and Sequence" },
+  { type: "h3", content: "Form 1 (Foundation)" },
+  { type: "bulleted", content: "T1: clay basics, pinch and coil | Throw Down: uniform pinch cups | Main Make: utility set." },
+  { type: "bulleted", content: "T2: slab, joining, textures | Throw Down: accurate slab tiles | Main Make: Nyanga story panel." },
+  { type: "bulleted", content: "T3: handles, lids, drying/firing | Throw Down: handle attachments | Main Make: lidded storage pot." },
+  { type: "text", content: "Alternative Project: seed-saving jar set for Agriculture Club." },
+  { type: "h3", content: "Form 2 (Intermediate)" },
+  { type: "bulleted", content: "T1: wheel introduction | Throw Down: centering and cylinder | Main Make: functional heritage mug." },
+  { type: "bulleted", content: "T2: set consistency | Throw Down: matching cups | Main Make: tea-for-two set." },
+  { type: "bulleted", content: "T3: slips and glaze tests | Throw Down: 8-tile test grid | Main Make: decorative water jug." },
+  { type: "text", content: "Alternative Project: proverb mug series for community exhibition." },
+  { type: "h3", content: "Form 3 (Advanced)" },
+  { type: "bulleted", content: "T1: advanced wheel and assembly | Throw Down: tall form control | Main Make: teapot/jug challenge." },
+  { type: "bulleted", content: "T2: narrative sculpture | Throw Down: expressive handles/spouts | Main Make: Ubuntu in Clay sculpture." },
+  { type: "bulleted", content: "T3: production and enterprise | Throw Down: timed mini-production | Main Make: 3-item market line." },
+  { type: "text", content: "Alternative Project: relief tile mural for school entrance." },
+  { type: "h3", content: "Form 4 (Specialization and O-Level Readiness)" },
+  { type: "bulleted", content: "T1: proposal and specialization | Throw Down: precision replication | Main Make: contemporary heritage tableware." },
+  { type: "bulleted", content: "T2: capstone refinement | Throw Down: defect diagnosis sprint | Main Make: capstone build and firing cycle." },
+  { type: "bulleted", content: "T3: exhibition and exam prep | Throw Down: timed exam task | Main Make: final curated showcase." },
+  { type: "text", content: "Alternative Project: social-impact ceramics project." },
+  { type: "h2", content: "7. Competency Matrix" },
+  { type: "bulleted", content: "Form 1: basic knowledge and foundational hand-building competence." },
+  { type: "bulleted", content: "Form 2: intermediate form control, wheel entry, and consistency." },
+  { type: "bulleted", content: "Form 3: advanced form making, production workflow, and enterprise practice." },
+  { type: "bulleted", content: "Form 4: specialization, capstone execution, curation, and professional presentation." },
+  { type: "h2", content: "8. Assessment" },
+  { type: "bulleted", content: "Continuous Assessment (60%): Technical Throw Downs 15%, Main Makes 25%, Portfolio 15%, Critique/Professionalism 5%." },
+  { type: "bulleted", content: "Summative Assessment (40%): Practical Exam 25%, Written Paper 10%, Viva/Exhibition 5%." },
+  { type: "h2", content: "Safety, Resources, and Entrepreneurship" },
+  { type: "bulleted", content: "Safety: supervised kiln use, wet-clean dust control, PPE, incident register, clear accessibility pathways." },
+  { type: "bulleted", content: "Resources: local clay, low-cost tools, shared wheel, basic kiln, test tiles, first-aid and PPE." },
+  { type: "bulleted", content: "Entrepreneurship: pricing, quality control, school market days, ethical heritage commercialization." },
+];
+
+const createEmptyPage = (): PageBlock[] => {
+  let y = 120;
+  return potteryTemplateLines.map((line) => {
+    const block = newBlock(line.type, 120, y);
+    block.content = line.content;
+    y += Math.max(block.h + 12, LINE_HEIGHT + 10);
+    return block;
+  });
+};
+
+const isPlaceholderPage = (blocks: PageBlock[] | undefined): boolean =>
+  Boolean(
+    blocks &&
+      blocks.length === 1 &&
+      blocks[0]?.type === "text" &&
+      (!blocks[0].content || blocks[0].content.trim().length === 0),
+  );
 
 const parseSlashQuery = (value: string, cursor: number) => {
   const beforeCursor = value.slice(0, cursor);
@@ -1325,7 +1401,7 @@ export function PageEditor() {
         const snapshot = await loadDocSnapshot(docId);
         if (cancelled) return;
         hasLoadedRef.current = true;
-        setBlocks(snapshot?.blocks?.length ? snapshot.blocks : createEmptyPage());
+        setBlocks(snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks) ? snapshot.blocks : createEmptyPage());
         if (snapshot?.camera) setCamera(snapshot.camera);
         else setCamera({ x: 0, y: 0, zoom: 1 });
       } catch {
