@@ -1,59 +1,68 @@
 import type { PersistedPageState } from "@/features/page/types";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-type CloudDocResponse = {
-  doc: {
-    docId: string;
-    snapshot: PersistedPageState;
-    updatedAt: string;
-    createdAt?: string;
-  } | null;
-};
-
-type CloudListResponse = {
-  docs: Array<{
-    docId: string;
-    updatedAt: string;
-  }>;
-};
-
-const docPath = (docId: string) => `/api/page/docs/${encodeURIComponent(docId)}`;
-
-export const loadCloudPageSnapshot = async (docId: string): Promise<PersistedPageState | null> => {
-  const response = await fetch(docPath(docId), { method: "GET" });
-  if (response.status === 401) {
+const getAuthedUserId = async (): Promise<string | null> => {
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) {
     return null;
   }
-  if (!response.ok) {
-    throw new Error(`Failed to load cloud page document (${response.status}).`);
+  return data.user.id;
+};
+
+export const loadCloudPageSnapshot = async (docId: string): Promise<PersistedPageState | null> => {
+  const ownerId = await getAuthedUserId();
+  if (!ownerId) {
+    return null;
   }
 
-  const payload = (await response.json()) as CloudDocResponse;
-  return payload.doc?.snapshot ?? null;
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("page_docs")
+    .select("snapshot")
+    .eq("owner_id", ownerId)
+    .eq("doc_id", docId)
+    .maybeSingle();
+  if (error) {
+    throw new Error(error.message || "Failed to load cloud page document.");
+  }
+  return (data?.snapshot as PersistedPageState | null) ?? null;
 };
 
 export const saveCloudPageSnapshot = async (docId: string, snapshot: PersistedPageState): Promise<void> => {
-  const response = await fetch(docPath(docId), {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ snapshot }),
-  });
-  if (response.status === 401) {
+  const ownerId = await getAuthedUserId();
+  if (!ownerId) {
     return;
   }
-  if (!response.ok) {
-    throw new Error(`Failed to save cloud page document (${response.status}).`);
+
+  const supabase = createSupabaseBrowserClient();
+  const { error } = await supabase.from("page_docs").upsert(
+    {
+      owner_id: ownerId,
+      doc_id: docId,
+      snapshot,
+    },
+    { onConflict: "owner_id,doc_id" },
+  );
+  if (error) {
+    throw new Error(error.message || "Failed to save cloud page document.");
   }
 };
 
 export const listCloudPageDocIds = async (): Promise<string[]> => {
-  const response = await fetch("/api/page/docs", { method: "GET" });
-  if (response.status === 401) {
+  const ownerId = await getAuthedUserId();
+  if (!ownerId) {
     return [];
   }
-  if (!response.ok) {
-    throw new Error(`Failed to list cloud page documents (${response.status}).`);
-  }
 
-  const payload = (await response.json()) as CloudListResponse;
-  return payload.docs.map((doc) => doc.docId);
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("page_docs")
+    .select("doc_id")
+    .eq("owner_id", ownerId)
+    .order("updated_at", { ascending: false });
+  if (error) {
+    throw new Error(error.message || "Failed to list cloud page documents.");
+  }
+  return (data ?? []).map((doc) => doc.doc_id);
 };
