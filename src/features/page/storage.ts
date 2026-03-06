@@ -42,6 +42,7 @@ const validBlockTypes = new Set<PageBlock["type"]>([
   "image",
   "video",
   "audio",
+  "bookmark",
   "divider",
   "google_doc",
   "pdf",
@@ -110,6 +111,16 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
           caption: typeof codeValue.caption === "string" ? codeValue.caption : undefined,
         }
       : undefined;
+  const bookmarkValue = value.bookmark;
+  const bookmark =
+    isRecord(bookmarkValue) && typeof bookmarkValue.url === "string" && bookmarkValue.url.trim().length > 0
+      ? {
+          url: bookmarkValue.url.trim(),
+          title: typeof bookmarkValue.title === "string" ? bookmarkValue.title : undefined,
+          hostname: typeof bookmarkValue.hostname === "string" ? bookmarkValue.hostname : undefined,
+          description: typeof bookmarkValue.description === "string" ? bookmarkValue.description : undefined,
+        }
+      : undefined;
   const richText = Array.isArray(value.richText)
     ? value.richText
         .filter((entry): entry is { text: string; marks?: string[]; href?: string; mention?: string } => isRecord(entry) && typeof entry.text === "string")
@@ -173,6 +184,7 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
     expanded,
     table,
     code,
+    bookmark,
     comments,
     file,
   };

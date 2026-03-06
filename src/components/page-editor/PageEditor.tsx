@@ -17,7 +17,7 @@ import {
 } from "react";
 
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
-import type { BlockType, PageBlock, PageCodeData, PageNumberedFormat, PageTableData } from "@/features/page/types";
+import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageNumberedFormat, PageTableData } from "@/features/page/types";
 import { cn } from "@/lib/cn";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -30,7 +30,7 @@ type CanvasMenuState = { open: boolean; x: number; y: number; worldX: number; wo
 type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
 type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; moveToQuery: string; searchQuery: string };
 type CodeMenuState = { open: boolean; x: number; y: number; blockId?: string };
-type FileInsertIntent = "file" | "image" | "video" | "audio";
+type FileInsertIntent = "file" | "image" | "video" | "audio" | "bookmark";
 type FileInsertMode = "upload" | "link";
 type FileInsertState = { open: boolean; intent: FileInsertIntent; mode: FileInsertMode; worldX: number; worldY: number; x: number; y: number; url: string; afterBlockId?: string };
 type CommentPanelState = {
@@ -105,6 +105,7 @@ const TURN_INTO_TYPES: Array<{ type: BlockType; label: string }> = [
   { type: "callout", label: "Callout" },
   { type: "divider", label: "Divider" },
   { type: "code", label: "Code" },
+  { type: "bookmark", label: "Web bookmark" },
 ];
 
 const slashCommands: SlashCommand[] = [
@@ -121,6 +122,7 @@ const slashCommands: SlashCommand[] = [
   { id: "image", label: "Image", description: "Upload or link an image.", aliases: ["image", "photo", "img"], group: "media", symbol: "I", trigger: "/image" },
   { id: "video", label: "Video", description: "Upload or link a video.", aliases: ["video", "movie"], group: "media", symbol: "V", trigger: "/video" },
   { id: "audio", label: "Audio", description: "Upload or link audio.", aliases: ["audio", "sound"], group: "media", symbol: "A", trigger: "/audio" },
+  { id: "bookmark", label: "Web bookmark", description: "Create a link preview.", aliases: ["bookmark", "web bookmark", "web", "link"], group: "media", symbol: "↗", trigger: "/bookmark" },
   { id: "quote", label: "Quote", description: "Quoted text.", aliases: ["quote", "citation"], group: "basic", symbol: "\"", trigger: "" },
   { id: "divider", label: "Divider", description: "Horizontal separator.", aliases: ["divider", "div", "hr", "line"], group: "basic", symbol: "---", trigger: "---" },
   { id: "callout", label: "Callout", description: "Highlighted block.", aliases: ["callout", "note"], group: "basic", symbol: "!", trigger: "" },
@@ -167,6 +169,7 @@ const newBlock = (type: BlockType, x: number, y: number): PageBlock => {
   if (type === "numbered") return { id: idFor(), type, content: "", numberedFormat: DEFAULT_NUMBERED_FORMAT, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "toggle") return { id: idFor(), type, content: "", expanded: true, x, y, w: DOC_WIDTH, h: LINE_HEIGHT };
   if (type === "table") return { id: idFor(), type, content: "", table: createDefaultTableData(), x, y, w: DOC_WIDTH, h: tableHeightFor(DEFAULT_TABLE_ROWS) };
+  if (type === "bookmark") return { id: idFor(), type, content: "", bookmark: inferBookmarkDataFromUrl("https://"), x, y, w: DOC_WIDTH, h: 86 };
   if (type === "divider") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 18 };
   if (type === "h1") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 60 };
   if (type === "h2") return { id: idFor(), type, content: "", x, y, w: DOC_WIDTH, h: 52 };
@@ -506,15 +509,39 @@ const inferDisplayNameFromUrl = (url: string) => {
   }
 };
 
+const inferBookmarkDataFromUrl = (url: string): PageBookmarkData => {
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname.split("/").filter(Boolean);
+    const tail = pathname[pathname.length - 1];
+    const decodedTail = tail ? decodeURIComponent(tail).replace(/[-_]+/g, " ") : "";
+    const title = decodedTail.length > 0 ? decodedTail : parsed.hostname.replace(/^www\./, "");
+    return {
+      url: parsed.toString(),
+      title,
+      hostname: parsed.hostname.replace(/^www\./, ""),
+    };
+  } catch {
+    return {
+      url,
+      title: url,
+    };
+  }
+};
+
 const acceptForIntent = (intent: FileInsertIntent) => {
   if (intent === "image") return "image/*";
   if (intent === "video") return "video/*";
   if (intent === "audio") return "audio/*";
+  if (intent === "bookmark") return "";
   return "";
 };
 
-const blockTypeForIntent = (intent: FileInsertIntent) => intent;
-const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : 52);
+const blockTypeForIntent = (intent: FileInsertIntent): BlockType => {
+  if (intent === "bookmark") return "bookmark";
+  return intent;
+};
+const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : intent === "bookmark" ? 86 : 52);
 
 const relativeTimeLabel = (createdAt: number) => {
   const diff = Math.max(0, Date.now() - createdAt);
@@ -769,7 +796,7 @@ export function PageEditor() {
     setFileInsert({
       open: true,
       intent,
-      mode: "upload",
+      mode: intent === "bookmark" ? "link" : "upload",
       worldX,
       worldY,
       x: clamp(screenX, 12, Math.max(12, viewport.w - panelWidth - 12)),
@@ -782,6 +809,26 @@ export function PageEditor() {
   const createEmbedBlock = useCallback(
     (url: string, worldX: number, worldY: number, intent: FileInsertIntent, afterBlockId?: string) => {
       const blockType = blockTypeForIntent(intent);
+      if (blockType === "bookmark") {
+        const bookmark = inferBookmarkDataFromUrl(url);
+        const createdBookmark: PageBlock = {
+          id: idFor(),
+          type: "bookmark",
+          content: "",
+          x: worldX,
+          y: worldY,
+          w: DOC_WIDTH,
+          h: 86,
+          bookmark,
+        };
+        setBlocks((previous) => {
+          const appended = [...previous, createdBookmark];
+          if (!afterBlockId) return appended;
+          const nextAfterY = createdBookmark.y + Math.max(createdBookmark.h + blockGapFor(createdBookmark.type), LINE_HEIGHT + blockGapFor(createdBookmark.type));
+          return appended.map((item) => (item.id === afterBlockId ? { ...item, y: nextAfterY } : item));
+        });
+        return;
+      }
       const mimeType = inferMimeFromUrl(url);
       const created: PageBlock = {
         id: idFor(),
@@ -1037,9 +1084,10 @@ export function PageEditor() {
     setBlocks((previous) =>
       previous.map((block) => {
         if (block.id !== blockId || block.type === "file") return block;
-        const nextContent = nextType === "divider" || nextType === "table" ? "" : block.content;
+        const nextContent = nextType === "divider" || nextType === "table" || nextType === "bookmark" ? "" : block.content;
         const nextTable = nextType === "table" ? ensureTableData(block.table) : undefined;
         const nextCode = nextType === "code" ? { ...createDefaultCodeData(), ...(block.code ?? {}) } : undefined;
+        const nextBookmark = nextType === "bookmark" ? inferBookmarkDataFromUrl(block.content.trim() || "https://") : undefined;
         return {
           ...block,
           type: nextType,
@@ -1052,6 +1100,7 @@ export function PageEditor() {
           numberedStart: nextType === "numbered" ? block.numberedStart : undefined,
           table: nextTable,
           code: nextCode,
+          bookmark: nextBookmark,
           richText: parseRichText(nextContent),
           textColor: nextType === "quote" ? block.textColor : undefined,
           backgroundColor: nextType === "quote" ? block.backgroundColor : undefined,
@@ -1624,7 +1673,7 @@ export function PageEditor() {
       const hasBefore = beforeContent.length > 0;
       const hasAfter = afterContent.length > 0;
 
-      if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio") {
+      if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio" || commandId === "bookmark") {
         const lineAwareTypes: BlockType[] = ["text", "callout", "code", "quote"];
         const useLineAwarePlacement = lineAwareTypes.includes(block.type);
         const lineOffset = useLineAwarePlacement ? Math.max(0, beforeContent.split("\n").length - 1) * LINE_HEIGHT : 0;
@@ -2231,7 +2280,7 @@ export function PageEditor() {
     (blockId: string, commandId: SlashCommandId) => {
       const source = blocks.find((entry) => entry.id === blockId);
       if (!source) return;
-      if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio") {
+      if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio" || commandId === "bookmark") {
         const insertionY = source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type));
         const base = toScreenPoint(source.x, insertionY);
         openFileInsertAt(source.x, insertionY, base.x + 10, base.y + 8, commandId);
@@ -2916,6 +2965,33 @@ export function PageEditor() {
               },
             ]
           : []),
+        ...(blockMenuBlock.type === "bookmark" && blockMenuBlock.bookmark
+          ? [
+              {
+                id: "bookmark_open",
+                label: "Open link",
+                shortcut: "",
+                onClick: () => {
+                  window.open(blockMenuBlock.bookmark!.url, "_blank", "noopener,noreferrer");
+                },
+              },
+              {
+                id: "bookmark_edit",
+                label: "Edit link",
+                shortcut: "",
+                onClick: () => {
+                  const nextUrl = window.prompt("Bookmark URL", blockMenuBlock.bookmark!.url);
+                  if (!nextUrl) return;
+                  try {
+                    const parsed = new URL(nextUrl.trim());
+                    updateBlock(blockMenuBlock.id, { bookmark: inferBookmarkDataFromUrl(parsed.toString()) });
+                  } catch {
+                    window.alert("Please paste a valid URL.");
+                  }
+                },
+              },
+            ]
+          : []),
         {
           id: "copy_link",
           label: "Copy link to block",
@@ -3129,7 +3205,20 @@ export function PageEditor() {
                     padding: block.backgroundColor ? "6px 8px" : undefined,
                   }}
                 >
-                  {(block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio") && block.file ? (
+                  {block.type === "bookmark" && block.bookmark ? (
+                    <button
+                      type="button"
+                      className="w-full rounded-md bg-[var(--color-surface)]/85 px-3 py-2.5 text-left"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        window.open(block.bookmark!.url, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      <p className="truncate text-[15px] font-medium text-[var(--color-text)]">{block.bookmark.title || block.bookmark.url}</p>
+                      <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">{block.bookmark.hostname || block.bookmark.url}</p>
+                      {block.bookmark.description ? <p className="mt-1 text-xs text-[var(--color-text-muted)]/90">{block.bookmark.description}</p> : null}
+                    </button>
+                  ) : (block.type === "file" || block.type === "image" || block.type === "video" || block.type === "audio") && block.file ? (
                     <div
                       className={cn(
                         "relative rounded-md bg-[var(--color-surface)]/85 p-3",
@@ -3160,17 +3249,36 @@ export function PageEditor() {
                           )
                         ) : block.type === "video" ? (
                           resolvedFileUrl ? (
-                            <video controls preload="metadata" className="w-full rounded-md">
-                              <source src={resolvedFileUrl} type={block.file.mimeType} />
-                            </video>
+                            block.file.mimeType.startsWith("video/") || (block.file.externalUrl && inferMimeFromUrl(block.file.externalUrl).startsWith("video/")) ? (
+                              <video controls preload="metadata" className="w-full rounded-md">
+                                <source src={resolvedFileUrl} type={block.file.mimeType} />
+                              </video>
+                            ) : (
+                              <iframe
+                                src={resolvedFileUrl}
+                                className="aspect-video w-full rounded-md bg-black/5"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                                title={block.file.displayName}
+                              />
+                            )
                           ) : (
                             <p className="text-sm text-[var(--color-text-muted)]">Loading video preview...</p>
                           )
                         ) : block.type === "audio" ? (
                           resolvedFileUrl ? (
-                            <audio controls preload="metadata" className="w-full">
-                              <source src={resolvedFileUrl} type={block.file.mimeType} />
-                            </audio>
+                            block.file.mimeType.startsWith("audio/") || (block.file.externalUrl && inferMimeFromUrl(block.file.externalUrl).startsWith("audio/")) ? (
+                              <audio controls preload="metadata" className="w-full">
+                                <source src={resolvedFileUrl} type={block.file.mimeType} />
+                              </audio>
+                            ) : (
+                              <iframe
+                                src={resolvedFileUrl}
+                                className="h-24 w-full rounded-md bg-black/5"
+                                allow="autoplay; encrypted-media"
+                                title={block.file.displayName}
+                              />
+                            )
                           ) : (
                             <p className="text-sm text-[var(--color-text-muted)]">Loading audio preview...</p>
                           )
@@ -3351,22 +3459,24 @@ export function PageEditor() {
             style={{ left: fileInsertPanelPosition.left, top: fileInsertPanelPosition.top }}
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center gap-1 rounded-lg border border-[#d9d9d9] bg-white p-1">
-              {(["upload", "link"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  className={cn(
-                    "rounded-md px-3 py-1.5 text-sm",
-                    fileInsert.mode === tab ? "border border-[#2f80ed] bg-[#e8f1ff] text-[#1b5fc7]" : "text-[#777] hover:bg-[#f0f0f0]",
-                  )}
-                  onClick={() => setFileInsert((previous) => ({ ...previous, mode: tab }))}
-                >
-                  {tab === "upload" ? "Upload" : "Link"}
-                </button>
-              ))}
-            </div>
-            {fileInsert.mode === "upload" ? (
+            {fileInsert.intent !== "bookmark" && (
+              <div className="flex items-center gap-1 rounded-lg border border-[#d9d9d9] bg-white p-1">
+                {(["upload", "link"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    className={cn(
+                      "rounded-md px-3 py-1.5 text-sm",
+                      fileInsert.mode === tab ? "border border-[#2f80ed] bg-[#e8f1ff] text-[#1b5fc7]" : "text-[#777] hover:bg-[#f0f0f0]",
+                    )}
+                    onClick={() => setFileInsert((previous) => ({ ...previous, mode: tab }))}
+                  >
+                    {tab === "upload" ? "Upload" : "Link"}
+                  </button>
+                ))}
+              </div>
+            )}
+            {fileInsert.intent !== "bookmark" && fileInsert.mode === "upload" ? (
               <div className="px-2 pb-2 pt-3">
                 <button
                   type="button"
@@ -3399,11 +3509,11 @@ export function PageEditor() {
                   type="url"
                   value={fileInsert.url}
                   onChange={(event) => setFileInsert((previous) => ({ ...previous, url: event.target.value }))}
-                  placeholder="Paste file URL"
+                  placeholder={fileInsert.intent === "bookmark" ? "Paste website URL" : "Paste file URL"}
                   className="w-full rounded-md border border-[#d0d0d0] bg-white px-2.5 py-2 text-sm text-[#303030] outline-none focus:border-[#2f80ed] focus:ring-1 focus:ring-[#2f80ed]/30"
                 />
                 <button type="submit" className="w-full rounded-md bg-[#2f80ed] px-3 py-2 text-sm font-medium text-white hover:bg-[#206fd8]">
-                  Embed link
+                  {fileInsert.intent === "bookmark" ? "Create bookmark" : "Embed link"}
                 </button>
               </form>
             )}

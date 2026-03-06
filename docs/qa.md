@@ -93,6 +93,10 @@
 90. In code block hover controls, click `Copy`; verify block content is copied to clipboard.
 91. In code block hover controls, click `Caption`, enter text, and verify caption appears under the code area and persists after refresh.
 92. In code block, disable wrap, enter a long line, and verify horizontal scrolling; enable wrap and verify long line wraps within block width.
+93. Type `/bookmark` (or `/web`) and press `Enter`; verify URL popover appears in link mode (no upload tab).
+94. Paste a valid URL in bookmark popover and submit; verify a bookmark preview block is inserted and opens URL on click.
+95. Type `/video`, paste a YouTube/Vimeo embed URL, and verify video renders as an embedded frame when direct media source is unavailable.
+96. Type `/audio`, paste an embeddable audio URL, and verify audio renders either native player (direct file URL) or embedded frame fallback.
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
@@ -103,6 +107,7 @@ Expected:
 - Numbered lists support markdown markers (`1.`, `a.`, `i.`), keyboard shortcut conversion (`Cmd/Ctrl + Shift/Option + 6`), list format switching, and custom start index.
 - `/table` creates a simple table block (non-database) with editable cells plus row/column and header toggles.
 - `/code` creates a code block with language selection, wrap toggle, and hover actions for copy/caption.
+- `Web bookmark` command inserts a link-preview style block from URL input and supports open/edit from block menu.
 - Toggle lists support slash/markdown/keyboard creation, collapse/expand shortcuts, and descendant visibility persistence.
 - Divider blocks support slash (`/div`/`/divider`) and markdown (`--- `) creation, and remain fixed to document block width on the infinite canvas.
 - Slash command menu is visually compact and symbol-driven; command popup stays in viewport with reduced canvas obstruction.
