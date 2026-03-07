@@ -2152,7 +2152,11 @@ export function PageEditor() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || !event.shiftKey || event.altKey || event.key.toLowerCase() !== "a") {
+      const isGlobalSelectAllShortcut =
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "a" &&
+        ((event.shiftKey && !event.altKey) || (event.altKey && !event.shiftKey));
+      if (!isGlobalSelectAllShortcut) {
         return;
       }
       if (menu || fileInsert.open || commentPanel.open || codeMenu.open) {
@@ -2193,8 +2197,7 @@ export function PageEditor() {
     const onKeyDown = (event: KeyboardEvent) => {
       const isClearShortcut =
         (event.metaKey || event.ctrlKey) &&
-        event.shiftKey &&
-        !event.altKey &&
+        ((event.shiftKey && !event.altKey) || (event.altKey && !event.shiftKey)) &&
         (event.key === "Backspace" || event.key === "Delete");
       if (!isClearShortcut) {
         return;
