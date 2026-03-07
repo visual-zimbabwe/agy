@@ -939,15 +939,19 @@ const withListHierarchy = (list: PageBlock[]) => {
 };
 
 const numberedLabelFor = (list: PageBlock[], blockId: string) => {
-  const index = list.findIndex((block) => block.id === blockId);
-  if (index < 0) return "1.";
-  const current = list[index]!;
+  const current = list.find((block) => block.id === blockId);
+  if (!current) return "1.";
   if (current.type !== "numbered") return "1.";
   const currentIndent = current.indent ?? 0;
+  const laneBlocks = list
+    .filter((block) => Math.abs(block.x - current.x) <= DOC_WIDTH * 0.55)
+    .sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
+  const index = laneBlocks.findIndex((block) => block.id === blockId);
+  if (index < 0) return "1.";
   let position = 1;
   let sequenceStart = current;
   for (let i = index - 1; i >= 0; i -= 1) {
-    const candidate = list[i]!;
+    const candidate = laneBlocks[i]!;
     const indent = candidate.indent ?? 0;
     if (indent < currentIndent) break;
     if (indent > currentIndent) continue;
