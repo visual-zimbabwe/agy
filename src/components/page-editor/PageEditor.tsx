@@ -2129,6 +2129,48 @@ export function PageEditor() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [duplicateBlock, selectedBlockIds]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.shiftKey || event.altKey || event.key.toLowerCase() !== "a") {
+        return;
+      }
+      if (menu || fileInsert.open || commentPanel.open || codeMenu.open) {
+        return;
+      }
+      if (isTextInputTarget(event.target)) {
+        return;
+      }
+      if (!blocks.length) {
+        return;
+      }
+      event.preventDefault();
+      setSelectedBlockIds(blocks.map((block) => block.id));
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [blocks, codeMenu.open, commentPanel.open, fileInsert.open, menu]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Backspace" && event.key !== "Delete") {
+        return;
+      }
+      if (menu || fileInsert.open || commentPanel.open || codeMenu.open) {
+        return;
+      }
+      if (isTextInputTarget(event.target)) {
+        return;
+      }
+      if (!selectedBlockIds.length) {
+        return;
+      }
+      event.preventDefault();
+      deleteBlocks(selectedBlockIds);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [codeMenu.open, commentPanel.open, deleteBlocks, fileInsert.open, menu, selectedBlockIds]);
+
   const highlightBlockByHash = useCallback(
     (blockId: string) => {
       const target = inputRefs.current[blockId];
