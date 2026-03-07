@@ -588,6 +588,61 @@ const parseSlashQuery = (value: string, cursor: number) => {
 };
 
 const blockGapFor = (type: BlockType) => (isListBlockType(type) ? LIST_ITEM_GAP : DEFAULT_BLOCK_GAP);
+const LANE_CLUSTER_X_THRESHOLD = 220;
+
+const enforceNonOverlappingBlocks = (list: PageBlock[]): PageBlock[] => {
+  if (list.length < 2) return list;
+
+  const lanes: Array<{ centerX: number; blockIds: string[] }> = [];
+  for (const block of list) {
+    let laneIndex = -1;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (let index = 0; index < lanes.length; index += 1) {
+      const distance = Math.abs(lanes[index]!.centerX - block.x);
+      if (distance <= LANE_CLUSTER_X_THRESHOLD && distance < bestDistance) {
+        laneIndex = index;
+        bestDistance = distance;
+      }
+    }
+    if (laneIndex === -1) {
+      lanes.push({ centerX: block.x, blockIds: [block.id] });
+      continue;
+    }
+    const lane = lanes[laneIndex]!;
+    lane.blockIds.push(block.id);
+    lane.centerX = (lane.centerX * (lane.blockIds.length - 1) + block.x) / lane.blockIds.length;
+  }
+
+  const byId = new Map(list.map((block) => [block.id, block] as const));
+  const adjustedY = new Map<string, number>();
+  let changed = false;
+
+  for (const lane of lanes) {
+    const ordered = lane.blockIds
+      .map((id) => byId.get(id))
+      .filter((block): block is PageBlock => Boolean(block))
+      .sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
+
+    for (let index = 1; index < ordered.length; index += 1) {
+      const previous = ordered[index - 1]!;
+      const current = ordered[index]!;
+      const previousY = adjustedY.get(previous.id) ?? previous.y;
+      const minimumY =
+        previousY + Math.max(previous.h + blockGapFor(previous.type), LINE_HEIGHT + blockGapFor(previous.type));
+      const currentY = adjustedY.get(current.id) ?? current.y;
+      if (currentY < minimumY) {
+        adjustedY.set(current.id, minimumY);
+        changed = true;
+      }
+    }
+  }
+
+  if (!changed) return list;
+  return list.map((block) => {
+    const nextY = adjustedY.get(block.id);
+    return typeof nextY === "number" ? { ...block, y: nextY } : block;
+  });
+};
 
 const inferDropIntent = (leadX: number, leadY: number, leadH: number, candidates: PageBlock[]): DropIntent | null => {
   const target = candidates
@@ -1828,6 +1883,12 @@ export function PageEditor() {
     if (blocks.length === 0 && loadedNonEmptyRef.current) return;
     saverRef.current.schedule({ blocks, camera, updatedAt: Date.now() });
   }, [blocks, camera]);
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    if (dragRef.current) return;
+    setBlocks((previous) => enforceNonOverlappingBlocks(previous));
+  }, [blocks]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
