@@ -1453,7 +1453,7 @@ export function PageEditor() {
         return;
       }
       attempts += 1;
-      if (attempts < 6) {
+      if (attempts < 24) {
         requestAnimationFrame(tryFocus);
       }
     };
@@ -2762,7 +2762,7 @@ export function PageEditor() {
         return;
       }
 
-      let insertedId: string | undefined;
+      const insertedId = idFor();
       setBlocks((previous) => {
         const index = previous.findIndex((entry) => entry.id === block.id);
         if (index < 0) return previous;
@@ -2774,7 +2774,7 @@ export function PageEditor() {
           insertionY = beforeBlock.y + Math.max(beforeBlock.h + blockGapFor(beforeBlock.type), LINE_HEIGHT + blockGapFor(beforeBlock.type));
         }
 
-        const inserted = newBlock(commandId, block.x, insertionY);
+        const inserted = { ...newBlock(commandId, block.x, insertionY), id: insertedId };
         inserted.content = "";
         if (commandId === "todo") inserted.checked = false;
         if (commandId === "toggle") inserted.expanded = true;
@@ -2793,7 +2793,6 @@ export function PageEditor() {
           inserted.code = createDefaultCodeData();
         }
         inserted.richText = parseRichText(inserted.content);
-        insertedId = inserted.id;
         sequence.push(inserted);
 
         const nextY = inserted.y + Math.max(inserted.h + blockGapFor(inserted.type), LINE_HEIGHT + blockGapFor(inserted.type));
@@ -2806,20 +2805,19 @@ export function PageEditor() {
       });
 
       setMenu(null);
-      if (insertedId) queueFocus(insertedId);
+      queueFocus(insertedId);
     },
     [blocks, menu, openFileInsertAt, queueFocus, toScreenPoint, updateBlock],
   );
 
   const insertBlockBelow = useCallback(
     (source: PageBlock, type: BlockType, initialContent = "") => {
-      let insertedId: string | undefined;
+      const insertedId = idFor();
       setBlocks((previous) => {
         const index = previous.findIndex((item) => item.id === source.id);
         const sourceBlock = index >= 0 ? previous[index] : undefined;
         const anchor = sourceBlock ?? source;
-        const created = newBlock(type, anchor.x, anchor.y + Math.max(anchor.h + blockGapFor(anchor.type), LINE_HEIGHT + blockGapFor(anchor.type)));
-        insertedId = created.id;
+        const created = { ...newBlock(type, anchor.x, anchor.y + Math.max(anchor.h + blockGapFor(anchor.type), LINE_HEIGHT + blockGapFor(anchor.type))), id: insertedId };
         if (initialContent) {
           created.content = initialContent;
           created.richText = parseRichText(initialContent);
@@ -2845,9 +2843,7 @@ export function PageEditor() {
         }
         return [...next.slice(0, index + 1), created, ...next.slice(index + 1)];
       });
-      if (insertedId) {
-        queueFocus(insertedId);
-      }
+      queueFocus(insertedId);
     },
     [queueFocus],
   );
