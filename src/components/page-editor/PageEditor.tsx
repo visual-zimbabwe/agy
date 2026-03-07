@@ -812,6 +812,12 @@ const formatNumberedIndex = (index: number, format: PageNumberedFormat) => {
   return `${index}.`;
 };
 
+const defaultNumberedFormatForIndent = (indent: number): PageNumberedFormat => {
+  const normalized = Math.max(0, Math.floor(indent));
+  const cycle: PageNumberedFormat[] = ["numbers", "letters", "roman"];
+  return cycle[normalized % cycle.length]!;
+};
+
 const parseNumberedMarker = (token: string): { format: PageNumberedFormat; start?: number } | null => {
   const trimmed = token.trim().toLowerCase();
   if (!trimmed.endsWith(".")) return null;
@@ -950,7 +956,10 @@ const numberedLabelFor = (list: PageBlock[], blockId: string) => {
     position += 1;
   }
   const startAt = sequenceStart.numberedStart ?? 1;
-  const format = current.numberedFormat ?? sequenceStart.numberedFormat ?? DEFAULT_NUMBERED_FORMAT;
+  const format =
+    sequenceStart.numberedFormat ??
+    current.numberedFormat ??
+    defaultNumberedFormatForIndent(currentIndent);
   return formatNumberedIndex(startAt + position - 1, format);
 };
 
@@ -2471,6 +2480,16 @@ export function PageEditor() {
       const currentIndent = block.indent ?? 0;
       const nextIndent = clamp(currentIndent + delta, 0, MAX_LIST_INDENT);
       if (nextIndent === currentIndent) {
+        return;
+      }
+      if (block.type === "numbered") {
+        const currentDefault = defaultNumberedFormatForIndent(currentIndent);
+        const nextDefault = defaultNumberedFormatForIndent(nextIndent);
+        const followsDefault = !block.numberedFormat || block.numberedFormat === currentDefault;
+        updateBlock(block.id, {
+          indent: nextIndent || undefined,
+          numberedFormat: followsDefault ? nextDefault : block.numberedFormat,
+        });
         return;
       }
       updateBlock(block.id, { indent: nextIndent || undefined });
