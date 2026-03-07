@@ -447,23 +447,26 @@ const buildPotteryTemplateBlocks = (startX: number, startY: number): PageBlock[]
   return blocks;
 };
 
-const createEmptyPage = (): PageBlock[] => buildPotteryTemplateBlocks(120, 120);
+const createEmptyPage = (): PageBlock[] => [newBlock("text", 120, 120)];
 
 const hasPotteryTemplate = (blocks: PageBlock[]) =>
   blocks.some((block) => block.type === "h1" && block.content.trim() === potteryTemplateForm1Title);
 
 const appendPotteryTemplateOnCanvas = (blocks: PageBlock[]): PageBlock[] => {
-  if (hasPotteryTemplate(blocks)) {
+  const hasTemplateBlocks =
+    hasPotteryTemplate(blocks) ||
+    blocks.some((block) => block.id.startsWith("tpl_")) ||
+    blocks.some((block) => block.type === "h1" && block.content.trim() === legacyPotteryTemplateTitle);
+  if (!hasTemplateBlocks) {
     return blocks;
   }
-  if (blocks.some((block) => block.id.startsWith("tpl_"))) {
-    return blocks;
-  }
-  const maxRight = blocks.reduce((max, block) => Math.max(max, block.x + Math.max(block.w || DOC_WIDTH, 0)), 120);
-  const minY = blocks.reduce((min, block) => Math.min(min, block.y), 120);
-  const startX = Math.max(120, maxRight + 320);
-  const startY = Math.max(120, minY);
-  return [...blocks, ...buildPotteryTemplateBlocks(startX, startY)];
+  const stripped = blocks.filter(
+    (block) =>
+      !block.id.startsWith("tpl_") &&
+      !(block.type === "h1" && block.content.trim() === legacyPotteryTemplateTitle) &&
+      !(block.type === "h1" && block.content.includes("Pottery Syllabus (Detailed Cluster)")),
+  );
+  return stripped.length ? stripped : createEmptyPage();
 };
 
 const migrateLegacyPotteryTemplate = (blocks: PageBlock[]): PageBlock[] => {
