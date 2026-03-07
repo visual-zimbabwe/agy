@@ -2152,6 +2152,24 @@ export function PageEditor() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || !event.shiftKey || event.altKey || event.key.toLowerCase() !== "a") {
+        return;
+      }
+      if (menu || fileInsert.open || commentPanel.open || codeMenu.open) {
+        return;
+      }
+      if (!blocks.length) {
+        return;
+      }
+      event.preventDefault();
+      setSelectedBlockIds(blocks.map((block) => block.id));
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [blocks, codeMenu.open, commentPanel.open, fileInsert.open, menu]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Backspace" && event.key !== "Delete") {
         return;
       }
@@ -2170,6 +2188,29 @@ export function PageEditor() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [codeMenu.open, commentPanel.open, deleteBlocks, fileInsert.open, menu, selectedBlockIds]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const isClearShortcut =
+        (event.metaKey || event.ctrlKey) &&
+        event.shiftKey &&
+        !event.altKey &&
+        (event.key === "Backspace" || event.key === "Delete");
+      if (!isClearShortcut) {
+        return;
+      }
+      if (menu || fileInsert.open || commentPanel.open || codeMenu.open) {
+        return;
+      }
+      if (!blocks.length) {
+        return;
+      }
+      event.preventDefault();
+      deleteBlocks(blocks.map((block) => block.id));
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [blocks, codeMenu.open, commentPanel.open, deleteBlocks, fileInsert.open, menu]);
 
   const highlightBlockByHash = useCallback(
     (blockId: string) => {
