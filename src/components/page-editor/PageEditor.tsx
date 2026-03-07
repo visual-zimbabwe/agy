@@ -630,7 +630,12 @@ const enforceNonOverlappingBlocks = (list: PageBlock[]): PageBlock[] => {
       const minimumY =
         previousY + Math.max(previous.h + blockGapFor(previous.type), LINE_HEIGHT + blockGapFor(previous.type));
       const currentY = adjustedY.get(current.id) ?? current.y;
-      if (currentY < minimumY) {
+      const shouldCompactListGap =
+        currentY > minimumY &&
+        isListBlockType(previous.type) &&
+        isListBlockType(current.type) &&
+        Math.abs(current.x - previous.x) <= DOC_WIDTH * 0.55;
+      if (currentY < minimumY || shouldCompactListGap) {
         adjustedY.set(current.id, minimumY);
         changed = true;
       }
@@ -652,7 +657,10 @@ const inferDropIntent = (leadX: number, leadY: number, leadH: number, candidates
   if (!target) return null;
 
   if (Math.abs(leadX - target.x) <= DRAG_INSERT_X_THRESHOLD) {
-    const y = target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
+    const insertAbove = leadY < target.y + target.h * 0.5;
+    const y = insertAbove
+      ? target.y - Math.max(leadH + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type))
+      : target.y + Math.max(target.h + blockGapFor(target.type), LINE_HEIGHT + blockGapFor(target.type));
     return { mode: "insert", target, y };
   }
 
