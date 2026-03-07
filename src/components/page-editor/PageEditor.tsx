@@ -421,6 +421,13 @@ const potteryTemplateClusters: TemplateCluster[] = [
 
 const potteryTemplateForm1Title = "Form 1 Pottery Syllabus (Detailed Cluster)";
 const legacyPotteryTemplateTitle = "Nyanga Pottery Programme: Separate Syllabi for Forms 1-4 (Horizontal Pages)";
+const potteryTemplateMarkers = [
+  "pottery syllabus (detailed cluster)",
+  "nyanga pottery programme",
+  "technical throw downs",
+  "weekly content outline (10 weeks)",
+  "class and lab policy for students",
+];
 
 const buildPotteryTemplateBlocks = (startX: number, startY: number): PageBlock[] => {
   const blocks: PageBlock[] = [];
@@ -466,6 +473,23 @@ const appendPotteryTemplateOnCanvas = (blocks: PageBlock[]): PageBlock[] => {
       !(block.type === "h1" && block.content.trim() === legacyPotteryTemplateTitle) &&
       !(block.type === "h1" && block.content.includes("Pottery Syllabus (Detailed Cluster)")),
   );
+  return stripped.length ? stripped : createEmptyPage();
+};
+
+const stripPotteryTemplateBlocks = (blocks: PageBlock[]): PageBlock[] => {
+  const isTemplateBlock = (block: PageBlock) => {
+    if (block.id.startsWith("tpl_")) return true;
+    const content = block.content.trim().toLowerCase();
+    if (content && potteryTemplateMarkers.some((marker) => content.includes(marker))) {
+      return true;
+    }
+    const tableText = block.table?.cells?.flat().join(" ").toLowerCase() ?? "";
+    if (tableText && (tableText.includes("technical throw downs") || tableText.includes("main makes (term projects)"))) {
+      return true;
+    }
+    return false;
+  };
+  const stripped = blocks.filter((block) => !isTemplateBlock(block));
   return stripped.length ? stripped : createEmptyPage();
 };
 
@@ -1751,7 +1775,8 @@ export function PageEditor() {
         const migrated = migrateDuplicateTemplateIds(
           migrateOverlappingPotteryTemplate(migrateCompactPotteryTemplate(migrateLegacyPotteryTemplate(withCurriculum))),
         );
-        const safeBlocks = migrated.length ? migrated : createEmptyPage();
+        const withoutTemplate = stripPotteryTemplateBlocks(migrated);
+        const safeBlocks = withoutTemplate.length ? withoutTemplate : createEmptyPage();
         setBlocks(safeBlocks);
         lastNonEmptyBlocksRef.current = safeBlocks;
         const hasUsableSnapshotBlocks = Boolean(snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks));
