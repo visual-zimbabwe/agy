@@ -1605,70 +1605,41 @@ export const DecksWorkspace = () => {
                 {studyStage === "overview" && (
                   <div className="space-y-4">
                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
-                      <article className="overflow-hidden rounded-[var(--radius-xl)] bg-[linear-gradient(135deg,#f7f4ec,#ffffff_58%,#eef4f7)]">
-                        <div className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1fr)_17rem] lg:p-6">
-                          <div className="space-y-4">
-                            <div>
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Study Deck</p>
-                              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[2.1rem]">{selectedStudyDeck?.name ?? "Select a deck"}</h2>
-                            </div>
-                            <div className="grid gap-0 overflow-hidden rounded-[var(--radius-lg)] border border-black/5 bg-white/70 sm:grid-cols-3">
-                              <article className="p-4 sm:border-r sm:border-black/5">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">New</p>
-                                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.newCount}</p>
-                              </article>
-                              <article className="border-t border-black/5 p-4 sm:border-r sm:border-t-0 sm:border-black/5">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Learning</p>
-                                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.learningCount}</p>
-                              </article>
-                              <article className="border-t border-black/5 p-4 sm:border-t-0">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">To Review</p>
-                                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.reviewCount}</p>
-                              </article>
-                            </div>
-                            {studyLimits && (
-                              <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white/78 px-4 py-3 text-sm text-[var(--color-text-muted)]">
-                                Today limits: New {studyLimits.remainingNew}/{studyLimits.effectiveNewLimit} remaining, Review {studyLimits.remainingReview}/{studyLimits.effectiveReviewLimit} remaining.
-                              </div>
-                            )}
-                            <div className="flex flex-wrap gap-2">
-                              <Button onClick={startStudyNow} disabled={!studyDeckId}>
-                                Study Now
-                              </Button>
-                              <Button variant="secondary" onClick={() => setToolbarModal("customStudy")} disabled={!studyDeckId}>
-                                Custom Study
-                              </Button>
-                              <Button variant="ghost" onClick={() => setToolbarModal("options")} disabled={!studyDeckId}>
-                                Options
-                              </Button>
-                            </div>
+                      <article className="overflow-hidden rounded-[var(--radius-xl)] bg-[linear-gradient(135deg,#f7f4ec,#ffffff_58%,#eef4f7)] p-5 lg:p-6">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Study Deck</p>
+                            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[2.1rem]">{selectedStudyDeck?.name ?? "Select a deck"}</h2>
                           </div>
-                          <div className="relative min-h-[17rem] overflow-hidden rounded-[var(--radius-xl)] border border-black/5 bg-[linear-gradient(180deg,#f4b946_0%,#f4b946_34%,#8d1f06_34%,#8d1f06_100%)]">
-                            <div className="absolute inset-x-5 top-4 h-24 rounded-b-[1.6rem] rounded-t-[0.8rem] bg-[linear-gradient(135deg,#4a0501,#c2340f)] shadow-[0_12px_24px_rgba(74,5,1,0.25)]" />
-                            <div className="absolute inset-x-7 top-[5.4rem] h-2 rounded-full bg-black/85" />
-                            <div className="absolute left-4 right-4 top-[7rem] bottom-6 rounded-[1.4rem] bg-[linear-gradient(180deg,#ff2c16,#cc1704)] p-3">
-                              <div className="h-full rounded-[1rem] bg-[linear-gradient(180deg,#1c4aa9_0%,#7cb1ff_48%,#0f2b63_100%)] p-3">
-                                <div className="grid h-full grid-cols-[1.15fr_0.85fr] gap-3">
-                                  <div className="rounded-[0.9rem] bg-[repeating-linear-gradient(135deg,#ffffff_0,#ffffff_10px,#74a0f1_10px,#74a0f1_20px)] opacity-95" />
-                                  <div className="space-y-2">
-                                    <div className="h-8 rounded-[0.8rem] bg-black/80" />
-                                    <div className="grid grid-cols-2 gap-2">
-                                      <div className="h-12 rounded-[0.8rem] bg-[#6fc0ff]" />
-                                      <div className="h-12 rounded-[0.8rem] bg-[#ffe2aa]" />
-                                    </div>
-                                    <div className="h-10 rounded-[0.8rem] bg-[#e9ecef]" />
-                                  </div>
-                                </div>
-                              </div>
+                          <div className="grid gap-0 overflow-hidden rounded-[var(--radius-lg)] border border-black/5 bg-white/70 sm:grid-cols-3">
+                            <article className="p-4 sm:border-r sm:border-black/5">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">New</p>
+                              <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.newCount}</p>
+                            </article>
+                            <article className="border-t border-black/5 p-4 sm:border-r sm:border-t-0 sm:border-black/5">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Learning</p>
+                              <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.learningCount}</p>
+                            </article>
+                            <article className="border-t border-black/5 p-4 sm:border-t-0">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">To Review</p>
+                              <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.reviewCount}</p>
+                            </article>
+                          </div>
+                          {studyLimits && (
+                            <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white/78 px-4 py-3 text-sm text-[var(--color-text-muted)]">
+                              Today limits: New {studyLimits.remainingNew}/{studyLimits.effectiveNewLimit} remaining, Review {studyLimits.remainingReview}/{studyLimits.effectiveReviewLimit} remaining.
                             </div>
-                            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3 rounded-[1.1rem] bg-[rgba(244,232,221,0.92)] px-4 py-3 shadow-[var(--shadow-md)]">
-                              <div>
-                                <p className="text-xs font-semibold text-[#5b4339]">Ready to study?</p>
-                              </div>
-                              <div className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-[#5b4339] shadow-[var(--shadow-sm)]">
-                                {selectedStudyDeck?.name ?? "No deck"}
-                              </div>
-                            </div>
+                          )}
+                          <div className="flex flex-wrap gap-2">
+                            <Button onClick={startStudyNow} disabled={!studyDeckId}>
+                              Study Now
+                            </Button>
+                            <Button variant="secondary" onClick={() => setToolbarModal("customStudy")} disabled={!studyDeckId}>
+                              Custom Study
+                            </Button>
+                            <Button variant="ghost" onClick={() => setToolbarModal("options")} disabled={!studyDeckId}>
+                              Options
+                            </Button>
                           </div>
                         </div>
                       </article>
