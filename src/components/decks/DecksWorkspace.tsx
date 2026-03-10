@@ -1455,16 +1455,28 @@ export const DecksWorkspace = () => {
 
   return (
     <main className="route-shell text-[var(--color-text)]">
-      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 pb-8 pt-4 sm:px-6">
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-glass)] p-3 shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => switchView("decks")}>Decks</Button>
-            <Button onClick={() => setToolbarModal("add")}>Add</Button>
-            <Button onClick={() => setToolbarModal("import")}>Import File</Button>
-            <Button onClick={() => switchView("browse")}>Browse</Button>
-            <Button onClick={() => switchView("stats")}>Stats</Button>
-          </div>
-          <div className="flex items-center gap-2">
+      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 pb-10 pt-4 sm:px-6">
+        <header className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(243,247,250,0.88))] p-4 shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-3">
+              <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                Deck workspace
+              </div>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold tracking-[-0.03em] sm:text-[2.25rem]">Study, browse, and tune your decks.</h1>
+                <p className="max-w-2xl text-sm text-[var(--color-text-muted)]">
+                  The current deck content stays the same. This view is just organized into clearer panels and cards for faster scanning.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button onClick={() => switchView("decks")}>Decks</Button>
+                <Button onClick={() => setToolbarModal("add")}>Add</Button>
+                <Button onClick={() => setToolbarModal("import")}>Import File</Button>
+                <Button onClick={() => switchView("browse")}>Browse</Button>
+                <Button onClick={() => switchView("stats")}>Stats</Button>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             {isDesktop && (
               <Button size="sm" variant="secondary" onClick={openWallWindow}>
                 Open Wall Window
@@ -1487,12 +1499,21 @@ export const DecksWorkspace = () => {
               Back to Wall
             </button>
           </div>
+          </div>
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
-          <aside className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
-            <h2 className="text-lg font-semibold">Decks</h2>
-            <div className="mt-3 space-y-2">
+        <div className="grid gap-5 lg:grid-cols-[21rem_minmax(0,1fr)]">
+          <aside className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.92))] p-4 shadow-[var(--shadow-sm)]">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Library</p>
+                <h2 className="mt-1 text-lg font-semibold">Decks</h2>
+              </div>
+              <span className="rounded-full bg-[var(--color-surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-text-muted)]">
+                {decks.length} total
+              </span>
+            </div>
+            <div className="mt-4 space-y-2.5">
               {decks.map((deck) => (
                 <button
                   key={deck.id}
@@ -1514,18 +1535,39 @@ export const DecksWorkspace = () => {
                       safeRun(() => loadBrowse(deck.id));
                     }
                   }}
-                  className={`w-full rounded-[var(--radius-md)] border px-3 py-2 text-left text-sm ${
-                    studyDeckId === deck.id ? "border-[var(--color-focus)] bg-[var(--color-accent-soft)]" : "border-[var(--color-border)] bg-[var(--color-surface)]"
+                  className={`w-full rounded-[var(--radius-lg)] border px-3 py-3 text-left text-sm shadow-[var(--shadow-sm)] transition-[transform,border-color,background-color,box-shadow] hover:-translate-y-0.5 ${
+                    studyDeckId === deck.id
+                      ? "border-[var(--color-focus)] bg-[linear-gradient(135deg,rgba(217,232,239,0.88),rgba(255,255,255,0.96))] shadow-[var(--shadow-md)]"
+                      : "border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-muted)]"
                   }`}
                 >
-                  <p className="font-semibold">{deck.name}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    New {deck.counts.newCount} | Learning {deck.counts.learningCount} | Review {deck.counts.reviewCount}
-                  </p>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-semibold">{deck.name}</p>
+                    {studyDeckId === deck.id && (
+                      <span className="rounded-full border border-[var(--color-focus)] bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text)]">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-[var(--radius-md)] bg-white/70 px-2 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">New</p>
+                      <p className="mt-1 text-sm font-semibold">{deck.counts.newCount}</p>
+                    </div>
+                    <div className="rounded-[var(--radius-md)] bg-white/70 px-2 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Learn</p>
+                      <p className="mt-1 text-sm font-semibold">{deck.counts.learningCount}</p>
+                    </div>
+                    <div className="rounded-[var(--radius-md)] bg-white/70 px-2 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Review</p>
+                      <p className="mt-1 text-sm font-semibold">{deck.counts.reviewCount}</p>
+                    </div>
+                  </div>
                 </button>
               ))}
             </div>
-            <div className="mt-4 space-y-2 border-t border-[var(--color-border)] pt-3">
+            <div className="mt-5 space-y-2.5 border-t border-[var(--color-border)] pt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Manage</p>
               <FieldLabel htmlFor="deck-name">Create deck</FieldLabel>
               <TextField id="deck-name" value={deckName} onChange={(event) => setDeckName(event.target.value)} placeholder="Deck name" />
               <SelectField value={newDeckParentId} onChange={(event) => setNewDeckParentId(event.target.value)}>
@@ -1556,48 +1598,115 @@ export const DecksWorkspace = () => {
             </div>
           </aside>
 
-          <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+          <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(249,250,251,0.95))] p-4 shadow-[var(--shadow-sm)] sm:p-5">
             {view === "study" && (
               <div className="space-y-4">
-                <div>
-                  <p className="text-xs font-semibold tracking-wide text-[var(--color-text-muted)] uppercase">Study Deck</p>
-                  <h2 className="mt-1 text-xl font-semibold">{selectedStudyDeck?.name ?? "Select a deck"}</h2>
-                </div>
                 {studyStage === "overview" && (
                   <div className="space-y-4">
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
-                        <p className="text-xs text-[var(--color-text-muted)]">New</p>
-                        <p className="mt-1 text-2xl font-semibold">{studyCounts.newCount}</p>
+                    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
+                      <article className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[linear-gradient(135deg,#f7f4ec,#ffffff_58%,#eef4f7)] shadow-[var(--shadow-md)]">
+                        <div className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1fr)_17rem] lg:p-6">
+                          <div className="space-y-4">
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Study Deck</p>
+                              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[2.1rem]">{selectedStudyDeck?.name ?? "Select a deck"}</h2>
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-3">
+                              <article className="rounded-[var(--radius-lg)] border border-black/5 bg-white/88 p-4 shadow-[var(--shadow-sm)]">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">New</p>
+                                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.newCount}</p>
+                              </article>
+                              <article className="rounded-[var(--radius-lg)] border border-black/5 bg-white/88 p-4 shadow-[var(--shadow-sm)]">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Learning</p>
+                                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.learningCount}</p>
+                              </article>
+                              <article className="rounded-[var(--radius-lg)] border border-black/5 bg-white/88 p-4 shadow-[var(--shadow-sm)]">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">To Review</p>
+                                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.reviewCount}</p>
+                              </article>
+                            </div>
+                            {studyLimits && (
+                              <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white/78 px-4 py-3 text-sm text-[var(--color-text-muted)]">
+                                Today limits: New {studyLimits.remainingNew}/{studyLimits.effectiveNewLimit} remaining, Review {studyLimits.remainingReview}/{studyLimits.effectiveReviewLimit} remaining.
+                              </div>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                              <Button onClick={startStudyNow} disabled={!studyDeckId}>
+                                Study Now
+                              </Button>
+                              <Button variant="secondary" onClick={() => setToolbarModal("customStudy")} disabled={!studyDeckId}>
+                                Custom Study
+                              </Button>
+                              <Button variant="ghost" onClick={() => setToolbarModal("options")} disabled={!studyDeckId}>
+                                Options
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="relative min-h-[17rem] overflow-hidden rounded-[var(--radius-xl)] border border-black/5 bg-[linear-gradient(180deg,#f4b946_0%,#f4b946_34%,#8d1f06_34%,#8d1f06_100%)]">
+                            <div className="absolute inset-x-5 top-4 h-24 rounded-b-[1.6rem] rounded-t-[0.8rem] bg-[linear-gradient(135deg,#4a0501,#c2340f)] shadow-[0_12px_24px_rgba(74,5,1,0.25)]" />
+                            <div className="absolute inset-x-7 top-[5.4rem] h-2 rounded-full bg-black/85" />
+                            <div className="absolute left-4 right-4 top-[7rem] bottom-6 rounded-[1.4rem] bg-[linear-gradient(180deg,#ff2c16,#cc1704)] p-3">
+                              <div className="h-full rounded-[1rem] bg-[linear-gradient(180deg,#1c4aa9_0%,#7cb1ff_48%,#0f2b63_100%)] p-3">
+                                <div className="grid h-full grid-cols-[1.15fr_0.85fr] gap-3">
+                                  <div className="rounded-[0.9rem] bg-[repeating-linear-gradient(135deg,#ffffff_0,#ffffff_10px,#74a0f1_10px,#74a0f1_20px)] opacity-95" />
+                                  <div className="space-y-2">
+                                    <div className="h-8 rounded-[0.8rem] bg-black/80" />
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div className="h-12 rounded-[0.8rem] bg-[#6fc0ff]" />
+                                      <div className="h-12 rounded-[0.8rem] bg-[#ffe2aa]" />
+                                    </div>
+                                    <div className="h-10 rounded-[0.8rem] bg-[#e9ecef]" />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3 rounded-[1.1rem] bg-[rgba(244,232,221,0.92)] px-4 py-3 shadow-[var(--shadow-md)]">
+                              <div>
+                                <p className="text-xs font-semibold text-[#5b4339]">Ready to study?</p>
+                              </div>
+                              <div className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-[#5b4339] shadow-[var(--shadow-sm)]">
+                                {selectedStudyDeck?.name ?? "No deck"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </article>
-                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
-                        <p className="text-xs text-[var(--color-text-muted)]">Learning</p>
-                        <p className="mt-1 text-2xl font-semibold">{studyCounts.learningCount}</p>
-                      </article>
-                      <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
-                        <p className="text-xs text-[var(--color-text-muted)]">To Review</p>
-                        <p className="mt-1 text-2xl font-semibold">{studyCounts.reviewCount}</p>
-                      </article>
-                    </div>
-                    {studyLimits && (
-                      <p className="text-xs text-[var(--color-text-muted)]">
-                        Today limits: New {studyLimits.remainingNew}/{studyLimits.effectiveNewLimit} remaining, Review {studyLimits.remainingReview}/{studyLimits.effectiveReviewLimit} remaining.
-                      </p>
-                    )}
-                    <div className="flex flex-wrap gap-2">
-                      <Button onClick={startStudyNow} disabled={!studyDeckId}>
-                        Study Now
-                      </Button>
-                      <Button variant="secondary" onClick={() => setToolbarModal("customStudy")} disabled={!studyDeckId}>
-                        Custom Study
-                      </Button>
-                      <Button variant="ghost" onClick={() => setToolbarModal("options")} disabled={!studyDeckId}>
-                        Options
-                      </Button>
+
+                      <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                        <article className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Mode</p>
+                          <p className="mt-2 text-lg font-semibold">Study overview</p>
+                          <p className="mt-1 text-sm text-[var(--color-text-muted)]">Current deck selected and ready for the next session.</p>
+                        </article>
+                        <article className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Scope</p>
+                          <p className="mt-2 text-lg font-semibold">{selectedStudyDeck?.name ?? "No deck selected"}</p>
+                          <p className="mt-1 text-sm text-[var(--color-text-muted)]">Browse, stats, and study actions all target this deck selection.</p>
+                        </article>
+                        <article className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Actions</p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button size="sm" onClick={startStudyNow} disabled={!studyDeckId}>
+                              Study
+                            </Button>
+                            <Button size="sm" variant="secondary" onClick={() => setToolbarModal("customStudy")} disabled={!studyDeckId}>
+                              Custom
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setToolbarModal("options")} disabled={!studyDeckId}>
+                              Options
+                            </Button>
+                          </div>
+                        </article>
+                      </div>
                     </div>
                   </div>
                 )}
                 {studyStage === "session" && (
+                  <>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Study Session</p>
+                    <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">{selectedStudyDeck?.name ?? "Select a deck"}</h2>
+                  </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <label className="inline-flex items-center gap-2 text-sm">
                       <input type="checkbox" checked={includeChildren} onChange={(event) => setIncludeChildren(event.target.checked)} />
@@ -1628,12 +1737,9 @@ export const DecksWorkspace = () => {
                       </Button>
                     )}
                   </div>
-                )}
-                {studyStage === "session" && (
-                  <>
-                    <p className="text-sm text-[var(--color-text-muted)]">
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
                       Queue: New {studyCounts.newCount} | Learning {studyCounts.learningCount} | Review {studyCounts.reviewCount}
-                    </p>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
                         variant="ghost"
@@ -1661,13 +1767,15 @@ export const DecksWorkspace = () => {
                       </Button>
                     </div>
                     {studyCard ? (
-                      <article className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
-                        <p className="text-sm font-semibold text-[var(--color-text-muted)]">Front</p>
-                        <p className="mt-2 text-xl">{studyCard.prompt}</p>
+                      <article className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(245,247,249,0.92))] p-5 shadow-[var(--shadow-md)]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Front</p>
+                        <p className="mt-3 text-xl leading-relaxed sm:text-2xl">{studyCard.prompt}</p>
                         {showAnswer && (
                           <>
-                            <p className="mt-5 text-sm font-semibold text-[var(--color-text-muted)]">Back</p>
-                            <p className="mt-2 text-lg">{studyCard.answer}</p>
+                            <div className="mt-6 border-t border-[var(--color-border)] pt-5">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Back</p>
+                              <p className="mt-3 text-lg leading-relaxed">{studyCard.answer}</p>
+                            </div>
                           </>
                         )}
                       </article>
@@ -1692,6 +1800,10 @@ export const DecksWorkspace = () => {
 
             {view === "browse" && (
               <div className="space-y-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Card Browser</p>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">{selectedStudyDeck?.name ?? "Browse cards"}</h2>
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <TextField value={browseQuery} onChange={(event) => setBrowseQuery(event.target.value)} placeholder="Search cards..." className="max-w-sm" />
                   <Button onClick={() => safeRun(loadBrowse)}>Search</Button>
@@ -1706,7 +1818,7 @@ export const DecksWorkspace = () => {
                   </Button>
                 </div>
                 <div className="grid gap-3 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-                  <div className="max-h-[30rem] overflow-auto rounded-[var(--radius-md)] border border-[var(--color-border)]">
+                  <div className="max-h-[30rem] overflow-auto rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
                     <table className="min-w-full text-left text-sm">
                       <thead className="bg-[var(--color-surface-muted)]">
                         <tr>
@@ -1742,7 +1854,7 @@ export const DecksWorkspace = () => {
                       </tbody>
                     </table>
                   </div>
-                  <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                  <div className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
                     {selectedRow ? (
                       <div className="space-y-2">
                         <p className="text-sm font-semibold">{selectedRow.noteTypeName}</p>
@@ -1768,6 +1880,10 @@ export const DecksWorkspace = () => {
 
             {view === "stats" && (
               <div className="space-y-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Deck Stats</p>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">{selectedStudyDeck?.name ?? "Deck statistics"}</h2>
+                </div>
                 <div className="flex items-center gap-2">
                   <SelectField value={statsRange} onChange={(event) => setStatsRange(event.target.value)} className="max-w-52">
                     <option value="7d">7 days</option>
