@@ -100,6 +100,11 @@ import type { PersistedWallState } from "@/features/wall/types";
 import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
 import {
+  accountSettingsUpdatedEventName,
+  readStoredControlsMode,
+  readStoredWallLayoutPrefs,
+} from "@/lib/account-settings";
+import {
   addPresentationStep,
   clampPresentationIndex,
   createPresentationPath,
@@ -432,29 +437,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       // Ignore malformed persisted recall payloads and keep defaults.
     }
 
-    try {
-      const layoutRaw = window.localStorage.getItem(layoutPrefsStorageKey);
-      if (layoutRaw) {
-        const parsed = JSON.parse(layoutRaw) as Partial<LayoutPreferences>;
-        setLayoutPrefs({
-          showToolsPanel: parsed.showToolsPanel ?? defaultLayoutPrefs.showToolsPanel,
-          showDetailsPanel: parsed.showDetailsPanel ?? defaultLayoutPrefs.showDetailsPanel,
-          showContextBar: parsed.showContextBar ?? defaultLayoutPrefs.showContextBar,
-          showNoteTags: parsed.showNoteTags ?? defaultLayoutPrefs.showNoteTags,
-        });
-      }
-    } catch {
-      // Ignore malformed persisted layout payloads and keep defaults.
-    }
-
-    try {
-      const controlsModeRaw = window.localStorage.getItem(controlsModeStorageKey);
-      if (controlsModeRaw === "basic" || controlsModeRaw === "advanced") {
-        setControlsMode(controlsModeRaw);
-      }
-    } catch {
-      // Ignore malformed controls mode payloads and keep defaults.
-    }
+    setLayoutPrefs(readStoredWallLayoutPrefs());
+    setControlsMode(readStoredControlsMode());
 
     try {
       const spatialRaw = window.localStorage.getItem(spatialPrefsStorageKey);
@@ -488,6 +472,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setLeftPanelOpen(false);
     setRightPanelOpen(false);
     setClientPrefsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const applyAccountSettings = () => {
+      setLayoutPrefs(readStoredWallLayoutPrefs());
+      setControlsMode(readStoredControlsMode());
+    };
+
+    window.addEventListener(accountSettingsUpdatedEventName, applyAccountSettings);
+    return () => {
+      window.removeEventListener(accountSettingsUpdatedEventName, applyAccountSettings);
+    };
   }, []);
 
   useEffect(() => {

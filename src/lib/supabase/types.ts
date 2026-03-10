@@ -1,6 +1,46 @@
 export type Database = {
   public: {
     Tables: {
+      account_settings: {
+        Row: {
+          owner_id: string;
+          theme: string;
+          startup_behavior: string;
+          startup_default_page: string;
+          auto_timezone: boolean;
+          manual_timezone: string;
+          keyboard_color_slots: unknown;
+          wall_layout_prefs: unknown;
+          controls_mode: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          owner_id: string;
+          theme?: string;
+          startup_behavior?: string;
+          startup_default_page?: string;
+          auto_timezone?: boolean;
+          manual_timezone?: string;
+          keyboard_color_slots?: unknown;
+          wall_layout_prefs?: unknown;
+          controls_mode?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          theme?: string;
+          startup_behavior?: string;
+          startup_default_page?: string;
+          auto_timezone?: boolean;
+          manual_timezone?: string;
+          keyboard_color_slots?: unknown;
+          wall_layout_prefs?: unknown;
+          controls_mode?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       walls: {
         Row: {
           id: string;

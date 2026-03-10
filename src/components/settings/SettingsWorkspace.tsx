@@ -6,17 +6,16 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { ModalShell } from "@/components/ui/ModalShell";
-import { controlsModeStorageKey, layoutPrefsStorageKey } from "@/components/wall/wall-canvas-helpers";
-import { defaultKeyboardColorSlots, readKeyboardColorSlots, writeKeyboardColorSlots } from "@/lib/keyboard-color-slots";
+import { defaultKeyboardColorSlots, readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import {
-  applyPreferencesToDocument,
-  preferenceStorageKeys,
-  persistPreferences,
-  readStoredPreferences,
-  type StartupBehavior,
-  type StartupPage,
-  type ThemePreference,
-} from "@/lib/preferences";
+  normalizeAccountSettings,
+  persistAccountSettingsLocally,
+  readStoredControlsMode,
+  readStoredWallLayoutPrefs,
+  type ControlsMode,
+  type WallLayoutPrefs,
+} from "@/lib/account-settings";
+import { readStoredPreferences, type StartupBehavior, type StartupPage, type ThemePreference } from "@/lib/preferences";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type SettingsWorkspaceProps = {
@@ -25,23 +24,6 @@ type SettingsWorkspaceProps = {
 };
 
 const profileUpdatedEventName = "idea-wall-profile-updated";
-const preferencesUpdatedEventName = "idea-wall-preferences-updated";
-
-type WallLayoutPrefs = {
-  showToolsPanel: boolean;
-  showDetailsPanel: boolean;
-  showContextBar: boolean;
-  showNoteTags: boolean;
-};
-
-type ControlsMode = "basic" | "advanced";
-
-const defaultWallLayoutPrefs: WallLayoutPrefs = {
-  showToolsPanel: true,
-  showDetailsPanel: true,
-  showContextBar: false,
-  showNoteTags: false,
-};
 
 type SettingsSectionId = "general" | "appearance" | "keyboard" | "advanced";
 
@@ -312,34 +294,11 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
   const [autoTimezone, setAutoTimezone] = useState(() => readStoredPreferences().autoTimezone);
   const [manualTimezone, setManualTimezone] = useState(() => readStoredPreferences().manualTimezone);
   const [keyboardColorSlots, setKeyboardColorSlots] = useState<Array<string | null>>(() => readKeyboardColorSlots());
-  const [wallLayoutPrefs, setWallLayoutPrefs] = useState<WallLayoutPrefs>(() => {
-    if (typeof window === "undefined") {
-      return defaultWallLayoutPrefs;
-    }
-    try {
-      const raw = window.localStorage.getItem(layoutPrefsStorageKey);
-      if (!raw) {
-        return defaultWallLayoutPrefs;
-      }
-      const parsed = JSON.parse(raw) as Partial<WallLayoutPrefs>;
-      return {
-        showToolsPanel: parsed.showToolsPanel ?? defaultWallLayoutPrefs.showToolsPanel,
-        showDetailsPanel: parsed.showDetailsPanel ?? defaultWallLayoutPrefs.showDetailsPanel,
-        showContextBar: parsed.showContextBar ?? defaultWallLayoutPrefs.showContextBar,
-        showNoteTags: parsed.showNoteTags ?? defaultWallLayoutPrefs.showNoteTags,
-      };
-    } catch {
-      return defaultWallLayoutPrefs;
-    }
-  });
-  const [controlsMode, setControlsMode] = useState<ControlsMode>(() => {
-    if (typeof window === "undefined") {
-      return "basic";
-    }
-    const raw = window.localStorage.getItem(controlsModeStorageKey);
-    return raw === "advanced" ? "advanced" : "basic";
-  });
+  const [wallLayoutPrefs, setWallLayoutPrefs] = useState<WallLayoutPrefs>(() => readStoredWallLayoutPrefs());
+  const [controlsMode, setControlsMode] = useState<ControlsMode>(() => readStoredControlsMode());
   const [savedAt, setSavedAt] = useState<number>(() => Date.now());
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
   const [preferredName, setPreferredName] = useState("");
   const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
   const [profileEmail, setProfileEmail] = useState(userEmail);
@@ -363,14 +322,36 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
     [autoTimezone, manualTimezone, startupBehavior, startupDefaultPage, theme],
   );
 
-  const onSavePreferences = () => {
-    persistPreferences(preferenceState);
-    applyPreferencesToDocument(preferenceState);
-    window.dispatchEvent(new CustomEvent(preferencesUpdatedEventName));
-    writeKeyboardColorSlots(keyboardColorSlots);
-    window.localStorage.setItem(layoutPrefsStorageKey, JSON.stringify(wallLayoutPrefs));
-    window.localStorage.setItem(controlsModeStorageKey, controlsMode);
-    setSavedAt(Date.now());
+  const onSavePreferences = async () => {
+    setSettingsBusy(true);
+    setSettingsStatus(null);
+    const nextSettings = {
+      ...preferenceState,
+      keyboardColorSlots,
+      wallLayoutPrefs,
+      controlsMode,
+    };
+
+    try {
+      const response = await fetch("/api/account/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nextSettings),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error ?? "Failed to save settings.");
+      }
+
+      persistAccountSettingsLocally(normalizeAccountSettings(nextSettings));
+      setSavedAt(Date.now());
+      setSettingsStatus("Settings saved.");
+    } catch (error) {
+      setSettingsStatus(error instanceof Error ? error.message : "Failed to save settings.");
+    } finally {
+      setSettingsBusy(false);
+    }
   };
 
   const setKeyboardSlot = (index: number, color: string | null) => {
@@ -390,9 +371,41 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
     if (typeof window === "undefined") {
       return;
     }
-    window.localStorage.setItem(preferenceStorageKeys.theme, theme);
     document.documentElement.dataset.themePreference = theme;
   }, [theme]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSettings = async () => {
+      try {
+        const response = await fetch("/api/account/settings", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+        const payload = (await response.json()) as { settings?: unknown };
+        if (!payload.settings || cancelled) {
+          return;
+        }
+        const settings = normalizeAccountSettings(payload.settings);
+        setTheme(settings.theme);
+        setStartupBehavior(settings.startupBehavior);
+        setStartupDefaultPage(settings.startupDefaultPage);
+        setAutoTimezone(settings.autoTimezone);
+        setManualTimezone(settings.manualTimezone);
+        setKeyboardColorSlots(settings.keyboardColorSlots);
+        setWallLayoutPrefs(settings.wallLayoutPrefs);
+        setControlsMode(settings.controlsMode);
+      } catch {
+        // Keep local settings when cloud load is unavailable.
+      }
+    };
+
+    void loadSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -731,8 +744,8 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
           </nav>
 
           <div className="mt-6 flex flex-col gap-2">
-            <Button variant="secondary" size="sm" onClick={onSavePreferences}>
-              Save settings
+            <Button variant="secondary" size="sm" onClick={() => void onSavePreferences()} disabled={settingsBusy}>
+              {settingsBusy ? "Saving..." : "Save settings"}
             </Button>
             {!embedded && (
               <Link
@@ -1104,7 +1117,9 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
               </>
             )}
 
-            <footer className="pt-5 text-xs text-[var(--color-text-muted)]">Last saved {new Date(savedAt).toLocaleTimeString()}.</footer>
+            <footer className="pt-5 text-xs text-[var(--color-text-muted)]">
+              {settingsStatus ?? `Last saved ${new Date(savedAt).toLocaleTimeString()}.`}
+            </footer>
             <p className="mt-1 text-xs text-[var(--color-text-muted)]">Current controls mode: {controlsModeLabel}.</p>
           </section>
         </article>

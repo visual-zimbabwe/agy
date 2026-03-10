@@ -701,12 +701,13 @@ Expected:
    - `Wall controls density` (`Basic` / `Advanced`)
 4. Return to `/wall` and verify each saved preference applies.
 5. Refresh `/wall` and verify preferences persist.
-6. Verify `Tools` and `Details` pills remain visible in top toolbar when their respective settings are enabled.
+6. Sign out, sign back in with the same account, open `/wall`, and verify the saved settings still apply.
+7. Verify `Tools` and `Details` pills remain visible in top toolbar when their respective settings are enabled.
 
 Expected:
 - Low-usage display toggles are configured in Settings, not top-level wall chrome.
 - Wall respects saved layout and controls-density preferences.
-- Settings changes persist across sessions.
+- Settings changes persist across refresh and signed-in sessions.
 
 ## Note Design - Pro Interaction Pass
 1. Select one note and press `Enter`; verify inline editor opens.
