@@ -92,7 +92,7 @@ type WallFloatingUiProps = {
 };
 
 const noteEditorSectionClass =
-  "mt-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 text-[var(--color-text)] shadow-lg";
+  "mt-2 rounded-xl border border-[var(--color-border-muted)] bg-[var(--color-surface-glass)] p-2 text-[var(--color-text)] shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)]";
 const noteEditorSectionLabelClass = "text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]";
 const noteEditorInputClass =
   "min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-focus)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1";
@@ -271,7 +271,7 @@ export const WallFloatingUi = ({
                     })
                   }
                   placeholder="Title (e.g., Ten Commandments)"
-                  className={noteEditorInputClass}
+                  className="min-w-0 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
                 />
                 <select
                   data-note-edit-tags="true"
@@ -421,7 +421,7 @@ export const WallFloatingUi = ({
                           },
                         });
                       }}
-                      className={noteEditorSecondaryButtonClass}
+                      className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700"
                     >
                       Add item
                     </button>
@@ -523,7 +523,7 @@ export const WallFloatingUi = ({
                   }
                   setEditTagInput("");
                 }}
-                className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700"
+                className={noteEditorSecondaryButtonClass}
               >
                 {editTagRenameFrom ? "Rename" : "Add"}
               </button>
@@ -537,8 +537,8 @@ export const WallFloatingUi = ({
           className="pointer-events-none absolute z-[44] -translate-x-1/2 -translate-y-full"
           style={{ left: `${tagPreviewScreen.x}px`, top: `${tagPreviewScreen.y}px` }}
         >
-          <div className="max-w-[min(70vw,34rem)] overflow-x-auto whitespace-nowrap rounded-xl border border-zinc-200 bg-white/95 px-2 py-1.5 shadow-lg backdrop-blur-sm">
-            <div className="flex items-center gap-1">
+          <div className="max-w-[min(70vw,34rem)] rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 py-1.5 shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)]">
+            <div className="flex max-w-full flex-wrap items-center gap-1">
               {tagPreviewNote.tags.map((tag) => (
                 <span
                   key={`hover-tag-${tag}`}

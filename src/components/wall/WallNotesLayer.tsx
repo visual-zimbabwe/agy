@@ -251,6 +251,13 @@ export const WallNotesLayer = ({
           .map((value) => value?.trim())
           .filter(Boolean)
           .join("\n\n");
+        const canonTitle = canon?.title?.trim();
+        const quoteAttribution = [noteView.quoteAuthor, noteView.quoteSource].filter(Boolean).join(" - ");
+        const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
+        const quoteMarkInset = isQuote ? 13 : 0;
+        const canonTitleInset = isCanon && canonTitle ? 16 : 0;
+        const textX = isQuote ? 18 : 12;
+        const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : 24));
         const noteTextContent = isVocabulary
           ? isVocabularyBack
             ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
@@ -260,10 +267,12 @@ export const WallNotesLayer = ({
               ? canonListPreview || "Add list items"
               : canonSinglePreview || "Add statement"
           : isQuote
-            ? truncateNoteText(noteView.text, noteView) || "Add quote text"
+            ? truncateNoteText(noteView.text, {
+                ...noteView,
+                w: textWidth + 24,
+                h: Math.max(40, noteView.h - quoteAttributionHeight - quoteMarkInset - 8),
+              }) || "Add quote text"
           : truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit";
-        const canonTitle = canon?.title?.trim();
-        const quoteAttribution = [noteView.quoteAuthor, noteView.quoteSource].filter(Boolean).join(" - ");
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
@@ -273,9 +282,6 @@ export const WallNotesLayer = ({
         const imageFrameHeight = imageUrl
           ? Math.max(44, Math.min(noteView.h * 0.58, Math.max(44, noteView.h - 70)))
           : 0;
-        const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
-        const quoteMarkInset = isQuote ? 13 : 0;
-        const canonTitleInset = isCanon && canonTitle ? 16 : 0;
         const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset + canonTitleInset;
         const textHeight = Math.max(
           0,
@@ -589,9 +595,9 @@ export const WallNotesLayer = ({
               </>
             )}
             <Text
-              x={12}
+              x={textX}
               y={textY}
-              width={Math.max(0, noteView.w - 24)}
+              width={textWidth}
               height={textHeight}
               fontSize={noteTextStyle.fontSize * textSpringFactor}
               fontFamily={noteTextFontFamily}
