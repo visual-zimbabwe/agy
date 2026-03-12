@@ -184,9 +184,11 @@ export const WallTimelineCard = ({
           )}
         </div>
 
-        <p className={`mt-3 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`} style={{ color: cardColors.readableText }}>
-          {preview}
-        </p>
+        {preview ? (
+          <p className={`mt-3 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`} style={{ color: cardColors.readableText }}>
+            {preview}
+          </p>
+        ) : <div className="mt-3 flex-1" />}
 
         <div className="mt-4 flex items-center justify-between gap-2 pr-12 text-[11px]" style={{ color: cardColors.mutedText }}>
           <span className="truncate">{noteKindLabel}</span>
