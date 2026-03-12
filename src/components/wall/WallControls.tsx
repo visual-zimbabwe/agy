@@ -35,7 +35,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
 
   if (name === "search") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <circle cx="11" cy="11" r="7" />
         <path d="m20 20-3.5-3.5" />
       </svg>
@@ -43,7 +43,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "capture") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
         <path d="M8 12h8M12 8v8" />
       </svg>
@@ -51,7 +51,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "export") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <path d="M12 3v11" />
         <path d="m8.5 10.5 3.5 3.5 3.5-3.5" />
         <path d="M4 16.5V20h16v-3.5" />
@@ -60,7 +60,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "undo") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <path d="M9 7H4v5" />
         <path d="M4 12a8 8 0 0 1 14.3-4.8" />
       </svg>
@@ -68,7 +68,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "redo") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <path d="M15 7h5v5" />
         <path d="M20 12a8 8 0 0 0-14.3-4.8" />
       </svg>
@@ -76,7 +76,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "present") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <rect x="3.5" y="4.5" width="17" height="11" rx="2" />
         <path d="M9 20h6M12 15.5V20" />
       </svg>
@@ -84,7 +84,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "reset") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <path d="M4 12a8 8 0 1 0 2.3-5.7" />
         <path d="M4 4v4h4" />
       </svg>
@@ -92,7 +92,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "timeline") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <path d="M5 12h14" />
         <circle cx="7" cy="12" r="1.8" />
         <circle cx="12" cy="12" r="1.8" />
@@ -102,7 +102,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "heatmap") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <rect x="4" y="4" width="4" height="4" />
         <rect x="10" y="4" width="4" height="4" />
         <rect x="16" y="4" width="4" height="4" />
@@ -116,7 +116,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "shortcuts") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <rect x="3.5" y="7" width="17" height="10" rx="2" />
         <path d="M8 12h.01M12 12h.01M16 12h.01" />
       </svg>
@@ -124,7 +124,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "tools") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <path d="M4 20 10.5 13.5" />
         <path d="m8.5 5.5 10 10" />
         <path d="m15 4 5 5-3 3-5-5z" />
@@ -133,7 +133,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "details") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <rect x="4" y="4" width="16" height="16" rx="2.5" />
         <path d="M8 9h8M8 12h8M8 15h5" />
       </svg>
@@ -141,7 +141,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "note") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <path d="M6 4h12v16H6z" />
         <path d="M9 9h6M9 13h6" />
       </svg>
@@ -149,7 +149,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "zone") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <rect x="4" y="5" width="16" height="14" rx="2" />
         <path d="M8 9h8" />
       </svg>
@@ -157,14 +157,14 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "box") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <rect x="5" y="5" width="14" height="14" strokeDasharray="3 2" />
       </svg>
     );
   }
   if (name === "link") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <path d="m10.5 13.5 3-3" />
         <path d="M8 16a4 4 0 0 1 0-5.7l2.3-2.3a4 4 0 1 1 5.7 5.7l-1.3 1.3" />
       </svg>
@@ -172,7 +172,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "cluster") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <circle cx="7" cy="8" r="2.2" />
         <circle cx="16.5" cy="8.5" r="2.2" />
         <circle cx="12" cy="16" r="2.2" />
@@ -182,7 +182,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "panel-left") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
         <path d="M9 4.5v15M13.5 9 10 12l3.5 3" />
       </svg>
@@ -190,7 +190,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
   }
   if (name === "layout") {
     return (
-      <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+      <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
         <path d="M5 7h14" />
         <path d="M5 12h14" />
         <path d="M5 17h14" />
@@ -201,7 +201,7 @@ export const Icon = ({ name, className = "h-4 w-4" }: { name: IconName; classNam
     );
   }
   return (
-    <svg viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
+    <svg suppressHydrationWarning viewBox="0 0 24 24" className={className} fill={common} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin}>
       <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
       <path d="M15 4.5v15M10.5 9 14 12l-3.5 3" />
     </svg>
