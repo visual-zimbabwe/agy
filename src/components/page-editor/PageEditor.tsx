@@ -74,6 +74,14 @@ const DEFAULT_TABLE_ROWS = 3;
 const DEFAULT_TABLE_COLUMNS = 2;
 const TABLE_ROW_HEIGHT = 40;
 const TABLE_CONTROLS_HEIGHT = 40;
+const PAGE_WORKSPACE_PANEL =
+  "rounded-[18px] border border-white/10 bg-[color:rgb(8_12_18_/_0.84)] text-white shadow-[0_20px_50px_rgba(0,0,0,0.34)] backdrop-blur-xl";
+const PAGE_WORKSPACE_BUTTON =
+  "inline-flex items-center gap-2 rounded-[12px] border border-white/10 bg-[color:rgb(255_255_255_/_0.04)] px-3 py-2 text-[11px] font-medium text-white/78 transition hover:bg-[color:rgb(255_255_255_/_0.1)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-45";
+const PAGE_WORKSPACE_ICON_BUTTON =
+  "inline-flex h-10 w-10 items-center justify-center rounded-[12px] border border-white/10 bg-[color:rgb(255_255_255_/_0.04)] text-white/72 transition hover:bg-[color:rgb(255_255_255_/_0.1)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0";
+const PAGE_WORKSPACE_TOOL_BUTTON =
+  "group flex w-full items-center gap-3 rounded-[14px] border border-white/8 bg-[color:rgb(255_255_255_/_0.03)] px-3 py-2.5 text-left text-white/74 transition hover:bg-[color:rgb(255_255_255_/_0.09)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0";
 
 const BLOCK_TEXT_COLORS = [
   { id: "default", label: "Default text", value: "", preview: "#2e2e2e" },
@@ -2179,6 +2187,70 @@ export function PageEditor() {
       setSelectedBlockIds((previous) => (previous.includes(blockId) ? previous : [blockId]));
     },
     [blocks, toScreenPoint],
+  );
+
+  const workspaceDocLabel = docId === defaultPageDocId ? "Main Canvas" : docId.replace(/^page_/, "Page ").replace(/[-_]+/g, " ").trim();
+  const primarySelectedBlockId = selectedBlockIds[0];
+  const primarySelectedBlock = primarySelectedBlockId ? blocks.find((block) => block.id === primarySelectedBlockId) : undefined;
+
+  const insertBlockAtViewportCenter = useCallback(
+    (type: BlockType) => {
+      const world = worldFromScreen(viewport.w / 2, viewport.h / 2);
+      const created = newBlock(type, world.x - DOC_WIDTH / 2 + 42, world.y - 28);
+      setBlocks((previous) => [...previous, created]);
+      setSelectedBlockIds([created.id]);
+      if (type !== "divider") {
+        queueFocus(created.id);
+      }
+    },
+    [queueFocus, viewport.h, viewport.w, worldFromScreen],
+  );
+
+  const openInsertIntentAtViewportCenter = useCallback(
+    (intent: FileInsertIntent) => {
+      const world = worldFromScreen(viewport.w / 2, viewport.h / 2);
+      openFileInsertAt(world.x - DOC_WIDTH / 2 + 42, world.y - 28, viewport.w / 2 - 176, viewport.h / 2 - 96, intent);
+    },
+    [openFileInsertAt, viewport.h, viewport.w, worldFromScreen],
+  );
+
+  const adjustZoomAtViewportCenter = useCallback(
+    (factor: number) => {
+      const screenX = viewport.w / 2;
+      const screenY = viewport.h / 2;
+      const pointerWorld = worldFromScreen(screenX, screenY);
+      const nextZoom = clamp(camera.zoom * factor, 0.28, 2.4);
+      setCamera({ x: screenX - pointerWorld.x * nextZoom, y: screenY - pointerWorld.y * nextZoom, zoom: nextZoom });
+    },
+    [camera.zoom, viewport.h, viewport.w, worldFromScreen],
+  );
+
+  const fitWorkspaceView = useCallback(() => {
+    setCamera(cameraForBlocks(blocks));
+  }, [blocks]);
+
+  const openPrimaryBlockActions = useCallback(() => {
+    const target = primarySelectedBlockId ?? blocks[0]?.id;
+    if (!target) return;
+    openBlockMenuForBlock(target);
+  }, [blocks, openBlockMenuForBlock, primarySelectedBlockId]);
+
+  const duplicatePrimaryBlock = useCallback(() => {
+    if (!primarySelectedBlockId) return;
+    duplicateBlock(primarySelectedBlockId);
+  }, [duplicateBlock, primarySelectedBlockId]);
+
+  const workspaceTools = useMemo(
+    () => [
+      { id: "text", glyph: "T", label: "Text", hint: "Paragraph block", onClick: () => insertBlockAtViewportCenter("text") },
+      { id: "todo", glyph: "[]", label: "To-do", hint: "Checklist item", onClick: () => insertBlockAtViewportCenter("todo") },
+      { id: "quote", glyph: '"', label: "Quote", hint: "Quoted text", onClick: () => insertBlockAtViewportCenter("quote") },
+      { id: "table", glyph: "tbl", label: "Table", hint: "Simple grid", onClick: () => insertBlockAtViewportCenter("table") },
+      { id: "code", glyph: "</>", label: "Code", hint: "Snippet block", onClick: () => insertBlockAtViewportCenter("code") },
+      { id: "image", glyph: "img", label: "Media", hint: "Upload or link", onClick: () => openInsertIntentAtViewportCenter("image") },
+      { id: "bookmark", glyph: "lnk", label: "Link", hint: "Bookmark or embed", onClick: () => openInsertIntentAtViewportCenter("bookmark") },
+    ],
+    [insertBlockAtViewportCenter, openInsertIntentAtViewportCenter],
   );
 
   useEffect(() => {
@@ -4320,7 +4392,7 @@ export function PageEditor() {
     };
   }, [camera.zoom, fileInsert.intent, fileInsert.open, fileInsert.worldX, fileInsert.worldY, fileInsert.x, fileInsert.y, toScreenPoint, viewport.h, viewport.w]);
   return (
-    <main className="route-shell text-[var(--color-text)]">
+    <main className="route-shell page-workspace-shell text-[var(--color-text)]">
       <input
         ref={fileInputRef}
         type="file"
@@ -4350,9 +4422,67 @@ export function PageEditor() {
         }}
       />
 
+      <div className="pointer-events-none absolute inset-0 z-30">
+        <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-3">
+          <div className={`${PAGE_WORKSPACE_PANEL} pointer-events-auto flex min-w-0 items-center gap-3 px-3 py-2.5`}>
+            <div className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-white/12 bg-[color:rgb(79_156_214_/_0.18)] text-[11px] font-semibold tracking-[0.24em] text-white">
+              PG
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.24em] text-white/45">Infinite Editor</p>
+              <p className="truncate text-sm font-semibold text-white">{workspaceDocLabel || "Main Canvas"}</p>
+            </div>
+            <div className="hidden h-8 w-px bg-white/10 md:block" />
+            <div className="hidden items-center gap-2 md:flex">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/55">{blocks.length} blocks</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/55">{selectedBlockIds.length} selected</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/55">{Math.round(camera.zoom * 100)}% zoom</span>
+            </div>
+          </div>
+          <div className={`${PAGE_WORKSPACE_PANEL} pointer-events-auto flex items-center gap-2 px-2 py-2`}>
+            <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={() => insertBlockAtViewportCenter("text")}>New Text</button>
+            <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={() => openInsertIntentAtViewportCenter("file")}>{uploading ? "Uploading..." : "Upload"}</button>
+            <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={fitWorkspaceView} disabled={blocks.length === 0}>Fit View</button>
+            <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={openPrimaryBlockActions} disabled={blocks.length === 0}>Actions</button>
+          </div>
+        </div>
+
+        <div className={`absolute left-3 top-20 hidden w-[14.5rem] p-2 md:block ${PAGE_WORKSPACE_PANEL}`}>
+          <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">Tools</p>
+          <div className="mt-2 space-y-2">
+            {workspaceTools.map((tool) => (
+              <button key={tool.id} type="button" className={`${PAGE_WORKSPACE_TOOL_BUTTON} pointer-events-auto`} onClick={tool.onClick}>
+                <span className="inline-flex min-w-[2.6rem] items-center justify-center rounded-[10px] border border-white/10 bg-white/6 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/72">
+                  {tool.glyph}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-medium text-white">{tool.label}</span>
+                  <span className="block truncate text-[10px] text-white/42">{tool.hint}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className={`absolute bottom-3 left-1/2 flex w-[min(48rem,calc(100%-1.5rem))] -translate-x-1/2 items-center justify-between gap-3 px-3 py-2 ${PAGE_WORKSPACE_PANEL}`}>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-medium text-white">{primarySelectedBlock ? `Selected ${primarySelectedBlock.type}` : "Canvas ready"}</p>
+            <p className="truncate text-[10px] uppercase tracking-[0.18em] text-white/42">Drag empty space to pan. Ctrl/Cmd + wheel to zoom. Type / inside text blocks for commands.</p>
+          </div>
+          <div className="pointer-events-auto flex items-center gap-2">
+            <button type="button" className={PAGE_WORKSPACE_ICON_BUTTON} onClick={() => adjustZoomAtViewportCenter(0.92)} aria-label="Zoom out">-</button>
+            <div className="min-w-[4.8rem] rounded-[12px] border border-white/10 bg-white/5 px-2.5 py-2 text-center text-[11px] font-semibold text-white/78">{Math.round(camera.zoom * 100)}%</div>
+            <button type="button" className={PAGE_WORKSPACE_ICON_BUTTON} onClick={() => adjustZoomAtViewportCenter(1.08)} aria-label="Zoom in">+</button>
+            <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={duplicatePrimaryBlock} disabled={!primarySelectedBlockId}>Duplicate</button>
+          </div>
+        </div>
+
+        <div className="absolute inset-[10px] rounded-[24px] border border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_30px_80px_rgba(0,0,0,0.18)]" />
+      </div>
+
       <div
         ref={containerRef}
-        className="relative h-screen w-full overflow-hidden bg-[var(--color-surface)]"
+        className="relative h-screen w-full overflow-hidden"
         onPointerDown={onCanvasPointerDown}
         onWheel={handleWheel}
         onDragOver={(event) => {
@@ -4373,6 +4503,10 @@ export function PageEditor() {
           setFileMenu({ open: false, x: 0, y: 0 });
         }}
       >
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-[10px] rounded-[24px] bg-[radial-gradient(circle_at_center,rgba(251,252,254,0.98)_0%,rgba(245,248,252,0.96)_44%,rgba(210,220,232,0.58)_66%,rgba(16,23,34,0.14)_82%,rgba(16,23,34,0)_100%)]" />
+          <div className="absolute inset-[10px] bg-[linear-gradient(180deg,rgba(255,255,255,0.22)_0%,rgba(255,255,255,0.08)_18%,rgba(255,255,255,0)_36%,rgba(0,0,0,0.05)_100%)] rounded-[24px]" />
+        </div>
         <div
           className="pointer-events-none absolute inset-0"
           style={{

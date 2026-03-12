@@ -5,6 +5,8 @@
 2. Click empty canvas on the left, center, and right; verify a new editable block appears exactly where clicked.
 3. Confirm empty editable blocks show placeholder text `Type "/" for commands`.
 4. Hold and drag empty canvas to pan.
+5. Verify the dark workspace chrome appears around the canvas: slim top bar, left tool rail, and bottom status strip, while the canvas remains the main focus.
+6. Click `New Text`, `Upload`, `Fit View`, left-rail tool buttons, and bottom zoom controls; confirm they trigger the expected canvas/editor actions without blocking panning or block editing.
 5. Use `Ctrl/Cmd + mouse wheel` to zoom toward cursor.
 6. Use mouse wheel (without `Ctrl/Cmd`) to pan viewport.
 7. Drag any block to a new position and verify free placement on the infinite canvas.
@@ -103,6 +105,7 @@
 
 Expected:
 - `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
+- `/page` uses dark workspace chrome around the canvas with a top command bar, left tool rail, and bottom status strip that stay visible without obscuring core editing flows.
 - `Type "/" for commands` appears at the active insertion point, not fixed to left side.
 - Slash commands provide Notion-style block changes and keyboard navigation.
 - Bulleted lists support slash, markdown, and `Cmd/Ctrl + Shift + 5` creation flows with proper continuation/indent/outdent/end-list behaviors.
