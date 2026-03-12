@@ -294,12 +294,14 @@ Expected:
 4. Blur editor, refresh page, and reopen the same quote note.
 5. Open search (`Ctrl/Cmd + K`) and search by quote author/source text.
 6. Select the quote and use `More > Convert to Standard`, then `More > Convert to Quote` again.
+7. Switch to dark mode, reopen the quote note editor, and verify `Author`, `Source`, and tag input text remains readable while typing and when placeholders are visible.
 
 Expected:
 - Quote notes render with quote styling and attribution footer.
 - Author/source attribution persists after refresh.
 - Command palette note search matches quote body, author, and source.
 - Quote/standard conversion works without losing core note content.
+- Dark mode keeps quote attribution and tag editor text/placeholder contrast readable.
 
 ## Canon Notes (Single + List)
 1. In `/wall`, click `New Canon` from the Tools panel (or run `Create canon note` from command palette).

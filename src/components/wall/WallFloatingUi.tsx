@@ -91,6 +91,16 @@ type WallFloatingUiProps = {
   onResetZoom: () => void;
 };
 
+const noteEditorSectionClass =
+  "mt-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 text-[var(--color-text)] shadow-lg";
+const noteEditorSectionLabelClass = "text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]";
+const noteEditorInputClass =
+  "min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-focus)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-1";
+const noteEditorTagChipClass =
+  "inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-0.5 text-[11px] text-[var(--color-text)]";
+const noteEditorSecondaryButtonClass =
+  "rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]";
+
 export const WallFloatingUi = ({
   editing,
   notesById,
@@ -261,7 +271,7 @@ export const WallFloatingUi = ({
                     })
                   }
                   placeholder="Title (e.g., Ten Commandments)"
-                  className="min-w-0 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                  className={noteEditorInputClass}
                 />
                 <select
                   data-note-edit-tags="true"
@@ -411,7 +421,7 @@ export const WallFloatingUi = ({
                           },
                         });
                       }}
-                      className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700"
+                      className={noteEditorSecondaryButtonClass}
                     >
                       Add item
                     </button>
@@ -421,32 +431,32 @@ export const WallFloatingUi = ({
             </div>
           )}
           {editingNote.noteKind === "quote" && (
-            <div data-note-edit-tags="true" className="mt-2 rounded-xl border border-zinc-200 bg-white/95 p-2 shadow-lg">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Quote Attribution</p>
+            <div data-note-edit-tags="true" className={noteEditorSectionClass}>
+              <p className={noteEditorSectionLabelClass}>Quote Attribution</p>
               <div className="mt-2 grid gap-2">
                 <input
                   data-note-edit-tags="true"
                   value={editingNote.quoteAuthor ?? ""}
                   onChange={(event) => updateNote(editing.id, { quoteAuthor: event.target.value })}
                   placeholder="Author (optional)"
-                  className="min-w-0 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                  className={noteEditorInputClass}
                 />
                 <input
                   data-note-edit-tags="true"
                   value={editingNote.quoteSource ?? ""}
                   onChange={(event) => updateNote(editing.id, { quoteSource: event.target.value })}
                   placeholder="Source (optional)"
-                  className="min-w-0 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                  className={noteEditorInputClass}
                 />
               </div>
             </div>
           )}
-          <div data-note-edit-tags="true" className="mt-2 rounded-xl border border-zinc-200 bg-white/95 p-2 shadow-lg">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Tags</p>
+          <div data-note-edit-tags="true" className={noteEditorSectionClass}>
+            <p className={noteEditorSectionLabelClass}>Tags</p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {editingNote.tags.length === 0 && <span className="text-[11px] text-zinc-500">No tags yet.</span>}
+              {editingNote.tags.length === 0 && <span className="text-[11px] text-[var(--color-text-muted)]">No tags yet.</span>}
               {editingNote.tags.map((tag) => (
-                <span key={`edit-tag-${tag}`} className="inline-flex items-center gap-1 rounded-full border border-zinc-300 bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-700">
+                <span key={`edit-tag-${tag}`} className={noteEditorTagChipClass}>
                   <button
                     type="button"
                     data-note-edit-tags="true"
@@ -455,7 +465,7 @@ export const WallFloatingUi = ({
                       setEditTagRenameFrom(tag);
                       setEditTagInput(tag);
                     }}
-                    className="text-zinc-700 hover:text-zinc-900"
+                    className="text-[var(--color-text)] hover:opacity-80"
                   >
                     #{tag}
                   </button>
@@ -464,7 +474,7 @@ export const WallFloatingUi = ({
                     data-note-edit-tags="true"
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => removeTagFromNote(editing.id, tag)}
-                    className="text-zinc-500 hover:text-red-700"
+                    className="text-[var(--color-text-muted)] hover:text-red-500"
                     title="Delete tag"
                     aria-label={`Delete tag ${tag}`}
                   >
@@ -495,7 +505,7 @@ export const WallFloatingUi = ({
                   setEditTagInput("");
                 }}
                 placeholder={editTagRenameFrom ? "Rename tag" : "Add tag"}
-                className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500"
+                className={`flex-1 ${noteEditorInputClass}`}
               />
               <button
                 type="button"
