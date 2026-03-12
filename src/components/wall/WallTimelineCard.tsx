@@ -12,7 +12,6 @@ import {
 
 type WallTimelineCardProps = {
   item: WallTimelineItem;
-  index: number;
   density: WallTimelineDensity;
   metric: WallTimelineMetric;
   cardHeight: number;
@@ -26,7 +25,7 @@ type WallTimelineCardProps = {
   onRevealNote: (noteId: string) => void;
 };
 
-const readTimelineTitle = (item: WallTimelineItem, index: number) => {
+const readTimelineTitle = (item: WallTimelineItem) => {
   if (item.note.noteKind === "quote") {
     return item.note.quoteAuthor?.trim() || "Quote note";
   }
@@ -36,7 +35,7 @@ const readTimelineTitle = (item: WallTimelineItem, index: number) => {
   if (item.note.pinned) {
     return "Pinned note";
   }
-  return `Wall note ${index + 1}`;
+  return "";
 };
 
 const readTimelinePreview = (item: WallTimelineItem, density: WallTimelineDensity) => truncatePreviewText(item.note.text, density);
@@ -53,7 +52,6 @@ const readNoteKindLabel = (item: WallTimelineItem) => {
 
 export const WallTimelineCard = ({
   item,
-  index,
   density,
   metric,
   cardHeight,
@@ -72,7 +70,7 @@ export const WallTimelineCard = ({
   const preview = readTimelinePreview(item, density);
   const cardTop = laneTopOffset + item.lane * laneGap;
   const cardColors = readCardColors(item.note);
-  const title = readTimelineTitle(item, index);
+  const title = readTimelineTitle(item);
   const noteKindLabel = readNoteKindLabel(item);
   const hasTags = item.note.tags.length > 0;
 
@@ -162,9 +160,11 @@ export const WallTimelineCard = ({
             <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: cardColors.softText }}>
               {formatTimelineDateTime(item.ts)}
             </p>
-            <p className="mt-1 truncate text-sm font-semibold" style={{ color: cardColors.readableText }} title={title}>
-              {title}
-            </p>
+            {title ? (
+              <p className="mt-1 truncate text-sm font-semibold" style={{ color: cardColors.readableText }} title={title}>
+                {title}
+              </p>
+            ) : null}
           </div>
           {isActiveMoment && (
             <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: cardColors.activeBackground, color: cardColors.activeText }}>

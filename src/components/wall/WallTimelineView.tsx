@@ -245,11 +245,10 @@ export const WallTimelineView = ({
             </div>
           ))}
 
-          {layout.items.map((item, index) => (
+          {layout.items.map((item) => (
             <WallTimelineCard
               key={item.id}
               item={item}
-              index={index}
               density={density}
               metric={metric}
               cardHeight={cardHeight}
