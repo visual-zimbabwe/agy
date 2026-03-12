@@ -88,9 +88,20 @@ export const WallTimelineView = ({
     }
 
     const handleWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
         return;
       }
+
+      const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+      const canScrollVertically = maxScrollTop > 0 && (
+        (event.deltaY < 0 && container.scrollTop > 0) ||
+        (event.deltaY > 0 && container.scrollTop < maxScrollTop)
+      );
+
+      if (!event.shiftKey && canScrollVertically) {
+        return;
+      }
+
       event.preventDefault();
       container.scrollLeft += event.deltaY;
     };
