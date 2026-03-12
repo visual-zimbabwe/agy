@@ -328,18 +328,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const presentationLengthForKeyboard = hasNarrativePresentation ? activePresentationSteps.length : notes.length;
 
   const toggleTimelineView = useCallback(() => {
-    setTimelineViewActive((previous) => {
-      const next = !previous;
-      if (next) {
-        setEditing(null);
-        setQuickCaptureOpen(false);
-        setSearchOpen(false);
-        setExportOpen(false);
-        setIsTimelinePlaying(false);
-      }
-      return next;
-    });
-  }, [setExportOpen, setSearchOpen]);
+    setTimelineViewActive((previous) => !previous);
+  }, []);
+
+  useEffect(() => {
+    if (!timelineViewActive) {
+      return;
+    }
+    setEditing(null);
+    setQuickCaptureOpen(false);
+    setSearchOpen(false);
+    setExportOpen(false);
+    setIsTimelinePlaying(false);
+  }, [setExportOpen, setSearchOpen, timelineViewActive]);
 
   const commitEditedNoteText = useCallback((noteId: string, rawText: string) => {
     const current = renderSnapshot.notes[noteId];
