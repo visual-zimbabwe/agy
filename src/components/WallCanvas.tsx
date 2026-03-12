@@ -2229,6 +2229,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         />
         )}
 
+        {!timelineViewActive && (
         <WallDetailsSidebar
           presentationMode={isChromeHidden}
           showDetailsPanel={layoutPrefs.showDetailsPanel}
@@ -2324,6 +2325,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onMergeSmartSuggestion={applySmartMerge}
           controlsMode={controlsMode}
         />
+        )}
 
       </div>
 
