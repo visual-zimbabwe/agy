@@ -42,6 +42,16 @@ const readTimelineTitle = (item: WallTimelineItem, index: number) => {
   return firstLine || `Wall note ${index + 1}`;
 };
 
+const readTimelinePreview = (item: WallTimelineItem, density: WallTimelineDensity) => {
+  if (item.note.noteKind === "quote" || item.note.noteKind === "canon") {
+    return truncatePreviewText(item.note.text, density);
+  }
+
+  const lines = item.note.text.split(/\r?\n/);
+  const bodyText = lines.slice(1).join("\n").trim();
+  return truncatePreviewText(bodyText || item.note.text, density);
+};
+
 const readNoteKindLabel = (item: WallTimelineItem) => {
   if (item.note.noteKind === "quote") {
     return "Quote";
@@ -70,7 +80,7 @@ export const WallTimelineCard = ({
   const [tagsOpen, setTagsOpen] = useState(false);
   const isSelected = item.id === selectedNoteId;
   const isActiveMoment = typeof activeTimestamp === "number" && Math.abs(item.ts - activeTimestamp) < 60_000;
-  const preview = truncatePreviewText(item.note.text, density);
+  const preview = readTimelinePreview(item, density);
   const cardTop = laneTopOffset + item.lane * laneGap;
   const cardColors = readCardColors(item.note);
   const title = readTimelineTitle(item, index);
