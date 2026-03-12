@@ -2,7 +2,7 @@
 
 import { useState, type RefObject } from "react";
 
-import type { WallTimelineDensity, WallTimelineMetric, WallTimelineItem } from "@/components/wall/wallTimelineViewLayout";
+import type { WallTimelineDensity, WallTimelineItem } from "@/components/wall/wallTimelineViewLayout";
 import {
   formatTimelineDate,
   formatTimelineDateTime,
@@ -13,7 +13,6 @@ import {
 type WallTimelineCardProps = {
   item: WallTimelineItem;
   density: WallTimelineDensity;
-  metric: WallTimelineMetric;
   cardHeight: number;
   cardWidth: number;
   laneGap: number;
@@ -40,20 +39,9 @@ const readTimelineTitle = (item: WallTimelineItem) => {
 
 const readTimelinePreview = (item: WallTimelineItem, density: WallTimelineDensity) => truncatePreviewText(item.note.text, density);
 
-const readNoteKindLabel = (item: WallTimelineItem) => {
-  if (item.note.noteKind === "quote") {
-    return "Quote";
-  }
-  if (item.note.noteKind === "canon") {
-    return "Canon";
-  }
-  return item.note.pinned ? "Pinned note" : "Standard note";
-};
-
 export const WallTimelineCard = ({
   item,
   density,
-  metric,
   cardHeight,
   cardWidth,
   laneGap,
@@ -71,7 +59,6 @@ export const WallTimelineCard = ({
   const cardTop = laneTopOffset + item.lane * laneGap;
   const cardColors = readCardColors(item.note);
   const title = readTimelineTitle(item);
-  const noteKindLabel = readNoteKindLabel(item);
   const hasTags = item.note.tags.length > 0;
 
   return (
@@ -177,10 +164,6 @@ export const WallTimelineCard = ({
           {preview}
         </p>
 
-        <div className="mt-4 flex items-center justify-between gap-2 pr-12 text-[11px]" style={{ color: cardColors.mutedText }}>
-          <span className="truncate">{noteKindLabel}</span>
-          <span className="truncate text-right">{metric === "created" ? "First appearance" : item.note.updatedAt > item.note.createdAt ? "Edited later" : "Unchanged"}</span>
-        </div>
       </button>
     </article>
   );

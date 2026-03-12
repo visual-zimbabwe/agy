@@ -250,7 +250,6 @@ export const WallTimelineView = ({
               key={item.id}
               item={item}
               density={density}
-              metric={metric}
               cardHeight={cardHeight}
               cardWidth={layout.cardWidth}
               laneGap={layout.laneGap}
