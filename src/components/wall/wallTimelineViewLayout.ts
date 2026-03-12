@@ -3,6 +3,7 @@
 import type { Note } from "@/features/wall/types";
 
 export type WallTimelineMetric = "created" | "updated";
+export type WallTimelineDensity = "compact" | "comfortable" | "expanded";
 
 export type WallTimelineItem = {
   id: string;
@@ -18,19 +19,42 @@ export type WallTimelineLayout = {
   maxTs: number;
   contentWidth: number;
   laneCount: number;
+  cardWidth: number;
+  laneGap: number;
 };
 
-const cardWidth = 232;
-const laneGap = 228;
 const startOffset = 120;
 const endOffset = 180;
-const minimumSpread = 220;
 const minimumCanvasWidth = 1200;
-const minimumTimelineSpread = 480;
+
+const densityConfig: Record<WallTimelineDensity, { cardWidth: number; laneGap: number; minimumSpread: number; minimumTimelineSpread: number }> = {
+  compact: {
+    cardWidth: 204,
+    laneGap: 204,
+    minimumSpread: 188,
+    minimumTimelineSpread: 420,
+  },
+  comfortable: {
+    cardWidth: 232,
+    laneGap: 228,
+    minimumSpread: 220,
+    minimumTimelineSpread: 480,
+  },
+  expanded: {
+    cardWidth: 272,
+    laneGap: 250,
+    minimumSpread: 260,
+    minimumTimelineSpread: 560,
+  },
+};
 
 const readTimestamp = (note: Note, metric: WallTimelineMetric) => (metric === "updated" ? note.updatedAt : note.createdAt);
 
-export const buildWallTimelineLayout = (notes: Note[], metric: WallTimelineMetric = "created"): WallTimelineLayout => {
+export const buildWallTimelineLayout = (
+  notes: Note[],
+  metric: WallTimelineMetric = "created",
+  density: WallTimelineDensity = "comfortable",
+): WallTimelineLayout => {
   const sorted = [...notes]
     .filter((note) => !note.deletedAt)
     .sort((left, right) => {
@@ -41,6 +65,8 @@ export const buildWallTimelineLayout = (notes: Note[], metric: WallTimelineMetri
       return left.createdAt - right.createdAt;
     });
 
+  const config = densityConfig[density];
+
   if (sorted.length === 0) {
     const now = Date.now();
     return {
@@ -49,6 +75,8 @@ export const buildWallTimelineLayout = (notes: Note[], metric: WallTimelineMetri
       maxTs: now,
       contentWidth: minimumCanvasWidth,
       laneCount: 1,
+      cardWidth: config.cardWidth,
+      laneGap: config.laneGap,
     };
   }
 
@@ -60,16 +88,16 @@ export const buildWallTimelineLayout = (notes: Note[], metric: WallTimelineMetri
   const items = sorted.map((note, index) => {
     const timestamp = readTimestamp(note, metric);
     const normalized = timeSpan === 0 ? index / Math.max(1, sorted.length - 1) : (timestamp - minTs) / timeSpan;
-    const targetX = startOffset + normalized * Math.max(minimumSpread * Math.max(sorted.length - 1, 1), minimumTimelineSpread);
+    const targetX = startOffset + normalized * Math.max(config.minimumSpread * Math.max(sorted.length - 1, 1), config.minimumTimelineSpread);
 
-    let lane = laneLastX.findIndex((lastX) => targetX - lastX >= cardWidth + 36);
+    let lane = laneLastX.findIndex((lastX) => targetX - lastX >= config.cardWidth + 36);
     if (lane < 0) {
       lane = laneLastX.length;
       laneLastX.push(Number.NEGATIVE_INFINITY);
     }
 
     const previousX = laneLastX[lane] ?? Number.NEGATIVE_INFINITY;
-    const x = Number.isFinite(previousX) ? Math.max(targetX, previousX + minimumSpread) : targetX;
+    const x = Number.isFinite(previousX) ? Math.max(targetX, previousX + config.minimumSpread) : targetX;
     laneLastX[lane] = x;
 
     return {
@@ -81,7 +109,7 @@ export const buildWallTimelineLayout = (notes: Note[], metric: WallTimelineMetri
     };
   });
 
-  const rightEdge = items.reduce((max, item) => Math.max(max, item.x + cardWidth), startOffset + cardWidth);
+  const rightEdge = items.reduce((max, item) => Math.max(max, item.x + config.cardWidth), startOffset + config.cardWidth);
 
   return {
     items,
@@ -89,8 +117,7 @@ export const buildWallTimelineLayout = (notes: Note[], metric: WallTimelineMetri
     maxTs,
     contentWidth: Math.max(minimumCanvasWidth, rightEdge + endOffset),
     laneCount: Math.max(1, laneLastX.length),
+    cardWidth: config.cardWidth,
+    laneGap: config.laneGap,
   };
 };
-
-export const wallTimelineCardWidth = cardWidth;
-export const wallTimelineLaneGap = laneGap;

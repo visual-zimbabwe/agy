@@ -41,6 +41,14 @@ describe("buildWallTimelineLayout", () => {
     expect(layout.items.map((item) => item.id)).toEqual(["last-updated", "first-created"]);
   });
 
+  it("adjusts card width for density presets", () => {
+    const compact = buildWallTimelineLayout([makeNote("one", 1000)], "created", "compact");
+    const expanded = buildWallTimelineLayout([makeNote("one", 1000)], "created", "expanded");
+
+    expect(compact.cardWidth).toBeLessThan(expanded.cardWidth);
+    expect(compact.laneGap).toBeLessThan(expanded.laneGap);
+  });
+
   it("moves dense notes onto separate lanes when cards would overlap", () => {
     const start = 1000;
     const layout = buildWallTimelineLayout([

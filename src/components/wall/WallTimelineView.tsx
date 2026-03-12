@@ -5,9 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/wall/WallControls";
 import {
   buildWallTimelineLayout,
+  type WallTimelineDensity,
   type WallTimelineMetric,
-  wallTimelineCardWidth,
-  wallTimelineLaneGap,
 } from "@/components/wall/wallTimelineViewLayout";
 import type { Note } from "@/features/wall/types";
 
@@ -21,7 +20,11 @@ type WallTimelineViewProps = {
 };
 
 const laneTopOffset = 146;
-const cardHeight = 178;
+const cardHeightByDensity: Record<WallTimelineDensity, number> = {
+  compact: 160,
+  comfortable: 178,
+  expanded: 204,
+};
 const scrubberInset = 18;
 
 const formatTimelineDate = (timestamp: number) =>
@@ -40,8 +43,14 @@ const formatTimelineDateTime = (timestamp: number) =>
     minute: "2-digit",
   }).format(timestamp);
 
-const truncatePreviewText = (text: string, limit = 180) => {
+const truncatePreviewText = (text: string, density: WallTimelineDensity) => {
+  const limits: Record<WallTimelineDensity, number> = {
+    compact: 124,
+    comfortable: 180,
+    expanded: 240,
+  };
   const normalized = text.trim();
+  const limit = limits[density];
   if (normalized.length <= limit) {
     return normalized || "(Empty note)";
   }
@@ -69,14 +78,16 @@ export const WallTimelineView = ({
   onExit,
 }: WallTimelineViewProps) => {
   const [metric, setMetric] = useState<WallTimelineMetric>("created");
+  const [density, setDensity] = useState<WallTimelineDensity>("comfortable");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const selectedCardRef = useRef<HTMLButtonElement | null>(null);
-  const layout = useMemo(() => buildWallTimelineLayout(notes, metric), [metric, notes]);
+  const layout = useMemo(() => buildWallTimelineLayout(notes, metric, density), [density, metric, notes]);
 
   const selectedIndex = layout.items.findIndex((item) => item.id === selectedNoteId);
   const activeIndex = selectedIndex >= 0 ? selectedIndex : layout.items.length > 0 ? layout.items.length - 1 : -1;
   const selectedItem = activeIndex >= 0 ? layout.items[activeIndex] : undefined;
   const selectedNote = selectedItem?.note;
+  const cardHeight = cardHeightByDensity[density];
 
   const jumpToIndex = useCallback((index: number) => {
     const next = layout.items[index];
@@ -147,6 +158,16 @@ export const WallTimelineView = ({
         jumpToIndex(layout.items.length - 1);
         return;
       }
+      if (event.key === "-" || event.key === "_") {
+        event.preventDefault();
+        setDensity((current) => (current === "expanded" ? "comfortable" : current === "comfortable" ? "compact" : "compact"));
+        return;
+      }
+      if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
+        setDensity((current) => (current === "compact" ? "comfortable" : current === "comfortable" ? "expanded" : "expanded"));
+        return;
+      }
       if (event.key === "Enter" && selectedItem) {
         event.preventDefault();
         onRevealNote(selectedItem.id);
@@ -157,13 +178,12 @@ export const WallTimelineView = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeIndex, jumpToIndex, layout.items.length, onRevealNote, selectedItem]);
 
-  const contentHeight = laneTopOffset + layout.laneCount * wallTimelineLaneGap + 84;
+  const contentHeight = laneTopOffset + layout.laneCount * layout.laneGap + 84;
   const axisY = laneTopOffset - 28;
   const selectedLabel = selectedItem ? formatTimelineDateTime(selectedItem.ts) : "No selection";
-  const scrubberRange = Math.max(1, layout.contentWidth - wallTimelineCardWidth);
+  const scrubberRange = Math.max(1, layout.contentWidth - layout.cardWidth);
   const canGoPrev = activeIndex > 0;
   const canGoNext = activeIndex >= 0 && activeIndex < layout.items.length - 1;
-
   const markerCount = Math.min(5, Math.max(2, layout.items.length));
   const rangeMarkers = layout.items.length === 0
     ? []
@@ -190,12 +210,13 @@ export const WallTimelineView = ({
               <p className="text-sm text-[rgba(78,62,43,0.82)]">
                 {layout.items.length === 0
                   ? "No notes available for the timeline."
-                  : `${layout.items.length} notes arranged by ${metric} time. Scroll sideways or use arrow keys to browse.`}
+                  : `${layout.items.length} notes arranged by ${metric} time at ${density} density. Scroll sideways or use arrow keys to browse.`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-[11px] text-[rgba(73,56,35,0.78)]">
               <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">{formatSpan(layout.minTs, layout.maxTs)}</span>
               <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">Selected: {selectedLabel}</span>
+              <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">Density: {density}</span>
               {selectedNote && (
                 <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">
                   {selectedNote.tags.length > 0 ? `#${selectedNote.tags[0]}` : "Untagged"}
@@ -205,21 +226,40 @@ export const WallTimelineView = ({
           </div>
 
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
-            <div className="inline-flex rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.78)] p-1 shadow-[0_10px_24px_rgba(98,78,45,0.08)]">
-              {(["created", "updated"] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setMetric(value)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    metric === value
-                      ? "bg-[rgba(77,57,31,0.92)] text-[rgba(255,248,235,0.96)]"
-                      : "text-[rgba(73,56,35,0.78)] hover:bg-white"
-                  }`}
-                >
-                  {value === "created" ? "Created" : "Updated"}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              <div className="inline-flex rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.78)] p-1 shadow-[0_10px_24px_rgba(98,78,45,0.08)]">
+                {(["created", "updated"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setMetric(value)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      metric === value
+                        ? "bg-[rgba(77,57,31,0.92)] text-[rgba(255,248,235,0.96)]"
+                        : "text-[rgba(73,56,35,0.78)] hover:bg-white"
+                    }`}
+                  >
+                    {value === "created" ? "Created" : "Updated"}
+                  </button>
+                ))}
+              </div>
+              <div className="inline-flex rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.78)] p-1 shadow-[0_10px_24px_rgba(98,78,45,0.08)]">
+                {(["compact", "comfortable", "expanded"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setDensity(value)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      density === value
+                        ? "bg-[rgba(77,57,31,0.92)] text-[rgba(255,248,235,0.96)]"
+                        : "text-[rgba(73,56,35,0.78)] hover:bg-white"
+                    }`}
+                    title={value === "compact" ? "Compact density (-)" : value === "expanded" ? "Expanded density (+)" : "Comfortable density"}
+                  >
+                    {value === "compact" ? "Compact" : value === "expanded" ? "Expanded" : "Comfortable"}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -286,8 +326,8 @@ export const WallTimelineView = ({
           {layout.items.map((item, index) => {
             const isSelected = item.id === selectedNoteId;
             const isActiveMoment = typeof activeTimestamp === "number" && Math.abs(item.ts - activeTimestamp) < 60_000;
-            const preview = truncatePreviewText(item.note.text);
-            const cardTop = laneTopOffset + item.lane * wallTimelineLaneGap;
+            const preview = truncatePreviewText(item.note.text, density);
+            const cardTop = laneTopOffset + item.lane * layout.laneGap;
 
             return (
               <article
@@ -296,7 +336,7 @@ export const WallTimelineView = ({
                 style={{
                   left: `${item.x}px`,
                   top: `${cardTop}px`,
-                  width: `${wallTimelineCardWidth}px`,
+                  width: `${layout.cardWidth}px`,
                 }}
               >
                 <div className="pointer-events-none absolute left-6 top-[-42px] h-8 w-px bg-[rgba(92,73,43,0.32)]" />
@@ -335,7 +375,7 @@ export const WallTimelineView = ({
                     )}
                   </div>
 
-                  <p className="mt-3 flex-1 whitespace-pre-wrap text-sm leading-5 text-[rgba(36,27,14,0.9)]">{preview}</p>
+                  <p className={`mt-3 flex-1 whitespace-pre-wrap text-[rgba(36,27,14,0.9)] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`}>{preview}</p>
 
                   <div className="mt-4 flex items-center justify-between gap-2 text-[11px] text-[rgba(66,51,31,0.72)]">
                     <span>{item.note.tags.length > 0 ? `${item.note.tags.length} tag${item.note.tags.length === 1 ? "" : "s"}` : "No tags"}</span>
@@ -352,7 +392,7 @@ export const WallTimelineView = ({
         <div className="pointer-events-auto absolute inset-x-4 bottom-4 z-20 rounded-[28px] border border-[rgba(114,91,58,0.18)] bg-[rgba(255,251,243,0.92)] p-4 shadow-[0_20px_40px_rgba(98,78,45,0.14)] backdrop-blur-sm">
           <div className="flex items-center justify-between gap-3 text-[11px] text-[rgba(73,56,35,0.74)]">
             <span>{formatTimelineDate(layout.minTs)}</span>
-            <span>Scrub through {metric} history</span>
+            <span>Scrub through {metric} history at {density} density</span>
             <span>{formatTimelineDate(layout.maxTs)}</span>
           </div>
           <div className="relative mt-3 h-10 rounded-full bg-[linear-gradient(90deg,rgba(128,99,56,0.12),rgba(128,99,56,0.04))]">
