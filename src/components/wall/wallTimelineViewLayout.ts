@@ -2,6 +2,8 @@
 
 import type { Note } from "@/features/wall/types";
 
+export type WallTimelineMetric = "created" | "updated";
+
 export type WallTimelineItem = {
   id: string;
   note: Note;
@@ -26,15 +28,17 @@ const minimumSpread = 220;
 const minimumCanvasWidth = 1200;
 const minimumTimelineSpread = 480;
 
-export const buildWallTimelineLayout = (notes: Note[]): WallTimelineLayout => {
+const readTimestamp = (note: Note, metric: WallTimelineMetric) => (metric === "updated" ? note.updatedAt : note.createdAt);
+
+export const buildWallTimelineLayout = (notes: Note[], metric: WallTimelineMetric = "created"): WallTimelineLayout => {
   const sorted = [...notes]
     .filter((note) => !note.deletedAt)
     .sort((left, right) => {
-      const delta = left.createdAt - right.createdAt;
+      const delta = readTimestamp(left, metric) - readTimestamp(right, metric);
       if (delta !== 0) {
         return delta;
       }
-      return left.updatedAt - right.updatedAt;
+      return left.createdAt - right.createdAt;
     });
 
   if (sorted.length === 0) {
@@ -48,13 +52,14 @@ export const buildWallTimelineLayout = (notes: Note[]): WallTimelineLayout => {
     };
   }
 
-  const minTs = sorted[0]?.createdAt ?? Date.now();
-  const maxTs = sorted[sorted.length - 1]?.createdAt ?? minTs;
+  const minTs = readTimestamp(sorted[0]!, metric);
+  const maxTs = readTimestamp(sorted[sorted.length - 1]!, metric);
   const timeSpan = Math.max(1, maxTs - minTs);
   const laneLastX: number[] = [];
 
   const items = sorted.map((note, index) => {
-    const normalized = timeSpan === 0 ? index / Math.max(1, sorted.length - 1) : (note.createdAt - minTs) / timeSpan;
+    const timestamp = readTimestamp(note, metric);
+    const normalized = timeSpan === 0 ? index / Math.max(1, sorted.length - 1) : (timestamp - minTs) / timeSpan;
     const targetX = startOffset + normalized * Math.max(minimumSpread * Math.max(sorted.length - 1, 1), minimumTimelineSpread);
 
     let lane = laneLastX.findIndex((lastX) => targetX - lastX >= cardWidth + 36);
@@ -70,7 +75,7 @@ export const buildWallTimelineLayout = (notes: Note[]): WallTimelineLayout => {
     return {
       id: note.id,
       note,
-      ts: note.createdAt,
+      ts: timestamp,
       x,
       lane,
     };

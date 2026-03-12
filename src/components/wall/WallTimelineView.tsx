@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Icon } from "@/components/wall/WallControls";
 import {
   buildWallTimelineLayout,
+  type WallTimelineMetric,
   wallTimelineCardWidth,
   wallTimelineLaneGap,
 } from "@/components/wall/wallTimelineViewLayout";
@@ -19,8 +20,9 @@ type WallTimelineViewProps = {
   onExit: () => void;
 };
 
-const laneTopOffset = 120;
-const cardHeight = 170;
+const laneTopOffset = 146;
+const cardHeight = 178;
+const scrubberInset = 18;
 
 const formatTimelineDate = (timestamp: number) =>
   new Intl.DateTimeFormat(undefined, {
@@ -46,6 +48,18 @@ const truncatePreviewText = (text: string, limit = 180) => {
   return `${normalized.slice(0, Math.max(1, limit - 1)).trimEnd()}...`;
 };
 
+const formatSpan = (minTs: number, maxTs: number) => {
+  const days = Math.max(0, Math.round((maxTs - minTs) / 86_400_000));
+  if (days === 0) {
+    return "Single day";
+  }
+  if (days < 30) {
+    return `${days} day span`;
+  }
+  const months = Math.max(1, Math.round(days / 30));
+  return `${months} month span`;
+};
+
 export const WallTimelineView = ({
   notes,
   selectedNoteId,
@@ -54,9 +68,23 @@ export const WallTimelineView = ({
   onRevealNote,
   onExit,
 }: WallTimelineViewProps) => {
+  const [metric, setMetric] = useState<WallTimelineMetric>("created");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const selectedCardRef = useRef<HTMLButtonElement | null>(null);
-  const layout = useMemo(() => buildWallTimelineLayout(notes), [notes]);
+  const layout = useMemo(() => buildWallTimelineLayout(notes, metric), [metric, notes]);
+
+  const selectedIndex = layout.items.findIndex((item) => item.id === selectedNoteId);
+  const activeIndex = selectedIndex >= 0 ? selectedIndex : layout.items.length > 0 ? layout.items.length - 1 : -1;
+  const selectedItem = activeIndex >= 0 ? layout.items[activeIndex] : undefined;
+  const selectedNote = selectedItem?.note;
+
+  const jumpToIndex = useCallback((index: number) => {
+    const next = layout.items[index];
+    if (!next) {
+      return;
+    }
+    onSelectNote(next.id);
+  }, [layout.items, onSelectNote]);
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -77,53 +105,163 @@ export const WallTimelineView = ({
   }, []);
 
   useEffect(() => {
-    selectedCardRef.current?.scrollIntoView({
-      block: "nearest",
-      inline: "center",
-      behavior: "smooth",
-    });
-  }, [selectedNoteId]);
+    if (selectedCardRef.current) {
+      selectedCardRef.current.scrollIntoView({
+        block: "nearest",
+        inline: "center",
+        behavior: "smooth",
+      });
+      return;
+    }
 
-  const contentHeight = laneTopOffset + layout.laneCount * wallTimelineLaneGap + 72;
-  const axisY = laneTopOffset - 24;
-  const selectedNote = selectedNoteId ? notes.find((note) => note.id === selectedNoteId) : undefined;
+    if (activeIndex >= 0 && !selectedNoteId) {
+      jumpToIndex(activeIndex);
+    }
+  }, [activeIndex, jumpToIndex, selectedNoteId]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName?.toLowerCase();
+      if (tagName === "input" || tagName === "textarea" || target?.isContentEditable) {
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        jumpToIndex(Math.min(activeIndex + 1, layout.items.length - 1));
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        jumpToIndex(Math.max(activeIndex - 1, 0));
+        return;
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        jumpToIndex(0);
+        return;
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        jumpToIndex(layout.items.length - 1);
+        return;
+      }
+      if (event.key === "Enter" && selectedItem) {
+        event.preventDefault();
+        onRevealNote(selectedItem.id);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeIndex, jumpToIndex, layout.items.length, onRevealNote, selectedItem]);
+
+  const contentHeight = laneTopOffset + layout.laneCount * wallTimelineLaneGap + 84;
+  const axisY = laneTopOffset - 28;
+  const selectedLabel = selectedItem ? formatTimelineDateTime(selectedItem.ts) : "No selection";
+  const scrubberRange = Math.max(1, layout.contentWidth - wallTimelineCardWidth);
+  const canGoPrev = activeIndex > 0;
+  const canGoNext = activeIndex >= 0 && activeIndex < layout.items.length - 1;
+
+  const markerCount = Math.min(5, Math.max(2, layout.items.length));
+  const rangeMarkers = layout.items.length === 0
+    ? []
+    : Array.from({ length: markerCount }, (_, index) => {
+        const ratio = markerCount === 1 ? 0 : index / (markerCount - 1);
+        const ts = layout.minTs + (layout.maxTs - layout.minTs) * ratio;
+        return {
+          id: `marker-${index}`,
+          left: `${scrubberInset + ratio * (100 - scrubberInset * 2)}%`,
+          label: formatTimelineDate(ts),
+        };
+      });
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(249,214,88,0.16),_transparent_28%),linear-gradient(180deg,rgba(248,244,232,0.92),rgba(241,236,226,0.98))]">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(112,94,66,0.08)_1px,transparent_1px)] bg-[size:96px_100%] opacity-60" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,rgba(255,252,247,0.95),rgba(255,252,247,0))]" />
 
-      <div className="pointer-events-auto relative z-10 flex items-center justify-between gap-3 border-b border-[rgba(114,91,58,0.18)] px-4 py-3">
-        <div>
-          <p className="font-['Georgia'] text-sm uppercase tracking-[0.24em] text-[rgba(91,68,39,0.7)]">Timeline View</p>
-          <p className="text-sm text-[rgba(78,62,43,0.82)]">
-            {layout.items.length === 0
-              ? "No notes available for the timeline."
-              : `${layout.items.length} notes arranged by creation time. Scroll sideways or use a trackpad to scrub.`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {selectedNote && (
-            <button
-              type="button"
-              onClick={() => onRevealNote(selectedNote.id)}
-              className="inline-flex items-center gap-2 rounded-full border border-[rgba(114,91,58,0.22)] bg-[rgba(255,251,243,0.92)] px-3 py-1.5 text-xs font-medium text-[rgba(73,56,35,0.88)] shadow-[0_10px_30px_rgba(98,78,45,0.12)] transition-colors hover:bg-white"
-            >
-              <Icon name="search" className="h-3.5 w-3.5" />
-              <span>Reveal on wall</span>
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onExit}
-            className="inline-flex items-center gap-2 rounded-full border border-[rgba(114,91,58,0.22)] bg-[rgba(77,57,31,0.92)] px-3 py-1.5 text-xs font-medium text-[rgba(255,248,235,0.96)] shadow-[0_10px_30px_rgba(98,78,45,0.14)] transition-colors hover:bg-[rgba(65,48,27,0.96)]"
-          >
-            <span>Back to wall</span>
-          </button>
+      <div className="pointer-events-auto relative z-10 border-b border-[rgba(114,91,58,0.18)] px-4 py-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <div>
+              <p className="font-['Georgia'] text-sm uppercase tracking-[0.24em] text-[rgba(91,68,39,0.7)]">Timeline View</p>
+              <p className="text-sm text-[rgba(78,62,43,0.82)]">
+                {layout.items.length === 0
+                  ? "No notes available for the timeline."
+                  : `${layout.items.length} notes arranged by ${metric} time. Scroll sideways or use arrow keys to browse.`}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[11px] text-[rgba(73,56,35,0.78)]">
+              <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">{formatSpan(layout.minTs, layout.maxTs)}</span>
+              <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">Selected: {selectedLabel}</span>
+              {selectedNote && (
+                <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">
+                  {selectedNote.tags.length > 0 ? `#${selectedNote.tags[0]}` : "Untagged"}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            <div className="inline-flex rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.78)] p-1 shadow-[0_10px_24px_rgba(98,78,45,0.08)]">
+              {(["created", "updated"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setMetric(value)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                    metric === value
+                      ? "bg-[rgba(77,57,31,0.92)] text-[rgba(255,248,235,0.96)]"
+                      : "text-[rgba(73,56,35,0.78)] hover:bg-white"
+                  }`}
+                >
+                  {value === "created" ? "Created" : "Updated"}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => jumpToIndex(Math.max(activeIndex - 1, 0))}
+                disabled={!canGoPrev}
+                className="inline-flex items-center gap-2 rounded-full border border-[rgba(114,91,58,0.22)] bg-[rgba(255,251,243,0.92)] px-3 py-1.5 text-xs font-medium text-[rgba(73,56,35,0.88)] shadow-[0_10px_30px_rgba(98,78,45,0.12)] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                onClick={() => jumpToIndex(Math.min(activeIndex + 1, layout.items.length - 1))}
+                disabled={!canGoNext}
+                className="inline-flex items-center gap-2 rounded-full border border-[rgba(114,91,58,0.22)] bg-[rgba(255,251,243,0.92)] px-3 py-1.5 text-xs font-medium text-[rgba(73,56,35,0.88)] shadow-[0_10px_30px_rgba(98,78,45,0.12)] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Next
+              </button>
+              {selectedNote && (
+                <button
+                  type="button"
+                  onClick={() => onRevealNote(selectedNote.id)}
+                  className="inline-flex items-center gap-2 rounded-full border border-[rgba(114,91,58,0.22)] bg-[rgba(255,251,243,0.92)] px-3 py-1.5 text-xs font-medium text-[rgba(73,56,35,0.88)] shadow-[0_10px_30px_rgba(98,78,45,0.12)] transition-colors hover:bg-white"
+                >
+                  <Icon name="search" className="h-3.5 w-3.5" />
+                  <span>Reveal on wall</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onExit}
+                className="inline-flex items-center gap-2 rounded-full border border-[rgba(114,91,58,0.22)] bg-[rgba(77,57,31,0.92)] px-3 py-1.5 text-xs font-medium text-[rgba(255,248,235,0.96)] shadow-[0_10px_30px_rgba(98,78,45,0.14)] transition-colors hover:bg-[rgba(65,48,27,0.96)]"
+              >
+                <span>Back to wall</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div ref={scrollRef} className="relative z-10 flex-1 overflow-x-auto overflow-y-auto px-4 pb-10 pt-6">
+      <div ref={scrollRef} className="relative z-10 flex-1 overflow-x-auto overflow-y-auto px-4 pb-28 pt-6">
         <div
           className="relative"
           style={{
@@ -136,9 +274,18 @@ export const WallTimelineView = ({
             style={{ top: `${axisY}px`, height: "2px" }}
           />
 
-          {layout.items.map((item) => {
+          {rangeMarkers.map((marker) => (
+            <div key={marker.id} className="absolute top-0 -translate-x-1/2" style={{ left: marker.left }}>
+              <div className="h-16 w-px bg-[rgba(92,73,43,0.2)]" />
+              <span className="mt-2 inline-flex rounded-full border border-[rgba(114,91,58,0.16)] bg-[rgba(255,252,246,0.94)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgba(90,69,41,0.78)] shadow-[0_10px_18px_rgba(99,79,46,0.09)]">
+                {marker.label}
+              </span>
+            </div>
+          ))}
+
+          {layout.items.map((item, index) => {
             const isSelected = item.id === selectedNoteId;
-            const isActiveMoment = typeof activeTimestamp === "number" && Math.abs(item.note.createdAt - activeTimestamp) < 60_000;
+            const isActiveMoment = typeof activeTimestamp === "number" && Math.abs(item.ts - activeTimestamp) < 60_000;
             const preview = truncatePreviewText(item.note.text);
             const cardTop = laneTopOffset + item.lane * wallTimelineLaneGap;
 
@@ -178,7 +325,7 @@ export const WallTimelineView = ({
                         {formatTimelineDateTime(item.ts)}
                       </p>
                       <p className="mt-1 text-sm font-semibold text-[rgba(44,32,17,0.88)]">
-                        {item.note.tags[0] ? `#${item.note.tags[0]}` : item.note.noteKind === "quote" ? "Quote note" : "Wall note"}
+                        {item.note.tags[0] ? `#${item.note.tags[0]}` : item.note.noteKind === "quote" ? "Quote note" : `Wall note ${index + 1}`}
                       </p>
                     </div>
                     {isActiveMoment && (
@@ -192,7 +339,7 @@ export const WallTimelineView = ({
 
                   <div className="mt-4 flex items-center justify-between gap-2 text-[11px] text-[rgba(66,51,31,0.72)]">
                     <span>{item.note.tags.length > 0 ? `${item.note.tags.length} tag${item.note.tags.length === 1 ? "" : "s"}` : "No tags"}</span>
-                    <span>{item.note.updatedAt > item.note.createdAt ? "Edited later" : "Original"}</span>
+                    <span>{metric === "created" ? "First appearance" : item.note.updatedAt > item.note.createdAt ? "Edited later" : "Unchanged"}</span>
                   </div>
                 </button>
               </article>
@@ -200,6 +347,37 @@ export const WallTimelineView = ({
           })}
         </div>
       </div>
+
+      {layout.items.length > 0 && (
+        <div className="pointer-events-auto absolute inset-x-4 bottom-4 z-20 rounded-[28px] border border-[rgba(114,91,58,0.18)] bg-[rgba(255,251,243,0.92)] p-4 shadow-[0_20px_40px_rgba(98,78,45,0.14)] backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3 text-[11px] text-[rgba(73,56,35,0.74)]">
+            <span>{formatTimelineDate(layout.minTs)}</span>
+            <span>Scrub through {metric} history</span>
+            <span>{formatTimelineDate(layout.maxTs)}</span>
+          </div>
+          <div className="relative mt-3 h-10 rounded-full bg-[linear-gradient(90deg,rgba(128,99,56,0.12),rgba(128,99,56,0.04))]">
+            <div className="absolute inset-x-4 top-1/2 h-px -translate-y-1/2 bg-[rgba(92,73,43,0.26)]" />
+            {layout.items.map((item) => {
+              const left = scrubberInset + (item.x / scrubberRange) * (100 - scrubberInset * 2);
+              const isSelected = item.id === selectedNoteId;
+              return (
+                <button
+                  key={`scrubber-${item.id}`}
+                  type="button"
+                  onClick={() => onSelectNote(item.id)}
+                  className={`absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border transition-transform hover:scale-110 ${
+                    isSelected
+                      ? "border-[rgba(77,57,31,0.86)] bg-[rgba(77,57,31,0.92)]"
+                      : "border-[rgba(114,91,58,0.3)] bg-[rgba(255,250,243,0.96)]"
+                  }`}
+                  style={{ left: `${Math.max(scrubberInset, Math.min(100 - scrubberInset, left))}%` }}
+                  aria-label={`Jump to ${formatTimelineDateTime(item.ts)}`}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

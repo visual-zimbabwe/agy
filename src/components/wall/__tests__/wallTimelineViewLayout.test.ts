@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildWallTimelineLayout } from "@/components/wall/wallTimelineViewLayout";
 import type { Note } from "@/features/wall/types";
 
-const makeNote = (id: string, createdAt: number): Note => ({
+const makeNote = (id: string, createdAt: number, updatedAt = createdAt): Note => ({
   id,
   text: `Note ${id}`,
   tags: [],
@@ -13,7 +13,7 @@ const makeNote = (id: string, createdAt: number): Note => ({
   h: 180,
   color: "#FFE27A",
   createdAt,
-  updatedAt: createdAt,
+  updatedAt,
 });
 
 describe("buildWallTimelineLayout", () => {
@@ -27,6 +27,18 @@ describe("buildWallTimelineLayout", () => {
     expect(layout.items.map((item) => item.id)).toEqual(["early", "mid", "late"]);
     expect(layout.items[0]?.x).toBeLessThan(layout.items[1]?.x ?? 0);
     expect(layout.items[1]?.x).toBeLessThan(layout.items[2]?.x ?? 0);
+  });
+
+  it("can sort by updated time when requested", () => {
+    const layout = buildWallTimelineLayout(
+      [
+        makeNote("first-created", 1000, 9000),
+        makeNote("last-updated", 3000, 4000),
+      ],
+      "updated",
+    );
+
+    expect(layout.items.map((item) => item.id)).toEqual(["last-updated", "first-created"]);
   });
 
   it("moves dense notes onto separate lanes when cards would overlap", () => {

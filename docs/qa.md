@@ -842,11 +842,15 @@ Expected:
 1. Open `/wall` and create or load several notes with different creation times.
 2. Click `Timeline View` in the top toolbar or press `V`.
 3. Verify notes render as cards on a horizontally scrolling timeline with visible date markers.
-4. Scroll vertically with the mouse wheel over the timeline and verify the view moves horizontally.
-5. Click a timeline card and verify it becomes the active selection.
-6. Double-click a timeline card or click `Reveal on wall` and verify the app returns to the wall canvas focused on that note.
+4. Toggle between `Created` and `Updated` modes and verify card order/date chips change accordingly.
+5. Scroll vertically with the mouse wheel over the timeline and verify the view moves horizontally.
+6. Use `ArrowLeft`, `ArrowRight`, `Home`, and `End` to move between timeline cards.
+7. Click a marker in the bottom scrubber and verify selection jumps to the matching note.
+8. Double-click a timeline card or click `Reveal on wall` and verify the app returns to the wall canvas focused on that note.
 
 Expected:
 - Timeline view provides a read-only horizontal chronology of notes.
+- Created/updated mode switching reorders notes without breaking selection.
 - Timeline cards remain fully visible and scroll cleanly on desktop and mobile-sized viewports.
+- Keyboard navigation and the bottom scrubber both move selection predictably.
 - `Reveal on wall` exits timeline view and restores note focus in the canvas.
