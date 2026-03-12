@@ -45,9 +45,9 @@ const formatTimelineDateTime = (timestamp: number) =>
 
 const truncatePreviewText = (text: string, density: WallTimelineDensity) => {
   const limits: Record<WallTimelineDensity, number> = {
-    compact: 124,
-    comfortable: 180,
-    expanded: 240,
+    compact: 96,
+    comfortable: 140,
+    expanded: 180,
   };
   const normalized = text.trim();
   const limit = limits[density];
@@ -348,7 +348,7 @@ export const WallTimelineView = ({
                   type="button"
                   onClick={() => onSelectNote(item.id)}
                   onDoubleClick={() => onRevealNote(item.id)}
-                  className={`group relative flex w-full flex-col rounded-[28px] border p-4 text-left shadow-[0_18px_45px_rgba(82,61,31,0.16)] transition-[transform,box-shadow,border-color] duration-150 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(82,61,31,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(88,69,43,0.45)] ${
+                  className={`group relative flex w-full flex-col overflow-hidden rounded-[28px] border p-4 text-left shadow-[0_18px_45px_rgba(82,61,31,0.16)] transition-[transform,box-shadow,border-color] duration-150 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(82,61,31,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(88,69,43,0.45)] ${
                     isSelected
                       ? "border-[rgba(90,70,41,0.62)] ring-1 ring-[rgba(90,70,41,0.18)]"
                       : "border-[rgba(114,91,58,0.14)]"
@@ -360,11 +360,11 @@ export const WallTimelineView = ({
                   }}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgba(66,51,31,0.62)]">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgba(66,51,31,0.62)]">
                         {formatTimelineDateTime(item.ts)}
                       </p>
-                      <p className="mt-1 text-sm font-semibold text-[rgba(44,32,17,0.88)]">
+                      <p className="mt-1 truncate text-sm font-semibold text-[rgba(44,32,17,0.88)]">
                         {item.note.tags[0] ? `#${item.note.tags[0]}` : item.note.noteKind === "quote" ? "Quote note" : `Wall note ${index + 1}`}
                       </p>
                     </div>
@@ -375,11 +375,11 @@ export const WallTimelineView = ({
                     )}
                   </div>
 
-                  <p className={`mt-3 flex-1 whitespace-pre-wrap text-[rgba(36,27,14,0.9)] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`}>{preview}</p>
+                  <p className={`mt-3 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap text-[rgba(36,27,14,0.9)] [overflow-wrap:anywhere] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`}>{preview}</p>
 
                   <div className="mt-4 flex items-center justify-between gap-2 text-[11px] text-[rgba(66,51,31,0.72)]">
-                    <span>{item.note.tags.length > 0 ? `${item.note.tags.length} tag${item.note.tags.length === 1 ? "" : "s"}` : "No tags"}</span>
-                    <span>{metric === "created" ? "First appearance" : item.note.updatedAt > item.note.createdAt ? "Edited later" : "Unchanged"}</span>
+                    <span className="truncate">{item.note.tags.length > 0 ? `${item.note.tags.length} tag${item.note.tags.length === 1 ? "" : "s"}` : "No tags"}</span>
+                    <span className="truncate text-right">{metric === "created" ? "First appearance" : item.note.updatedAt > item.note.createdAt ? "Edited later" : "Unchanged"}</span>
                   </div>
                 </button>
               </article>
