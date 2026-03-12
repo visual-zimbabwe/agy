@@ -45,6 +45,7 @@ export const WallTimelineView = ({
   const [bucketMode, setBucketMode] = useState<TimelineBucketMode>("week");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const selectedCardRef = useRef<HTMLButtonElement | null>(null);
+  const lastAutoCenteredKeyRef = useRef<string | null>(null);
   const layout = useMemo(() => buildWallTimelineLayout(notes, metric, density), [density, metric, notes]);
 
   const selectedIndex = layout.items.findIndex((item) => item.id === selectedNoteId);
@@ -111,19 +112,28 @@ export const WallTimelineView = ({
   }, []);
 
   useEffect(() => {
+    if (!selectedNoteId) {
+      lastAutoCenteredKeyRef.current = null;
+      if (activeIndex >= 0) {
+        jumpToIndex(activeIndex);
+      }
+      return;
+    }
+
+    const autoCenterKey = `${selectedNoteId}:${metric}:${density}:${bucketMode}`;
+    if (lastAutoCenteredKeyRef.current === autoCenterKey) {
+      return;
+    }
+
     if (selectedCardRef.current) {
       selectedCardRef.current.scrollIntoView({
         block: "nearest",
         inline: "center",
         behavior: "smooth",
       });
-      return;
+      lastAutoCenteredKeyRef.current = autoCenterKey;
     }
-
-    if (activeIndex >= 0 && !selectedNoteId) {
-      jumpToIndex(activeIndex);
-    }
-  }, [activeIndex, jumpToIndex, selectedNoteId]);
+  }, [activeIndex, bucketMode, density, jumpToIndex, metric, selectedNoteId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
