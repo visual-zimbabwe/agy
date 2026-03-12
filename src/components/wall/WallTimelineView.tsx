@@ -107,6 +107,56 @@ const formatSpan = (minTs: number, maxTs: number) => {
   return `${months} month span`;
 };
 
+const hexToRgb = (hex: string) => {
+  const normalized = hex.replace("#", "").trim();
+  const expanded = normalized.length === 3
+    ? normalized.split("").map((value) => `${value}${value}`).join("")
+    : normalized;
+  const parsed = Number.parseInt(expanded, 16);
+  if (!Number.isFinite(parsed) || expanded.length !== 6) {
+    return null;
+  }
+  return {
+    r: (parsed >> 16) & 255,
+    g: (parsed >> 8) & 255,
+    b: parsed & 255,
+  };
+};
+
+const relativeChannel = (value: number) => {
+  const normalized = value / 255;
+  return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+};
+
+const luminance = (hex: string) => {
+  const rgb = hexToRgb(hex);
+  if (!rgb) {
+    return 1;
+  }
+  return 0.2126 * relativeChannel(rgb.r) + 0.7152 * relativeChannel(rgb.g) + 0.0722 * relativeChannel(rgb.b);
+};
+
+const readCardColors = (note: Note) => {
+  const noteColor = typeof note.color === "string" && note.color.trim().length > 0 ? note.color : "#FFE27A";
+  const noteLuminance = luminance(noteColor);
+  const baseText = note.textColor?.trim() || (noteLuminance > 0.46 ? "#1F2937" : "#FFF8EB");
+  const textLuminance = luminance(baseText);
+  const contrastGap = Math.abs(noteLuminance - textLuminance);
+  const readableText = contrastGap < 0.36 ? (noteLuminance > 0.46 ? "#1F2937" : "#FFF8EB") : baseText;
+  const mutedText = noteLuminance > 0.46 ? "rgba(66,51,31,0.72)" : "rgba(255,248,235,0.78)";
+  const softText = noteLuminance > 0.46 ? "rgba(66,51,31,0.62)" : "rgba(255,248,235,0.68)";
+  const activeBackground = noteLuminance > 0.46 ? "rgba(77,57,31,0.14)" : "rgba(255,248,235,0.18)";
+  const activeText = noteLuminance > 0.46 ? "rgba(77,57,31,0.82)" : "rgba(255,248,235,0.92)";
+  return {
+    readableText,
+    mutedText,
+    softText,
+    activeBackground,
+    activeText,
+  };
+};
+
+
 export const WallTimelineView = ({
   notes,
   selectedNoteId,
@@ -419,6 +469,7 @@ export const WallTimelineView = ({
             const isActiveMoment = typeof activeTimestamp === "number" && Math.abs(item.ts - activeTimestamp) < 60_000;
             const preview = truncatePreviewText(item.note.text, density);
             const cardTop = laneTopOffset + item.lane * layout.laneGap;
+            const cardColors = readCardColors(item.note);
 
             return (
               <article
@@ -452,24 +503,24 @@ export const WallTimelineView = ({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgba(66,51,31,0.62)]">
+                      <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: cardColors.softText }}>
                         {formatTimelineDateTime(item.ts)}
                       </p>
-                      <p className="mt-1 truncate text-sm font-semibold text-[rgba(44,32,17,0.88)]">
+                      <p className="mt-1 truncate text-sm font-semibold" style={{ color: cardColors.readableText }}>
                         {item.note.tags[0] ? `#${item.note.tags[0]}` : item.note.noteKind === "quote" ? "Quote note" : `Wall note ${index + 1}`}
                       </p>
                     </div>
                     {isActiveMoment && (
-                      <span className="rounded-full bg-[rgba(77,57,31,0.1)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgba(77,57,31,0.72)]">
+                      <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: cardColors.activeBackground, color: cardColors.activeText }}>
                         Active
                       </span>
                     )}
                   </div>
 
-                  <p className={`mt-3 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap text-[rgba(36,27,14,0.9)] [overflow-wrap:anywhere] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`}>{preview}</p>
+                  <p className={`mt-3 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`} style={{ color: cardColors.readableText }}>{preview}</p>
 
-                  <div className="mt-4 flex items-center justify-between gap-2 text-[11px] text-[rgba(66,51,31,0.72)]">
-                    <span className="truncate">{item.note.tags.length > 0 ? `${item.note.tags.length} tag${item.note.tags.length === 1 ? "" : "s"}` : "No tags"}</span>
+                  <div className="mt-4 flex items-center justify-between gap-2 text-[11px]" style={{ color: cardColors.mutedText }}>
+                    <span className="truncate">{item.note.tags.length > 0 ? `${item.note.tags.length === 1 ? "1 tag" : `${item.note.tags.length} tags`}` : "No tags"}</span>
                     <span className="truncate text-right">{metric === "created" ? "First appearance" : item.note.updatedAt > item.note.createdAt ? "Edited later" : "Unchanged"}</span>
                   </div>
                 </button>
