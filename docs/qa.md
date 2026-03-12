@@ -849,6 +849,7 @@ Expected:
 8. Switch bucket modes among `Day`, `Week`, and `Month` (or press `B`) and verify section labels and counts update across the timeline.
 9. Click a marker in the bottom scrubber and verify selection jumps to the matching note.
 10. Double-click a timeline card or click `Reveal on wall` and verify the app returns to the wall canvas focused on that note.
+11. Create notes with multiple tags, hover a timeline card, and verify a `Tags` toggle appears that reveals the full tag list without crowding the default card view.
 
 Expected:
 - Timeline view provides a read-only horizontal chronology of notes.
@@ -856,5 +857,6 @@ Expected:
 - Density controls change card sizing and spacing for dense or sparse walls without clipping controls.
 - Day/week/month bucket modes expose clear section labels and per-bucket counts.
 - Timeline cards remain fully visible and scroll cleanly on desktop and mobile-sized viewports.
+- Tag metadata stays hidden by default and is available through the hover `Tags` toggle without overflowing the card.
 - Keyboard navigation and the bottom scrubber both move selection predictably.
 - `Reveal on wall` exits timeline view and restores note focus in the canvas.
