@@ -75,13 +75,13 @@ const DEFAULT_TABLE_COLUMNS = 2;
 const TABLE_ROW_HEIGHT = 40;
 const TABLE_CONTROLS_HEIGHT = 40;
 const PAGE_WORKSPACE_PANEL =
-  "rounded-[10px] border border-white/7 bg-[color:rgb(7_10_14_/_0.96)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]";
+  "rounded-[8px] border border-white/8 bg-[color:rgb(7_10_14_/_0.94)] text-white shadow-[0_10px_24px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-[10px]";
 const PAGE_WORKSPACE_BUTTON =
-  "inline-flex items-center gap-2 rounded-[7px] border border-white/7 bg-transparent px-2 py-1 text-[10px] font-medium text-white/66 transition hover:bg-white/6 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-45";
+  "inline-flex h-7 items-center gap-1.5 rounded-[7px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] px-2.5 text-[10px] font-semibold text-white/68 transition hover:border-white/16 hover:bg-white/7 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-45";
 const PAGE_WORKSPACE_ICON_BUTTON =
-  "inline-flex h-7 w-7 items-center justify-center rounded-[7px] border border-white/7 bg-transparent text-white/68 transition hover:bg-white/6 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0";
+  "inline-flex h-7 w-7 items-center justify-center rounded-[7px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] text-white/68 transition hover:border-white/16 hover:bg-white/7 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0";
 const PAGE_WORKSPACE_TOOL_BUTTON =
-  "group flex h-8 w-8 items-center justify-center rounded-[7px] bg-transparent text-white/68 transition hover:bg-white/6 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0";
+  "group flex h-8 w-8 items-center justify-center rounded-[7px] border border-transparent bg-transparent text-white/62 transition hover:border-white/10 hover:bg-white/6 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0";
 
 const BLOCK_TEXT_COLORS = [
   { id: "default", label: "Default text", value: "", preview: "#2e2e2e" },
@@ -4423,30 +4423,31 @@ export function PageEditor() {
       />
 
       <div className="pointer-events-none absolute inset-0 z-30">
-        <div className="absolute inset-x-1.5 top-1.5 flex items-start justify-between gap-3">
-          <div className={`${PAGE_WORKSPACE_PANEL} pointer-events-auto flex min-w-0 items-center gap-2 px-2 py-1.5`}>
-            <div className="flex h-7 w-7 items-center justify-center rounded-[7px] border border-white/8 bg-[color:rgb(79_156_214_/_0.12)] text-[9px] font-semibold tracking-[0.18em] text-white/86">
+        <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 px-2 py-1.5">
+          <div className={`${PAGE_WORKSPACE_PANEL} pointer-events-auto flex min-w-0 items-center gap-2 px-2 py-1`}>
+            <div className="flex h-7 w-7 items-center justify-center rounded-[7px] border border-white/10 bg-[linear-gradient(180deg,rgba(79,156,214,0.22)_0%,rgba(79,156,214,0.08)_100%)] text-[9px] font-semibold tracking-[0.18em] text-white/86">
               PG
             </div>
-            <div className="min-w-0">
-              <p className="text-[8px] uppercase tracking-[0.2em] text-white/30">Infinite Editor</p>
-              <p className="truncate text-[11px] font-semibold text-white/84">{workspaceDocLabel || "Main Canvas"}</p>
+            <div className="min-w-0 pr-2">
+              <p className="text-[8px] uppercase tracking-[0.22em] text-white/26">Infinite Editor</p>
+              <p className="truncate text-[11px] font-semibold text-white/88">{workspaceDocLabel || "Main Canvas"}</p>
             </div>
-            <div className="hidden h-5 w-px bg-white/8 md:block" />
-            <div className="hidden items-center gap-1 md:flex">
-              <span className="px-1.5 text-[9px] uppercase tracking-[0.14em] text-white/42">{blocks.length} blocks</span>
-              <span className="px-1.5 text-[9px] uppercase tracking-[0.14em] text-white/42">{Math.round(camera.zoom * 100)}%</span>
+            <div className="hidden h-6 w-px bg-white/8 md:block" />
+            <div className="hidden items-center gap-1.5 md:flex">
+              <span className="rounded-[6px] border border-white/7 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">{blocks.length} blocks</span>
+              <span className="rounded-[6px] border border-white/7 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">{selectedBlockIds.length} selected</span>
+              <span className="rounded-[6px] border border-white/7 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">{Math.round(camera.zoom * 100)}% zoom</span>
             </div>
           </div>
           <div className={`${PAGE_WORKSPACE_PANEL} pointer-events-auto flex items-center gap-1 px-1 py-1`}>
             <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={() => insertBlockAtViewportCenter("text")}>New Text</button>
             <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={() => openInsertIntentAtViewportCenter("file")}>{uploading ? "Uploading..." : "Upload"}</button>
-            <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={fitWorkspaceView} disabled={blocks.length === 0}>Fit</button>
+            <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={fitWorkspaceView} disabled={blocks.length === 0}>Fit View</button>
             <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={openPrimaryBlockActions} disabled={blocks.length === 0}>Actions</button>
           </div>
         </div>
 
-        <div className={`absolute left-1.5 top-12 hidden p-1 md:block ${PAGE_WORKSPACE_PANEL}`}>
+        <div className={`absolute left-1.5 top-11 hidden px-1 py-1 md:block ${PAGE_WORKSPACE_PANEL}`}>
           <div className="flex flex-col gap-0.5">
             {workspaceTools.map((tool) => (
               <button key={tool.id} type="button" className={`${PAGE_WORKSPACE_TOOL_BUTTON} pointer-events-auto`} onClick={tool.onClick} title={`${tool.label} - ${tool.hint}`} aria-label={tool.label}>
@@ -4456,20 +4457,18 @@ export function PageEditor() {
           </div>
         </div>
 
-        <div className={`absolute bottom-1.5 left-1/2 flex w-[min(26rem,calc(100%-1rem))] -translate-x-1/2 items-center justify-between gap-2 px-2 py-1.5 ${PAGE_WORKSPACE_PANEL}`}>
+        <div className={`absolute bottom-1.5 left-1/2 flex w-[min(28rem,calc(100%-1rem))] -translate-x-1/2 items-center justify-between gap-3 px-2 py-1 ${PAGE_WORKSPACE_PANEL}`}>
           <div className="min-w-0">
-            <p className="truncate text-[10px] font-medium text-white/78">{primarySelectedBlock ? `Selected ${primarySelectedBlock.type}` : "Canvas ready"}</p>
-            <p className="truncate text-[8px] uppercase tracking-[0.16em] text-white/34">Pan drag. Ctrl/Cmd + wheel zoom. Slash in text.</p>
+            <p className="truncate text-[10px] font-semibold text-white/74">{primarySelectedBlock ? `Selected ${primarySelectedBlock.type}` : "Canvas ready"}</p>
+            <p className="truncate text-[8px] uppercase tracking-[0.16em] text-white/30">Pan drag. Ctrl/Cmd + wheel zoom. Slash inserts.</p>
           </div>
           <div className="pointer-events-auto flex items-center gap-1">
             <button type="button" className={PAGE_WORKSPACE_ICON_BUTTON} onClick={() => adjustZoomAtViewportCenter(0.92)} aria-label="Zoom out">-</button>
-            <div className="min-w-[3.2rem] rounded-[7px] border border-white/7 px-1.5 py-1 text-center text-[9px] font-semibold text-white/66">{Math.round(camera.zoom * 100)}%</div>
+            <div className="min-w-[3.4rem] rounded-[7px] border border-white/8 px-1.5 py-1 text-center text-[9px] font-semibold text-white/62">{Math.round(camera.zoom * 100)}%</div>
             <button type="button" className={PAGE_WORKSPACE_ICON_BUTTON} onClick={() => adjustZoomAtViewportCenter(1.08)} aria-label="Zoom in">+</button>
-            <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={duplicatePrimaryBlock} disabled={!primarySelectedBlockId}>Dup</button>
+            <button type="button" className={PAGE_WORKSPACE_BUTTON} onClick={duplicatePrimaryBlock} disabled={!primarySelectedBlockId}>Duplicate</button>
           </div>
         </div>
-
-        <div className="absolute inset-[8px] rounded-[12px] border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]" />
       </div>
 
       <div
@@ -4496,8 +4495,8 @@ export function PageEditor() {
         }}
       >
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-[10px] rounded-[18px] bg-[linear-gradient(180deg,rgba(242,245,248,0.96)_0%,rgba(236,240,244,0.94)_100%)]" />
-          <div className="absolute inset-[10px] rounded-[18px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(34,58,86,0.16)_0%,transparent_30%),linear-gradient(180deg,rgba(6,8,11,0.98)_0%,rgba(1,2,4,1)_100%)]" />
+          <div className="absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]" />
         </div>
         <div
           className="pointer-events-none absolute inset-0"
