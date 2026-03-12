@@ -2,13 +2,14 @@
 
 import { useState, type RefObject } from "react";
 
+import { noteTagChipPalette } from "@/components/wall/wall-canvas-helpers";
 import type { WallTimelineDensity, WallTimelineItem } from "@/components/wall/wallTimelineViewLayout";
 import {
   formatTimelineDate,
   formatTimelineDateTime,
-  readCardColors,
   truncatePreviewText,
 } from "@/components/wall/wallTimelineViewHelpers";
+import { NOTE_DEFAULTS } from "@/features/wall/constants";
 
 type WallTimelineCardProps = {
   item: WallTimelineItem;
@@ -57,9 +58,10 @@ export const WallTimelineCard = ({
   const isActiveMoment = typeof activeTimestamp === "number" && Math.abs(item.ts - activeTimestamp) < 60_000;
   const preview = readTimelinePreview(item, density);
   const cardTop = laneTopOffset + item.lane * laneGap;
-  const cardColors = readCardColors(item.note);
   const title = readTimelineTitle(item);
   const hasTags = item.note.tags.length > 0;
+  const resolvedTextColor = item.note.textColor ?? NOTE_DEFAULTS.textColor;
+  const tagPalette = noteTagChipPalette(item.note.color);
 
   return (
     <article
@@ -88,9 +90,9 @@ export const WallTimelineCard = ({
               tagsOpen || isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
             }`}
             style={{
-              borderColor: cardColors.activeBackground,
-              backgroundColor: tagsOpen ? cardColors.activeBackground : "rgba(255,252,246,0.84)",
-              color: tagsOpen ? cardColors.activeText : cardColors.mutedText,
+              borderColor: tagPalette.border,
+              backgroundColor: tagsOpen ? tagPalette.bg : "rgba(255,252,246,0.84)",
+              color: tagPalette.text,
             }}
             aria-expanded={tagsOpen}
             aria-label={tagsOpen ? "Hide note tags" : "Show note tags"}
@@ -101,7 +103,7 @@ export const WallTimelineCard = ({
             <div
               className="pointer-events-none absolute inset-x-4 bottom-14 z-20 rounded-[20px] border px-3 py-3 shadow-[0_16px_34px_rgba(82,61,31,0.18)] backdrop-blur-sm"
               style={{
-                borderColor: cardColors.activeBackground,
+                borderColor: tagPalette.border,
                 backgroundColor: item.note.color,
               }}
             >
@@ -111,9 +113,9 @@ export const WallTimelineCard = ({
                     key={`${item.id}-${tag}`}
                     className="max-w-full truncate rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]"
                     style={{
-                      borderColor: cardColors.activeBackground,
-                      backgroundColor: cardColors.activeBackground,
-                      color: cardColors.activeText,
+                      borderColor: tagPalette.border,
+                      backgroundColor: tagPalette.bg,
+                      color: tagPalette.text,
                     }}
                     title={`#${tag}`}
                   >
@@ -144,23 +146,23 @@ export const WallTimelineCard = ({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 pr-12">
-            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: cardColors.softText }}>
+            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: resolvedTextColor, opacity: 0.72 }}>
               {formatTimelineDateTime(item.ts)}
             </p>
             {title ? (
-              <p className="mt-1 truncate text-sm font-semibold" style={{ color: cardColors.readableText }} title={title}>
+              <p className="mt-1 truncate text-sm font-semibold" style={{ color: resolvedTextColor }} title={title}>
                 {title}
               </p>
             ) : null}
           </div>
           {isActiveMoment && (
-            <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: cardColors.activeBackground, color: cardColors.activeText }}>
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ backgroundColor: tagPalette.bg, color: tagPalette.text }}>
               Active
             </span>
           )}
         </div>
 
-        <p className={`mt-3 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`} style={{ color: cardColors.readableText }}>
+        <p className={`mt-3 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`} style={{ color: resolvedTextColor }}>
           {preview}
         </p>
 
