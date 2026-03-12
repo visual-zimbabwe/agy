@@ -846,13 +846,15 @@ Expected:
 5. Scroll vertically with the mouse wheel over the timeline and verify the view moves horizontally.
 6. Use `ArrowLeft`, `ArrowRight`, `Home`, and `End` to move between timeline cards.
 7. Switch among `Compact`, `Comfortable`, and `Expanded` density controls (or use `-` / `+`) and verify card width, spacing, and text density update without breaking selection.
-8. Click a marker in the bottom scrubber and verify selection jumps to the matching note.
-9. Double-click a timeline card or click `Reveal on wall` and verify the app returns to the wall canvas focused on that note.
+8. Switch bucket modes among `Day`, `Week`, and `Month` (or press `B`) and verify section labels and counts update across the timeline.
+9. Click a marker in the bottom scrubber and verify selection jumps to the matching note.
+10. Double-click a timeline card or click `Reveal on wall` and verify the app returns to the wall canvas focused on that note.
 
 Expected:
 - Timeline view provides a read-only horizontal chronology of notes.
 - Created/updated mode switching reorders notes without breaking selection.
 - Density controls change card sizing and spacing for dense or sparse walls without clipping controls.
+- Day/week/month bucket modes expose clear section labels and per-bucket counts.
 - Timeline cards remain fully visible and scroll cleanly on desktop and mobile-sized viewports.
 - Keyboard navigation and the bottom scrubber both move selection predictably.
 - `Reveal on wall` exits timeline view and restores note focus in the canvas.

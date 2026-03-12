@@ -19,6 +19,15 @@ type WallTimelineViewProps = {
   onExit: () => void;
 };
 
+type TimelineBucketMode = "day" | "week" | "month";
+
+type TimelineBucket = {
+  key: string;
+  label: string;
+  count: number;
+  x: number;
+};
+
 const laneTopOffset = 146;
 const cardHeightByDensity: Record<WallTimelineDensity, number> = {
   compact: 160,
@@ -42,6 +51,35 @@ const formatTimelineDateTime = (timestamp: number) =>
     hour: "numeric",
     minute: "2-digit",
   }).format(timestamp);
+
+const formatBucketLabel = (timestamp: number, mode: TimelineBucketMode) => {
+  if (mode === "month") {
+    return new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(timestamp);
+  }
+  if (mode === "week") {
+    const start = new Date(timestamp);
+    const day = start.getDay();
+    const diff = (day + 6) % 7;
+    start.setDate(start.getDate() - diff);
+    return `Week of ${formatTimelineDate(start.getTime())}`;
+  }
+  return formatTimelineDate(timestamp);
+};
+
+const makeBucketKey = (timestamp: number, mode: TimelineBucketMode) => {
+  const date = new Date(timestamp);
+  if (mode === "month") {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  }
+  if (mode === "week") {
+    const start = new Date(timestamp);
+    const day = start.getDay();
+    const diff = (day + 6) % 7;
+    start.setDate(start.getDate() - diff);
+    return `${start.getFullYear()}-w-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+  }
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
 
 const truncatePreviewText = (text: string, density: WallTimelineDensity) => {
   const limits: Record<WallTimelineDensity, number> = {
@@ -79,6 +117,7 @@ export const WallTimelineView = ({
 }: WallTimelineViewProps) => {
   const [metric, setMetric] = useState<WallTimelineMetric>("created");
   const [density, setDensity] = useState<WallTimelineDensity>("comfortable");
+  const [bucketMode, setBucketMode] = useState<TimelineBucketMode>("week");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const selectedCardRef = useRef<HTMLButtonElement | null>(null);
   const layout = useMemo(() => buildWallTimelineLayout(notes, metric, density), [density, metric, notes]);
@@ -88,6 +127,26 @@ export const WallTimelineView = ({
   const selectedItem = activeIndex >= 0 ? layout.items[activeIndex] : undefined;
   const selectedNote = selectedItem?.note;
   const cardHeight = cardHeightByDensity[density];
+
+  const buckets = useMemo<TimelineBucket[]>(() => {
+    const map = new Map<string, TimelineBucket>();
+    for (const item of layout.items) {
+      const key = makeBucketKey(item.ts, bucketMode);
+      const existing = map.get(key);
+      if (existing) {
+        existing.count += 1;
+        existing.x = Math.min(existing.x, item.x);
+      } else {
+        map.set(key, {
+          key,
+          label: formatBucketLabel(item.ts, bucketMode),
+          count: 1,
+          x: item.x,
+        });
+      }
+    }
+    return [...map.values()].sort((left, right) => left.x - right.x);
+  }, [bucketMode, layout.items]);
 
   const jumpToIndex = useCallback((index: number) => {
     const next = layout.items[index];
@@ -168,6 +227,11 @@ export const WallTimelineView = ({
         setDensity((current) => (current === "compact" ? "comfortable" : current === "comfortable" ? "expanded" : "expanded"));
         return;
       }
+      if (event.key.toLowerCase() === "b") {
+        event.preventDefault();
+        setBucketMode((current) => (current === "day" ? "week" : current === "week" ? "month" : "day"));
+        return;
+      }
       if (event.key === "Enter" && selectedItem) {
         event.preventDefault();
         onRevealNote(selectedItem.id);
@@ -210,13 +274,14 @@ export const WallTimelineView = ({
               <p className="text-sm text-[rgba(78,62,43,0.82)]">
                 {layout.items.length === 0
                   ? "No notes available for the timeline."
-                  : `${layout.items.length} notes arranged by ${metric} time at ${density} density. Scroll sideways or use arrow keys to browse.`}
+                  : `${layout.items.length} notes arranged by ${metric} time at ${density} density, grouped by ${bucketMode}. Scroll sideways or use arrow keys to browse.`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-[11px] text-[rgba(73,56,35,0.78)]">
               <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">{formatSpan(layout.minTs, layout.maxTs)}</span>
               <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">Selected: {selectedLabel}</span>
               <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">Density: {density}</span>
+              <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">Buckets: {bucketMode}</span>
               {selectedNote && (
                 <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">
                   {selectedNote.tags.length > 0 ? `#${selectedNote.tags[0]}` : "Untagged"}
@@ -257,6 +322,23 @@ export const WallTimelineView = ({
                     title={value === "compact" ? "Compact density (-)" : value === "expanded" ? "Expanded density (+)" : "Comfortable density"}
                   >
                     {value === "compact" ? "Compact" : value === "expanded" ? "Expanded" : "Comfortable"}
+                  </button>
+                ))}
+              </div>
+              <div className="inline-flex rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.78)] p-1 shadow-[0_10px_24px_rgba(98,78,45,0.08)]">
+                {(["day", "week", "month"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setBucketMode(value)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      bucketMode === value
+                        ? "bg-[rgba(77,57,31,0.92)] text-[rgba(255,248,235,0.96)]"
+                        : "text-[rgba(73,56,35,0.78)] hover:bg-white"
+                    }`}
+                    title={value === "day" ? "Day buckets" : value === "week" ? "Week buckets (B)" : "Month buckets"}
+                  >
+                    {value === "day" ? "Day" : value === "week" ? "Week" : "Month"}
                   </button>
                 ))}
               </div>
@@ -320,6 +402,15 @@ export const WallTimelineView = ({
               <span className="mt-2 inline-flex rounded-full border border-[rgba(114,91,58,0.16)] bg-[rgba(255,252,246,0.94)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgba(90,69,41,0.78)] shadow-[0_10px_18px_rgba(99,79,46,0.09)]">
                 {marker.label}
               </span>
+            </div>
+          ))}
+
+          {buckets.map((bucket) => (
+            <div key={bucket.key} className="absolute top-14 -translate-x-1/2" style={{ left: `${bucket.x + layout.cardWidth / 2}px` }}>
+              <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(114,91,58,0.16)] bg-[rgba(255,252,246,0.94)] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgba(90,69,41,0.82)] shadow-[0_10px_18px_rgba(99,79,46,0.09)]">
+                <span>{bucket.label}</span>
+                <span className="rounded-full bg-[rgba(77,57,31,0.08)] px-1.5 py-0.5 text-[9px] tracking-[0.08em] text-[rgba(77,57,31,0.7)]">{bucket.count}</span>
+              </div>
             </div>
           ))}
 
@@ -392,7 +483,7 @@ export const WallTimelineView = ({
         <div className="pointer-events-auto absolute inset-x-4 bottom-4 z-20 rounded-[28px] border border-[rgba(114,91,58,0.18)] bg-[rgba(255,251,243,0.92)] p-4 shadow-[0_20px_40px_rgba(98,78,45,0.14)] backdrop-blur-sm">
           <div className="flex items-center justify-between gap-3 text-[11px] text-[rgba(73,56,35,0.74)]">
             <span>{formatTimelineDate(layout.minTs)}</span>
-            <span>Scrub through {metric} history at {density} density</span>
+            <span>Scrub through {metric} history at {density} density with {bucketMode} buckets</span>
             <span>{formatTimelineDate(layout.maxTs)}</span>
           </div>
           <div className="relative mt-3 h-10 rounded-full bg-[linear-gradient(90deg,rgba(128,99,56,0.12),rgba(128,99,56,0.04))]">
