@@ -33,24 +33,13 @@ const readTimelineTitle = (item: WallTimelineItem, index: number) => {
   if (item.note.noteKind === "canon") {
     return item.note.canon?.title?.trim() || "Canon note";
   }
-
-  const firstLine = item.note.text
-    .split(/\r?\n/, 1)[0]
-    ?.replace(/#[^\s#]+/g, "")
-    .trim();
-
-  return firstLine || `Wall note ${index + 1}`;
-};
-
-const readTimelinePreview = (item: WallTimelineItem, density: WallTimelineDensity) => {
-  if (item.note.noteKind === "quote" || item.note.noteKind === "canon") {
-    return truncatePreviewText(item.note.text, density);
+  if (item.note.pinned) {
+    return "Pinned note";
   }
-
-  const lines = item.note.text.split(/\r?\n/);
-  const bodyText = lines.slice(1).join("\n").trim();
-  return truncatePreviewText(bodyText || item.note.text, density);
+  return `Wall note ${index + 1}`;
 };
+
+const readTimelinePreview = (item: WallTimelineItem, density: WallTimelineDensity) => truncatePreviewText(item.note.text, density);
 
 const readNoteKindLabel = (item: WallTimelineItem) => {
   if (item.note.noteKind === "quote") {
@@ -184,11 +173,9 @@ export const WallTimelineCard = ({
           )}
         </div>
 
-        {preview ? (
-          <p className={`mt-3 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`} style={{ color: cardColors.readableText }}>
-            {preview}
-          </p>
-        ) : <div className="mt-3 flex-1" />}
+        <p className={`mt-3 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] ${density === "compact" ? "text-[13px] leading-5" : density === "expanded" ? "text-[15px] leading-6" : "text-sm leading-5"}`} style={{ color: cardColors.readableText }}>
+          {preview}
+        </p>
 
         <div className="mt-4 flex items-center justify-between gap-2 pr-12 text-[11px]" style={{ color: cardColors.mutedText }}>
           <span className="truncate">{noteKindLabel}</span>
