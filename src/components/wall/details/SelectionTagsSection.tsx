@@ -1,5 +1,7 @@
 "use client";
 
+import { detailButton, detailChip, detailField, detailSectionCard, detailSectionTitle } from "@/components/wall/details/detailSectionStyles";
+
 type SelectionTagsSectionProps = {
   tagInput: string;
   onTagInputChange: (value: string) => void;
@@ -22,8 +24,8 @@ export const SelectionTagsSection = ({
   onRemoveTag,
 }: SelectionTagsSectionProps) => {
   return (
-    <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Selection Tags</p>
+    <div className={detailSectionCard}>
+      <p className={detailSectionTitle}>Selection Tags</p>
       <div className="mt-2 flex items-center gap-2">
         <input
           value={tagInput}
@@ -36,27 +38,27 @@ export const SelectionTagsSection = ({
           }}
           placeholder={selectedNoteIdsCount > 0 || selectedNoteId ? "add-tag" : "select note first"}
           disabled={selectedNoteIdsCount === 0 && !selectedNoteId ? true : isTimeLocked}
-          className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
+          className={`flex-1 ${detailField}`}
         />
         <button
           type="button"
           onClick={onAddTag}
           disabled={selectedNoteIdsCount === 0 && !selectedNoteId ? true : isTimeLocked}
-          className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-40"
+          className={detailButton}
         >
           Add
         </button>
       </div>
       <div className="mt-2 max-h-28 overflow-auto pr-1">
         <div className="flex flex-wrap gap-1">
-          {displayedTags.length === 0 && <span className="text-[11px] text-zinc-500">No tags on current selection.</span>}
+          {displayedTags.length === 0 && <span className="text-[11px] text-[var(--color-text-muted)]">No tags on current selection.</span>}
           {displayedTags.map((tag) => (
             <button
               key={`detail-tag-${tag}`}
               type="button"
               onClick={() => onRemoveTag(tag)}
               disabled={isTimeLocked}
-              className="rounded-full border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700"
+              className={detailChip}
               title="Remove tag"
             >
               #{tag}

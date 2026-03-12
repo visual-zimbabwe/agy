@@ -1,5 +1,6 @@
 "use client";
 
+import { detailButton, detailField, detailSectionCard, detailSectionTitle } from "@/components/wall/details/detailSectionStyles";
 import type { TemplateType } from "@/features/wall/types";
 
 type TemplateOption = {
@@ -23,13 +24,13 @@ export const TemplatesSection = ({
   onApplyTemplate,
 }: TemplatesSectionProps) => {
   return (
-    <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Templates</p>
+    <div className={detailSectionCard}>
+      <p className={detailSectionTitle}>Templates</p>
       <div className="mt-2 flex items-center gap-2">
         <select
           value={templateType}
           onChange={(event) => onTemplateTypeChange(event.target.value as TemplateType)}
-          className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs"
+          className={`flex-1 ${detailField}`}
         >
           {templateOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -37,7 +38,7 @@ export const TemplatesSection = ({
             </option>
           ))}
         </select>
-        <button type="button" onClick={onApplyTemplate} disabled={isTimeLocked} className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs disabled:opacity-45">
+        <button type="button" onClick={onApplyTemplate} disabled={isTimeLocked} className={detailButton}>
           Apply
         </button>
       </div>
