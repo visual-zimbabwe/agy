@@ -846,15 +846,17 @@ Expected:
 5. Scroll vertically with the mouse wheel over the timeline and verify the view moves horizontally.
 6. Use `ArrowLeft`, `ArrowRight`, `Home`, and `End` to move between timeline cards.
 7. Switch among `Compact`, `Comfortable`, and `Expanded` density controls (or use `-` / `+`) and verify card width, spacing, and text density update without breaking selection.
-8. Switch bucket modes among `Day`, `Week`, and `Month` (or press `B`) and verify section labels and counts update across the timeline.
-9. Click a marker in the bottom scrubber and verify selection jumps to the matching note.
-10. Double-click a timeline card or click `Reveal on wall` and verify the app returns to the wall canvas focused on that note.
-11. Create notes with multiple tags, hover a timeline card, and verify a `Tags` toggle appears that reveals the full tag list without crowding the default card view.
+8. Switch among `Far`, `Balanced`, and `Close` zoom controls (or use `[` / `]`) and verify the timeline spreads notes farther apart or packs them closer without changing card size.
+9. Switch bucket modes among `Day`, `Week`, and `Month` (or press `B`) and verify section labels and counts update across the timeline.
+10. Click a marker in the bottom scrubber and verify selection jumps to the matching note.
+11. Double-click a timeline card or click `Reveal on wall` and verify the app returns to the wall canvas focused on that note.
+12. Create notes with multiple tags, hover a timeline card, and verify a `Tags` toggle appears that reveals the full tag list without crowding the default card view.
 
 Expected:
 - Timeline view provides a read-only horizontal chronology of notes.
 - Created/updated mode switching reorders notes without breaking selection.
 - Density controls change card sizing and spacing for dense or sparse walls without clipping controls.
+- Zoom controls stretch or compress the timeline spacing without distorting the cards themselves.
 - Day/week/month bucket modes expose clear section labels and per-bucket counts.
 - Timeline cards remain fully visible and scroll cleanly on desktop and mobile-sized viewports.
 - Tag metadata stays hidden by default and is available through the hover `Tags` toggle without overflowing the card.

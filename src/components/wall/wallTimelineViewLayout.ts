@@ -4,6 +4,7 @@ import type { Note } from "@/features/wall/types";
 
 export type WallTimelineMetric = "created" | "updated";
 export type WallTimelineDensity = "compact" | "comfortable" | "expanded";
+export type WallTimelineZoom = "far" | "balanced" | "close";
 
 export type WallTimelineItem = {
   id: string;
@@ -48,12 +49,19 @@ const densityConfig: Record<WallTimelineDensity, { cardWidth: number; laneGap: n
   },
 };
 
+const zoomSpreadMultiplier: Record<WallTimelineZoom, number> = {
+  far: 0.72,
+  balanced: 1,
+  close: 1.32,
+};
+
 const readTimestamp = (note: Note, metric: WallTimelineMetric) => (metric === "updated" ? note.updatedAt : note.createdAt);
 
 export const buildWallTimelineLayout = (
   notes: Note[],
   metric: WallTimelineMetric = "created",
   density: WallTimelineDensity = "comfortable",
+  zoom: WallTimelineZoom = "balanced",
 ): WallTimelineLayout => {
   const sorted = [...notes]
     .filter((note) => !note.deletedAt)
@@ -66,6 +74,9 @@ export const buildWallTimelineLayout = (
     });
 
   const config = densityConfig[density];
+  const spreadMultiplier = zoomSpreadMultiplier[zoom];
+  const minimumSpread = Math.max(140, Math.round(config.minimumSpread * spreadMultiplier));
+  const minimumTimelineSpread = Math.max(320, Math.round(config.minimumTimelineSpread * spreadMultiplier));
 
   if (sorted.length === 0) {
     const now = Date.now();
@@ -88,7 +99,7 @@ export const buildWallTimelineLayout = (
   const items = sorted.map((note, index) => {
     const timestamp = readTimestamp(note, metric);
     const normalized = timeSpan === 0 ? index / Math.max(1, sorted.length - 1) : (timestamp - minTs) / timeSpan;
-    const targetX = startOffset + normalized * Math.max(config.minimumSpread * Math.max(sorted.length - 1, 1), config.minimumTimelineSpread);
+    const targetX = startOffset + normalized * Math.max(minimumSpread * Math.max(sorted.length - 1, 1), minimumTimelineSpread);
 
     let lane = laneLastX.findIndex((lastX) => targetX - lastX >= config.cardWidth + 36);
     if (lane < 0) {
@@ -97,7 +108,7 @@ export const buildWallTimelineLayout = (
     }
 
     const previousX = laneLastX[lane] ?? Number.NEGATIVE_INFINITY;
-    const x = Number.isFinite(previousX) ? Math.max(targetX, previousX + config.minimumSpread) : targetX;
+    const x = Number.isFinite(previousX) ? Math.max(targetX, previousX + minimumSpread) : targetX;
     laneLastX[lane] = x;
 
     return {

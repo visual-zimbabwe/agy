@@ -49,6 +49,19 @@ describe("buildWallTimelineLayout", () => {
     expect(compact.laneGap).toBeLessThan(expanded.laneGap);
   });
 
+  it("widens the timeline spread for closer zoom levels", () => {
+    const notes = [
+      makeNote("a", 1000),
+      makeNote("b", 2000),
+      makeNote("c", 3000),
+    ];
+    const far = buildWallTimelineLayout(notes, "created", "comfortable", "far");
+    const close = buildWallTimelineLayout(notes, "created", "comfortable", "close");
+
+    expect(far.items[1]?.x).toBeLessThan(close.items[1]?.x ?? 0);
+    expect((far.items[2]?.x ?? 0) - (far.items[1]?.x ?? 0)).toBeLessThan((close.items[2]?.x ?? 0) - (close.items[1]?.x ?? 0));
+  });
+
   it("moves dense notes onto separate lanes when cards would overlap", () => {
     const start = 1000;
     const layout = buildWallTimelineLayout([

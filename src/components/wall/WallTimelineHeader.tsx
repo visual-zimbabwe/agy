@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/wall/WallControls";
-import type { WallTimelineDensity, WallTimelineMetric } from "@/components/wall/wallTimelineViewLayout";
+import type { WallTimelineDensity, WallTimelineMetric, WallTimelineZoom } from "@/components/wall/wallTimelineViewLayout";
 import type { Note } from "@/features/wall/types";
 
 import { formatSpan, type TimelineBucketMode } from "@/components/wall/wallTimelineViewHelpers";
@@ -10,6 +10,7 @@ type WallTimelineHeaderProps = {
   itemCount: number;
   metric: WallTimelineMetric;
   density: WallTimelineDensity;
+  zoom: WallTimelineZoom;
   bucketMode: TimelineBucketMode;
   minTs: number;
   maxTs: number;
@@ -19,6 +20,7 @@ type WallTimelineHeaderProps = {
   canGoNext: boolean;
   onMetricChange: (metric: WallTimelineMetric) => void;
   onDensityChange: (density: WallTimelineDensity) => void;
+  onZoomChange: (zoom: WallTimelineZoom) => void;
   onBucketModeChange: (mode: TimelineBucketMode) => void;
   onPrev: () => void;
   onNext: () => void;
@@ -30,6 +32,7 @@ export const WallTimelineHeader = ({
   itemCount,
   metric,
   density,
+  zoom,
   bucketMode,
   minTs,
   maxTs,
@@ -39,6 +42,7 @@ export const WallTimelineHeader = ({
   canGoNext,
   onMetricChange,
   onDensityChange,
+  onZoomChange,
   onBucketModeChange,
   onPrev,
   onNext,
@@ -53,13 +57,14 @@ export const WallTimelineHeader = ({
           <p className="text-sm text-[rgba(78,62,43,0.82)]">
             {itemCount === 0
               ? "No notes available for the timeline."
-              : `${itemCount} notes arranged by ${metric} time at ${density} density, grouped by ${bucketMode}. Scroll sideways or use arrow keys to browse.`}
+              : `${itemCount} notes arranged by ${metric} time at ${density} density, ${zoom} zoom, and ${bucketMode} buckets. Scroll sideways or use arrow keys to browse.`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-[11px] text-[rgba(73,56,35,0.78)]">
           <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">{formatSpan(minTs, maxTs)}</span>
           <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">Selected: {selectedLabel}</span>
           <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">Density: {density}</span>
+          <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">Zoom: {zoom}</span>
           <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">Buckets: {bucketMode}</span>
           {selectedNote && (
             <span className="rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.9)] px-2.5 py-1">
@@ -101,6 +106,23 @@ export const WallTimelineHeader = ({
                 title={value === "compact" ? "Compact density (-)" : value === "expanded" ? "Expanded density (+)" : "Comfortable density"}
               >
                 {value === "compact" ? "Compact" : value === "expanded" ? "Expanded" : "Comfortable"}
+              </button>
+            ))}
+          </div>
+          <div className="inline-flex rounded-full border border-[rgba(114,91,58,0.18)] bg-[rgba(255,252,246,0.78)] p-1 shadow-[0_10px_24px_rgba(98,78,45,0.08)]">
+            {(["far", "balanced", "close"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => onZoomChange(value)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  zoom === value
+                    ? "bg-[rgba(77,57,31,0.92)] text-[rgba(255,248,235,0.96)]"
+                    : "text-[rgba(73,56,35,0.78)] hover:bg-white"
+                }`}
+                title={value === "far" ? "Zoom out ([)" : value === "close" ? "Zoom in (])" : "Balanced zoom"}
+              >
+                {value === "far" ? "Far" : value === "close" ? "Close" : "Balanced"}
               </button>
             ))}
           </div>

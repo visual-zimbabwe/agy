@@ -9,6 +9,7 @@ import {
   buildWallTimelineLayout,
   type WallTimelineDensity,
   type WallTimelineMetric,
+  type WallTimelineZoom,
 } from "@/components/wall/wallTimelineViewLayout";
 import {
   cardHeightByDensity,
@@ -32,6 +33,8 @@ type WallTimelineViewProps = {
   onExit: () => void;
 };
 
+const zoomOrder: WallTimelineZoom[] = ["far", "balanced", "close"];
+
 export const WallTimelineView = ({
   notes,
   selectedNoteId,
@@ -42,11 +45,12 @@ export const WallTimelineView = ({
 }: WallTimelineViewProps) => {
   const [metric, setMetric] = useState<WallTimelineMetric>("created");
   const [density, setDensity] = useState<WallTimelineDensity>("comfortable");
+  const [zoom, setZoom] = useState<WallTimelineZoom>("balanced");
   const [bucketMode, setBucketMode] = useState<TimelineBucketMode>("week");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const selectedCardRef = useRef<HTMLButtonElement | null>(null);
   const lastAutoCenteredKeyRef = useRef<string | null>(null);
-  const layout = useMemo(() => buildWallTimelineLayout(notes, metric, density), [density, metric, notes]);
+  const layout = useMemo(() => buildWallTimelineLayout(notes, metric, density, zoom), [density, metric, notes, zoom]);
 
   const selectedIndex = layout.items.findIndex((item) => item.id === selectedNoteId);
   const activeIndex = selectedIndex >= 0 ? selectedIndex : layout.items.length > 0 ? layout.items.length - 1 : -1;
@@ -120,7 +124,7 @@ export const WallTimelineView = ({
       return;
     }
 
-    const autoCenterKey = `${selectedNoteId}:${metric}:${density}:${bucketMode}`;
+    const autoCenterKey = `${selectedNoteId}:${metric}:${density}:${zoom}:${bucketMode}`;
     if (lastAutoCenteredKeyRef.current === autoCenterKey) {
       return;
     }
@@ -133,7 +137,7 @@ export const WallTimelineView = ({
       });
       lastAutoCenteredKeyRef.current = autoCenterKey;
     }
-  }, [activeIndex, bucketMode, density, jumpToIndex, metric, selectedNoteId]);
+  }, [activeIndex, bucketMode, density, jumpToIndex, metric, selectedNoteId, zoom]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -171,6 +175,16 @@ export const WallTimelineView = ({
       if (event.key === "+" || event.key === "=") {
         event.preventDefault();
         setDensity((current) => (current === "compact" ? "comfortable" : current === "comfortable" ? "expanded" : "expanded"));
+        return;
+      }
+      if (event.key === "[") {
+        event.preventDefault();
+        setZoom((current) => zoomOrder[Math.max(0, zoomOrder.indexOf(current) - 1)] ?? "far");
+        return;
+      }
+      if (event.key === "]") {
+        event.preventDefault();
+        setZoom((current) => zoomOrder[Math.min(zoomOrder.length - 1, zoomOrder.indexOf(current) + 1)] ?? "close");
         return;
       }
       if (event.key.toLowerCase() === "b") {
@@ -215,6 +229,7 @@ export const WallTimelineView = ({
         itemCount={layout.items.length}
         metric={metric}
         density={density}
+        zoom={zoom}
         bucketMode={bucketMode}
         minTs={layout.minTs}
         maxTs={layout.maxTs}
@@ -224,6 +239,7 @@ export const WallTimelineView = ({
         canGoNext={canGoNext}
         onMetricChange={setMetric}
         onDensityChange={setDensity}
+        onZoomChange={setZoom}
         onBucketModeChange={setBucketMode}
         onPrev={() => jumpToIndex(Math.max(activeIndex - 1, 0))}
         onNext={() => jumpToIndex(Math.min(activeIndex + 1, layout.items.length - 1))}
