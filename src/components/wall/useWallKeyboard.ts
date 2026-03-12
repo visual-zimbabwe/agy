@@ -48,6 +48,7 @@ type WallKeyboardOptions = {
   setTimelineMode: (enabled: boolean) => void;
   setTimelineIndex: (value: number | ((previous: number) => number)) => void;
   setIsTimelinePlaying: (playing: boolean) => void;
+  toggleTimelineView: () => void;
   setShowHeatmap: (updater: (previous: boolean) => boolean) => void;
   setPresentationMode: (enabled: boolean) => void;
   setPresentationIndex: (value: number | ((previous: number) => number)) => void;
@@ -112,6 +113,7 @@ export const useWallKeyboard = ({
   setTimelineMode,
   setTimelineIndex,
   setIsTimelinePlaying,
+  toggleTimelineView,
   setShowHeatmap,
   setPresentationMode,
   setPresentationIndex,
@@ -256,6 +258,12 @@ export const useWallKeyboard = ({
         if (!next) {
           setIsTimelinePlaying(false);
         }
+        return;
+      }
+
+      if (!ctrlOrMeta && key === "v") {
+        event.preventDefault();
+        toggleTimelineView();
         return;
       }
 
@@ -546,6 +554,7 @@ export const useWallKeyboard = ({
     setShowHeatmap,
     setTimelineIndex,
     setTimelineMode,
+    toggleTimelineView,
     timelineEntriesLength,
     timelineModeRef,
     ui,
@@ -553,3 +562,4 @@ export const useWallKeyboard = ({
     viewport,
   ]);
 };
+

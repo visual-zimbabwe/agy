@@ -19,6 +19,7 @@ type LayoutPreferences = Record<LayoutPreferenceKey, boolean>;
 type WallToolbarProps = {
   presentationMode: boolean;
   publishedReadOnly: boolean;
+  timelineViewActive: boolean;
   layoutPrefs: LayoutPreferences;
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
@@ -28,12 +29,14 @@ type WallToolbarProps = {
   onToggleRightPanel: () => void;
   onOpenCommandPalette: () => void;
   onToggleQuickCapture: () => void;
+  onToggleTimelineView: () => void;
   onTogglePresentationMode: () => void;
 };
 
 export const WallToolbar = ({
   presentationMode,
   publishedReadOnly,
+  timelineViewActive,
   layoutPrefs,
   leftPanelOpen,
   rightPanelOpen,
@@ -43,6 +46,7 @@ export const WallToolbar = ({
   onToggleRightPanel,
   onOpenCommandPalette,
   onToggleQuickCapture,
+  onToggleTimelineView,
   onTogglePresentationMode,
 }: WallToolbarProps) => {
   const [activeDeckId, setActiveDeckId] = useState("");
@@ -195,45 +199,56 @@ export const WallToolbar = ({
               <span>Present</span>
             </button>
           </ControlTooltip>
+          <ControlTooltip label="Toggle horizontal timeline view" shortcut="V" side="top">
+            <button
+              type="button"
+              onClick={onToggleTimelineView}
+              className={timelineViewActive ? toolbarBtnActive : toolbarBtn}
+              title="Toggle horizontal timeline view (V)"
+            >
+              <Icon name="timeline" />
+              <span>Timeline View</span>
+            </button>
+          </ControlTooltip>
           {showSecondaryActions && (
             <>
-            <ControlTooltip label="Open decks" side="top">
-              <button type="button" onClick={openDecksWindow} className={toolbarBtn} title="Open decks">
-                <Icon name="panel-right" />
-                <span>Decks</span>
-              </button>
-            </ControlTooltip>
-            {showDeckBadge && (
-              <span className="ml-1 hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text-muted)] lg:inline-flex">
-                Deck: {activeDeckName}
-              </span>
-            )}
-            {toolsAction && (
-              <ControlTooltip label={leftPanelOpen ? "Hide tools panel" : "Show tools panel"} side="top">
-                <button
-                  type="button"
-                  onClick={onToggleLeftPanel}
-                  className={leftPanelOpen ? toolbarBtnActive : toolbarBtn}
-                  title={leftPanelOpen ? "Hide tools panel" : "Show tools panel"}
-                >
-                  <Icon name="panel-left" />
-                  <span>Tools</span>
-                </button>
-              </ControlTooltip>
-            )}
-            {detailsAction && (
-              <ControlTooltip label={rightPanelOpen ? "Hide details panel" : "Show details panel"} side="top">
-                <button
-                  type="button"
-                  onClick={onToggleRightPanel}
-                  className={rightPanelOpen ? toolbarBtnActive : toolbarBtn}
-                  title={rightPanelOpen ? "Hide details panel" : "Show details panel"}
-                >
+              <ControlTooltip label="Open decks" side="top">
+                <button type="button" onClick={openDecksWindow} className={toolbarBtn} title="Open decks">
                   <Icon name="panel-right" />
-                  <span>Details</span>
+                  <span>Decks</span>
                 </button>
               </ControlTooltip>
-            )}
+              {showDeckBadge && (
+                <span className="ml-1 hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text-muted)] lg:inline-flex">
+                  Deck: {activeDeckName}
+                </span>
+              )}
+              {toolsAction && (
+                <ControlTooltip label={leftPanelOpen ? "Hide tools panel" : "Show tools panel"} side="top">
+                  <button
+                    type="button"
+                    onClick={onToggleLeftPanel}
+                    className={leftPanelOpen ? toolbarBtnActive : toolbarBtn}
+                    title={leftPanelOpen ? "Hide tools panel" : "Show tools panel"}
+                  >
+                    <Icon name="panel-left" />
+                    <span>Tools</span>
+                  </button>
+                </ControlTooltip>
+              )}
+              {detailsAction && (
+                <ControlTooltip label={rightPanelOpen ? "Hide details panel" : "Show details panel"} side="top">
+                  <button
+                    type="button"
+                    onClick={onToggleRightPanel}
+                    className={rightPanelOpen ? toolbarBtnActive : toolbarBtn}
+                    title={rightPanelOpen ? "Hide details panel" : "Show details panel"}
+                  >
+                    <Icon name="panel-right" />
+                    <span>Details</span>
+                  </button>
+                </ControlTooltip>
+              )}
             </>
           )}
         </div>
@@ -253,7 +268,6 @@ export const WallToolbar = ({
           </button>
         </ControlTooltip>
       </div>
-
     </>
   );
 };

@@ -836,3 +836,17 @@ Expected:
 - Telemetry snapshot persists local/dev UX timings for:
   `initialInteractMs`, `toolsPanelOpenMs`, `detailsPanelOpenMs`, `searchOpenMs`, `exportOpenMs`, `shortcutsOpenMs`.
 - Backup export/import remains compatible with current and legacy-shaped snapshots.
+
+
+## Horizontal Timeline View
+1. Open `/wall` and create or load several notes with different creation times.
+2. Click `Timeline View` in the top toolbar or press `V`.
+3. Verify notes render as cards on a horizontally scrolling timeline with visible date markers.
+4. Scroll vertically with the mouse wheel over the timeline and verify the view moves horizontally.
+5. Click a timeline card and verify it becomes the active selection.
+6. Double-click a timeline card or click `Reveal on wall` and verify the app returns to the wall canvas focused on that note.
+
+Expected:
+- Timeline view provides a read-only horizontal chronology of notes.
+- Timeline cards remain fully visible and scroll cleanly on desktop and mobile-sized viewports.
+- `Reveal on wall` exits timeline view and restores note focus in the canvas.

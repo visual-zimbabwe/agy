@@ -17,6 +17,7 @@ type LayoutPrefs = {
 type WallHeaderBarProps = {
   presentationMode: boolean;
   publishedReadOnly: boolean;
+  timelineViewActive: boolean;
   layoutPrefs: LayoutPrefs;
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
@@ -40,6 +41,7 @@ type WallHeaderBarProps = {
   onToggleRightPanel: () => void;
   onOpenCommandPalette: () => void;
   onToggleQuickCapture: () => void;
+  onToggleTimelineView: () => void;
   onTogglePresentationMode: () => void;
   onOpenShortcuts: () => void;
   onOpenSettings: () => void;
@@ -50,6 +52,7 @@ type WallHeaderBarProps = {
 export const WallHeaderBar = ({
   presentationMode,
   publishedReadOnly,
+  timelineViewActive,
   layoutPrefs,
   leftPanelOpen,
   rightPanelOpen,
@@ -73,6 +76,7 @@ export const WallHeaderBar = ({
   onToggleRightPanel,
   onOpenCommandPalette,
   onToggleQuickCapture,
+  onToggleTimelineView,
   onTogglePresentationMode,
   onOpenShortcuts,
   onOpenSettings,
@@ -84,6 +88,7 @@ export const WallHeaderBar = ({
       <WallToolbar
         presentationMode={presentationMode}
         publishedReadOnly={publishedReadOnly}
+        timelineViewActive={timelineViewActive}
         layoutPrefs={layoutPrefs}
         leftPanelOpen={leftPanelOpen}
         rightPanelOpen={rightPanelOpen}
@@ -93,6 +98,7 @@ export const WallHeaderBar = ({
         onToggleRightPanel={onToggleRightPanel}
         onOpenCommandPalette={onOpenCommandPalette}
         onToggleQuickCapture={onToggleQuickCapture}
+        onToggleTimelineView={onToggleTimelineView}
         onTogglePresentationMode={onTogglePresentationMode}
       />
 

@@ -11,6 +11,7 @@ import { WallDetailsSidebar } from "@/components/wall/WallDetailsSidebar";
 import { WallFloatingUi } from "@/components/wall/WallFloatingUi";
 import { WallGlobalModals } from "@/components/wall/WallGlobalModals";
 import { WallHeaderBar } from "@/components/wall/WallHeaderBar";
+import { WallTimelineView } from "@/components/wall/WallTimelineView";
 import {
   backupReminderCadenceStorageKey,
   backupReminderLastPromptStorageKey,
@@ -220,6 +221,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
   const [timelineMode, setTimelineMode] = useState(false);
+  const [timelineViewActive, setTimelineViewActive] = useState(false);
   const timelineModeRef = useRef(false);
   const [timelineIndex, setTimelineIndex] = useState(0);
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
@@ -314,7 +316,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const start = dayStartTs(wallClockTs);
     return vocabularyNotes.filter((note) => (note.vocabulary.lastReviewedAt ?? 0) >= start).length;
   }, [vocabularyNotes, wallClockTs]);
-  const isTimeLocked = timelineMode || publishedReadOnly || presentationMode || readingMode;
+  const isTimeLocked = timelineMode || timelineViewActive || publishedReadOnly || presentationMode || readingMode;
   const isChromeHidden = presentationMode || readingMode;
   timelineModeRef.current = timelineMode;
   const activePresentationPath = useMemo(
@@ -324,6 +326,20 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const activePresentationSteps = activePresentationPath?.steps ?? [];
   const hasNarrativePresentation = activePresentationSteps.length > 0;
   const presentationLengthForKeyboard = hasNarrativePresentation ? activePresentationSteps.length : notes.length;
+
+  const toggleTimelineView = useCallback(() => {
+    setTimelineViewActive((previous) => {
+      const next = !previous;
+      if (next) {
+        setEditing(null);
+        setQuickCaptureOpen(false);
+        setSearchOpen(false);
+        setExportOpen(false);
+        setIsTimelinePlaying(false);
+      }
+      return next;
+    });
+  }, [setExportOpen, setSearchOpen]);
 
   const commitEditedNoteText = useCallback((noteId: string, rawText: string) => {
     const current = renderSnapshot.notes[noteId];
@@ -935,6 +951,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setTimelineMode,
     setTimelineIndex,
     setIsTimelinePlaying,
+    toggleTimelineView,
     setShowHeatmap,
     setPresentationMode,
     setPresentationIndex,
@@ -1177,6 +1194,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   });
 
   const { stepZoom, resetZoom } = useWallZoomControls({ camera, viewport, setCamera });
+
+  const revealNoteFromTimeline = useCallback(
+    (noteId: string) => {
+      setTimelineViewActive(false);
+      focusNote(noteId);
+    },
+    [focusNote],
+  );
   const narrativePathOptions = useMemo(
     () =>
       presentationPaths.map((path) => ({
@@ -1670,6 +1695,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: toggleTimelineMode,
       },
       {
+        id: "toggle-timeline-view",
+        label: timelineViewActive ? "Exit timeline view" : "Open timeline view",
+        description: "Arrange current notes on a horizontally scrolling timeline.",
+        shortcut: "V",
+        keywords: ["timeline", "view", "horizontal", "story"],
+        onSelect: toggleTimelineView,
+      },
+      {
         id: "toggle-heatmap",
         label: showHeatmap ? "Hide recency heatmap" : "Show recency heatmap",
         description: "Overlay recency heatmap calendar.",
@@ -1809,11 +1842,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       spatialPrefs.snapToGrid,
       spatialPrefs.snapToGuides,
       timelineMode,
+      timelineViewActive,
       toggleLeftPanel,
       toggleReadingMode,
       togglePresentationMode,
       toggleRightPanel,
       toggleTimelineMode,
+      toggleTimelineView,
       openLeftPanel,
       closeLeftPanel,
       openRightPanel,
@@ -1831,10 +1866,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   );
   return (
     <div className="route-shell flex h-screen flex-col text-[var(--color-text)]">
-      {!readingMode && (
-      <WallHeaderBar
+      {!readingMode && !timelineViewActive && (
+        <WallHeaderBar
         presentationMode={presentationMode}
         publishedReadOnly={publishedReadOnly}
+        timelineViewActive={timelineViewActive}
         layoutPrefs={layoutPrefs}
         leftPanelOpen={leftPanelOpen}
         rightPanelOpen={rightPanelOpen}
@@ -1858,6 +1894,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onToggleRightPanel={toggleRightPanel}
         onOpenCommandPalette={() => setSearchOpenTracked(true)}
         onToggleQuickCapture={() => setQuickCaptureOpen((previous) => !previous)}
+        onToggleTimelineView={toggleTimelineView}
         onTogglePresentationMode={togglePresentationMode}
         onOpenShortcuts={() => setShortcutsOpenTracked(true)}
         onOpenSettings={() => setSettingsOpen(true)}
@@ -1869,7 +1906,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       <div
         ref={containerRef}
         className={`relative flex-1 overflow-hidden ${
-          isSpaceDown || isMiddleDragging || isLeftCanvasDragging ? "cursor-grabbing" : "cursor-grab"
+          timelineViewActive ? "cursor-default" : isSpaceDown || isMiddleDragging || isLeftCanvasDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
         onMouseUp={() => {
           setIsMiddleDragging(false);
@@ -1911,7 +1948,21 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           </button>
         )}
 
-        {!isChromeHidden && !publishedReadOnly && layoutPrefs.showToolsPanel && (hasNoteSelection || leftPanelOpen) && (
+        {timelineViewActive ? (
+          <WallTimelineView
+            notes={notes}
+            selectedNoteId={ui.selectedNoteId}
+            activeTimestamp={activeTimelineEntry?.ts}
+            onSelectNote={(noteId) => {
+              syncPrimarySelection([noteId]);
+              selectNote(noteId);
+            }}
+            onRevealNote={revealNoteFromTimeline}
+            onExit={() => setTimelineViewActive(false)}
+          />
+        ) : null}
+
+        {!timelineViewActive && !isChromeHidden && !publishedReadOnly && layoutPrefs.showToolsPanel && (hasNoteSelection || leftPanelOpen) && (
           <WallToolsPanel
             leftPanelOpen={leftPanelOpen}
             isTimeLocked={isTimeLocked}
@@ -1957,6 +2008,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           />
         )}
 
+        {!timelineViewActive && (
         <WallStage
           stageRef={stageRef}
           viewport={viewport}
@@ -2101,8 +2153,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             />
           </Layer>
         </WallStage>
+        )}
 
-        {!readingMode && (
+        {!readingMode && !timelineViewActive && (
         <WallFloatingUi
           editing={editing}
           notesById={renderSnapshot.notes}
@@ -2299,4 +2352,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
 
