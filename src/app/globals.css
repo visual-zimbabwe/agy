@@ -335,6 +335,44 @@ html[data-theme-preference="dark"] .decks-workspace-shell::after {
   display: none;
 }
 
+html[data-theme-preference="light"] .decks-workspace-shell,
+html[data-theme-preference="light"] .decks-workspace-shell.route-shell {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #000000;
+  --color-surface: #ffffff;
+  --color-surface-muted: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-surface-glass: #ffffff;
+  --color-border: #000000;
+  --color-border-muted: #000000;
+  --color-text: #000000;
+  --color-text-muted: #000000;
+  --color-accent: #ffffff;
+  --color-accent-strong: #ffffff;
+  --color-accent-soft: #ffffff;
+  --color-accent-foreground: #000000;
+  --color-danger: #ffffff;
+  --color-danger-strong: #ffffff;
+  --color-danger-soft: #ffffff;
+  --color-focus: #000000;
+  --color-overlay: rgb(255 255 255 / 0.9);
+  --color-atmosphere-gold: transparent;
+  --color-atmosphere-sea: transparent;
+  --color-atmosphere-mint: transparent;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --decks-glow-soft: 0 0 0 1px rgb(0 0 0 / 0.16);
+  --decks-glow-strong: 0 0 0 1px rgb(0 0 0 / 0.48);
+  background: #ffffff;
+}
+
+html[data-theme-preference="light"] .decks-workspace-shell::before,
+html[data-theme-preference="light"] .decks-workspace-shell::after {
+  display: none;
+}
+
 @media (prefers-color-scheme: dark) {
   html[data-theme-preference="system"] .decks-workspace-shell,
   html[data-theme-preference="system"] .decks-workspace-shell.route-shell {
@@ -373,13 +411,53 @@ html[data-theme-preference="dark"] .decks-workspace-shell::after {
   }
 }
 
+@media (prefers-color-scheme: light) {
+  html[data-theme-preference="system"] .decks-workspace-shell,
+  html[data-theme-preference="system"] .decks-workspace-shell.route-shell {
+    color-scheme: light;
+    --background: #ffffff;
+    --foreground: #000000;
+    --color-surface: #ffffff;
+    --color-surface-muted: #ffffff;
+    --color-surface-elevated: #ffffff;
+    --color-surface-glass: #ffffff;
+    --color-border: #000000;
+    --color-border-muted: #000000;
+    --color-text: #000000;
+    --color-text-muted: #000000;
+    --color-accent: #ffffff;
+    --color-accent-strong: #ffffff;
+    --color-accent-soft: #ffffff;
+    --color-accent-foreground: #000000;
+    --color-danger: #ffffff;
+    --color-danger-strong: #ffffff;
+    --color-danger-soft: #ffffff;
+    --color-focus: #000000;
+    --color-overlay: rgb(255 255 255 / 0.9);
+    --color-atmosphere-gold: transparent;
+    --color-atmosphere-sea: transparent;
+    --color-atmosphere-mint: transparent;
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+    --decks-glow-soft: 0 0 0 1px rgb(0 0 0 / 0.16);
+    --decks-glow-strong: 0 0 0 1px rgb(0 0 0 / 0.48);
+    background: #ffffff;
+  }
+
+  html[data-theme-preference="system"] .decks-workspace-shell::before,
+  html[data-theme-preference="system"] .decks-workspace-shell::after {
+    display: none;
+  }
+}
+
 
 .decks-workspace-shell {
   --decks-motion-fast: 140ms;
   --decks-motion-normal: 220ms;
   --decks-lift-y: -2px;
-  --decks-glow-soft: 0 0 0 1px rgb(255 255 255 / 0.16);
-  --decks-glow-strong: 0 0 0 1px rgb(255 255 255 / 0.48);
+  --decks-glow-soft: 0 0 0 1px rgb(0 0 0 / 0.16);
+  --decks-glow-strong: 0 0 0 1px rgb(0 0 0 / 0.48);
 }
 
 .decks-workspace-shell .decks-entrance {
@@ -442,8 +520,18 @@ html[data-theme-preference="dark"] .decks-workspace-shell::after {
 }
 
 .decks-workspace-shell .decks-focus-ring:focus-visible {
-  outline: 1px solid #ffffff;
+  outline: 1px solid #000000;
   outline-offset: 2px;
+}
+
+html[data-theme-preference="dark"] .decks-workspace-shell .decks-focus-ring:focus-visible {
+  outline-color: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme-preference="system"] .decks-workspace-shell .decks-focus-ring:focus-visible {
+    outline-color: #ffffff;
+  }
 }
 
 @keyframes decks-fade-rise {
