@@ -1456,7 +1456,7 @@ export const DecksWorkspace = () => {
   return (
     <main className="route-shell decks-workspace-shell text-[var(--color-text)]">
       <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 pb-10 pt-6 sm:px-6">
-        <header className="pb-5">
+        <header className="decks-entrance pb-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
               <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
@@ -1489,7 +1489,7 @@ export const DecksWorkspace = () => {
             <button
               type="button"
               onClick={handleBackToWall}
-              className="rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold"
+              className="decks-action decks-focus-ring rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold"
             >
               Back to Wall
             </button>
@@ -1498,7 +1498,7 @@ export const DecksWorkspace = () => {
         </header>
 
         <div className="grid gap-8 border-t border-[var(--color-border-muted)] pt-6 lg:grid-cols-[19rem_minmax(0,1fr)]">
-          <aside className="border-b border-[var(--color-border-muted)] pb-6 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
+          <aside className="decks-entrance decks-entrance-delay-1 border-b border-[var(--color-border-muted)] pb-6 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
             <div className="flex items-end justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Library</p>
@@ -1530,9 +1530,9 @@ export const DecksWorkspace = () => {
                       safeRun(() => loadBrowse(deck.id));
                     }
                   }}
-                  className={`w-full rounded-[var(--radius-lg)] border px-3 py-3 text-left text-sm transition-[border-color,background-color] ${
+                  className={`decks-action decks-panel decks-focus-ring w-full rounded-[var(--radius-lg)] border px-3 py-3 text-left text-sm transition-[border-color,background-color] ${
                     studyDeckId === deck.id
-                      ? "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
+                      ? "decks-selected border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
                       : "border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-muted)]"
                   }`}
                 >
@@ -1593,13 +1593,13 @@ export const DecksWorkspace = () => {
             </div>
           </aside>
 
-          <section className="min-w-0">
+          <section className="decks-entrance decks-entrance-delay-2 min-w-0">
             {view === "study" && (
               <div className="space-y-4">
                 {studyStage === "overview" && (
                   <div className="space-y-4">
                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
-                      <article className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] p-5 lg:p-6">
+                      <article className="decks-panel overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] p-5 lg:p-6">
                         <div className="space-y-4">
                           <div>
                             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Study Deck</p>
@@ -1638,7 +1638,7 @@ export const DecksWorkspace = () => {
                         </div>
                       </article>
 
-                      <div className="grid gap-0 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-glass)] sm:grid-cols-3 xl:grid-cols-1">
+                      <div className="decks-panel grid gap-0 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-glass)] sm:grid-cols-3 xl:grid-cols-1">
                         <article className="p-4 sm:border-r sm:border-[var(--color-border)] xl:border-b xl:border-r-0">
                           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Mode</p>
                           <p className="mt-2 text-lg font-semibold">Study overview</p>
@@ -1733,7 +1733,7 @@ export const DecksWorkspace = () => {
                       </Button>
                     </div>
                     {studyCard ? (
-                      <article className="rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] p-5">
+                      <article className="decks-panel rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] p-5">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Front</p>
                         <p className="mt-3 text-xl leading-relaxed sm:text-2xl">{studyCard.prompt}</p>
                         {showAnswer && (

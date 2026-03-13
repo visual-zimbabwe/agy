@@ -372,3 +372,94 @@ html[data-theme-preference="dark"] .decks-workspace-shell::after {
     display: none;
   }
 }
+
+
+.decks-workspace-shell {
+  --decks-motion-fast: 140ms;
+  --decks-motion-normal: 220ms;
+  --decks-lift-y: -2px;
+  --decks-glow-soft: 0 0 0 1px rgb(255 255 255 / 0.16);
+  --decks-glow-strong: 0 0 0 1px rgb(255 255 255 / 0.48);
+}
+
+.decks-workspace-shell .decks-entrance {
+  animation: decks-fade-rise var(--decks-motion-normal) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.decks-workspace-shell .decks-entrance-delay-1 {
+  animation-delay: 40ms;
+}
+
+.decks-workspace-shell .decks-entrance-delay-2 {
+  animation-delay: 90ms;
+}
+
+.decks-workspace-shell .decks-action,
+.decks-workspace-shell button:not(:disabled),
+.decks-workspace-shell [role="button"]:not([aria-disabled="true"]) {
+  transition:
+    transform var(--decks-motion-fast) ease,
+    border-color var(--decks-motion-fast) ease,
+    color var(--decks-motion-fast) ease,
+    background-color var(--decks-motion-fast) ease,
+    box-shadow var(--decks-motion-fast) ease,
+    opacity var(--decks-motion-fast) ease;
+  transform: translateY(0);
+}
+
+.decks-workspace-shell .decks-action:hover,
+.decks-workspace-shell .decks-action:focus-visible,
+.decks-workspace-shell button:not(:disabled):hover,
+.decks-workspace-shell button:not(:disabled):focus-visible,
+.decks-workspace-shell [role="button"]:not([aria-disabled="true"]):hover,
+.decks-workspace-shell [role="button"]:not([aria-disabled="true"]):focus-visible {
+  transform: translateY(var(--decks-lift-y));
+  box-shadow: var(--decks-glow-soft);
+}
+
+.decks-workspace-shell .decks-action:active,
+.decks-workspace-shell button:not(:disabled):active,
+.decks-workspace-shell [role="button"]:not([aria-disabled="true"]):active {
+  transform: translateY(0) scale(0.985);
+}
+
+.decks-workspace-shell .decks-panel {
+  transition:
+    transform var(--decks-motion-normal) ease,
+    border-color var(--decks-motion-normal) ease,
+    box-shadow var(--decks-motion-normal) ease,
+    opacity var(--decks-motion-normal) ease;
+}
+
+.decks-workspace-shell .decks-panel:hover,
+.decks-workspace-shell .decks-panel:focus-within {
+  transform: translateY(-3px);
+  box-shadow: var(--decks-glow-soft);
+}
+
+.decks-workspace-shell .decks-selected {
+  box-shadow: var(--decks-glow-strong);
+}
+
+.decks-workspace-shell .decks-focus-ring:focus-visible {
+  outline: 1px solid #ffffff;
+  outline-offset: 2px;
+}
+
+@keyframes decks-fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decks-workspace-shell .decks-entrance {
+    animation: none !important;
+  }
+}
