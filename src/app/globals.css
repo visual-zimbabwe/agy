@@ -308,8 +308,8 @@ html[data-theme-preference="dark"] .decks-workspace-shell.route-shell {
   --color-surface-muted: #000000;
   --color-surface-elevated: #000000;
   --color-surface-glass: #000000;
-  --color-border: #ffffff;
-  --color-border-muted: #ffffff;
+  --color-border: #898989;
+  --color-border-muted: #898989;
   --color-text: #f5f7fa;
   --color-text-muted: #a3adba;
   --color-accent: #000000;
@@ -345,8 +345,8 @@ html[data-theme-preference="dark"] .decks-workspace-shell::after {
     --color-surface-muted: #000000;
     --color-surface-elevated: #000000;
     --color-surface-glass: #000000;
-    --color-border: #ffffff;
-    --color-border-muted: #ffffff;
+    --color-border: #898989;
+    --color-border-muted: #898989;
     --color-text: #f5f7fa;
     --color-text-muted: #a3adba;
     --color-accent: #000000;
