@@ -23,6 +23,11 @@ export const StartupRouteHandler = () => {
     const applyLatest = () => {
       applyPreferencesToDocument(readStoredPreferences());
     };
+    const applyLatestOnVisibility = () => {
+      if (document.visibilityState === "visible") {
+        applyLatest();
+      }
+    };
 
     let cancelled = false;
     const bootstrap = async () => {
@@ -55,10 +60,16 @@ export const StartupRouteHandler = () => {
 
     window.addEventListener("storage", applyLatest);
     window.addEventListener(accountSettingsUpdatedEventName, applyLatest);
+    window.addEventListener("focus", applyLatest);
+    window.addEventListener("pageshow", applyLatest);
+    document.addEventListener("visibilitychange", applyLatestOnVisibility);
     return () => {
       cancelled = true;
       window.removeEventListener("storage", applyLatest);
       window.removeEventListener(accountSettingsUpdatedEventName, applyLatest);
+      window.removeEventListener("focus", applyLatest);
+      window.removeEventListener("pageshow", applyLatest);
+      document.removeEventListener("visibilitychange", applyLatestOnVisibility);
     };
   }, []);
 

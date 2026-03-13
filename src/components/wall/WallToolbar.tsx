@@ -154,7 +154,13 @@ export const WallToolbar = ({
   const showDeckBadge = isDecksOnline && hasLiveDeckSelection && Boolean(activeDeckName);
 
   const openDecksWindow = () => {
-    const target = activeDeckId ? `/decks?deckId=${encodeURIComponent(activeDeckId)}` : "/decks";
+    const params = new URLSearchParams();
+    if (activeDeckId) {
+      params.set("deckId", activeDeckId);
+    }
+    // Force a fresh navigation in the reused decks window so it picks up the latest route state and theme.
+    params.set("windowRefresh", String(Date.now()));
+    const target = `/decks${params.size > 0 ? `?${params.toString()}` : ""}`;
     const isDesktop = Boolean(window.desktopMeta?.isDesktop || window.desktopApi);
     if (isDesktop) {
       window.open(target, "idea-wall-decks-window", "width=1320,height=920");
