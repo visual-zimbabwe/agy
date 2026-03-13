@@ -1454,7 +1454,7 @@ export const DecksWorkspace = () => {
   };
 
   return (
-    <main className="route-shell text-[var(--color-text)]">
+    <main className="route-shell decks-workspace-shell text-[var(--color-text)]">
       <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 pb-10 pt-6 sm:px-6">
         <header className="pb-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -1482,13 +1482,8 @@ export const DecksWorkspace = () => {
                 Open Wall Window
               </Button>
             )}
-            <span
-              className={`rounded-[var(--radius-md)] border px-2 py-1 text-[11px] ${
-                wallOnline
-                  ? "border-emerald-300/70 bg-emerald-100/70 text-emerald-900"
-                  : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]"
-              }`}
-            >
+            <span className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text-muted)]">
+              <span className={`h-2 w-2 rounded-full ${wallOnline ? "bg-emerald-400" : "bg-[var(--color-text-muted)]"}`} aria-hidden="true" />
               Wall {wallOnline ? "Online" : "Offline"}
             </span>
             <button
@@ -1537,28 +1532,28 @@ export const DecksWorkspace = () => {
                   }}
                   className={`w-full rounded-[var(--radius-lg)] border px-3 py-3 text-left text-sm transition-[border-color,background-color] ${
                     studyDeckId === deck.id
-                      ? "border-[var(--color-focus)] bg-[linear-gradient(135deg,color-mix(in oklab,var(--color-accent-soft),transparent 12%),color-mix(in oklab,var(--color-surface),transparent 8%))]"
+                      ? "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
                       : "border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-muted)]"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <p className="font-semibold">{deck.name}</p>
                     {studyDeckId === deck.id && (
-                      <span className="rounded-full border border-[var(--color-focus)] bg-[var(--color-surface-elevated)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text)]">
+                      <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text)]">
                         Active
                       </span>
                     )}
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-[var(--radius-md)] bg-black/[0.025] px-2 py-2">
+                    <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-muted)] px-2 py-2">
                       <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">New</p>
                       <p className="mt-1 text-sm font-semibold">{deck.counts.newCount}</p>
                     </div>
-                    <div className="rounded-[var(--radius-md)] bg-black/[0.025] px-2 py-2">
+                    <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-muted)] px-2 py-2">
                       <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Learn</p>
                       <p className="mt-1 text-sm font-semibold">{deck.counts.learningCount}</p>
                     </div>
-                    <div className="rounded-[var(--radius-md)] bg-black/[0.025] px-2 py-2">
+                    <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-muted)] px-2 py-2">
                       <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Review</p>
                       <p className="mt-1 text-sm font-semibold">{deck.counts.reviewCount}</p>
                     </div>
@@ -1604,7 +1599,7 @@ export const DecksWorkspace = () => {
                 {studyStage === "overview" && (
                   <div className="space-y-4">
                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
-                      <article className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[linear-gradient(135deg,color-mix(in_oklab,var(--color-surface),#f4efe0_24%),color-mix(in_oklab,var(--color-surface-elevated),transparent_4%)_58%,color-mix(in_oklab,var(--color-surface),var(--color-accent-soft)_22%))] p-5 lg:p-6">
+                      <article className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] p-5 lg:p-6">
                         <div className="space-y-4">
                           <div>
                             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Study Deck</p>
@@ -1738,7 +1733,7 @@ export const DecksWorkspace = () => {
                       </Button>
                     </div>
                     {studyCard ? (
-                      <article className="rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[linear-gradient(180deg,var(--color-surface-elevated),var(--color-surface))] p-5">
+                      <article className="rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] p-5">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Front</p>
                         <p className="mt-3 text-xl leading-relaxed sm:text-2xl">{studyCard.prompt}</p>
                         {showAnswer && (
@@ -1925,10 +1920,10 @@ export const DecksWorkspace = () => {
                             <div style={{ width: `${(statsViewModel.today.filtered / statsViewModel.todayTypeTotal) * 100}%`, backgroundColor: "#8b5cf6" }} />
                           </div>
                           <div className="mt-1 flex flex-wrap gap-2 text-[11px]">
-                            <span className="rounded px-2 py-0.5" style={{ backgroundColor: "color-mix(in oklab, #3b82f6 22%, var(--color-surface))", color: "var(--color-text)" }}>Learn</span>
-                            <span className="rounded px-2 py-0.5" style={{ backgroundColor: "color-mix(in oklab, #22c55e 22%, var(--color-surface))", color: "var(--color-text)" }}>Review</span>
-                            <span className="rounded px-2 py-0.5" style={{ backgroundColor: "color-mix(in oklab, #f59e0b 24%, var(--color-surface))", color: "var(--color-text)" }}>Relearn</span>
-                            <span className="rounded px-2 py-0.5" style={{ backgroundColor: "color-mix(in oklab, #8b5cf6 24%, var(--color-surface))", color: "var(--color-text)" }}>Filtered</span>
+                            <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 text-[#3b82f6]">Learn</span>
+                            <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 text-[#22c55e]">Review</span>
+                            <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 text-[#f59e0b]">Relearn</span>
+                            <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 text-[#8b5cf6]">Filtered</span>
                           </div>
                         </div>
                       </div>
@@ -1969,11 +1964,11 @@ export const DecksWorkspace = () => {
                         <p className="text-sm font-semibold">Review Count</p>
                         <p className="text-xs text-[var(--color-text-muted)]">Recent review volume by card category.</p>
                         <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-                          <span className="rounded px-2 py-0.5" style={{ backgroundColor: "color-mix(in oklab, #3b82f6 22%, var(--color-surface))", color: "var(--color-text)" }}>New</span>
-                          <span className="rounded px-2 py-0.5" style={{ backgroundColor: "color-mix(in oklab, #f59e0b 24%, var(--color-surface))", color: "var(--color-text)" }}>Learning</span>
-                          <span className="rounded px-2 py-0.5" style={{ backgroundColor: "color-mix(in oklab, #f97316 24%, var(--color-surface))", color: "var(--color-text)" }}>Relearning</span>
-                          <span className="rounded px-2 py-0.5" style={{ backgroundColor: "color-mix(in oklab, #60a5fa 22%, var(--color-surface))", color: "var(--color-text)" }}>Young</span>
-                          <span className="rounded px-2 py-0.5" style={{ backgroundColor: "color-mix(in oklab, #22c55e 22%, var(--color-surface))", color: "var(--color-text)" }}>Mature</span>
+                          <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 text-[#3b82f6]">New</span>
+                          <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 text-[#f59e0b]">Learning</span>
+                          <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 text-[#f97316]">Relearning</span>
+                          <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 text-[#60a5fa]">Young</span>
+                          <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 text-[#22c55e]">Mature</span>
                         </div>
                         <div className="mt-2 max-h-52 space-y-1 overflow-auto text-xs">
                           {statsViewModel.reviewCount.map((entry) => {
@@ -2483,7 +2478,7 @@ export const DecksWorkspace = () => {
                       key={`include-${tag}`}
                       type="button"
                       onClick={() => cycleCustomTagMode(tag)}
-                      className="rounded-full border border-emerald-300/80 bg-emerald-100/70 px-2.5 py-1 text-xs text-emerald-900"
+                      className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs text-emerald-400"
                       title="Click to switch to Excluded"
                     >
                       {tag}
@@ -2500,7 +2495,7 @@ export const DecksWorkspace = () => {
                       key={`exclude-${tag}`}
                       type="button"
                       onClick={() => cycleCustomTagMode(tag)}
-                      className="rounded-full border border-rose-300/80 bg-rose-100/70 px-2.5 py-1 text-xs text-rose-900"
+                      className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs text-rose-400"
                       title="Click to remove"
                     >
                       {tag}
@@ -2529,9 +2524,9 @@ export const DecksWorkspace = () => {
                     const mode = getCustomTagMode(tag);
                     const modeClass =
                       mode === "include"
-                        ? "border-emerald-300/80 bg-emerald-100/70 text-emerald-900"
+                        ? "border-[var(--color-border)] bg-[var(--color-surface)] text-emerald-400"
                         : mode === "exclude"
-                          ? "border-rose-300/80 bg-rose-100/70 text-rose-900"
+                          ? "border-[var(--color-border)] bg-[var(--color-surface)] text-rose-400"
                           : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]";
                     return (
                       <button

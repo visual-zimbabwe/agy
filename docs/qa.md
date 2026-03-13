@@ -166,7 +166,8 @@ Expected:
 9. Open `Stats`, switch ranges (`7d`, `30d`, `90d`, `1y`, `deck_life`) and verify summary/workload updates.
 10. Open `Import File`, upload sample `.csv` or tab-delimited `.txt`, map columns, import notes.
 11. Save an import preset, close modal, reopen, and apply the saved preset.
-12. Verify Decks behavior in Electron app build (`idea-wall-studio`) by opening `/decks`, adding one note, and reviewing one card.
+12. Switch to dark mode on `/decks` and verify deck backgrounds, panels, badges, and modal surfaces render as pure `#000000`, while text and status/icon indicators remain readable.
+13. Verify Decks behavior in Electron app build (`idea-wall-studio`) by opening `/decks`, adding one note, and reviewing one card.
 
 Expected:
 - Decks route is reachable from both landing and wall.

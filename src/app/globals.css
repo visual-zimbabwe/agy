@@ -298,3 +298,77 @@ select optgroup {
   background-size: 32px 32px;
   opacity: 0.12;
 }
+
+html[data-theme-preference="dark"] .decks-workspace-shell,
+html[data-theme-preference="dark"] .decks-workspace-shell.route-shell {
+  color-scheme: dark;
+  --background: #000000;
+  --foreground: #f5f7fa;
+  --color-surface: #000000;
+  --color-surface-muted: #000000;
+  --color-surface-elevated: #000000;
+  --color-surface-glass: #000000;
+  --color-border: #000000;
+  --color-border-muted: #000000;
+  --color-text: #f5f7fa;
+  --color-text-muted: #a3adba;
+  --color-accent: #000000;
+  --color-accent-strong: #000000;
+  --color-accent-soft: #000000;
+  --color-accent-foreground: #f5f7fa;
+  --color-danger: #000000;
+  --color-danger-strong: #000000;
+  --color-danger-soft: #000000;
+  --color-focus: #f5f7fa;
+  --color-overlay: rgb(0 0 0 / 0.9);
+  --color-atmosphere-gold: transparent;
+  --color-atmosphere-sea: transparent;
+  --color-atmosphere-mint: transparent;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  background: #000000;
+}
+
+html[data-theme-preference="dark"] .decks-workspace-shell::before,
+html[data-theme-preference="dark"] .decks-workspace-shell::after {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme-preference="system"] .decks-workspace-shell,
+  html[data-theme-preference="system"] .decks-workspace-shell.route-shell {
+    color-scheme: dark;
+    --background: #000000;
+    --foreground: #f5f7fa;
+    --color-surface: #000000;
+    --color-surface-muted: #000000;
+    --color-surface-elevated: #000000;
+    --color-surface-glass: #000000;
+    --color-border: #000000;
+    --color-border-muted: #000000;
+    --color-text: #f5f7fa;
+    --color-text-muted: #a3adba;
+    --color-accent: #000000;
+    --color-accent-strong: #000000;
+    --color-accent-soft: #000000;
+    --color-accent-foreground: #f5f7fa;
+    --color-danger: #000000;
+    --color-danger-strong: #000000;
+    --color-danger-soft: #000000;
+    --color-focus: #f5f7fa;
+    --color-overlay: rgb(0 0 0 / 0.9);
+    --color-atmosphere-gold: transparent;
+    --color-atmosphere-sea: transparent;
+    --color-atmosphere-mint: transparent;
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+    background: #000000;
+  }
+
+  html[data-theme-preference="system"] .decks-workspace-shell::before,
+  html[data-theme-preference="system"] .decks-workspace-shell::after {
+    display: none;
+  }
+}
