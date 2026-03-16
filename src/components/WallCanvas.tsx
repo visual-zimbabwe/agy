@@ -52,6 +52,7 @@ import { WallStage } from "@/components/wall/WallStage";
 import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
 import { useWallBackupActions } from "@/components/wall/useWallBackupActions";
+import { useAnimatedCamera } from "@/components/wall/useAnimatedCamera";
 import { useWallTelemetry } from "@/components/wall/useWallTelemetry";
 import { useWallTimeline } from "@/components/wall/useWallTimeline";
 import { useWallUiActions } from "@/components/wall/useWallUiActions";
@@ -1377,20 +1378,23 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     runHistoryGroup,
   });
 
-  const { resetView, focusBounds, focusNote, jumpToStaleNote, jumpToHighPriorityNote } = useWallCameraNavigation({
+  const { animateCamera, stopCameraAnimation } = useAnimatedCamera(camera, setCamera);
+
+  const { zoomToFit, zoomToSelection, focusBounds, focusNote, jumpToStaleNote, jumpToHighPriorityNote } = useWallCameraNavigation({
     camera,
     viewport,
     notesById: renderSnapshot.notes,
     visibleNotes: renderVisibleNotes,
     visibleZones: renderVisibleZones,
-    setCamera,
+    selectedNotes,
     setFlashNote,
     syncPrimarySelection,
     computeContentBounds,
     fitBoundsCamera,
+    animateCamera,
   });
 
-  const { stepZoom, resetZoom } = useWallZoomControls({ camera, viewport, setCamera });
+  const { stepZoom, resetZoom } = useWallZoomControls({ camera, viewport, animateCamera });
 
   const revealNoteFromTimeline = useCallback(
     (noteId: string) => {
@@ -1884,11 +1888,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: togglePresentationMode,
       },
       {
-        id: "reset-view",
-        label: "Reset camera to fit content",
-        description: "Fit camera to visible notes and zones.",
-        keywords: ["camera", "zoom", "fit"],
-        onSelect: resetView,
+        id: "zoom-to-fit",
+        label: "Zoom to fit all content",
+        description: "Frame all visible notes and zones with padding.",
+        keywords: ["camera", "zoom", "fit", "frame", "board"],
+        onSelect: zoomToFit,
+      },
+      {
+        id: "zoom-to-selection",
+        label: "Zoom to selection",
+        description: "Frame the selected notes.",
+        keywords: ["camera", "zoom", "selection", "focus", "frame"],
+        disabled: selectedNotes.length === 0,
+        onSelect: zoomToSelection,
       },
       {
         id: "toggle-timeline",
@@ -2037,7 +2049,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       presentationMode,
       quickCaptureOpen,
       redo,
-      resetView,
+      selectedNotes.length,
+      zoomToFit,
+      zoomToSelection,
       rightPanelOpen,
       setExportOpenTracked,
       openFileConversion,
@@ -2274,6 +2288,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           selectionBox={selectionBox}
           setSelectionBox={setSelectionBox}
           toWorldPoint={toWorldPoint}
+          onUserCameraIntent={stopCameraAnimation}
           onEmptyCanvasClick={() => {
             resetSelection();
             clearNoteSelection();
@@ -2460,9 +2475,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onCaptureNarrativeStepCamera={captureNarrativeStepCamera}
           setPresentationIndex={setPresentationIndex}
           setPresentationMode={setPresentationMode}
+          canZoomToSelection={selectedNotes.length > 0}
           onZoomIn={() => stepZoom("in")}
           onZoomOut={() => stepZoom("out")}
           onResetZoom={resetZoom}
+          onZoomToFit={zoomToFit}
+          onZoomToSelection={zoomToSelection}
         />
         )}
 
@@ -2644,9 +2662,4 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
-
-
-
-
-
 

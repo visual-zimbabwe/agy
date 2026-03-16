@@ -68,9 +68,12 @@ type WallFloatingUiProps = {
   onCaptureNarrativeStepCamera: () => void;
   setPresentationIndex: Dispatch<SetStateAction<number>>;
   setPresentationMode: Dispatch<SetStateAction<boolean>>;
+  canZoomToSelection: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
+  onZoomToFit: () => void;
+  onZoomToSelection: () => void;
 };
 
 const noteEditorSectionClass =
@@ -134,9 +137,12 @@ export const WallFloatingUi = ({
   onCaptureNarrativeStepCamera,
   setPresentationIndex,
   setPresentationMode,
+  canZoomToSelection,
   onZoomIn,
   onZoomOut,
   onResetZoom,
+  onZoomToFit,
+  onZoomToSelection,
 }: WallFloatingUiProps) => {
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
@@ -478,9 +484,12 @@ export const WallFloatingUi = ({
       <WallZoomControls
         zoomPercent={zoomPercent}
         showHeatmap={showHeatmap}
+        canZoomToSelection={canZoomToSelection}
         onZoomIn={onZoomIn}
         onZoomOut={onZoomOut}
         onResetZoom={onResetZoom}
+        onZoomToFit={onZoomToFit}
+        onZoomToSelection={onZoomToSelection}
       />
 
       {timelineMode && timelineEntries.length > 0 && currentTimelineEntry && (
@@ -521,11 +530,4 @@ export const WallFloatingUi = ({
     </>
   );
 };
-
-
-
-
-
-
-
 

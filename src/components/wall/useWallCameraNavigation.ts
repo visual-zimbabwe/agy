@@ -14,11 +14,12 @@ type UseWallCameraNavigationOptions = {
   notesById: Record<string, Note>;
   visibleNotes: Note[];
   visibleZones: Zone[];
-  setCamera: (camera: Camera) => void;
+  selectedNotes: Note[];
   setFlashNote: (noteId?: string) => void;
   syncPrimarySelection: (ids: string[]) => void;
   computeContentBounds: (notes: Note[], zones: Zone[]) => Bounds | null;
-  fitBoundsCamera: (bounds: Bounds, viewport: Viewport) => Camera;
+  fitBoundsCamera: (bounds: Bounds, viewport: Viewport, padding?: number) => Camera;
+  animateCamera: (camera: Camera, options?: { durationMs?: number; onComplete?: () => void }) => void;
 };
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -29,34 +30,38 @@ export const useWallCameraNavigation = ({
   notesById,
   visibleNotes,
   visibleZones,
-  setCamera,
+  selectedNotes,
   setFlashNote,
   syncPrimarySelection,
   computeContentBounds,
   fitBoundsCamera,
+  animateCamera,
 }: UseWallCameraNavigationOptions) => {
-  const resetView = useCallback(() => {
+  const zoomToFit = useCallback(() => {
     const bounds = computeContentBounds(visibleNotes, visibleZones);
     if (!bounds) {
-      setCamera({ x: 0, y: 0, zoom: 1 });
+      animateCamera({ x: 0, y: 0, zoom: 1 });
       return;
     }
 
-    const centerX = bounds.x + bounds.w / 2;
-    const centerY = bounds.y + bounds.h / 2;
-    setCamera({
-      zoom: 1,
-      x: viewport.w / 2 - centerX,
-      y: viewport.h / 2 - centerY,
-    });
-  }, [computeContentBounds, setCamera, viewport.h, viewport.w, visibleNotes, visibleZones]);
+    animateCamera(fitBoundsCamera(bounds, viewport, 96));
+  }, [animateCamera, computeContentBounds, fitBoundsCamera, viewport, visibleNotes, visibleZones]);
 
   const focusBounds = useCallback(
     (bounds: Bounds) => {
-      setCamera(fitBoundsCamera(bounds, viewport));
+      animateCamera(fitBoundsCamera(bounds, viewport, 88));
     },
-    [fitBoundsCamera, setCamera, viewport],
+    [animateCamera, fitBoundsCamera, viewport],
   );
+
+  const zoomToSelection = useCallback(() => {
+    const bounds = computeContentBounds(selectedNotes, []);
+    if (!bounds) {
+      return;
+    }
+
+    animateCamera(fitBoundsCamera(bounds, viewport, 88));
+  }, [animateCamera, computeContentBounds, fitBoundsCamera, selectedNotes, viewport]);
 
   const focusNote = useCallback(
     (noteId: string) => {
@@ -79,17 +84,21 @@ export const useWallCameraNavigation = ({
           h: note.h + 192,
         },
         viewport,
+        48,
       );
       const zoom = fullyVisible ? clamp(Math.max(camera.zoom, 1), 0.7, 1.6) : clamp(fitted.zoom, 0.75, 1.25);
-      setCamera({
-        zoom,
-        x: viewport.w / 2 - (note.x + note.w / 2) * zoom,
-        y: viewport.h / 2 - (note.y + note.h / 2) * zoom,
-      });
+      animateCamera(
+        {
+          zoom,
+          x: viewport.w / 2 - (note.x + note.w / 2) * zoom,
+          y: viewport.h / 2 - (note.y + note.h / 2) * zoom,
+        },
+        { durationMs: 240 },
+      );
       syncPrimarySelection([noteId]);
       setFlashNote(noteId);
     },
-    [camera.x, camera.y, camera.zoom, fitBoundsCamera, notesById, setCamera, setFlashNote, syncPrimarySelection, viewport],
+    [animateCamera, camera.x, camera.y, camera.zoom, fitBoundsCamera, notesById, setFlashNote, syncPrimarySelection, viewport],
   );
 
   const jumpToStaleNote = useCallback(() => {
@@ -115,7 +124,8 @@ export const useWallCameraNavigation = ({
   }, [focusNote, visibleNotes]);
 
   return {
-    resetView,
+    zoomToFit,
+    zoomToSelection,
     focusBounds,
     focusNote,
     jumpToStaleNote,

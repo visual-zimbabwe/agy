@@ -952,3 +952,18 @@ Expected:
 - Wiki-link chips are visually distinct but subdued, matching the note/editor palette.
 - Clicking a wiki link or backlink selects the target note and intelligently reveals it on the canvas.
 - Backlinks always reflect the current structural wiki-link graph after edits and refresh.
+## Wall Navigation - Zoom to Fit and Zoom to Selection (2026-03-16)
+1. Open `/wall` with several notes spread far apart and at least one zone.
+2. Trigger `Zoom to fit all content` from the command palette and verify the camera animates to frame all visible notes/zones with padding.
+3. Click the `Fit` action in the floating zoom controls and verify it reaches the same framed result.
+4. Select one note, trigger `Zoom to selection`, and verify the camera animates to frame that note with breathing room.
+5. Box-select or multi-select several notes, trigger `Zoom to selection` again, and verify the full selection stays visible.
+6. Clear selection and verify the `Zoom to selection` command is disabled and the `Sel` zoom-control button is disabled.
+7. Start a fit/selection animation, then immediately pan or wheel-zoom manually; verify manual input cancels the animation cleanly.
+
+Expected:
+- `Zoom to fit` frames all visible notes and zones with consistent outer padding.
+- `Zoom to selection` frames the currently selected notes only.
+- Camera movement is eased rather than jumping, and manual pan/zoom interrupts the animation immediately.
+- Navigation actions are reachable from both the command palette and the floating zoom controls.
+

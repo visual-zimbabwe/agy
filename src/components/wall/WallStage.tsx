@@ -37,6 +37,7 @@ type WallStageProps = {
   setSelectionBox: Dispatch<SetStateAction<SelectionBox | null>>;
   toWorldPoint: (screenX: number, screenY: number, camera: CameraState) => { x: number; y: number };
   onEmptyCanvasClick: () => void;
+  onUserCameraIntent?: () => void;
   children: ReactNode;
 };
 
@@ -56,6 +57,7 @@ export const WallStage = ({
   setSelectionBox,
   toWorldPoint,
   onEmptyCanvasClick,
+  onUserCameraIntent,
   children,
 }: WallStageProps) => {
   return (
@@ -73,11 +75,13 @@ export const WallStage = ({
       onMouseDown={(event) => {
         const stage = event.target.getStage();
         if (event.evt.button === 1) {
+          onUserCameraIntent?.();
           setIsMiddleDragging(true);
         }
 
         const clickedOnEmpty = event.target === stage;
         if (clickedOnEmpty) {
+          onUserCameraIntent?.();
           if (event.evt.button === 0) {
             if (boxSelectMode && !isTimeLocked) {
               const pointer = stage?.getPointerPosition();
@@ -133,6 +137,7 @@ export const WallStage = ({
       }}
       onWheel={(event) => {
         event.evt.preventDefault();
+        onUserCameraIntent?.();
 
         const stage = event.target.getStage();
         if (!stage) {
