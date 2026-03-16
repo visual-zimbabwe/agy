@@ -1,30 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
-import type { Note } from "@/features/wall/types";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
-type NoteTextAlign = "left" | "center" | "right";
-type NoteTextVAlign = "top" | "middle" | "bottom";
-type ToolbarAction = "bold" | "italic" | "underline" | "bullet" | "number" | "multilevel";
+import { NOTE_DEFAULTS } from "@/features/wall/constants";
+import { applyToolbarAction, clamp, getCaretRect, insertMarkdownLink } from "@/components/wall/noteEditorFormatting";
 
 type NoteTextFormattingToolbarProps = {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   active: boolean;
   value: string;
-  textAlign: NoteTextAlign;
-  textVAlign: NoteTextVAlign;
   textColor?: string;
-  imageUrl?: string;
-  textSizePx?: number;
-  textFont?: Note["textFont"];
   onTextUpdate: (nextValue: string, selectionStart: number, selectionEnd: number) => void;
-  onAlignUpdate: (align: NoteTextAlign) => void;
-  onVerticalAlignUpdate: (align: NoteTextVAlign) => void;
-  onTextColorUpdate: (color: string) => void;
-  onImageUrlUpdate: (url?: string) => void;
-  onTextSizeUpdate: (sizePx: number) => void;
-  onTextFontUpdate: (font: NonNullable<Note["textFont"]>) => void;
+  onTextColorUpdate?: (color: string) => void;
 };
 
 type ToolbarPosition = {
@@ -32,262 +19,64 @@ type ToolbarPosition = {
   top: number;
 };
 
-const plainUpper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const plainLower = "abcdefghijklmnopqrstuvwxyz";
-const plainDigits = "0123456789";
-const boldUpper = "𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭";
-const boldLower = "𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇";
-const boldDigits = "𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟕𝟴𝟵";
-const italicUpper = "𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝘑𝘒𝘓𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡";
-const italicLower = "𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭𝘮𝘯𝘰𝘱𝘲𝘳𝘴𝘵𝘶𝘷𝘸𝘹𝘺𝘻";
-const underlineMark = "\u0332";
+const colorSwatches = ["#1F2937", "#334155", "#0F766E", "#7C2D12", "#7C3AED", "#B91C1C"] as const;
 
-const buildCharMap = (from: string, to: string) => {
-  const map: Record<string, string> = {};
-  const fromChars = Array.from(from);
-  const toChars = Array.from(to);
-  for (let index = 0; index < fromChars.length; index += 1) {
-    const source = fromChars[index];
-    const target = toChars[index];
-    if (!source || !target) {
-      continue;
-    }
-    map[source] = target;
-  }
-  return map;
-};
+const toolbarButtonClass =
+  "inline-flex h-8 w-8 items-center justify-center rounded-xl text-[13px] text-zinc-600 transition hover:bg-black/[0.06] hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
 
-const boldMap = {
-  ...buildCharMap(plainUpper, boldUpper),
-  ...buildCharMap(plainLower, boldLower),
-  ...buildCharMap(plainDigits, boldDigits),
-};
+const iconClass = "h-3.5 w-3.5";
 
-const italicMap = {
-  ...buildCharMap(plainUpper, italicUpper),
-  ...buildCharMap(plainLower, italicLower),
-};
+const IconBold = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={iconClass} aria-hidden="true">
+    <path d="M5 3.5h4a2.5 2.5 0 0 1 0 5H5zm0 5h4.7a2.4 2.4 0 1 1 0 4.8H5z" />
+  </svg>
+);
 
-const reverseCharMap = (source: Record<string, string>) =>
-  Object.fromEntries(Object.entries(source).map(([key, value]) => [value, key])) as Record<string, string>;
+const IconItalic = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={iconClass} aria-hidden="true">
+    <path d="M9.8 3.5H6.6m2.8 0-2.8 9m0 0h3.2" />
+  </svg>
+);
 
-const reverseBoldMap = reverseCharMap(boldMap);
-const reverseItalicMap = reverseCharMap(italicMap);
+const IconUnderline = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={iconClass} aria-hidden="true">
+    <path d="M5 3.5v3.2a3 3 0 1 0 6 0V3.5M4 12.5h8" />
+  </svg>
+);
 
-const mirrorStyleProps = [
-  "fontFamily",
-  "fontSize",
-  "fontWeight",
-  "fontStyle",
-  "lineHeight",
-  "letterSpacing",
-  "textTransform",
-  "textIndent",
-  "paddingTop",
-  "paddingRight",
-  "paddingBottom",
-  "paddingLeft",
-  "borderTopWidth",
-  "borderRightWidth",
-  "borderBottomWidth",
-  "borderLeftWidth",
-  "boxSizing",
-  "wordBreak",
-  "overflowWrap",
-  "tabSize",
-] as const;
+const IconLink = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={iconClass} aria-hidden="true">
+    <path d="M6.4 9.6 9.6 6.4" />
+    <path d="M6 11H4.8a2.8 2.8 0 0 1 0-5.6H6" />
+    <path d="M10 5h1.2a2.8 2.8 0 1 1 0 5.6H10" />
+  </svg>
+);
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const IconCode = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={iconClass} aria-hidden="true">
+    <path d="m6 4-3 4 3 4M10 4l3 4-3 4M9 3 7 13" />
+  </svg>
+);
 
-const getCaretRect = (textarea: HTMLTextAreaElement, index: number) => {
-  if (typeof document === "undefined") {
-    return null;
-  }
-
-  const safeIndex = clamp(index, 0, textarea.value.length);
-  const mirror = document.createElement("div");
-  const style = window.getComputedStyle(textarea);
-
-  mirror.style.position = "fixed";
-  mirror.style.visibility = "hidden";
-  mirror.style.whiteSpace = "pre-wrap";
-  mirror.style.wordWrap = "break-word";
-  mirror.style.overflow = "hidden";
-  mirror.style.left = `${textarea.getBoundingClientRect().left}px`;
-  mirror.style.top = `${textarea.getBoundingClientRect().top}px`;
-  mirror.style.width = `${textarea.clientWidth}px`;
-  mirror.style.height = `${textarea.clientHeight}px`;
-
-  for (const prop of mirrorStyleProps) {
-    mirror.style[prop] = style[prop];
-  }
-
-  mirror.scrollTop = textarea.scrollTop;
-  mirror.scrollLeft = textarea.scrollLeft;
-
-  const before = textarea.value.slice(0, safeIndex);
-  const marker = document.createElement("span");
-  marker.textContent = "\u200b";
-
-  mirror.textContent = before;
-  mirror.append(marker);
-  document.body.append(mirror);
-
-  const rect = marker.getBoundingClientRect();
-  mirror.remove();
-  return rect;
-};
-
-const applyStyledTransform = (
-  value: string,
-  selectionStart: number,
-  selectionEnd: number,
-  forwardMap: Record<string, string>,
-  reverseMap: Record<string, string>,
-) => {
-  const start = Math.min(selectionStart, selectionEnd);
-  const end = Math.max(selectionStart, selectionEnd);
-  if (start === end) {
-    return { nextValue: value, selectionStart: start, selectionEnd: end };
-  }
-
-  const selected = value.slice(start, end);
-  const chars = Array.from(selected);
-  let styledCount = 0;
-  let plainCount = 0;
-  for (const char of chars) {
-    if (reverseMap[char]) {
-      styledCount += 1;
-    } else if (forwardMap[char]) {
-      plainCount += 1;
-    }
-  }
-  const eligibleCount = styledCount + plainCount;
-  const shouldUnstyle = eligibleCount > 0 && styledCount === eligibleCount;
-  const transformed = chars
-    .map((char) => {
-      if (shouldUnstyle) {
-        return reverseMap[char] ?? char;
-      }
-      return forwardMap[char] ?? char;
-    })
-    .join("");
-
-  const nextValue = `${value.slice(0, start)}${transformed}${value.slice(end)}`;
-  return {
-    nextValue,
-    selectionStart: start,
-    selectionEnd: start + transformed.length,
-  };
-};
-
-const applyUnderlineTransform = (value: string, selectionStart: number, selectionEnd: number) => {
-  const start = Math.min(selectionStart, selectionEnd);
-  const end = Math.max(selectionStart, selectionEnd);
-  if (start === end) {
-    return { nextValue: value, selectionStart: start, selectionEnd: end };
-  }
-
-  const selected = value.slice(start, end);
-  const shouldUnstyle = selected.includes(underlineMark);
-  const transformed = shouldUnstyle
-    ? selected.replaceAll(underlineMark, "")
-    : Array.from(selected)
-        .map((char) => (char === "\n" ? char : `${char}${underlineMark}`))
-        .join("");
-
-  const nextValue = `${value.slice(0, start)}${transformed}${value.slice(end)}`;
-  return {
-    nextValue,
-    selectionStart: start,
-    selectionEnd: start + transformed.length,
-  };
-};
-
-const getLineRange = (value: string, selectionStart: number, selectionEnd: number) => {
-  const start = Math.min(selectionStart, selectionEnd);
-  const end = Math.max(selectionStart, selectionEnd);
-  const lineStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
-  const lineEndIndex = value.indexOf("\n", end);
-  const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
-  return { lineStart, lineEnd };
-};
-
-const applyListTransform = (
-  value: string,
-  selectionStart: number,
-  selectionEnd: number,
-  mode: "bullet" | "number" | "multilevel",
-) => {
-  const { lineStart, lineEnd } = getLineRange(value, selectionStart, selectionEnd);
-  const lines = value.slice(lineStart, lineEnd).split("\n");
-
-  const normalizeListText = (line: string) => line.replace(/^\s*(?:[-*+]|\d+\.)\s+/, "");
-
-  let nextLines: string[] = [];
-  if (mode === "bullet") {
-    nextLines = lines.map((line) => {
-      if (!line.trim()) {
-        return "- ";
-      }
-      return `- ${normalizeListText(line)}`;
-    });
-  } else if (mode === "number") {
-    nextLines = lines.map((line, index) => {
-      if (!line.trim()) {
-        return `${index + 1}. `;
-      }
-      return `${index + 1}. ${normalizeListText(line)}`;
-    });
-  } else {
-    const hasIndentedList = lines.some((line) => /^\s{2,}(?:[-*+]|\d+\.)\s+/.test(line));
-    nextLines = lines.map((line) => {
-      if (!line.trim()) {
-        return line;
-      }
-      if (hasIndentedList) {
-        return line.replace(/^\s{2}/, "");
-      }
-      if (/^\s*(?:[-*+]|\d+\.)\s+/.test(line)) {
-        return `  ${line.trimStart()}`;
-      }
-      return `  - ${line.trim()}`;
-    });
-  }
-
-  const replacement = nextLines.join("\n");
-  const nextValue = `${value.slice(0, lineStart)}${replacement}${value.slice(lineEnd)}`;
-  return {
-    nextValue,
-    selectionStart: lineStart,
-    selectionEnd: lineStart + replacement.length,
-  };
-};
+const IconColor = ({ color }: { color: string }) => (
+  <svg viewBox="0 0 16 16" fill="none" className={iconClass} aria-hidden="true">
+    <path d="M4.5 12.5h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="m8 3 3 6H5l3-6Z" fill={color} stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
+  </svg>
+);
 
 export const NoteTextFormattingToolbar = ({
   textareaRef,
   active,
   value,
-  textAlign,
-  textVAlign,
   textColor,
-  imageUrl,
-  textSizePx,
-  textFont,
   onTextUpdate,
-  onAlignUpdate,
-  onVerticalAlignUpdate,
   onTextColorUpdate,
-  onImageUrlUpdate,
-  onTextSizeUpdate,
-  onTextFontUpdate,
 }: NoteTextFormattingToolbarProps) => {
   const [position, setPosition] = useState<ToolbarPosition | null>(null);
-  const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const [colorMenuOpen, setColorMenuOpen] = useState(false);
   const toolInteractionRef = useRef(false);
   const toolInteractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const visible = active && position;
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -311,98 +100,87 @@ export const NoteTextFormattingToolbar = ({
         setPosition(null);
         return;
       }
+
       const selectionStart = current.selectionStart ?? 0;
       const selectionEnd = current.selectionEnd ?? selectionStart;
-      const startRect = getCaretRect(current, selectionStart);
-      const endRect = getCaretRect(current, selectionEnd);
+      if (selectionStart === selectionEnd) {
+        setPosition(null);
+        setColorMenuOpen(false);
+        return;
+      }
+
+      const startRect = getCaretRect(current, Math.min(selectionStart, selectionEnd));
+      const endRect = getCaretRect(current, Math.max(selectionStart, selectionEnd));
       if (!startRect || !endRect) {
         setPosition(null);
         return;
       }
-      const anchorX = selectionStart === selectionEnd ? startRect.left : (startRect.left + endRect.left) / 2;
-      const anchorY = Math.min(startRect.top, endRect.top);
-      const left = clamp(anchorX - 170, 8, Math.max(8, window.innerWidth - 340));
-      const top = clamp(anchorY - 54, 8, Math.max(8, window.innerHeight - 52));
-      setPosition({ left, top });
-    };
 
-    const onFocus = () => {
-      updatePosition();
+      const width = 232;
+      const anchorX = (startRect.left + endRect.left) / 2;
+      const anchorY = Math.min(startRect.top, endRect.top);
+      setPosition({
+        left: clamp(anchorX - width / 2, 8, Math.max(8, window.innerWidth - width - 8)),
+        top: clamp(anchorY - 52, 8, Math.max(8, window.innerHeight - 64)),
+      });
     };
-    const onBlur = () => undefined;
 
     const trackedEvents: Array<keyof HTMLElementEventMap> = ["focus", "blur", "keyup", "mouseup", "select", "input", "click", "scroll"];
     trackedEvents.forEach((eventName) => textarea.addEventListener(eventName, updatePosition));
-    textarea.addEventListener("focus", onFocus);
-    textarea.addEventListener("blur", onBlur);
     window.addEventListener("resize", updatePosition);
-
-    if (document.activeElement === textarea) {
-      onFocus();
-    }
+    document.addEventListener("selectionchange", updatePosition);
+    updatePosition();
 
     return () => {
       trackedEvents.forEach((eventName) => textarea.removeEventListener(eventName, updatePosition));
-      textarea.removeEventListener("focus", onFocus);
-      textarea.removeEventListener("blur", onBlur);
       window.removeEventListener("resize", updatePosition);
+      document.removeEventListener("selectionchange", updatePosition);
       if (toolInteractionTimerRef.current) {
         clearTimeout(toolInteractionTimerRef.current);
       }
     };
   }, [active, textareaRef, value]);
 
-  const runAction = (action: ToolbarAction) => {
+  const runAction = (action: "bold" | "italic" | "underline" | "code") => {
     const textarea = textareaRef.current;
     if (!textarea) {
       return;
     }
     const selectionStart = textarea.selectionStart ?? 0;
     const selectionEnd = textarea.selectionEnd ?? selectionStart;
-
-    const update = (() => {
-      if (action === "bold") {
-        return applyStyledTransform(value, selectionStart, selectionEnd, boldMap, reverseBoldMap);
-      }
-      if (action === "italic") {
-        return applyStyledTransform(value, selectionStart, selectionEnd, italicMap, reverseItalicMap);
-      }
-      if (action === "underline") {
-        return applyUnderlineTransform(value, selectionStart, selectionEnd);
-      }
-      return applyListTransform(value, selectionStart, selectionEnd, action);
-    })();
-
+    const update = applyToolbarAction(value, selectionStart, selectionEnd, action);
     onTextUpdate(update.nextValue, update.selectionStart, update.selectionEnd);
   };
 
-  const alignButtons = useMemo(
-    () => [
-      { id: "left", label: "L", title: "Align left" },
-      { id: "center", label: "C", title: "Align center" },
-      { id: "right", label: "R", title: "Align right" },
-    ] as const,
-    [],
-  );
+  const insertLink = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      return;
+    }
+    const url = window.prompt("Link URL");
+    if (!url) {
+      return;
+    }
+    const trimmed = url.trim();
+    if (!trimmed) {
+      return;
+    }
+    const selectionStart = textarea.selectionStart ?? 0;
+    const selectionEnd = textarea.selectionEnd ?? selectionStart;
+    const update = insertMarkdownLink(value, selectionStart, selectionEnd, trimmed);
+    onTextUpdate(update.nextValue, update.selectionStart, update.selectionEnd);
+  };
 
-  const verticalAlignButtons = useMemo(
-    () => [
-      { id: "top", label: "T", title: "Align top" },
-      { id: "middle", label: "M", title: "Align middle" },
-      { id: "bottom", label: "B", title: "Align bottom" },
-    ] as const,
-    [],
-  );
-
-  if (!visible) {
+  if (!active || !position) {
     return null;
   }
 
   return (
     <div
-      ref={toolbarRef}
       data-note-edit-tools="true"
-      className="pointer-events-auto fixed z-[70] flex items-center gap-1 rounded-xl border border-zinc-300 bg-white/96 px-2 py-1.5 shadow-xl backdrop-blur-sm motion-toolbar-enter"
+      role="toolbar"
+      aria-label="Selected text formatting"
+      className="pointer-events-auto fixed z-[70] motion-toolbar-enter"
       style={{ left: `${position.left}px`, top: `${position.top}px` }}
       onPointerDownCapture={() => {
         toolInteractionRef.current = true;
@@ -416,121 +194,60 @@ export const NoteTextFormattingToolbar = ({
         }
         toolInteractionTimerRef.current = setTimeout(() => {
           toolInteractionRef.current = false;
-        }, 220);
+        }, 180);
       }}
-      role="toolbar"
-      aria-label="Text formatting"
     >
-      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("bold")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100" title="Bold">
-        B
-      </button>
-      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("italic")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] italic text-zinc-700 hover:bg-zinc-100" title="Italic">
-        I
-      </button>
-      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("underline")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] underline text-zinc-700 hover:bg-zinc-100" title="Underline">
-        U
-      </button>
-      <div className="mx-0.5 h-4 w-px bg-zinc-300" />
-      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("bullet")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" title="Bulleted list">
-        Bul
-      </button>
-      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("number")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" title="Numbered list">
-        Num
-      </button>
-      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("multilevel")} className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100" title="Multilevel list">
-        Multi
-      </button>
-      <button
-        type="button"
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={() => {
-          const next = window.prompt("Image URL", imageUrl ?? "");
-          if (next === null) {
-            return;
-          }
-          const normalized = next.trim();
-          onImageUrlUpdate(normalized || undefined);
-        }}
-        className="rounded border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
-        title="Insert image URL"
-        aria-label="Insert image URL"
-      >
-        Img
-      </button>
-      <div className="mx-0.5 h-4 w-px bg-zinc-300" />
-      {alignButtons.map((button) => (
-        <button
-          key={button.id}
-          type="button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => onAlignUpdate(button.id)}
-          className={`rounded border px-2 py-1 text-[11px] ${
-            textAlign === button.id
-              ? "border-sky-500 bg-sky-50 text-sky-700"
-              : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-          }`}
-          title={button.title}
-          aria-label={button.title}
-        >
-          {button.label}
+      <div className="relative flex items-center gap-0.5 rounded-2xl border border-black/8 bg-[rgba(250,250,248,0.96)] p-1 shadow-[0_18px_42px_rgba(15,23,42,0.16)] backdrop-blur-md">
+        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("bold")} className={toolbarButtonClass} title="Bold (Ctrl/Cmd+B)">
+          <IconBold />
         </button>
-      ))}
-      <div className="mx-0.5 h-4 w-px bg-zinc-300" />
-      {verticalAlignButtons.map((button) => (
-        <button
-          key={button.id}
-          type="button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => onVerticalAlignUpdate(button.id)}
-          className={`rounded border px-2 py-1 text-[11px] ${
-            textVAlign === button.id
-              ? "border-sky-500 bg-sky-50 text-sky-700"
-              : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-          }`}
-          title={button.title}
-          aria-label={button.title}
-        >
-          {button.label}
+        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("italic")} className={toolbarButtonClass} title="Italic (Ctrl/Cmd+I)">
+          <IconItalic />
         </button>
-      ))}
-      <div className="mx-0.5 h-4 w-px bg-zinc-300" />
-      <select
-        value={textFont ?? "nunito"}
-        onChange={(event) => onTextFontUpdate(event.target.value as NonNullable<Note["textFont"]>)}
-        className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
-        title="Font family"
-        aria-label="Font family"
-      >
-        {NOTE_TEXT_FONTS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <label className="inline-flex items-center">
-        <span className="sr-only">Text color</span>
-        <input
-          type="color"
-          value={textColor ?? NOTE_DEFAULTS.textColor}
-          onChange={(event) => onTextColorUpdate(event.target.value.toUpperCase())}
-          className="h-7 w-8 cursor-pointer rounded border border-zinc-300 bg-white p-0.5"
-          title="Text color"
-          aria-label="Text color"
-        />
-      </label>
-      <select
-        value={textSizePx ?? 16}
-        onChange={(event) => onTextSizeUpdate(Number(event.target.value))}
-        className="rounded border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
-        title="Font size"
-        aria-label="Font size"
-      >
-        {NOTE_TEXT_SIZE_OPTIONS.map((size) => (
-          <option key={`edit-size-${size}`} value={size}>
-            {size}px
-          </option>
-        ))}
-      </select>
+        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("underline")} className={toolbarButtonClass} title="Underline (Ctrl/Cmd+U)">
+          <IconUnderline />
+        </button>
+        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={insertLink} className={toolbarButtonClass} title="Link (Ctrl/Cmd+K)">
+          <IconLink />
+        </button>
+        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("code")} className={toolbarButtonClass} title="Inline code">
+          <IconCode />
+        </button>
+        {onTextColorUpdate ? (
+          <div className="relative">
+            <button
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => setColorMenuOpen((current) => !current)}
+              className={toolbarButtonClass}
+              title="Text color"
+            >
+              <IconColor color={textColor ?? NOTE_DEFAULTS.textColor} />
+            </button>
+            {colorMenuOpen ? (
+              <div className="absolute left-1/2 top-[calc(100%+8px)] z-[71] -translate-x-1/2 rounded-2xl border border-black/8 bg-[rgba(250,250,248,0.98)] p-1 shadow-[0_14px_30px_rgba(15,23,42,0.14)] backdrop-blur-md">
+                <div className="flex items-center gap-1">
+                  {colorSwatches.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        onTextColorUpdate(color);
+                        setColorMenuOpen(false);
+                      }}
+                      className="h-6 w-6 rounded-full border border-black/10 transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]"
+                      style={{ backgroundColor: color }}
+                      aria-label={`Use text color ${color}`}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 };

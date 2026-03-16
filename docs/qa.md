@@ -136,6 +136,25 @@ Expected:
 - Comment threads use card UI with preferred-name author attribution, `...` action menu, delete confirmation modal, and attach/mention/send composer.
 - Page state (blocks + camera) persists after refresh.
 
+
+## Wall Note Editing UI (`/wall`) (2026-03-16)
+1. Open `/wall`, double-click a standard note to enter edit mode, and confirm no persistent formatting toolbar is shown before text selection.
+2. Select a word or phrase inside the note and verify a compact toolbar fades in above the selection, centered on the highlighted text.
+3. Click `Bold`, `Italic`, and `Underline`, then use `Ctrl/Cmd + B`, `Ctrl/Cmd + I`, and `Ctrl/Cmd + U`; verify formatting applies without leaving edit mode.
+4. Select text, press `Ctrl/Cmd + K`, enter a URL, and verify link markup is inserted while focus returns to the editor.
+5. Select text and click `Code`; verify inline code markup is inserted and the selection remains active.
+6. With no text selected, confirm the contextual toolbar stays hidden.
+7. Type `/` in an editing note and verify the slash menu opens below the caret.
+8. Type `/quo`, `/jour`, `/todo`, and `/img` in separate checks; verify the command list filters as you type.
+9. With slash menu open, use `ArrowUp/ArrowDown`, `Enter`, `Tab`, and `Esc`; verify keyboard navigation, command insertion, and dismissal all work.
+10. Run `/quote`, `/journal`, `/list`, `/todo`, `/image`, and `/divider`; verify each command updates the note/editor as expected without breaking dragging, resizing, or saving after blur.
+11. Open the slash menu and selection toolbar near viewport edges on desktop and mobile widths; verify they remain visible and are not clipped by surrounding wall UI.
+
+Expected:
+- Wall note editing feels contextual: no heavy always-on toolbar, only a compact selection toolbar when text is highlighted.
+- Slash commands appear at the caret, filter live, and remain fully keyboard accessible.
+- Formatting shortcuts work directly in the textarea without requiring toolbar interaction.
+- Editor overlays stay in front of the note but do not interfere with note drag/resize behavior once edit mode exits.
 ## Electron Desktop Packaging (2026-02-18)
 1. In `idea-wall-studio`, run `npm install`.
 2. Run `npm run dist`.

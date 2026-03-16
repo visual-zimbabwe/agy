@@ -1,11 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
-import { NoteTextFormattingToolbar } from "@/components/wall/NoteTextFormattingToolbar";
-import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle } from "@/components/wall/wall-canvas-helpers";
+import { NoteTextEditor } from "@/components/wall/NoteTextEditor";
 import { JOURNAL_NOTE_DEFAULTS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
 import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
@@ -101,16 +100,6 @@ const noteEditorTagChipClass =
 const noteEditorSecondaryButtonClass =
   "rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]";
 
-const journalEditorBackground = {
-  backgroundColor: "#FFFFFF",
-  backgroundImage: [
-    "linear-gradient(to right, transparent 0, transparent 42px, rgb(232 119 119 / 0.34) 42px, rgb(232 119 119 / 0.34) 43px, transparent 43px)",
-    "repeating-linear-gradient(to bottom, transparent, transparent 30px, #e9e9e9 31px)",
-  ].join(", "),
-  backgroundPosition: "0 0, 0 0",
-  backgroundSize: "100% 100%, 100% 31px",
-};
-
 export const WallFloatingUi = ({
   editing,
   notesById,
@@ -185,126 +174,22 @@ export const WallFloatingUi = ({
   const editingNote = editing ? notesById[editing.id] : undefined;
   const editingCanon = editingNote?.canon;
   const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const editingTextStyle = getNoteTextStyle(editingNote?.textSize, editingNote?.textSizePx);
-  const editingJournalDate = editingNote ? formatJournalDateLabel(editingNote.createdAt) : "";
-  const isEditingJournal = editingNote?.noteKind === "journal";
   const [quickActionsOverflowOpen, setQuickActionsOverflowOpen] = useState(false);
 
   return (
     <>
       {editing && editingNote && !isTimeLocked && (
-        <div
-          className="absolute z-[46]"
-          style={(() => {
-            const screen = toScreenPoint(editingNote.x, editingNote.y, camera);
-            return {
-              left: `${screen.x}px`,
-              top: `${screen.y}px`,
-              width: `${editingNote.w * camera.zoom}px`,
-            };
-          })()}
-        >
-          <NoteTextFormattingToolbar
-            textareaRef={textareaRef}
-            active
-            value={editing.text}
-            textAlign={editingNote.textAlign ?? "left"}
-            textVAlign={editingNote.textVAlign ?? NOTE_DEFAULTS.textVAlign}
-            textColor={editingNote.textColor}
-            imageUrl={editingNote.imageUrl}
-            textSizePx={editingNote.textSizePx}
-            textFont={editingNote.textFont}
-            onTextUpdate={(nextValue, selectionStart, selectionEnd) => {
-              setEditing({ id: editing.id, text: nextValue });
-              requestAnimationFrame(() => {
-                const textarea = textareaRef.current;
-                if (!textarea) {
-                  return;
-                }
-                textarea.focus();
-                textarea.setSelectionRange(selectionStart, selectionEnd);
-              });
-            }}
-            onAlignUpdate={(textAlign) => updateNote(editing.id, { textAlign })}
-            onVerticalAlignUpdate={(textVAlign) => {
-              updateNote(editing.id, { textVAlign });
-              requestAnimationFrame(() => textareaRef.current?.focus());
-            }}
-            onTextColorUpdate={(textColor) => {
-              updateNote(editing.id, { textColor });
-              requestAnimationFrame(() => textareaRef.current?.focus());
-            }}
-            onImageUrlUpdate={(imageUrl) => {
-              updateNote(editing.id, { imageUrl });
-              requestAnimationFrame(() => textareaRef.current?.focus());
-            }}
-            onTextSizeUpdate={(textSizePx) => {
-              updateNote(editing.id, { textSizePx });
-              requestAnimationFrame(() => textareaRef.current?.focus());
-            }}
-            onTextFontUpdate={(textFont) => {
-              updateNote(editing.id, { textFont });
-              requestAnimationFrame(() => textareaRef.current?.focus());
-            }}
-          />
+        <>
           {editingNote.noteKind !== "canon" && (
-            <div className="relative">
-              {isEditingJournal && (
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute z-[1] text-left"
-                  style={{
-                    color: editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor,
-                    fontFamily: getNoteTextFontFamily(editingNote.textFont),
-                    fontSize: `${Math.max(13, editingTextStyle.fontSize - 2)}px`,
-                    lineHeight: "1.1",
-                    left: "56px",
-                    top: "12px",
-                  }}
-                >
-                  <span style={{ borderBottom: `2px solid ${editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor}`, paddingBottom: "1px", display: "inline-block" }}>
-                    {editingJournalDate}
-                  </span>
-                </div>
-              )}
-              <textarea
-                ref={textareaRef}
-                autoFocus
-                value={editing.text}
-                onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
-                onBlur={handleEditorBlur}
-                className="w-full resize-none rounded-xl border border-zinc-700/40 p-3 shadow-xl outline-none"
-                style={(() => {
-                  const baseStyle = {
-                    height: `${editingNote.h * camera.zoom}px`,
-                    textAlign: editingNote.textAlign ?? "left",
-                    fontFamily: getNoteTextFontFamily(editingNote.textFont),
-                    color: editingNote.textColor ?? NOTE_DEFAULTS.textColor,
-                    fontSize: `${editingTextStyle.fontSize}px`,
-                    lineHeight: `${isEditingJournal ? 1.72 : editingTextStyle.lineHeight}`,
-                    fontStyle: editingNote.noteKind === "quote" ? "italic" : "normal",
-                  };
-
-                  if (isEditingJournal) {
-                    return {
-                      ...baseStyle,
-                      ...journalEditorBackground,
-                      borderRadius: "14px",
-                      paddingTop: "45px",
-                      paddingLeft: "56px",
-                      paddingRight: "18px",
-                      paddingBottom: "18px",
-                    };
-                  }
-
-                  return {
-                    ...baseStyle,
-                    backgroundColor: editingNote.color,
-                  };
-                })()}
-              />
-            </div>
+            <NoteTextEditor
+              editing={editing}
+              editingNote={editingNote}
+              camera={camera}
+              toScreenPoint={toScreenPoint}
+              handleEditorBlur={handleEditorBlur}
+              setEditing={setEditing}
+              updateNote={updateNote}
+            />
           )}
           {editingNote.noteKind === "canon" && editingCanon && (
             <div data-note-edit-tags="true" className="rounded-xl border border-zinc-700/40 p-3 shadow-xl" style={{ backgroundColor: editingNote.color }}>
@@ -577,7 +462,7 @@ export const WallFloatingUi = ({
               </button>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {tagPreviewScreen && tagPreviewNote && !editing && (
