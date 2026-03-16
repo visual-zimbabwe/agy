@@ -967,3 +967,14 @@ Expected:
 - Camera movement is eased rather than jumping, and manual pan/zoom interrupts the animation immediately.
 - Navigation actions are reachable from both the command palette and the floating zoom controls.
 
+## Wall Quote Note Details Sidebar (2026-03-16)
+1. Open `/wall` and select a quote note.
+2. Open the `Details` sidebar and verify a `Quote Details` section is visible.
+3. Edit `Author` and `Source` in that section.
+4. Click away and reselect the note.
+5. Verify the quote metadata remains populated.
+
+Expected:
+- Selected quote notes expose editable `Author` and `Source` fields in the details sidebar.
+- Changes persist like other note metadata edits.
+

@@ -150,6 +150,32 @@ export const NoteInspectorSection = ({
           </div>
         </div>
 
+        {selectedNote.noteKind === "quote" && (
+          <div className={sectionBlockClass}>
+            <p className={sectionLabelClass}>Quote Details</p>
+            <div className="grid gap-2">
+              <input
+                type="text"
+                value={selectedNote.quoteAuthor ?? ""}
+                onChange={(event) => onUpdateNote(selectedNote.id, { quoteAuthor: event.target.value })}
+                className={detailField}
+                placeholder="Author"
+                disabled={isTimeLocked}
+                aria-label="Quote author"
+              />
+              <input
+                type="text"
+                value={selectedNote.quoteSource ?? ""}
+                onChange={(event) => onUpdateNote(selectedNote.id, { quoteSource: event.target.value })}
+                className={detailField}
+                placeholder="Source"
+                disabled={isTimeLocked}
+                aria-label="Quote source"
+              />
+            </div>
+          </div>
+        )}
+
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Backlinks</p>
           {backlinks.length === 0 ? (
@@ -250,3 +276,4 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
+
