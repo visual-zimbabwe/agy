@@ -100,6 +100,14 @@ const noteEditorTagChipClass =
 const noteEditorSecondaryButtonClass =
   "rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]";
 
+const quickActionsPopoverClass =
+  "absolute right-0 top-[calc(100%+0.45rem)] z-[120] min-w-64 rounded-[20px] border border-zinc-300 bg-white p-2.5 shadow-[0_24px_60px_rgba(15,23,42,0.22)] ring-1 ring-black/5";
+const quickActionsFieldClass =
+  "w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none transition focus:border-[var(--color-focus)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
+const quickActionsButtonClass =
+  "inline-flex min-h-9 w-full items-center justify-start rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
+const quickActionsButtonActiveClass =
+  "inline-flex min-h-9 w-full items-center justify-start rounded-xl border border-sky-300 bg-sky-50 px-3 py-2 text-sm text-sky-800 shadow-sm transition hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
 export const WallFloatingUi = ({
   editing,
   notesById,
@@ -488,7 +496,7 @@ export const WallFloatingUi = ({
 
       {quickActionScreen && primarySelectedNote && !editing && (
         <div
-          className="pointer-events-auto absolute z-[45] -translate-x-1/2 -translate-y-full rounded-xl border border-zinc-300 bg-white/96 px-2 py-1.5 shadow-xl backdrop-blur-sm motion-toolbar-enter"
+          className="pointer-events-auto absolute z-[110] -translate-x-1/2 -translate-y-full rounded-2xl border border-zinc-300 bg-white px-2 py-1.5 shadow-[0_20px_50px_rgba(15,23,42,0.2)] ring-1 ring-black/5 motion-toolbar-enter"
           style={{ left: `${quickActionScreen.x}px`, top: `${quickActionScreen.y}px` }}
           onPointerDown={(event) => event.stopPropagation()}
         >
@@ -524,12 +532,12 @@ export const WallFloatingUi = ({
               More
             </button>
             {quickActionsOverflowOpen && (
-              <div className="absolute right-0 top-[calc(100%+0.45rem)] z-50 min-w-56 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)]">
+              <div className={quickActionsPopoverClass}>
                 <div className="space-y-1.5">
                   <select
                     value={primarySelectedNote.textFont ?? "nunito"}
                     onChange={(event) => applyTextFontToSelection(event.target.value as NonNullable<Note["textFont"]>)}
-                    className={`w-full ${toolbarBtnCompact}`}
+                    className={quickActionsFieldClass}
                     title="Note font"
                     aria-label="Note font"
                   >
@@ -542,7 +550,7 @@ export const WallFloatingUi = ({
                   <select
                     value={primarySelectedNote.textSizePx ?? 16}
                     onChange={(event) => applyTextSizeToSelection(Number(event.target.value))}
-                    className={`w-full ${toolbarBtnCompact}`}
+                    className={quickActionsFieldClass}
                     title="Note size"
                     aria-label="Note size"
                   >
@@ -555,7 +563,7 @@ export const WallFloatingUi = ({
                   <select
                     value={primarySelectedNote.textAlign ?? "left"}
                     onChange={(event) => applyTextHorizontalAlignToSelection(event.target.value as "left" | "center" | "right")}
-                    className={`w-full ${toolbarBtnCompact}`}
+                    className={quickActionsFieldClass}
                     title="Horizontal align"
                     aria-label="Horizontal align"
                   >
@@ -566,7 +574,7 @@ export const WallFloatingUi = ({
                   <select
                     value={primarySelectedNote.textVAlign ?? NOTE_DEFAULTS.textVAlign}
                     onChange={(event) => applyTextVerticalAlignToSelection(event.target.value as "top" | "middle" | "bottom")}
-                    className={`w-full ${toolbarBtnCompact}`}
+                    className={quickActionsFieldClass}
                     title="Vertical align"
                     aria-label="Vertical align"
                   >
@@ -574,7 +582,7 @@ export const WallFloatingUi = ({
                     <option value="middle">Middle align</option>
                     <option value="bottom">Bottom align</option>
                   </select>
-                  <label className={`w-full justify-between ${toolbarBtnCompact}`}>
+                  <label className="flex w-full items-center justify-between rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm">
                     <span>Text color</span>
                     <input
                       type="color"
@@ -585,14 +593,14 @@ export const WallFloatingUi = ({
                       aria-label="Note text color"
                     />
                   </label>
-                  <div className="my-1 h-px bg-[var(--color-border)]" />
+                  <div className="my-1 h-px bg-zinc-200" />
                   <button
                     type="button"
                     onClick={() => {
                       setLinkingFromNote(primarySelectedNote.id);
                       setQuickActionsOverflowOpen(false);
                     }}
-                    className={`w-full justify-start ${linkingFromNoteId ? toolbarBtnActive : toolbarBtnCompact}`}
+                    className={linkingFromNoteId ? quickActionsButtonActiveClass : quickActionsButtonClass}
                     title="Start link (Ctrl/Cmd + L)"
                     aria-label="Start link from selected note"
                   >
@@ -604,7 +612,7 @@ export const WallFloatingUi = ({
                       toggleHighlightOnNote(primarySelectedNote.id);
                       setQuickActionsOverflowOpen(false);
                     }}
-                    className={`w-full justify-start ${primarySelectedNote.highlighted ? toolbarBtnActive : toolbarBtnCompact}`}
+                    className={primarySelectedNote.highlighted ? quickActionsButtonActiveClass : quickActionsButtonClass}
                     title={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
                     aria-label={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
                   >
@@ -616,7 +624,7 @@ export const WallFloatingUi = ({
                       onToggleFocusNote(primarySelectedNote.id);
                       setQuickActionsOverflowOpen(false);
                     }}
-                    className={`w-full justify-start ${isPrimaryNoteFocused ? toolbarBtnActive : toolbarBtnCompact}`}
+                    className={isPrimaryNoteFocused ? quickActionsButtonActiveClass : quickActionsButtonClass}
                     title={isPrimaryNoteFocused ? "Exit focus mode" : "Focus this note"}
                     aria-label={isPrimaryNoteFocused ? "Exit focus mode" : "Focus note"}
                   >
@@ -635,7 +643,7 @@ export const WallFloatingUi = ({
                       });
                       setQuickActionsOverflowOpen(false);
                     }}
-                    className={`w-full justify-start ${toolbarBtnCompact}`}
+                    className={quickActionsButtonClass}
                     title={primarySelectedNote.noteKind === "quote" ? "Convert to standard note" : "Convert to quote note"}
                     aria-label={primarySelectedNote.noteKind === "quote" ? "Convert to standard note" : "Convert to quote note"}
                   >
@@ -664,7 +672,7 @@ export const WallFloatingUi = ({
                       });
                       setQuickActionsOverflowOpen(false);
                     }}
-                    className={`w-full justify-start ${toolbarBtnCompact}`}
+                    className={quickActionsButtonClass}
                     title={primarySelectedNote.noteKind === "canon" ? "Convert to standard note" : "Convert to canon note"}
                     aria-label={primarySelectedNote.noteKind === "canon" ? "Convert to standard note" : "Convert to canon note"}
                   >
@@ -688,7 +696,7 @@ export const WallFloatingUi = ({
                       });
                       setQuickActionsOverflowOpen(false);
                     }}
-                    className={`w-full justify-start ${toolbarBtnCompact}`}
+                    className={quickActionsButtonClass}
                     title={primarySelectedNote.noteKind === "journal" ? "Convert to standard note" : "Convert to journal note"}
                     aria-label={primarySelectedNote.noteKind === "journal" ? "Convert to standard note" : "Convert to journal note"}
                   >
