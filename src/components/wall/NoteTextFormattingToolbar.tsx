@@ -22,7 +22,7 @@ type ToolbarPosition = {
 const colorSwatches = ["#1F2937", "#334155", "#0F766E", "#7C2D12", "#7C3AED", "#B91C1C"] as const;
 
 const toolbarButtonClass =
-  "inline-flex h-8 w-8 items-center justify-center rounded-xl text-[13px] text-zinc-600 transition hover:bg-black/[0.06] hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
+  "inline-flex h-8 w-8 items-center justify-center rounded-xl text-[13px] text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
 
 const iconClass = "h-3.5 w-3.5";
 
@@ -180,7 +180,7 @@ export const NoteTextFormattingToolbar = ({
       data-note-edit-tools="true"
       role="toolbar"
       aria-label="Selected text formatting"
-      className="pointer-events-auto fixed z-[70] motion-toolbar-enter"
+      className="pointer-events-auto fixed z-[120] motion-toolbar-enter"
       style={{ left: `${position.left}px`, top: `${position.top}px` }}
       onPointerDownCapture={() => {
         toolInteractionRef.current = true;
@@ -197,7 +197,7 @@ export const NoteTextFormattingToolbar = ({
         }, 180);
       }}
     >
-      <div className="relative flex items-center gap-0.5 rounded-2xl border border-black/8 bg-[rgba(250,250,248,0.96)] p-1 shadow-[0_18px_42px_rgba(15,23,42,0.16)] backdrop-blur-md">
+      <div className="relative flex items-center gap-0.5 rounded-2xl border border-zinc-300 bg-white p-1 shadow-[0_22px_52px_rgba(15,23,42,0.26)] ring-1 ring-black/5">
         <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("bold")} className={toolbarButtonClass} title="Bold (Ctrl/Cmd+B)">
           <IconBold />
         </button>
@@ -225,7 +225,7 @@ export const NoteTextFormattingToolbar = ({
               <IconColor color={textColor ?? NOTE_DEFAULTS.textColor} />
             </button>
             {colorMenuOpen ? (
-              <div className="absolute left-1/2 top-[calc(100%+8px)] z-[71] -translate-x-1/2 rounded-2xl border border-black/8 bg-[rgba(250,250,248,0.98)] p-1 shadow-[0_14px_30px_rgba(15,23,42,0.14)] backdrop-blur-md">
+              <div className="absolute left-1/2 top-[calc(100%+8px)] z-[121] -translate-x-1/2 rounded-2xl border border-zinc-300 bg-white p-1 shadow-[0_18px_40px_rgba(15,23,42,0.22)] ring-1 ring-black/5">
                 <div className="flex items-center gap-1">
                   {colorSwatches.map((color) => (
                     <button
