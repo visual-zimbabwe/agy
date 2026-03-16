@@ -116,6 +116,7 @@ type WallNotesLayerProps = {
   runHistoryGroup: (action: () => void) => void;
   moveNote: (noteId: string, x: number, y: number) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
+  openImageInsert: (noteId: string) => void;
   toggleVocabularyFlip: (noteId: string) => void;
   duplicateNoteAt: (noteId: string, x: number, y: number) => void;
   getNoteTextStyle: (size?: Note["textSize"], textSizePx?: number) => { fontSize: number; lineHeight: number };
@@ -160,6 +161,7 @@ export const WallNotesLayer = ({
   runHistoryGroup,
   moveNote,
   updateNote,
+  openImageInsert,
   toggleVocabularyFlip,
   duplicateNoteAt,
   getNoteTextStyle,
@@ -457,11 +459,7 @@ export const WallNotesLayer = ({
                 return;
               }
               if (imageUrl) {
-                const href = window.prompt("Image URL", imageUrl);
-                if (href === null) {
-                  return;
-                }
-                updateNote(note.id, { imageUrl: href.trim() || undefined });
+                openImageInsert(note.id);
                 return;
               }
               openEditor(note.id, note.text);

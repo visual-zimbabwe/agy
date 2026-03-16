@@ -170,6 +170,23 @@ Expected:
 - Image notes behave like media cards, with the image as the dominant content.
 - Card height follows the image aspect ratio closely enough to avoid cropping and large dead space.
 - Captions are optional, visually secondary, and edited through a compact caption UI instead of a full note body editor.
+
+## Wall Image Insert Workflows (2026-03-16)
+1. Open /wall, create or select a note, type /image, and verify an image insert modal opens instead of a browser prompt.
+2. In the modal, click Select File and upload PNG, JPG/JPEG, WEBP, and GIF files in separate checks; verify each inserts successfully.
+3. In the modal, drag an image file onto the upload drop zone and verify it inserts without using the file picker.
+4. Paste a valid remote image URL into the URL field and verify it inserts successfully.
+5. Copy an image to the clipboard, select a note, press Ctrl/Cmd + V, and verify the selected note updates with the pasted image.
+6. Copy an image to the clipboard with no note selected, press Ctrl/Cmd + V, and verify a new image note appears near the viewport center.
+7. Drag an image file onto empty canvas space and verify a new image note is created at the drop point.
+8. Drag an image file onto an existing note and verify that note's image is replaced.
+9. While dragging an image file over the wall, verify the drag overlay appears and stays fully visible in the viewport.
+
+Expected:
+- Image insertion supports upload, drag/drop, clipboard paste, and URL entry.
+- Uploads create an immediate local preview and route through the same image-note rendering path as URL images.
+- Dropping on empty canvas creates a new image note; dropping on an existing note replaces its image.
+- The insert modal feels like a proper wall UI panel, not a browser alert or prompt.
 ## Electron Desktop Packaging (2026-02-18)
 1. In `idea-wall-studio`, run `npm install`.
 2. Run `npm run dist`.

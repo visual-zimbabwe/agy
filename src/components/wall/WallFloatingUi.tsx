@@ -37,6 +37,7 @@ type WallFloatingUiProps = {
   tagPreviewNote?: Note;
   tagPreviewPalette?: { bg: string; border: string; text: string };
   updateNote: (noteId: string, patch: Partial<Note>) => void;
+  openImageInsert: (noteId: string) => void;
   linkMenu: LinkContextMenuState;
   maxViewportWidth: number;
   maxViewportHeight: number;
@@ -101,6 +102,7 @@ export const WallFloatingUi = ({
   tagPreviewNote,
   tagPreviewPalette,
   updateNote,
+  openImageInsert,
   linkMenu,
   maxViewportWidth,
   maxViewportHeight,
@@ -152,6 +154,7 @@ export const WallFloatingUi = ({
               handleEditorBlur={handleEditorBlur}
               setEditing={setEditing}
               updateNote={updateNote}
+              openImageInsert={openImageInsert}
             />
           )}
           {editingNote.noteKind === "canon" && editingCanon && (

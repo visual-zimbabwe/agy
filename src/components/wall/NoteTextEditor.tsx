@@ -25,6 +25,7 @@ type NoteTextEditorProps = {
   handleEditorBlur: (event: FocusEvent<HTMLTextAreaElement>) => void;
   setEditing: (value: { id: string; text: string } | null) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
+  openImageInsert: (noteId: string) => void;
 };
 
 type SlashCommand = {
@@ -49,7 +50,7 @@ const slashCommands: SlashCommand[] = [
   { id: "journal", label: "Journal", description: "Switch to the journal note treatment.", glyph: "JR", keywords: ["diary", "entry"] },
   { id: "list", label: "List", description: "Start a bulleted list on this line.", glyph: "--", keywords: ["bullet", "items"] },
   { id: "todo", label: "Todo", description: "Insert a checkbox-style task.", glyph: "[]", keywords: ["task", "checkbox"] },
-  { id: "image", label: "Image", description: "Attach an image URL to the note.", glyph: "IM", keywords: ["photo", "media"] },
+  { id: "image", label: "Image", description: "Upload, drop, or paste an image into the note.", glyph: "IM", keywords: ["photo", "media", "upload"] },
   { id: "divider", label: "Divider", description: "Insert a subtle text divider.", glyph: "//", keywords: ["rule", "separator"] },
 ];
 
@@ -63,7 +64,7 @@ const journalEditorBackground = {
   backgroundSize: "100% 100%, 100% 31px",
 };
 
-export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, handleEditorBlur, setEditing, updateNote }: NoteTextEditorProps) => {
+export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, handleEditorBlur, setEditing, updateNote, openImageInsert }: NoteTextEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [menu, setMenu] = useState<SlashMenuState | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -123,7 +124,6 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
     };
   }, [menu]);
 
-
   const applySelectionUpdate = (update: TextSelectionUpdate) => {
     setEditing({ id: editing.id, text: update.nextValue });
     requestAnimationFrame(() => {
@@ -160,7 +160,6 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
     const selectionEnd = textarea.selectionEnd ?? selectionStart;
     applySelectionUpdate(insertMarkdownLink(editing.text, selectionStart, selectionEnd, href.trim()));
   };
-
 
   const executeSlashCommand = (command: SlashCommand) => {
     if (!menu) {
@@ -217,13 +216,8 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
       return;
     }
 
-    const href = window.prompt("Image URL", editingNote.imageUrl ?? "");
     applySelectionUpdate(replaceRange(editing.text, menu.start, menu.end, ""));
-    if (href === null) {
-      return;
-    }
-    const trimmed = href.trim();
-    updateNote(editing.id, { imageUrl: trimmed || undefined });
+    openImageInsert(editing.id);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -366,15 +360,15 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
               return {
                 ...baseStyle,
                 height: `${imageCaptionEditorHeight}px`,
-                backgroundColor: 'rgba(255,255,255,0.96)',
-                borderRadius: '16px',
-                paddingTop: '12px',
-                paddingBottom: '12px',
-                paddingLeft: '14px',
-                paddingRight: '14px',
-                color: '#475569',
+                backgroundColor: "rgba(255,255,255,0.96)",
+                borderRadius: "16px",
+                paddingTop: "12px",
+                paddingBottom: "12px",
+                paddingLeft: "14px",
+                paddingRight: "14px",
+                color: "#475569",
                 fontSize: `${Math.min(editingTextStyle.fontSize, 14)}px`,
-                lineHeight: '1.35',
+                lineHeight: "1.35",
               };
             }
 

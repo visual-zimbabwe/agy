@@ -7,6 +7,7 @@ import { SearchPalette, type CommandPaletteCommand } from "@/components/SearchPa
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { SettingsWorkspace } from "@/components/settings/SettingsWorkspace";
 import { ModalShell } from "@/components/ui/ModalShell";
+import { ImageInsertModal } from "@/components/wall/ImageInsertModal";
 import type { Note } from "@/features/wall/types";
 
 type WallGlobalModalsProps = {
@@ -38,6 +39,11 @@ type WallGlobalModalsProps = {
   isSettingsOpen: boolean;
   onCloseSettings: () => void;
   userEmail?: string;
+  imageInsertOpen: boolean;
+  imageInsertTargetLabel?: string;
+  onCloseImageInsert: () => void;
+  onSelectImageFile: (file: File) => Promise<void>;
+  onSubmitImageUrl: (url: string) => Promise<void>;
 };
 
 export const WallGlobalModals = ({
@@ -69,6 +75,11 @@ export const WallGlobalModals = ({
   isSettingsOpen,
   onCloseSettings,
   userEmail,
+  imageInsertOpen,
+  imageInsertTargetLabel,
+  onCloseImageInsert,
+  onSelectImageFile,
+  onSubmitImageUrl,
 }: WallGlobalModalsProps) => {
   return (
     <>
@@ -98,6 +109,13 @@ export const WallGlobalModals = ({
         onClose={onCloseFileConversion}
         onOpen={onOpenFileConversion}
         preferredMode={preferredFileConversionMode}
+      />
+      <ImageInsertModal
+        open={imageInsertOpen}
+        onClose={onCloseImageInsert}
+        onSelectFile={onSelectImageFile}
+        onSubmitUrl={onSubmitImageUrl}
+        targetLabel={imageInsertTargetLabel}
       />
       <ModalShell
         open={isSettingsOpen}

@@ -116,10 +116,18 @@ import {
 import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
+import { getImageFileFromClipboard, getImageFilesFromDataTransfer, readImageFileAsDataUrl } from "@/lib/wall-image-upload";
 
 type EditingState = {
   id: string;
   text: string;
+};
+
+type ImageInsertState = {
+  open: boolean;
+  noteId?: string;
+  x?: number;
+  y?: number;
 };
 
 type LinkContextMenuState = {
@@ -209,6 +217,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   const [viewport, setViewport] = useState({ w: 1200, h: 800 });
   const [editing, setEditing] = useState<EditingState | null>(null);
+  const [imageInsertState, setImageInsertState] = useState<ImageInsertState>({ open: false });
+  const [isImageDragOver, setIsImageDragOver] = useState(false);
   const [isSpaceDown, setIsSpaceDown] = useState(false);
   const [isMiddleDragging, setIsMiddleDragging] = useState(false);
   const [isLeftCanvasDragging, setIsLeftCanvasDragging] = useState(false);
@@ -1072,6 +1082,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       : undefined;
   const maxViewportWidth = typeof window !== "undefined" ? window.innerWidth : viewport.w;
   const maxViewportHeight = typeof window !== "undefined" ? window.innerHeight : viewport.h;
+  const imageInsertTargetLabel = imageInsertState.noteId
+    ? renderSnapshot.notes[imageInsertState.noteId]?.text.trim() || "the selected note"
+    : "a new image note";
   const {
     activeSelectedNoteIds,
     activeSelectedNoteIdSet,
@@ -1100,6 +1113,80 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     gridSize: spatialPrefs.dotGridSpacing,
     setGuideLines,
   });
+
+  const openImageInsert = useCallback((noteId?: string, point?: { x: number; y: number }) => {
+    if (noteId) {
+      syncPrimarySelection([noteId]);
+      selectNote(noteId);
+    }
+    setImageInsertState({ open: true, noteId, x: point?.x, y: point?.y });
+  }, [selectNote, syncPrimarySelection]);
+
+  const closeImageInsert = useCallback(() => {
+    setImageInsertState({ open: false });
+  }, []);
+
+  const findNoteAtWorldPoint = useCallback((x: number, y: number) => {
+    const ordered = [...renderVisibleNotes].reverse();
+    return ordered.find((note) => x >= note.x && x <= note.x + note.w && y >= note.y && y <= note.y + note.h);
+  }, [renderVisibleNotes]);
+
+  const insertImageSource = useCallback((source: string, target?: { noteId?: string; x?: number; y?: number }) => {
+    if (target?.noteId && renderSnapshot.notes[target.noteId]) {
+      updateNote(target.noteId, { imageUrl: source });
+      syncPrimarySelection([target.noteId]);
+      selectNote(target.noteId);
+      return target.noteId;
+    }
+
+    const fallbackPoint = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const worldX = target?.x ?? fallbackPoint.x;
+    const worldY = target?.y ?? fallbackPoint.y;
+    const noteId = createNote(worldX - NOTE_DEFAULTS.width / 2, worldY - NOTE_DEFAULTS.height / 2, ui.lastColor);
+    updateNote(noteId, { imageUrl: source });
+    syncPrimarySelection([noteId]);
+    selectNote(noteId);
+    return noteId;
+  }, [camera, renderSnapshot.notes, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
+
+  const handleImageFileInsert = useCallback(async (file: File, target?: { noteId?: string; x?: number; y?: number }) => {
+    const dataUrl = await readImageFileAsDataUrl(file);
+    insertImageSource(dataUrl, target);
+  }, [insertImageSource]);
+
+  const handleImageUrlInsert = useCallback(async (url: string, target?: { noteId?: string; x?: number; y?: number }) => {
+    try {
+      new URL(url);
+    } catch {
+      throw new Error("Please paste a valid image URL.");
+    }
+    insertImageSource(url, target);
+  }, [insertImageSource]);
+
+  useEffect(() => {
+    if (isTimeLocked) {
+      setImageInsertState({ open: false });
+    }
+  }, [isTimeLocked]);
+
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const file = getImageFileFromClipboard(event.clipboardData);
+      if (!file) {
+        return;
+      }
+      event.preventDefault();
+      const targetNoteId = ui.selectedNoteId ?? activeSelectedNoteIds[0];
+      const fallbackPoint = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+      void handleImageFileInsert(file, targetNoteId ? { noteId: targetNoteId } : fallbackPoint);
+    };
+
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [activeSelectedNoteIds, camera, handleImageFileInsert, isTimeLocked, ui.selectedNoteId, viewport.h, viewport.w]);
 
   useEffect(() => {
     setPresentationIndex((previous) => clampPresentationIndex(previous, presentationLength || 1));
@@ -1925,6 +2012,38 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         className={`relative flex-1 overflow-hidden ${
           timelineViewActive ? "cursor-default" : isSpaceDown || isMiddleDragging || isLeftCanvasDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
+        onDragOver={(event) => {
+          const files = getImageFilesFromDataTransfer(event.dataTransfer);
+          if (isTimeLocked || files.length === 0) {
+            return;
+          }
+          event.preventDefault();
+          setIsImageDragOver(true);
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setIsImageDragOver(false);
+          }
+        }}
+        onDrop={(event) => {
+          const files = getImageFilesFromDataTransfer(event.dataTransfer);
+          if (isTimeLocked || files.length === 0) {
+            return;
+          }
+          event.preventDefault();
+          setIsImageDragOver(false);
+          const bounds = containerRef.current?.getBoundingClientRect();
+          if (!bounds) {
+            return;
+          }
+          const droppedFile = files[0];
+          if (!droppedFile) {
+            return;
+          }
+          const world = toWorldPoint(event.clientX - bounds.left, event.clientY - bounds.top, camera);
+          const targetNote = findNoteAtWorldPoint(world.x, world.y);
+          void handleImageFileInsert(droppedFile, targetNote ? { noteId: targetNote.id } : world);
+        }}
         onMouseUp={() => {
           setIsMiddleDragging(false);
           setIsLeftCanvasDragging(false);
@@ -1963,6 +2082,18 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           >
             Focus mode. Click to exit.
           </button>
+        )}
+
+        {isImageDragOver && !isTimeLocked && (
+          <div className="pointer-events-none absolute inset-6 z-[44] rounded-[32px] border-2 border-dashed border-[var(--color-accent-strong)] bg-[rgba(255,248,232,0.78)] shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+            <div className="grid h-full place-items-center text-center">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-text-muted)]">Drop Image</p>
+                <p className="mt-3 font-[Georgia] text-3xl text-[var(--color-text)]">Release to insert image</p>
+                <p className="mt-2 text-sm text-[var(--color-text-muted)]">Drop on empty canvas to create a new media card, or drop on a note to replace its image.</p>
+              </div>
+            </div>
+          </div>
         )}
 
         {timelineViewActive ? (
@@ -2143,6 +2274,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               runHistoryGroup={runHistoryGroup}
               moveNote={moveNote}
               updateNote={updateNote}
+              openImageInsert={(noteId) => openImageInsert(noteId)}
               toggleVocabularyFlip={toggleVocabularyFlip}
               duplicateNoteAt={duplicateNoteAt}
               getNoteTextStyle={getNoteTextStyle}
@@ -2194,6 +2326,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           tagPreviewNote={tagPreviewNote}
           tagPreviewPalette={tagPreviewPalette}
           updateNote={updateNote}
+          openImageInsert={(noteId) => openImageInsert(noteId)}
           linkMenu={linkMenu}
           maxViewportWidth={maxViewportWidth}
           maxViewportHeight={maxViewportHeight}
@@ -2393,6 +2526,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         }}
         onOpenFileConversion={() => setFileConversionOpen(true)}
         preferredFileConversionMode={preferredFileConversionMode}
+        imageInsertOpen={imageInsertState.open}
+        imageInsertTargetLabel={imageInsertTargetLabel}
+        onCloseImageInsert={closeImageInsert}
+        onSelectImageFile={(file) => handleImageFileInsert(file, imageInsertState)}
+        onSubmitImageUrl={(url) => handleImageUrlInsert(url, imageInsertState)}
         isSettingsOpen={settingsOpen}
         onCloseSettings={() => setSettingsOpen(false)}
         userEmail={userEmail}
