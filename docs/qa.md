@@ -854,7 +854,7 @@ Expected:
 
 Expected:
 - `/wall` is protected for unauthenticated users.
-- Sync status updates (`Syncing...`, `Last synced`) behave consistently.
+- Sync status updates (`Saving...`, `Synced`, `Offline`, `Error`) behave consistently through edit, offline, recovery, and retry flows.
 - Cross-device sync works for create/edit/delete.
 - Accounts remain isolated via RLS.
 - Note formatting (`textAlign`, `textVAlign`, `textColor`) survives app/browser restarts and cloud rehydration.

@@ -16,6 +16,7 @@ type UseWallPersistenceEffectsOptions = {
   setTimelineEntries: Dispatch<SetStateAction<TimelineEntry[]>>;
   setTimelineIndex: Dispatch<SetStateAction<number>>;
   setSyncError: (value: string | null) => void;
+  onLocalSaveStateChange: (state: "saving" | "saved" | "error") => void;
   cloudReadyRef: MutableRefObject<boolean>;
   cloudSyncTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>;
   lastTimelineSerialized: MutableRefObject<string>;
@@ -31,13 +32,18 @@ export const useWallPersistenceEffects = ({
   setTimelineEntries,
   setTimelineIndex,
   setSyncError,
+  onLocalSaveStateChange,
   cloudReadyRef,
   cloudSyncTimerRef,
   lastTimelineSerialized,
   lastTimelineRecordedAt,
 }: UseWallPersistenceEffectsOptions) => {
   useEffect(() => {
-    const saver = createSnapshotSaver(320);
+    const saver = createSnapshotSaver(320, {
+      onSchedule: () => onLocalSaveStateChange("saving"),
+      onSuccess: () => onLocalSaveStateChange("saved"),
+      onError: () => onLocalSaveStateChange("error"),
+    });
     const timelineRecorder = createTimelineRecorder({ delayMs: 1100, minIntervalMs: 1400, maxEntries: 500 });
     let cancelled = false;
 
@@ -172,6 +178,8 @@ export const useWallPersistenceEffects = ({
     setSyncError,
     setTimelineEntries,
     setTimelineIndex,
+    onLocalSaveStateChange,
     syncSnapshotToCloud,
   ]);
 };
+

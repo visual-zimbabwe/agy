@@ -138,9 +138,17 @@ export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<vo
   });
 };
 
-export const createSnapshotSaver = (delayMs = 350) => {
+export const createSnapshotSaver = (
+  delayMs = 350,
+  callbacks?: {
+    onSchedule?: () => void;
+    onSuccess?: () => void;
+    onError?: (error: unknown) => void;
+  },
+) => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let latest: PersistedWallState | undefined;
+  let pendingWrites = 0;
 
   const flush = async () => {
     if (!latest) {
@@ -149,11 +157,24 @@ export const createSnapshotSaver = (delayMs = 350) => {
 
     const snapshot = latest;
     latest = undefined;
-    await saveWallSnapshot(snapshot);
+    pendingWrites += 1;
+
+    try {
+      await saveWallSnapshot(snapshot);
+      pendingWrites = Math.max(0, pendingWrites - 1);
+      if (pendingWrites === 0) {
+        callbacks?.onSuccess?.();
+      }
+    } catch (error) {
+      pendingWrites = Math.max(0, pendingWrites - 1);
+      callbacks?.onError?.(error);
+      throw error;
+    }
   };
 
   const schedule = (snapshot: PersistedWallState) => {
     latest = snapshot;
+    callbacks?.onSchedule?.();
 
     if (timer) {
       clearTimeout(timer);
@@ -242,3 +263,4 @@ export const createTimelineRecorder = (options?: { delayMs?: number; minInterval
 
   return { schedule, flush };
 };
+

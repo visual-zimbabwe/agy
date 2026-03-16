@@ -35,6 +35,8 @@ type WallHeaderBarProps = {
   userEmail?: string;
   cloudWallId: string | null;
   isSyncing: boolean;
+  localSaveState: "idle" | "saving" | "error";
+  hasPendingSync: boolean;
   lastSyncedAt: number | null;
   syncError: string | null;
   onToggleLeftPanel: () => void;
@@ -70,6 +72,8 @@ export const WallHeaderBar = ({
   userEmail,
   cloudWallId,
   isSyncing,
+  localSaveState,
+  hasPendingSync,
   lastSyncedAt,
   syncError,
   onToggleLeftPanel,
@@ -129,6 +133,8 @@ export const WallHeaderBar = ({
             <SyncStatus
               hasCloudWall={Boolean(cloudWallId)}
               isSyncing={isSyncing}
+              localSaveState={localSaveState}
+              hasPendingSync={hasPendingSync}
               lastSyncedAt={lastSyncedAt}
               syncError={syncError}
               onSyncNow={onSyncNow}
@@ -140,3 +146,4 @@ export const WallHeaderBar = ({
     </header>
   );
 };
+

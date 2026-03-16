@@ -243,6 +243,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [localSaveState, setLocalSaveState] = useState<"idle" | "saving" | "error">("idle");
+  const [hasPendingSync, setHasPendingSync] = useState(false);
   const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cloudSyncInFlightRef = useRef(false);
   const cloudReadyRef = useRef(false);
@@ -708,6 +710,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         const syncedAt = payload.serverTime ?? Date.now();
         lastCloudSyncedAtRef.current = syncedAt;
         setLastSyncedAt(syncedAt);
+        setHasPendingSync(false);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Cloud sync failed";
         setSyncError(message);
@@ -724,6 +727,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       if (!cloudWallId || !cloudReadyRef.current || publishedReadOnly) {
         return;
       }
+
+      setHasPendingSync(true);
+      setSyncError(null);
 
       if (cloudSyncTimerRef.current) {
         clearTimeout(cloudSyncTimerRef.current);
@@ -753,6 +759,17 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setTimelineEntries,
     setTimelineIndex,
     setSyncError,
+    onLocalSaveStateChange: (state) => {
+      if (state === "saving") {
+        setLocalSaveState("saving");
+        return;
+      }
+      if (state === "error") {
+        setLocalSaveState("error");
+        return;
+      }
+      setLocalSaveState("idle");
+    },
     cloudReadyRef,
     cloudSyncTimerRef,
     lastTimelineSerialized,
@@ -2107,6 +2124,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         userEmail={userEmail}
         cloudWallId={cloudWallId}
         isSyncing={isSyncing}
+        localSaveState={localSaveState}
+        hasPendingSync={hasPendingSync}
         lastSyncedAt={lastSyncedAt}
         syncError={syncError}
         onToggleLeftPanel={toggleLeftPanel}
