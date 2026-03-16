@@ -42,7 +42,7 @@ const canonSchema = z.object({
 
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -429,3 +429,4 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     serverTime: Date.now(),
   });
 }
+
