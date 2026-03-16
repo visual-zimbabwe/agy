@@ -364,7 +364,9 @@ export const useWallKeyboard = ({
 
       if (!ctrlOrMeta && event.shiftKey && key === "j") {
         event.preventDefault();
-        createJournalNote();
+        if (typeof createJournalNote === "function") {
+          createJournalNote();
+        }
         return;
       }
 
@@ -571,4 +573,5 @@ export const useWallKeyboard = ({
     viewport,
   ]);
 };
+
 
