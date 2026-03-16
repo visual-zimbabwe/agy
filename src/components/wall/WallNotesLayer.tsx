@@ -15,9 +15,9 @@ type GuideLineState = {
 
 type ResizeDraft = { x: number; y: number; w: number; h: number };
 
-const buildJournalPagePoints = (width: number, height: number) => [10, 0, width - 16, 0, width, 14, width - 3, height - 18, width - 26, height, 18, height, 0, height - 15, 0, 12];
+const buildJournalPagePoints = (width: number, height: number) => [10, 0, width - 18, 0, width, 14, width - 5, height - 16, width - 24, height, 20, height, 0, height - 12, 0, 10];
 
-const estimateJournalDateWidth = (label: string, fontSize: number) => Math.max(72, label.length * fontSize * 0.48);
+const estimateJournalDateWidth = (label: string, fontSize: number) => Math.max(92, label.length * fontSize * 0.52);
 
 type WallNotesLayerProps = {
   visibleNotes: Note[];
@@ -262,8 +262,8 @@ export const WallNotesLayer = ({
         const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
         const quoteMarkInset = isQuote ? 13 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
-        const textX = isQuote || isJournal ? 18 : 12;
-        const textWidth = Math.max(0, noteView.w - (isQuote || isJournal ? 36 : 24));
+        const textX = isQuote ? 18 : isJournal ? 56 : 12;
+        const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? 74 : 24));
         const noteTextContent = isVocabulary
           ? isVocabularyBack
             ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
@@ -288,17 +288,17 @@ export const WallNotesLayer = ({
         const imageFrameHeight = imageUrl
           ? Math.max(44, Math.min(noteView.h * 0.58, Math.max(44, noteView.h - 70)))
           : 0;
-        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset + canonTitleInset + (isJournal ? 38 : 0);
+        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset + canonTitleInset + (isJournal ? 50 : 0);
         const textHeight = Math.max(
           0,
-          noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 38 : 0),
+          noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 50 : 0),
         );
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
-        const journalDateFontSize = Math.max(14, noteTextStyle.fontSize - 1);
+        const journalDateFontSize = Math.max(13, noteTextStyle.fontSize - 2);
         const journalDateWidth = estimateJournalDateWidth(journalDateLabel, journalDateFontSize);
-        const journalDateX = Math.max(18, noteView.w - journalDateWidth - 18);
-        const journalLineGap = noteTextStyle.fontSize * 1.42;
-        const journalLineStartY = textY + noteTextStyle.fontSize * 0.82;
+        const journalDateX = 18;
+        const journalLineGap = 31;
+        const journalLineStartY = 30;
         const journalLineCount = isJournal ? Math.max(0, Math.floor((noteView.h - journalLineStartY - 18) / journalLineGap) + 1) : 0;
         const journalLineYs = Array.from({ length: journalLineCount }, (_, index) => journalLineStartY + index * journalLineGap);
 
@@ -523,13 +523,13 @@ export const WallNotesLayer = ({
               <Line
                 points={buildJournalPagePoints(noteView.w, noteView.h)}
                 closed
-                fill={note.color}
+                fill="#FFFFFF"
                 stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
                 strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
                 shadowColor="#101010"
-                shadowBlur={isFlashing ? 26 : isDragging ? 22 : 8}
-                shadowOpacity={isFlashing ? 0.28 : isDragging ? 0.22 : 0.08}
-                shadowOffsetY={isDragging ? 5 : 2}
+                shadowBlur={isFlashing ? 18 : isDragging ? 14 : 4}
+                shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.04}
+                shadowOffsetY={isDragging ? 3 : 1}
                 lineJoin="round"
                 tension={0.12}
               />
@@ -581,22 +581,22 @@ export const WallNotesLayer = ({
             )}
             {isJournal && (
               <>
-                <Line points={[18, 12, 18, Math.max(26, noteView.h - 18)]} stroke="#d46f7d" strokeWidth={1.15} opacity={0.5} listening={false} />
+                <Line points={[44, 12, 44, Math.max(22, noteView.h - 14)]} stroke="#e28d8d" strokeWidth={1} opacity={0.6} listening={false} />
                 {journalLineYs.map((lineY, index) => (
                   <Line
                     key={`${note.id}-journal-line-${index}`}
-                    points={[22, lineY, Math.max(26, noteView.w - 18), lineY]}
-                    stroke="#77a2cc"
-                    strokeWidth={0.9}
-                    opacity={0.26}
+                    points={[12, lineY, Math.max(18, noteView.w - 12), lineY]}
+                    stroke="#e9e9e9"
+                    strokeWidth={1}
+                    opacity={1}
                     listening={false}
                   />
                 ))}
                 <Text
                   x={journalDateX}
-                  y={10}
+                  y={12}
                   width={journalDateWidth}
-                  align="right"
+                  align="left"
                   fontSize={journalDateFontSize}
                   fontFamily={noteTextFontFamily}
                   fill={resolvedTextColor}
@@ -604,10 +604,10 @@ export const WallNotesLayer = ({
                   listening={false}
                 />
                 <Line
-                  points={[journalDateX, 28, journalDateX + journalDateWidth, 28]}
+                  points={[journalDateX, 29, journalDateX + journalDateWidth, 29]}
                   stroke={resolvedTextColor}
-                  strokeWidth={1.5}
-                  opacity={0.75}
+                  strokeWidth={1.35}
+                  opacity={0.82}
                   listening={false}
                 />
               </>
@@ -662,11 +662,11 @@ export const WallNotesLayer = ({
               y={textY}
               width={textWidth}
               height={textHeight}
-              fontSize={noteTextStyle.fontSize * textSpringFactor}
+              fontSize={(isJournal ? Math.max(17, noteTextStyle.fontSize) : noteTextStyle.fontSize) * textSpringFactor}
               fontFamily={noteTextFontFamily}
               fontStyle={isQuote ? "italic" : "normal"}
               fill={resolvedTextColor}
-              lineHeight={noteTextStyle.lineHeight}
+              lineHeight={isJournal ? 1.72 : noteTextStyle.lineHeight}
               align={isVocabulary ? "center" : (noteView.textAlign ?? "left")}
               verticalAlign={noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign}
               text={noteTextContent}
@@ -785,5 +785,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
+
 
 

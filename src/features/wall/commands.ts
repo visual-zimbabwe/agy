@@ -99,8 +99,8 @@ const defaultJournalText = () =>
     "Need to keep the lines subtle and leave enough space so the handwriting still feels easy to read.",
   ].join("\n");
 
-export const createJournalNote = (x: number, y: number, color?: string) => {
-  const noteId = createNote(x, y, color ?? JOURNAL_NOTE_DEFAULTS.color);
+export const createJournalNote = (x: number, y: number) => {
+  const noteId = createNote(x, y, JOURNAL_NOTE_DEFAULTS.color);
   useWallStore.getState().patchNote(noteId, {
     noteKind: "journal",
     text: defaultJournalText(),
@@ -113,7 +113,7 @@ export const createJournalNote = (x: number, y: number, color?: string) => {
     textSizePx: JOURNAL_NOTE_DEFAULTS.textSizePx,
     w: JOURNAL_NOTE_DEFAULTS.width,
     h: JOURNAL_NOTE_DEFAULTS.height,
-    color: color ?? JOURNAL_NOTE_DEFAULTS.color,
+    color: JOURNAL_NOTE_DEFAULTS.color,
     tags: ["journal"],
   });
   return noteId;
@@ -608,3 +608,4 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
     state.selectGroup(groupId);
   });
 };
+

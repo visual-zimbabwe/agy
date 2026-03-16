@@ -21,10 +21,10 @@ export const NOTE_DEFAULTS = {
 };
 
 export const JOURNAL_NOTE_DEFAULTS = {
-  color: "#F6EEDC",
+  color: "#FFFFFF",
   width: 250,
   height: 208,
-  textColor: "#32415B",
+  textColor: "#2F3B4F",
   textFont: "patrick_hand" as const,
   textSizePx: 18,
 };
@@ -99,3 +99,4 @@ export const TEMPLATE_TYPES = [
 ] as const;
 
 export const GROUP_COLORS = ["#FB7185", "#22C55E", "#3B82F6", "#F59E0B", "#A855F7"] as const;
+

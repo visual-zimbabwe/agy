@@ -101,15 +101,15 @@ const noteEditorTagChipClass =
 const noteEditorSecondaryButtonClass =
   "rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]";
 
-const journalEditorBackground = (paperColor: string) => ({
-  backgroundColor: paperColor,
+const journalEditorBackground = {
+  backgroundColor: "#FFFFFF",
   backgroundImage: [
-    "linear-gradient(180deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0))",
-    "repeating-linear-gradient(to bottom, transparent 0, transparent 30px, rgb(113 151 199 / 0.34) 30px, rgb(113 151 199 / 0.34) 31px)",
+    "linear-gradient(to right, transparent 0, transparent 42px, rgb(232 119 119 / 0.34) 42px, rgb(232 119 119 / 0.34) 43px, transparent 43px)",
+    "repeating-linear-gradient(to bottom, transparent, transparent 30px, #e9e9e9 31px)",
   ].join(", "),
-  backgroundPosition: "0 0, 0 53px",
-  backgroundSize: "100% 100%, 100% 32px",
-});
+  backgroundPosition: "0 0, 0 0",
+  backgroundSize: "100% 100%, 100% 31px",
+};
 
 export const WallFloatingUi = ({
   editing,
@@ -253,15 +253,15 @@ export const WallFloatingUi = ({
               {isEditingJournal && (
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute right-4 top-3 z-[1] text-right"
+                  className="pointer-events-none absolute left-4 top-3 z-[1] text-left"
                   style={{
                     color: editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor,
                     fontFamily: getNoteTextFontFamily(editingNote.textFont),
-                    fontSize: `${Math.max(14, editingTextStyle.fontSize - 1)}px`,
+                    fontSize: `${Math.max(13, editingTextStyle.fontSize - 2)}px`,
                     lineHeight: "1.1",
                   }}
                 >
-                  <span style={{ borderBottom: `2px solid ${editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor}`, paddingBottom: "1px" }}>
+                  <span style={{ borderBottom: `2px solid ${editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor}`, paddingBottom: "1px", display: "inline-block" }}>
                     {editingJournalDate}
                   </span>
                 </div>
@@ -280,19 +280,19 @@ export const WallFloatingUi = ({
                     fontFamily: getNoteTextFontFamily(editingNote.textFont),
                     color: editingNote.textColor ?? NOTE_DEFAULTS.textColor,
                     fontSize: `${editingTextStyle.fontSize}px`,
-                    lineHeight: `${editingTextStyle.lineHeight}`,
+                    lineHeight: `${isEditingJournal ? 1.72 : editingTextStyle.lineHeight}`,
                     fontStyle: editingNote.noteKind === "quote" ? "italic" : "normal",
                   };
 
                   if (isEditingJournal) {
                     return {
                       ...baseStyle,
-                      ...journalEditorBackground(editingNote.color),
+                      ...journalEditorBackground,
                       borderRadius: "14px",
-                      paddingTop: "56px",
-                      paddingLeft: "18px",
+                      paddingTop: "62px",
+                      paddingLeft: "56px",
                       paddingRight: "18px",
-                      paddingBottom: "14px",
+                      paddingBottom: "18px",
                     };
                   }
 
@@ -880,5 +880,7 @@ export const WallFloatingUi = ({
     </>
   );
 };
+
+
 
 

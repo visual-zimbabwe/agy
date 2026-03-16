@@ -873,7 +873,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const id = createQuoteNote(
       world.x - NOTE_DEFAULTS.width / 2,
       world.y - NOTE_DEFAULTS.height / 2,
-      ui.lastColor ?? NOTE_COLORS[0],
     );
     updateNote(id, {
       textColor: seedTextColor ?? NOTE_DEFAULTS.textColor,
@@ -881,7 +880,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, renderSnapshot.notes, selectNote, ui.lastColor, ui.selectedNoteId, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, renderSnapshot.notes, selectNote, ui.selectedNoteId, viewport.h, viewport.w]);
 
   const makeCanonNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
@@ -891,12 +890,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const id = createCanonNote(
       world.x - NOTE_DEFAULTS.width / 2,
       world.y - NOTE_DEFAULTS.height / 2,
-      ui.lastColor ?? NOTE_COLORS[0],
     );
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, selectNote, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
 
   const makeJournalNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
@@ -906,12 +904,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const id = createJournalNote(
       world.x - NOTE_DEFAULTS.width / 2,
       world.y - NOTE_DEFAULTS.height / 2,
-      ui.lastColor ?? NOTE_COLORS[0],
     );
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
-  }, [camera, isTimeLocked, openEditor, selectNote, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
 
   const toggleVocabularyFlip = useCallback(
     (noteId: string) => {
@@ -2383,6 +2380,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
 
 
 
