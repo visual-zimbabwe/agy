@@ -19,10 +19,25 @@ type WallDetailsSidebarProps = {
   tagInput: string;
   onTagInputChange: (value: string) => void;
   onAddTag: () => void;
+  selectedNote?: Note;
   selectedNoteId?: string;
   selectedNoteIdsCount: number;
   displayedTags: string[];
   onRemoveTag: (tag: string) => void;
+  linkingFromNoteId?: string;
+  isSelectedNoteFocused: boolean;
+  onTextFontChange: (font: import("@/features/wall/types").NoteTextFont) => void;
+  onTextSizeChange: (sizePx: number) => void;
+  onTextColorChange: (color: string) => void;
+  onTextHorizontalAlignChange: (align: "left" | "center" | "right") => void;
+  onTextVerticalAlignChange: (align: "top" | "middle" | "bottom") => void;
+  onBackgroundColorChange: (color: string) => void;
+  onDuplicateSelectedNote: (noteId: string) => void;
+  onTogglePinSelectedNote: (noteId: string) => void;
+  onToggleHighlightSelectedNote: (noteId: string) => void;
+  onToggleFocusSelectedNote: (noteId: string) => void;
+  onStartLinkFromSelectedNote: (noteId: string) => void;
+  onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   detailsSectionsOpen: DetailsSectionState;
   onToggleDetailsSection: (key: DetailsSectionKey) => void;
   timelineEntriesCount: number;
@@ -98,10 +113,25 @@ export const WallDetailsSidebar = ({
   tagInput,
   onTagInputChange,
   onAddTag,
+  selectedNote,
   selectedNoteId,
   selectedNoteIdsCount,
   displayedTags,
   onRemoveTag,
+  linkingFromNoteId,
+  isSelectedNoteFocused,
+  onTextFontChange,
+  onTextSizeChange,
+  onTextColorChange,
+  onTextHorizontalAlignChange,
+  onTextVerticalAlignChange,
+  onBackgroundColorChange,
+  onDuplicateSelectedNote,
+  onTogglePinSelectedNote,
+  onToggleHighlightSelectedNote,
+  onToggleFocusSelectedNote,
+  onStartLinkFromSelectedNote,
+  onUpdateSelectedNote,
   detailsSectionsOpen,
   onToggleDetailsSection,
   timelineEntriesCount,
@@ -180,10 +210,25 @@ export const WallDetailsSidebar = ({
         tagInput={tagInput}
         onTagInputChange={onTagInputChange}
         onAddTag={onAddTag}
+        selectedNote={selectedNote}
         selectedNoteId={selectedNoteId}
         selectedNoteIdsCount={selectedNoteIdsCount}
         displayedTags={displayedTags}
         onRemoveTag={onRemoveTag}
+        linkingFromNoteId={linkingFromNoteId}
+        isSelectedNoteFocused={isSelectedNoteFocused}
+        onTextFontChange={onTextFontChange}
+        onTextSizeChange={onTextSizeChange}
+        onTextColorChange={onTextColorChange}
+        onTextHorizontalAlignChange={onTextHorizontalAlignChange}
+        onTextVerticalAlignChange={onTextVerticalAlignChange}
+        onBackgroundColorChange={onBackgroundColorChange}
+        onDuplicateSelectedNote={onDuplicateSelectedNote}
+        onTogglePinSelectedNote={onTogglePinSelectedNote}
+        onToggleHighlightSelectedNote={onToggleHighlightSelectedNote}
+        onToggleFocusSelectedNote={onToggleFocusSelectedNote}
+        onStartLinkFromSelectedNote={onStartLinkFromSelectedNote}
+        onUpdateSelectedNote={onUpdateSelectedNote}
         detailsSectionsOpen={detailsSectionsOpen}
         onToggleDetailsSection={onToggleDetailsSection}
         timelineEntriesCount={timelineEntriesCount}

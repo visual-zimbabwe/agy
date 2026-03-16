@@ -121,12 +121,6 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
     };
   }, [menu]);
 
-  const focusEditor = () => {
-    requestAnimationFrame(() => {
-      textareaRef.current?.focus();
-      updateSlashMenu();
-    });
-  };
 
   const applySelectionUpdate = (update: TextSelectionUpdate) => {
     setEditing({ id: editing.id, text: update.nextValue });
@@ -292,12 +286,7 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
         textareaRef={textareaRef}
         active
         value={editing.text}
-        textColor={editingNote.textColor}
         onTextUpdate={(nextValue, selectionStart, selectionEnd) => applySelectionUpdate({ nextValue, selectionStart, selectionEnd })}
-        onTextColorUpdate={(textColor) => {
-          updateNote(editing.id, { textColor });
-          focusEditor();
-        }}
       />
       <NoteSlashCommandMenu
         open={Boolean(menu) && filteredCommands.length > 0}

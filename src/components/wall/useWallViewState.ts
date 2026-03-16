@@ -21,7 +21,6 @@ type UseWallViewStateOptions = {
   selectedNotes: Note[];
   hoveredNoteId?: string;
   camera: { x: number; y: number; zoom: number };
-  isTimeLocked: boolean;
   publishedReadOnly: boolean;
 };
 
@@ -35,7 +34,6 @@ export const useWallViewState = ({
   selectedNotes,
   hoveredNoteId,
   camera,
-  isTimeLocked,
   publishedReadOnly,
 }: UseWallViewStateOptions) => {
   const selectedNote = ui.selectedNoteId ? notesById[ui.selectedNoteId] : undefined;
@@ -63,10 +61,6 @@ export const useWallViewState = ({
       : ui.linkingFromNoteId
         ? `Link mode: pick a target note for ${notesById[ui.linkingFromNoteId]?.text.split("\n")[0] || "selected note"}`
         : "";
-  const quickActionScreen =
-    primarySelectedNote && !isTimeLocked
-      ? toScreenPoint(primarySelectedNote.x + primarySelectedNote.w / 2, primarySelectedNote.y - 16, camera)
-      : undefined;
   const tagPreviewNote = hoveredNoteId ? notesById[hoveredNoteId] : primarySelectedNote;
   const tagPreviewPalette = tagPreviewNote ? noteTagChipPalette(tagPreviewNote.color) : undefined;
   const tagPreviewScreen =
@@ -85,7 +79,6 @@ export const useWallViewState = ({
     hasContextActions,
     displayedTags,
     statusMessage,
-    quickActionScreen,
     tagPreviewNote,
     tagPreviewPalette,
     tagPreviewScreen,

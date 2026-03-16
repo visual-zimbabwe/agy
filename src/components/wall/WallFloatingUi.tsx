@@ -1,16 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteTextEditor } from "@/components/wall/NoteTextEditor";
-import { JOURNAL_NOTE_DEFAULTS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
 import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { WallZoomControls } from "@/components/wall/WallZoomControls";
-import type { LinkType, Note, NoteTextFont } from "@/features/wall/types";
+import type { LinkType, Note } from "@/features/wall/types";
 
 type LinkContextMenuState = {
   open: boolean;
@@ -38,24 +36,7 @@ type WallFloatingUiProps = {
   tagPreviewScreen?: { x: number; y: number };
   tagPreviewNote?: Note;
   tagPreviewPalette?: { bg: string; border: string; text: string };
-  quickActionScreen?: { x: number; y: number };
-  primarySelectedNote?: Note;
-  toolbarBtnActive: string;
-  toolbarBtnCompact: string;
-  applyColorToSelection: (color: string) => void;
-  applyTextSizeToSelection: (sizePx: number) => void;
-  applyTextFontToSelection: (font: NoteTextFont) => void;
-  applyTextColorToSelection: (color: string) => void;
-  applyTextHorizontalAlignToSelection: (align: "left" | "center" | "right") => void;
-  applyTextVerticalAlignToSelection: (align: "top" | "middle" | "bottom") => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
-  duplicateNote: (noteId: string) => void;
-  togglePinOnNote: (noteId: string) => void;
-  toggleHighlightOnNote: (noteId: string) => void;
-  isPrimaryNoteFocused: boolean;
-  onToggleFocusNote: (noteId: string) => void;
-  setLinkingFromNote: (noteId?: string) => void;
-  linkingFromNoteId?: string;
   linkMenu: LinkContextMenuState;
   maxViewportWidth: number;
   maxViewportHeight: number;
@@ -100,14 +81,6 @@ const noteEditorTagChipClass =
 const noteEditorSecondaryButtonClass =
   "rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]";
 
-const quickActionsPopoverClass =
-  "absolute right-0 top-[calc(100%+0.45rem)] z-[120] min-w-64 rounded-[20px] border border-zinc-300 bg-white p-2.5 shadow-[0_24px_60px_rgba(15,23,42,0.22)] ring-1 ring-black/5";
-const quickActionsFieldClass =
-  "w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none transition focus:border-[var(--color-focus)] focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
-const quickActionsButtonClass =
-  "inline-flex min-h-9 w-full items-center justify-start rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
-const quickActionsButtonActiveClass =
-  "inline-flex min-h-9 w-full items-center justify-start rounded-xl border border-sky-300 bg-sky-50 px-3 py-2 text-sm text-sky-800 shadow-sm transition hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
 export const WallFloatingUi = ({
   editing,
   notesById,
@@ -127,24 +100,7 @@ export const WallFloatingUi = ({
   tagPreviewScreen,
   tagPreviewNote,
   tagPreviewPalette,
-  quickActionScreen,
-  primarySelectedNote,
-  toolbarBtnActive,
-  toolbarBtnCompact,
-  applyColorToSelection,
-  applyTextSizeToSelection,
-  applyTextFontToSelection,
-  applyTextColorToSelection,
-  applyTextHorizontalAlignToSelection,
-  applyTextVerticalAlignToSelection,
   updateNote,
-  duplicateNote,
-  togglePinOnNote,
-  toggleHighlightOnNote,
-  isPrimaryNoteFocused,
-  onToggleFocusNote,
-  setLinkingFromNote,
-  linkingFromNoteId,
   linkMenu,
   maxViewportWidth,
   maxViewportHeight,
@@ -182,7 +138,6 @@ export const WallFloatingUi = ({
   const editingNote = editing ? notesById[editing.id] : undefined;
   const editingCanon = editingNote?.canon;
   const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
-  const [quickActionsOverflowOpen, setQuickActionsOverflowOpen] = useState(false);
 
   return (
     <>
@@ -490,221 +445,6 @@ export const WallFloatingUi = ({
                 </span>
               ))}
             </div>
-          </div>
-        </div>
-      )}
-
-      {quickActionScreen && primarySelectedNote && !editing && (
-        <div
-          className="pointer-events-auto absolute z-[110] -translate-x-1/2 -translate-y-full rounded-2xl border border-zinc-300 bg-white px-2 py-1.5 shadow-[0_20px_50px_rgba(15,23,42,0.2)] ring-1 ring-black/5 motion-toolbar-enter"
-          style={{ left: `${quickActionScreen.x}px`, top: `${quickActionScreen.y}px` }}
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <div role="toolbar" aria-label="Note quick actions" className="relative flex items-center gap-1">
-            <label className={toolbarBtnCompact} title="Note color" aria-label="Note color">
-              <span className="text-[11px]">Color</span>
-              <input
-                type="color"
-                value={primarySelectedNote.color}
-                onChange={(event) => applyColorToSelection(event.target.value.toUpperCase())}
-                className="h-5 w-6 cursor-pointer rounded border border-zinc-300 bg-white p-0"
-              />
-            </label>
-            <button type="button" onClick={() => duplicateNote(primarySelectedNote.id)} className={toolbarBtnCompact} title="Duplicate (Ctrl/Cmd + D)">
-              Duplicate
-            </button>
-            <button
-              type="button"
-              onClick={() => togglePinOnNote(primarySelectedNote.id)}
-              className={primarySelectedNote.pinned ? toolbarBtnActive : toolbarBtnCompact}
-              title={primarySelectedNote.pinned ? "Unpin note" : "Pin note (prevent move/resize)"}
-              aria-label={primarySelectedNote.pinned ? "Unpin note" : "Pin note"}
-            >
-              Pin
-            </button>
-            <button
-              type="button"
-              onClick={() => setQuickActionsOverflowOpen((open) => !open)}
-              className={quickActionsOverflowOpen ? toolbarBtnActive : toolbarBtnCompact}
-              title="More note actions"
-              aria-label="More note actions"
-            >
-              More
-            </button>
-            {quickActionsOverflowOpen && (
-              <div className={quickActionsPopoverClass}>
-                <div className="space-y-1.5">
-                  <select
-                    value={primarySelectedNote.textFont ?? "nunito"}
-                    onChange={(event) => applyTextFontToSelection(event.target.value as NonNullable<Note["textFont"]>)}
-                    className={quickActionsFieldClass}
-                    title="Note font"
-                    aria-label="Note font"
-                  >
-                    {NOTE_TEXT_FONTS.map((option) => (
-                      <option key={`quick-font-${option.value}`} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={primarySelectedNote.textSizePx ?? 16}
-                    onChange={(event) => applyTextSizeToSelection(Number(event.target.value))}
-                    className={quickActionsFieldClass}
-                    title="Note size"
-                    aria-label="Note size"
-                  >
-                    {NOTE_TEXT_SIZE_OPTIONS.map((size) => (
-                      <option key={`quick-size-${size}`} value={size}>
-                        {size}px
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={primarySelectedNote.textAlign ?? "left"}
-                    onChange={(event) => applyTextHorizontalAlignToSelection(event.target.value as "left" | "center" | "right")}
-                    className={quickActionsFieldClass}
-                    title="Horizontal align"
-                    aria-label="Horizontal align"
-                  >
-                    <option value="left">Left align</option>
-                    <option value="center">Center align</option>
-                    <option value="right">Right align</option>
-                  </select>
-                  <select
-                    value={primarySelectedNote.textVAlign ?? NOTE_DEFAULTS.textVAlign}
-                    onChange={(event) => applyTextVerticalAlignToSelection(event.target.value as "top" | "middle" | "bottom")}
-                    className={quickActionsFieldClass}
-                    title="Vertical align"
-                    aria-label="Vertical align"
-                  >
-                    <option value="top">Top align</option>
-                    <option value="middle">Middle align</option>
-                    <option value="bottom">Bottom align</option>
-                  </select>
-                  <label className="flex w-full items-center justify-between rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm">
-                    <span>Text color</span>
-                    <input
-                      type="color"
-                      value={primarySelectedNote.textColor ?? NOTE_DEFAULTS.textColor}
-                      onChange={(event) => applyTextColorToSelection(event.target.value.toUpperCase())}
-                      className="h-5 w-7 cursor-pointer rounded border border-zinc-300 bg-white p-0"
-                      title="Note text color"
-                      aria-label="Note text color"
-                    />
-                  </label>
-                  <div className="my-1 h-px bg-zinc-200" />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLinkingFromNote(primarySelectedNote.id);
-                      setQuickActionsOverflowOpen(false);
-                    }}
-                    className={linkingFromNoteId ? quickActionsButtonActiveClass : quickActionsButtonClass}
-                    title="Start link (Ctrl/Cmd + L)"
-                    aria-label="Start link from selected note"
-                  >
-                    Link
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      toggleHighlightOnNote(primarySelectedNote.id);
-                      setQuickActionsOverflowOpen(false);
-                    }}
-                    className={primarySelectedNote.highlighted ? quickActionsButtonActiveClass : quickActionsButtonClass}
-                    title={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
-                    aria-label={primarySelectedNote.highlighted ? "Remove highlight" : "Highlight note"}
-                  >
-                    {primarySelectedNote.highlighted ? "Unhighlight" : "Highlight"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onToggleFocusNote(primarySelectedNote.id);
-                      setQuickActionsOverflowOpen(false);
-                    }}
-                    className={isPrimaryNoteFocused ? quickActionsButtonActiveClass : quickActionsButtonClass}
-                    title={isPrimaryNoteFocused ? "Exit focus mode" : "Focus this note"}
-                    aria-label={isPrimaryNoteFocused ? "Exit focus mode" : "Focus note"}
-                  >
-                    {isPrimaryNoteFocused ? "Exit Focus" : "Focus"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const toQuote = primarySelectedNote.noteKind !== "quote";
-                      updateNote(primarySelectedNote.id, {
-                        noteKind: toQuote ? "quote" : "standard",
-                        quoteAuthor: toQuote ? "" : undefined,
-                        quoteSource: toQuote ? "" : undefined,
-                        canon: undefined,
-                        vocabulary: primarySelectedNote.vocabulary,
-                      });
-                      setQuickActionsOverflowOpen(false);
-                    }}
-                    className={quickActionsButtonClass}
-                    title={primarySelectedNote.noteKind === "quote" ? "Convert to standard note" : "Convert to quote note"}
-                    aria-label={primarySelectedNote.noteKind === "quote" ? "Convert to standard note" : "Convert to quote note"}
-                  >
-                    {primarySelectedNote.noteKind === "quote" ? "Convert to Standard" : "Convert to Quote"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const toCanon = primarySelectedNote.noteKind !== "canon";
-                      updateNote(primarySelectedNote.id, {
-                        noteKind: toCanon ? "canon" : "standard",
-                        quoteAuthor: undefined,
-                        quoteSource: undefined,
-                        vocabulary: toCanon ? undefined : primarySelectedNote.vocabulary,
-                        canon: toCanon
-                          ? {
-                              mode: "single",
-                              title: "",
-                              statement: "",
-                              interpretation: "",
-                              example: "",
-                              source: "",
-                              items: [{ id: `canon-item-${Date.now()}`, title: "", text: "", interpretation: "" }],
-                            }
-                          : undefined,
-                      });
-                      setQuickActionsOverflowOpen(false);
-                    }}
-                    className={quickActionsButtonClass}
-                    title={primarySelectedNote.noteKind === "canon" ? "Convert to standard note" : "Convert to canon note"}
-                    aria-label={primarySelectedNote.noteKind === "canon" ? "Convert to standard note" : "Convert to canon note"}
-                  >
-                    {primarySelectedNote.noteKind === "canon" ? "Canon -> Standard" : "Convert to Canon"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const toJournal = primarySelectedNote.noteKind !== "journal";
-                      updateNote(primarySelectedNote.id, {
-                        noteKind: toJournal ? "journal" : "standard",
-                        quoteAuthor: undefined,
-                        quoteSource: undefined,
-                        canon: undefined,
-                        vocabulary: toJournal ? undefined : primarySelectedNote.vocabulary,
-                        color: toJournal ? JOURNAL_NOTE_DEFAULTS.color : primarySelectedNote.color,
-                        textFont: toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : primarySelectedNote.textFont,
-                        textColor: toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : primarySelectedNote.textColor,
-                        textSizePx: toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : primarySelectedNote.textSizePx,
-                        tags: toJournal ? [...new Set([...primarySelectedNote.tags, "journal"])] : primarySelectedNote.tags,
-                      });
-                      setQuickActionsOverflowOpen(false);
-                    }}
-                    className={quickActionsButtonClass}
-                    title={primarySelectedNote.noteKind === "journal" ? "Convert to standard note" : "Convert to journal note"}
-                    aria-label={primarySelectedNote.noteKind === "journal" ? "Convert to standard note" : "Convert to journal note"}
-                  >
-                    {primarySelectedNote.noteKind === "journal" ? "Journal -> Standard" : "Convert to Journal"}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}

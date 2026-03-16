@@ -1,6 +1,6 @@
 "use client";
 
-export type ToolbarAction = "bold" | "italic" | "underline" | "code";
+export type ToolbarAction = "bold" | "italic" | "underline" | "code" | "highlight";
 
 export type TextSelectionUpdate = {
   nextValue: string;

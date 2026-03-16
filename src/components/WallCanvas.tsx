@@ -62,7 +62,6 @@ import { useWallZoomControls } from "@/components/wall/useWallZoomControls";
 import {
   toolbarBtn,
   toolbarBtnActive,
-  toolbarBtnCompact,
   toolbarBtnPrimary,
   toolbarDivider,
   toolbarLabel,
@@ -1481,7 +1480,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     hasContextActions,
     displayedTags,
     statusMessage,
-    quickActionScreen,
     tagPreviewNote,
     tagPreviewPalette,
     tagPreviewScreen,
@@ -1495,7 +1493,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     selectedNotes,
     hoveredNoteId,
     camera,
-    isTimeLocked,
     publishedReadOnly,
   });
   const selectedVocabularyNote = selectedNote && isVocabularyNote(selectedNote) ? selectedNote : undefined;
@@ -2201,24 +2198,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           tagPreviewScreen={tagPreviewScreen}
           tagPreviewNote={tagPreviewNote}
           tagPreviewPalette={tagPreviewPalette}
-          quickActionScreen={quickActionScreen}
-          primarySelectedNote={primarySelectedNote}
-          toolbarBtnActive={toolbarBtnActive}
-          toolbarBtnCompact={toolbarBtnCompact}
-          applyColorToSelection={applyColorToSelection}
-          applyTextSizeToSelection={applyTextSizeToSelection}
-          applyTextFontToSelection={applyTextFontToSelection}
-          applyTextColorToSelection={applyTextColorToSelection}
-          applyTextHorizontalAlignToSelection={applyTextHorizontalAlignToSelection}
-          applyTextVerticalAlignToSelection={applyTextVerticalAlignToSelection}
           updateNote={updateNote}
-          duplicateNote={duplicateNote}
-          togglePinOnNote={togglePinOnNote}
-          toggleHighlightOnNote={toggleHighlightOnNote}
-          isPrimaryNoteFocused={Boolean(primarySelectedNote && focusedNoteId === primarySelectedNote.id)}
-          onToggleFocusNote={toggleFocusNote}
-          setLinkingFromNote={setLinkingFromNote}
-          linkingFromNoteId={ui.linkingFromNoteId}
           linkMenu={linkMenu}
           maxViewportWidth={maxViewportWidth}
           maxViewportHeight={maxViewportHeight}
@@ -2267,10 +2247,25 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           tagInput={tagInput}
           onTagInputChange={setTagInput}
           onAddTag={addTagToSelectedNote}
+          selectedNote={primarySelectedNote}
           selectedNoteId={ui.selectedNoteId}
           selectedNoteIdsCount={activeSelectedNoteIds.length}
           displayedTags={displayedTags}
           onRemoveTag={removeTagFromSelectedNote}
+          linkingFromNoteId={ui.linkingFromNoteId}
+          isSelectedNoteFocused={Boolean(primarySelectedNote && focusedNoteId === primarySelectedNote.id)}
+          onTextFontChange={applyTextFontToSelection}
+          onTextSizeChange={applyTextSizeToSelection}
+          onTextColorChange={applyTextColorToSelection}
+          onTextHorizontalAlignChange={applyTextHorizontalAlignToSelection}
+          onTextVerticalAlignChange={applyTextVerticalAlignToSelection}
+          onBackgroundColorChange={applyColorToSelection}
+          onDuplicateSelectedNote={duplicateNote}
+          onTogglePinSelectedNote={togglePinOnNote}
+          onToggleHighlightSelectedNote={toggleHighlightOnNote}
+          onToggleFocusSelectedNote={toggleFocusNote}
+          onStartLinkFromSelectedNote={setLinkingFromNote}
+          onUpdateSelectedNote={updateNote}
           detailsSectionsOpen={detailsSectionsOpen}
           onToggleDetailsSection={toggleDetailsSection}
           timelineEntriesCount={timelineEntries.length}

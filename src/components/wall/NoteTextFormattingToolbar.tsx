@@ -2,24 +2,19 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 
-import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { applyToolbarAction, clamp, getCaretRect, insertMarkdownLink } from "@/components/wall/noteEditorFormatting";
 
 type NoteTextFormattingToolbarProps = {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   active: boolean;
   value: string;
-  textColor?: string;
   onTextUpdate: (nextValue: string, selectionStart: number, selectionEnd: number) => void;
-  onTextColorUpdate?: (color: string) => void;
 };
 
 type ToolbarPosition = {
   left: number;
   top: number;
 };
-
-const colorSwatches = ["#1F2937", "#334155", "#0F766E", "#7C2D12", "#7C3AED", "#B91C1C"] as const;
 
 const toolbarButtonClass =
   "inline-flex h-8 w-8 items-center justify-center rounded-xl text-[13px] text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]";
@@ -52,29 +47,14 @@ const IconLink = () => (
   </svg>
 );
 
-const IconCode = () => (
+const IconHighlight = () => (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={iconClass} aria-hidden="true">
-    <path d="m6 4-3 4 3 4M10 4l3 4-3 4M9 3 7 13" />
+    <path d="m5 3.5 5.5 5.5M4 12h4.5M9.8 2.8l3.4 3.4-5.1 5.1H4.7V7.9l5.1-5.1Z" />
   </svg>
 );
 
-const IconColor = ({ color }: { color: string }) => (
-  <svg viewBox="0 0 16 16" fill="none" className={iconClass} aria-hidden="true">
-    <path d="M4.5 12.5h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    <path d="m8 3 3 6H5l3-6Z" fill={color} stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
-  </svg>
-);
-
-export const NoteTextFormattingToolbar = ({
-  textareaRef,
-  active,
-  value,
-  textColor,
-  onTextUpdate,
-  onTextColorUpdate,
-}: NoteTextFormattingToolbarProps) => {
+export const NoteTextFormattingToolbar = ({ textareaRef, active, value, onTextUpdate }: NoteTextFormattingToolbarProps) => {
   const [position, setPosition] = useState<ToolbarPosition | null>(null);
-  const [colorMenuOpen, setColorMenuOpen] = useState(false);
   const toolInteractionRef = useRef(false);
   const toolInteractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -105,7 +85,6 @@ export const NoteTextFormattingToolbar = ({
       const selectionEnd = current.selectionEnd ?? selectionStart;
       if (selectionStart === selectionEnd) {
         setPosition(null);
-        setColorMenuOpen(false);
         return;
       }
 
@@ -141,7 +120,7 @@ export const NoteTextFormattingToolbar = ({
     };
   }, [active, textareaRef, value]);
 
-  const runAction = (action: "bold" | "italic" | "underline" | "code") => {
+  const runAction = (action: "bold" | "italic" | "underline" | "highlight") => {
     const textarea = textareaRef.current;
     if (!textarea) {
       return;
@@ -158,16 +137,12 @@ export const NoteTextFormattingToolbar = ({
       return;
     }
     const url = window.prompt("Link URL");
-    if (!url) {
-      return;
-    }
-    const trimmed = url.trim();
-    if (!trimmed) {
+    if (!url?.trim()) {
       return;
     }
     const selectionStart = textarea.selectionStart ?? 0;
     const selectionEnd = textarea.selectionEnd ?? selectionStart;
-    const update = insertMarkdownLink(value, selectionStart, selectionEnd, trimmed);
+    const update = insertMarkdownLink(value, selectionStart, selectionEnd, url.trim());
     onTextUpdate(update.nextValue, update.selectionStart, update.selectionEnd);
   };
 
@@ -210,43 +185,9 @@ export const NoteTextFormattingToolbar = ({
         <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={insertLink} className={toolbarButtonClass} title="Link (Ctrl/Cmd+K)">
           <IconLink />
         </button>
-        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("code")} className={toolbarButtonClass} title="Inline code">
-          <IconCode />
+        <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => runAction("highlight")} className={toolbarButtonClass} title="Highlight">
+          <IconHighlight />
         </button>
-        {onTextColorUpdate ? (
-          <div className="relative">
-            <button
-              type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => setColorMenuOpen((current) => !current)}
-              className={toolbarButtonClass}
-              title="Text color"
-            >
-              <IconColor color={textColor ?? NOTE_DEFAULTS.textColor} />
-            </button>
-            {colorMenuOpen ? (
-              <div className="absolute left-1/2 top-[calc(100%+8px)] z-[121] -translate-x-1/2 rounded-2xl border border-zinc-300 bg-white p-1 shadow-[0_18px_40px_rgba(15,23,42,0.22)] ring-1 ring-black/5">
-                <div className="flex items-center gap-1">
-                  {colorSwatches.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        onTextColorUpdate(color);
-                        setColorMenuOpen(false);
-                      }}
-                      className="h-6 w-6 rounded-full border border-black/10 transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]"
-                      style={{ backgroundColor: color }}
-                      aria-label={`Use text color ${color}`}
-                      title={color}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
       </div>
     </div>
   );
