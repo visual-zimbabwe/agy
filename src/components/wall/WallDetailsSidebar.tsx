@@ -26,6 +26,8 @@ type WallDetailsSidebarProps = {
   onRemoveTag: (tag: string) => void;
   linkingFromNoteId?: string;
   isSelectedNoteFocused: boolean;
+  backlinks: Array<{ noteId: string; title: string }>;
+  onNavigateLinkedNote: (noteId: string) => void;
   onTextFontChange: (font: import("@/features/wall/types").NoteTextFont) => void;
   onTextSizeChange: (sizePx: number) => void;
   onTextColorChange: (color: string) => void;
@@ -120,6 +122,8 @@ export const WallDetailsSidebar = ({
   onRemoveTag,
   linkingFromNoteId,
   isSelectedNoteFocused,
+  backlinks,
+  onNavigateLinkedNote,
   onTextFontChange,
   onTextSizeChange,
   onTextColorChange,
@@ -217,6 +221,8 @@ export const WallDetailsSidebar = ({
         onRemoveTag={onRemoveTag}
         linkingFromNoteId={linkingFromNoteId}
         isSelectedNoteFocused={isSelectedNoteFocused}
+        backlinks={backlinks}
+        onNavigateLinkedNote={onNavigateLinkedNote}
         onTextFontChange={onTextFontChange}
         onTextSizeChange={onTextSizeChange}
         onTextColorChange={onTextColorChange}

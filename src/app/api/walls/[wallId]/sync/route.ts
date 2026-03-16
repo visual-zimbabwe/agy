@@ -105,7 +105,7 @@ const linkSchema = z.object({
   id: z.string().min(1),
   fromNoteId: z.string(),
   toNoteId: z.string(),
-  type: z.enum(["cause_effect", "dependency", "idea_execution"]),
+  type: z.enum(["cause_effect", "dependency", "idea_execution", "wiki"]),
   label: z.string(),
   createdAt: z.number(),
   updatedAt: z.number(),

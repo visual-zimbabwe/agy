@@ -930,3 +930,25 @@ Expected:
 - `Reveal on wall` exits timeline view and restores note focus in the canvas.
 
 
+
+## Wiki Links and Backlinks (`/wall`) (2026-03-16)
+1. Open `/wall`, create at least three notes with distinct first-line titles.
+2. Edit one note and type `[[`; verify a suggestion menu appears at the caret with existing note titles.
+3. Use `ArrowUp/ArrowDown`, `Enter`, `Tab`, and `Esc`; verify keyboard navigation selects a suggestion and closes the menu correctly.
+4. Type a partial title inside `[[...` and verify the list filters live.
+5. Select an existing note suggestion and blur the editor; verify a structural link is created and the source note shows a muted wiki-link chip.
+6. Type `[[Brand New Linked Note]]`, blur the editor, and verify a new note is created automatically and linked from the source note.
+7. Click a wiki-link chip on the source note and verify the target note becomes selected and the camera pans/zooms to reveal it.
+8. Move the target note off-screen, click the wiki-link chip again, and verify navigation still centers it intelligently.
+9. Select the target note and open `Details`; verify a `Backlinks` section lists the source note.
+10. Click a backlink entry in `Details`; verify focus jumps back to the referring note.
+11. Remove a `[[Linked Note]]` token from the source text, blur the editor, and verify the corresponding wiki-link chip and backlink disappear.
+12. Refresh the page and verify wiki links and backlinks persist.
+
+Expected:
+- `[[Note Title]]` text creates structural wiki links rather than relying on raw text alone.
+- Suggestions open as soon as `[[` is typed, remain keyboard-accessible, and stay fully visible near viewport edges.
+- Missing wiki-linked titles create new notes automatically on commit.
+- Wiki-link chips are visually distinct but subdued, matching the note/editor palette.
+- Clicking a wiki link or backlink selects the target note and intelligently reveals it on the canvas.
+- Backlinks always reflect the current structural wiki-link graph after edits and refresh.

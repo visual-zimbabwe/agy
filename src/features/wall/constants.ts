@@ -90,6 +90,7 @@ export const LINK_TYPES = [
   { value: "cause_effect", label: "Cause -> Effect", color: "#ef4444" },
   { value: "dependency", label: "Dependency", color: "#2563eb" },
   { value: "idea_execution", label: "Idea -> Execution", color: "#16a34a" },
+  { value: "wiki", label: "Wiki Link", color: "#64748b" },
 ] as const;
 
 export const TEMPLATE_TYPES = [

@@ -65,7 +65,22 @@ export const useWallCameraNavigation = ({
         return;
       }
 
-      const zoom = clamp(Math.max(camera.zoom, 1), 0.2, 2.5);
+      const left = note.x * camera.zoom + camera.x;
+      const top = note.y * camera.zoom + camera.y;
+      const right = left + note.w * camera.zoom;
+      const bottom = top + note.h * camera.zoom;
+      const margin = 72;
+      const fullyVisible = left >= margin && top >= margin && right <= viewport.w - margin && bottom <= viewport.h - margin;
+      const fitted = fitBoundsCamera(
+        {
+          x: note.x - 120,
+          y: note.y - 96,
+          w: note.w + 240,
+          h: note.h + 192,
+        },
+        viewport,
+      );
+      const zoom = fullyVisible ? clamp(Math.max(camera.zoom, 1), 0.7, 1.6) : clamp(fitted.zoom, 0.75, 1.25);
       setCamera({
         zoom,
         x: viewport.w / 2 - (note.x + note.w / 2) * zoom,
@@ -74,7 +89,7 @@ export const useWallCameraNavigation = ({
       syncPrimarySelection([noteId]);
       setFlashNote(noteId);
     },
-    [camera.zoom, notesById, setCamera, setFlashNote, syncPrimarySelection, viewport.h, viewport.w],
+    [camera.x, camera.y, camera.zoom, fitBoundsCamera, notesById, setCamera, setFlashNote, syncPrimarySelection, viewport],
   );
 
   const jumpToStaleNote = useCallback(() => {

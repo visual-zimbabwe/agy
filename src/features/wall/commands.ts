@@ -464,9 +464,10 @@ const linkLabelByType: Record<LinkType, string> = {
   cause_effect: "Cause -> Effect",
   dependency: "Dependency",
   idea_execution: "Idea -> Execution",
+  wiki: "Wiki Link",
 };
 
-export const createLink = (fromNoteId: string, toNoteId: string, type: LinkType) => {
+export const createLink = (fromNoteId: string, toNoteId: string, type: LinkType, label?: string) => {
   if (fromNoteId === toNoteId) {
     return;
   }
@@ -485,7 +486,7 @@ export const createLink = (fromNoteId: string, toNoteId: string, type: LinkType)
     fromNoteId,
     toNoteId,
     type,
-    label: linkLabelByType[type],
+    label: label?.trim() || linkLabelByType[type],
     createdAt: now,
     updatedAt: now,
   };

@@ -9,6 +9,8 @@ type NoteInspectorSectionProps = {
   isTimeLocked: boolean;
   linkingFromNoteId?: string;
   isFocused: boolean;
+  backlinks: Array<{ noteId: string; title: string }>;
+  onNavigateLinkedNote: (noteId: string) => void;
   onTextFontChange: (font: NoteTextFont) => void;
   onTextSizeChange: (sizePx: number) => void;
   onTextColorChange: (color: string) => void;
@@ -40,6 +42,8 @@ export const NoteInspectorSection = ({
   isTimeLocked,
   linkingFromNoteId,
   isFocused,
+  backlinks,
+  onNavigateLinkedNote,
   onTextFontChange,
   onTextSizeChange,
   onTextColorChange,
@@ -92,7 +96,7 @@ export const NoteInspectorSection = ({
         <div>
           <p className={detailSectionTitle}>Note Inspector</p>
           <h4 className={detailSectionHeading}>{selectedNote.noteKind === "standard" ? "Standard note" : `${selectedNote.noteKind} note`}</h4>
-          <p className={detailSectionDescription}>Typography and note properties for the current selection.</p>
+          <p className={detailSectionDescription}>Typography, backlinks, and note properties for the current selection.</p>
         </div>
         <div className={detailInsetCard}>
           <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Selected</p>
@@ -144,6 +148,28 @@ export const NoteInspectorSection = ({
               </label>
             </div>
           </div>
+        </div>
+
+        <div className={sectionBlockClass}>
+          <p className={sectionLabelClass}>Backlinks</p>
+          {backlinks.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[var(--color-border-muted)] bg-[var(--color-surface-muted)] px-3 py-2 text-xs text-[var(--color-text-muted)]">
+              No notes reference this note yet.
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {backlinks.map((backlink) => (
+                <button
+                  key={`backlink-${backlink.noteId}`}
+                  type="button"
+                  onClick={() => onNavigateLinkedNote(backlink.noteId)}
+                  className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                >
+                  {backlink.title}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={sectionBlockClass}>

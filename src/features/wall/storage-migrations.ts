@@ -227,7 +227,7 @@ const normalizeLink = (entry: Record<string, unknown>, fallbackId: string): Link
     return null;
   }
 
-  const type = entry.type === "dependency" || entry.type === "idea_execution" ? entry.type : "cause_effect";
+  const type = entry.type === "dependency" || entry.type === "idea_execution" || entry.type === "wiki" ? entry.type : "cause_effect";
   return {
     id,
     fromNoteId: asString(entry.fromNoteId),

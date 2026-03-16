@@ -318,7 +318,7 @@ export const rowsToSnapshot = (rows: {
         fromNoteId: link.from_note_id,
         toNoteId: link.to_note_id,
         type:
-          link.type === "cause_effect" || link.type === "dependency" || link.type === "idea_execution"
+          link.type === "cause_effect" || link.type === "dependency" || link.type === "idea_execution" || link.type === "wiki"
             ? link.type
             : "dependency",
         label: link.label,

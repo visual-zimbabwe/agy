@@ -98,6 +98,7 @@ import { LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/feature
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
+import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
 import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
 import {
@@ -313,6 +314,42 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const zones = useMemo(() => Object.values(renderSnapshot.zones), [renderSnapshot.zones]);
   const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
+  const wikiLinkOptions = useMemo(
+    () => notes.filter((note) => note.text.trim()).map((note) => ({ noteId: note.id, title: getNoteWikiTitle(note) })).sort((left, right) => left.title.localeCompare(right.title)),
+    [notes],
+  );
+  const wikiLinksByNoteId = useMemo(() => {
+    const grouped: Record<string, Array<{ targetNoteId: string; title: string }>> = {};
+    for (const link of links) {
+      if (link.type !== "wiki") {
+        continue;
+      }
+      const target = renderSnapshot.notes[link.toNoteId];
+      if (!target) {
+        continue;
+      }
+      const list = grouped[link.fromNoteId] ?? [];
+      list.push({ targetNoteId: link.toNoteId, title: getNoteWikiTitle(target) });
+      grouped[link.fromNoteId] = list;
+    }
+    return grouped;
+  }, [links, renderSnapshot.notes]);
+  const backlinksByNoteId = useMemo(() => {
+    const grouped: Record<string, Array<{ noteId: string; title: string }>> = {};
+    for (const link of links) {
+      if (link.type !== "wiki") {
+        continue;
+      }
+      const source = renderSnapshot.notes[link.fromNoteId];
+      if (!source) {
+        continue;
+      }
+      const list = grouped[link.toNoteId] ?? [];
+      list.push({ noteId: link.fromNoteId, title: getNoteWikiTitle(source) });
+      grouped[link.toNoteId] = list;
+    }
+    return grouped;
+  }, [links, renderSnapshot.notes]);
   const vocabularyNotes = useMemo(() => notes.filter((note) => isVocabularyNote(note)), [notes]);
   const vocabularyDueNotes = useMemo(
     () =>
@@ -352,6 +389,63 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setIsTimelinePlaying(false);
   }, [setExportOpen, setSearchOpen, timelineViewActive]);
 
+  const syncWikiLinksForNote = useCallback((sourceNoteId: string, text: string) => {
+    const existingSource = useWallStore.getState().notes[sourceNoteId];
+    if (!existingSource) {
+      return;
+    }
+
+    const desiredTitles = [...new Map(
+      extractWikiLinks(text)
+        .map((match) => [normalizeWikiTitle(match.title), match.title.trim()] as const)
+        .filter((entry) => Boolean(entry[0]) && Boolean(entry[1])),
+    ).values()];
+
+    const desiredTargets = new Map<string, string>();
+    let createdCount = 0;
+
+      for (const title of desiredTitles) {
+        let target = findNoteByWikiTitle(useWallStore.getState().notes, title, sourceNoteId);
+        if (!target) {
+          const source = useWallStore.getState().notes[sourceNoteId];
+          if (!source) {
+            continue;
+          }
+          const createdId = createNote(source.x + source.w + 96 + (createdCount % 2) * 28, source.y + createdCount * 42, source.color);
+          updateNote(createdId, { text: title });
+          target = useWallStore.getState().notes[createdId];
+          createdCount += 1;
+        }
+        if (!target || target.id === sourceNoteId || desiredTargets.has(target.id)) {
+          continue;
+        }
+        desiredTargets.set(target.id, title);
+      }
+
+    const nextState = useWallStore.getState();
+    const existingWikiLinks = Object.values(nextState.links).filter((link) => link.fromNoteId === sourceNoteId && link.type === "wiki");
+
+    for (const [targetId, title] of desiredTargets) {
+        const existingLink = existingWikiLinks.find((link) => link.toNoteId === targetId);
+        if (existingLink) {
+          if (existingLink.label !== title) {
+            nextState.patchLink(existingLink.id, { label: title });
+          }
+          continue;
+        }
+        createLink(sourceNoteId, targetId, "wiki", title);
+      }
+
+    for (const link of existingWikiLinks) {
+        if (!desiredTargets.has(link.toNoteId)) {
+          nextState.removeLink(link.id);
+        }
+      }
+
+    nextState.selectNote(sourceNoteId);
+    setSelectedNoteIds([sourceNoteId]);
+  }, [setSelectedNoteIds]);
+
   const commitEditedNoteText = useCallback((noteId: string, rawText: string) => {
     const current = renderSnapshot.notes[noteId];
     if (!current) {
@@ -359,7 +453,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
     const parsed = parseTaggedText(rawText);
     const mergedTags = [...new Set([...current.tags, ...parsed.tags])];
-    updateNote(noteId, {
+    const state = useWallStore.getState();
+    state.beginHistoryGroup();
+    try {
+      updateNote(noteId, {
       text: parsed.text,
       tags: mergedTags,
       vocabulary: current.vocabulary
@@ -368,8 +465,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             word: parsed.text.trim(),
           }
         : current.vocabulary,
-    });
-  }, [renderSnapshot.notes]);
+      });
+      syncWikiLinksForNote(noteId, parsed.text);
+    } finally {
+      useWallStore.getState().endHistoryGroup();
+    }
+  }, [renderSnapshot.notes, syncWikiLinksForNote]);
 
   const openEditor = useCallback((noteId: string, text: string) => {
     setEditTagInput("");
@@ -2282,6 +2383,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               truncateNoteText={truncateNoteText}
               noteTagChipPalette={noteTagChipPalette}
               recencyIntensity={recencyIntensity}
+              wikiLinksByNoteId={wikiLinksByNoteId}
+              onNavigateWikiLink={focusNote}
               editingId={editing?.id}
             />
 
@@ -2327,6 +2430,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           tagPreviewPalette={tagPreviewPalette}
           updateNote={updateNote}
           openImageInsert={(noteId) => openImageInsert(noteId)}
+          wikiLinkOptions={wikiLinkOptions.filter((option) => option.noteId !== editing?.id)}
           linkMenu={linkMenu}
           maxViewportWidth={maxViewportWidth}
           maxViewportHeight={maxViewportHeight}
@@ -2382,6 +2486,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onRemoveTag={removeTagFromSelectedNote}
           linkingFromNoteId={ui.linkingFromNoteId}
           isSelectedNoteFocused={Boolean(primarySelectedNote && focusedNoteId === primarySelectedNote.id)}
+          backlinks={primarySelectedNote ? backlinksByNoteId[primarySelectedNote.id] ?? [] : []}
+          onNavigateLinkedNote={focusNote}
           onTextFontChange={(font) => {
             if (!primarySelectedNote || isTimeLocked) {
               return;
@@ -2538,6 +2644,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
 
 
 

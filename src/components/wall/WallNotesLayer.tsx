@@ -82,6 +82,8 @@ const getContainedImageLayout = (note: Pick<Note, "w" | "h" | "text">, image?: H
   };
 };
 
+const stripWikiLinkMarkup = (text: string) => text.replace(/\[\[([^\]\n]+?)\]\]/g, "$1");
+
 type WallNotesLayerProps = {
   visibleNotes: Note[];
   activeSelectedNoteIds: string[];
@@ -124,6 +126,8 @@ type WallNotesLayerProps = {
   truncateNoteText: (text: string, note: Note) => string;
   noteTagChipPalette: (noteColor: string) => { bg: string; border: string; text: string };
   recencyIntensity: (updatedAt: number, referenceTs: number, windowMs?: number) => number;
+  wikiLinksByNoteId: Record<string, Array<{ targetNoteId: string; title: string }>>;
+  onNavigateWikiLink: (noteId: string) => void;
   editingId?: string;
 };
 
@@ -169,6 +173,8 @@ export const WallNotesLayer = ({
   truncateNoteText,
   noteTagChipPalette,
   recencyIntensity,
+  wikiLinksByNoteId,
+  onNavigateWikiLink,
   editingId,
 }: WallNotesLayerProps) => {
   const previousColorRef = useRef<Record<string, string>>({});
@@ -366,6 +372,10 @@ export const WallNotesLayer = ({
         const isImageNote = Boolean(imageUrl);
         const imageCaption = noteView.text.trim();
         const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, noteImage) : null;
+        const strippedNoteText = stripWikiLinkMarkup(noteView.text);
+        const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
+        const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
+        const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
         const noteTextContent = isImageNote
           ? imageCaption
           : isVocabulary
@@ -377,12 +387,13 @@ export const WallNotesLayer = ({
                 ? canonListPreview || "Add list items"
                 : canonSinglePreview || "Add statement"
             : isQuote
-              ? truncateNoteText(noteView.text, {
+              ? truncateNoteText(strippedNoteText, {
                   ...noteView,
+                  text: strippedNoteText,
                   w: textWidth + 24,
-                  h: Math.max(40, noteView.h - quoteAttributionHeight - quoteMarkInset - 8),
+                  h: Math.max(40, noteView.h - quoteAttributionHeight - quoteMarkInset - 8 - wikiFooterHeight),
                 }) || "Add quote text"
-              : truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit";
+              : truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - wikiFooterHeight, 40) }) || "Double-click or press Enter to edit";
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
@@ -390,7 +401,7 @@ export const WallNotesLayer = ({
         const textY = isImageNote ? 0 : 12 + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
         const textHeight = isImageNote
           ? 0
-          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 43 : 0));
+          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 43 : 0) - wikiFooterHeight);
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
         const journalDateFontSize = Math.max(13, noteTextStyle.fontSize - 2);
         const journalDateUnderlineWidth = Math.min(estimateJournalDateWidth(journalDateLabel, journalDateFontSize), Math.max(0, noteView.w - journalWritingX - 18));
@@ -879,6 +890,58 @@ export const WallNotesLayer = ({
                 text={quoteAttribution}
                 listening={false}
               />
+            )}
+            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && (
+              <>
+                {wikiLinks.slice(0, 4).map((wikiLink, index) => {
+                  const column = index % 2;
+                  const row = Math.floor(index / 2);
+                  const chipWidth = Math.max(74, Math.min((noteView.w - 30) / 2, 112));
+                  const x = 12 + column * (chipWidth + 8);
+                  const y = Math.max(12, noteView.h - 28 - row * 20 - (showNoteTags ? 20 : 0));
+                  return (
+                    <Group
+                      key={`${note.id}-wiki-${wikiLink.targetNoteId}`}
+                      onClick={(event) => {
+                        if (isTimeLocked) {
+                          return;
+                        }
+                        event.cancelBubble = true;
+                        onNavigateWikiLink(wikiLink.targetNoteId);
+                      }}
+                      onTap={(event) => {
+                        if (isTimeLocked) {
+                          return;
+                        }
+                        event.cancelBubble = true;
+                        onNavigateWikiLink(wikiLink.targetNoteId);
+                      }}
+                    >
+                      <Rect
+                        x={x}
+                        y={y}
+                        width={chipWidth}
+                        height={16}
+                        cornerRadius={8}
+                        fill="rgba(248,250,252,0.9)"
+                        stroke="rgba(100,116,139,0.55)"
+                        strokeWidth={0.8}
+                      />
+                      <Text
+                        x={x + 7}
+                        y={y + 2}
+                        width={chipWidth - 14}
+                        fontSize={10}
+                        fontStyle="bold"
+                        fill="#475569"
+                        text={wikiLink.title}
+                        wrap="none"
+                        ellipsis
+                      />
+                    </Group>
+                  );
+                })}
+              </>
             )}
             {isVocabulary && (
               <Text

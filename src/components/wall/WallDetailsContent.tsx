@@ -36,6 +36,8 @@ type WallDetailsContentProps = {
   onRemoveTag: (tag: string) => void;
   linkingFromNoteId?: string;
   isSelectedNoteFocused: boolean;
+  backlinks: Array<{ noteId: string; title: string }>;
+  onNavigateLinkedNote: (noteId: string) => void;
   onTextFontChange: (font: import("@/features/wall/types").NoteTextFont) => void;
   onTextSizeChange: (sizePx: number) => void;
   onTextColorChange: (color: string) => void;
@@ -127,6 +129,8 @@ export const WallDetailsContent = ({
   onRemoveTag,
   linkingFromNoteId,
   isSelectedNoteFocused,
+  backlinks,
+  onNavigateLinkedNote,
   onTextFontChange,
   onTextSizeChange,
   onTextColorChange,
@@ -206,6 +210,8 @@ export const WallDetailsContent = ({
         isTimeLocked={isTimeLocked}
         linkingFromNoteId={linkingFromNoteId}
         isFocused={isSelectedNoteFocused}
+        backlinks={backlinks}
+        onNavigateLinkedNote={onNavigateLinkedNote}
         onTextFontChange={onTextFontChange}
         onTextSizeChange={onTextSizeChange}
         onTextColorChange={onTextColorChange}

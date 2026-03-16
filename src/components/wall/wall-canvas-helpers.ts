@@ -30,12 +30,14 @@ export const linkColorByType: Record<LinkType, string> = {
   cause_effect: "#ef4444",
   dependency: "#2563eb",
   idea_execution: "#16a34a",
+  wiki: "#64748b",
 };
 
 export const linkStrokeByType: Record<LinkType, number[]> = {
   cause_effect: [0, 0],
   dependency: [8, 6],
   idea_execution: [2, 4],
+  wiki: [4, 6],
 };
 
 const noteCenter = (note: Note) => ({

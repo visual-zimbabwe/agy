@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
 
 import { NoteSlashCommandMenu } from "@/components/wall/NoteSlashCommandMenu";
 import { NoteTextFormattingToolbar } from "@/components/wall/NoteTextFormattingToolbar";
+import { NoteWikiLinkMenu, type NoteWikiLinkOption } from "@/components/wall/NoteWikiLinkMenu";
 import {
   applyToolbarAction,
   clamp,
@@ -15,6 +16,7 @@ import {
 } from "@/components/wall/noteEditorFormatting";
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle } from "@/components/wall/wall-canvas-helpers";
 import { JOURNAL_NOTE_DEFAULTS, NOTE_DEFAULTS } from "@/features/wall/constants";
+import { getActiveWikiLinkQuery, replaceWikiLinkQuery } from "@/features/wall/wiki-links";
 import type { Note } from "@/features/wall/types";
 
 type NoteTextEditorProps = {
@@ -26,6 +28,7 @@ type NoteTextEditorProps = {
   setEditing: (value: { id: string; text: string } | null) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   openImageInsert: (noteId: string) => void;
+  wikiLinkOptions: Array<{ noteId: string; title: string }>;
 };
 
 type SlashCommand = {
@@ -36,12 +39,12 @@ type SlashCommand = {
   keywords: string[];
 };
 
-type SlashMenuState = {
+type FloatingMenuState = {
   left: number;
   top: number;
-  query: string;
   start: number;
   end: number;
+  query: string;
 };
 
 const slashCommands: SlashCommand[] = [
@@ -64,41 +67,69 @@ const journalEditorBackground = {
   backgroundSize: "100% 100%, 100% 31px",
 };
 
-export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, handleEditorBlur, setEditing, updateNote, openImageInsert }: NoteTextEditorProps) => {
+export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, handleEditorBlur, setEditing, updateNote, openImageInsert, wikiLinkOptions }: NoteTextEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const [menu, setMenu] = useState<SlashMenuState | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [slashMenu, setSlashMenu] = useState<FloatingMenuState | null>(null);
+  const [wikiMenu, setWikiMenu] = useState<FloatingMenuState | null>(null);
+  const [activeSlashIndex, setActiveSlashIndex] = useState(0);
+  const [activeWikiIndex, setActiveWikiIndex] = useState(0);
   const editingTextStyle = getNoteTextStyle(editingNote.textSize, editingNote.textSizePx);
   const editingJournalDate = formatJournalDateLabel(editingNote.createdAt);
   const isEditingJournal = editingNote.noteKind === "journal";
   const isImageCaptionEditor = Boolean(editingNote.imageUrl?.trim());
   const imageCaptionEditorHeight = Math.min(Math.max(72, editingNote.h * camera.zoom * 0.24), 112);
 
-  const commandQuery = menu?.query.trim().toLowerCase() ?? "";
+  const commandQuery = slashMenu?.query.trim().toLowerCase() ?? "";
   const filteredCommands = commandQuery
     ? slashCommands.filter((command) => [command.label, command.id, ...command.keywords].some((value) => value.toLowerCase().includes(commandQuery)))
     : slashCommands;
 
+  const filteredWikiOptions = useMemo<NoteWikiLinkOption[]>(() => {
+    if (!wikiMenu) {
+      return [];
+    }
+    const query = wikiMenu.query.trim().toLowerCase();
+    const existing: NoteWikiLinkOption[] = wikiLinkOptions
+      .filter((option) => (query ? option.title.toLowerCase().includes(query) : true))
+      .slice(0, 8)
+      .map((option) => ({
+        id: option.noteId,
+        title: option.title,
+        subtitle: "Link to existing note",
+        mode: "existing" as const,
+      }));
+    const hasExact = existing.some((option) => option.title.toLowerCase() === query);
+    if (query && !hasExact) {
+      existing.unshift({
+        id: `create-${query}`,
+        title: wikiMenu.query.trim(),
+        subtitle: "Create a new linked note",
+        mode: "create",
+      });
+    }
+    return existing;
+  }, [wikiLinkOptions, wikiMenu]);
+
   const updateSlashMenu = (nextValue?: string, nextCursor?: number) => {
     const textarea = textareaRef.current;
     if (!textarea) {
-      setMenu(null);
+      setSlashMenu(null);
       return;
     }
     const cursor = nextCursor ?? textarea.selectionStart ?? 0;
     const value = nextValue ?? textarea.value;
     const slash = parseSlashQuery(value, cursor);
     if (!slash) {
-      setMenu(null);
+      setSlashMenu(null);
       return;
     }
     const caretRect = getCaretRect(textarea, cursor);
     if (!caretRect) {
-      setMenu(null);
+      setSlashMenu(null);
       return;
     }
     const width = Math.min(352, Math.max(240, window.innerWidth - 16));
-    setMenu({
+    setSlashMenu({
       query: slash.query,
       start: slash.start,
       end: slash.end,
@@ -107,22 +138,54 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
     });
   };
 
+  const updateWikiMenu = (nextValue?: string, nextCursor?: number) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setWikiMenu(null);
+      return;
+    }
+    const cursor = nextCursor ?? textarea.selectionStart ?? 0;
+    const value = nextValue ?? textarea.value;
+    const wikiQuery = getActiveWikiLinkQuery(value, cursor);
+    if (!wikiQuery) {
+      setWikiMenu(null);
+      return;
+    }
+    const caretRect = getCaretRect(textarea, cursor);
+    if (!caretRect) {
+      setWikiMenu(null);
+      return;
+    }
+    const width = Math.min(368, Math.max(252, window.innerWidth - 16));
+    setWikiMenu({
+      query: wikiQuery.query,
+      start: wikiQuery.start,
+      end: wikiQuery.end,
+      left: clamp(caretRect.left - 18, 8, Math.max(8, window.innerWidth - width - 8)),
+      top: clamp(caretRect.bottom + 10, 8, Math.max(8, window.innerHeight - 240)),
+    });
+  };
+
   useEffect(() => {
-    if (!menu) {
+    if (!slashMenu && !wikiMenu) {
       return;
     }
     const textarea = textareaRef.current;
     if (!textarea) {
       return;
     }
-    const reposition = () => updateSlashMenu();
+    const reposition = () => {
+      updateSlashMenu();
+      updateWikiMenu();
+    };
     textarea.addEventListener("scroll", reposition);
     window.addEventListener("resize", reposition);
     return () => {
       textarea.removeEventListener("scroll", reposition);
       window.removeEventListener("resize", reposition);
     };
-  }, [menu]);
+  }, [slashMenu, wikiMenu]);
+
 
   const applySelectionUpdate = (update: TextSelectionUpdate) => {
     setEditing({ id: editing.id, text: update.nextValue });
@@ -134,6 +197,7 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
       textarea.focus();
       textarea.setSelectionRange(update.selectionStart, update.selectionEnd);
       updateSlashMenu(update.nextValue, update.selectionEnd);
+      updateWikiMenu(update.nextValue, update.selectionEnd);
     });
   };
 
@@ -161,19 +225,30 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
     applySelectionUpdate(insertMarkdownLink(editing.text, selectionStart, selectionEnd, href.trim()));
   };
 
+  const insertWikiLink = (option: NoteWikiLinkOption) => {
+    if (!wikiMenu) {
+      return;
+    }
+    const title = option.title.trim();
+    if (!title) {
+      return;
+    }
+    applySelectionUpdate(replaceWikiLinkQuery(editing.text, wikiMenu, title));
+  };
+
   const executeSlashCommand = (command: SlashCommand) => {
-    if (!menu) {
+    if (!slashMenu) {
       return;
     }
 
     if (command.id === "heading") {
-      applySelectionUpdate(replaceRange(editing.text, menu.start, menu.end, ""));
+      applySelectionUpdate(replaceRange(editing.text, slashMenu.start, slashMenu.end, ""));
       updateNote(editing.id, { textSizePx: 28, textAlign: "left" });
       return;
     }
 
     if (command.id === "quote") {
-      applySelectionUpdate(replaceRange(editing.text, menu.start, menu.end, ""));
+      applySelectionUpdate(replaceRange(editing.text, slashMenu.start, slashMenu.end, ""));
       updateNote(editing.id, {
         noteKind: "quote",
         quoteAuthor: editingNote.quoteAuthor ?? "",
@@ -185,7 +260,7 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
     }
 
     if (command.id === "journal") {
-      applySelectionUpdate(replaceRange(editing.text, menu.start, menu.end, ""));
+      applySelectionUpdate(replaceRange(editing.text, slashMenu.start, slashMenu.end, ""));
       updateNote(editing.id, {
         noteKind: "journal",
         quoteAuthor: undefined,
@@ -202,39 +277,61 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
     }
 
     if (command.id === "list") {
-      applySelectionUpdate(replaceRange(editing.text, menu.start, menu.end, "- "));
+      applySelectionUpdate(replaceRange(editing.text, slashMenu.start, slashMenu.end, "- "));
       return;
     }
 
     if (command.id === "todo") {
-      applySelectionUpdate(replaceRange(editing.text, menu.start, menu.end, "- [ ] "));
+      applySelectionUpdate(replaceRange(editing.text, slashMenu.start, slashMenu.end, "- [ ] "));
       return;
     }
 
     if (command.id === "divider") {
-      applySelectionUpdate(replaceRange(editing.text, menu.start, menu.end, "--------------------"));
+      applySelectionUpdate(replaceRange(editing.text, slashMenu.start, slashMenu.end, "--------------------"));
       return;
     }
 
-    applySelectionUpdate(replaceRange(editing.text, menu.start, menu.end, ""));
+    applySelectionUpdate(replaceRange(editing.text, slashMenu.start, slashMenu.end, ""));
     openImageInsert(editing.id);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (menu && filteredCommands.length > 0) {
+    if (wikiMenu && filteredWikiOptions.length > 0) {
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setActiveIndex((current) => (current + 1) % filteredCommands.length);
+        setActiveWikiIndex((current) => (current + 1) % filteredWikiOptions.length);
         return;
       }
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        setActiveIndex((current) => (current - 1 + filteredCommands.length) % filteredCommands.length);
+        setActiveWikiIndex((current) => (current - 1 + filteredWikiOptions.length) % filteredWikiOptions.length);
         return;
       }
       if (event.key === "Enter" || event.key === "Tab") {
         event.preventDefault();
-        const selectedCommand = filteredCommands[activeIndex] ?? filteredCommands[0];
+        const selectedOption = filteredWikiOptions[activeWikiIndex] ?? filteredWikiOptions[0];
+        if (!selectedOption) {
+          return;
+        }
+        insertWikiLink(selectedOption);
+        return;
+      }
+    }
+
+    if (slashMenu && filteredCommands.length > 0) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveSlashIndex((current) => (current + 1) % filteredCommands.length);
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveSlashIndex((current) => (current - 1 + filteredCommands.length) % filteredCommands.length);
+        return;
+      }
+      if (event.key === "Enter" || event.key === "Tab") {
+        event.preventDefault();
+        const selectedCommand = filteredCommands[activeSlashIndex] ?? filteredCommands[0];
         if (!selectedCommand) {
           return;
         }
@@ -243,9 +340,10 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
       }
     }
 
-    if (menu && event.key === "Escape") {
+    if ((wikiMenu || slashMenu) && event.key === "Escape") {
       event.preventDefault();
-      setMenu(null);
+      setWikiMenu(null);
+      setSlashMenu(null);
       return;
     }
 
@@ -274,7 +372,7 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
         const noteHeight = editingNote.h * camera.zoom;
         return {
           left: `${screen.x}px`,
-          top: `${(isImageCaptionEditor ? screen.y + noteHeight - imageCaptionEditorHeight - 8 : screen.y)}px`,
+          top: `${isImageCaptionEditor ? screen.y + noteHeight - imageCaptionEditorHeight - 8 : screen.y}px`,
           width: `${editingNote.w * camera.zoom}px`,
         };
       })()}
@@ -286,13 +384,22 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
         onTextUpdate={(nextValue, selectionStart, selectionEnd) => applySelectionUpdate({ nextValue, selectionStart, selectionEnd })}
       />
       <NoteSlashCommandMenu
-        open={Boolean(menu) && filteredCommands.length > 0}
-        left={menu?.left ?? 0}
-        top={menu?.top ?? 0}
+        open={Boolean(slashMenu) && filteredCommands.length > 0}
+        left={slashMenu?.left ?? 0}
+        top={slashMenu?.top ?? 0}
         commands={filteredCommands}
-        activeIndex={Math.min(activeIndex, Math.max(0, filteredCommands.length - 1))}
-        onHover={setActiveIndex}
+        activeIndex={Math.min(activeSlashIndex, Math.max(0, filteredCommands.length - 1))}
+        onHover={setActiveSlashIndex}
         onSelect={(command) => executeSlashCommand(command as SlashCommand)}
+      />
+      <NoteWikiLinkMenu
+        open={Boolean(wikiMenu) && filteredWikiOptions.length > 0}
+        left={wikiMenu?.left ?? 0}
+        top={wikiMenu?.top ?? 0}
+        options={filteredWikiOptions}
+        activeIndex={Math.min(activeWikiIndex, Math.max(0, filteredWikiOptions.length - 1))}
+        onHover={setActiveWikiIndex}
+        onSelect={insertWikiLink}
       />
       <div className="relative">
         {isEditingJournal ? (
@@ -326,12 +433,22 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
           onChange={(event) => {
             setEditing({ id: editing.id, text: event.target.value });
             updateSlashMenu(event.target.value, event.target.selectionStart ?? event.target.value.length);
+            updateWikiMenu(event.target.value, event.target.selectionStart ?? event.target.value.length);
           }}
           onBlur={handleEditorBlur}
           onKeyDown={handleKeyDown}
-          onClick={() => updateSlashMenu()}
-          onKeyUp={() => updateSlashMenu()}
-          onSelect={() => updateSlashMenu()}
+          onClick={() => {
+            updateSlashMenu();
+            updateWikiMenu();
+          }}
+          onKeyUp={() => {
+            updateSlashMenu();
+            updateWikiMenu();
+          }}
+          onSelect={() => {
+            updateSlashMenu();
+            updateWikiMenu();
+          }}
           className="w-full resize-none rounded-[22px] border border-black/10 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_22px_58px_rgba(15,23,42,0.18)] outline-none backdrop-blur-sm transition-[box-shadow,border-color] duration-150 focus:border-black/15"
           style={(() => {
             const baseStyle = {
@@ -377,10 +494,11 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
               backgroundColor: editingNote.color,
             };
           })()}
-          placeholder={isImageCaptionEditor ? "Add caption" : "Type '/' for commands"}
+          placeholder={isImageCaptionEditor ? "Add caption" : "Type '/' for commands or use [[Note Title]]"}
           spellCheck
         />
       </div>
     </div>
   );
 };
+

@@ -127,7 +127,7 @@ export type NoteGroup = {
 
 export type ZoneKind = "frame" | "column" | "swimlane";
 
-export type LinkType = "cause_effect" | "dependency" | "idea_execution";
+export type LinkType = "cause_effect" | "dependency" | "idea_execution" | "wiki";
 
 export type Link = {
   id: string;

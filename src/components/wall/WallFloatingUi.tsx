@@ -38,6 +38,7 @@ type WallFloatingUiProps = {
   tagPreviewPalette?: { bg: string; border: string; text: string };
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   openImageInsert: (noteId: string) => void;
+  wikiLinkOptions: Array<{ noteId: string; title: string }>;
   linkMenu: LinkContextMenuState;
   maxViewportWidth: number;
   maxViewportHeight: number;
@@ -103,6 +104,7 @@ export const WallFloatingUi = ({
   tagPreviewPalette,
   updateNote,
   openImageInsert,
+  wikiLinkOptions,
   linkMenu,
   maxViewportWidth,
   maxViewportHeight,
@@ -155,6 +157,7 @@ export const WallFloatingUi = ({
               setEditing={setEditing}
               updateNote={updateNote}
               openImageInsert={openImageInsert}
+              wikiLinkOptions={wikiLinkOptions}
             />
           )}
           {editingNote.noteKind === "canon" && editingCanon && (
@@ -518,6 +521,8 @@ export const WallFloatingUi = ({
     </>
   );
 };
+
+
 
 
 
