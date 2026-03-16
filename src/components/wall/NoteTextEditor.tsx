@@ -10,6 +10,7 @@ import {
   applyToolbarAction,
   clamp,
   getCaretRect,
+  getInlineListContext,
   insertAtSelection,
   insertMarkdownLink,
   parseSlashQuery,
@@ -100,6 +101,21 @@ const journalEditorBackground = {
   ].join(", "),
   backgroundPosition: "0 0, 0 0",
   backgroundSize: "100% 100%, 100% 31px",
+};
+
+const LIST_INDENT_SPACES = 2;
+
+const buildInlineListPrefix = (kind: "bulleted" | "todo" | "numbered" | "toggle", indent: string, number?: number) => {
+  if (kind === "todo") {
+    return `${indent}- [ ] `;
+  }
+  if (kind === "toggle") {
+    return `${indent}> `;
+  }
+  if (kind === "numbered") {
+    return `${indent}${Math.max(1, number ?? 1)}. `;
+  }
+  return `${indent}- `;
 };
 
 export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, handleEditorBlur, setEditing, updateNote, openImageInsert, wikiLinkOptions }: NoteTextEditorProps) => {
@@ -279,6 +295,80 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
     const href = prompted || placeholderUrl;
     const linePrefix = prefix ? `${prefix} ` : "";
     applySelectionUpdate(replaceRange(editing.text, slashMenu.start, slashMenu.end, `${linePrefix}[${label}](${href})`));
+  };
+
+  const handleInlineListEnter = (selectionStart: number, selectionEnd: number) => {
+    const normalizedValue =
+      selectionStart === selectionEnd ? editing.text : `${editing.text.slice(0, selectionStart)}${editing.text.slice(selectionEnd)}`;
+    const context = getInlineListContext(normalizedValue, selectionStart);
+    if (!context) {
+      return false;
+    }
+
+    const cursorInContent = Math.max(0, selectionStart - (context.lineStart + context.prefix.length));
+    const beforeContent = context.content.slice(0, cursorInContent);
+    const afterContent = context.content.slice(cursorInContent);
+
+    if (context.content.trim().length === 0) {
+      applySelectionUpdate(replaceRange(normalizedValue, context.lineStart, context.lineEnd, ""));
+      return true;
+    }
+
+    const nextPrefix = buildInlineListPrefix(context.kind, context.indent, context.kind === "numbered" ? (context.number ?? 1) + 1 : undefined);
+    const nextValue = `${normalizedValue.slice(0, context.lineStart)}${context.prefix}${beforeContent}
+${nextPrefix}${afterContent}${normalizedValue.slice(context.lineEnd)}`;
+    const nextCursor = context.lineStart + context.prefix.length + beforeContent.length + 1 + nextPrefix.length;
+    applySelectionUpdate({
+      nextValue,
+      selectionStart: nextCursor,
+      selectionEnd: nextCursor,
+    });
+    return true;
+  };
+
+  const handleInlineListTab = (selectionStart: number, selectionEnd: number, outdent: boolean) => {
+    const context = getInlineListContext(editing.text, selectionStart, selectionEnd);
+    if (!context) {
+      return false;
+    }
+
+    const nextIndent = outdent
+      ? context.indent.slice(0, Math.max(0, context.indent.length - LIST_INDENT_SPACES))
+      : `${context.indent}${" ".repeat(LIST_INDENT_SPACES)}`;
+    if (nextIndent === context.indent) {
+      return true;
+    }
+
+    const nextLine = `${buildInlineListPrefix(context.kind, nextIndent, context.number)}${context.content}`;
+    const nextValue = `${editing.text.slice(0, context.lineStart)}${nextLine}${editing.text.slice(context.lineEnd)}`;
+    const cursorDelta = nextIndent.length - context.indent.length;
+    applySelectionUpdate({
+      nextValue,
+      selectionStart: Math.max(context.lineStart, selectionStart + cursorDelta),
+      selectionEnd: Math.max(context.lineStart, selectionEnd + cursorDelta),
+    });
+    return true;
+  };
+
+  const handleInlineListBackspace = (selectionStart: number, selectionEnd: number) => {
+    if (selectionStart !== selectionEnd) {
+      return false;
+    }
+    const context = getInlineListContext(editing.text, selectionStart);
+    if (!context) {
+      return false;
+    }
+
+    if (selectionStart === context.lineStart + context.prefix.length && context.content.trim().length === 0) {
+      applySelectionUpdate(replaceRange(editing.text, context.lineStart, context.lineEnd, ""));
+      return true;
+    }
+
+    if (selectionStart === context.lineStart && context.indent.length > 0) {
+      return handleInlineListTab(selectionStart, selectionEnd, true);
+    }
+
+    return false;
   };
 
   const executeSlashCommand = (command: SlashCommand) => {
@@ -474,6 +564,26 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
       event.preventDefault();
       setWikiMenu(null);
       setSlashMenu(null);
+      return;
+    }
+
+    const selectionStart = event.currentTarget.selectionStart ?? 0;
+    const selectionEnd = event.currentTarget.selectionEnd ?? selectionStart;
+
+    if (event.key === "Tab") {
+      if (handleInlineListTab(selectionStart, selectionEnd, event.shiftKey)) {
+        event.preventDefault();
+        return;
+      }
+    }
+
+    if (event.key === "Enter" && !event.shiftKey && handleInlineListEnter(selectionStart, selectionEnd)) {
+      event.preventDefault();
+      return;
+    }
+
+    if (event.key === "Backspace" && handleInlineListBackspace(selectionStart, selectionEnd)) {
+      event.preventDefault();
       return;
     }
 

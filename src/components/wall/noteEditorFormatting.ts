@@ -14,6 +14,17 @@ export type SlashQueryMatch = {
   end: number;
 };
 
+export type InlineListContext = {
+  lineStart: number;
+  lineEnd: number;
+  indent: string;
+  marker: string;
+  prefix: string;
+  content: string;
+  kind: "bulleted" | "todo" | "numbered" | "toggle";
+  number?: number;
+};
+
 const plainUpper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const plainLower = "abcdefghijklmnopqrstuvwxyz";
 const plainDigits = "0123456789";
@@ -294,7 +305,7 @@ export const applyListPrefix = (
   const lines = value.slice(lineStart, lineEnd).split("\n");
   const replacement = lines
     .map((line) => {
-      const trimmed = line.replace(/^\s*(?:-\s+|\[\s\]\s+|\d+\.\s+)/, "");
+      const trimmed = line.replace(/^\s*(?:-\s+|-\s\[\s\]\s+|>\s+|\d+\.\s+)/, "");
       return `${prefix}${trimmed}`;
     })
     .join("\n");
@@ -303,6 +314,32 @@ export const applyListPrefix = (
     nextValue: `${value.slice(0, lineStart)}${replacement}${value.slice(lineEnd)}`,
     selectionStart: lineStart,
     selectionEnd: lineStart + replacement.length,
+  };
+};
+
+export const getInlineListContext = (value: string, selectionStart: number, selectionEnd = selectionStart): InlineListContext | null => {
+  const { lineStart, lineEnd } = getLineRange(value, selectionStart, selectionEnd);
+  const line = value.slice(lineStart, lineEnd);
+  const match = line.match(/^(\s*)(- \[ \] |- |> |(\d+)\. )(.*)$/);
+  if (!match) {
+    return null;
+  }
+
+  const indent = match[1] ?? "";
+  const marker = match[2] ?? "";
+  const numberToken = match[3];
+  const content = match[4] ?? "";
+  const kind = marker === "- [ ] " ? "todo" : marker === "> " ? "toggle" : numberToken ? "numbered" : "bulleted";
+
+  return {
+    lineStart,
+    lineEnd,
+    indent,
+    marker,
+    prefix: `${indent}${marker}`,
+    content,
+    kind,
+    number: numberToken ? Number.parseInt(numberToken, 10) : undefined,
   };
 };
 
