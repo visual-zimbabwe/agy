@@ -55,7 +55,8 @@ const normalizeNoteFont = (value: string | null | undefined) => {
     value === "rubik" ||
     value === "fira_sans" ||
     value === "josefin_sans" ||
-    value === "quicksand"
+    value === "quicksand" ||
+    value === "patrick_hand"
   ) {
     return value;
   }
@@ -239,7 +240,7 @@ export const rowsToSnapshot = (rows: {
       {
         ...parseTextSize(note.text_size),
         id: note.id,
-        noteKind: note.note_kind === "quote" || note.note_kind === "canon" ? note.note_kind : "standard",
+        noteKind: note.note_kind === "quote" || note.note_kind === "canon" || note.note_kind === "journal" ? note.note_kind : "standard",
         text: note.text,
         quoteAuthor: note.quote_author?.trim() || undefined,
         quoteSource: note.quote_source?.trim() || undefined,

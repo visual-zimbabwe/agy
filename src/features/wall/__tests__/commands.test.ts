@@ -5,6 +5,7 @@ import {
   createNoteGroup,
   createLink,
   createCanonNote,
+  createJournalNote,
   createNote,
   createQuoteNote,
   createZone,
@@ -69,6 +70,14 @@ describe("wall commands", () => {
     expect(canon?.noteKind).toBe("canon");
     expect(canon?.canon?.mode).toBe("single");
     expect(canon?.canon?.items.length).toBeGreaterThan(0);
+  });
+
+  it("creates journal notes with handwritten defaults and sample text", () => {
+    const journalId = createJournalNote(64, 96);
+    const journal = useWallStore.getState().notes[journalId];
+    expect(journal?.noteKind).toBe("journal");
+    expect(journal?.textFont).toBe("patrick_hand");
+    expect(journal?.text).toContain("Today felt like");
   });
 
   it("creates links and rejects duplicate/self links", () => {

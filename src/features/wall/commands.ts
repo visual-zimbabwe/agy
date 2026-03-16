@@ -1,4 +1,4 @@
-import { GROUP_COLORS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
+import { GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
 import type { Link, LinkType, Note, NoteGroup, TemplateType, Zone, ZoneGroup, ZoneKind } from "@/features/wall/types";
 
@@ -88,6 +88,33 @@ export const createCanonNote = (x: number, y: number, color?: string) => {
       source: "",
       items: [{ id: makeId(), title: "", text: "", interpretation: "" }],
     },
+  });
+  return noteId;
+};
+
+const defaultJournalText = () =>
+  [
+    "Today felt like one of those weirdly good days.",
+    "I finished the Journal card design idea and it finally started looking like a real notebook page.",
+    "Need to keep the lines subtle and leave enough space so the handwriting still feels easy to read.",
+  ].join("\n");
+
+export const createJournalNote = (x: number, y: number, color?: string) => {
+  const noteId = createNote(x, y, color ?? JOURNAL_NOTE_DEFAULTS.color);
+  useWallStore.getState().patchNote(noteId, {
+    noteKind: "journal",
+    text: defaultJournalText(),
+    quoteAuthor: undefined,
+    quoteSource: undefined,
+    vocabulary: undefined,
+    canon: undefined,
+    textFont: JOURNAL_NOTE_DEFAULTS.textFont,
+    textColor: JOURNAL_NOTE_DEFAULTS.textColor,
+    textSizePx: JOURNAL_NOTE_DEFAULTS.textSizePx,
+    w: JOURNAL_NOTE_DEFAULTS.width,
+    h: JOURNAL_NOTE_DEFAULTS.height,
+    color: color ?? JOURNAL_NOTE_DEFAULTS.color,
+    tags: ["journal"],
   });
   return noteId;
 };

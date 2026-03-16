@@ -74,6 +74,7 @@ import {
   assignZoneToGroup,
   createNote,
   createCanonNote,
+  createJournalNote,
   createQuoteNote,
   createLink,
   createZone,
@@ -897,6 +898,21 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     openEditor(id, "");
   }, [camera, isTimeLocked, openEditor, selectNote, ui.lastColor, viewport.h, viewport.w]);
 
+  const makeJournalNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const id = createJournalNote(
+      world.x - NOTE_DEFAULTS.width / 2,
+      world.y - NOTE_DEFAULTS.height / 2,
+      ui.lastColor ?? NOTE_COLORS[0],
+    );
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
+  }, [camera, isTimeLocked, openEditor, selectNote, ui.lastColor, viewport.h, viewport.w]);
+
   const toggleVocabularyFlip = useCallback(
     (noteId: string) => {
       if (isTimeLocked) {
@@ -959,6 +975,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setReadingMode,
     createNote,
     createCanonNote: makeCanonNoteAtViewportCenter,
+    createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
     createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
@@ -1546,6 +1563,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: makeNoteAtViewportCenter,
       },
       {
+        id: "new-journal-note",
+        label: "Create journal note",
+        description: "Add a handwritten notebook page entry with a dated header.",
+        shortcut: "Shift + J",
+        keywords: ["journal", "diary", "notebook", "handwritten"],
+        disabled: isTimeLocked,
+        onSelect: makeJournalNoteAtViewportCenter,
+      },
+      {
         id: "new-canon-note",
         label: "Create canon note",
         description: "Capture a law/rule/theorem with single or list mode.",
@@ -1825,6 +1851,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       leftPanelOpen,
       makeNoteAtViewportCenter,
       makeCanonNoteAtViewportCenter,
+      makeJournalNoteAtViewportCenter,
       makeQuoteNoteAtViewportCenter,
       makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
@@ -1979,6 +2006,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onClose={() => setLeftPanelOpen(false)}
             onCreateNote={makeNoteAtViewportCenter}
             onCreateCanonNote={makeCanonNoteAtViewportCenter}
+            onCreateJournalNote={makeJournalNoteAtViewportCenter}
             onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
             onCreateWordNote={makeWordNoteAtViewportCenter}
             onCreateZone={makeZoneAtViewportCenter}

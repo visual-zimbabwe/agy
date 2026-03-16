@@ -307,6 +307,20 @@ Expected:
 - Quote/standard conversion works without losing core note content.
 - Dark mode keeps quote attribution and tag editor text/placeholder contrast readable.
 
+## Journal Notes
+1. In `/wall`, click `New Journal` from the Tools panel, use `Shift + J`, or run `Create journal note` from the command palette.
+2. Verify the new note appears with a warm paper tone, subtle notebook lines, and a handwritten date in the top-right.
+3. Double-click the `Journal` note, confirm the editor keeps the lined-paper surface, and enter a multi-line entry.
+4. Resize the `Journal` note taller and shorter; verify the writing lines and text spacing remain readable.
+5. Drag the note, zoom in/out, blur the editor, then refresh the page.
+6. Select a standard note, use `More > Convert to Journal`, and verify the notebook styling and handwritten defaults apply without breaking note text.
+
+Expected:
+- Journal notes render like a lightly torn exercise-book page with subtle lines and minimal shadow.
+- The top-right date is underlined and persists after refresh.
+- Editing, dragging, resizing, selection, and zoom readability behave the same as other notes.
+- Standard-to-Journal conversion preserves content while applying Journal styling defaults.
+
 ## Canon Notes (Single + List)
 1. In `/wall`, click `New Canon` from the Tools panel (or run `Create canon note` from command palette).
 2. In edit mode, set mode to `Single` and fill `Title`, `Statement`, `Interpretation`, `Example`, and `Source`.
@@ -863,3 +877,5 @@ Expected:
 - Tag metadata stays hidden by default and is available through the hover `Tags` toggle without overflowing the card.
 - Keyboard navigation and the bottom scrubber both move selection predictably.
 - `Reveal on wall` exits timeline view and restores note focus in the canvas.
+
+

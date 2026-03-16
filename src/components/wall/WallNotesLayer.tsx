@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
-import { Group, Image as KonvaImage, Rect, Text } from "react-konva";
+import { Group, Image as KonvaImage, Line, Rect, Text } from "react-konva";
 import type Konva from "konva";
 
+import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import type { LinkType, Note } from "@/features/wall/types";
 
@@ -13,6 +14,10 @@ type GuideLineState = {
 };
 
 type ResizeDraft = { x: number; y: number; w: number; h: number };
+
+const buildJournalPagePoints = (width: number, height: number) => [10, 0, width - 16, 0, width, 14, width - 3, height - 18, width - 26, height, 18, height, 0, height - 15, 0, 12];
+
+const estimateJournalDateWidth = (label: string, fontSize: number) => Math.max(72, label.length * fontSize * 0.48);
 
 type WallNotesLayerProps = {
   visibleNotes: Note[];
@@ -241,6 +246,7 @@ export const WallNotesLayer = ({
         const isVocabulary = Boolean(vocabulary);
         const isQuote = noteView.noteKind === "quote";
         const isCanon = noteView.noteKind === "canon";
+        const isJournal = noteView.noteKind === "journal";
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
@@ -256,8 +262,8 @@ export const WallNotesLayer = ({
         const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
         const quoteMarkInset = isQuote ? 13 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
-        const textX = isQuote ? 18 : 12;
-        const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : 24));
+        const textX = isQuote || isJournal ? 18 : 12;
+        const textWidth = Math.max(0, noteView.w - (isQuote || isJournal ? 36 : 24));
         const noteTextContent = isVocabulary
           ? isVocabularyBack
             ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
@@ -282,11 +288,19 @@ export const WallNotesLayer = ({
         const imageFrameHeight = imageUrl
           ? Math.max(44, Math.min(noteView.h * 0.58, Math.max(44, noteView.h - 70)))
           : 0;
-        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset + canonTitleInset;
+        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset + canonTitleInset + (isJournal ? 38 : 0);
         const textHeight = Math.max(
           0,
-          noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset - canonTitleInset,
+          noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 38 : 0),
         );
+        const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
+        const journalDateFontSize = Math.max(14, noteTextStyle.fontSize - 1);
+        const journalDateWidth = estimateJournalDateWidth(journalDateLabel, journalDateFontSize);
+        const journalDateX = Math.max(18, noteView.w - journalDateWidth - 18);
+        const journalLineGap = noteTextStyle.fontSize * 1.42;
+        const journalLineStartY = textY + noteTextStyle.fontSize * 0.82;
+        const journalLineCount = isJournal ? Math.max(0, Math.floor((noteView.h - journalLineStartY - 18) / journalLineGap) + 1) : 0;
+        const journalLineYs = Array.from({ length: journalLineCount }, (_, index) => journalLineStartY + index * journalLineGap);
 
         return (
           <Group
@@ -505,18 +519,34 @@ export const WallNotesLayer = ({
               });
             }}
           >
-            <Rect
-              width={noteView.w}
-              height={noteView.h}
-              cornerRadius={14}
-              fill={note.color}
-              stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
-              strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
-              shadowColor="#101010"
-              shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
-              shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
-              shadowOffsetY={isDragging ? 7 : 3}
-            />
+            {isJournal ? (
+              <Line
+                points={buildJournalPagePoints(noteView.w, noteView.h)}
+                closed
+                fill={note.color}
+                stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
+                strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
+                shadowColor="#101010"
+                shadowBlur={isFlashing ? 26 : isDragging ? 22 : 8}
+                shadowOpacity={isFlashing ? 0.28 : isDragging ? 0.22 : 0.08}
+                shadowOffsetY={isDragging ? 5 : 2}
+                lineJoin="round"
+                tension={0.12}
+              />
+            ) : (
+              <Rect
+                width={noteView.w}
+                height={noteView.h}
+                cornerRadius={14}
+                fill={note.color}
+                stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
+                strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
+                shadowColor="#101010"
+                shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
+                shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
+                shadowOffsetY={isDragging ? 7 : 3}
+              />
+            )}
             {isHighlighted && (
               <Rect
                 width={noteView.w}
@@ -548,6 +578,39 @@ export const WallNotesLayer = ({
                 fill="#ef4444"
                 opacity={0.08 + recencyIntensity(noteView.updatedAt, heatmapReferenceTs) * 0.35}
               />
+            )}
+            {isJournal && (
+              <>
+                <Line points={[18, 12, 18, Math.max(26, noteView.h - 18)]} stroke="#d46f7d" strokeWidth={1.15} opacity={0.5} listening={false} />
+                {journalLineYs.map((lineY, index) => (
+                  <Line
+                    key={`${note.id}-journal-line-${index}`}
+                    points={[22, lineY, Math.max(26, noteView.w - 18), lineY]}
+                    stroke="#77a2cc"
+                    strokeWidth={0.9}
+                    opacity={0.26}
+                    listening={false}
+                  />
+                ))}
+                <Text
+                  x={journalDateX}
+                  y={10}
+                  width={journalDateWidth}
+                  align="right"
+                  fontSize={journalDateFontSize}
+                  fontFamily={noteTextFontFamily}
+                  fill={resolvedTextColor}
+                  text={journalDateLabel}
+                  listening={false}
+                />
+                <Line
+                  points={[journalDateX, 28, journalDateX + journalDateWidth, 28]}
+                  stroke={resolvedTextColor}
+                  strokeWidth={1.5}
+                  opacity={0.75}
+                  listening={false}
+                />
+              </>
             )}
             {colorWashOpacity > 0 && (
               <Rect
@@ -722,3 +785,5 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
+

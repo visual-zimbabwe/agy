@@ -89,7 +89,8 @@ const normalizeNoteFont = (value: unknown) => {
     value === "rubik" ||
     value === "fira_sans" ||
     value === "josefin_sans" ||
-    value === "quicksand"
+    value === "quicksand" ||
+    value === "patrick_hand"
   ) {
     return value;
   }
@@ -155,7 +156,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
   }
   return {
     id,
-    noteKind: entry.noteKind === "quote" || entry.noteKind === "canon" ? entry.noteKind : "standard",
+    noteKind: entry.noteKind === "quote" || entry.noteKind === "canon" || entry.noteKind === "journal" ? entry.noteKind : "standard",
     text: asString(entry.text),
     quoteAuthor: asString(entry.quoteAuthor).trim() || undefined,
     quoteSource: asString(entry.quoteSource).trim() || undefined,

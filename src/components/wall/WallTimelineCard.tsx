@@ -2,7 +2,7 @@
 
 import { useState, type RefObject } from "react";
 
-import { noteTagChipPalette } from "@/components/wall/wall-canvas-helpers";
+import { formatJournalDateLabel, noteTagChipPalette } from "@/components/wall/wall-canvas-helpers";
 import type { WallTimelineDensity, WallTimelineItem } from "@/components/wall/wallTimelineViewLayout";
 import {
   formatTimelineDate,
@@ -31,6 +31,9 @@ const readTimelineTitle = (item: WallTimelineItem) => {
   }
   if (item.note.noteKind === "canon") {
     return item.note.canon?.title?.trim() || "Canon note";
+  }
+  if (item.note.noteKind === "journal") {
+    return formatJournalDateLabel(item.note.createdAt);
   }
   if (item.note.pinned) {
     return "Pinned note";

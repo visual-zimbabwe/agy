@@ -55,6 +55,7 @@ type WallKeyboardOptions = {
   setReadingMode: (enabled: boolean) => void;
   createNote: (x: number, y: number, color?: string) => string;
   createCanonNote: () => void;
+  createJournalNote: () => void;
   createQuoteNote: () => void;
   createWordNote: () => void;
   openEditor: (noteId: string, text: string) => void;
@@ -120,6 +121,7 @@ export const useWallKeyboard = ({
   setReadingMode,
   createNote,
   createCanonNote,
+  createJournalNote,
   createQuoteNote,
   createWordNote,
   openEditor,
@@ -360,6 +362,12 @@ export const useWallKeyboard = ({
         return;
       }
 
+      if (!ctrlOrMeta && event.shiftKey && key === "j") {
+        event.preventDefault();
+        createJournalNote();
+        return;
+      }
+
       if (!ctrlOrMeta && event.shiftKey && key === "g") {
         event.preventDefault();
         createCanonNote();
@@ -517,6 +525,7 @@ export const useWallKeyboard = ({
     clearGuideLines,
     createNote,
     createCanonNote,
+    createJournalNote,
     createQuoteNote,
     createWordNote,
     deleteGroup,

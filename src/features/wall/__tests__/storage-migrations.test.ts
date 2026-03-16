@@ -195,6 +195,34 @@ describe("storage migrations", () => {
     expect(normalized?.notes.q1?.quoteSource).toBe("Stanford Commencement, 2005");
   });
 
+  it("normalizes journal note metadata when present", () => {
+    const normalized = normalizePersistedWallState({
+      notes: {
+        j1: {
+          id: "j1",
+          noteKind: "journal",
+          text: "Monday notes",
+          textFont: "patrick_hand",
+          x: 0,
+          y: 0,
+          w: 250,
+          h: 208,
+          color: "#F6EEDC",
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      },
+      zones: {},
+      zoneGroups: {},
+      noteGroups: {},
+      links: {},
+      camera: { x: 0, y: 0, zoom: 1 },
+    });
+
+    expect(normalized?.notes.j1?.noteKind).toBe("journal");
+    expect(normalized?.notes.j1?.textFont).toBe("patrick_hand");
+  });
+
   it("normalizes canon note metadata when present", () => {
     const normalized = normalizePersistedWallState({
       notes: {

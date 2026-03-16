@@ -18,7 +18,8 @@ export type NoteTextFont =
   | "rubik"
   | "fira_sans"
   | "josefin_sans"
-  | "quicksand";
+  | "quicksand"
+  | "patrick_hand";
 
 export type VocabularyReviewOutcome = "again" | "hard" | "good" | "easy";
 
@@ -57,7 +58,7 @@ export type CanonNote = {
 
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon";
+  noteKind?: "standard" | "quote" | "canon" | "journal";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;

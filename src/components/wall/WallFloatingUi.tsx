@@ -5,8 +5,8 @@ import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { NoteTextFormattingToolbar } from "@/components/wall/NoteTextFormattingToolbar";
-import { getNoteTextFontFamily, getNoteTextStyle } from "@/components/wall/wall-canvas-helpers";
-import { NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
+import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle } from "@/components/wall/wall-canvas-helpers";
+import { JOURNAL_NOTE_DEFAULTS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
 import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
@@ -101,6 +101,16 @@ const noteEditorTagChipClass =
 const noteEditorSecondaryButtonClass =
   "rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]";
 
+const journalEditorBackground = (paperColor: string) => ({
+  backgroundColor: paperColor,
+  backgroundImage: [
+    "linear-gradient(180deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0))",
+    "repeating-linear-gradient(to bottom, transparent 0, transparent 30px, rgb(113 151 199 / 0.34) 30px, rgb(113 151 199 / 0.34) 31px)",
+  ].join(", "),
+  backgroundPosition: "0 0, 0 53px",
+  backgroundSize: "100% 100%, 100% 32px",
+});
+
 export const WallFloatingUi = ({
   editing,
   notesById,
@@ -177,6 +187,8 @@ export const WallFloatingUi = ({
   const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const editingTextStyle = getNoteTextStyle(editingNote?.textSize, editingNote?.textSizePx);
+  const editingJournalDate = editingNote ? formatJournalDateLabel(editingNote.createdAt) : "";
+  const isEditingJournal = editingNote?.noteKind === "journal";
   const [quickActionsOverflowOpen, setQuickActionsOverflowOpen] = useState(false);
 
   return (
@@ -237,26 +249,60 @@ export const WallFloatingUi = ({
             }}
           />
           {editingNote.noteKind !== "canon" && (
-            <textarea
-              ref={textareaRef}
-              autoFocus
-              value={editing.text}
-              onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
-              onBlur={handleEditorBlur}
-              className="w-full resize-none rounded-xl border border-zinc-700/40 p-3 shadow-xl outline-none"
-              style={(() => {
-                return {
-                  height: `${editingNote.h * camera.zoom}px`,
-                  backgroundColor: editingNote.color,
-                  textAlign: editingNote.textAlign ?? "left",
-                  fontFamily: getNoteTextFontFamily(editingNote.textFont),
-                  color: editingNote.textColor ?? NOTE_DEFAULTS.textColor,
-                  fontSize: `${editingTextStyle.fontSize}px`,
-                  lineHeight: `${editingTextStyle.lineHeight}`,
-                  fontStyle: editingNote.noteKind === "quote" ? "italic" : "normal",
-                };
-              })()}
-            />
+            <div className="relative">
+              {isEditingJournal && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-4 top-3 z-[1] text-right"
+                  style={{
+                    color: editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor,
+                    fontFamily: getNoteTextFontFamily(editingNote.textFont),
+                    fontSize: `${Math.max(14, editingTextStyle.fontSize - 1)}px`,
+                    lineHeight: "1.1",
+                  }}
+                >
+                  <span style={{ borderBottom: `2px solid ${editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor}`, paddingBottom: "1px" }}>
+                    {editingJournalDate}
+                  </span>
+                </div>
+              )}
+              <textarea
+                ref={textareaRef}
+                autoFocus
+                value={editing.text}
+                onChange={(event) => setEditing({ id: editing.id, text: event.target.value })}
+                onBlur={handleEditorBlur}
+                className="w-full resize-none rounded-xl border border-zinc-700/40 p-3 shadow-xl outline-none"
+                style={(() => {
+                  const baseStyle = {
+                    height: `${editingNote.h * camera.zoom}px`,
+                    textAlign: editingNote.textAlign ?? "left",
+                    fontFamily: getNoteTextFontFamily(editingNote.textFont),
+                    color: editingNote.textColor ?? NOTE_DEFAULTS.textColor,
+                    fontSize: `${editingTextStyle.fontSize}px`,
+                    lineHeight: `${editingTextStyle.lineHeight}`,
+                    fontStyle: editingNote.noteKind === "quote" ? "italic" : "normal",
+                  };
+
+                  if (isEditingJournal) {
+                    return {
+                      ...baseStyle,
+                      ...journalEditorBackground(editingNote.color),
+                      borderRadius: "14px",
+                      paddingTop: "56px",
+                      paddingLeft: "18px",
+                      paddingRight: "18px",
+                      paddingBottom: "14px",
+                    };
+                  }
+
+                  return {
+                    ...baseStyle,
+                    backgroundColor: editingNote.color,
+                  };
+                })()}
+              />
+            </div>
           )}
           {editingNote.noteKind === "canon" && editingCanon && (
             <div data-note-edit-tags="true" className="rounded-xl border border-zinc-700/40 p-3 shadow-xl" style={{ backgroundColor: editingNote.color }}>
@@ -737,6 +783,30 @@ export const WallFloatingUi = ({
                   >
                     {primarySelectedNote.noteKind === "canon" ? "Canon -> Standard" : "Convert to Canon"}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const toJournal = primarySelectedNote.noteKind !== "journal";
+                      updateNote(primarySelectedNote.id, {
+                        noteKind: toJournal ? "journal" : "standard",
+                        quoteAuthor: undefined,
+                        quoteSource: undefined,
+                        canon: undefined,
+                        vocabulary: toJournal ? undefined : primarySelectedNote.vocabulary,
+                        color: toJournal ? JOURNAL_NOTE_DEFAULTS.color : primarySelectedNote.color,
+                        textFont: toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : primarySelectedNote.textFont,
+                        textColor: toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : primarySelectedNote.textColor,
+                        textSizePx: toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : primarySelectedNote.textSizePx,
+                        tags: toJournal ? [...new Set([...primarySelectedNote.tags, "journal"])] : primarySelectedNote.tags,
+                      });
+                      setQuickActionsOverflowOpen(false);
+                    }}
+                    className={`w-full justify-start ${toolbarBtnCompact}`}
+                    title={primarySelectedNote.noteKind === "journal" ? "Convert to standard note" : "Convert to journal note"}
+                    aria-label={primarySelectedNote.noteKind === "journal" ? "Convert to standard note" : "Convert to journal note"}
+                  >
+                    {primarySelectedNote.noteKind === "journal" ? "Journal -> Standard" : "Convert to Journal"}
+                  </button>
                 </div>
               </div>
             )}
@@ -810,4 +880,5 @@ export const WallFloatingUi = ({
     </>
   );
 };
+
 

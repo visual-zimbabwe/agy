@@ -209,6 +209,13 @@ export const recencyIntensity = (updatedAt: number, referenceTs: number, windowM
   return clamp(1 - age / windowMs, 0, 1);
 };
 
+export const formatJournalDateLabel = (timestamp: number) =>
+  new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(timestamp);
+
 export const makeDownloadId = () => new Date().toISOString().replace(/[:.]/g, "-");
 export const recallStorageKey = "idea-wall-recall-searches";
 export const layoutPrefsStorageKey = "idea-wall-layout-prefs";

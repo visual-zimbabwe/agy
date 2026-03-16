@@ -20,6 +20,15 @@ export const NOTE_DEFAULTS = {
   textSize: "md" as const,
 };
 
+export const JOURNAL_NOTE_DEFAULTS = {
+  color: "#F6EEDC",
+  width: 250,
+  height: 208,
+  textColor: "#32415B",
+  textFont: "patrick_hand" as const,
+  textSizePx: 18,
+};
+
 export const NOTE_TEXT_SIZES = [
   { value: "sm", label: "S", fontSize: 14, lineHeight: 1.32 },
   { value: "md", label: "M", fontSize: 17, lineHeight: 1.35 },
@@ -47,6 +56,7 @@ export const NOTE_TEXT_FONTS = [
   { value: "fira_sans", label: "Fira Sans", family: "\"Fira Sans\", \"Segoe UI\", sans-serif" },
   { value: "josefin_sans", label: "Josefin Sans", family: "\"Josefin Sans\", \"Segoe UI\", sans-serif" },
   { value: "quicksand", label: "Quicksand", family: "\"Quicksand\", \"Segoe UI\", sans-serif" },
+  { value: "patrick_hand", label: "Patrick Hand", family: "\"Patrick Hand\", \"Comic Sans MS\", cursive" },
 ] as const;
 
 export const NOTE_TEXT_SIZE_OPTIONS = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72] as const;

@@ -192,6 +192,37 @@ describe("cloud rows mapping", () => {
     expect(quote?.quoteSource).toBe("A Servant to Servants");
   });
 
+  it("maps journal note metadata from cloud rows", () => {
+    const snapshot = rowsToSnapshot({
+      wall: { camera_x: 0, camera_y: 0, camera_zoom: 1, last_color: null },
+      notes: [
+        {
+          id: "j1",
+          note_kind: "journal",
+          text: "Monday, March 16",
+          text_font: "patrick_hand",
+          tags: ["journal"],
+          text_size: "px:18",
+          x: 0,
+          y: 0,
+          w: 250,
+          h: 208,
+          color: "#F6EEDC",
+          created_at: "2026-03-16T08:00:00.000Z",
+          updated_at: "2026-03-16T09:00:00.000Z",
+        },
+      ],
+      zones: [],
+      zoneGroups: [],
+      noteGroups: [],
+      links: [],
+    });
+
+    const journal = snapshot.notes.j1;
+    expect(journal?.noteKind).toBe("journal");
+    expect(journal?.textFont).toBe("patrick_hand");
+  });
+
   it("maps canon note metadata from cloud rows", () => {
     const snapshot = rowsToSnapshot({
       wall: { camera_x: 0, camera_y: 0, camera_zoom: 1, last_color: null },
