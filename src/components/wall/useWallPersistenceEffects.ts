@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
 import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
@@ -38,6 +38,8 @@ export const useWallPersistenceEffects = ({
   lastTimelineSerialized,
   lastTimelineRecordedAt,
 }: UseWallPersistenceEffectsOptions) => {
+  const lastPersistedSerializedRef = useRef("");
+
   useEffect(() => {
     const saver = createSnapshotSaver(320, {
       onSchedule: () => onLocalSaveStateChange("saving"),
@@ -45,10 +47,13 @@ export const useWallPersistenceEffects = ({
       onError: () => onLocalSaveStateChange("error"),
     });
     const timelineRecorder = createTimelineRecorder({ delayMs: 1100, minIntervalMs: 1400, maxEntries: 500 });
+    const timer = cloudSyncTimerRef.current;
     let cancelled = false;
 
     const load = async () => {
       const [snapshot, loadedTimeline] = await Promise.all([loadWallSnapshot(), loadTimelineEntries(500)]);
+      lastPersistedSerializedRef.current = JSON.stringify(snapshot);
+
       if (!cancelled) {
         hydrate(snapshot);
         setTimelineEntries(loadedTimeline);
@@ -114,6 +119,8 @@ export const useWallPersistenceEffects = ({
           await syncSnapshotToCloud(wallId, nextSnapshot);
         }
 
+        lastPersistedSerializedRef.current = JSON.stringify(nextSnapshot);
+
         if (!cancelled) {
           hydrate(nextSnapshot);
           cloudReadyRef.current = true;
@@ -134,12 +141,18 @@ export const useWallPersistenceEffects = ({
       if (!state.hydrated) {
         return;
       }
+
       const snapshot = selectPersistedSnapshot(state);
+      const serialized = JSON.stringify(snapshot);
+      if (serialized === lastPersistedSerializedRef.current) {
+        return;
+      }
+
+      lastPersistedSerializedRef.current = serialized;
       saver.schedule(snapshot);
       timelineRecorder.schedule(snapshot);
       scheduleCloudSync(snapshot);
 
-      const serialized = JSON.stringify(snapshot);
       const now = Date.now();
       if (serialized !== lastTimelineSerialized.current && now - lastTimelineRecordedAt.current > 1400) {
         lastTimelineSerialized.current = serialized;
@@ -158,8 +171,6 @@ export const useWallPersistenceEffects = ({
       cancelled = true;
       unsubscribe();
       cloudReadyRef.current = false;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      const timer = cloudSyncTimerRef.current;
       if (timer) {
         clearTimeout(timer);
       }
@@ -172,14 +183,13 @@ export const useWallPersistenceEffects = ({
     hydrate,
     lastTimelineRecordedAt,
     lastTimelineSerialized,
+    onLocalSaveStateChange,
     publishedReadOnly,
     scheduleCloudSync,
     setCloudWallId,
     setSyncError,
     setTimelineEntries,
     setTimelineIndex,
-    onLocalSaveStateChange,
     syncSnapshotToCloud,
   ]);
 };
-
