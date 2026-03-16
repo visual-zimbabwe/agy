@@ -46,13 +46,9 @@ type SlashCommand = {
     | "numbered"
     | "toggle"
     | "todo"
-    | "table"
-    | "file"
     | "image"
     | "video"
     | "audio"
-    | "bookmark"
-    | "embed"
     | "divider"
     | "callout"
     | "code";
@@ -81,13 +77,9 @@ const slashCommands: SlashCommand[] = [
   { id: "numbered", label: "Numbered list", description: "Start a numbered list on this line.", glyph: "1.", keywords: ["ordered", "numbered", "list"] },
   { id: "toggle", label: "Toggle list", description: "Insert a toggle-style text marker.", glyph: ">", keywords: ["collapse", "collapsible", "toggle"] },
   { id: "todo", label: "Todo", description: "Insert a checkbox-style task.", glyph: "[]", keywords: ["task", "checkbox"] },
-  { id: "table", label: "Table", description: "Insert a markdown table scaffold.", glyph: "TB", keywords: ["grid", "columns", "rows"] },
-  { id: "file", label: "File", description: "Insert a file link placeholder.", glyph: "F", keywords: ["upload", "attachment", "document"] },
   { id: "image", label: "Image", description: "Upload, drop, or paste an image into the note.", glyph: "IM", keywords: ["photo", "media", "upload"] },
   { id: "video", label: "Video", description: "Insert a video link placeholder.", glyph: "V", keywords: ["movie", "media", "clip"] },
   { id: "audio", label: "Audio", description: "Insert an audio link placeholder.", glyph: "A", keywords: ["sound", "voice", "media"] },
-  { id: "bookmark", label: "Web bookmark", description: "Insert a saved-link placeholder.", glyph: "BK", keywords: ["web", "link", "url"] },
-  { id: "embed", label: "Embed", description: "Insert an embed URL placeholder.", glyph: "EM", keywords: ["iframe", "youtube", "vimeo"] },
   { id: "divider", label: "Divider", description: "Insert a subtle text divider.", glyph: "//", keywords: ["rule", "separator"] },
   { id: "callout", label: "Callout", description: "Highlight the note with a callout prompt.", glyph: "!", keywords: ["highlight", "notice", "important"] },
   { id: "code", label: "Code", description: "Insert a fenced code block.", glyph: "</>", keywords: ["snippet", "pre", "monospace"] },
@@ -456,18 +448,6 @@ ${nextPrefix}${afterContent}${normalizedValue.slice(context.lineEnd)}`;
       return;
     }
 
-    if (command.id === "table") {
-      applySelectionUpdate(
-        replaceRange(editing.text, slashMenu.start, slashMenu.end, "| Column 1 | Column 2 |\n| --- | --- |\n| Value | Value |"),
-      );
-      return;
-    }
-
-    if (command.id === "file") {
-      insertPromptedLinkLine("File", "https://example.com/file");
-      return;
-    }
-
     if (command.id === "image") {
       applySelectionUpdate(replaceRange(editing.text, slashMenu.start, slashMenu.end, ""));
       openImageInsert(editing.id);
@@ -481,16 +461,6 @@ ${nextPrefix}${afterContent}${normalizedValue.slice(context.lineEnd)}`;
 
     if (command.id === "audio") {
       insertPromptedLinkLine("Audio", "https://example.com/audio");
-      return;
-    }
-
-    if (command.id === "bookmark") {
-      insertPromptedLinkLine("Bookmark", "https://example.com", "Saved");
-      return;
-    }
-
-    if (command.id === "embed") {
-      insertPromptedLinkLine("Embed", "https://example.com/embed", "Embed");
       return;
     }
 
