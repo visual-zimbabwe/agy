@@ -70,6 +70,8 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
   const editingTextStyle = getNoteTextStyle(editingNote.textSize, editingNote.textSizePx);
   const editingJournalDate = formatJournalDateLabel(editingNote.createdAt);
   const isEditingJournal = editingNote.noteKind === "journal";
+  const isImageCaptionEditor = Boolean(editingNote.imageUrl?.trim());
+  const imageCaptionEditorHeight = Math.min(Math.max(72, editingNote.h * camera.zoom * 0.24), 112);
 
   const commandQuery = menu?.query.trim().toLowerCase() ?? "";
   const filteredCommands = commandQuery
@@ -275,9 +277,10 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
       className="absolute z-[46]"
       style={(() => {
         const screen = toScreenPoint(editingNote.x, editingNote.y, camera);
+        const noteHeight = editingNote.h * camera.zoom;
         return {
           left: `${screen.x}px`,
-          top: `${screen.y}px`,
+          top: `${(isImageCaptionEditor ? screen.y + noteHeight - imageCaptionEditorHeight - 8 : screen.y)}px`,
           width: `${editingNote.w * camera.zoom}px`,
         };
       })()}
@@ -359,12 +362,28 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
               };
             }
 
+            if (isImageCaptionEditor) {
+              return {
+                ...baseStyle,
+                height: `${imageCaptionEditorHeight}px`,
+                backgroundColor: 'rgba(255,255,255,0.96)',
+                borderRadius: '16px',
+                paddingTop: '12px',
+                paddingBottom: '12px',
+                paddingLeft: '14px',
+                paddingRight: '14px',
+                color: '#475569',
+                fontSize: `${Math.min(editingTextStyle.fontSize, 14)}px`,
+                lineHeight: '1.35',
+              };
+            }
+
             return {
               ...baseStyle,
               backgroundColor: editingNote.color,
             };
           })()}
-          placeholder="Type '/' for commands"
+          placeholder={isImageCaptionEditor ? "Add caption" : "Type '/' for commands"}
           spellCheck
         />
       </div>

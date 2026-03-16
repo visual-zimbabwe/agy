@@ -19,6 +19,69 @@ const buildJournalPagePoints = (width: number, height: number) => [10, 0, width 
 
 const estimateJournalDateWidth = (label: string, fontSize: number) => Math.max(92, label.length * fontSize * 0.52);
 
+const IMAGE_NOTE_PADDING = 6;
+const IMAGE_NOTE_RADIUS = 16;
+const IMAGE_NOTE_CAPTION_GAP = 8;
+const IMAGE_NOTE_CAPTION_FONT_SIZE = 12;
+const IMAGE_NOTE_CAPTION_LINE_HEIGHT = 1.28;
+const IMAGE_NOTE_CAPTION_MAX_LINES = 3;
+
+const estimateImageCaptionHeight = (noteWidth: number, caption: string) => {
+  const trimmed = caption.trim();
+  if (!trimmed) {
+    return 0;
+  }
+  const innerWidth = Math.max(72, noteWidth - 24);
+  const approxCharsPerLine = Math.max(16, Math.floor(innerWidth / 7));
+  const lines = Math.min(IMAGE_NOTE_CAPTION_MAX_LINES, Math.max(1, Math.ceil(trimmed.length / approxCharsPerLine)));
+  return Math.ceil(lines * IMAGE_NOTE_CAPTION_FONT_SIZE * IMAGE_NOTE_CAPTION_LINE_HEIGHT + 18);
+};
+
+const getImageNoteAutoHeight = (note: Pick<Note, "w" | "text">, image?: HTMLImageElement) => {
+  const availableWidth = Math.max(1, note.w - IMAGE_NOTE_PADDING * 2);
+  const captionHeight = estimateImageCaptionHeight(note.w, note.text);
+  const captionGap = captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0;
+  const fallbackHeight = availableWidth * 0.7;
+
+  if (!image || !image.naturalWidth || !image.naturalHeight) {
+    return Math.max(NOTE_DEFAULTS.minHeight, Math.round(IMAGE_NOTE_PADDING * 2 + fallbackHeight + captionGap + captionHeight));
+  }
+
+  const intrinsicHeight = image.naturalHeight * (availableWidth / image.naturalWidth);
+  return Math.max(NOTE_DEFAULTS.minHeight, Math.round(IMAGE_NOTE_PADDING * 2 + intrinsicHeight + captionGap + captionHeight));
+};
+
+const getContainedImageLayout = (note: Pick<Note, "w" | "h" | "text">, image?: HTMLImageElement) => {
+  const captionHeight = estimateImageCaptionHeight(note.w, note.text);
+  const captionGap = captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0;
+  const availableWidth = Math.max(1, note.w - IMAGE_NOTE_PADDING * 2);
+  const availableHeight = Math.max(1, note.h - IMAGE_NOTE_PADDING * 2 - captionHeight - captionGap);
+
+  if (!image || !image.naturalWidth || !image.naturalHeight) {
+    return {
+      captionHeight,
+      imageX: IMAGE_NOTE_PADDING,
+      imageY: IMAGE_NOTE_PADDING,
+      imageWidth: availableWidth,
+      imageHeight: availableHeight,
+    };
+  }
+
+  const widthRatio = availableWidth / image.naturalWidth;
+  const heightRatio = availableHeight / image.naturalHeight;
+  const scale = Math.min(widthRatio, heightRatio);
+  const imageWidth = Math.max(1, image.naturalWidth * scale);
+  const imageHeight = Math.max(1, image.naturalHeight * scale);
+
+  return {
+    captionHeight,
+    imageX: IMAGE_NOTE_PADDING + (availableWidth - imageWidth) / 2,
+    imageY: IMAGE_NOTE_PADDING + (availableHeight - imageHeight) / 2,
+    imageWidth,
+    imageHeight,
+  };
+};
+
 type WallNotesLayerProps = {
   visibleNotes: Note[];
   activeSelectedNoteIds: string[];
@@ -114,6 +177,7 @@ export const WallNotesLayer = ({
   const [failedImagesByUrl, setFailedImagesByUrl] = useState<Record<string, true>>({});
   const colorWashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
   const sizePulseTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
+  const imageLayoutSignatureRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     const reducedMotion = typeof document !== "undefined" && document.documentElement.classList.contains("motion-reduce");
@@ -217,6 +281,34 @@ export const WallNotesLayer = ({
   }, [failedImagesByUrl, loadedImagesByUrl, visibleNotes]);
 
   useEffect(() => {
+    const nextSignatures: Record<string, string> = {};
+
+    for (const note of visibleNotes) {
+      const imageUrl = note.imageUrl?.trim();
+      if (!imageUrl) {
+        continue;
+      }
+      const image = loadedImagesByUrl[imageUrl];
+      if (!image) {
+        continue;
+      }
+
+      const signature = `${imageUrl}|${note.w}|${note.text.trim()}|${image.naturalWidth}x${image.naturalHeight}`;
+      nextSignatures[note.id] = signature;
+      if (imageLayoutSignatureRef.current[note.id] === signature) {
+        continue;
+      }
+
+      const nextHeight = getImageNoteAutoHeight(note, image);
+      if (Math.abs(note.h - nextHeight) > 2) {
+        updateNote(note.id, { h: nextHeight });
+      }
+    }
+
+    imageLayoutSignatureRef.current = nextSignatures;
+  }, [loadedImagesByUrl, updateNote, visibleNotes]);
+
+  useEffect(() => {
     const colorWashTimers = colorWashTimersRef.current;
     const sizePulseTimers = sizePulseTimersRef.current;
     return () => {
@@ -267,35 +359,36 @@ export const WallNotesLayer = ({
         const journalLineGap = 31;
         const textX = isQuote ? 18 : isJournal ? journalWritingX : 12;
         const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalWritingX + 18 : 24));
-        const noteTextContent = isVocabulary
-          ? isVocabularyBack
-            ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
-            : vocabulary?.word?.trim() || "Add word in Word Review"
-          : isCanon
-            ? canon?.mode === "list"
-              ? canonListPreview || "Add list items"
-              : canonSinglePreview || "Add statement"
-          : isQuote
-            ? truncateNoteText(noteView.text, {
-                ...noteView,
-                w: textWidth + 24,
-                h: Math.max(40, noteView.h - quoteAttributionHeight - quoteMarkInset - 8),
-              }) || "Add quote text"
-          : truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit";
+        const imageUrl = noteView.imageUrl?.trim();
+        const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
+        const isImageNote = Boolean(imageUrl);
+        const imageCaption = noteView.text.trim();
+        const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, noteImage) : null;
+        const noteTextContent = isImageNote
+          ? imageCaption
+          : isVocabulary
+            ? isVocabularyBack
+              ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
+              : vocabulary?.word?.trim() || "Add word in Word Review"
+            : isCanon
+              ? canon?.mode === "list"
+                ? canonListPreview || "Add list items"
+                : canonSinglePreview || "Add statement"
+            : isQuote
+              ? truncateNoteText(noteView.text, {
+                  ...noteView,
+                  w: textWidth + 24,
+                  h: Math.max(40, noteView.h - quoteAttributionHeight - quoteMarkInset - 8),
+                }) || "Add quote text"
+              : truncateNoteText(noteView.text, noteView) || "Double-click or press Enter to edit";
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
         const tagPalette = noteTagChipPalette(noteView.color);
-        const imageUrl = noteView.imageUrl?.trim();
-        const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
-        const imageFrameHeight = imageUrl
-          ? Math.max(44, Math.min(noteView.h * 0.58, Math.max(44, noteView.h - 70)))
-          : 0;
-        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
-        const textHeight = Math.max(
-          0,
-          noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 43 : 0),
-        );
+        const textY = isImageNote ? 0 : 12 + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
+        const textHeight = isImageNote
+          ? 0
+          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 43 : 0));
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
         const journalDateFontSize = Math.max(13, noteTextStyle.fontSize - 2);
         const journalDateUnderlineWidth = Math.min(estimateJournalDateWidth(journalDateLabel, journalDateFontSize), Math.max(0, noteView.w - journalWritingX - 18));
@@ -361,9 +454,17 @@ export const WallNotesLayer = ({
               selectSingleNote(note.id);
               if (note.vocabulary) {
                 toggleVocabularyFlip(note.id);
-              } else {
-                openEditor(note.id, note.text);
+                return;
               }
+              if (imageUrl) {
+                const href = window.prompt("Image URL", imageUrl);
+                if (href === null) {
+                  return;
+                }
+                updateNote(note.id, { imageUrl: href.trim() || undefined });
+                return;
+              }
+              openEditor(note.id, note.text);
             }}
             onDragStart={(event) => {
               if (isTimeLocked || isPinned) {
@@ -537,6 +638,92 @@ export const WallNotesLayer = ({
                 lineJoin="round"
                 tension={0.12}
               />
+            ) : isImageNote && imageNoteLayout ? (
+              <>
+                <Rect
+                  width={noteView.w}
+                  height={noteView.h}
+                  cornerRadius={IMAGE_NOTE_RADIUS}
+                  fill="#FFFFFF"
+                  stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
+                  strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
+                  shadowColor="#101010"
+                  shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
+                  shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
+                  shadowOffsetY={isDragging ? 7 : 3}
+                />
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={note.color} opacity={0.08} listening={false} />
+                {noteImage ? (
+                  <KonvaImage
+                    x={imageNoteLayout.imageX}
+                    y={imageNoteLayout.imageY}
+                    width={imageNoteLayout.imageWidth}
+                    height={imageNoteLayout.imageHeight}
+                    image={noteImage}
+                    cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
+                    listening={false}
+                  />
+                ) : (
+                  <>
+                    <Rect
+                      x={IMAGE_NOTE_PADDING}
+                      y={IMAGE_NOTE_PADDING}
+                      width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
+                      height={Math.max(1, noteView.h - IMAGE_NOTE_PADDING * 2 - imageNoteLayout.captionHeight - (imageNoteLayout.captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0))}
+                      cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
+                      fill="#F4F6FB"
+                      stroke="#CBD5E1"
+                      strokeWidth={1}
+                      dash={[6, 4]}
+                      listening={false}
+                    />
+                    <Text
+                      x={14}
+                      y={Math.max(18, noteView.h / 2 - 8)}
+                      width={Math.max(0, noteView.w - 28)}
+                      align="center"
+                      fontSize={11}
+                      fill="#64748B"
+                      text={imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image..."}
+                      listening={false}
+                    />
+                  </>
+                )}
+                {imageCaption && (
+                  <>
+                    <Rect
+                      x={IMAGE_NOTE_PADDING}
+                      y={noteView.h - IMAGE_NOTE_PADDING - imageNoteLayout.captionHeight - 2}
+                      width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
+                      height={imageNoteLayout.captionHeight + 2}
+                      cornerRadius={12}
+                      fill="#FFFFFF"
+                      opacity={0.94}
+                      listening={false}
+                    />
+                    <Text
+                      x={14}
+                      y={noteView.h - IMAGE_NOTE_PADDING - imageNoteLayout.captionHeight + 5}
+                      width={Math.max(0, noteView.w - 28)}
+                      height={Math.max(0, imageNoteLayout.captionHeight - 10)}
+                      fontSize={IMAGE_NOTE_CAPTION_FONT_SIZE}
+                      fontFamily={noteTextFontFamily}
+                      lineHeight={IMAGE_NOTE_CAPTION_LINE_HEIGHT}
+                      fill="#475569"
+                      text={imageCaption}
+                      ellipsis
+                      onClick={(event) => {
+                        if (isTimeLocked) {
+                          return;
+                        }
+                        event.cancelBubble = true;
+                        selectSingleNote(note.id);
+                        openEditor(note.id, noteView.text);
+                      }}
+                    />
+                  </>
+                )}
+              </>
             ) : (
               <Rect
                 width={noteView.w}
@@ -626,68 +813,34 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {imageUrl && (
-              <>
-                <Rect
-                  x={12}
-                  y={13}
-                  width={Math.max(0, noteView.w - 24)}
-                  height={imageFrameHeight}
-                  cornerRadius={10}
-                  fill="#ffffff"
-                  opacity={0.4}
-                  stroke="#1f2937"
-                  strokeWidth={0.5}
-                />
-                {noteImage ? (
-                  <KonvaImage
-                    x={12}
-                    y={13}
-                    width={Math.max(0, noteView.w - 24)}
-                    height={imageFrameHeight}
-                    image={noteImage}
-                    cornerRadius={10}
-                    listening={false}
-                  />
-                ) : (
-                  <Text
-                    x={18}
-                    y={12 + imageFrameHeight / 2 - 6}
-                    width={Math.max(0, noteView.w - 36)}
-                    align="center"
-                    fontSize={10}
-                    fill="#334155"
-                    text={failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image..."}
-                  />
-                )}
-              </>
+            {!isImageNote && (
+              <Text
+                x={textX}
+                y={textY}
+                width={textWidth}
+                height={textHeight}
+                fontSize={(isJournal ? Math.max(17, noteTextStyle.fontSize) : noteTextStyle.fontSize) * textSpringFactor}
+                fontFamily={noteTextFontFamily}
+                fontStyle={isQuote ? "italic" : "normal"}
+                fill={resolvedTextColor}
+                lineHeight={isJournal ? 1.72 : noteTextStyle.lineHeight}
+                align={isVocabulary ? "center" : (noteView.textAlign ?? "left")}
+                verticalAlign={noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign}
+                text={noteTextContent}
+                onClick={(event) => {
+                  if (isTimeLocked) {
+                    return;
+                  }
+                  event.cancelBubble = true;
+                  selectSingleNote(note.id);
+                  if (isVocabulary) {
+                    toggleVocabularyFlip(note.id);
+                  } else {
+                    openEditor(note.id, noteView.text);
+                  }
+                }}
+              />
             )}
-            <Text
-              x={textX}
-              y={textY}
-              width={textWidth}
-              height={textHeight}
-              fontSize={(isJournal ? Math.max(17, noteTextStyle.fontSize) : noteTextStyle.fontSize) * textSpringFactor}
-              fontFamily={noteTextFontFamily}
-              fontStyle={isQuote ? "italic" : "normal"}
-              fill={resolvedTextColor}
-              lineHeight={isJournal ? 1.72 : noteTextStyle.lineHeight}
-              align={isVocabulary ? "center" : (noteView.textAlign ?? "left")}
-              verticalAlign={noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign}
-              text={noteTextContent}
-              onClick={(event) => {
-                if (isTimeLocked) {
-                  return;
-                }
-                event.cancelBubble = true;
-                selectSingleNote(note.id);
-                if (isVocabulary) {
-                  toggleVocabularyFlip(note.id);
-                } else {
-                  openEditor(note.id, noteView.text);
-                }
-              }}
-            />
             {isQuote && (
               <Text
                 x={14}
@@ -748,7 +901,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags &&
+            {showNoteTags && !isImageNote &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -773,7 +926,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && overflowTags > 0 && (
+            {showNoteTags && !isImageNote && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}

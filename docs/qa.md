@@ -155,6 +155,21 @@ Expected:
 - Slash commands appear at the caret, filter live, and remain fully keyboard accessible.
 - Formatting shortcuts work directly in the textarea without requiring toolbar interaction.
 - Editor overlays stay in front of the note but do not interfere with note drag/resize behavior once edit mode exits.
+
+## Wall Image Notes (2026-03-16)
+1. Open /wall and create or select a note with an image URL.
+2. Verify the image occupies the full card treatment and there is no empty body text area below it.
+3. Check a landscape image and a portrait image; verify each keeps its original aspect ratio without cropping or stretching.
+4. If the image note has no text, verify the card shows only the image.
+5. Add text to the image note, then verify it renders as a subtle caption below the image with limited lines.
+6. Click the image note body and verify it selects the card without opening a large text editor.
+7. Click the caption text and verify a compact bottom caption editor appears.
+8. Double-click the image note and verify image replacement/editing opens.
+
+Expected:
+- Image notes behave like media cards, with the image as the dominant content.
+- Card height follows the image aspect ratio closely enough to avoid cropping and large dead space.
+- Captions are optional, visually secondary, and edited through a compact caption UI instead of a full note body editor.
 ## Electron Desktop Packaging (2026-02-18)
 1. In `idea-wall-studio`, run `npm install`.
 2. Run `npm run dist`.
