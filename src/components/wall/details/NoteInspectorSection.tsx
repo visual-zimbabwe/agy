@@ -157,7 +157,7 @@ export const NoteInspectorSection = ({
                     key={align}
                     type="button"
                     onClick={() => onTextHorizontalAlignChange(align)}
-                    className={selectedNote.textAlign === align ? segmentedButtonActiveClass : segmentedButtonClass}
+                    className={(selectedNote.textAlign ?? "left") === align ? segmentedButtonActiveClass : segmentedButtonClass}
                     disabled={isTimeLocked}
                   >
                     {align[0]?.toUpperCase() + align.slice(1)}

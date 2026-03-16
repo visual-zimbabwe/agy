@@ -1156,11 +1156,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   const {
     applyColorToSelection,
-    applyTextSizeToSelection,
-    applyTextFontToSelection,
-    applyTextColorToSelection,
-    applyTextHorizontalAlignToSelection,
-    applyTextVerticalAlignToSelection,
     makeNoteAtViewportCenter,
     makeZoneAtViewportCenter,
     applySelectedTemplate,
@@ -2254,12 +2249,42 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onRemoveTag={removeTagFromSelectedNote}
           linkingFromNoteId={ui.linkingFromNoteId}
           isSelectedNoteFocused={Boolean(primarySelectedNote && focusedNoteId === primarySelectedNote.id)}
-          onTextFontChange={applyTextFontToSelection}
-          onTextSizeChange={applyTextSizeToSelection}
-          onTextColorChange={applyTextColorToSelection}
-          onTextHorizontalAlignChange={applyTextHorizontalAlignToSelection}
-          onTextVerticalAlignChange={applyTextVerticalAlignToSelection}
-          onBackgroundColorChange={applyColorToSelection}
+          onTextFontChange={(font) => {
+            if (!primarySelectedNote || isTimeLocked) {
+              return;
+            }
+            updateNote(primarySelectedNote.id, { textFont: font });
+          }}
+          onTextSizeChange={(sizePx) => {
+            if (!primarySelectedNote || isTimeLocked) {
+              return;
+            }
+            updateNote(primarySelectedNote.id, { textSizePx: sizePx });
+          }}
+          onTextColorChange={(color) => {
+            if (!primarySelectedNote || isTimeLocked) {
+              return;
+            }
+            updateNote(primarySelectedNote.id, { textColor: color });
+          }}
+          onTextHorizontalAlignChange={(align) => {
+            if (!primarySelectedNote || isTimeLocked) {
+              return;
+            }
+            updateNote(primarySelectedNote.id, { textAlign: align });
+          }}
+          onTextVerticalAlignChange={(align) => {
+            if (!primarySelectedNote || isTimeLocked) {
+              return;
+            }
+            updateNote(primarySelectedNote.id, { textVAlign: align });
+          }}
+          onBackgroundColorChange={(color) => {
+            if (!primarySelectedNote || isTimeLocked) {
+              return;
+            }
+            updateNote(primarySelectedNote.id, { color });
+          }}
           onDuplicateSelectedNote={duplicateNote}
           onTogglePinSelectedNote={togglePinOnNote}
           onToggleHighlightSelectedNote={toggleHighlightOnNote}
