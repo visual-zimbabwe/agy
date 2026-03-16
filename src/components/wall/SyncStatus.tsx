@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ControlTooltip } from "@/components/wall/WallControls";
 import { Panel } from "@/components/ui/Panel";
@@ -22,6 +22,18 @@ type SyncPillState = {
   pillClass: string;
 };
 
+const subscribeToOnlineStatus = (callback: () => void) => {
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
+  return () => {
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
+  };
+};
+
+const getOnlineSnapshot = () => navigator.onLine;
+const getServerOnlineSnapshot = () => true;
+
 export const SyncStatus = ({
   hasCloudWall,
   isSyncing,
@@ -32,20 +44,9 @@ export const SyncStatus = ({
   onSyncNow,
 }: SyncStatusProps) => {
   const [open, setOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  const isOnline = useSyncExternalStore(subscribeToOnlineStatus, getOnlineSnapshot, getServerOnlineSnapshot);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -71,7 +72,7 @@ export const SyncStatus = ({
   }, [open]);
 
   const state = useMemo<SyncPillState>(() => {
-    const isSaving = localSaveState === "saving" || hasPendingSync || isSyncing || !hasCloudWall;
+    const isSaving = localSaveState === "saving" || hasPendingSync || isSyncing || (!hasCloudWall && isOnline);
 
     if (syncError || localSaveState === "error") {
       return {
