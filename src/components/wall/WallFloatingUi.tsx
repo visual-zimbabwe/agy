@@ -253,12 +253,14 @@ export const WallFloatingUi = ({
               {isEditingJournal && (
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute left-4 top-3 z-[1] text-left"
+                  className="pointer-events-none absolute z-[1] text-left"
                   style={{
                     color: editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor,
                     fontFamily: getNoteTextFontFamily(editingNote.textFont),
                     fontSize: `${Math.max(13, editingTextStyle.fontSize - 2)}px`,
                     lineHeight: "1.1",
+                    left: "56px",
+                    top: "12px",
                   }}
                 >
                   <span style={{ borderBottom: `2px solid ${editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor}`, paddingBottom: "1px", display: "inline-block" }}>
@@ -289,7 +291,7 @@ export const WallFloatingUi = ({
                       ...baseStyle,
                       ...journalEditorBackground,
                       borderRadius: "14px",
-                      paddingTop: "62px",
+                      paddingTop: "45px",
                       paddingLeft: "56px",
                       paddingRight: "18px",
                       paddingBottom: "18px",
@@ -880,6 +882,8 @@ export const WallFloatingUi = ({
     </>
   );
 };
+
+
 
 
 

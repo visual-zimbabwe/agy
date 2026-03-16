@@ -262,8 +262,11 @@ export const WallNotesLayer = ({
         const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
         const quoteMarkInset = isQuote ? 13 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
-        const textX = isQuote ? 18 : isJournal ? 56 : 12;
-        const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? 74 : 24));
+        const journalWritingX = 56;
+        const journalFirstLineY = 30;
+        const journalLineGap = 31;
+        const textX = isQuote ? 18 : isJournal ? journalWritingX : 12;
+        const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalWritingX + 18 : 24));
         const noteTextContent = isVocabulary
           ? isVocabularyBack
             ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
@@ -288,17 +291,17 @@ export const WallNotesLayer = ({
         const imageFrameHeight = imageUrl
           ? Math.max(44, Math.min(noteView.h * 0.58, Math.max(44, noteView.h - 70)))
           : 0;
-        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset + canonTitleInset + (isJournal ? 50 : 0);
+        const textY = 12 + (imageUrl ? imageFrameHeight + 8 : 0) + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
         const textHeight = Math.max(
           0,
-          noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 50 : 0),
+          noteView.h - 56 - (imageUrl ? imageFrameHeight + 8 : 0) - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 43 : 0),
         );
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
         const journalDateFontSize = Math.max(13, noteTextStyle.fontSize - 2);
         const journalDateWidth = estimateJournalDateWidth(journalDateLabel, journalDateFontSize);
-        const journalDateX = 18;
-        const journalLineGap = 31;
-        const journalLineStartY = 30;
+        const journalDateX = journalWritingX;
+
+        const journalLineStartY = journalFirstLineY;
         const journalLineCount = isJournal ? Math.max(0, Math.floor((noteView.h - journalLineStartY - 18) / journalLineGap) + 1) : 0;
         const journalLineYs = Array.from({ length: journalLineCount }, (_, index) => journalLineStartY + index * journalLineGap);
 
@@ -594,7 +597,7 @@ export const WallNotesLayer = ({
                 ))}
                 <Text
                   x={journalDateX}
-                  y={12}
+                  y={13}
                   width={journalDateWidth}
                   align="left"
                   fontSize={journalDateFontSize}
@@ -604,7 +607,7 @@ export const WallNotesLayer = ({
                   listening={false}
                 />
                 <Line
-                  points={[journalDateX, 29, journalDateX + journalDateWidth, 29]}
+                  points={[journalDateX, journalFirstLineY - 1, journalDateX + journalDateWidth, journalFirstLineY - 1]}
                   stroke={resolvedTextColor}
                   strokeWidth={1.35}
                   opacity={0.82}
@@ -625,7 +628,7 @@ export const WallNotesLayer = ({
               <>
                 <Rect
                   x={12}
-                  y={12}
+                  y={13}
                   width={Math.max(0, noteView.w - 24)}
                   height={imageFrameHeight}
                   cornerRadius={10}
@@ -637,7 +640,7 @@ export const WallNotesLayer = ({
                 {noteImage ? (
                   <KonvaImage
                     x={12}
-                    y={12}
+                    y={13}
                     width={Math.max(0, noteView.w - 24)}
                     height={imageFrameHeight}
                     image={noteImage}
@@ -700,7 +703,7 @@ export const WallNotesLayer = ({
             {isCanon && canonTitle && (
               <Text
                 x={12}
-                y={12}
+                y={13}
                 width={Math.max(0, noteView.w - 24)}
                 fontSize={11}
                 fontStyle="bold"
@@ -785,6 +788,8 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
+
 
 
 
