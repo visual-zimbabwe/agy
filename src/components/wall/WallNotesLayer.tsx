@@ -358,7 +358,7 @@ export const WallNotesLayer = ({
           .filter(Boolean)
           .join("\n\n");
         const canonTitle = canon?.title?.trim();
-        const quoteAttribution = [noteView.quoteAuthor, noteView.quoteSource].filter(Boolean).join(" - ");
+        const quoteAttribution = noteView.quoteAuthor?.trim() ?? "";
         const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
         const quoteMarkInset = isQuote ? 13 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
@@ -1004,6 +1004,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 
