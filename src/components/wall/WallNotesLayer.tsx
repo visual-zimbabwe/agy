@@ -298,7 +298,8 @@ export const WallNotesLayer = ({
         );
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
         const journalDateFontSize = Math.max(13, noteTextStyle.fontSize - 2);
-        const journalDateWidth = estimateJournalDateWidth(journalDateLabel, journalDateFontSize);
+        const journalDateUnderlineWidth = Math.min(estimateJournalDateWidth(journalDateLabel, journalDateFontSize), Math.max(0, noteView.w - journalWritingX - 18));
+        const journalDateWidth = Math.max(0, noteView.w - journalWritingX - 18);
         const journalDateX = journalWritingX;
 
         const journalLineStartY = journalFirstLineY;
@@ -604,10 +605,11 @@ export const WallNotesLayer = ({
                   fontFamily={noteTextFontFamily}
                   fill={resolvedTextColor}
                   text={journalDateLabel}
+                  wrap="none"
                   listening={false}
                 />
                 <Line
-                  points={[journalDateX, journalFirstLineY - 1, journalDateX + journalDateWidth, journalFirstLineY - 1]}
+                  points={[journalDateX, journalFirstLineY - 1, journalDateX + journalDateUnderlineWidth, journalFirstLineY - 1]}
                   stroke={resolvedTextColor}
                   strokeWidth={1.35}
                   opacity={0.82}
@@ -788,6 +790,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 
