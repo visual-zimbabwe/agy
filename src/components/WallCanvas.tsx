@@ -750,6 +750,18 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     void syncSnapshotToCloud(cloudWallId, snapshot);
   }, [cloudWallId, syncSnapshotToCloud]);
 
+  const handleLocalSaveStateChange = useCallback((state: "saving" | "saved" | "error") => {
+    if (state === "saving") {
+      setLocalSaveState("saving");
+      return;
+    }
+    if (state === "error") {
+      setLocalSaveState("error");
+      return;
+    }
+    setLocalSaveState("idle");
+  }, []);
+
   useWallPersistenceEffects({
     hydrate,
     publishedReadOnly,
@@ -759,17 +771,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setTimelineEntries,
     setTimelineIndex,
     setSyncError,
-    onLocalSaveStateChange: (state) => {
-      if (state === "saving") {
-        setLocalSaveState("saving");
-        return;
-      }
-      if (state === "error") {
-        setLocalSaveState("error");
-        return;
-      }
-      setLocalSaveState("idle");
-    },
+    onLocalSaveStateChange: handleLocalSaveStateChange,
     cloudReadyRef,
     cloudSyncTimerRef,
     lastTimelineSerialized,
