@@ -147,7 +147,7 @@ Expected:
 7. Type `/` in an editing note and verify the slash menu opens below the caret.
 8. Type `/quo`, `/jour`, `/todo`, and `/img` in separate checks; verify the command list filters as you type.
 9. With slash menu open, use `ArrowUp/ArrowDown`, `Enter`, `Tab`, and `Esc`; verify keyboard navigation, command insertion, and dismissal all work.
-10. Run `/quote`, `/journal`, `/list`, `/todo`, `/image`, and `/divider`; verify each command updates the note/editor as expected without breaking dragging, resizing, or saving after blur.
+10. Run `/text`, `/h1`, `/h2`, `/h3`, `/quote`, `/journal`, `/bulleted`, `/numbered`, `/toggle`, `/todo`, `/table`, `/file`, `/image`, `/video`, `/audio`, `/bookmark`, `/embed`, `/divider`, `/callout`, and `/code`; verify each command updates the note/editor with the expected style change, text scaffold, prompt flow, or image modal without breaking dragging, resizing, or saving after blur.
 11. Open the slash menu and selection toolbar near viewport edges on desktop and mobile widths; verify they remain visible and are not clipped by surrounding wall UI.
 
 Expected:
