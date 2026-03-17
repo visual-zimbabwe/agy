@@ -56,13 +56,26 @@ export type CanonNote = {
   items: CanonListItem[];
 };
 
+export type EisenhowerQuadrantKey = "doFirst" | "schedule" | "delegate" | "delete";
+
+export type EisenhowerQuadrant = {
+  title: string;
+  content: string;
+};
+
+export type EisenhowerNote = {
+  displayDate: string;
+  quadrants: Record<EisenhowerQuadrantKey, EisenhowerQuadrant>;
+};
+
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon" | "journal";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
   canon?: CanonNote;
+  eisenhower?: EisenhowerNote;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";
@@ -187,3 +200,4 @@ export type WallState = {
 export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links" | "camera"> & {
   lastColor?: string;
 };
+

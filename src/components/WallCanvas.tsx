@@ -76,6 +76,7 @@ import {
   createCanonNote,
   createJournalNote,
   createQuoteNote,
+  createEisenhowerNote,
   createLink,
   createZone,
   createZoneGroup,
@@ -95,7 +96,7 @@ import {
   updateLinkType,
   updateZone,
 } from "@/features/wall/commands";
-import { LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
+import { EISENHOWER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
@@ -123,6 +124,7 @@ import { getImageFileFromClipboard, getImageFilesFromDataTransfer, readImageFile
 type EditingState = {
   id: string;
   text: string;
+  focusField?: string;
 };
 
 type ImageInsertState = {
@@ -475,10 +477,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
   }, [renderSnapshot.notes, syncWikiLinksForNote]);
 
-  const openEditor = useCallback((noteId: string, text: string) => {
+  const openEditor = useCallback((noteId: string, text: string, focusField?: string) => {
     setEditTagInput("");
     setEditTagRenameFrom(null);
-    setEditing({ id: noteId, text });
+    setEditing({ id: noteId, text, focusField });
   }, []);
 
   const normalizeTag = (raw: string) => raw.trim().replace(/^#/, "").toLowerCase();
@@ -1040,6 +1042,20 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
   }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
 
+  const makeEisenhowerNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const id = createEisenhowerNote(
+      world.x - EISENHOWER_NOTE_DEFAULTS.width / 2,
+      world.y - EISENHOWER_NOTE_DEFAULTS.height / 2,
+    );
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, "", "doFirst");
+  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+
   const toggleVocabularyFlip = useCallback(
     (noteId: string) => {
       if (isTimeLocked) {
@@ -1104,6 +1120,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     createCanonNote: makeCanonNoteAtViewportCenter,
     createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
+    createEisenhowerNote: makeEisenhowerNoteAtViewportCenter,
     createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
     redo,
@@ -1790,6 +1807,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: makeQuoteNoteAtViewportCenter,
       },
       {
+        id: "new-eisenhower-note",
+        label: "Create Eisenhower Matrix note",
+        description: "Add a four-quadrant priority note with editable sections.",
+        shortcut: "Shift + E",
+        keywords: ["matrix", "eisenhower", "priority", "urgent", "important"],
+        disabled: isTimeLocked,
+        onSelect: makeEisenhowerNoteAtViewportCenter,
+      },
+      {
         id: "new-word-note",
         label: "Create word note",
         description: "Capture a vocabulary card with spaced-review fields.",
@@ -2061,6 +2087,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       makeCanonNoteAtViewportCenter,
       makeJournalNoteAtViewportCenter,
       makeQuoteNoteAtViewportCenter,
+      makeEisenhowerNoteAtViewportCenter,
       makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
       readingMode,
@@ -2264,6 +2291,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateCanonNote={makeCanonNoteAtViewportCenter}
             onCreateJournalNote={makeJournalNoteAtViewportCenter}
             onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
+            onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
             onCreateWordNote={makeWordNoteAtViewportCenter}
             onCreateZone={makeZoneAtViewportCenter}
             onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}
@@ -2684,4 +2712,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
+
+
 

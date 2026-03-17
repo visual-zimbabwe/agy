@@ -3,6 +3,7 @@
 import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
+import { EisenhowerMatrixEditor } from "@/components/wall/EisenhowerMatrixEditor";
 import { NoteTextEditor } from "@/components/wall/NoteTextEditor";
 import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
@@ -18,7 +19,7 @@ type LinkContextMenuState = {
 };
 
 type WallFloatingUiProps = {
-  editing: { id: string; text: string } | null;
+  editing: { id: string; text: string; focusField?: string } | null;
   notesById: Record<string, Note>;
   linksById: Record<string, { id: string }>;
   camera: { x: number; y: number; zoom: number };
@@ -155,7 +156,7 @@ export const WallFloatingUi = ({
     <>
       {editing && editingNote && !isTimeLocked && (
         <>
-          {editingNote.noteKind !== "canon" && (
+          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && (
             <NoteTextEditor
               editing={editing}
               editingNote={editingNote}
@@ -340,7 +341,16 @@ export const WallFloatingUi = ({
               </div>
             </div>
           )}
-          {editingNote.noteKind === "quote" && (
+          {editingNote.noteKind === "eisenhower" && editingNote.eisenhower && (
+            <EisenhowerMatrixEditor
+              editing={editing}
+              editingNote={editingNote}
+              camera={camera}
+              toScreenPoint={toScreenPoint}
+              setEditing={setEditing}
+              updateNote={updateNote}
+            />
+          )}          {editingNote.noteKind === "quote" && (
             <div data-note-edit-tags="true" className={noteEditorSectionClass}>
               <p className={noteEditorSectionLabelClass}>Quote Attribution</p>
               <div className="mt-2 grid gap-2">
@@ -533,6 +543,7 @@ export const WallFloatingUi = ({
     </>
   );
 };
+
 
 
 

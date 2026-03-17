@@ -11,7 +11,8 @@ import {
   detailSectionHeading,
   detailSectionTitle,
 } from "@/components/wall/details/detailSectionStyles";
-import { JOURNAL_NOTE_DEFAULTS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
+import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
+import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import type { Note, NoteTextFont } from "@/features/wall/types";
 
 type NoteInspectorSectionProps = {
@@ -78,6 +79,7 @@ export const NoteInspectorSection = ({
     const toQuote = kind === "quote" && selectedNote.noteKind !== "quote";
     const toCanon = kind === "canon" && selectedNote.noteKind !== "canon";
     const toJournal = kind === "journal" && selectedNote.noteKind !== "journal";
+    const toEisenhower = kind === "eisenhower" && selectedNote.noteKind !== "eisenhower";
 
     onUpdateNote(selectedNote.id, {
       noteKind: selectedNote.noteKind === kind ? "standard" : kind,
@@ -94,12 +96,19 @@ export const NoteInspectorSection = ({
             items: [{ id: `canon-item-${Date.now()}`, title: "", text: "", interpretation: "" }],
           }
         : undefined,
-      vocabulary: toCanon || toJournal ? undefined : selectedNote.vocabulary,
-      color: toJournal ? JOURNAL_NOTE_DEFAULTS.color : selectedNote.color,
-      textFont: toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : selectedNote.textFont,
-      textColor: toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : selectedNote.textColor,
-      textSizePx: toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : selectedNote.textSizePx,
-      tags: toJournal ? [...new Set([...selectedNote.tags, "journal"])] : selectedNote.tags,
+      eisenhower: toEisenhower ? createEisenhowerNotePayload(selectedNote.createdAt) : undefined,
+      vocabulary: toCanon || toJournal || toEisenhower ? undefined : selectedNote.vocabulary,
+      color: toJournal ? JOURNAL_NOTE_DEFAULTS.color : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.color : selectedNote.color,
+      textFont: toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textFont : selectedNote.textFont,
+      textColor: toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textColor : selectedNote.textColor,
+      textSizePx: toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textSizePx : selectedNote.textSizePx,
+      w: toEisenhower ? EISENHOWER_NOTE_DEFAULTS.width : selectedNote.w,
+      h: toEisenhower ? EISENHOWER_NOTE_DEFAULTS.height : selectedNote.h,
+      tags: toJournal
+        ? [...new Set([...selectedNote.tags, "journal"])]
+        : toEisenhower
+          ? [...new Set([...selectedNote.tags, "matrix", "priority"])]
+          : selectedNote.tags,
     });
   };
 
@@ -266,10 +275,10 @@ export const NoteInspectorSection = ({
 
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Note Type</p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setNoteKind("quote")} className={typeButtonClass(selectedNote.noteKind === "quote")} disabled={isTimeLocked}>Quote</button>
             <button type="button" onClick={() => setNoteKind("canon")} className={typeButtonClass(selectedNote.noteKind === "canon")} disabled={isTimeLocked}>Canon</button>
-            <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked}>Journal</button>
+            <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked}>Journal</button>`r`n            <button type="button" onClick={() => setNoteKind("eisenhower")} className={typeButtonClass(selectedNote.noteKind === "eisenhower")} disabled={isTimeLocked}>Eisenhower</button>
           </div>
         </div>
 
@@ -287,3 +296,5 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
+
+

@@ -1,4 +1,5 @@
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
+import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import type { CanonNote, PersistedWallState, VocabularyNote, VocabularyReviewOutcome } from "@/features/wall/types";
 
 type WallRow = {
@@ -23,6 +24,7 @@ type NoteRow = {
   highlighted?: boolean | null;
   vocabulary?: unknown;
   canon?: unknown;
+  eisenhower?: unknown;
   tags: unknown;
   text_size: string | null;
   x: number;
@@ -235,34 +237,38 @@ export const rowsToSnapshot = (rows: {
   links: LinkRow[];
 }): PersistedWallState => ({
   notes: Object.fromEntries(
-    rows.notes.map((note) => [
-      note.id,
-      {
-        ...parseTextSize(note.text_size),
-        id: note.id,
-        noteKind: note.note_kind === "quote" || note.note_kind === "canon" || note.note_kind === "journal" ? note.note_kind : "standard",
-        text: note.text,
-        quoteAuthor: note.quote_author?.trim() || undefined,
-        quoteSource: note.quote_source?.trim() || undefined,
-        imageUrl: note.image_url?.trim() || undefined,
-        textAlign: note.text_align === "center" || note.text_align === "right" ? note.text_align : "left",
-        textVAlign: note.text_v_align === "middle" || note.text_v_align === "bottom" ? note.text_v_align : NOTE_DEFAULTS.textVAlign,
-        textFont: normalizeNoteFont(note.text_font),
-        textColor: typeof note.text_color === "string" && note.text_color ? note.text_color : NOTE_DEFAULTS.textColor,
-        pinned: Boolean(note.pinned),
-        highlighted: Boolean(note.highlighted),
-        vocabulary: parseVocabulary(note.vocabulary),
-        canon: parseCanon(note.canon),
-        tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
-        x: note.x,
-        y: note.y,
-        w: note.w,
-        h: note.h,
-        color: note.color,
-        createdAt: fromIso(note.created_at),
-        updatedAt: fromIso(note.updated_at),
-      },
-    ]),
+    rows.notes.map((note) => {
+      const noteKind = note.note_kind === "quote" || note.note_kind === "canon" || note.note_kind === "journal" || note.note_kind === "eisenhower" ? note.note_kind : "standard";
+      return [
+        note.id,
+        {
+          ...parseTextSize(note.text_size),
+          id: note.id,
+          noteKind,
+          text: note.text,
+          quoteAuthor: note.quote_author?.trim() || undefined,
+          quoteSource: note.quote_source?.trim() || undefined,
+          imageUrl: note.image_url?.trim() || undefined,
+          textAlign: note.text_align === "center" || note.text_align === "right" ? note.text_align : "left",
+          textVAlign: note.text_v_align === "middle" || note.text_v_align === "bottom" ? note.text_v_align : NOTE_DEFAULTS.textVAlign,
+          textFont: normalizeNoteFont(note.text_font),
+          textColor: typeof note.text_color === "string" && note.text_color ? note.text_color : NOTE_DEFAULTS.textColor,
+          pinned: Boolean(note.pinned),
+          highlighted: Boolean(note.highlighted),
+          vocabulary: parseVocabulary(note.vocabulary),
+          canon: parseCanon(note.canon),
+          eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(note.eisenhower, fromIso(note.created_at)) : undefined,
+          tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
+          x: note.x,
+          y: note.y,
+          w: note.w,
+          h: note.h,
+          color: note.color,
+          createdAt: fromIso(note.created_at),
+          updatedAt: fromIso(note.updated_at),
+        },
+      ];
+    }),
   ),
   zones: Object.fromEntries(
     rows.zones.map((zone) => [
@@ -334,3 +340,6 @@ export const rowsToSnapshot = (rows: {
   },
   lastColor: rows.wall.last_color ?? undefined,
 });
+
+
+

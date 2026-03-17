@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type
 import { Group, Image as KonvaImage, Line, Rect, Text } from "react-konva";
 import type Konva from "konva";
 
+import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import type { LinkType, Note } from "@/features/wall/types";
@@ -112,7 +113,7 @@ type WallNotesLayerProps = {
   toggleSelectNote: (noteId: string) => void;
   setLinkingFromNote: (noteId?: string) => void;
   setEditing: Dispatch<SetStateAction<{ id: string; text: string } | null>>;
-  openEditor: (noteId: string, text: string) => void;
+  openEditor: (noteId: string, text: string, focusField?: string) => void;
   createLink: (fromNoteId: string, toNoteId: string, linkType: LinkType) => void;
   resolveSnappedPosition: (note: Note, candidateX: number, candidateY: number) => { x: number; y: number };
   runHistoryGroup: (action: () => void) => void;
@@ -347,6 +348,7 @@ export const WallNotesLayer = ({
         const isQuote = noteView.noteKind === "quote";
         const isCanon = noteView.noteKind === "canon";
         const isJournal = noteView.noteKind === "journal";
+        const isEisenhower = noteView.noteKind === "eisenhower";
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
@@ -672,7 +674,21 @@ export const WallNotesLayer = ({
                     cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
                     listening={false}
                   />
-                ) : (
+                ) : isEisenhower ? (
+              <EisenhowerMatrixNote
+                note={noteView}
+                isSelected={isSelected}
+                isHovered={isHovered}
+                isDragging={isDragging}
+                isFlashing={isFlashing}
+                isHighlighted={isHighlighted}
+                colorWashOpacity={colorWashOpacity}
+                textSpringFactor={textSpringFactor}
+                openEditor={openEditor}
+                selectSingleNote={selectSingleNote}
+                isTimeLocked={isTimeLocked}
+              />
+            ) : (
                   <>
                     <Rect
                       x={IMAGE_NOTE_PADDING}
@@ -733,6 +749,20 @@ export const WallNotesLayer = ({
                   </>
                 )}
               </>
+            ) : isEisenhower ? (
+              <EisenhowerMatrixNote
+                note={noteView}
+                isSelected={isSelected}
+                isHovered={isHovered}
+                isDragging={isDragging}
+                isFlashing={isFlashing}
+                isHighlighted={isHighlighted}
+                colorWashOpacity={colorWashOpacity}
+                textSpringFactor={textSpringFactor}
+                openEditor={openEditor}
+                selectSingleNote={selectSingleNote}
+                isTimeLocked={isTimeLocked}
+              />
             ) : (
               <Rect
                 width={noteView.w}
@@ -822,7 +852,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isImageNote && (
+            {!isImageNote && !isEisenhower && (
               <Text
                 x={textX}
                 y={textY}
@@ -850,7 +880,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {isQuote && (
+            {isQuote && !isEisenhower && (
               <Text
                 x={14}
                 y={11}
@@ -864,7 +894,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {isCanon && canonTitle && (
+            {isCanon && canonTitle && !isEisenhower && (
               <Text
                 x={12}
                 y={13}
@@ -878,7 +908,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {isQuote && quoteAttribution && (
+            {isQuote && quoteAttribution && !isEisenhower && (
               <Text
                 x={12}
                 y={Math.max(12, noteView.h - 25)}
@@ -891,7 +921,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && (
+            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;
@@ -962,7 +992,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isImageNote &&
+            {showNoteTags && !isImageNote && !isEisenhower &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -987,7 +1017,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isImageNote && overflowTags > 0 && (
+            {showNoteTags && !isImageNote && !isEisenhower && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}
@@ -1004,6 +1034,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 

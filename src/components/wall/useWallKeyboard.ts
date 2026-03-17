@@ -57,8 +57,9 @@ type WallKeyboardOptions = {
   createCanonNote: () => void;
   createJournalNote: () => void;
   createQuoteNote: () => void;
+  createEisenhowerNote: () => void;
   createWordNote: () => void;
-  openEditor: (noteId: string, text: string) => void;
+  openEditor: (noteId: string, text: string, focusField?: string) => void;
   redo: () => void;
   undo: () => void;
   setLinkingFromNote: (noteId?: string) => void;
@@ -123,6 +124,7 @@ export const useWallKeyboard = ({
   createCanonNote,
   createJournalNote,
   createQuoteNote,
+  createEisenhowerNote,
   createWordNote,
   openEditor,
   redo,
@@ -362,6 +364,12 @@ export const useWallKeyboard = ({
         return;
       }
 
+      if (!ctrlOrMeta && event.shiftKey && key === "e") {
+        event.preventDefault();
+        createEisenhowerNote();
+        return;
+      }
+
       if (!ctrlOrMeta && event.shiftKey && key === "j") {
         event.preventDefault();
         if (typeof createJournalNote === "function") {
@@ -529,6 +537,7 @@ export const useWallKeyboard = ({
     createCanonNote,
     createJournalNote,
     createQuoteNote,
+    createEisenhowerNote,
     createWordNote,
     deleteGroup,
     deleteLink,
@@ -573,5 +582,8 @@ export const useWallKeyboard = ({
     viewport,
   ]);
 };
+
+
+
 
 

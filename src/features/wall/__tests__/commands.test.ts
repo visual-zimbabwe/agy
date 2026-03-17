@@ -6,6 +6,7 @@ import {
   createLink,
   createCanonNote,
   createJournalNote,
+  createEisenhowerNote,
   createNote,
   createQuoteNote,
   createZone,
@@ -78,6 +79,14 @@ describe("wall commands", () => {
     expect(journal?.noteKind).toBe("journal");
     expect(journal?.textFont).toBe("patrick_hand");
     expect(journal?.text).toContain("Today felt like");
+  });
+
+  it("creates Eisenhower notes with quadrant payload", () => {
+    const matrixId = createEisenhowerNote(64, 96);
+    const matrix = useWallStore.getState().notes[matrixId];
+    expect(matrix?.noteKind).toBe("eisenhower");
+    expect(matrix?.eisenhower?.displayDate).toContain(",");
+    expect(matrix?.eisenhower?.quadrants.doFirst.title).toBe("Do First");
   });
 
   it("creates links and rejects duplicate/self links", () => {
@@ -185,3 +194,5 @@ describe("wall commands", () => {
     expect(links[0]?.toNoteId).toBe(tailId);
   });
 });
+
+

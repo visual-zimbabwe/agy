@@ -40,9 +40,24 @@ const canonSchema = z.object({
   items: z.array(canonItemSchema),
 });
 
+const eisenhowerQuadrantSchema = z.object({
+  title: z.string(),
+  content: z.string(),
+});
+
+const eisenhowerSchema = z.object({
+  displayDate: z.string(),
+  quadrants: z.object({
+    doFirst: eisenhowerQuadrantSchema,
+    schedule: eisenhowerQuadrantSchema,
+    delegate: eisenhowerQuadrantSchema,
+    delete: eisenhowerQuadrantSchema,
+  }),
+});
+
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon", "journal"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -65,6 +80,7 @@ const noteSchema = z.object({
   updatedAt: z.number(),
   vocabulary: vocabularySchema.optional(),
   canon: canonSchema.optional(),
+  eisenhower: eisenhowerSchema.optional(),
 });
 
 const zoneSchema = z.object({
@@ -142,6 +158,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.quote_author does not exist") ||
         message.includes("column notes.quote_source does not exist") ||
         message.includes("column notes.canon does not exist") ||
+        message.includes("column notes.eisenhower does not exist") ||
         message.includes("column notes.text_size does not exist") ||
       (message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
@@ -221,6 +238,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               quote_author: note.quoteAuthor?.trim() || null,
               quote_source: note.quoteSource?.trim() || null,
               canon: note.canon ?? null,
+              eisenhower: note.eisenhower ?? null,
               image_url: note.imageUrl?.trim() || null,
               text_align: note.textAlign ?? null,
               text_v_align: note.textVAlign ?? null,
@@ -429,4 +447,6 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     serverTime: Date.now(),
   });
 }
+
+
 

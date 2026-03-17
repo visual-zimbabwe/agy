@@ -1,3 +1,4 @@
+import { EISENHOWER_QUADRANTS } from "@/features/wall/eisenhower";
 import type { Note, Zone } from "@/features/wall/types";
 
 type Bounds = { x: number; y: number; w: number; h: number };
@@ -142,6 +143,16 @@ export const notesToMarkdown = (notes: Note[], zones: Zone[]) => {
         lines.push(`- canonItems: ${listCount}`);
       }
     }
+    if (note.eisenhower) {
+      lines.push(`- displayDate: ${note.eisenhower.displayDate}`);
+      for (const quadrant of EISENHOWER_QUADRANTS) {
+        const current = note.eisenhower.quadrants[quadrant.key];
+        lines.push(`- ${quadrant.key}: ${current.title}`);
+        if (current.content.trim()) {
+          lines.push(`  ${current.content.replace(/\n/g, " / ")}`);
+        }
+      }
+    }
     if (note.tags.length > 0) {
       lines.push(`- tags: ${note.tags.join(", ")}`);
     }
@@ -160,3 +171,5 @@ export const notesToMarkdown = (notes: Note[], zones: Zone[]) => {
 
   return lines.join("\n");
 };
+
+

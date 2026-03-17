@@ -1,4 +1,5 @@
-import { GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
+import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
+import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import { useWallStore } from "@/features/wall/store";
 import type { Link, LinkType, Note, NoteGroup, TemplateType, Zone, ZoneGroup, ZoneKind } from "@/features/wall/types";
 
@@ -108,6 +109,7 @@ export const createJournalNote = (x: number, y: number) => {
     quoteSource: undefined,
     vocabulary: undefined,
     canon: undefined,
+    eisenhower: undefined,
     textFont: JOURNAL_NOTE_DEFAULTS.textFont,
     textColor: JOURNAL_NOTE_DEFAULTS.textColor,
     textSizePx: JOURNAL_NOTE_DEFAULTS.textSizePx,
@@ -115,6 +117,29 @@ export const createJournalNote = (x: number, y: number) => {
     h: JOURNAL_NOTE_DEFAULTS.height,
     color: JOURNAL_NOTE_DEFAULTS.color,
     tags: ["journal"],
+  });
+  return noteId;
+};
+
+export const createEisenhowerNote = (x: number, y: number) => {
+  const noteId = createNote(x, y, EISENHOWER_NOTE_DEFAULTS.color);
+  const now = Date.now();
+  useWallStore.getState().patchNote(noteId, {
+    noteKind: "eisenhower",
+    text: "",
+    quoteAuthor: undefined,
+    quoteSource: undefined,
+    vocabulary: undefined,
+    canon: undefined,
+    eisenhower: createEisenhowerNotePayload(now),
+    textFont: EISENHOWER_NOTE_DEFAULTS.textFont,
+    textColor: EISENHOWER_NOTE_DEFAULTS.textColor,
+    textSizePx: EISENHOWER_NOTE_DEFAULTS.textSizePx,
+    w: EISENHOWER_NOTE_DEFAULTS.width,
+    h: EISENHOWER_NOTE_DEFAULTS.height,
+    color: EISENHOWER_NOTE_DEFAULTS.color,
+    tags: ["matrix", "priority"],
+    createdAt: now,
   });
   return noteId;
 };
@@ -609,4 +634,5 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
     state.selectGroup(groupId);
   });
 };
+
 

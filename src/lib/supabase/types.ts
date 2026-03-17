@@ -108,6 +108,7 @@ export type Database = {
           quote_author: string | null;
           quote_source: string | null;
           canon: unknown;
+          eisenhower: unknown;
           image_url: string | null;
           text_align: string | null;
           text_v_align: string | null;
@@ -136,6 +137,7 @@ export type Database = {
           quote_author?: string | null;
           quote_source?: string | null;
           canon?: unknown;
+          eisenhower?: unknown;
           image_url?: string | null;
           text_align?: string | null;
           text_v_align?: string | null;
@@ -161,6 +163,7 @@ export type Database = {
           quote_author?: string | null;
           quote_source?: string | null;
           canon?: unknown;
+          eisenhower?: unknown;
           image_url?: string | null;
           text_align?: string | null;
           text_v_align?: string | null;
@@ -599,3 +602,5 @@ export type Database = {
     CompositeTypes: Record<string, never>;
   };
 };
+
+

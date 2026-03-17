@@ -267,3 +267,4 @@ describe("cloud rows mapping", () => {
     expect(canon?.canon?.items).toHaveLength(2);
   });
 });
+

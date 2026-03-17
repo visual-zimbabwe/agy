@@ -3,6 +3,7 @@
 import type { RefObject } from "react";
 
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle } from "@/components/wall/wall-canvas-helpers";
+import { getEisenhowerPreview } from "@/features/wall/eisenhower";
 import type { WallTimelineItem } from "@/components/wall/wallTimelineViewLayout";
 import { formatTimelineDate, formatTimelineDateTime, truncatePreviewText } from "@/components/wall/wallTimelineViewHelpers";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
@@ -25,6 +26,9 @@ const readTimelineTitle = (item: WallTimelineItem) => {
   }
   if (item.note.noteKind === "journal") {
     return formatJournalDateLabel(item.note.createdAt);
+  }
+  if (item.note.noteKind === "eisenhower") {
+    return item.note.eisenhower?.displayDate || "Eisenhower Matrix";
   }
   if (item.note.pinned) {
     return "Pinned note";
@@ -49,7 +53,7 @@ export const WallTimelineCard = ({
   const isActiveMoment = typeof activeTimestamp === "number" && Math.abs(item.ts - activeTimestamp) < 60_000;
   const isQuote = item.note.noteKind === "quote";
   const isJournal = item.note.noteKind === "journal";
-  const preview = truncatePreviewText(stripWikiLinkMarkup(item.note.text), item.note);
+  const preview = item.note.noteKind === "eisenhower" ? getEisenhowerPreview(item.note) : truncatePreviewText(stripWikiLinkMarkup(item.note.text), item.note);
   const title = readTimelineTitle(item);
   const resolvedTextColor = item.note.textColor ?? NOTE_DEFAULTS.textColor;
   const noteTextStyle = getNoteTextStyle(item.note.textSize, item.note.textSizePx);
@@ -150,3 +154,7 @@ export const WallTimelineCard = ({
     </article>
   );
 };
+
+
+
+

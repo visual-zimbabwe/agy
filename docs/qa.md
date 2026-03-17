@@ -995,3 +995,22 @@ Expected:
 - Bottom sections such as `Smart Merge` are never clipped or hidden behind the panel edge.
 - Floating zoom controls shift clear of the open Details sidebar and remain usable on smaller screens.
 - Section grouping, spacing, and summaries make the sidebar faster to scan than the previous stacked-form layout.
+
+## Eisenhower Matrix Note (`/wall`) (2026-03-17)
+1. Open `/wall`, create an `Eisenhower Matrix` note from the tools panel, and verify it appears as a single four-quadrant card.
+2. Open the command palette with `Ctrl/Cmd + K`, run `Create Eisenhower Matrix note`, and verify a second matrix note is created at viewport center.
+3. Press `Shift + E` and verify the keyboard shortcut creates a new matrix note.
+4. Verify the note header shows a date like `Tuesday, March 17` in the top-left and an `Eisenhower Matrix` badge/title in the card header.
+5. Click each quadrant (`Do First`, `Schedule`, `Delegate`, `Delete`) and verify the matrix editor opens with the clicked quadrant focused.
+6. Edit all four quadrant titles and enter multiline content in each quadrant; click away and verify content persists.
+7. Refresh the page and confirm the matrix note, date label, titles, and quadrant content restore correctly.
+8. Resize the matrix note smaller and larger; verify the 2x2 layout stays usable, long text wraps, and compact mode still reads clearly.
+9. Zoom out and back in; verify the note remains legible enough when compact and returns to the full premium layout when larger.
+10. Leave some quadrants empty and fill others heavily; verify placeholders, spacing, and footer task counts still look balanced.
+11. Switch light/dark theme if available in the current workspace and verify the floating editor remains readable and focus states stay visible.
+12. If wall sync is enabled for the current user, reload from cloud-backed state and verify the matrix payload survives round-trips.
+
+Expected:
+- Eisenhower Matrix notes can be created from the UI, command palette, and keyboard shortcut.
+- The note renders as one polished card with four clearly labeled, independently editable quadrants.
+- Date, footer task count, compact mode, and persistence behave like native wall features rather than an add-on.

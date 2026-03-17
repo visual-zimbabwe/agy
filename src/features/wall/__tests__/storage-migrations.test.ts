@@ -264,3 +264,4 @@ describe("storage migrations", () => {
     expect(normalized?.notes.c1?.canon?.items).toHaveLength(2);
   });
 });
+

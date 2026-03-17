@@ -1,4 +1,5 @@
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
+import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import type { CanonNote, Link, Note, NoteGroup, PersistedWallState, VocabularyReviewOutcome, Zone, ZoneGroup } from "@/features/wall/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -154,13 +155,15 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
   if (!id) {
     return null;
   }
+  const noteKind = entry.noteKind === "quote" || entry.noteKind === "canon" || entry.noteKind === "journal" || entry.noteKind === "eisenhower" ? entry.noteKind : "standard";
   return {
     id,
-    noteKind: entry.noteKind === "quote" || entry.noteKind === "canon" || entry.noteKind === "journal" ? entry.noteKind : "standard",
+    noteKind,
     text: asString(entry.text),
     quoteAuthor: asString(entry.quoteAuthor).trim() || undefined,
     quoteSource: asString(entry.quoteSource).trim() || undefined,
     canon: normalizeCanon(entry.canon),
+    eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(entry.eisenhower, asNumber(entry.createdAt, Date.now())) : undefined,
     imageUrl: asString(entry.imageUrl).trim() || undefined,
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
     textVAlign: entry.textVAlign === "middle" || entry.textVAlign === "bottom" ? entry.textVAlign : NOTE_DEFAULTS.textVAlign,
@@ -289,3 +292,5 @@ export const parseTimelinePayload = (payload: string): PersistedWallState | null
     return null;
   }
 };
+
+
