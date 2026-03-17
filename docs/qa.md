@@ -907,32 +907,31 @@ Expected:
 
 
 ## Horizontal Timeline View
-1. Open `/wall` and create or load several notes with different creation times.
+1. Open `/wall` and create or load several notes with different creation times, including at least one journal note, one quote note, one image note, and one Eisenhower Matrix note.
 2. Click `Timeline View` in the top toolbar or press `V`.
-3. Verify notes render as cards on a horizontally scrolling timeline with visible date markers.
-4. Toggle between `Created` and `Updated` modes and verify card order/date chips change accordingly.
-5. Scroll vertically with the mouse wheel over the timeline and verify the view moves horizontally.
-6. Use `ArrowLeft`, `ArrowRight`, `Home`, and `End` to move between timeline cards.
-7. Switch among `Compact`, `Comfortable`, and `Expanded` density controls (or use `-` / `+`) and verify card width, spacing, and text density update without breaking selection.
-8. Switch among `Far`, `Balanced`, and `Close` zoom controls (or use `[` / `]`) and verify the timeline spreads notes farther apart or packs them closer without changing card size.
-9. Switch bucket modes among `Day`, `Week`, and `Month` (or press `B`) and verify section labels and counts update across the timeline.
-10. Click a marker in the bottom scrubber and verify selection jumps to the matching note.
-11. Double-click a timeline card or click `Reveal on wall` and verify the app returns to the wall canvas focused on that note.
-12. Create notes with multiple tags, hover a timeline card, and verify a `Tags` toggle appears that reveals the full tag list without crowding the default card view.
+3. Verify notes render as faithful note cards instead of generic text blocks, and confirm journal notes keep their lined-paper structure while Eisenhower Matrix notes keep a visible four-quadrant layout.
+4. Switch `Sort` between `Created Date` and `Last Edited` and verify card order/date chips change accordingly.
+5. Switch `Card Size` among `Small`, `Medium`, and `Large` and verify preview depth changes without breaking note identity or clipping important content.
+6. Switch `Zoom` among `Overview`, `Standard`, and `Detail`, then use `Ctrl/Cmd + 0` for `Fit All` and `Ctrl/Cmd + +/-` to zoom; verify spacing updates smoothly.
+7. Toggle `View Mode` between `Stream` and `Buckets`, switch `Group By` among `Day`, `Week`, and `Month`, and verify section labels, bucket backgrounds, and counts remain readable.
+8. Change `Range` among `7D`, `30D`, `90D`, `1Y`, and `All`; verify the note set updates to the expected time window.
+9. Use `Earliest`, `Today`, `Latest`, `Selected`, and `Fit All`; verify each action scrolls to the correct point in time.
+10. Scroll with the mouse wheel, hold `Shift` while scrolling, and use trackpad pinch or `Ctrl/Cmd + +/-`; verify horizontal panning and zooming behave as labeled.
+11. Use `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Home`, and `End` to move between notes and buckets.
+12. Drag or click across the bottom scrubber and verify the density graph, selected marker, and note selection stay in sync.
+13. Select a note and verify the detail panel shows a fuller preview with readable timestamps, tags, and a prominent `Reveal on Wall` action.
+14. Double-click a timeline card or click `Reveal on Wall` and verify the app returns to the wall canvas focused on that note.
+15. Toggle the app between light and dark themes and verify the timeline background is pure white in light mode and pure black in dark mode, with controls, borders, and text remaining legible.
 
 Expected:
-- Timeline view provides a read-only horizontal chronology of notes.
-- Created/updated mode switching reorders notes without breaking selection.
-- Density controls change card sizing and spacing for dense or sparse walls without clipping controls.
-- Zoom controls stretch or compress the timeline spacing without distorting the cards themselves.
-- Day/week/month bucket modes expose clear section labels and per-bucket counts.
-- Timeline cards remain fully visible and scroll cleanly on desktop and mobile-sized viewports.
-- Tag metadata stays hidden by default and is available through the hover `Tags` toggle without overflowing the card.
-- Keyboard navigation and the bottom scrubber both move selection predictably.
-- `Reveal on wall` exits timeline view and restores note focus in the canvas.
-
-
-
+- Timeline view provides a read-only horizontal chronology that preserves note-type identity.
+- Journal and Eisenhower Matrix notes remain recognizable in both cards and the detail panel.
+- `Sort`, `Card Size`, `Zoom`, `Group By`, `View Mode`, and `Range` are understandable without guesswork.
+- `Fit All`, quick jumps, keyboard navigation, and the density scrubber all move through time predictably.
+- Bucket sections, rhythm lines, and selection styling make chronology easy to read at a glance.
+- Dark mode uses `#000000` as the main timeline background and light mode uses `#FFFFFF`.
+- Timeline cards, scrubber, tooltips, and detail panel remain fully visible and usable on desktop and mobile-sized viewports.
+- `Reveal on Wall` exits timeline view and restores note focus in the canvas.
 ## Wiki Links and Backlinks (`/wall`) (2026-03-16)
 1. Open `/wall`, create at least three notes with distinct first-line titles.
 2. Edit one note and type `[[`; verify a suggestion menu appears at the caret with existing note titles.
@@ -1014,3 +1013,5 @@ Expected:
 - Eisenhower Matrix notes can be created from the UI, command palette, and keyboard shortcut.
 - The note renders as one polished card with four clearly labeled, independently editable quadrants.
 - Date, footer task count, compact mode, and persistence behave like native wall features rather than an add-on.
+
+

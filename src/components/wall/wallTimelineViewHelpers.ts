@@ -3,15 +3,19 @@
 import type { Note } from "@/features/wall/types";
 
 export type TimelineBucketMode = "day" | "week" | "month";
+export type WallTimelineRangePreset = "7d" | "30d" | "90d" | "1y" | "all";
 
 export type TimelineBucket = {
   key: string;
   label: string;
   count: number;
+  startX: number;
+  endX: number;
   x: number;
+  timestamp: number;
 };
 
-export const laneTopOffset = 146;
+export const laneTopOffset = 164;
 export const scrubberInset = 18;
 
 export const formatTimelineDate = (timestamp: number) =>
@@ -59,17 +63,6 @@ export const makeBucketKey = (timestamp: number, mode: TimelineBucketMode) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 };
 
-export const truncatePreviewText = (text: string, note: Pick<Note, "w" | "h">) => {
-  const normalized = text.trim();
-  const maxCharsPerLine = Math.max(10, Math.floor((note.w - 24) / 7.4));
-  const maxLines = Math.max(2, Math.floor((note.h - 64) / 19));
-  const limit = maxCharsPerLine * maxLines;
-  if (normalized.length <= limit) {
-    return normalized || "(Empty note)";
-  }
-  return `${normalized.slice(0, Math.max(1, limit - 1)).trimEnd()}...`;
-};
-
 export const formatSpan = (minTs: number, maxTs: number) => {
   const days = Math.max(0, Math.round((maxTs - minTs) / 86_400_000));
   if (days === 0) {
@@ -78,8 +71,45 @@ export const formatSpan = (minTs: number, maxTs: number) => {
   if (days < 30) {
     return `${days} day span`;
   }
-  const months = Math.max(1, Math.round(days / 30));
-  return `${months} month span`;
+  if (days < 365) {
+    return `${Math.max(1, Math.round(days / 30))} month span`;
+  }
+  return `${Math.max(1, Math.round(days / 365))} year span`;
+};
+
+export const getRangePresetStart = (maxTs: number, preset: WallTimelineRangePreset) => {
+  if (preset === "all") {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const day = 86_400_000;
+  if (preset === "7d") {
+    return maxTs - 7 * day;
+  }
+  if (preset === "30d") {
+    return maxTs - 30 * day;
+  }
+  if (preset === "90d") {
+    return maxTs - 90 * day;
+  }
+  return maxTs - 365 * day;
+};
+
+export const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
+
+export const findClosestIndexByTimestamp = (timestamps: number[], target: number) => {
+  if (timestamps.length === 0) {
+    return -1;
+  }
+  let closestIndex = 0;
+  let smallestDelta = Math.abs(timestamps[0]! - target);
+  for (let index = 1; index < timestamps.length; index += 1) {
+    const delta = Math.abs(timestamps[index]! - target);
+    if (delta < smallestDelta) {
+      smallestDelta = delta;
+      closestIndex = index;
+    }
+  }
+  return closestIndex;
 };
 
 const hexToRgb = (hex: string) => {

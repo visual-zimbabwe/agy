@@ -35,33 +35,38 @@ describe("buildWallTimelineLayout", () => {
         makeNote("first-created", 1000, 9000),
         makeNote("last-updated", 3000, 4000),
       ],
-      "updated",
+      { sort: "updated" },
     );
 
     expect(layout.items.map((item) => item.id)).toEqual(["last-updated", "first-created"]);
   });
 
-  it("preserves exact note dimensions in the timeline items", () => {
+  it("scales note dimensions using card size while preserving proportions", () => {
     const layout = buildWallTimelineLayout([
       makeNote("wide", 1000, 1000, { w: 420, h: 180 }),
       makeNote("tall", 2000, 2000, { w: 180, h: 320 }),
-    ]);
+    ], { cardSize: "large" });
+    const compact = buildWallTimelineLayout([
+      makeNote("wide", 1000, 1000, { w: 420, h: 180 }),
+      makeNote("tall", 2000, 2000, { w: 180, h: 320 }),
+    ], { cardSize: "small" });
 
     expect(layout.items[0]?.width).toBe(420);
     expect(layout.items[1]?.height).toBe(320);
+    expect(compact.items[0]?.width).toBeLessThan(layout.items[0]?.width ?? 0);
   });
 
-  it("widens the timeline spread for closer zoom levels", () => {
+  it("widens the timeline spread for detail zoom levels", () => {
     const notes = [
       makeNote("a", 1000),
       makeNote("b", 2000),
       makeNote("c", 3000),
     ];
-    const far = buildWallTimelineLayout(notes, "created", "comfortable", "far");
-    const close = buildWallTimelineLayout(notes, "created", "comfortable", "close");
+    const overview = buildWallTimelineLayout(notes, { zoom: "overview" });
+    const detail = buildWallTimelineLayout(notes, { zoom: "detail" });
 
-    expect(far.items[1]?.x).toBeLessThan(close.items[1]?.x ?? 0);
-    expect((far.items[2]?.x ?? 0) - (far.items[1]?.x ?? 0)).toBeLessThan((close.items[2]?.x ?? 0) - (close.items[1]?.x ?? 0));
+    expect(overview.items[1]?.x).toBeLessThan(detail.items[1]?.x ?? 0);
+    expect((overview.items[2]?.x ?? 0) - (overview.items[1]?.x ?? 0)).toBeLessThan((detail.items[2]?.x ?? 0) - (detail.items[1]?.x ?? 0));
   });
 
   it("moves dense notes onto separate lanes when notes would overlap", () => {
@@ -76,17 +81,15 @@ describe("buildWallTimelineLayout", () => {
     expect(layout.laneCount).toBeGreaterThan(1);
   });
 
-  it("separates lanes vertically using the tallest note in each lane", () => {
-    const start = 1000;
+  it("creates bucket sections when bucket mode is enabled", () => {
+    const start = new Date("2026-01-01T00:00:00Z").getTime();
     const layout = buildWallTimelineLayout([
-      makeNote("a", start, start, { w: 420, h: 300 }),
-      makeNote("b", start + 1, start + 1, { w: 420, h: 180 }),
-    ]);
+      makeNote("a", start),
+      makeNote("b", start + 86_400_000 * 10),
+      makeNote("c", start + 86_400_000 * 40),
+    ], { viewMode: "buckets", groupBy: "month" });
 
-    const first = layout.items[0];
-    const second = layout.items[1];
-    expect(first).toBeDefined();
-    expect(second).toBeDefined();
-    expect((second?.y ?? 0) - (first?.y ?? 0)).toBeGreaterThanOrEqual(300);
+    expect(layout.buckets.length).toBeGreaterThan(1);
+    expect(layout.items[0]?.bucketKey).not.toBe(layout.items[2]?.bucketKey);
   });
 });
