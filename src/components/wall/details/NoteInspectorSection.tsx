@@ -1,6 +1,16 @@
 "use client";
 
-import { detailButton, detailField, detailInsetCard, detailSectionCard, detailSectionDescription, detailSectionHeading, detailSectionTitle } from "@/components/wall/details/detailSectionStyles";
+import {
+  detailButton,
+  detailChip,
+  detailField,
+  detailInsetCard,
+  detailMutedPanel,
+  detailSectionCard,
+  detailSectionDescription,
+  detailSectionHeading,
+  detailSectionTitle,
+} from "@/components/wall/details/detailSectionStyles";
 import { JOURNAL_NOTE_DEFAULTS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
 import type { Note, NoteTextFont } from "@/features/wall/types";
 
@@ -29,13 +39,16 @@ const sectionBlockClass = "space-y-2 border-t border-[var(--color-border-muted)]
 const sectionLabelClass = "text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]";
 const segmentedRowClass = "grid grid-cols-3 gap-1";
 const segmentedButtonClass = `${detailButton} px-0 py-2 text-center text-[11px]`;
-const segmentedButtonActiveClass = "rounded-lg border border-[var(--color-focus)] bg-[color:rgb(2_132_199_/_0.10)] px-0 py-2 text-center text-[11px] font-medium text-[var(--color-accent-strong)] shadow-[var(--shadow-sm)]";
+const segmentedButtonActiveClass =
+  "rounded-[0.95rem] border border-[var(--color-focus)] bg-[color:rgb(2_132_199_/_0.10)] px-0 py-2 text-center text-[11px] font-medium text-[var(--color-accent-strong)] shadow-[var(--shadow-sm)]";
 const actionGridClass = "grid grid-cols-2 gap-2";
 
 const typeButtonClass = (active: boolean) =>
   active
-    ? "rounded-lg border border-[var(--color-focus)] bg-[color:rgb(2_132_199_/_0.10)] px-2 py-2 text-[11px] font-medium text-[var(--color-accent-strong)] shadow-[var(--shadow-sm)]"
+    ? "rounded-[0.95rem] border border-[var(--color-focus)] bg-[color:rgb(2_132_199_/_0.10)] px-2 py-2 text-[11px] font-medium text-[var(--color-accent-strong)] shadow-[var(--shadow-sm)]"
     : detailButton;
+
+const colorSwatchClass = "h-7 w-8 cursor-pointer overflow-hidden rounded-md border border-[var(--color-border)] bg-transparent p-0";
 
 export const NoteInspectorSection = ({
   selectedNote,
@@ -96,7 +109,7 @@ export const NoteInspectorSection = ({
         <div>
           <p className={detailSectionTitle}>Note Inspector</p>
           <h4 className={detailSectionHeading}>{selectedNote.noteKind === "standard" ? "Standard note" : `${selectedNote.noteKind} note`}</h4>
-          <p className={detailSectionDescription}>Typography, backlinks, and note properties for the current selection.</p>
+          <p className={detailSectionDescription}>Typography, backlinks, styling, and note properties for the current selection.</p>
         </div>
         <div className={detailInsetCard}>
           <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Selected</p>
@@ -135,13 +148,13 @@ export const NoteInspectorSection = ({
                   </option>
                 ))}
               </select>
-              <label className="flex min-w-[6.25rem] items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text)] shadow-[var(--shadow-sm)]">
+              <label className="flex min-w-[6.25rem] items-center justify-between rounded-[0.95rem] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text)] shadow-[var(--shadow-sm)]">
                 <span>Color</span>
                 <input
                   type="color"
                   value={selectedNote.textColor ?? NOTE_DEFAULTS.textColor}
                   onChange={(event) => onTextColorChange(event.target.value.toUpperCase())}
-                  className="h-6 w-7 cursor-pointer rounded border border-zinc-300 bg-white p-0"
+                  className={colorSwatchClass}
                   disabled={isTimeLocked}
                   aria-label="Text color"
                 />
@@ -179,9 +192,7 @@ export const NoteInspectorSection = ({
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Backlinks</p>
           {backlinks.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[var(--color-border-muted)] bg-[var(--color-surface-muted)] px-3 py-2 text-xs text-[var(--color-text-muted)]">
-              No notes reference this note yet.
-            </div>
+            <div className={detailMutedPanel}>No notes reference this note yet.</div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {backlinks.map((backlink) => (
@@ -189,7 +200,7 @@ export const NoteInspectorSection = ({
                   key={`backlink-${backlink.noteId}`}
                   type="button"
                   onClick={() => onNavigateLinkedNote(backlink.noteId)}
-                  className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                  className={detailChip}
                 >
                   {backlink.title}
                 </button>
@@ -239,13 +250,13 @@ export const NoteInspectorSection = ({
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Note Style</p>
           <div className="grid gap-2">
-            <label className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text)] shadow-[var(--shadow-sm)]">
+            <label className="flex items-center justify-between rounded-[0.95rem] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-[var(--color-text)] shadow-[var(--shadow-sm)]">
               <span>Background</span>
               <input
                 type="color"
                 value={selectedNote.color}
                 onChange={(event) => onBackgroundColorChange(event.target.value.toUpperCase())}
-                className="h-6 w-7 cursor-pointer rounded border border-zinc-300 bg-white p-0"
+                className={colorSwatchClass}
                 disabled={isTimeLocked}
                 aria-label="Background color"
               />
@@ -276,4 +287,3 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
-

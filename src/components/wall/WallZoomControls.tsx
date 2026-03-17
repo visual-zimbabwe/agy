@@ -4,6 +4,7 @@ type WallZoomControlsProps = {
   zoomPercent: number;
   showHeatmap: boolean;
   canZoomToSelection: boolean;
+  detailsPanelOpen: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
@@ -18,6 +19,7 @@ export const WallZoomControls = ({
   zoomPercent,
   showHeatmap,
   canZoomToSelection,
+  detailsPanelOpen,
   onZoomIn,
   onZoomOut,
   onResetZoom,
@@ -26,8 +28,11 @@ export const WallZoomControls = ({
 }: WallZoomControlsProps) => {
   return (
     <div
-      className="pointer-events-auto absolute right-3 z-[31] transition-[bottom] duration-[var(--motion-normal)]"
-      style={{ bottom: showHeatmap ? "14rem" : "0.75rem" }}
+      className="pointer-events-auto absolute z-[31] transition-[bottom,right] duration-[var(--motion-normal)]"
+      style={{
+        bottom: showHeatmap ? "14rem" : "0.75rem",
+        right: detailsPanelOpen ? "min(calc(100vw - 4.5rem), 25rem)" : "0.75rem",
+      }}
     >
       <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-glass)] shadow-[var(--shadow-lg)] backdrop-blur-[var(--blur-panel)]">
         <button

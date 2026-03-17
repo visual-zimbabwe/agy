@@ -69,6 +69,7 @@ type WallFloatingUiProps = {
   setPresentationIndex: Dispatch<SetStateAction<number>>;
   setPresentationMode: Dispatch<SetStateAction<boolean>>;
   canZoomToSelection: boolean;
+  detailsPanelOpen: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
@@ -138,6 +139,7 @@ export const WallFloatingUi = ({
   setPresentationIndex,
   setPresentationMode,
   canZoomToSelection,
+  detailsPanelOpen,
   onZoomIn,
   onZoomOut,
   onResetZoom,
@@ -485,6 +487,7 @@ export const WallFloatingUi = ({
         zoomPercent={zoomPercent}
         showHeatmap={showHeatmap}
         canZoomToSelection={canZoomToSelection}
+        detailsPanelOpen={detailsPanelOpen}
         onZoomIn={onZoomIn}
         onZoomOut={onZoomOut}
         onResetZoom={onResetZoom}
@@ -530,4 +533,6 @@ export const WallFloatingUi = ({
     </>
   );
 };
+
+
 

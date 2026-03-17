@@ -2497,6 +2497,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           setPresentationIndex={setPresentationIndex}
           setPresentationMode={setPresentationMode}
           canZoomToSelection={selectedNotes.length > 0}
+          detailsPanelOpen={layoutPrefs.showDetailsPanel && rightPanelOpen}
           onZoomIn={() => stepZoom("in")}
           onZoomOut={() => stepZoom("out")}
           onResetZoom={resetZoom}

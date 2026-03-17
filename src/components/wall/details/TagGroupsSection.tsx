@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  detailButton,
+  detailInsetCard,
+  detailMutedPanel,
+  detailSectionCard,
+  detailSectionDescription,
+  detailSectionHeading,
+  detailSectionToggle,
+} from "@/components/wall/details/detailSectionStyles";
 import type { TagGroupsSectionProps } from "@/components/wall/details/DetailsSectionTypes";
 
 export const TagGroupsSection = ({
@@ -11,35 +20,43 @@ export const TagGroupsSection = ({
   onFocusBounds,
 }: TagGroupsSectionProps) => {
   return (
-    <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
+    <div className={detailSectionCard}>
       <button
         type="button"
         onClick={() => onToggleDetailsSection("tagGroups")}
-        className="flex w-full items-center justify-between text-left"
+        className="flex w-full items-center justify-between gap-3 text-left"
       >
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Tag Signals (Auto)</h4>
-        <span className="text-[10px] text-zinc-500">{detailsSectionsOpen.tagGroups ? "Hide" : "Show"}</span>
+        <div>
+          <h3 className={detailSectionHeading}>Tag Signals</h3>
+          <p className={detailSectionDescription}>Secondary patterns inferred from shared tags. Useful for discovery without changing structure.</p>
+        </div>
+        <span className={detailSectionToggle}>{detailsSectionsOpen.tagGroups ? "Hide" : "Show"}</span>
       </button>
       {detailsSectionsOpen.tagGroups && (
         <>
-          <div className="mb-1 mt-2 flex items-center justify-between">
-            <span className="text-[11px] text-zinc-600">Secondary insights from shared tags, not structural groups.</span>
-            <button type="button" onClick={onToggleAutoTagGroups} className="rounded-md border border-zinc-300 px-2 py-0.5 text-[10px]">
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <span className="text-[11px] leading-5 text-[var(--color-text-muted)]">Highlight auto tag clusters on the canvas when you want signal without extra chrome.</span>
+            <button type="button" onClick={onToggleAutoTagGroups} className={detailButton}>
               {showAutoTagGroups ? "Hide" : "Show"}
             </button>
           </div>
-          {autoTagGroups.length === 0 && <p className="text-xs text-zinc-500">No auto groups yet (need 2+ notes per tag).</p>}
-          {autoTagGroups.slice(0, 8).map((group) => (
-            <button
-              key={`panel-tag-${group.tag}`}
-              type="button"
-              onClick={() => onFocusBounds(group.bounds)}
-              className="mt-1 flex w-full items-center justify-between rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-left text-xs hover:bg-zinc-50"
-            >
-              <span className="truncate text-zinc-800">#{group.tag}</span>
-              <span className="text-zinc-500">{group.noteIds.length} notes</span>
-            </button>
-          ))}
+          <div className="mt-3 max-h-52 space-y-2 overflow-auto pr-1">
+            {autoTagGroups.length === 0 ? (
+              <div className={detailMutedPanel}>No auto groups yet. Add the same tag to at least two notes and a signal will appear here.</div>
+            ) : (
+              autoTagGroups.slice(0, 8).map((group) => (
+                <button
+                  key={`panel-tag-${group.tag}`}
+                  type="button"
+                  onClick={() => onFocusBounds(group.bounds)}
+                  className={`${detailInsetCard} flex w-full items-center justify-between gap-3 text-left transition-colors hover:border-[var(--color-focus)] hover:bg-[color:rgb(2_132_199_/_0.06)]`}
+                >
+                  <span className="truncate text-xs font-semibold text-[var(--color-text)]">#{group.tag}</span>
+                  <span className="text-[11px] text-[var(--color-text-muted)]">{group.noteIds.length} notes</span>
+                </button>
+              ))
+            )}
+          </div>
         </>
       )}
     </div>

@@ -4,6 +4,7 @@ import {
   detailButton,
   detailField,
   detailInsetCard,
+  detailMutedPanel,
   detailSectionCard,
   detailSectionDescription,
   detailSectionHeading,
@@ -35,25 +36,27 @@ export const RecallSection = ({
       <button
         type="button"
         onClick={() => onToggleDetailsSection("recall")}
-        className="flex w-full items-center justify-between text-left"
+        className="flex w-full items-center justify-between gap-3 text-left"
       >
-        <h3 className={detailSectionHeading}>Recall</h3>
+        <div>
+          <h3 className={detailSectionHeading}>Recall</h3>
+          <p className={detailSectionDescription}>Search by text, structure, and time. Save repeatable filter sets for fast retrieval.</p>
+        </div>
         <span className={detailSectionToggle}>{detailsSectionsOpen.recall ? "Hide" : "Show"}</span>
       </button>
       {detailsSectionsOpen.recall && (
         <>
-          <p className={detailSectionDescription}>Filter notes by query, zone, tag, and recency. Save frequent searches.</p>
           <input
             value={recallQuery}
             onChange={(event) => onRecallQueryChange(event.target.value)}
-            placeholder="Find text or #tag..."
-            className={`mt-2 ${detailField}`}
+            placeholder="Find text, phrase, or #tag"
+            className={`mt-3 ${detailField}`}
           />
-          <div className="mt-2 min-w-0 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <select
               value={recallZoneId}
               onChange={(event) => onRecallZoneIdChange(event.target.value)}
-              className={`col-span-1 truncate sm:col-span-1 ${detailField}`}
+              className={detailField}
             >
               <option value="">All zones</option>
               {visibleZones.map((zone) => (
@@ -65,7 +68,7 @@ export const RecallSection = ({
             <select
               value={recallTag}
               onChange={(event) => onRecallTagChange(event.target.value)}
-              className={`col-span-1 truncate sm:col-span-1 ${detailField}`}
+              className={detailField}
             >
               <option value="">All tags</option>
               {availableRecallTags.map((tag) => (
@@ -77,7 +80,7 @@ export const RecallSection = ({
             <select
               value={recallDateFilter}
               onChange={(event) => onRecallDateFilterChange(event.target.value as typeof recallDateFilter)}
-              className={`col-span-1 truncate sm:col-span-2 ${detailField}`}
+              className={`sm:col-span-2 ${detailField}`}
             >
               <option value="all">All dates</option>
               <option value="today">Today</option>
@@ -85,7 +88,7 @@ export const RecallSection = ({
               <option value="30d">Last 30d</option>
             </select>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={onSaveRecallSearch} className={detailButton}>
               Save Search
             </button>
@@ -93,24 +96,32 @@ export const RecallSection = ({
               Clear Filters
             </button>
           </div>
-          {savedRecallSearches.length > 0 && (
-            <div className="mt-2 max-h-24 space-y-1 overflow-auto pr-1">
-              {savedRecallSearches.map((item) => (
-                <div key={item.id} className={`${detailInsetCard} flex items-center gap-1`}>
-                  <button
-                    type="button"
-                    onClick={() => onApplySavedRecallSearch(item)}
-                    className="min-w-0 flex-1 truncate text-left text-[11px] text-[var(--color-text)]"
-                  >
-                    {item.name}
-                  </button>
-                  <button type="button" onClick={() => onDeleteSavedRecallSearch(item.id)} className="text-[10px] text-[var(--color-danger)]">
-                    x
-                  </button>
-                </div>
-              ))}
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Saved Searches</p>
+              <span className="text-[10px] text-[var(--color-text-muted)]">{savedRecallSearches.length}</span>
             </div>
-          )}
+            {savedRecallSearches.length > 0 ? (
+              <div className="max-h-32 space-y-2 overflow-auto pr-1">
+                {savedRecallSearches.map((item) => (
+                  <div key={item.id} className={`${detailInsetCard} flex items-center gap-2`}>
+                    <button
+                      type="button"
+                      onClick={() => onApplySavedRecallSearch(item)}
+                      className="min-w-0 flex-1 truncate text-left text-[11px] font-medium text-[var(--color-text)]"
+                    >
+                      {item.name}
+                    </button>
+                    <button type="button" onClick={() => onDeleteSavedRecallSearch(item.id)} className="text-[10px] text-[var(--color-danger)]">
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={detailMutedPanel}>No saved searches yet. Save your current filter stack to make recurring recall workflows instant.</div>
+            )}
+          </div>
         </>
       )}
     </div>

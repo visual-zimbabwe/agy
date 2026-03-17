@@ -980,3 +980,18 @@ Expected:
 - Selected quote notes expose editable `Author` and `Source` fields in the details sidebar.
 - Changes persist like other note metadata edits.
 
+
+## Details Sidebar Premium Layout (2026-03-16)
+1. Open `/wall` in dark mode and open the `Details` sidebar.
+2. Verify the panel header stays visible while scrolling and every section uses dark surfaces with no white or light cards.
+3. Expand `Recall`, `Word Review`, `Zones`, and `Smart Merge`, then scroll to the bottom and verify the last control is fully reachable with padding beneath it.
+4. Keep `Details` open and verify the floating zoom controls remain visible and clickable rather than sitting underneath the panel.
+5. Reduce the viewport height and verify the panel body still scrolls cleanly and all expanded sections remain reachable.
+6. Collapse and re-expand multiple sections and verify their open/closed state is preserved while the sidebar remains open.
+
+Expected:
+- The entire Details sidebar respects the dark theme, including nested cards, inputs, selects, buttons, and empty states.
+- The header remains sticky while the body scrolls independently.
+- Bottom sections such as `Smart Merge` are never clipped or hidden behind the panel edge.
+- Floating zoom controls shift clear of the open Details sidebar and remain usable on smaller screens.
+- Section grouping, spacing, and summaries make the sidebar faster to scan than the previous stacked-form layout.

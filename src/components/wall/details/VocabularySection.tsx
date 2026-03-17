@@ -4,6 +4,7 @@ import {
   detailButton,
   detailDangerButton,
   detailField,
+  detailMutedPanel,
   detailSectionCard,
   detailSectionDescription,
   detailSectionHeading,
@@ -34,19 +35,21 @@ export const VocabularySection = ({
 
   return (
     <div className={detailSectionCard}>
-      <button type="button" onClick={() => onToggleDetailsSection("vocabulary")} className="flex w-full items-center justify-between text-left">
-        <h3 className={detailSectionHeading}>Word Review</h3>
+      <button type="button" onClick={() => onToggleDetailsSection("vocabulary")} className="flex w-full items-center justify-between gap-3 text-left">
+        <div>
+          <h3 className={detailSectionHeading}>Word Review</h3>
+          <p className={detailSectionDescription}>Capture unfamiliar words, review them intentionally, and keep spaced repetition in motion.</p>
+        </div>
         <span className={detailSectionToggle}>{detailsSectionsOpen.vocabulary ? "Hide" : "Show"}</span>
       </button>
       {detailsSectionsOpen.vocabulary && (
         <>
-          <p className={detailSectionDescription}>Capture unknown words and review them with spaced repetition.</p>
-          <div className="mt-2 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-3 gap-2">
             <Stat label="Due" value={vocabularyDueCount} />
             <Stat label="Focus" value={vocabularyFocusCount} />
             <Stat label="Today" value={reviewedTodayCount} />
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={onCreateWordNote} disabled={isTimeLocked} className={detailButton}>
               New Word
             </button>
@@ -60,17 +63,17 @@ export const VocabularySection = ({
               Flip Card
             </button>
           </div>
-          {!isSelectedNoteVocabulary && <p className="mt-2 text-[11px] text-[var(--color-text-muted)]">Select a word note to edit and review it.</p>}
+          {!isSelectedNoteVocabulary && <div className="mt-3 rounded-[1rem] border border-dashed border-[var(--color-border-muted)] bg-[color:color-mix(in_srgb,var(--color-surface-muted)_88%,black_12%)] px-3 py-2 text-[11px] leading-5 text-[var(--color-text-muted)]">Select a word note to edit and review it here.</div>}
           {isSelectedNoteVocabulary && vocabulary && (
             <>
-              <label className="mt-2 block text-[11px] font-medium text-[var(--color-text)]">Word</label>
+              <label className="mt-3 block text-[11px] font-medium text-[var(--color-text)]">Word</label>
               <input
                 value={vocabulary.word}
                 onChange={(event) => onUpdateVocabularyField("word", event.target.value)}
                 placeholder="e.g. cogent"
                 className={`mt-1 ${detailField}`}
               />
-              <label className="mt-2 block text-[11px] font-medium text-[var(--color-text)]">Book context</label>
+              <label className="mt-3 block text-[11px] font-medium text-[var(--color-text)]">Book context</label>
               <textarea
                 value={vocabulary.sourceContext}
                 onChange={(event) => onUpdateVocabularyField("sourceContext", event.target.value)}
@@ -78,7 +81,7 @@ export const VocabularySection = ({
                 rows={2}
                 className={`mt-1 ${detailField}`}
               />
-              <label className="mt-2 block text-[11px] font-medium text-[var(--color-text)]">Your guess</label>
+              <label className="mt-3 block text-[11px] font-medium text-[var(--color-text)]">Your guess</label>
               <textarea
                 value={vocabulary.guessMeaning}
                 onChange={(event) => onUpdateVocabularyField("guessMeaning", event.target.value)}
@@ -86,7 +89,7 @@ export const VocabularySection = ({
                 rows={2}
                 className={`mt-1 ${detailField}`}
               />
-              <label className="mt-2 block text-[11px] font-medium text-[var(--color-text)]">Meaning</label>
+              <label className="mt-3 block text-[11px] font-medium text-[var(--color-text)]">Meaning</label>
               <textarea
                 value={vocabulary.meaning}
                 onChange={(event) => onUpdateVocabularyField("meaning", event.target.value)}
@@ -95,11 +98,11 @@ export const VocabularySection = ({
                 className={`mt-1 ${detailField}`}
               />
               {reviewRevealMeaning && vocabulary.meaning.trim() && (
-                <p className="mt-1 rounded border border-emerald-500/35 bg-emerald-500/12 px-2 py-1 text-[11px] text-emerald-200">
+                <div className="mt-2 rounded-[1rem] border border-emerald-500/28 bg-emerald-500/10 px-3 py-2 text-[11px] leading-5 text-emerald-200">
                   {vocabulary.meaning}
-                </p>
+                </div>
               )}
-              <label className="mt-2 block text-[11px] font-medium text-[var(--color-text)]">Your sentence</label>
+              <label className="mt-3 block text-[11px] font-medium text-[var(--color-text)]">Your sentence</label>
               <textarea
                 value={vocabulary.ownSentence}
                 onChange={(event) => onUpdateVocabularyField("ownSentence", event.target.value)}
@@ -107,13 +110,13 @@ export const VocabularySection = ({
                 rows={2}
                 className={`mt-1 ${detailField}`}
               />
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 <GradeButton label="Again" disabled={isTimeLocked} onClick={() => onReviewSelectedWord("again")} />
                 <GradeButton label="Hard" disabled={isTimeLocked} onClick={() => onReviewSelectedWord("hard")} />
                 <GradeButton label="Good" disabled={isTimeLocked || contextLocked} onClick={() => onReviewSelectedWord("good")} />
                 <GradeButton label="Easy" disabled={isTimeLocked || contextLocked} onClick={() => onReviewSelectedWord("easy")} />
               </div>
-              {contextLocked && <p className="mt-1 text-[11px] text-amber-300">Add your own sentence before Good/Easy.</p>}
+              {contextLocked && <div className={`${detailMutedPanel} mt-2 border-amber-500/20 bg-amber-500/8 text-amber-200`}>Add your own sentence before marking the word Good or Easy.</div>}
             </>
           )}
         </>
@@ -124,8 +127,8 @@ export const VocabularySection = ({
 
 const Stat = ({ label, value }: { label: string; value: number }) => (
   <div className={detailStatCard}>
-    <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">{label}</p>
-    <p className="text-sm font-semibold text-[var(--color-text)]">{value}</p>
+    <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{label}</p>
+    <p className="mt-1 text-base font-semibold text-[var(--color-text)]">{value}</p>
   </div>
 );
 
