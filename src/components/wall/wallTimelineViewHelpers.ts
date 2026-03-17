@@ -1,7 +1,6 @@
 "use client";
 
 import type { Note } from "@/features/wall/types";
-import type { WallTimelineDensity } from "@/components/wall/wallTimelineViewLayout";
 
 export type TimelineBucketMode = "day" | "week" | "month";
 
@@ -14,12 +13,6 @@ export type TimelineBucket = {
 
 export const laneTopOffset = 146;
 export const scrubberInset = 18;
-
-export const cardHeightByDensity: Record<WallTimelineDensity, number> = {
-  compact: 160,
-  comfortable: 178,
-  expanded: 204,
-};
 
 export const formatTimelineDate = (timestamp: number) =>
   new Intl.DateTimeFormat(undefined, {
@@ -66,14 +59,11 @@ export const makeBucketKey = (timestamp: number, mode: TimelineBucketMode) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 };
 
-export const truncatePreviewText = (text: string, density: WallTimelineDensity) => {
-  const limits: Record<WallTimelineDensity, number> = {
-    compact: 96,
-    comfortable: 140,
-    expanded: 180,
-  };
+export const truncatePreviewText = (text: string, note: Pick<Note, "w" | "h">) => {
   const normalized = text.trim();
-  const limit = limits[density];
+  const maxCharsPerLine = Math.max(10, Math.floor((note.w - 24) / 7.4));
+  const maxLines = Math.max(2, Math.floor((note.h - 64) / 19));
+  const limit = maxCharsPerLine * maxLines;
   if (normalized.length <= limit) {
     return normalized || "(Empty note)";
   }

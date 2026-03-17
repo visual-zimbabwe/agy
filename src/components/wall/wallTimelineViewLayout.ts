@@ -11,6 +11,10 @@ export type WallTimelineItem = {
   note: Note;
   ts: number;
   x: number;
+  y: number;
+  width: number;
+  height: number;
+  centerX: number;
   lane: number;
 };
 
@@ -19,31 +23,33 @@ export type WallTimelineLayout = {
   minTs: number;
   maxTs: number;
   contentWidth: number;
+  contentHeight: number;
   laneCount: number;
-  cardWidth: number;
-  laneGap: number;
+  maxItemWidth: number;
 };
 
 const startOffset = 120;
 const endOffset = 180;
 const minimumCanvasWidth = 1200;
+const topOffset = 146;
+const bottomPadding = 84;
 
-const densityConfig: Record<WallTimelineDensity, { cardWidth: number; laneGap: number; minimumSpread: number; minimumTimelineSpread: number }> = {
+const densityConfig: Record<WallTimelineDensity, { horizontalGap: number; verticalGap: number; minimumSpread: number; minimumTimelineSpread: number }> = {
   compact: {
-    cardWidth: 204,
-    laneGap: 204,
+    horizontalGap: 28,
+    verticalGap: 28,
     minimumSpread: 188,
     minimumTimelineSpread: 420,
   },
   comfortable: {
-    cardWidth: 232,
-    laneGap: 228,
+    horizontalGap: 40,
+    verticalGap: 40,
     minimumSpread: 220,
     minimumTimelineSpread: 480,
   },
   expanded: {
-    cardWidth: 272,
-    laneGap: 250,
+    horizontalGap: 56,
+    verticalGap: 56,
     minimumSpread: 260,
     minimumTimelineSpread: 560,
   },
@@ -85,50 +91,76 @@ export const buildWallTimelineLayout = (
       minTs: now,
       maxTs: now,
       contentWidth: minimumCanvasWidth,
+      contentHeight: topOffset + bottomPadding + 220,
       laneCount: 1,
-      cardWidth: config.cardWidth,
-      laneGap: config.laneGap,
+      maxItemWidth: 0,
     };
   }
 
   const minTs = readTimestamp(sorted[0]!, metric);
   const maxTs = readTimestamp(sorted[sorted.length - 1]!, metric);
   const timeSpan = Math.max(1, maxTs - minTs);
-  const laneLastX: number[] = [];
+  const laneRightEdges: number[] = [];
+  const laneHeights: number[] = [];
 
-  const items = sorted.map((note, index) => {
+  const unpositioned = sorted.map((note, index) => {
     const timestamp = readTimestamp(note, metric);
     const normalized = timeSpan === 0 ? index / Math.max(1, sorted.length - 1) : (timestamp - minTs) / timeSpan;
     const targetX = startOffset + normalized * Math.max(minimumSpread * Math.max(sorted.length - 1, 1), minimumTimelineSpread);
+    const width = Math.max(72, Math.round(note.w));
+    const height = Math.max(72, Math.round(note.h));
 
-    let lane = laneLastX.findIndex((lastX) => targetX - lastX >= config.cardWidth + 36);
+    let lane = laneRightEdges.findIndex((rightEdge) => targetX >= rightEdge + config.horizontalGap);
     if (lane < 0) {
-      lane = laneLastX.length;
-      laneLastX.push(Number.NEGATIVE_INFINITY);
+      lane = laneRightEdges.length;
+      laneRightEdges.push(Number.NEGATIVE_INFINITY);
+      laneHeights.push(0);
     }
 
-    const previousX = laneLastX[lane] ?? Number.NEGATIVE_INFINITY;
-    const x = Number.isFinite(previousX) ? Math.max(targetX, previousX + minimumSpread) : targetX;
-    laneLastX[lane] = x;
+    const previousRight = laneRightEdges[lane] ?? Number.NEGATIVE_INFINITY;
+    const x = Number.isFinite(previousRight) ? Math.max(targetX, previousRight + config.horizontalGap) : targetX;
+    laneRightEdges[lane] = x + width;
+    laneHeights[lane] = Math.max(laneHeights[lane] ?? 0, height);
 
     return {
       id: note.id,
       note,
       ts: timestamp,
       x,
+      width,
+      height,
       lane,
     };
   });
 
-  const rightEdge = items.reduce((max, item) => Math.max(max, item.x + config.cardWidth), startOffset + config.cardWidth);
+  const laneTops = laneHeights.reduce<number[]>((tops, height, index) => {
+    if (index === 0) {
+      tops.push(topOffset);
+      return tops;
+    }
+    const previousTop = tops[index - 1] ?? topOffset;
+    const previousHeight = laneHeights[index - 1] ?? 0;
+    tops.push(previousTop + previousHeight + config.verticalGap);
+    return tops;
+  }, []);
+
+  const items: WallTimelineItem[] = unpositioned.map((item) => ({
+    ...item,
+    y: laneTops[item.lane] ?? topOffset,
+    centerX: item.x + item.width / 2,
+  }));
+
+  const rightEdge = items.reduce((max, item) => Math.max(max, item.x + item.width), startOffset);
+  const maxBottom = items.reduce((max, item) => Math.max(max, item.y + item.height), topOffset);
+  const maxItemWidth = items.reduce((max, item) => Math.max(max, item.width), 0);
 
   return {
     items,
     minTs,
     maxTs,
     contentWidth: Math.max(minimumCanvasWidth, rightEdge + endOffset),
-    laneCount: Math.max(1, laneLastX.length),
-    cardWidth: config.cardWidth,
-    laneGap: config.laneGap,
+    contentHeight: Math.max(topOffset + bottomPadding + 220, maxBottom + bottomPadding),
+    laneCount: Math.max(1, laneHeights.length),
+    maxItemWidth,
   };
 };

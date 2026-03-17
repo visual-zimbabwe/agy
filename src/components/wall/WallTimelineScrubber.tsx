@@ -25,7 +25,7 @@ export const WallTimelineScrubber = ({
     return null;
   }
 
-  const scrubberRange = Math.max(1, layout.contentWidth - layout.cardWidth);
+  const scrubberRange = Math.max(1, layout.contentWidth);
 
   return (
     <div className="pointer-events-auto absolute inset-x-4 bottom-4 z-20 rounded-[28px] border border-[rgba(114,91,58,0.18)] bg-[rgba(255,251,243,0.92)] p-4 shadow-[0_20px_40px_rgba(98,78,45,0.14)] backdrop-blur-sm">
@@ -37,7 +37,7 @@ export const WallTimelineScrubber = ({
       <div className="relative mt-3 h-10 rounded-full bg-[linear-gradient(90deg,rgba(128,99,56,0.12),rgba(128,99,56,0.04))]">
         <div className="absolute inset-x-4 top-1/2 h-px -translate-y-1/2 bg-[rgba(92,73,43,0.26)]" />
         {layout.items.map((item) => {
-          const left = scrubberInset + (item.x / scrubberRange) * (100 - scrubberInset * 2);
+          const left = scrubberInset + (item.centerX / scrubberRange) * (100 - scrubberInset * 2);
           const isSelected = item.id === selectedNoteId;
           return (
             <button

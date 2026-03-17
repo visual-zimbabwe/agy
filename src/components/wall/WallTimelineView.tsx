@@ -12,7 +12,6 @@ import {
   type WallTimelineZoom,
 } from "@/components/wall/wallTimelineViewLayout";
 import {
-  cardHeightByDensity,
   formatBucketLabel,
   formatTimelineDate,
   formatTimelineDateTime,
@@ -56,7 +55,6 @@ export const WallTimelineView = ({
   const activeIndex = selectedIndex >= 0 ? selectedIndex : layout.items.length > 0 ? layout.items.length - 1 : -1;
   const selectedItem = activeIndex >= 0 ? layout.items[activeIndex] : undefined;
   const selectedNote = selectedItem?.note;
-  const cardHeight = cardHeightByDensity[density];
 
   const buckets = useMemo<TimelineBucket[]>(() => {
     const map = new Map<string, TimelineBucket>();
@@ -65,13 +63,13 @@ export const WallTimelineView = ({
       const existing = map.get(key);
       if (existing) {
         existing.count += 1;
-        existing.x = Math.min(existing.x, item.x);
+        existing.x = Math.min(existing.x, item.centerX);
       } else {
         map.set(key, {
           key,
           label: formatBucketLabel(item.ts, bucketMode),
           count: 1,
-          x: item.x,
+          x: item.centerX,
         });
       }
     }
@@ -202,7 +200,7 @@ export const WallTimelineView = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeIndex, jumpToIndex, layout.items.length, onRevealNote, selectedItem]);
 
-  const contentHeight = laneTopOffset + layout.laneCount * layout.laneGap + 84;
+  const contentHeight = layout.contentHeight;
   const axisY = laneTopOffset - 28;
   const selectedLabel = selectedItem ? formatTimelineDateTime(selectedItem.ts) : "No selection";
   const canGoPrev = activeIndex > 0;
@@ -274,7 +272,7 @@ export const WallTimelineView = ({
           ))}
 
           {buckets.map((bucket) => (
-            <div key={bucket.key} className="absolute top-14 -translate-x-1/2" style={{ left: `${bucket.x + layout.cardWidth / 2}px` }}>
+            <div key={bucket.key} className="absolute top-14 -translate-x-1/2" style={{ left: `${bucket.x}px` }}>
               <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(114,91,58,0.16)] bg-[rgba(255,252,246,0.94)] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgba(90,69,41,0.82)] shadow-[0_10px_18px_rgba(99,79,46,0.09)]">
                 <span>{bucket.label}</span>
                 <span className="rounded-full bg-[rgba(77,57,31,0.08)] px-1.5 py-0.5 text-[9px] tracking-[0.08em] text-[rgba(77,57,31,0.7)]">{bucket.count}</span>
@@ -286,11 +284,6 @@ export const WallTimelineView = ({
             <WallTimelineCard
               key={item.id}
               item={item}
-              density={density}
-              cardHeight={cardHeight}
-              cardWidth={layout.cardWidth}
-              laneGap={layout.laneGap}
-              laneTopOffset={laneTopOffset}
               selectedNoteId={selectedNoteId}
               activeTimestamp={activeTimestamp}
               selectedCardRef={selectedCardRef}
