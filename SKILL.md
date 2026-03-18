@@ -1,6 +1,6 @@
 ---
 name: idea-wall-documentation
-description: Create, update, restructure, or review documentation for the Idea-Wall repository. Use when Codex needs to write or maintain production-style docs for this project, including README updates, feature docs, architecture docs, ADRs, runbooks, contributor guidance, release notes, or documentation cleanup and consolidation.
+description: Create, update, restructure, review, or gate documentation work for the Idea-Wall repository. Use when Codex needs to write or maintain production-style docs for this project, or when making code changes that may affect README, features, architecture, APIs, runbooks, contributor workflow, or release notes.
 ---
 
 # Idea-Wall Documentation Skill
@@ -13,6 +13,20 @@ Treat documentation as part of shipping quality, not follow-up cleanup. Keep doc
 
 Idea-Wall is brain RAM: a visual system for capturing, organizing, and interacting with notes, thoughts, and ideas across wall, timeline, search, export, and related workflows.
 
+## Must Read Before Code Changes
+
+Read this skill before making meaningful code changes in this repository.
+
+This is not only a writing skill. It is also the documentation gate for implementation work.
+
+Before changing code, contributors and AI agents must:
+
+1. check the canonical docs for the affected area
+2. identify what documentation would become stale if the change ships
+3. update the affected docs in the same change whenever possible
+
+If a code change would alter behavior, structure, naming, routing, storage, APIs, setup, debugging flow, or contributor workflow, this skill applies.
+
 ## Use This Skill To
 
 - update `README.md`
@@ -23,6 +37,7 @@ Idea-Wall is brain RAM: a visual system for capturing, organizing, and interacti
 - write a debugging or recovery runbook
 - write release notes or changelog entries
 - clean up duplicate, stale, or scattered docs
+- assess doc impact before or during code changes
 
 ## Core Rules
 
@@ -61,6 +76,7 @@ Use these locations by default.
 - `docs/contributing/`: contributor workflow and repo standards
 - `docs/releases/`: changelog and release notes
 - `docs/baselines/`: dated screenshots or baseline artifacts with brief context
+- `docs/archive/`: preserved historical material that is not current source of truth
 
 If a topic already has a canonical doc, update it instead of creating a parallel file.
 
@@ -124,9 +140,22 @@ Update documentation when any of the following changes:
 
 If a document becomes stale, correct it, archive it clearly, or remove it.
 
+## Pre-Change Doc Impact Check
+
+Before coding, ask these questions:
+
+- Which canonical doc owns the area I am about to change?
+- What statement in the docs becomes wrong if this ships?
+- Does this change affect product behavior, API behavior, storage shape, setup, or recovery?
+- Does `README.md` need to change?
+- Does `docs/qa.md` need new or updated steps?
+- Does the changelog need an entry?
+
+If the answer to any of these is yes or maybe, documentation work is part of the task.
+
 ## Workflow
 
-Follow this sequence when doing documentation work.
+Follow this sequence when doing documentation work or code changes with documentation impact.
 
 1. Inspect the existing docs for the topic.
 2. Identify the canonical file that should own the change.
@@ -136,6 +165,7 @@ Follow this sequence when doing documentation work.
 6. Link related docs rather than repeating the same explanation.
 7. Remove or rewrite stale statements discovered during the change.
 8. Update release docs if the change is user-visible.
+9. Update `docs/qa.md` if validation behavior changed.
 
 ## Preferred Structure for This Repo
 
@@ -153,26 +183,35 @@ docs/
   architecture/
     overview.md
     frontend-architecture.md
-    rendering-model.md
     state-and-storage.md
-    sync-model.md
+    wall-rendering-model.md
+    decks-data-model.md
   features/
     quick-capture.md
     search-and-retrieval.md
     timeline-view.md
-    exports.md
+    wall-notes.md
+    page-editor.md
+    decks.md
+    settings.md
   api/
-    sync-contracts.md
-    export-formats.md
+    walls.md
+    decks.md
+    page.md
+    account.md
+    convert.md
   decisions/
     0001-local-first-with-cloud-sync.md
   runbooks/
     sync-debugging.md
-    storage-reset-and-recovery.md
+    page-file-storage-debugging.md
+    local-storage-reset-and-recovery.md
   contributing/
     development-workflow.md
   releases/
     changelog.md
+  archive/
+    README.md
 ```
 
 Move existing flat docs toward this structure when touching them meaningfully. Do not churn files without a reason.
@@ -283,6 +322,7 @@ Documentation work is done when:
 - release docs were updated for user-visible changes
 - examples, screenshots, and commands remain accurate
 - open questions are clearly marked instead of implied away
+- `docs/qa.md` was updated when validation behavior changed
 
 ## Anti-Patterns
 
@@ -292,13 +332,15 @@ Documentation work is done when:
 - do not leave important setup steps only in PR comments or chat
 - do not keep outdated screenshots in active docs
 - do not create disposable file names
-- do not preserve dead docs that now mislead contributors
+- do not preserve dead docs that now mislead contributors in active doc folders
 
 ## AI Agent Rules
 
+- Read this skill before making meaningful code changes in the repo.
 - Check for related docs before making code or doc changes.
 - Prefer updating existing docs over adding new scattered ones.
 - Keep docs aligned with the current repository state.
 - If code and docs conflict and the answer is clear, fix the doc.
 - If the answer is not clear, call out the conflict explicitly.
+- Run the pre-change doc impact check before implementation.
 - Leave the doc system cleaner than you found it.
