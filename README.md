@@ -193,14 +193,20 @@ Canonical documentation now lives under `docs/`:
 - `docs/features/page-editor.md`
 - `docs/features/decks.md`
 - `docs/features/settings.md`
+- `docs/features/file-conversion.md`
+- `docs/features/published-snapshots.md`
 - `docs/api/walls.md`
 - `docs/api/decks.md`
+- `docs/api/account.md`
 - `docs/api/page.md`
 - `docs/architecture/state-and-storage.md`
+- `docs/architecture/decks-data-model.md`
 - `docs/runbooks/sync-debugging.md`
+- `docs/runbooks/local-storage-reset-and-recovery.md`
 - `docs/releases/changelog.md`
 - `docs/qa.md`
 
 Documentation rules and standards are defined in `SKILL.md`.
+
 
 
