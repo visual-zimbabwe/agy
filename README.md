@@ -1,158 +1,196 @@
 # Idea-Wall
 
-Idea-Wall is a local-first web app for spatial brainstorming. It provides an infinite canvas of sticky notes with fast capture, lightweight structure, and export tools for reflection.
+Idea-Wall is a visual thinking studio for capturing, organizing, and interacting with ideas across multiple work surfaces.
+
+The current product includes:
+
+- `/wall`: the spatial wall for notes, links, zones, timeline review, export, and published read-only snapshots
+- `/page`: a block-based infinite page editor for structured documents, embeds, uploads, and comments
+- `/decks`: a study workspace for decks, cards, browsing, custom study sessions, and stats
+- `/settings`: account, appearance, keyboard, and workspace preferences
+
+This repository is local-first in day-to-day interaction and cloud-backed when signed in. IndexedDB is used for fast client persistence and Supabase provides authentication, storage, and account-scoped sync.
+
+## Core Capabilities
+
+### Wall
+
+- Infinite canvas with pan and zoom
+- Rich note types including standard, quote, canon, journal, vocabulary, and Eisenhower-style workflows
+- Tags, wiki-style links, directional links, zones, zone groups, and note groups
+- Search, quick capture, recall, timeline view, presentation mode, and multiple export paths
+- Cloud sync and published read-only snapshot links
+
+### Page Editor
+
+- Infinite, pannable block canvas
+- Slash commands for text, headings, lists, tables, quotes, code, dividers, bookmarks, embeds, and media blocks
+- File uploads, external embeds, comments, block menus, drag and nesting behavior
+- Local and cloud-backed page snapshots
+
+### Decks
+
+- Nested decks
+- Study, browse, stats, and custom study modes
+- Note types, import presets, tags, and scheduler support
+- Dedicated API surface for deck management and review flows
 
 ## Tech Stack
-- Next.js (App Router) + React + TypeScript
-- Tailwind CSS
-- Zustand (state)
-- Dexie + IndexedDB (local persistence)
-- Konva + react-konva (canvas rendering)
-- Fuse.js (fuzzy search)
-- Supabase (Auth + Postgres + RLS)
 
-## Features
-- Infinite wall with pan/zoom camera
-- Email/password authentication (`/login`, `/signup`)
-- Account-scoped cloud sync with Supabase Postgres
-- Sync status UX (`Sync now`, last synced time, error banner)
-- Create notes (`N` / `Ctrl+N`) at viewport center
-- Inline note editing with debounced autosave
-- Drag and resize notes
-- Note tags (add/remove chips, searchable via fuzzy search)
-- Automatic tag groups for tags used by 2+ notes (outlined on canvas + quick-jump list)
-- Color swatches with last-used color memory
-- Duplicate note (`Ctrl/Cmd + D` or `Shift + D`)
-- Delete selected note or zone (`Delete` / `Backspace`)
-- Search palette (`Ctrl/Cmd + K`) with jump-to-note + flash highlight
-- Named zones (create, drag, resize, persist)
-- Non-destructive proximity cluster outlines (`Detect Clusters`)
-- Smart directional links between notes:
-  - Cause -> Effect
-  - Dependency
-  - Idea -> Execution
-- Right-click context menu on links (delete, change relation type)
-- Graph path visualization (select a note to highlight connected upstream/downstream paths)
-- Lightweight templates:
-  - Brainstorm
-  - Retro
-  - Strategy Map
-- Collapsible zone groups with quick assignment from selected zone
-- Multi-select workflows:
-  - Box select mode for selecting many notes at once
-  - Bulk move, color, tag, and export selected notes
-  - Align/distribute actions (left/center/right/top/middle/bottom + horizontal/vertical)
-- Faster capture:
-  - Quick-capture command bar for rapid line-by-line note creation
-  - Paste-to-note parsing (bullets/lines to individual notes)
-  - Voice-to-note input (Web Speech API in supported browsers)
-- Stronger recall:
-  - Saved searches for recurring retrieval workflows
-  - Smart filters by zone, tag, and recency date window
-  - Jump actions for stale notes and high-priority notes
-- Time-based views:
-  - Timeline mode with scrub/playback
-  - Recently changed heatmap overlay
-  - GitHub-style calendar heatmap (click a day to jump timeline)
-  - Playback of wall evolution from persisted snapshots
-- Share/export upgrades:
-  - PDF export (whole/view/zone/selection)
-  - Presentation mode for focused read-only walkthroughs
-  - One-click publish of a read-only wall snapshot link
-- Export to PNG (whole wall, current view, selected zone)
-- Export notes to Markdown
-- Undo/redo history stack with keyboard shortcuts and safe bounded history
-- Keyboard shortcuts overlay (`?`)
+- Next.js App Router
+- React + TypeScript
+- Tailwind CSS
+- Zustand
+- Dexie + IndexedDB
+- Supabase Auth, Postgres, Storage, and RLS
+- Konva + react-konva for wall rendering
+- Vitest and Playwright for automated validation
+
+## Routes
+
+- `/`: landing page
+- `/wall`: main wall workspace
+- `/wall?snapshot=...`: read-only published wall snapshot
+- `/page`: block page editor workspace
+- `/decks`: deck study workspace
+- `/settings`: account and workspace settings
+- `/login`, `/signup`: auth flows
 
 ## Getting Started
+
 ### Prerequisites
+
 - Node.js 20+
 - npm
+- Supabase project for authenticated and cloud-backed flows
 
 ### Install
+
 ```bash
 npm install
 ```
 
-### Supabase Environment
-Create `.env.local` with:
+### Environment
+
+Create `.env.local`:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://mklfzifmupjzgfuamtzv.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-Use `supabase/migrations/202602110001_user_accounts.sql` in your Supabase SQL editor to create tables, indexes, and RLS policies.
+If you are setting up a fresh environment, apply the required Supabase migrations from `supabase/migrations/`.
 
-### Run Development Server
+### Run
+
 ```bash
 npm run dev
 ```
 
 Open:
-- `http://localhost:3000/`
-- `http://localhost:3000/login`
-- `http://localhost:3000/wall` (requires sign-in unless using published snapshot link)
 
-### Lint
+- `http://localhost:3000/`
+- `http://localhost:3000/wall`
+- `http://localhost:3000/page`
+- `http://localhost:3000/decks`
+- `http://localhost:3000/settings`
+
+Authenticated routes redirect to `/login` when no signed-in user is available, except published snapshot views.
+
+## Validation Commands
+
 ```bash
 npm run lint
+npm run check:types
+npm run test:unit
+npm run build
 ```
 
-### Production Build
+Additional project checks:
+
 ```bash
-npm run build
-npm run start
+npm run check:styles:duplicates
+npm run check:regressions
+npm run baseline:capture
 ```
+
+Manual validation lives in `docs/qa.md`.
 
 ## Project Structure
-- `src/app/page.tsx`: Landing page
-- `src/app/wall/page.tsx`: Wall route
-- `src/components/WallCanvas.tsx`: Main interactive canvas and toolbar
-- `src/components/SearchPalette.tsx`: Search command palette
-- `src/components/ExportModal.tsx`: Export UI
-- `src/components/ShortcutsHelp.tsx`: Shortcut overlay
-- `src/features/wall/types.ts`: Canonical data types
-- `src/features/wall/store.ts`: Zustand store
-- `src/features/wall/storage.ts`: Dexie persistence
-- `src/features/wall/commands.ts`: Command layer (create/update/move/delete/duplicate)
-- `src/lib/wall-utils.ts`: Clustering, bounds, markdown helpers
-- `docs/qa.md`: Milestone-based manual QA checklist
 
-## Data Persistence
-Data is stored in:
-- Local IndexedDB (`idea-wall-db`) for fast/offline cache
-- Supabase Postgres for account-backed sync across devices
+### App Routes
 
-Persisted entities:
-- Notes
-- Zones
-- Zone groups
-- Links
-- Camera transform
-- Last-used note color
+- `src/app/page.tsx`: landing page
+- `src/app/wall/page.tsx`: wall route and auth gate
+- `src/app/page/page.tsx`: block page editor route
+- `src/app/decks/page.tsx`: decks workspace route
+- `src/app/settings/page.tsx`: settings route
+- `src/app/api/`: API routes for walls, decks, page files, account settings, conversion, and related workflows
 
-Auth is handled by Supabase Auth, and row-level security enforces user isolation in Postgres tables.
+### UI
 
-## Keyboard Shortcuts
-- `N` or `Ctrl/Cmd + N`: New note
-- `Q` or `Ctrl/Cmd + J`: Toggle quick capture bar
-- `Ctrl/Cmd + Enter`: Capture quick-capture lines into notes
-- `Ctrl/Cmd + K`: Open search
-- `P`: Toggle presentation mode
-- `Ctrl/Cmd + L`: Start a directional link from selected note
-- `Ctrl/Cmd + A`: Select all visible notes
-- `Ctrl/Cmd + Z`: Undo
-- `Ctrl/Cmd + Shift + Z` or `Ctrl/Cmd + Y`: Redo
-- `T`: Toggle timeline mode
-- `H`: Toggle heatmap overlay
-- `Delete` / `Backspace`: Delete selected note, zone, link, or zone group
-- `Ctrl/Cmd + D` or `Shift + D`: Duplicate selected note
-- `Space + Drag`: Pan canvas
-- `Ctrl/Cmd + Mouse Wheel`: Zoom toward cursor
-- `Esc`: Clear selection / close overlays
-- `?`: Toggle shortcuts help
+- `src/components/WallCanvas.tsx`: wall composition root
+- `src/components/wall/`: wall-specific surfaces, layers, hooks, panels, and controls
+- `src/components/page-editor/PageEditor.tsx`: page editor workspace
+- `src/components/decks/DecksWorkspace.tsx`: decks workspace
+- `src/components/settings/SettingsWorkspace.tsx`: settings UI
 
-## QA
-Use `docs/qa.md` for milestone-by-milestone verification.
+### Domain
+
+- `src/features/wall/`: wall types, commands, storage, cloud sync, migrations, and feature helpers
+- `src/features/page/`: page types, storage, and cloud persistence
+- `src/features/decks/`: deck note-type and scheduling logic
+
+## Data and Persistence
+
+### Wall
+
+Persisted wall state includes:
+
+- notes
+- zones
+- zone groups
+- note groups
+- links
+- camera
+- last-used color
+
+Wall notes can also carry richer payloads such as canon content, vocabulary review state, Eisenhower data, quote metadata, image URLs, text formatting, and highlight state.
+
+### Page
+
+Persisted page state includes:
+
+- blocks
+- block comments
+- embedded file metadata
+- camera
+- update timestamp
+
+### Cloud
+
+Supabase is used for:
+
+- authentication
+- wall records and wall snapshots
+- decks, notes, cards, and deck stats
+- page file storage and file signing
+- account settings and profile state
+
+## Documentation
+
+Canonical documentation now lives under `docs/`:
+
+- `docs/product/overview.md`
+- `docs/architecture/overview.md`
+- `docs/architecture/frontend-architecture.md`
+- `docs/features/timeline-view.md`
+- `docs/features/page-editor.md`
+- `docs/features/decks.md`
+- `docs/api/walls.md`
+- `docs/api/decks.md`
+- `docs/releases/changelog.md`
+- `docs/qa.md`
+
+Documentation rules and standards are defined in `SKILL.md`.
