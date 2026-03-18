@@ -1,5 +1,9 @@
 # Repository Guidelines
 
+## Required Pre-Read
+- Read the repository root `SKILL.md` before making any meaningful code changes.
+- Treat `SKILL.md` as the documentation gate for implementation work: identify doc impact before coding and update canonical docs in the same change whenever possible.
+
 ## Project Structure & Module Organization
 - App routes live in `src/app/`:
   - `src/app/page.tsx` (landing)
