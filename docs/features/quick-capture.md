@@ -1,4 +1,4 @@
-# Quick Capture Power User Guide
+# Quick Capture
 
 ## Fastest Workflow
 
@@ -34,3 +34,9 @@ After capture, box-select new notes and apply:
 - `Risk text #blocker #needs-review`
 
 This flow maximizes capture speed while preserving structure for search and organization.
+
+## Related Docs
+
+- `docs/features/wall-notes.md`
+- `docs/features/search-and-retrieval.md`
+- `docs/qa.md`

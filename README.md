@@ -190,6 +190,7 @@ Canonical documentation now lives under `docs/`:
 - `docs/features/timeline-view.md`
 - `docs/features/wall-notes.md`
 - `docs/features/search-and-retrieval.md`
+- `docs/features/quick-capture.md`
 - `docs/features/page-editor.md`
 - `docs/features/decks.md`
 - `docs/features/settings.md`
@@ -212,6 +213,7 @@ Canonical documentation now lives under `docs/`:
 - `docs/qa.md`
 
 Documentation rules and standards are defined in `SKILL.md`.
+
 
 
 
