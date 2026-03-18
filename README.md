@@ -183,11 +183,16 @@ Supabase is used for:
 Canonical documentation now lives under `docs/`:
 
 - `docs/product/overview.md`
+- `docs/contributing/development-workflow.md`
+- `docs/decisions/0001-local-first-with-cloud-sync.md`
 - `docs/architecture/overview.md`
 - `docs/architecture/frontend-architecture.md`
 - `docs/features/timeline-view.md`
+- `docs/features/wall-notes.md`
+- `docs/features/search-and-retrieval.md`
 - `docs/features/page-editor.md`
 - `docs/features/decks.md`
+- `docs/features/settings.md`
 - `docs/api/walls.md`
 - `docs/api/decks.md`
 - `docs/api/page.md`
@@ -197,4 +202,5 @@ Canonical documentation now lives under `docs/`:
 - `docs/qa.md`
 
 Documentation rules and standards are defined in `SKILL.md`.
+
 

@@ -9,8 +9,11 @@
 - Canonical architecture overview and frontend architecture docs
 - Initial feature docs for timeline view, page editor, and decks
 - Initial API docs for walls, decks, and page routes
-- Initial architecture doc for state and storage
+- Initial architecture docs for state, storage, and frontend structure
 - Initial sync debugging runbook
+- Initial ADR for local-first with cloud sync
+- Initial contributor workflow doc
+- Initial feature docs for wall notes, search/retrieval, and settings
 
 ### Changed
 
@@ -24,4 +27,5 @@
 ## Notes
 
 Use this file as the running release history for user-visible and contributor-relevant documentation changes. Add dated release files later if release-specific notes need more detail.
+
 
