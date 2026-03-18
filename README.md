@@ -190,7 +190,11 @@ Canonical documentation now lives under `docs/`:
 - `docs/features/decks.md`
 - `docs/api/walls.md`
 - `docs/api/decks.md`
+- `docs/api/page.md`
+- `docs/architecture/state-and-storage.md`
+- `docs/runbooks/sync-debugging.md`
 - `docs/releases/changelog.md`
 - `docs/qa.md`
 
 Documentation rules and standards are defined in `SKILL.md`.
+
