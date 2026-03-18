@@ -5,6 +5,10 @@
 ### Added
 
 - Canonical documentation structure under `docs/product`, `docs/architecture`, `docs/features`, `docs/api`, `docs/runbooks`, and `docs/releases`
+- Initial convert API doc
+- Initial page file storage debugging runbook
+- Initial feature docs for vocabulary review and Eisenhower notes
+- Initial wall rendering-model architecture doc
 - Initial account API doc
 - Initial file conversion and published snapshot feature docs
 - Initial local storage reset and recovery runbook
@@ -31,6 +35,7 @@
 ## Notes
 
 Use this file as the running release history for user-visible and contributor-relevant documentation changes. Add dated release files later if release-specific notes need more detail.
+
 
 
 
