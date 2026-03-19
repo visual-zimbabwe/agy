@@ -312,6 +312,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const dragSelectionStartRef = useRef<Record<string, { x: number; y: number }> | null>(null);
   const dragAnchorRef = useRef<{ id: string; x: number; y: number } | null>(null);
   const dragSingleStartRef = useRef<{ id: string; x: number; y: number; altClone: boolean } | null>(null);
+  const bookmarkUpgradeRequestsRef = useRef<Record<string, string>>({});
   const lastTimelineRecordedAt = useRef(0);
   const lastTimelineSerialized = useRef("");
   const activeTimelineEntry = timelineMode
@@ -1099,6 +1100,26 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     [isTimeLocked, renderSnapshot.notes],
   );
 
+  useEffect(() => {
+    if (!hydrated || isTimeLocked || publishedReadOnly) {
+      return;
+    }
+
+    for (const note of Object.values(notesMap)) {
+      if (note.noteKind !== "web-bookmark") {
+        continue;
+      }
+      const normalizedUrl = note.bookmark?.normalizedUrl;
+      if (!normalizedUrl || note.bookmark?.status === "loading" || isBookmarkMetadataRich(note.bookmark?.metadata)) {
+        continue;
+      }
+      if (bookmarkUpgradeRequestsRef.current[note.id] === normalizedUrl) {
+        continue;
+      }
+      bookmarkUpgradeRequestsRef.current[note.id] = normalizedUrl;
+      void fetchBookmarkPreview(note.id, normalizedUrl, { force: true });
+    }
+  }, [fetchBookmarkPreview, hydrated, isTimeLocked, notesMap, publishedReadOnly]);
   const makeWebBookmarkNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
@@ -2933,6 +2954,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
 
 
 

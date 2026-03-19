@@ -692,58 +692,10 @@ export const WallNotesLayer = ({
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
                 <Rect width={noteView.w} height={8} cornerRadius={[22, 22, 0, 0]} fill={WEB_BOOKMARK_ACCENT} listening={false} />
-                {bookmarkDisplaySize === "expanded" && bookmarkImage ? (
-                  <>
-                    <KonvaImage x={0} y={8} width={noteView.w} height={92} image={bookmarkImage} cornerRadius={[0, 0, 18, 18]} listening={false} />
-                    <Rect x={0} y={8} width={noteView.w} height={92} fill="rgba(0,0,0,0.08)" listening={false} />
-                  </>
-                ) : null}
-                {bookmarkDisplaySize === "comfortable" && bookmarkImage ? (
-                  <>
-                    <Rect
-                      x={Math.max(16, noteView.w - 104)}
-                      y={46}
-                      width={88}
-                      height={72}
-                      cornerRadius={16}
-                      fill="rgba(0,71,83,0.08)"
-                      stroke="rgba(0,71,83,0.10)"
-                      strokeWidth={1}
-                      listening={false}
-                    />
-                    <KonvaImage x={Math.max(16, noteView.w - 104)} y={46} width={88} height={72} image={bookmarkImage} cornerRadius={16} listening={false} />
-                  </>
-                ) : null}
                 <Text
                   x={16}
-                  y={bookmarkDisplaySize === "expanded" ? 116 : 24}
-                  width={Math.max(0, noteView.w - (bookmarkDisplaySize === "comfortable" && bookmarkImage ? 128 : 32))}
-                  fontSize={bookmarkDisplaySize === "compact" ? 15 : bookmarkDisplaySize === "expanded" ? 18 : 17}
-                  fontStyle="bold"
-                  fill="#052C33"
-                  text={bookmarkMetadata?.title?.trim() || bookmarkMetadata?.domain || "Paste a URL"}
-                  ellipsis
-                  lineHeight={1.18}
-                  listening={false}
-                />
-                {bookmarkDisplaySize !== "compact" && (
-                  <Text
-                    x={16}
-                    y={bookmarkDisplaySize === "expanded" ? 152 : 60}
-                    width={Math.max(0, noteView.w - (bookmarkDisplaySize === "comfortable" && bookmarkImage ? 128 : 32))}
-                    height={Math.max(0, noteView.h - (bookmarkDisplaySize === "expanded" ? 108 : 84))}
-                    fontSize={12}
-                    lineHeight={1.42}
-                    fill="rgba(5,44,51,0.72)"
-                    text={bookmarkMetadata?.description?.trim() || bookmarkState?.error || "Paste a URL to fetch bookmark metadata."}
-                    ellipsis
-                    listening={false}
-                  />
-                )}
-                <Text
-                  x={16}
-                  y={22}
-                  width={92}
+                  y={18}
+                  width={72}
                   fontSize={10}
                   fontStyle="bold"
                   fill="rgba(0,71,83,0.78)"
@@ -777,6 +729,72 @@ export const WallNotesLayer = ({
                   <Rect width={62} height={22} cornerRadius={11} fill="rgba(0,71,83,0.10)" stroke="rgba(0,71,83,0.20)" strokeWidth={1} />
                   <Text x={0} y={6} width={62} align="center" fontSize={10} fontStyle="bold" fill="#0B3F49" text="OPEN" />
                 </Group>
+                {bookmarkDisplaySize === "compact" ? null : (
+                  <>
+                    <Rect
+                      x={Math.max(16, noteView.w - (bookmarkDisplaySize === "expanded" ? 140 : 124))}
+                      y={44}
+                      width={bookmarkDisplaySize === "expanded" ? 124 : 108}
+                      height={bookmarkDisplaySize === "expanded" ? 108 : 92}
+                      cornerRadius={18}
+                      fill="rgba(0,71,83,0.08)"
+                      stroke="rgba(0,71,83,0.10)"
+                      strokeWidth={1}
+                      listening={false}
+                    />
+                    {bookmarkImage ? (
+                      <KonvaImage
+                        x={Math.max(16, noteView.w - (bookmarkDisplaySize === "expanded" ? 140 : 124))}
+                        y={44}
+                        width={bookmarkDisplaySize === "expanded" ? 124 : 108}
+                        height={bookmarkDisplaySize === "expanded" ? 108 : 92}
+                        image={bookmarkImage}
+                        cornerRadius={18}
+                        listening={false}
+                      />
+                    ) : null}
+                    {!bookmarkImage ? (
+                      <Text
+                        x={Math.max(16, noteView.w - (bookmarkDisplaySize === "expanded" ? 140 : 124)) + 14}
+                        y={86}
+                        width={Math.max(0, (bookmarkDisplaySize === "expanded" ? 124 : 108) - 28)}
+                        align="center"
+                        fontSize={11}
+                        fontStyle="bold"
+                        fill="rgba(0,71,83,0.62)"
+                        text={bookmarkMetadata?.siteName?.trim() || bookmarkMetadata?.domain || "Preview"}
+                        ellipsis
+                        listening={false}
+                      />
+                    ) : null}
+                  </>
+                )}
+                <Text
+                  x={16}
+                  y={48}
+                  width={Math.max(0, noteView.w - (bookmarkDisplaySize === "compact" ? 32 : bookmarkDisplaySize === "expanded" ? 164 : 148))}
+                  fontSize={bookmarkDisplaySize === "compact" ? 15 : bookmarkDisplaySize === "expanded" ? 18 : 17}
+                  fontStyle="bold"
+                  fill="#052C33"
+                  text={bookmarkMetadata?.title?.trim() || bookmarkMetadata?.domain || "Paste a URL"}
+                  ellipsis
+                  lineHeight={1.18}
+                  listening={false}
+                />
+                {bookmarkDisplaySize !== "compact" && (
+                  <Text
+                    x={16}
+                    y={84}
+                    width={Math.max(0, noteView.w - (bookmarkDisplaySize === "expanded" ? 164 : 148))}
+                    height={Math.max(0, noteView.h - 128)}
+                    fontSize={12}
+                    lineHeight={1.42}
+                    fill="rgba(5,44,51,0.72)"
+                    text={bookmarkMetadata?.description?.trim() || bookmarkState?.error || "Paste a URL to fetch bookmark metadata."}
+                    ellipsis
+                    listening={false}
+                  />
+                )}
                 <Group x={16} y={Math.max(16, noteView.h - 34)} listening={false}>
                   {bookmarkFavicon ? (
                     <KonvaImage x={0} y={0} width={16} height={16} image={bookmarkFavicon} cornerRadius={4} listening={false} />
@@ -786,7 +804,7 @@ export const WallNotesLayer = ({
                   <Text
                     x={24}
                     y={1}
-                    width={Math.max(0, noteView.w - 130)}
+                    width={Math.max(0, noteView.w - 140)}
                     fontSize={11}
                     fill="rgba(5,44,51,0.74)"
                     text={bookmarkMetadata?.siteName?.trim() || bookmarkMetadata?.domain || bookmarkState?.normalizedUrl || "Website"}
@@ -794,7 +812,7 @@ export const WallNotesLayer = ({
                     listening={false}
                   />
                   <Text
-                    x={Math.max(88, noteView.w - 112)}
+                    x={Math.max(104, noteView.w - 112)}
                     y={1}
                     width={96}
                     align="right"
@@ -1221,6 +1239,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 
