@@ -17,10 +17,10 @@ Current behavior includes:
 - infinite canvas panning and zooming
 - block creation at arbitrary positions
 - slash-command driven insertion
-- support for text, headings, to-dos, bulleted lists, numbered lists, toggles, tables, quotes, callouts, code, dividers, bookmarks, embeds, and file/media blocks
+- support for text, headings, to-dos, bulleted lists, numbered lists, toggles, tables, quotes, callouts, code, dividers, bookmarks, embeds, file/media blocks, and page cover images
 - drag, nesting, column placement, and block-level menus
 - block comments
-- file upload and linked media insertion
+- file upload, linked media insertion, and Unsplash-powered image search for `/image` and `/cover`
 
 The interaction model is closer to a hybrid of document editing and spatial layout than a fixed linear editor.
 
@@ -31,6 +31,7 @@ Canonical page types live in `src/features/page/types.ts`.
 Persisted page state includes:
 
 - `blocks`
+- `cover`
 - `camera`
 - `updatedAt`
 
@@ -43,11 +44,13 @@ Blocks may also include:
 - bookmark and embed metadata
 - comments
 - file metadata
+- page cover metadata
 
 Page persistence is handled both locally and through cloud-backed snapshot helpers.
 
 ## Edge Cases
 
+- `/cover` is document-level state, not a normal block, so cover changes must preserve top-of-page spacing and persistence separately from block insertion.
 - File upload requires authenticated Supabase-backed storage behavior.
 - Block menus, slash menus, file insertion popovers, and comment panels must remain visible near viewport edges.
 - Drag behavior has several modes, including insert, nest, and column placement, which need stable visual feedback.

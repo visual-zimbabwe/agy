@@ -1,6 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
-import type { PageBlock, PersistedPageState } from "@/features/page/types";
+import type { PageBlock, PageCover, PersistedPageState } from "@/features/page/types";
 import { appSlug, legacyAppSlug } from "@/lib/brand";
 
 type PageDocRecord = {
@@ -201,8 +201,11 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
           size: fileValue.size,
           mimeType: fileValue.mimeType,
           displayName: typeof fileValue.displayName === "string" && fileValue.displayName.trim().length > 0 ? fileValue.displayName : fileValue.name,
-          source: fileValue.source === "embed" ? ("embed" as const) : ("upload" as const),
+          source: fileValue.source === "embed" ? ("embed" as const) : fileValue.source === "unsplash" ? ("unsplash" as const) : ("upload" as const),
           externalUrl: typeof fileValue.externalUrl === "string" ? fileValue.externalUrl : undefined,
+          alt: typeof fileValue.alt === "string" ? fileValue.alt : undefined,
+          attributionName: typeof fileValue.attributionName === "string" ? fileValue.attributionName : undefined,
+          attributionUrl: typeof fileValue.attributionUrl === "string" ? fileValue.attributionUrl : undefined,
         }
       : undefined;
 
@@ -250,12 +253,26 @@ const normalizeSnapshot = (value: unknown): PersistedPageState | null => {
       ? { x: cameraValue.x, y: cameraValue.y, zoom: cameraValue.zoom }
       : defaultCamera;
 
+  const coverValue = value.cover;
+  const cover: PageCover | undefined =
+    isRecord(coverValue) && (typeof coverValue.path === "string" || typeof coverValue.externalUrl === "string")
+      ? {
+          path: typeof coverValue.path === "string" ? coverValue.path : undefined,
+          externalUrl: typeof coverValue.externalUrl === "string" ? coverValue.externalUrl : undefined,
+          alt: typeof coverValue.alt === "string" ? coverValue.alt : undefined,
+          source: coverValue.source === "embed" ? ("embed" as const) : coverValue.source === "unsplash" ? ("unsplash" as const) : ("upload" as const),
+          attributionName: typeof coverValue.attributionName === "string" ? coverValue.attributionName : undefined,
+          attributionUrl: typeof coverValue.attributionUrl === "string" ? coverValue.attributionUrl : undefined,
+        }
+      : undefined;
+
   const updatedAt = typeof value.updatedAt === "number" ? value.updatedAt : Date.now();
 
   return {
     blocks,
     camera,
     updatedAt,
+    cover,
   };
 };
 

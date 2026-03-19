@@ -32,8 +32,20 @@ export type PageFileMeta = {
   size: number;
   mimeType: string;
   displayName: string;
-  source?: "upload" | "embed";
+  source?: "upload" | "embed" | "unsplash";
   externalUrl?: string;
+  alt?: string;
+  attributionName?: string;
+  attributionUrl?: string;
+};
+
+export type PageCover = {
+  path?: string;
+  externalUrl?: string;
+  alt?: string;
+  source?: "upload" | "embed" | "unsplash";
+  attributionName?: string;
+  attributionUrl?: string;
 };
 
 export type PageBlockComment = {
@@ -121,4 +133,5 @@ export type PersistedPageState = {
   blocks: PageBlock[];
   camera: PageCamera;
   updatedAt: number;
+  cover?: PageCover;
 };

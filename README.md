@@ -24,8 +24,8 @@ This repository is local-first in day-to-day interaction and cloud-backed when s
 ### Page Editor
 
 - Infinite, pannable block canvas
-- Slash commands for text, headings, lists, tables, quotes, code, dividers, bookmarks, embeds, and media blocks
-- File uploads, external embeds, comments, block menus, drag and nesting behavior
+- Slash commands for text, headings, lists, tables, quotes, code, dividers, bookmarks, embeds, media blocks, and page cover insertion
+- File uploads, external embeds, Unsplash image search, comments, block menus, drag and nesting behavior
 - Local and cloud-backed page snapshots
 
 ### Decks
@@ -78,6 +78,7 @@ Create `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+UNSPLASH_ACCESS_KEY=your-unsplash-access-key
 ```
 
 If you are setting up a fresh environment, apply the required Supabase migrations from `supabase/migrations/`.
@@ -165,6 +166,7 @@ Persisted page state includes:
 - blocks
 - block comments
 - embedded file metadata
+- optional page cover metadata
 - camera
 - update timestamp
 

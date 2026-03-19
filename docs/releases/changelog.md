@@ -27,6 +27,7 @@
 
 - `README.md` now reflects the current multi-surface product instead of describing only the wall workspace
 - Frontend architecture guidance moved into `docs/architecture/frontend-architecture.md`
+- Unsplash-powered image search now backs `/wall` image insertion and `/page` `/image` + `/cover` flows, including clustered wall moodboards and persisted page covers
 
 ### Fixed
 
@@ -38,3 +39,4 @@
 ## Notes
 
 Use this file as the running release history for user-visible and contributor-relevant documentation changes. Add dated release files later if release-specific notes need more detail.
+

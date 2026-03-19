@@ -104,6 +104,7 @@ import { EISENHOWER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
+import type { UnsplashPhoto } from "@/lib/unsplash";
 import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
 import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
@@ -125,6 +126,7 @@ import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 import { getImageFileFromClipboard, getImageFilesFromDataTransfer, readImageFileAsDataUrl } from "@/lib/wall-image-upload";
+import { trackUnsplashDownload } from "@/lib/unsplash-client";
 
 type EditingState = {
   id: string;
@@ -1305,6 +1307,59 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
     insertImageSource(url, target);
   }, [insertImageSource]);
+
+  const handleUnsplashPhotoInsert = useCallback(async (photo: UnsplashPhoto, target?: { noteId?: string; x?: number; y?: number }) => {
+    await trackUnsplashDownload(photo.links.downloadLocation);
+    insertImageSource(photo.urls.regular, target);
+  }, [insertImageSource]);
+
+  const handleUnsplashMoodboardInsert = useCallback(async (photos: UnsplashPhoto[], target?: { noteId?: string; x?: number; y?: number }) => {
+    if (photos.length < 3 || photos.length > 10) {
+      throw new Error("Pick 3-10 images for a moodboard.");
+    }
+
+    const anchor = (() => {
+      if (target?.noteId) {
+        const note = renderSnapshot.notes[target.noteId];
+        if (note) {
+          return { x: note.x + note.w / 2, y: note.y + note.h / 2 };
+        }
+      }
+      if (typeof target?.x === "number" && typeof target?.y === "number") {
+        return { x: target.x, y: target.y };
+      }
+      return toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    })();
+
+    const columns = photos.length <= 4 ? 2 : photos.length <= 6 ? 3 : 4;
+    const gap = 28;
+    const createdIds: string[] = [];
+    runHistoryGroup(() => {
+      photos.forEach((photo, index) => {
+        const aspectRatio = Math.max(0.65, Math.min(1.5, photo.height / Math.max(photo.width, 1)));
+        const width = columns >= 4 ? 180 : 220;
+        const height = Math.round(width * aspectRatio);
+        const row = Math.floor(index / columns);
+        const column = index % columns;
+        const rows = Math.ceil(photos.length / columns);
+        const offsetX = (column - (columns - 1) / 2) * (width + gap) + (row % 2 === 0 ? 0 : 18);
+        const offsetY = (row - (rows - 1) / 2) * (220 + gap) + (column % 2 === 0 ? 0 : 16);
+        const noteId = createNote(anchor.x + offsetX - width / 2, anchor.y + offsetY - height / 2, ui.lastColor);
+        updateNote(noteId, {
+          imageUrl: photo.urls.regular,
+          w: width,
+          h: Math.max(150, Math.min(320, height)),
+        });
+        createdIds.push(noteId);
+      });
+    });
+
+    await Promise.all(photos.map((photo) => trackUnsplashDownload(photo.links.downloadLocation)));
+    if (createdIds.length > 0) {
+      syncPrimarySelection(createdIds);
+      selectNote(createdIds[0]);
+    }
+  }, [camera, renderSnapshot.notes, runHistoryGroup, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
 
   useEffect(() => {
     if (isTimeLocked) {
@@ -2710,6 +2765,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onCloseImageInsert={closeImageInsert}
         onSelectImageFile={(file) => handleImageFileInsert(file, imageInsertState)}
         onSubmitImageUrl={(url) => handleImageUrlInsert(url, imageInsertState)}
+        onSelectUnsplashPhoto={(photo) => handleUnsplashPhotoInsert(photo, imageInsertState)}
+        onInsertUnsplashMoodboard={(photos) => handleUnsplashMoodboardInsert(photos, imageInsertState)}
         isSettingsOpen={settingsOpen}
         onCloseSettings={() => setSettingsOpen(false)}
         userEmail={userEmail}
@@ -2717,6 +2774,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
 
 
 

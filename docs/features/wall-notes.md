@@ -23,6 +23,12 @@ Current note creation entry points include:
 
 These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands.
 
+Image note creation now supports three insert sources from the wall image modal:
+
+- `Upload` for local image files
+- `Paste URL` for direct remote image links
+- `Unsplash` search for single-image insertion or 3-10 image moodboards
+
 ## Note Kinds
 
 Current wall note kinds include:
@@ -50,6 +56,7 @@ Important fields include:
 - Eisenhower payload
 - vocabulary payload
 - image URL
+- Unsplash-sourced image URLs
 - text alignment and vertical alignment
 - text font and color
 - text sizing
@@ -72,6 +79,7 @@ This makes notes the core unit of wall content, but not the only structural elem
 
 ## Edge Cases
 
+- Unsplash moodboards create multiple image notes in one grouped insert action and place them near the current target or viewport center.
 - Note data must survive both local persistence and cloud sync.
 - Richer note payloads depend on newer schema support; compatibility paths exist in wall APIs for some missing columns.
 - Published wall snapshots are read-only even though they display wall note content.

@@ -9,6 +9,7 @@ import { SettingsWorkspace } from "@/components/settings/SettingsWorkspace";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { ImageInsertModal } from "@/components/wall/ImageInsertModal";
 import type { Note } from "@/features/wall/types";
+import type { UnsplashPhoto } from "@/lib/unsplash";
 
 type WallGlobalModalsProps = {
   quickCaptureOpen: boolean;
@@ -44,6 +45,8 @@ type WallGlobalModalsProps = {
   onCloseImageInsert: () => void;
   onSelectImageFile: (file: File) => Promise<void>;
   onSubmitImageUrl: (url: string) => Promise<void>;
+  onSelectUnsplashPhoto: (photo: UnsplashPhoto) => Promise<void>;
+  onInsertUnsplashMoodboard?: (photos: UnsplashPhoto[]) => Promise<void>;
 };
 
 export const WallGlobalModals = ({
@@ -80,6 +83,8 @@ export const WallGlobalModals = ({
   onCloseImageInsert,
   onSelectImageFile,
   onSubmitImageUrl,
+  onSelectUnsplashPhoto,
+  onInsertUnsplashMoodboard,
 }: WallGlobalModalsProps) => {
   return (
     <>
@@ -115,7 +120,10 @@ export const WallGlobalModals = ({
         onClose={onCloseImageInsert}
         onSelectFile={onSelectImageFile}
         onSubmitUrl={onSubmitImageUrl}
+        onSelectUnsplashPhoto={onSelectUnsplashPhoto}
+        onInsertUnsplashMoodboard={onInsertUnsplashMoodboard}
         targetLabel={imageInsertTargetLabel}
+        allowMoodboard
       />
       <ModalShell
         open={isSettingsOpen}
@@ -135,3 +143,4 @@ export const WallGlobalModals = ({
     </>
   );
 };
+

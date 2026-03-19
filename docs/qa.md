@@ -13,9 +13,13 @@
 8. In a text block, type `/h1`, `/h2`, `/h3`, `/todo`, `/bullet` (or `/list`), `/table`, `/quote`, and `/code` (one at a time), then press `Enter` and verify block type changes.
 9. While slash menu is open, use `ArrowUp/ArrowDown` and `Enter` to select a command.
 10. Press `Esc` with slash menu open and verify it closes.
-11. In any text block, type `/file` then press `Enter`; verify file insert popover appears with `Upload` and `Link` tabs.
+11. In any text block, type `/file` then press `Enter`; verify file insert popover appears with `Upload` and `Paste URL` tabs.
 12. In `/file` popover `Upload` tab, click `Choose a file`, upload a document, and verify a file block appears with file name + size metadata.
-13. In `/file` popover `Link` tab, paste a URL (PDF, Drive file, or Maps URL) and verify an embedded file block appears with inferred title and `External` size label.
+13. In `/file` popover `Paste URL` tab, paste a URL (PDF, Drive file, or Maps URL) and verify an embedded file block appears with inferred title and `External` size label.
+14. In any text block, type `/image` then press `Enter`; verify the image insert popover shows `Upload`, `Paste URL`, and `Unsplash` tabs.
+15. In `/image` > `Unsplash`, search for a term, choose one result, and verify an inline image block is inserted with preview and attribution text.
+16. In any text block, type `/cover` then press `Enter`; verify the cover insert popover opens with `Upload`, `Paste URL`, and `Unsplash` tabs.
+17. In `/cover` > `Unsplash`, search for a term, choose one result, and verify the page cover updates above the document blocks and persists after refresh.
 14. Type `/image`, `/video`, and `/audio` (one at a time), press `Enter`, and verify each opens the same two-option popover and inserts a specialized media block after upload/link.
 15. Hover a file/media block and verify toolbar actions appear: `Caption`, `Comment`, `Download`.
 16. Use hover toolbar `Caption`; verify caption is saved and shown under the file metadata.
@@ -119,7 +123,8 @@ Expected:
 - Toggle lists support slash/markdown/keyboard creation, collapse/expand shortcuts, and descendant visibility persistence.
 - Divider blocks support slash (`/div`/`/divider`) and markdown (`--- `) creation, and remain fixed to document block width on the infinite canvas.
 - Slash command menu is visually compact and symbol-driven; command popup stays in viewport with reduced canvas obstruction.
-- `/file`, `/image`, `/video`, `/audio` open an insert popup with `Upload` and `Link` flows.
+- `/file`, `/video`, `/audio` open an insert popup with `Upload` and `Paste URL` flows.
+- `/image` on `/page` opens `Upload`, `Paste URL`, and `Unsplash`; `/cover` opens the same source options for the page cover.
 - Todo items support `Tab`/`Shift + Tab` nesting and un-nesting.
 - Multi-line text selection supports one-shot conversion to todo checkboxes via `Ctrl/Cmd + (Option or Shift) + 4`.
 - Quote blocks are visually distinct and support inline Markdown formatting shortcuts for bold/italic/link.
@@ -175,17 +180,21 @@ Expected:
 
 ## Wall Image Insert Workflows (2026-03-16)
 1. Open /wall, create or select a note, type /image, and verify an image insert modal opens instead of a browser prompt.
-2. In the modal, click Select File and upload PNG, JPG/JPEG, WEBP, and GIF files in separate checks; verify each inserts successfully.
-3. In the modal, drag an image file onto the upload drop zone and verify it inserts without using the file picker.
-4. Paste a valid remote image URL into the URL field and verify it inserts successfully.
-5. Copy an image to the clipboard, select a note, press Ctrl/Cmd + V, and verify the selected note updates with the pasted image.
-6. Copy an image to the clipboard with no note selected, press Ctrl/Cmd + V, and verify a new image note appears near the viewport center.
-7. Drag an image file onto empty canvas space and verify a new image note is created at the drop point.
-8. Drag an image file onto an existing note and verify that note's image is replaced.
-9. While dragging an image file over the wall, verify the drag overlay appears and stays fully visible in the viewport.
+2. Verify the modal exposes `Upload`, `Paste URL`, and `Unsplash` tabs.
+3. In `Upload`, click Select File and upload PNG, JPG/JPEG, WEBP, and GIF files in separate checks; verify each inserts successfully.
+4. In `Upload`, drag an image file onto the drop zone and verify it inserts without using the file picker.
+5. In `Paste URL`, paste a valid remote image URL and verify it inserts successfully.
+6. In `Unsplash`, search for a term, choose one result in `Single` mode, and verify the note image updates or a new image note is created.
+7. In `Unsplash`, switch to `Moodboard`, select 3-10 results, insert them, and verify a clustered set of image notes appears near the target area.
+8. Copy an image to the clipboard, select a note, press Ctrl/Cmd + V, and verify the selected note updates with the pasted image.
+9. Copy an image to the clipboard with no note selected, press Ctrl/Cmd + V, and verify a new image note appears near the viewport center.
+10. Drag an image file onto empty canvas space and verify a new image note is created at the drop point.
+11. Drag an image file onto an existing note and verify that note's image is replaced.
+12. While dragging an image file over the wall, verify the drag overlay appears and stays fully visible in the viewport.
 
 Expected:
-- Image insertion supports upload, drag/drop, clipboard paste, and URL entry.
+- Image insertion supports upload, drag/drop, clipboard paste, direct URL entry, and Unsplash search.
+- Unsplash moodboard insertion creates 3-10 image notes in one clustered placement.
 - Uploads create an immediate local preview and route through the same image-note rendering path as URL images.
 - Dropping on empty canvas creates a new image note; dropping on an existing note replaces its image.
 - The insert modal feels like a proper wall UI panel, not a browser alert or prompt.

@@ -18,11 +18,14 @@ import {
 
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
 import { listCloudPageDocIds, loadCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
-import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageEmbedData, PageNumberedFormat, PageTableData, PersistedPageState } from "@/features/page/types";
+import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageCover, PageEmbedData, PageNumberedFormat, PageTableData, PersistedPageState } from "@/features/page/types";
+import { UnsplashPicker } from "@/components/media/UnsplashPicker";
 import { cn } from "@/lib/cn";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { UnsplashPhoto } from "@/lib/unsplash";
+import { trackUnsplashDownload } from "@/lib/unsplash-client";
 
-type SlashCommandId = BlockType;
+type SlashCommandId = BlockType | "cover";
 type SlashCommandGroup = "basic" | "media";
 type SlashCommand = { id: SlashCommandId; label: string; description: string; aliases: string[]; group: SlashCommandGroup; symbol?: string; trigger?: string };
 type MenuState = { blockId: string; query: string; slashRange: { start: number; end: number }; anchorX: number; anchorY: number };
@@ -31,8 +34,8 @@ type CanvasMenuState = { open: boolean; x: number; y: number; worldX: number; wo
 type FileMenuState = { open: boolean; x: number; y: number; blockId?: string };
 type BlockMenuState = { open: boolean; x: number; y: number; blockId?: string; moveToQuery: string; searchQuery: string };
 type CodeMenuState = { open: boolean; x: number; y: number; blockId?: string };
-type FileInsertIntent = "file" | "image" | "video" | "audio" | "bookmark";
-type FileInsertMode = "upload" | "link";
+type FileInsertIntent = "file" | "image" | "video" | "audio" | "bookmark" | "cover";
+type FileInsertMode = "upload" | "link" | "unsplash";
 type FileInsertState = { open: boolean; intent: FileInsertIntent; mode: FileInsertMode; worldX: number; worldY: number; x: number; y: number; url: string; afterBlockId?: string };
 type DragPreviewState =
   | { mode: "insert"; x: number; y: number; width: number }
@@ -56,6 +59,10 @@ type CommentPanelState = {
 };
 
 const DOC_WIDTH = 680;
+const COVER_WIDTH = DOC_WIDTH + 96;
+const COVER_HEIGHT = 224;
+const COVER_TOP = 28;
+const COVER_SHIFT = 236;
 const LINE_HEIGHT = 32;
 const LIST_ITEM_GAP = 6;
 const DEFAULT_BLOCK_GAP = 14;
@@ -153,7 +160,8 @@ const slashCommands: SlashCommand[] = [
   { id: "table", label: "Table", description: "Simple table.", aliases: ["table", "grid", "simple table"], group: "basic", symbol: "▦", trigger: "/table" },
   { id: "todo", label: "To-do list", description: "Checkbox task.", aliases: ["todo", "task", "checkbox"], group: "basic", symbol: "[]", trigger: "[]" },
   { id: "file", label: "File", description: "Upload or embed a file.", aliases: ["file", "files", "upload"], group: "media", symbol: "F", trigger: "/file" },
-  { id: "image", label: "Image", description: "Upload or link an image.", aliases: ["image", "photo", "img"], group: "media", symbol: "I", trigger: "/image" },
+  { id: "image", label: "Image", description: "Upload, link, or search Unsplash for an image.", aliases: ["image", "photo", "img", "unsplash"], group: "media", symbol: "I", trigger: "/image" },
+  { id: "cover", label: "Cover", description: "Set a page cover from upload, URL, or Unsplash.", aliases: ["cover", "hero", "header image"], group: "media", symbol: "CV", trigger: "/cover" },
   { id: "video", label: "Video", description: "Upload or link a video.", aliases: ["video", "movie"], group: "media", symbol: "V", trigger: "/video" },
   { id: "audio", label: "Audio", description: "Upload or link audio.", aliases: ["audio", "sound"], group: "media", symbol: "A", trigger: "/audio" },
   { id: "bookmark", label: "Web bookmark", description: "Create a link preview.", aliases: ["bookmark", "web bookmark", "web", "link"], group: "media", symbol: "↗", trigger: "/bookmark" },
@@ -1118,7 +1126,7 @@ const inferEmbedDataFromUrl = (rawUrl: string): PageEmbedData => {
 };
 
 const acceptForIntent = (intent: FileInsertIntent) => {
-  if (intent === "image") return "image/*";
+  if (intent === "image" || intent === "cover") return "image/*";
   if (intent === "video") return "video/*";
   if (intent === "audio") return "audio/*";
   if (intent === "bookmark") return "";
@@ -1127,9 +1135,11 @@ const acceptForIntent = (intent: FileInsertIntent) => {
 
 const blockTypeForIntent = (intent: FileInsertIntent): BlockType => {
   if (intent === "bookmark") return "bookmark";
+  if (intent === "cover") return "image";
   return intent;
 };
-const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : intent === "bookmark" ? 178 : 52);
+const insertedHeightForIntent = (intent: FileInsertIntent) => (intent === "cover" ? COVER_HEIGHT : intent === "image" ? 280 : intent === "video" ? 220 : intent === "audio" ? 88 : intent === "bookmark" ? 178 : 52);
+const intentSupportsUnsplash = (intent: FileInsertIntent) => intent === "image" || intent === "cover";
 const normalizeCameraState = (camera: { x: number; y: number; zoom: number } | null | undefined) => {
   if (!camera) return { x: 0, y: 0, zoom: 1 };
   const safeZoom = clamp(camera.zoom, 0.28, 2.4);
@@ -1284,6 +1294,15 @@ const SlashCommandIcon = ({ id }: { id: SlashCommandId }) => {
       </svg>
     );
   }
+  if (id === "cover") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
+        <rect x="2.4" y="3.6" width="15.2" height="12.8" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M2.8 7.2h14.4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        <path d="m5 13 2.8-2.5 2 1.8 2.3-2.1 2 2.8" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
   if (id === "video") {
     return (
       <svg aria-hidden="true" viewBox="0 0 20 20" className="h-[15px] w-[15px] text-[#4f4f4f]">
@@ -1338,6 +1357,7 @@ export function PageEditor() {
   const searchParams = useSearchParams();
   const docId = searchParams.get("doc") || defaultPageDocId;
   const [blocks, setBlocks] = useState<PageBlock[]>(() => createEmptyPage());
+  const [cover, setCover] = useState<PageCover | undefined>(undefined);
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const [viewport, setViewport] = useState({ w: 1200, h: 800 });
   const [menu, setMenu] = useState<MenuState | null>(null);
@@ -1580,6 +1600,63 @@ export function PageEditor() {
     return payload.signedUrl;
   }, []);
 
+
+  const applyPageCover = useCallback((nextCover: PageCover | undefined) => {
+    setCover(nextCover);
+    if (!nextCover || cover) {
+      return;
+    }
+    setBlocks((previous) => {
+      const minY = previous.reduce((lowest, block) => Math.min(lowest, block.y), Number.POSITIVE_INFINITY);
+      if (!Number.isFinite(minY) || minY >= COVER_SHIFT) {
+        return previous;
+      }
+      const delta = COVER_SHIFT - minY;
+      return previous.map((block) => ({ ...block, y: block.y + delta }));
+    });
+  }, [cover]);
+
+  const insertUnsplashImageBlock = useCallback(async (photo: UnsplashPhoto, worldX: number, worldY: number, afterBlockId?: string) => {
+    await trackUnsplashDownload(photo.links.downloadLocation);
+    const created: PageBlock = {
+      id: idFor(),
+      type: "image",
+      content: "",
+      x: worldX,
+      y: worldY,
+      w: DOC_WIDTH,
+      h: 280,
+      file: {
+        name: `unsplash-${photo.id}.jpg`,
+        displayName: `Photo by ${photo.user.name}`,
+        size: 0,
+        mimeType: "image/*",
+        source: "unsplash",
+        externalUrl: photo.urls.regular,
+        alt: photo.alt,
+        attributionName: photo.user.name,
+        attributionUrl: photo.user.profileUrl,
+      },
+    };
+    setBlocks((previous) => {
+      const appended = [...previous, created];
+      if (!afterBlockId) return appended;
+      const nextAfterY = created.y + Math.max(created.h + blockGapFor(created.type), LINE_HEIGHT + blockGapFor(created.type));
+      return appended.map((item) => (item.id === afterBlockId ? { ...item, y: nextAfterY } : item));
+    });
+  }, []);
+
+  const insertUnsplashCover = useCallback(async (photo: UnsplashPhoto) => {
+    await trackUnsplashDownload(photo.links.downloadLocation);
+    applyPageCover({
+      externalUrl: photo.urls.regular,
+      alt: photo.alt,
+      source: "unsplash",
+      attributionName: photo.user.name,
+      attributionUrl: photo.user.profileUrl,
+    });
+  }, [applyPageCover]);
+
   const uploadFilesAt = useCallback(
     async (files: File[], worldX: number, worldY: number, intent: FileInsertIntent = "file", afterBlockId?: string) => {
       if (files.length === 0) return;
@@ -1593,6 +1670,20 @@ export function PageEditor() {
           error?: string;
         };
         if (!response.ok || !payload.files) throw new Error(payload.error ?? "Upload failed.");
+
+        if (intent === "cover") {
+          const uploaded = payload.files[0];
+          if (!uploaded) {
+            throw new Error("Upload failed.");
+          }
+          applyPageCover({
+            path: uploaded.path,
+            alt: uploaded.name,
+            source: "upload",
+          });
+          void signFileUrl(uploaded.path);
+          return;
+        }
 
         const createdBlocks: PageBlock[] = payload.files.map((file, index) => ({
           id: idFor(),
@@ -1629,7 +1720,7 @@ export function PageEditor() {
         setUploading(false);
       }
     },
-    [signFileUrl],
+    [applyPageCover, signFileUrl],
   );
 
   const triggerUploadPickerAt = useCallback((worldX: number, worldY: number, intent: FileInsertIntent = "file", afterBlockId?: string) => {
@@ -1678,6 +1769,14 @@ export function PageEditor() {
         });
         return;
       }
+      if (intent === "cover") {
+        applyPageCover({
+          externalUrl: url,
+          alt: inferDisplayNameFromUrl(url),
+          source: "embed",
+        });
+        return;
+      }
       const mimeType = inferMimeFromUrl(url);
       const created: PageBlock = {
         id: idFor(),
@@ -1703,7 +1802,7 @@ export function PageEditor() {
         return appended.map((item) => (item.id === afterBlockId ? { ...item, y: nextAfterY } : item));
       });
     },
-    [],
+    [applyPageCover],
   );
 
   const requestBookmarkPreview = useCallback(async (blockId: string, url: string) => {
@@ -1862,6 +1961,7 @@ export function PageEditor() {
         const withoutTemplate = stripPotteryTemplateBlocks(migrated);
         const safeBlocks = withoutTemplate.length ? withoutTemplate : createEmptyPage();
         setBlocks(safeBlocks);
+        setCover(snapshot?.cover);
         lastNonEmptyBlocksRef.current = safeBlocks;
         const hasUsableSnapshotBlocks = Boolean(snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks));
         const candidateCamera = hasUsableSnapshotBlocks ? normalizeCameraState(snapshot?.camera ?? null) : { x: 0, y: 0, zoom: 1 };
@@ -1910,8 +2010,8 @@ export function PageEditor() {
   useEffect(() => {
     if (!hasLoadedRef.current) return;
     if (blocks.length === 0 && loadedNonEmptyRef.current) return;
-    saverRef.current.schedule({ blocks, camera, updatedAt: Date.now() });
-  }, [blocks, camera]);
+    saverRef.current.schedule({ blocks, camera, updatedAt: Date.now(), cover });
+  }, [blocks, camera, cover]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
@@ -1944,7 +2044,10 @@ export function PageEditor() {
       const path = block.file!.path!;
       if (!signedUrls[path]) void signFileUrl(path);
     }
-  }, [blocks, signFileUrl, signedUrls]);
+    if (cover?.path && !signedUrls[cover.path]) {
+      void signFileUrl(cover.path);
+    }
+  }, [blocks, cover?.path, signFileUrl, signedUrls]);
 
   useEffect(() => {
     const bookmarkBlocks = blocks.filter((block) => block.type === "bookmark" && block.bookmark?.url);
@@ -2190,6 +2293,7 @@ export function PageEditor() {
   );
 
   const workspaceDocLabel = docId === defaultPageDocId ? "Main Canvas" : docId.replace(/^page_/, "Page ").replace(/[-_]+/g, " ").trim();
+  const resolvedCoverUrl = cover?.externalUrl || (cover?.path ? signedUrls[cover.path] : undefined);
   const primarySelectedBlockId = selectedBlockIds[0];
   const primarySelectedBlock = primarySelectedBlockId ? blocks.find((block) => block.id === primarySelectedBlockId) : undefined;
 
@@ -2247,7 +2351,8 @@ export function PageEditor() {
       { id: "quote", glyph: '"', label: "Quote", hint: "Quoted text", onClick: () => insertBlockAtViewportCenter("quote") },
       { id: "table", glyph: "tbl", label: "Table", hint: "Simple grid", onClick: () => insertBlockAtViewportCenter("table") },
       { id: "code", glyph: "</>", label: "Code", hint: "Snippet block", onClick: () => insertBlockAtViewportCenter("code") },
-      { id: "image", glyph: "img", label: "Media", hint: "Upload or link", onClick: () => openInsertIntentAtViewportCenter("image") },
+      { id: "image", glyph: "img", label: "Media", hint: "Upload, link, or Unsplash", onClick: () => openInsertIntentAtViewportCenter("image") },
+      { id: "cover", glyph: "cv", label: "Cover", hint: "Page cover image", onClick: () => openInsertIntentAtViewportCenter("cover") },
       { id: "bookmark", glyph: "lnk", label: "Link", hint: "Bookmark or embed", onClick: () => openInsertIntentAtViewportCenter("bookmark") },
     ],
     [insertBlockAtViewportCenter, openInsertIntentAtViewportCenter],
@@ -2318,6 +2423,7 @@ export function PageEditor() {
         blocks: [],
         camera: { x: 0, y: 0, zoom: 1 },
         updatedAt: Date.now(),
+        cover: undefined,
       };
 
       const maxY = targetSnapshot.blocks.reduce((max, block) => Math.max(max, block.y + block.h), 100);
@@ -2799,6 +2905,15 @@ export function PageEditor() {
       const afterContent = block.content.slice(menu.slashRange.end);
       const hasBefore = beforeContent.length > 0;
       const hasAfter = afterContent.length > 0;
+
+      if (commandId === "cover") {
+        const nextContent = `${beforeContent}${afterContent}`;
+        updateBlock(block.id, { content: nextContent, richText: parseRichText(nextContent) });
+        const base = toScreenPoint(block.x, block.y);
+        openFileInsertAt(block.x, block.y, base.x + 10, base.y + 8, "cover");
+        setMenu(null);
+        return;
+      }
 
       if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio") {
         const lineAwareTypes: BlockType[] = ["text", "callout", "code", "quote"];
@@ -3531,6 +3646,13 @@ export function PageEditor() {
     (blockId: string, commandId: SlashCommandId) => {
       const source = blocks.find((entry) => entry.id === blockId);
       if (!source) return;
+      if (commandId === "cover") {
+        const base = toScreenPoint(source.x, source.y);
+        openFileInsertAt(source.x, source.y, base.x + 10, base.y + 8, "cover");
+        setQuickInsertMenu((previous) => ({ ...previous, open: false }));
+        return;
+      }
+
       if (commandId === "file" || commandId === "image" || commandId === "video" || commandId === "audio") {
         const insertionY = source.y + Math.max(source.h + blockGapFor(source.type), LINE_HEIGHT + blockGapFor(source.type));
         const base = toScreenPoint(source.x, insertionY);
@@ -4380,7 +4502,8 @@ export function PageEditor() {
     if (!(fileInsert.open && fileInsert.intent === "file")) {
       return { left: fileInsert.x, top: fileInsert.y };
     }
-    const panelWidth = 352;
+    const panelWidth = fileInsert.mode === "unsplash" ? Math.min(640, viewport.w - 24) : 352;
+    const panelHeight = fileInsert.mode === "unsplash" ? 520 : 196;
     const ghostHeight = 48;
     const ghostScreen = toScreenPoint(fileInsert.worldX, fileInsert.worldY);
     const ghostWidth = DOC_WIDTH * camera.zoom;
@@ -4388,9 +4511,9 @@ export function PageEditor() {
     const top = ghostScreen.y + ghostHeight + 10;
     return {
       left: clamp(left, 12, Math.max(12, viewport.w - panelWidth - 12)),
-      top: clamp(top, 12, Math.max(12, viewport.h - 196)),
+      top: clamp(top, 12, Math.max(12, viewport.h - panelHeight)),
     };
-  }, [camera.zoom, fileInsert.intent, fileInsert.open, fileInsert.worldX, fileInsert.worldY, fileInsert.x, fileInsert.y, toScreenPoint, viewport.h, viewport.w]);
+  }, [camera.zoom, fileInsert.intent, fileInsert.mode, fileInsert.open, fileInsert.worldX, fileInsert.worldY, fileInsert.x, fileInsert.y, toScreenPoint, viewport.h, viewport.w]);
   return (
     <main className="route-shell page-workspace-shell text-[var(--color-text)]">
       <input
@@ -4505,6 +4628,52 @@ export function PageEditor() {
             transformOrigin: "top left",
           }}
         >
+          {cover ? (
+            <div className="pointer-events-auto absolute" style={{ left: 72, top: COVER_TOP, width: COVER_WIDTH }}>
+              <div className="group relative overflow-hidden rounded-[28px] border border-white/14 bg-white/6 shadow-[0_24px_44px_rgba(0,0,0,0.22)]">
+                {resolvedCoverUrl ? (
+                  <Image src={resolvedCoverUrl} alt={cover.alt || `${workspaceDocLabel} cover`} width={COVER_WIDTH} height={COVER_HEIGHT} unoptimized className="h-[224px] w-full object-cover" />
+                ) : (
+                  <div className="flex h-[224px] items-center justify-center bg-white/8 text-sm text-white/72">Loading cover...</div>
+                )}
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,6,11,0.08)_0%,rgba(3,6,11,0.52)_100%)]" />
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-5 py-4 text-white">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/65">Page Cover</p>
+                    {cover.attributionName ? (
+                      <a
+                        href={cover.attributionUrl || "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block text-sm text-white/88 underline decoration-white/30 underline-offset-2"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        Photo by {cover.attributionName}
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-sm text-white/78">{cover.alt || "Document cover image"}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 opacity-0 transition group-hover:opacity-100">
+                    <button
+                      type="button"
+                      className="rounded-full border border-white/18 bg-black/30 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
+                      onClick={() => openInsertIntentAtViewportCenter("cover")}
+                    >
+                      Change cover
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-white/18 bg-black/30 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
+                      onClick={() => applyPageCover(undefined)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
           {blocks.map((block) => {
             if (hiddenBlockIds.has(block.id)) return null;
             const resolvedFileUrl = block.file?.externalUrl || (block.file?.path ? signedUrls[block.file.path] : undefined);
@@ -4711,16 +4880,27 @@ export function PageEditor() {
                       <div className={cn(showInlineFileComment ? "min-w-0 flex-1 pr-1" : "")}>
                         {(block.type === "image" || isImageMime(block.file.mimeType)) ? (
                           resolvedFileUrl ? (
-                            <button
-                              type="button"
-                              className="block overflow-hidden rounded-md"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void openFileBlock(block);
-                              }}
-                            >
-                              <Image src={resolvedFileUrl} alt={block.file.displayName} width={960} height={540} unoptimized className="h-auto w-full object-contain" />
-                            </button>
+                            <div>
+                              <button
+                                type="button"
+                                className="block overflow-hidden rounded-md"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void openFileBlock(block);
+                                }}
+                              >
+                                <Image src={resolvedFileUrl} alt={block.file.alt || block.file.displayName} width={960} height={540} unoptimized className="h-auto w-full object-contain" />
+                              </button>
+                              {block.file.attributionName ? (
+                                <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                                  Photo by {block.file.attributionUrl ? (
+                                    <a href={block.file.attributionUrl} target="_blank" rel="noreferrer" className="underline decoration-current/35 underline-offset-2" onClick={(event) => event.stopPropagation()}>
+                                      {block.file.attributionName}
+                                    </a>
+                                  ) : block.file.attributionName}
+                                </p>
+                              ) : null}
+                            </div>
                           ) : (
                             <p className="text-sm text-[var(--color-text-muted)]">Loading image preview...</p>
                           )
@@ -4950,13 +5130,13 @@ export function PageEditor() {
 
         {fileInsert.open && (
           <div
-            className="absolute z-50 w-[22rem] rounded-xl border border-[#d7d7d7] bg-[#f6f6f6] p-2 shadow-[0_14px_26px_rgba(0,0,0,0.2)]"
+            className={`absolute z-50 rounded-xl border border-[#d7d7d7] bg-[#f6f6f6] p-2 shadow-[0_14px_26px_rgba(0,0,0,0.2)] ${fileInsert.mode === "unsplash" ? "w-[40rem] max-w-[calc(100vw-1.5rem)]" : "w-[22rem]"}`}
             style={{ left: fileInsertPanelPosition.left, top: fileInsertPanelPosition.top }}
             onPointerDown={(event) => event.stopPropagation()}
           >
             {fileInsert.intent !== "bookmark" && (
-              <div className="flex items-center gap-1 rounded-lg border border-[#d9d9d9] bg-white p-1">
-                {(["upload", "link"] as const).map((tab) => (
+              <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[#d9d9d9] bg-white p-1">
+                {(["upload", "link", ...(intentSupportsUnsplash(fileInsert.intent) ? (["unsplash"] as const) : [])] as const).map((tab) => (
                   <button
                     key={tab}
                     type="button"
@@ -4966,7 +5146,7 @@ export function PageEditor() {
                     )}
                     onClick={() => setFileInsert((previous) => ({ ...previous, mode: tab }))}
                   >
-                    {tab === "upload" ? "Upload" : "Link"}
+                    {tab === "upload" ? "Upload" : tab === "link" ? "Paste URL" : "Unsplash"}
                   </button>
                 ))}
               </div>
@@ -4981,8 +5161,22 @@ export function PageEditor() {
                     setFileInsert((previous) => ({ ...previous, open: false }));
                   }}
                 >
-                  Choose a file
+                  {fileInsert.intent === "cover" ? "Choose cover image" : "Choose a file"}
                 </button>
+              </div>
+            ) : fileInsert.mode === "unsplash" ? (
+              <div className="px-2 pb-2 pt-3">
+                <UnsplashPicker
+                  compact
+                  onSelectPhoto={async (photo) => {
+                    if (fileInsert.intent === "cover") {
+                      await insertUnsplashCover(photo);
+                    } else {
+                      await insertUnsplashImageBlock(photo, fileInsert.worldX, fileInsert.worldY, fileInsert.afterBlockId);
+                    }
+                    setFileInsert((previous) => ({ ...previous, open: false, url: "" }));
+                  }}
+                />
               </div>
             ) : (
               <form
@@ -5004,11 +5198,11 @@ export function PageEditor() {
                   type="url"
                   value={fileInsert.url}
                   onChange={(event) => setFileInsert((previous) => ({ ...previous, url: event.target.value }))}
-                  placeholder={fileInsert.intent === "bookmark" ? "Paste website URL" : "Paste file URL"}
+                  placeholder={fileInsert.intent === "bookmark" ? "Paste website URL" : fileInsert.intent === "cover" ? "Paste image URL for cover" : "Paste file URL"}
                   className="w-full rounded-md border border-[#d0d0d0] bg-white px-2.5 py-2 text-sm text-[#303030] outline-none focus:border-[#2f80ed] focus:ring-1 focus:ring-[#2f80ed]/30"
                 />
                 <button type="submit" className="w-full rounded-md bg-[#2f80ed] px-3 py-2 text-sm font-medium text-white hover:bg-[#206fd8]">
-                  {fileInsert.intent === "bookmark" ? "Create bookmark" : "Embed link"}
+                  {fileInsert.intent === "bookmark" ? "Create bookmark" : fileInsert.intent === "cover" ? "Set cover" : "Embed link"}
                 </button>
               </form>
             )}
