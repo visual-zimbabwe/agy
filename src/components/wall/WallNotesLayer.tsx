@@ -489,7 +489,7 @@ export const WallNotesLayer = ({
               openEditor(note.id, note.text);
             }}
             onDragStart={(event) => {
-              if (isTimeLocked || isPinned || isCurrency) {
+              if (isTimeLocked || isPinned) {
                 return;
               }
               setDraggingNoteId(note.id);
@@ -520,7 +520,7 @@ export const WallNotesLayer = ({
               }
             }}
             onDragMove={(event) => {
-              if (isTimeLocked || isPinned || isCurrency) {
+              if (isTimeLocked || isPinned) {
                 return;
               }
               const start = dragSingleStartRef.current;
@@ -567,7 +567,7 @@ export const WallNotesLayer = ({
               }
             }}
             onDragEnd={(event) => {
-              if (isTimeLocked || isPinned || isCurrency) {
+              if (isTimeLocked || isPinned) {
                 return;
               }
               const snapped = resolveSnappedPosition(note, event.target.x(), event.target.y());
@@ -1101,6 +1101,9 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
+
+
 
 
 
