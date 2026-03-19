@@ -1,8 +1,9 @@
 import type { CurrencyNote, Note } from "@/features/wall/types";
 
 export const CURRENCY_NOTE_ID = "system-currency-note";
-export const CURRENCY_NOTE_COLOR = "#4B3F72";
+export const CURRENCY_NOTE_COLOR = "#234990";
 export const CURRENCY_NOTE_BORDER = "#9384FF";
+export const CURRENCY_NOTE_TITLE = "Forex Exchange";
 export const CURRENCY_NOTE_DEFAULTS = {
   color: CURRENCY_NOTE_COLOR,
   width: 332,

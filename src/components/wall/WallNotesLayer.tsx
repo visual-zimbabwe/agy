@@ -6,7 +6,7 @@ import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
-import { CURRENCY_NOTE_BORDER, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
+import { CURRENCY_NOTE_BORDER, CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { jokerLoadingText } from "@/features/wall/joker";
 import type { LinkType, Note } from "@/features/wall/types";
@@ -791,7 +791,7 @@ export const WallNotesLayer = ({
             {isCurrency && (
               <>
                 <Rect x={10} y={10} width={Math.max(1, noteView.w - 20)} height={32} cornerRadius={12} fill="rgba(255,255,255,0.08)" listening={false} />
-                <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={11} fontStyle="bold" fill="#E6E0FF" text="AGY CURRENCY" listening={false} />
+                <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={11} fontStyle="bold" fill="#E6E0FF" text={CURRENCY_NOTE_TITLE} listening={false} />
                 <Text x={16} y={56} width={Math.max(0, noteView.w - 32)} fontSize={22} fontStyle="bold" fill="#FFFFFF" text={`1 ${currencyState?.baseCurrency ?? "USD"} = ${(currencyState?.usdRate ?? 1).toFixed((currencyState?.usdRate ?? 1) >= 1 ? 2 : 4)} USD`} listening={false} />
                 <Text x={16} y={94} width={Math.max(0, noteView.w - 32)} fontSize={15} fill="#DDD6FE" text={`1000 ${(currencyState?.baseCurrency ?? "USD")} = ${(currencyState?.thousandValueUsd ?? 1000).toFixed(2)} USD`} listening={false} />
                 <Text x={16} y={124} width={Math.max(0, noteView.w - 32)} fontSize={13} fill="#DDD6FE" text={`${currencyState?.amountInput || "0"} ${(currencyState?.baseCurrency ?? "USD")} -> ${currencyAmountUsd.toFixed(2)} USD`} listening={false} />
@@ -1018,7 +1018,7 @@ export const WallNotesLayer = ({
             {isCurrency && (
               <>
                 <Rect x={10} y={10} width={Math.max(1, noteView.w - 20)} height={32} cornerRadius={12} fill="rgba(255,255,255,0.08)" listening={false} />
-                <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={11} fontStyle="bold" fill="#E6E0FF" text="AGY CURRENCY" listening={false} />
+                <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={11} fontStyle="bold" fill="#E6E0FF" text={CURRENCY_NOTE_TITLE} listening={false} />
                 <Text x={16} y={56} width={Math.max(0, noteView.w - 32)} fontSize={22} fontStyle="bold" fill="#FFFFFF" text={`1 ${currencyState?.baseCurrency ?? "USD"} = ${(currencyState?.usdRate ?? 1).toFixed((currencyState?.usdRate ?? 1) >= 1 ? 2 : 4)} USD`} listening={false} />
                 <Text x={16} y={94} width={Math.max(0, noteView.w - 32)} fontSize={15} fill="#DDD6FE" text={`1000 ${(currencyState?.baseCurrency ?? "USD")} = ${(currencyState?.thousandValueUsd ?? 1000).toFixed(2)} USD`} listening={false} />
                 <Text x={16} y={124} width={Math.max(0, noteView.w - 32)} fontSize={13} fill="#DDD6FE" text={`${currencyState?.amountInput || "0"} ${(currencyState?.baseCurrency ?? "USD")} -> ${currencyAmountUsd.toFixed(2)} USD`} listening={false} />
