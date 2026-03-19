@@ -14,6 +14,9 @@ Wall notes are not limited to plain sticky-note text. A fresh wall now seeds one
 
 Current note creation entry points include:
 
+The wall also maintains one permanent system note: currency. It is seeded automatically, cannot be deleted or duplicated, can be repositioned, and uses location plus exchange-rate lookups to keep a USD conversion widget on the canvas.
+
+
 - standard note creation
 - vocabulary word note creation
 - journal note creation
@@ -38,8 +41,8 @@ Current wall note kinds include:
 - `canon`
 - `journal`
 - `eisenhower`
-- `joker`
-
+- joker 
+- `currency`
 In addition to explicit `noteKind`, notes can also carry vocabulary review payloads, which makes vocabulary notes a meaningful note workflow even when not represented as a separate `noteKind` enum value.
 
 ## Note Fields
@@ -56,6 +59,7 @@ Important fields include:
 - canon payload
 - Eisenhower payload
 - Joker note source metadata from JokeAPI
+- currency payload for detected region, live USD rate, cache state, trend, and converter input
 - vocabulary payload
 - image URL
 - Unsplash-sourced image URLs
@@ -97,5 +101,6 @@ This makes notes the core unit of wall content, but not the only structural elem
 - `docs/architecture/state-and-storage.md`
 - `docs/features/search-and-retrieval.md`
 - `docs/features/timeline-view.md`
+
 
 

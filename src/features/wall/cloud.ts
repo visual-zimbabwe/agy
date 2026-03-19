@@ -1,6 +1,7 @@
+import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import type { CanonNote, PersistedWallState, VocabularyNote, VocabularyReviewOutcome } from "@/features/wall/types";
+import type { CanonNote, CurrencyNote, PersistedWallState, VocabularyNote, VocabularyReviewOutcome } from "@/features/wall/types";
 
 type WallRow = {
   camera_x: number;
@@ -25,6 +26,7 @@ type NoteRow = {
   vocabulary?: unknown;
   canon?: unknown;
   eisenhower?: unknown;
+  currency?: unknown;
   tags: unknown;
   text_size: string | null;
   x: number;
@@ -228,6 +230,46 @@ const parseCanon = (raw: unknown): CanonNote | undefined => {
   };
 };
 
+const parseCurrency = (raw: unknown): CurrencyNote | undefined => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const value = raw as Record<string, unknown>;
+  const defaults = defaultCurrencyNoteState();
+  const asString = (entry: unknown, fallback = "") => (typeof entry === "string" ? entry : fallback);
+  const asNumber = (entry: unknown, fallback = 0) => (typeof entry === "number" && Number.isFinite(entry) ? entry : fallback);
+
+  const usdRate = Math.max(0, asNumber(value.usdRate, defaults.usdRate));
+  const previousUsdRate = typeof value.previousUsdRate === "number" ? Math.max(0, asNumber(value.previousUsdRate)) : undefined;
+  const inferredTrend = inferCurrencyTrend(usdRate, previousUsdRate);
+
+  return {
+    status:
+      value.status === "idle" || value.status === "locating" || value.status === "loading" || value.status === "ready" || value.status === "error"
+        ? value.status
+        : defaults.status,
+    detectedCountryCode: asString(value.detectedCountryCode).toUpperCase() || undefined,
+    detectedCountryName: asString(value.detectedCountryName) || undefined,
+    detectedCurrency: asString(value.detectedCurrency).toUpperCase() || undefined,
+    baseCurrency: asString(value.baseCurrency, defaults.baseCurrency).toUpperCase() || defaults.baseCurrency,
+    baseCurrencyMode: value.baseCurrencyMode === "manual" ? "manual" : "auto",
+    manualBaseCurrency: asString(value.manualBaseCurrency).toUpperCase() || undefined,
+    amountInput: asString(value.amountInput, defaults.amountInput),
+    usdRate,
+    previousUsdRate,
+    thousandValueUsd: Math.max(0, asNumber(value.thousandValueUsd, usdRate * 1000)),
+    rateUpdatedAt: typeof value.rateUpdatedAt === "number" ? asNumber(value.rateUpdatedAt) : undefined,
+    rateSource: value.rateSource === "live" || value.rateSource === "cache" || value.rateSource === "default" ? value.rateSource : defaults.rateSource,
+    detectionSource:
+      value.detectionSource === "geolocation" || value.detectionSource === "ip" || value.detectionSource === "manual" || value.detectionSource === "default"
+        ? value.detectionSource
+        : defaults.detectionSource,
+    trend: value.trend === "up" || value.trend === "down" || value.trend === "flat" ? value.trend : inferredTrend,
+    error: asString(value.error) || undefined,
+  };
+};
+
 export const rowsToSnapshot = (rows: {
   wall: WallRow;
   notes: NoteRow[];
@@ -238,7 +280,16 @@ export const rowsToSnapshot = (rows: {
 }): PersistedWallState => ({
   notes: Object.fromEntries(
     rows.notes.map((note) => {
-      const noteKind = note.note_kind === "quote" || note.note_kind === "canon" || note.note_kind === "journal" || note.note_kind === "eisenhower" || note.note_kind === "joker" ? note.note_kind : "standard";
+      const noteKind =
+        note.note_kind === "quote" ||
+        note.note_kind === "canon" ||
+        note.note_kind === "journal" ||
+        note.note_kind === "eisenhower" ||
+        note.note_kind === "joker" ||
+        note.note_kind === "currency"
+          ? note.note_kind
+          : "standard";
+
       return [
         note.id,
         {
@@ -258,6 +309,7 @@ export const rowsToSnapshot = (rows: {
           vocabulary: parseVocabulary(note.vocabulary),
           canon: parseCanon(note.canon),
           eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(note.eisenhower, fromIso(note.created_at)) : undefined,
+          currency: noteKind === "currency" ? parseCurrency(note.currency) : undefined,
           tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
           x: note.x,
           y: note.y,
@@ -340,7 +392,3 @@ export const rowsToSnapshot = (rows: {
   },
   lastColor: rows.wall.last_color ?? undefined,
 });
-
-
-
-

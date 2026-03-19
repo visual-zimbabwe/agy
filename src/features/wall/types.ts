@@ -68,14 +68,42 @@ export type EisenhowerNote = {
   quadrants: Record<EisenhowerQuadrantKey, EisenhowerQuadrant>;
 };
 
+export type CurrencyNoteStatus = "idle" | "locating" | "loading" | "ready" | "error";
+
+export type CurrencyNoteRateSource = "live" | "cache" | "default";
+
+export type CurrencyNoteDetectionSource = "geolocation" | "ip" | "manual" | "default";
+
+export type CurrencyNoteTrend = "up" | "down" | "flat";
+
+export type CurrencyNote = {
+  status: CurrencyNoteStatus;
+  detectedCountryCode?: string;
+  detectedCountryName?: string;
+  detectedCurrency?: string;
+  baseCurrency: string;
+  baseCurrencyMode: "auto" | "manual";
+  manualBaseCurrency?: string;
+  amountInput: string;
+  usdRate: number;
+  previousUsdRate?: number;
+  thousandValueUsd: number;
+  rateUpdatedAt?: number;
+  rateSource: CurrencyNoteRateSource;
+  detectionSource: CurrencyNoteDetectionSource;
+  trend: CurrencyNoteTrend;
+  error?: string;
+};
+
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "currency";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
   canon?: CanonNote;
   eisenhower?: EisenhowerNote;
+  currency?: CurrencyNote;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";
@@ -200,5 +228,9 @@ export type WallState = {
 export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links" | "camera"> & {
   lastColor?: string;
 };
+
+
+
+
 
 

@@ -274,8 +274,8 @@ export const truncateNoteText = (text: string, note: Note) => {
   return `${text.slice(0, Math.max(1, maxChars - 1)).trimEnd()}...`;
 };
 
-const hexToRgb = (hex: string) => {
-  const normalized = hex.replace("#", "").trim();
+const hexToRgb = (hex?: string) => {
+  const normalized = (hex ?? "#FEEA89").replace("#", "").trim();
   if (normalized.length !== 6) {
     return { r: 255, g: 255, b: 255 };
   }
@@ -306,7 +306,7 @@ const luminance = ({ r, g, b }: { r: number; g: number; b: number }) => {
 const rgbToCss = ({ r, g, b }: { r: number; g: number; b: number }, alpha = 1) =>
   alpha >= 1 ? `rgb(${r} ${g} ${b})` : `rgb(${r} ${g} ${b} / ${alpha})`;
 
-export const noteTagChipPalette = (noteColor: string) => {
+export const noteTagChipPalette = (noteColor?: string) => {
   const base = hexToRgb(noteColor);
   const bg = mixRgb(base, { r: 255, g: 255, b: 255 }, 0.62);
   const border = mixRgb(base, { r: 15, g: 23, b: 42 }, 0.22);
@@ -318,6 +318,7 @@ export const noteTagChipPalette = (noteColor: string) => {
     text: rgbToCss(text),
   };
 };
+
 
 
 

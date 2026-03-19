@@ -1,4 +1,5 @@
 import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
+import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import { buildJokerPlaceholderNote, fetchJokerJoke, formatJokerNoteText, hasJokerCardBeenActivated, isJokerNote, JOKER_NOTE_SOURCE, jokerErrorText, jokerLoadingText, markJokerCardActivated, sanitizeStandardNoteColor } from "@/features/wall/joker";
 import { useWallStore } from "@/features/wall/store";
@@ -247,6 +248,27 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
     return;
   }
 
+  if (isCurrencyNote(current)) {
+    useWallStore.getState().patchNote(noteId, {
+      ...patch,
+      noteKind: "currency",
+      color: CURRENCY_NOTE_DEFAULTS.color,
+      textColor: current.textColor ?? CURRENCY_NOTE_DEFAULTS.textColor,
+      textFont: current.textFont ?? CURRENCY_NOTE_DEFAULTS.textFont,
+      w: CURRENCY_NOTE_DEFAULTS.width,
+      h: CURRENCY_NOTE_DEFAULTS.height,
+      tags: ["system", "currency"],
+      text: "",
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      canon: undefined,
+      eisenhower: undefined,
+      vocabulary: undefined,
+      imageUrl: undefined,
+    });
+    return;
+  }
+
   if (isJokerNote(current)) {
     useWallStore.getState().patchNote(noteId, {
       ...patch,
@@ -273,6 +295,10 @@ export const moveNote = (noteId: string, x: number, y: number) => {
 };
 
 export const deleteNote = (noteId: string) => {
+  const note = useWallStore.getState().notes[noteId];
+  if (!note || isCurrencyNote(note)) {
+    return;
+  }
   useWallStore.getState().removeNote(noteId);
 };
 
@@ -314,7 +340,7 @@ export const mergeNotes = (keepNoteId: string, mergeNoteId: string) => {
     const state = useWallStore.getState();
     const keep = state.notes[keepNoteId];
     const merge = state.notes[mergeNoteId];
-    if (!keep || !merge) {
+    if (!keep || !merge || isCurrencyNote(keep) || isCurrencyNote(merge)) {
       return;
     }
 
@@ -372,7 +398,7 @@ export const mergeNotes = (keepNoteId: string, mergeNoteId: string) => {
 export const duplicateNote = (noteId: string) => {
   const { notes, upsertNote, selectNote } = useWallStore.getState();
   const current = notes[noteId];
-  if (!current) {
+  if (!current || isCurrencyNote(current)) {
     return;
   }
 
@@ -398,7 +424,7 @@ export const duplicateNote = (noteId: string) => {
 export const duplicateNoteAt = (noteId: string, x: number, y: number) => {
   const { notes, upsertNote, selectNote } = useWallStore.getState();
   const current = notes[noteId];
-  if (!current) {
+  if (!current || isCurrencyNote(current)) {
     return;
   }
 
@@ -760,6 +786,9 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
     state.selectGroup(groupId);
   });
 };
+
+
+
 
 
 

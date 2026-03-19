@@ -30,19 +30,22 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.quote_source does not exist") ||
         message.includes("column notes.canon does not exist") ||
         message.includes("column notes.eisenhower does not exist") ||
+        message.includes("column notes.currency does not exist") ||
         message.includes("column notes.text_size does not exist") ||
-      (message.includes("column notes.image_url does not exist") ||
+        message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
         message.includes("column notes.text_v_align does not exist") ||
         message.includes("column notes.text_font does not exist") ||
         message.includes("column notes.text_color does not exist") ||
         message.includes("column notes.pinned does not exist") ||
-        message.includes("column notes.highlighted does not exist"))),
+        message.includes("column notes.highlighted does not exist")),
   );
 const isMissingNoteVocabularyColumnError = (message?: string) =>
   Boolean(message && message.includes("column notes.vocabulary does not exist"));
 const isMissingNoteGroupsTableError = (message?: string) =>
   Boolean(message && message.includes('relation "public.note_groups" does not exist'));
+
+type SnapshotArgs = Parameters<typeof rowsToSnapshot>[0];
 
 export async function GET(_: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
@@ -91,8 +94,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   if (groupsResult.error || linksResult.error) {
     return NextResponse.json(
       {
-        error:
-          groupsResult.error?.message ?? linksResult.error?.message ?? "Query failed",
+        error: groupsResult.error?.message ?? linksResult.error?.message ?? "Query failed",
       },
       { status: 500 },
     );
@@ -109,22 +111,23 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   const notesWithFormattingResult = await auth.supabase
     .from("notes")
     .select(
-      "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,tags,text_size,x,y,w,h,color,created_at,updated_at",
+      "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,tags,text_size,x,y,w,h,color,created_at,updated_at",
     )
     .eq("wall_id", wallId)
     .eq("owner_id", auth.user.id)
     .is("deleted_at", null);
 
-  let notesData = notesWithFormattingResult.data;
+  let notesData: SnapshotArgs["notes"] | null = notesWithFormattingResult.data as unknown as SnapshotArgs["notes"] | null;
   if (notesWithFormattingResult.error && isMissingNoteVocabularyColumnError(notesWithFormattingResult.error.message)) {
     const notesWithoutVocabularyResult = await auth.supabase
       .from("notes")
       .select(
-        "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,tags,text_size,x,y,w,h,color,created_at,updated_at",
+        "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,tags,text_size,x,y,w,h,color,created_at,updated_at",
       )
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null);
+
     if (notesWithoutVocabularyResult.error && isMissingNoteFormattingColumnError(notesWithoutVocabularyResult.error.message)) {
       const notesLegacyResult = await auth.supabase
         .from("notes")
@@ -135,26 +138,28 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       if (notesLegacyResult.error) {
         return NextResponse.json({ error: notesLegacyResult.error.message }, { status: 500 });
       }
-      notesData = notesLegacyResult.data?.map((note) => ({
-        ...note,
-        image_url: null,
-        note_kind: "standard",
-        quote_author: null,
-        quote_source: null,
-        canon: null,
-      eisenhower: null,
-        text_align: null,
-        text_v_align: null,
-        text_font: null,
-        text_color: null,
-        pinned: false,
-        highlighted: false,
-        vocabulary: null,
-      })) ?? [];
+      notesData =
+        (notesLegacyResult.data?.map((note) => ({
+          ...note,
+          note_kind: "standard",
+          quote_author: null,
+          quote_source: null,
+          image_url: null,
+          text_align: null,
+          text_v_align: null,
+          text_font: null,
+          text_color: null,
+          pinned: false,
+          highlighted: false,
+          vocabulary: null,
+          canon: null,
+          eisenhower: null,
+          currency: null,
+        })) as SnapshotArgs["notes"]) ?? [];
     } else if (notesWithoutVocabularyResult.error) {
       return NextResponse.json({ error: notesWithoutVocabularyResult.error.message }, { status: 500 });
     } else {
-      notesData = notesWithoutVocabularyResult.data?.map((note) => ({ ...note, vocabulary: null, eisenhower: null })) ?? [];
+      notesData = (((notesWithoutVocabularyResult.data as unknown as SnapshotArgs["notes"] | null) ?? []).map((note) => ({ ...note, vocabulary: null })) as SnapshotArgs["notes"]);
     }
   } else if (notesWithFormattingResult.error && isMissingNoteFormattingColumnError(notesWithFormattingResult.error.message)) {
     const notesLegacyResult = await auth.supabase
@@ -166,22 +171,24 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     if (notesLegacyResult.error) {
       return NextResponse.json({ error: notesLegacyResult.error.message }, { status: 500 });
     }
-    notesData = notesLegacyResult.data?.map((note) => ({
-      ...note,
-      note_kind: "standard",
-      quote_author: null,
-      quote_source: null,
-      canon: null,
-      eisenhower: null,
-      image_url: null,
-      text_align: null,
-      text_v_align: null,
-      text_font: null,
+    notesData =
+      (notesLegacyResult.data?.map((note) => ({
+        ...note,
+        note_kind: "standard",
+        quote_author: null,
+        quote_source: null,
+        image_url: null,
+        text_align: null,
+        text_v_align: null,
+        text_font: null,
         text_color: null,
         pinned: false,
         highlighted: false,
         vocabulary: null,
-      })) ?? [];
+        canon: null,
+        eisenhower: null,
+        currency: null,
+      })) as SnapshotArgs["notes"]) ?? [];
   } else if (notesWithFormattingResult.error) {
     return NextResponse.json({ error: notesWithFormattingResult.error.message }, { status: 500 });
   }
@@ -193,7 +200,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     .eq("owner_id", auth.user.id)
     .is("deleted_at", null);
 
-  let zonesData = zonesWithKindResult.data;
+  let zonesData: SnapshotArgs["zones"] | null = zonesWithKindResult.data as unknown as SnapshotArgs["zones"] | null;
   if (zonesWithKindResult.error && isMissingZoneKindColumnError(zonesWithKindResult.error.message)) {
     const zonesLegacyResult = await auth.supabase
       .from("zones")
@@ -204,18 +211,18 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     if (zonesLegacyResult.error) {
       return NextResponse.json({ error: zonesLegacyResult.error.message }, { status: 500 });
     }
-    zonesData = zonesLegacyResult.data?.map((zone) => ({ ...zone, kind: "frame" })) ?? [];
+    zonesData = (zonesLegacyResult.data?.map((zone) => ({ ...zone, kind: "frame" })) as SnapshotArgs["zones"]) ?? [];
   } else if (zonesWithKindResult.error) {
     return NextResponse.json({ error: zonesWithKindResult.error.message }, { status: 500 });
   }
 
   const snapshot = rowsToSnapshot({
     wall: wallResult.data,
-    notes: notesData ?? [],
-    zones: zonesData ?? [],
-    zoneGroups: groupsResult.data ?? [],
-    noteGroups: noteGroupsData,
-    links: linksResult.data ?? [],
+    notes: (notesData ?? []) as SnapshotArgs["notes"],
+    zones: (zonesData ?? []) as SnapshotArgs["zones"],
+    zoneGroups: (groupsResult.data ?? []) as SnapshotArgs["zoneGroups"],
+    noteGroups: noteGroupsData as SnapshotArgs["noteGroups"],
+    links: (linksResult.data ?? []) as SnapshotArgs["links"],
   });
 
   return NextResponse.json({

@@ -67,6 +67,8 @@ The handler contains compatibility logic for older database states, including mi
 - note formatting columns
 - vocabulary columns
 - note groups table
+- currency note column on 
+otes during rollout or rollback-safe reads
 
 This is important for migrations and rollback-safe releases.
 
@@ -105,6 +107,7 @@ The route validates richer wall payloads, including:
 - quote metadata
 - canon payloads
 - Eisenhower payloads
+- currency note payloads
 - vocabulary payloads
 - zone kinds
 - wiki links and other link types
@@ -126,3 +129,4 @@ All wall API routes require an authenticated user except published read-only sna
 - `docs/architecture/overview.md`
 - `docs/features/timeline-view.md`
 - `docs/product/overview.md`
+

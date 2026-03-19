@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type MutableRefObject } from "react";
 
+import { CURRENCY_NOTE_DEFAULTS } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
 import type { Note } from "@/features/wall/types";
@@ -168,7 +169,7 @@ export const useWallKeyboard = ({
 
       for (const noteId of targetIds) {
         const note = notesMap[noteId];
-        patchNote(noteId, { color: note?.noteKind === "joker" ? JOKER_NOTE_COLOR : safeColor });
+        patchNote(noteId, { color: note?.noteKind === "joker" ? JOKER_NOTE_COLOR : note?.noteKind === "currency" ? CURRENCY_NOTE_DEFAULTS.color : safeColor });
       }
       setLastColor(safeColor);
     };
@@ -587,6 +588,9 @@ export const useWallKeyboard = ({
     viewport,
   ]);
 };
+
+
+
 
 
 

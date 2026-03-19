@@ -55,9 +55,28 @@ const eisenhowerSchema = z.object({
   }),
 });
 
+const currencySchema = z.object({
+  status: z.enum(["idle", "locating", "loading", "ready", "error"]),
+  detectedCountryCode: z.string().optional(),
+  detectedCountryName: z.string().optional(),
+  detectedCurrency: z.string().optional(),
+  baseCurrency: z.string(),
+  baseCurrencyMode: z.enum(["auto", "manual"]),
+  manualBaseCurrency: z.string().optional(),
+  amountInput: z.string(),
+  usdRate: z.number(),
+  previousUsdRate: z.number().optional(),
+  thousandValueUsd: z.number(),
+  rateUpdatedAt: z.number().optional(),
+  rateSource: z.enum(["live", "cache", "default"]),
+  detectionSource: z.enum(["geolocation", "ip", "manual", "default"]),
+  trend: z.enum(["up", "down", "flat"]),
+  error: z.string().optional(),
+});
+
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "currency"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -81,6 +100,7 @@ const noteSchema = z.object({
   vocabulary: vocabularySchema.optional(),
   canon: canonSchema.optional(),
   eisenhower: eisenhowerSchema.optional(),
+  currency: currencySchema.optional(),
 });
 
 const zoneSchema = z.object({
@@ -159,14 +179,15 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.quote_source does not exist") ||
         message.includes("column notes.canon does not exist") ||
         message.includes("column notes.eisenhower does not exist") ||
+        message.includes("column notes.currency does not exist") ||
         message.includes("column notes.text_size does not exist") ||
-      (message.includes("column notes.image_url does not exist") ||
+        message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
         message.includes("column notes.text_v_align does not exist") ||
         message.includes("column notes.text_font does not exist") ||
         message.includes("column notes.text_color does not exist") ||
         message.includes("column notes.pinned does not exist") ||
-        message.includes("column notes.highlighted does not exist"))),
+        message.includes("column notes.highlighted does not exist")),
   );
 const isMissingNoteVocabularyColumnError = (message?: string) =>
   Boolean(message && message.includes("column notes.vocabulary does not exist"));
@@ -239,6 +260,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               quote_source: note.quoteSource?.trim() || null,
               canon: note.canon ?? null,
               eisenhower: note.eisenhower ?? null,
+              currency: note.currency ?? null,
               image_url: note.imageUrl?.trim() || null,
               text_align: note.textAlign ?? null,
               text_v_align: note.textVAlign ?? null,
@@ -332,20 +354,20 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
 
   const groupsUpsert = zoneGroups.length
     ? await auth.supabase.from("zone_groups").upsert(
-      zoneGroups.map((group) => ({
-        id: group.id,
-        wall_id: wallId,
-        owner_id: auth.user.id,
-        label: group.label,
-        color: group.color,
-        zone_ids: group.zoneIds,
-        collapsed: group.collapsed,
-        created_at: toIso(group.createdAt),
-        updated_at: toIso(group.updatedAt),
-        deleted_at: null,
-      })),
-      { onConflict: "id" },
-    )
+        zoneGroups.map((group) => ({
+          id: group.id,
+          wall_id: wallId,
+          owner_id: auth.user.id,
+          label: group.label,
+          color: group.color,
+          zone_ids: group.zoneIds,
+          collapsed: group.collapsed,
+          created_at: toIso(group.createdAt),
+          updated_at: toIso(group.updatedAt),
+          deleted_at: null,
+        })),
+        { onConflict: "id" },
+      )
     : { error: null };
 
   if (groupsUpsert.error) {
@@ -354,20 +376,20 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
 
   const noteGroupsUpsert = noteGroups.length
     ? await auth.supabase.from("note_groups").upsert(
-      noteGroups.map((group) => ({
-        id: group.id,
-        wall_id: wallId,
-        owner_id: auth.user.id,
-        label: group.label,
-        color: group.color,
-        note_ids: group.noteIds,
-        collapsed: group.collapsed,
-        created_at: toIso(group.createdAt),
-        updated_at: toIso(group.updatedAt),
-        deleted_at: null,
-      })),
-      { onConflict: "id" },
-    )
+        noteGroups.map((group) => ({
+          id: group.id,
+          wall_id: wallId,
+          owner_id: auth.user.id,
+          label: group.label,
+          color: group.color,
+          note_ids: group.noteIds,
+          collapsed: group.collapsed,
+          created_at: toIso(group.createdAt),
+          updated_at: toIso(group.updatedAt),
+          deleted_at: null,
+        })),
+        { onConflict: "id" },
+      )
     : { error: null };
 
   if (noteGroupsUpsert.error && !isMissingNoteGroupsTableError(noteGroupsUpsert.error.message)) {
@@ -376,20 +398,20 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
 
   const linksUpsert = links.length
     ? await auth.supabase.from("links").upsert(
-      links.map((link) => ({
-        id: link.id,
-        wall_id: wallId,
-        owner_id: auth.user.id,
-        from_note_id: link.fromNoteId,
-        to_note_id: link.toNoteId,
-        type: link.type,
-        label: link.label,
-        created_at: toIso(link.createdAt),
-        updated_at: toIso(link.updatedAt),
-        deleted_at: null,
-      })),
-      { onConflict: "id" },
-    )
+        links.map((link) => ({
+          id: link.id,
+          wall_id: wallId,
+          owner_id: auth.user.id,
+          from_note_id: link.fromNoteId,
+          to_note_id: link.toNoteId,
+          type: link.type,
+          label: link.label,
+          created_at: toIso(link.createdAt),
+          updated_at: toIso(link.updatedAt),
+          deleted_at: null,
+        })),
+        { onConflict: "id" },
+      )
     : { error: null };
 
   if (linksUpsert.error) {
@@ -447,7 +469,3 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     serverTime: Date.now(),
   });
 }
-
-
-
-

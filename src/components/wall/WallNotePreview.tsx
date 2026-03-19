@@ -3,6 +3,7 @@
 import { memo, type CSSProperties, type ReactNode } from "react";
 
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, truncateNoteText } from "@/components/wall/wall-canvas-helpers";
+import { parseCurrencyAmountInput } from "@/features/wall/currency";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
@@ -238,6 +239,29 @@ const VocabularyRenderer = ({ note, width, height, readableText, activeBackgroun
   );
 };
 
+const CurrencyRenderer = ({ note, width, height, readableText, mutedText, activeBackground, activeText, tone }: RendererProps) => {
+  const state = note.currency;
+  const converted = parseCurrencyAmountInput(state?.amountInput) * (state?.usdRate ?? 1);
+  const trendGlyph = state?.trend === "up" ? "↑" : state?.trend === "down" ? "↓" : "•";
+  return (
+    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
+      <div className="flex h-full flex-col p-3.5 text-white" style={{ background: "linear-gradient(180deg, rgba(75,63,114,0.98), rgba(40,27,68,0.98))" }}>
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "rgba(230,224,255,0.78)" }}>Agy Currency</p>
+          <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={{ background: activeBackground, color: activeText }}>{state?.rateSource ?? "default"}</span>
+        </div>
+        <p className="mt-3 text-xl font-semibold">1 {state?.baseCurrency ?? "USD"} = {(state?.usdRate ?? 1).toFixed((state?.usdRate ?? 1) >= 1 ? 2 : 4)} USD</p>
+        <p className="mt-2 text-sm" style={{ color: "rgba(233,230,255,0.86)" }}>1000 {state?.baseCurrency ?? "USD"} = {(state?.thousandValueUsd ?? 1000).toFixed(2)} USD</p>
+        <p className="mt-2 text-xs" style={{ color: "rgba(233,230,255,0.72)" }}>{state?.amountInput ?? "0"} {state?.baseCurrency ?? "USD"} {"->"} {converted.toFixed(2)} USD</p>
+        <div className="mt-auto flex items-center justify-between gap-2 text-[11px]" style={{ color: "rgba(230,224,255,0.72)" }}>
+          <span>{trendGlyph} {state?.detectedCountryName ?? "Fallback"}</span>
+          <span>{state?.status ?? "idle"}</span>
+        </div>
+      </div>
+    </NoteShell>
+  );
+};
+
 const ImageRenderer = ({ note, width, height, readableText, mutedText, textFontFamily, bodyClamp, tone }: RendererProps) => (
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
     <div className="flex h-full flex-col rounded-[inherit] bg-white/96 p-1.5">
@@ -340,6 +364,7 @@ const noteRenderers: Record<string, NoteRenderer> = {
   canon: CanonRenderer,
   journal: JournalRenderer,
   eisenhower: EisenhowerRenderer,
+  currency: CurrencyRenderer,
   image: ImageRenderer,
   vocabulary: VocabularyRenderer,
   fallback: FallbackRenderer,
@@ -392,6 +417,9 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
     </div>
   );
 });
+
+
+
 
 
 

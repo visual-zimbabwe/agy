@@ -55,6 +55,7 @@ import { useWallSnapping } from "@/components/wall/useWallSnapping";
 import { WallStage } from "@/components/wall/WallStage";
 import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
+import { useCurrencySystemNote } from "@/components/wall/useCurrencySystemNote";
 import { useWallBackupActions } from "@/components/wall/useWallBackupActions";
 import { useAnimatedCamera } from "@/components/wall/useAnimatedCamera";
 import { useWallTelemetry } from "@/components/wall/useWallTelemetry";
@@ -102,6 +103,7 @@ import {
   updateZone,
 } from "@/features/wall/commands";
 import { EISENHOWER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
+import { isCurrencyNote } from "@/features/wall/currency";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
@@ -788,6 +790,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     lastTimelineRecordedAt,
   });
 
+  const {
+    refreshCurrencyNote,
+    updateAmountInput: updateCurrencyAmountInput,
+    setManualBaseCurrency,
+    resetToDetectedCurrency,
+  } = useCurrencySystemNote({ hydrated, publishedReadOnly });
+
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -817,7 +826,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const node = noteNodeRefs.current[ui.selectedNoteId];
     if (node) {
       const selectedNote = renderSnapshot.notes[ui.selectedNoteId];
-      const disableResize = isTimeLocked || Boolean(selectedNote?.pinned);
+      const disableResize = isTimeLocked || Boolean(selectedNote?.pinned) || Boolean(selectedNote && isCurrencyNote(selectedNote));
       noteTransformerRef.current.enabledAnchors(
         disableResize
           ? []
@@ -2607,6 +2616,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onResetZoom={resetZoom}
           onZoomToFit={zoomToFit}
           onZoomToSelection={zoomToSelection}
+          onRefreshCurrencyNote={() => { void refreshCurrencyNote({ force: true }); }}
+          onCurrencyAmountChange={updateCurrencyAmountInput}
+          onSetManualBaseCurrency={(value) => { void setManualBaseCurrency(value); }}
+          onResetToDetectedCurrency={() => { void resetToDetectedCurrency(); }}
         />
         )}
 
@@ -2799,6 +2812,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
+
+
 
 
 

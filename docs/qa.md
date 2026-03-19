@@ -1044,3 +1044,26 @@ Expected:
 - Date, footer task count, compact mode, and persistence behave like native wall features rather than an add-on.
 
 
+
+## Currency Note (`/wall`) (2026-03-19)
+1. Open `/wall` and verify one indigo `Currency` system note is present near the top-left of the wall.
+2. Refresh the page and verify the note still exists.
+3. Drag the currency note to a new position, refresh, and verify the new position persists.
+4. Try delete flows: keyboard `Delete`, quick actions, duplicate shortcuts, and note merge flows; verify the currency note is not removed, duplicated, or merged away.
+5. Verify the note shows the detected or fallback base currency and a `1 <base> -> USD` rate.
+6. Verify the note also shows the USD value for `1000` units of the base currency.
+7. Open the currency editor, enter a converter amount, and verify the USD output updates instantly.
+8. Change the base currency manually to another ISO code such as `CAD`, `EUR`, or `GBP`; verify the note refreshes against USD.
+9. Click `Use detected` and verify the note returns to the detected/fallback currency.
+10. Click `Refresh` repeatedly and verify requests are debounced rather than spamming duplicate refreshes.
+11. Deny geolocation permission, reload `/wall`, and verify the note falls back to IP-based lookup or USD without crashing.
+12. Simulate offline or API failure, reload, and verify the note falls back to cached/default values with a readable error state.
+13. Switch between light and dark theme and verify the indigo identity remains readable with strong contrast in both.
+14. On mobile and desktop widths, verify the currency editor, badges, and floating UI stay fully visible and are not clipped by viewport edges or other wall chrome.
+
+Expected:
+- The wall always contains exactly one permanent currency system note.
+- The note can be moved but not deleted, duplicated, hidden, or merged away.
+- Location detection degrades from geolocation to IP lookup to USD fallback cleanly.
+- Exchange-rate fetches are lazy, cached, debounced, and recover gracefully from API failures.
+- The note remains legible and premium-looking in both light and dark themes.

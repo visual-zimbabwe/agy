@@ -79,6 +79,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 UNSPLASH_ACCESS_KEY=your-unsplash-access-key
+CURRENCY_API_KEY=your-currencyapi-com-api-key
 ```
 
 If you are setting up a fresh environment, apply the required Supabase migrations from `supabase/migrations/`.
@@ -157,7 +158,7 @@ Persisted wall state includes:
 - camera
 - last-used color
 
-Wall notes can also carry richer payloads such as canon content, vocabulary review state, Eisenhower data, quote metadata, image URLs, text formatting, and highlight state.
+Wall notes can also carry richer payloads such as canon content, vocabulary review state, Eisenhower data, quote metadata, image URLs, text formatting, highlight state, and the permanent currency widget state.
 
 ### Page
 
@@ -215,6 +216,7 @@ Canonical documentation now lives under `docs/`:
 - `docs/qa.md`
 
 Documentation rules and standards are defined in `SKILL.md`.
+
 
 
 

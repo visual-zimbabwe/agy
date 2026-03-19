@@ -15,6 +15,7 @@ Agy currently uses multiple persistence layers:
 - local IndexedDB for wall state
 - local IndexedDB for page state
 - local browser storage for some preference and migration flags
+- local browser storage for currency note location/rate caches
 - Supabase Postgres for cloud-backed records and snapshots
 - Supabase Storage for page file uploads
 
@@ -40,7 +41,9 @@ Wall notes can also contain richer payloads such as:
 - canon payloads
 - vocabulary review state
 - Eisenhower payloads
-- Joker card metadata via `noteKind`, note body text, and source fields
+- Joker card metadata via 
+oteKind, note body text, and source fields
+- currency widget payloads for detected location, base currency, cached/live USD rate, trend, and converter state
 - image URLs
 - text formatting and visual flags
 
@@ -66,6 +69,7 @@ The local wall layer also:
 - records timeline snapshots
 - stores camera and last color in meta records
 - normalizes old payloads through storage migration helpers
+- preserves the permanent currency note and its last wall position inside normal wall snapshots
 
 ### Cloud wall storage
 
@@ -79,6 +83,7 @@ Important current behavior:
 - then merges local and server state with a last-write-wins strategy for entity maps
 - local camera wins during merge
 - local last color wins when present
+- currency note exchange-rate fetches are lazy, cached in local storage, and fall back to stale cache/default USD when live requests fail
 
 If local content exists and the server is empty, the UI can prompt the user to import local data into the cloud account.
 
@@ -183,6 +188,7 @@ Page persistence does not currently expose the same explicit entity-level merge 
 - `docs/api/walls.md`
 - `docs/api/page.md`
 - `docs/runbooks/sync-debugging.md`
+
 
 
 

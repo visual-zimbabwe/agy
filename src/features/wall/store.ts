@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+import { isCurrencyNote } from "@/features/wall/currency";
+
 import type {
   Camera,
   Link,
@@ -318,6 +320,10 @@ export const useWallStore = create<WallStore>((set) => ({
 
   removeNote: (noteId) =>
     set((state) => {
+      const current = state.notes[noteId];
+      if (!current || isCurrencyNote(current)) {
+        return state;
+      }
       const rest = { ...state.notes };
       delete rest[noteId];
       const links = Object.fromEntries(
@@ -664,3 +670,4 @@ export const selectPersistedSnapshot = (state: WallStore): PersistedWallState =>
   camera: state.camera,
   lastColor: state.ui.lastColor,
 });
+

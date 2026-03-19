@@ -6,6 +6,7 @@ import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
+import { CURRENCY_NOTE_BORDER, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { jokerLoadingText } from "@/features/wall/joker";
 import type { LinkType, Note } from "@/features/wall/types";
@@ -351,6 +352,7 @@ export const WallNotesLayer = ({
         const isJournal = noteView.noteKind === "journal";
         const isEisenhower = noteView.noteKind === "eisenhower";
         const isJoker = noteView.noteKind === "joker";
+        const isCurrency = isCurrencyNote(noteView);
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
@@ -371,6 +373,9 @@ export const WallNotesLayer = ({
         const journalLineGap = 31;
         const textX = isJoker ? 14 : isQuote ? 18 : isJournal ? journalWritingX : 12;
         const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalWritingX + 18 : 24));
+        const currencyState = noteView.currency;
+        const currencyAmountUsd = parseCurrencyAmountInput(currencyState?.amountInput) * (currencyState?.usdRate ?? 1);
+        const currencyTrendGlyph = currencyState?.trend === "up" ? "↑" : currencyState?.trend === "down" ? "↓" : "•";
         const imageUrl = noteView.imageUrl?.trim();
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
         const isImageNote = Boolean(imageUrl);
@@ -380,7 +385,9 @@ export const WallNotesLayer = ({
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
-        const noteTextContent = isImageNote
+        const noteTextContent = isCurrency
+          ? ""
+          : isImageNote
           ? imageCaption
           : isJoker
             ? truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - 86, 40) }) || jokerLoadingText
@@ -482,7 +489,7 @@ export const WallNotesLayer = ({
               openEditor(note.id, note.text);
             }}
             onDragStart={(event) => {
-              if (isTimeLocked || isPinned) {
+              if (isTimeLocked || isPinned || isCurrency) {
                 return;
               }
               setDraggingNoteId(note.id);
@@ -513,7 +520,7 @@ export const WallNotesLayer = ({
               }
             }}
             onDragMove={(event) => {
-              if (isTimeLocked || isPinned) {
+              if (isTimeLocked || isPinned || isCurrency) {
                 return;
               }
               const start = dragSingleStartRef.current;
@@ -560,7 +567,7 @@ export const WallNotesLayer = ({
               }
             }}
             onDragEnd={(event) => {
-              if (isTimeLocked || isPinned) {
+              if (isTimeLocked || isPinned || isCurrency) {
                 return;
               }
               const snapped = resolveSnappedPosition(note, event.target.x(), event.target.y());
@@ -598,7 +605,7 @@ export const WallNotesLayer = ({
               dragSingleStartRef.current = null;
             }}
             onTransform={(event) => {
-              if (isTimeLocked || isPinned) {
+              if (isTimeLocked || isPinned || isCurrency) {
                 return;
               }
               const node = event.target;
@@ -617,7 +624,7 @@ export const WallNotesLayer = ({
               }));
             }}
             onTransformEnd={(event) => {
-              if (isTimeLocked || isPinned) {
+              if (isTimeLocked || isPinned || isCurrency) {
                 return;
               }
               const node = event.target;
@@ -781,12 +788,36 @@ export const WallNotesLayer = ({
                 shadowOffsetY={isDragging ? 7 : 3}
               />
             )}
+            {isCurrency && (
+              <>
+                <Rect x={10} y={10} width={Math.max(1, noteView.w - 20)} height={32} cornerRadius={12} fill="rgba(255,255,255,0.08)" listening={false} />
+                <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={11} fontStyle="bold" fill="#E6E0FF" text="AGY CURRENCY" listening={false} />
+                <Text x={16} y={56} width={Math.max(0, noteView.w - 32)} fontSize={22} fontStyle="bold" fill="#FFFFFF" text={`1 ${currencyState?.baseCurrency ?? "USD"} = ${(currencyState?.usdRate ?? 1).toFixed((currencyState?.usdRate ?? 1) >= 1 ? 2 : 4)} USD`} listening={false} />
+                <Text x={16} y={94} width={Math.max(0, noteView.w - 32)} fontSize={15} fill="#DDD6FE" text={`1000 ${(currencyState?.baseCurrency ?? "USD")} = ${(currencyState?.thousandValueUsd ?? 1000).toFixed(2)} USD`} listening={false} />
+                <Text x={16} y={124} width={Math.max(0, noteView.w - 32)} fontSize={13} fill="#DDD6FE" text={`${currencyState?.amountInput || "0"} ${(currencyState?.baseCurrency ?? "USD")} -> ${currencyAmountUsd.toFixed(2)} USD`} listening={false} />
+                <Text x={16} y={Math.max(148, noteView.h - 46)} width={Math.max(0, noteView.w - 32)} fontSize={11} fill="#C4B5FD" text={`${currencyTrendGlyph} ${(currencyState?.rateSource ?? "default").toUpperCase()} • ${(currencyState?.detectedCountryName ?? "USD fallback").slice(0, 30)}`} listening={false} />
+                {currencyState?.error && (
+                  <Text x={16} y={Math.max(168, noteView.h - 24)} width={Math.max(0, noteView.w - 32)} fontSize={10} fill="#FECACA" text={currencyState.error} ellipsis listening={false} />
+                )}
+              </>
+            )}
             {isJoker && (
               <>
                 <Rect x={10} y={10} width={Math.max(1, noteView.w - 20)} height={30} cornerRadius={10} fill="rgba(46,16,101,0.12)" listening={false} />
                 <Text x={18} y={17} width={Math.max(0, noteView.w - 120)} fontSize={11} fontStyle="bold" fill="#3F1277" text="JOKER CARD" listening={false} />
                 <Text x={Math.max(18, noteView.w - 108)} y={17} width={90} align="right" fontSize={10} fontStyle="bold" fill="#4C1D95" text={noteView.quoteSource?.trim() || "Fresh joke"} listening={false} />
               </>
+            )}
+            {isCurrency && (
+              <Rect
+                width={noteView.w}
+                height={noteView.h}
+                cornerRadius={14}
+                stroke={CURRENCY_NOTE_BORDER}
+                strokeWidth={1.3}
+                opacity={0.88}
+                dash={[8, 5]}
+              />
             )}
             {isHighlighted && (
               <Rect
@@ -863,7 +894,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isImageNote && !isEisenhower && (
+            {!isImageNote && !isEisenhower && !isCurrency && (
               <Text
                 x={textX}
                 y={textY}
@@ -932,7 +963,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && (
+            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isCurrency && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;
@@ -984,6 +1015,19 @@ export const WallNotesLayer = ({
                 })}
               </>
             )}
+            {isCurrency && (
+              <>
+                <Rect x={10} y={10} width={Math.max(1, noteView.w - 20)} height={32} cornerRadius={12} fill="rgba(255,255,255,0.08)" listening={false} />
+                <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={11} fontStyle="bold" fill="#E6E0FF" text="AGY CURRENCY" listening={false} />
+                <Text x={16} y={56} width={Math.max(0, noteView.w - 32)} fontSize={22} fontStyle="bold" fill="#FFFFFF" text={`1 ${currencyState?.baseCurrency ?? "USD"} = ${(currencyState?.usdRate ?? 1).toFixed((currencyState?.usdRate ?? 1) >= 1 ? 2 : 4)} USD`} listening={false} />
+                <Text x={16} y={94} width={Math.max(0, noteView.w - 32)} fontSize={15} fill="#DDD6FE" text={`1000 ${(currencyState?.baseCurrency ?? "USD")} = ${(currencyState?.thousandValueUsd ?? 1000).toFixed(2)} USD`} listening={false} />
+                <Text x={16} y={124} width={Math.max(0, noteView.w - 32)} fontSize={13} fill="#DDD6FE" text={`${currencyState?.amountInput || "0"} ${(currencyState?.baseCurrency ?? "USD")} -> ${currencyAmountUsd.toFixed(2)} USD`} listening={false} />
+                <Text x={16} y={Math.max(148, noteView.h - 46)} width={Math.max(0, noteView.w - 32)} fontSize={11} fill="#C4B5FD" text={`${currencyTrendGlyph} ${(currencyState?.rateSource ?? "default").toUpperCase()} • ${(currencyState?.detectedCountryName ?? "USD fallback").slice(0, 30)}`} listening={false} />
+                {currencyState?.error && (
+                  <Text x={16} y={Math.max(168, noteView.h - 24)} width={Math.max(0, noteView.w - 32)} fontSize={10} fill="#FECACA" text={currencyState.error} ellipsis listening={false} />
+                )}
+              </>
+            )}
             {isJoker && (
               <Text
                 x={14}
@@ -1015,7 +1059,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isImageNote && !isEisenhower && !isJoker &&
+            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isCurrency &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -1040,7 +1084,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && overflowTags > 0 && (
+            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isCurrency && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}
@@ -1057,6 +1101,9 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
+
+
 
 
 
