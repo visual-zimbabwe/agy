@@ -108,7 +108,7 @@ export const ImageInsertModal = ({
       title="Insert Image"
       description={targetLabel ? `Add or replace an image for ${targetLabel}.` : "Upload an image, paste a URL, or search Unsplash."}
       maxWidthClassName="max-w-4xl"
-      panelClassName="overflow-hidden p-0"
+      panelClassName="max-h-[min(92vh,58rem)] overflow-hidden p-0"
       contentClassName="mt-0"
     >
       <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 md:px-6">
@@ -203,7 +203,7 @@ export const ImageInsertModal = ({
       ) : null}
 
       {tab === "unsplash" ? (
-        <div className="bg-[var(--color-surface)] p-5 md:p-6">
+        <div className="flex max-h-[min(72vh,46rem)] flex-col bg-[var(--color-surface)] p-5 md:p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-text-muted)]">Unsplash Search</p>
@@ -224,21 +224,23 @@ export const ImageInsertModal = ({
               </div>
             ) : null}
           </div>
-          <UnsplashPicker
-            selectionMode={allowMoodboard && unsplashMode === "moodboard" ? "multi" : "single"}
-            onSelectPhoto={async (photo) => {
-              await onSelectUnsplashPhoto(photo);
-              onClose();
-            }}
-            onInsertSelection={
-              allowMoodboard && onInsertUnsplashMoodboard
-                ? async (photos) => {
-                    await onInsertUnsplashMoodboard(photos);
-                    onClose();
-                  }
-                : undefined
-            }
-          />
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <UnsplashPicker
+              selectionMode={allowMoodboard && unsplashMode === "moodboard" ? "multi" : "single"}
+              onSelectPhoto={async (photo) => {
+                await onSelectUnsplashPhoto(photo);
+                onClose();
+              }}
+              onInsertSelection={
+                allowMoodboard && onInsertUnsplashMoodboard
+                  ? async (photos) => {
+                      await onInsertUnsplashMoodboard(photos);
+                      onClose();
+                    }
+                  : undefined
+              }
+            />
+          </div>
           {allowMoodboard ? <p className="mt-3 text-xs text-[var(--color-text-muted)]">Use Single to insert one image note or Moodboard to place 3-10 images as a clustered board.</p> : null}
         </div>
       ) : null}
