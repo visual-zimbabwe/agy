@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The decks workspace gives Idea-Wall a structured study and review surface for notes, cards, and spaced repetition workflows.
+The decks workspace gives Agy a structured study and review surface for notes, cards, and spaced repetition workflows.
 
 ## Scope
 
@@ -55,3 +55,4 @@ The workspace relies heavily on server APIs rather than a purely local-only stat
 - `docs/architecture/overview.md`
 - `docs/api/decks.md`
 - `docs/qa.md`
+

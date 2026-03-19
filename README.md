@@ -1,6 +1,6 @@
-# Idea-Wall
+# Agy
 
-Idea-Wall is a visual thinking studio for capturing, organizing, and interacting with ideas across multiple work surfaces.
+Agy is a visual thinking studio for capturing, organizing, and interacting with ideas across multiple work surfaces.
 
 The current product includes:
 
@@ -213,6 +213,7 @@ Canonical documentation now lives under `docs/`:
 - `docs/qa.md`
 
 Documentation rules and standards are defined in `SKILL.md`.
+
 
 
 

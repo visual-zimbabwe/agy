@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
+import { legacyProfileUpdatedEventName, profileUpdatedEventName } from "@/lib/brand";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type ProfileMenuProps = {
@@ -12,8 +13,6 @@ type ProfileMenuProps = {
   onOpenShortcuts: () => void;
   onOpenSettings: () => void;
 };
-
-const profileUpdatedEventName = "idea-wall-profile-updated";
 
 export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileMenuProps) => {
   const router = useRouter();
@@ -50,8 +49,10 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileM
 
     void loadProfile();
     window.addEventListener(profileUpdatedEventName, handleProfileRefresh);
+    window.addEventListener(legacyProfileUpdatedEventName, handleProfileRefresh);
     return () => {
       window.removeEventListener(profileUpdatedEventName, handleProfileRefresh);
+      window.removeEventListener(legacyProfileUpdatedEventName, handleProfileRefresh);
     };
   }, []);
 

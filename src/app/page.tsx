@@ -5,7 +5,7 @@ export default function Home() {
     <main className="route-shell text-[var(--color-text)]">
       <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 pb-16 pt-8 sm:px-10 sm:pt-10">
         <header className="flex items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-5 py-4 shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
-          <p className="text-sm font-semibold tracking-[0.14em] text-[var(--color-text-muted)] uppercase">Idea-Wall</p>
+          <p className="text-sm font-semibold tracking-[0.14em] text-[var(--color-text-muted)] uppercase">Agy</p>
           <div className="flex items-center gap-2">
             <Link
               href="/login"
@@ -94,3 +94,4 @@ export default function Home() {
     </main>
   );
 }
+

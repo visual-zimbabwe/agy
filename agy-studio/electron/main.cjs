@@ -7,7 +7,7 @@ const log = require("electron-log/main");
 const { autoUpdater } = require("electron-updater");
 
 const DEV_URL = "http://127.0.0.1:3000";
-const PROD_PORT = process.env.IDEA_WALL_DESKTOP_PORT || "3210";
+const PROD_PORT = process.env.AGY_DESKTOP_PORT || process.env.IDEA_WALL_DESKTOP_PORT || "3210";
 const SERVER_READY_TIMEOUT_MS = 25000;
 
 let mainWindow = null;
@@ -98,13 +98,14 @@ function configureAutoUpdate() {
   if (!app.isPackaged || didAttemptUpdateCheck) {
     return;
   }
-  if (!process.env.IDEA_WALL_AUTO_UPDATE_URL) {
-    log.info("Auto-update disabled: IDEA_WALL_AUTO_UPDATE_URL is not configured.");
+  const autoUpdateUrl = process.env.AGY_AUTO_UPDATE_URL || process.env.IDEA_WALL_AUTO_UPDATE_URL;
+  if (!autoUpdateUrl) {
+    log.info("Auto-update disabled: AGY_AUTO_UPDATE_URL is not configured.");
     return;
   }
   autoUpdater.setFeedURL({
     provider: "generic",
-    url: process.env.IDEA_WALL_AUTO_UPDATE_URL
+    url: autoUpdateUrl
   });
 
   autoUpdater.autoDownload = true;
@@ -131,7 +132,7 @@ function configureAutoUpdate() {
         defaultId: 0,
         cancelId: 1,
         title: "Update ready",
-        message: `Idea Wall Studio ${info.version} has been downloaded.`,
+        message: `Agy ${info.version} has been downloaded.`,
         detail: "Restart now to apply the update."
       })
       .then(({ response }) => {
@@ -395,7 +396,7 @@ app.on("second-instance", () => {
 
 app.whenReady().then(async () => {
   log.initialize();
-  log.info("Starting Idea Wall Studio");
+  log.info("Starting Agy");
   registerDesktopIpc();
 
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
@@ -406,7 +407,7 @@ app.whenReady().then(async () => {
     await bootstrap();
     configureAutoUpdate();
   } catch (error) {
-    console.error("Failed to start Idea Wall Studio:", error);
+    console.error("Failed to start Agy:", error);
     app.quit();
   }
 });
@@ -426,3 +427,4 @@ app.on("activate", () => {
 app.on("before-quit", () => {
   stopPackagedWebServer();
 });
+

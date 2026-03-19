@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document explains how Idea-Wall stores and moves state across the wall, page, and cloud-backed parts of the product.
+This document explains how Agy stores and moves state across the wall, page, and cloud-backed parts of the product.
 
 ## Scope
 
@@ -10,7 +10,7 @@ This is a current-state architecture doc for persistence, normalization, merge b
 
 ## Storage Domains
 
-Idea-Wall currently uses multiple persistence layers:
+Agy currently uses multiple persistence layers:
 
 - local IndexedDB for wall state
 - local IndexedDB for page state
@@ -45,7 +45,9 @@ Wall notes can also contain richer payloads such as:
 
 ### Local wall storage
 
-Wall local persistence is implemented in `src/features/wall/storage.ts` using Dexie database `idea-wall-db`.
+Wall local persistence is implemented in `src/features/wall/storage.ts` using Dexie database `agy-db`.
+
+On first load after the Agy rename, the app can migrate existing local wall data forward from the legacy `idea-wall-db` database when the new database is empty.
 
 Local wall tables currently include:
 
@@ -102,7 +104,9 @@ Blocks can also carry:
 
 ### Local page storage
 
-Page local persistence is implemented in `src/features/page/storage.ts` using Dexie database `idea-wall-page-db`.
+Page local persistence is implemented in `src/features/page/storage.ts` using Dexie database `agy-page-db`.
+
+On first load after the Agy rename, the app can migrate existing local page data forward from the legacy `idea-wall-page-db` database when the new database is empty.
 
 The current local page table is:
 
@@ -178,3 +182,5 @@ Page persistence does not currently expose the same explicit entity-level merge 
 - `docs/api/walls.md`
 - `docs/api/page.md`
 - `docs/runbooks/sync-debugging.md`
+
+

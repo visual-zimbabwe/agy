@@ -16,6 +16,10 @@ import {
   backupReminderCadenceStorageKey,
   backupReminderLastPromptStorageKey,
   controlsModeStorageKey,
+  legacyBackupReminderCadenceStorageKeys,
+  legacyPresentationPathsStorageKeys,
+  legacyRecallStorageKeys,
+  legacySpatialPrefsStorageKeys,
   downloadDataUrl,
   downloadJsonFile,
   downloadTextFile,
@@ -119,6 +123,7 @@ import {
 import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
+import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 import { getImageFileFromClipboard, getImageFilesFromDataTransfer, readImageFileAsDataUrl } from "@/lib/wall-image-upload";
 
 type EditingState = {
@@ -559,7 +564,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
 
     try {
-      const recallRaw = window.localStorage.getItem(recallStorageKey);
+      const recallRaw = readStorageValue(recallStorageKey, legacyRecallStorageKeys);
       if (recallRaw) {
         const parsed = JSON.parse(recallRaw) as SavedRecallSearch[];
         if (Array.isArray(parsed)) {
@@ -574,7 +579,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setControlsMode(readStoredControlsMode());
 
     try {
-      const spatialRaw = window.localStorage.getItem(spatialPrefsStorageKey);
+      const spatialRaw = readStorageValue(spatialPrefsStorageKey, legacySpatialPrefsStorageKeys);
       if (spatialRaw) {
         const parsed = JSON.parse(spatialRaw) as Partial<SpatialPreferences>;
         const spacing = typeof parsed.dotGridSpacing === "number" ? parsed.dotGridSpacing : defaultSpatialPrefs.dotGridSpacing;
@@ -590,7 +595,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
 
     try {
-      const narrativeRaw = window.localStorage.getItem(presentationPathsStorageKey);
+      const narrativeRaw = readStorageValue(presentationPathsStorageKey, legacyPresentationPathsStorageKeys);
       if (narrativeRaw) {
         const parsedPaths = parsePresentationPathsPayload(narrativeRaw);
         setPresentationPaths(parsedPaths);
@@ -599,7 +604,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       // Ignore malformed persisted narrative payloads and keep defaults.
     }
 
-    const cadenceRaw = window.localStorage.getItem(backupReminderCadenceStorageKey);
+    const cadenceRaw = readStorageValue(backupReminderCadenceStorageKey, legacyBackupReminderCadenceStorageKeys);
     setBackupReminderCadence(cadenceRaw === "daily" || cadenceRaw === "weekly" ? cadenceRaw : "off");
 
     setLeftPanelOpen(false);
@@ -627,42 +632,42 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     if (typeof window === "undefined" || !clientPrefsLoaded) {
       return;
     }
-    window.localStorage.setItem(recallStorageKey, JSON.stringify(savedRecallSearches));
+    writeStorageValue(recallStorageKey, JSON.stringify(savedRecallSearches));
   }, [clientPrefsLoaded, savedRecallSearches]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !clientPrefsLoaded) {
       return;
     }
-    window.localStorage.setItem(layoutPrefsStorageKey, JSON.stringify(layoutPrefs));
+    writeStorageValue(layoutPrefsStorageKey, JSON.stringify(layoutPrefs));
   }, [clientPrefsLoaded, layoutPrefs]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !clientPrefsLoaded) {
       return;
     }
-    window.localStorage.setItem(controlsModeStorageKey, controlsMode);
+    writeStorageValue(controlsModeStorageKey, controlsMode);
   }, [clientPrefsLoaded, controlsMode]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !clientPrefsLoaded) {
       return;
     }
-    window.localStorage.setItem(spatialPrefsStorageKey, JSON.stringify(spatialPrefs));
+    writeStorageValue(spatialPrefsStorageKey, JSON.stringify(spatialPrefs));
   }, [clientPrefsLoaded, spatialPrefs]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !clientPrefsLoaded) {
       return;
     }
-    window.localStorage.setItem(presentationPathsStorageKey, JSON.stringify(presentationPaths));
+    writeStorageValue(presentationPathsStorageKey, JSON.stringify(presentationPaths));
   }, [clientPrefsLoaded, presentationPaths]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !clientPrefsLoaded) {
       return;
     }
-    window.localStorage.setItem(backupReminderCadenceStorageKey, backupReminderCadence);
+    writeStorageValue(backupReminderCadenceStorageKey, backupReminderCadence);
   }, [backupReminderCadence, clientPrefsLoaded]);
 
   useEffect(() => {
@@ -2712,6 +2717,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
+
 
 
 

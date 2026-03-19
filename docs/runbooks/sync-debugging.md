@@ -58,7 +58,7 @@ Use this runbook when cloud-backed wall state is not loading, local and cloud st
    The wall supports JSON backup/export flows. Preserve user state before resets.
 
 10. If needed, clear or reset local state only after confirming that the desired cloud snapshot is valid and recoverable.
-    Local wall state lives in IndexedDB database `idea-wall-db`.
+    Local wall state lives in IndexedDB database `agy-db`.
 
 11. Re-open the wall and verify:
     - local load completes
@@ -84,3 +84,4 @@ Escalate when:
 - `docs/api/walls.md`
 - `docs/architecture/state-and-storage.md`
 - `docs/architecture/overview.md`
+

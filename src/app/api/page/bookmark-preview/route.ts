@@ -63,7 +63,7 @@ export async function GET(request: Request) {
     const response = await fetch(parsed.toString(), {
       method: "GET",
       headers: {
-        "User-Agent": "IdeaWallBookmarkBot/1.0 (+https://localhost)",
+        "User-Agent": "AgyBookmarkBot/1.0 (+https://localhost)",
         Accept: "text/html,application/xhtml+xml",
       },
       redirect: "follow",
@@ -101,4 +101,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Preview request failed." }, { status: 502 });
   }
 }
+
 

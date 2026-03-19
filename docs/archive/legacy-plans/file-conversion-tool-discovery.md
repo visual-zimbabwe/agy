@@ -4,7 +4,7 @@ Date: 2026-03-03
 
 ## User Request
 
-Add file conversion as a tool in Idea Wall Studio (Electron app):
+Add file conversion as a tool in Agy (Electron app):
 - Add `PDF to Word`
 - Add `Word to PDF`
 - On click, open a popup where users can upload documents
@@ -146,3 +146,4 @@ Answer: Only metadata.
 Do you want me to start implementation now based on these answers?
 
 Answer: Yes. Implement for both web app and Electron app so both stay up to date.
+

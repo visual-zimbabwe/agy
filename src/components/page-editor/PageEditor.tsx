@@ -1091,7 +1091,7 @@ const inferEmbedDataFromUrl = (rawUrl: string): PageEmbedData => {
     if (host.includes("figma.com")) {
       return {
         url: parsed.toString(),
-        embedUrl: `https://www.figma.com/embed?embed_host=idea-wall&url=${encodeURIComponent(parsed.toString())}`,
+        embedUrl: `https://www.figma.com/embed?embed_host=agy&url=${encodeURIComponent(parsed.toString())}`,
         provider: "Figma",
         title,
       };
@@ -5576,4 +5576,5 @@ export function PageEditor() {
     </main>
   );
 }
+
 

@@ -1,4 +1,4 @@
-# Idea Wall Multi-User Implementation Plan (Supabase)
+# Agy Multi-User Implementation Plan (Supabase)
 
 ## Objective
 Add user accounts so people can sign in and see the same wall data across sessions and devices, with full create/edit/delete support.
@@ -259,3 +259,4 @@ For child tables, optionally also enforce wall ownership join check.
 - Soft delete (`deleted_at`) is strongly recommended for robust sync.
 - Guest mode must be isolated from account-backed walls to avoid accidental overwrite.
 - Service role key usage should be minimized and server-only.
+

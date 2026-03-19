@@ -13,10 +13,14 @@ import {
   readKeyboardColorSlots,
   writeKeyboardColorSlots,
 } from "@/lib/keyboard-color-slots";
+import { appSlug, legacyAppSlug } from "@/lib/brand";
+import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
-export const accountSettingsUpdatedEventName = "idea-wall-account-settings-updated";
-export const accountLayoutPrefsStorageKey = "idea-wall-layout-prefs";
-export const accountControlsModeStorageKey = "idea-wall-controls-mode";
+export const accountSettingsUpdatedEventName = `${appSlug}-account-settings-updated`;
+export const accountLayoutPrefsStorageKey = `${appSlug}-layout-prefs`;
+export const accountControlsModeStorageKey = `${appSlug}-controls-mode`;
+const legacyAccountLayoutPrefsStorageKey = `${legacyAppSlug}-layout-prefs`;
+const legacyAccountControlsModeStorageKey = `${legacyAppSlug}-controls-mode`;
 
 export type WallLayoutPrefs = {
   showToolsPanel: boolean;
@@ -116,7 +120,7 @@ export const readStoredWallLayoutPrefs = (): WallLayoutPrefs => {
     return defaultWallLayoutPrefs;
   }
   try {
-    return normalizeWallLayoutPrefs(JSON.parse(window.localStorage.getItem(accountLayoutPrefsStorageKey) ?? "null"));
+    return normalizeWallLayoutPrefs(JSON.parse(readStorageValue(accountLayoutPrefsStorageKey, [legacyAccountLayoutPrefsStorageKey]) ?? "null"));
   } catch {
     return defaultWallLayoutPrefs;
   }
@@ -126,7 +130,7 @@ export const readStoredControlsMode = (): ControlsMode => {
   if (typeof window === "undefined") {
     return "basic";
   }
-  return normalizeControlsMode(window.localStorage.getItem(accountControlsModeStorageKey));
+  return normalizeControlsMode(readStorageValue(accountControlsModeStorageKey, [legacyAccountControlsModeStorageKey]));
 };
 
 export const persistAccountSettingsLocally = (settings: AccountSettings) => {
@@ -138,7 +142,7 @@ export const persistAccountSettingsLocally = (settings: AccountSettings) => {
   persistPreferences(normalized);
   applyPreferencesToDocument(normalized);
   writeKeyboardColorSlots(normalized.keyboardColorSlots);
-  window.localStorage.setItem(accountLayoutPrefsStorageKey, JSON.stringify(normalized.wallLayoutPrefs));
-  window.localStorage.setItem(accountControlsModeStorageKey, normalized.controlsMode);
+  writeStorageValue(accountLayoutPrefsStorageKey, JSON.stringify(normalized.wallLayoutPrefs));
+  writeStorageValue(accountControlsModeStorageKey, normalized.controlsMode);
   window.dispatchEvent(new CustomEvent(accountSettingsUpdatedEventName));
 };

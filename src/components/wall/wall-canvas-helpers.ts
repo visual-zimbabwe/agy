@@ -2,6 +2,7 @@
 
 import { NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS, NOTE_TEXT_SIZES } from "@/features/wall/constants";
 import type { Link, LinkType, Note, PersistedWallState, Zone } from "@/features/wall/types";
+import { appSlug, legacyAppSlug } from "@/lib/brand";
 import { clamp } from "@/lib/wall-utils";
 
 export type Bounds = { x: number; y: number; w: number; h: number };
@@ -219,13 +220,20 @@ export const formatJournalDateLabel = (timestamp: number) =>
   }).format(timestamp);
 
 export const makeDownloadId = () => new Date().toISOString().replace(/[:.]/g, "-");
-export const recallStorageKey = "idea-wall-recall-searches";
-export const layoutPrefsStorageKey = "idea-wall-layout-prefs";
-export const controlsModeStorageKey = "idea-wall-controls-mode";
-export const spatialPrefsStorageKey = "idea-wall-spatial-prefs";
-export const presentationPathsStorageKey = "idea-wall-presentation-paths";
-export const backupReminderCadenceStorageKey = "idea-wall-backup-reminder-cadence";
-export const backupReminderLastPromptStorageKey = "idea-wall-backup-reminder-last-prompt";
+export const recallStorageKey = `${appSlug}-recall-searches`;
+export const legacyRecallStorageKeys = [`${legacyAppSlug}-recall-searches`];
+export const layoutPrefsStorageKey = `${appSlug}-layout-prefs`;
+export const legacyLayoutPrefsStorageKeys = [`${legacyAppSlug}-layout-prefs`];
+export const controlsModeStorageKey = `${appSlug}-controls-mode`;
+export const legacyControlsModeStorageKeys = [`${legacyAppSlug}-controls-mode`];
+export const spatialPrefsStorageKey = `${appSlug}-spatial-prefs`;
+export const legacySpatialPrefsStorageKeys = [`${legacyAppSlug}-spatial-prefs`];
+export const presentationPathsStorageKey = `${appSlug}-presentation-paths`;
+export const legacyPresentationPathsStorageKeys = [`${legacyAppSlug}-presentation-paths`];
+export const backupReminderCadenceStorageKey = `${appSlug}-backup-reminder-cadence`;
+export const legacyBackupReminderCadenceStorageKeys = [`${legacyAppSlug}-backup-reminder-cadence`];
+export const backupReminderLastPromptStorageKey = `${appSlug}-backup-reminder-last-prompt`;
+export const legacyBackupReminderLastPromptStorageKeys = [`${legacyAppSlug}-backup-reminder-last-prompt`];
 export const dragSnapThreshold = 10;
 
 const textStyleBySize = Object.fromEntries(
@@ -310,3 +318,5 @@ export const noteTagChipPalette = (noteColor: string) => {
     text: rgbToCss(text),
   };
 };
+
+

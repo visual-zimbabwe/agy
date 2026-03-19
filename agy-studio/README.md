@@ -1,6 +1,6 @@
-# Idea Wall Studio
+# Agy
 
-Electron desktop wrapper for the `idea-wall` Next.js app.
+Electron desktop wrapper for the `agy` Next.js app.
 
 ## Commands
 
@@ -17,14 +17,14 @@ Electron desktop wrapper for the `idea-wall` Next.js app.
 
 ## Release outputs
 
-- Windows installer: `idea-wall-studio/release/Idea Wall Studio-Setup-<version>.exe`
-- macOS DMG: `idea-wall-studio/release/Idea Wall Studio-<version>.dmg`
-- Linux AppImage: `idea-wall-studio/release/Idea Wall Studio-<version>.AppImage`
+- Windows installer: `agy-studio/release/Agy-Setup-<version>.exe`
+- macOS DMG: `agy-studio/release/Agy-<version>.dmg`
+- Linux AppImage: `agy-studio/release/Agy-<version>.AppImage`
 
 ## Notes
 
 - Configure code signing before distributing production installers.
-- Optional runtime port override: `IDEA_WALL_DESKTOP_PORT`.
+- Optional runtime port override: `AGY_DESKTOP_PORT`.
 - Auto-update feed URL:
   - optional for `npm run dist`
   - required for `npm run dist:publish`
@@ -39,4 +39,6 @@ Electron desktop wrapper for the `idea-wall` Next.js app.
   - `APPLE_APP_SPECIFIC_PASSWORD`
   - `APPLE_TEAM_ID`
 - Auto-update publishing:
-  - `IDEA_WALL_AUTO_UPDATE_URL`
+  - `AGY_AUTO_UPDATE_URL`
+
+

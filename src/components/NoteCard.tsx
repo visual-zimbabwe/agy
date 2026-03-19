@@ -2,6 +2,8 @@
 
 import { ControlTooltip } from "@/components/wall/WallControls";
 import { NOTE_COLORS } from "@/features/wall/constants";
+import { appSlug, legacyAppSlug } from "@/lib/brand";
+import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 import { useMemo, useState } from "react";
 
 type NoteSwatchesProps = {
@@ -11,7 +13,8 @@ type NoteSwatchesProps = {
   showCustomColorAdd?: boolean;
 };
 
-const RECENT_COLORS_KEY = "idea-wall-note-color-recency";
+const RECENT_COLORS_KEY = `${appSlug}-note-color-recency`;
+const LEGACY_RECENT_COLORS_KEY = `${legacyAppSlug}-note-color-recency`;
 
 const COLOR_NAMES: Record<string, string> = {
   "#FEEA89": "Yellow",
@@ -88,7 +91,7 @@ const readRecentColors = () => {
     return [] as string[];
   }
   try {
-    const raw = window.localStorage.getItem(RECENT_COLORS_KEY);
+    const raw = readStorageValue(RECENT_COLORS_KEY, [LEGACY_RECENT_COLORS_KEY]);
     if (!raw) {
       return [] as string[];
     }
@@ -107,7 +110,7 @@ const writeRecentColors = (colors: string[]) => {
     return;
   }
   try {
-    window.localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(colors));
+    writeStorageValue(RECENT_COLORS_KEY, JSON.stringify(colors));
   } catch {
     // Ignore storage quota/privacy mode failures; chips still work.
   }
@@ -201,3 +204,8 @@ export const NoteSwatches = ({ value, onSelect, sortMode = "recency", showCustom
     </div>
   );
 };
+
+
+
+
+

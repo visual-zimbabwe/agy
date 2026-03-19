@@ -1,5 +1,7 @@
 "use client";
 
+import { appSlug, legacyAppSlug } from "@/lib/brand";
+
 export type WorkspaceRole = "wall" | "decks";
 
 export type WorkspaceEvent =
@@ -17,8 +19,9 @@ export type WorkspaceEnvelope = {
   event: WorkspaceEvent;
 };
 
-export const workspaceChannelName = "idea-wall-workspace-v1";
-export const workspaceLinkedStorageKey = "idea-wall-workspace-linked";
+export const workspaceChannelName = `${appSlug}-workspace-v1`;
+export const workspaceLinkedStorageKey = `${appSlug}-workspace-linked`;
+export const legacyWorkspaceLinkedStorageKey = `${legacyAppSlug}-workspace-linked`;
 
 export const createWorkspaceWindowId = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {

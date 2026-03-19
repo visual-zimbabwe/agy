@@ -6,15 +6,9 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { ModalShell } from "@/components/ui/ModalShell";
+import { normalizeAccountSettings, persistAccountSettingsLocally, readStoredControlsMode, readStoredWallLayoutPrefs, type ControlsMode, type WallLayoutPrefs } from "@/lib/account-settings";
+import { appName, profileUpdatedEventName } from "@/lib/brand";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
-import {
-  normalizeAccountSettings,
-  persistAccountSettingsLocally,
-  readStoredControlsMode,
-  readStoredWallLayoutPrefs,
-  type ControlsMode,
-  type WallLayoutPrefs,
-} from "@/lib/account-settings";
 import { readStoredPreferences, type StartupBehavior, type StartupPage, type ThemePreference } from "@/lib/preferences";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -22,8 +16,6 @@ type SettingsWorkspaceProps = {
   userEmail: string;
   embedded?: boolean;
 };
-
-const profileUpdatedEventName = "idea-wall-profile-updated";
 
 type SettingsSectionId = "general" | "appearance" | "keyboard" | "advanced";
 
@@ -600,7 +592,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
       const supabase = createSupabaseBrowserClient();
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        friendlyName: "Idea Wall Authenticator",
+        friendlyName: `${appName} Authenticator`,
       });
       if (error) {
         throw error;
@@ -720,7 +712,7 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
         <aside className="w-[260px] border-r border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
           <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3">
             <p className="text-xs font-semibold text-[var(--color-text-muted)]">Account</p>
-            <p className="mt-1 truncate text-sm font-medium text-[var(--color-text)]">Idea Wall User</p>
+            <p className="mt-1 truncate text-sm font-medium text-[var(--color-text)]">{appName} User</p>
             <p className="truncate text-xs text-[var(--color-text-muted)]">{userEmail}</p>
           </div>
 
@@ -1166,3 +1158,8 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
     </main>
   );
 };
+
+
+
+
+

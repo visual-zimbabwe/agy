@@ -1,3 +1,6 @@
+import { appSlug, legacyAppSlug } from "@/lib/brand";
+import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
+
 export type WallTelemetryMetricKey =
   | "initialInteractMs"
   | "toolsPanelOpenMs"
@@ -19,7 +22,8 @@ export type WallTelemetrySnapshot = {
   summary: Partial<Record<WallTelemetryMetricKey, WallTelemetryMetricSummary>>;
 };
 
-export const wallTelemetryStorageKey = "idea-wall-ux-telemetry-v1";
+export const wallTelemetryStorageKey = `${appSlug}-ux-telemetry-v1`;
+const legacyWallTelemetryStorageKey = `${legacyAppSlug}-ux-telemetry-v1`;
 const maxSamplesPerMetric = 50;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -53,7 +57,7 @@ export const loadWallTelemetrySnapshot = (): WallTelemetrySnapshot | null => {
     return null;
   }
   try {
-    const raw = window.localStorage.getItem(wallTelemetryStorageKey);
+    const raw = readStorageValue(wallTelemetryStorageKey, [legacyWallTelemetryStorageKey]);
     if (!raw) {
       return null;
     }
@@ -114,7 +118,7 @@ export const recordWallTelemetryMetric = (key: WallTelemetryMetricKey, valueMs: 
   };
 
   try {
-    window.localStorage.setItem(wallTelemetryStorageKey, JSON.stringify(next));
+    writeStorageValue(wallTelemetryStorageKey, JSON.stringify(next));
   } catch {
     return null;
   }

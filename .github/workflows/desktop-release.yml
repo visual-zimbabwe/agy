@@ -22,20 +22,20 @@ jobs:
           cache: npm
           cache-dependency-path: |
             package-lock.json
-            idea-wall-studio/package-lock.json
+            agy-studio/package-lock.json
 
       - name: Install web dependencies
         run: npm ci
 
       - name: Install desktop dependencies
         run: npm ci
-        working-directory: idea-wall-studio
+        working-directory: agy-studio
 
       - name: Build desktop installer
         run: npm run dist
-        working-directory: idea-wall-studio
+        working-directory: agy-studio
         env:
-          IDEA_WALL_AUTO_UPDATE_URL: ${{ secrets.IDEA_WALL_AUTO_UPDATE_URL }}
+          AGY_AUTO_UPDATE_URL: ${{ secrets.AGY_AUTO_UPDATE_URL }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
@@ -44,7 +44,9 @@ jobs:
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: idea-wall-studio-windows
+          name: agy-studio-windows
           path: |
-            idea-wall-studio/release/*.exe
-            idea-wall-studio/release/*.blockmap
+            agy-studio/release/*.exe
+            agy-studio/release/*.blockmap
+
+

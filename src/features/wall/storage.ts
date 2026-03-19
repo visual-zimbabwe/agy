@@ -2,6 +2,7 @@ import Dexie, { type Table } from "dexie";
 
 import type { Camera, Link, Note, NoteGroup, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
 import { normalizePersistedWallState, parseTimelinePayload } from "@/features/wall/storage-migrations";
+import { appSlug, legacyAppSlug } from "@/lib/brand";
 
 type MetaRecord = {
   key: string;
@@ -14,7 +15,10 @@ type TimelineSnapshotRecord = {
   payload: string;
 };
 
-class IdeaWallDatabase extends Dexie {
+const wallDatabaseName = `${appSlug}-db`;
+const legacyWallDatabaseName = `${legacyAppSlug}-db`;
+
+class WallDatabase extends Dexie {
   notes!: Table<Note, string>;
   zones!: Table<Zone, string>;
   zoneGroups!: Table<ZoneGroup, string>;
@@ -23,8 +27,8 @@ class IdeaWallDatabase extends Dexie {
   meta!: Table<MetaRecord, string>;
   timelineSnapshots!: Table<TimelineSnapshotRecord, number>;
 
-  constructor() {
-    super("idea-wall-db");
+  constructor(name: string) {
+    super(name);
     this.version(1).stores({
       notes: "id, updatedAt",
       zones: "id, updatedAt",
@@ -63,11 +67,80 @@ class IdeaWallDatabase extends Dexie {
   }
 }
 
-const db = new IdeaWallDatabase();
+const db = new WallDatabase(wallDatabaseName);
+const legacyDb = new WallDatabase(legacyWallDatabaseName);
+let migrationPromise: Promise<void> | null = null;
 
 const defaultCamera: Camera = { x: 0, y: 0, zoom: 1 };
 
+const databaseHasData = async (database: WallDatabase) => {
+  const counts = await Promise.all([
+    database.notes.count(),
+    database.zones.count(),
+    database.zoneGroups.count(),
+    database.noteGroups.count(),
+    database.links.count(),
+    database.meta.count(),
+    database.timelineSnapshots.count(),
+  ]);
+  return counts.some((count) => count > 0);
+};
+
+const migrateLegacyWallDatabaseIfNeeded = async () => {
+  if (!migrationPromise) {
+    migrationPromise = (async () => {
+      const legacyExists = await Dexie.exists(legacyWallDatabaseName);
+      if (!legacyExists) {
+        return;
+      }
+
+      await Promise.all([db.open(), legacyDb.open()]);
+      const [nextHasData, legacyHasData] = await Promise.all([databaseHasData(db), databaseHasData(legacyDb)]);
+      if (nextHasData || !legacyHasData) {
+        return;
+      }
+
+      const [notes, zones, zoneGroups, noteGroups, links, meta, timelineSnapshots] = await Promise.all([
+        legacyDb.notes.toArray(),
+        legacyDb.zones.toArray(),
+        legacyDb.zoneGroups.toArray(),
+        legacyDb.noteGroups.toArray(),
+        legacyDb.links.toArray(),
+        legacyDb.meta.toArray(),
+        legacyDb.timelineSnapshots.toArray(),
+      ]);
+
+      await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta, db.timelineSnapshots], async () => {
+        if (notes.length > 0) {
+          await db.notes.bulkPut(notes);
+        }
+        if (zones.length > 0) {
+          await db.zones.bulkPut(zones);
+        }
+        if (zoneGroups.length > 0) {
+          await db.zoneGroups.bulkPut(zoneGroups);
+        }
+        if (noteGroups.length > 0) {
+          await db.noteGroups.bulkPut(noteGroups);
+        }
+        if (links.length > 0) {
+          await db.links.bulkPut(links);
+        }
+        if (meta.length > 0) {
+          await db.meta.bulkPut(meta);
+        }
+        if (timelineSnapshots.length > 0) {
+          await db.timelineSnapshots.bulkPut(timelineSnapshots);
+        }
+      });
+    })();
+  }
+
+  await migrationPromise;
+};
+
 export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
+  await migrateLegacyWallDatabaseIfNeeded();
   const [notesList, zonesList, zoneGroupsList, noteGroupsList, linksList, cameraMeta, lastColorMeta] = await Promise.all([
     db.notes.toArray(),
     db.zones.toArray(),
@@ -98,6 +171,7 @@ export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
 };
 
 export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
+  await migrateLegacyWallDatabaseIfNeeded();
   await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta], async () => {
     const notes = Object.values(snapshot.notes);
     const zones = Object.values(snapshot.zones);
@@ -194,6 +268,7 @@ export type TimelineEntry = {
 };
 
 export const loadTimelineEntries = async (limit = 500): Promise<TimelineEntry[]> => {
+  await migrateLegacyWallDatabaseIfNeeded();
   const rows = await db.timelineSnapshots.orderBy("ts").reverse().limit(limit).toArray();
   return rows
     .reverse()
@@ -208,6 +283,7 @@ export const loadTimelineEntries = async (limit = 500): Promise<TimelineEntry[]>
 };
 
 const persistTimelineSnapshot = async (snapshot: PersistedWallState, maxEntries: number) => {
+  await migrateLegacyWallDatabaseIfNeeded();
   await db.timelineSnapshots.add({
     ts: Date.now(),
     payload: JSON.stringify(snapshot),
@@ -263,4 +339,3 @@ export const createTimelineRecorder = (options?: { delayMs?: number; minInterval
 
   return { schedule, flush };
 };
-

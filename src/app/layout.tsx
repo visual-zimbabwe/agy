@@ -5,7 +5,7 @@ import { StartupRouteHandler } from "@/components/StartupRouteHandler";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Idea-Wall",
+  title: "Agy",
   description: "Infinite local-first canvas for sticky-note style thinking.",
 };
 
@@ -23,3 +23,4 @@ export default function RootLayout({
     </html>
   );
 }
+

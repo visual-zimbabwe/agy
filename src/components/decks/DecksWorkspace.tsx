@@ -1405,7 +1405,7 @@ export const DecksWorkspace = () => {
   };
 
   const openWallWindow = () => {
-    window.open("/wall", "idea-wall-wall-window", "width=1460,height=920");
+    window.open("/wall", "agy-wall-window", "width=1460,height=920");
     if (!channelRef.current) {
       return;
     }
@@ -2755,3 +2755,4 @@ export const DecksWorkspace = () => {
     </main>
   );
 };
+

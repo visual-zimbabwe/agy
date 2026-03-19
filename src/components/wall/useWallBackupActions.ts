@@ -5,6 +5,8 @@ import { useCallback, useEffect } from "react";
 import { parseBackupJson, shouldPromptBackupReminder, type BackupReminderCadence } from "@/features/wall/backup";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { PersistedWallState } from "@/features/wall/types";
+import { legacyBackupReminderLastPromptStorageKeys } from "@/components/wall/wall-canvas-helpers";
+import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 import { buildPublishedSnapshotUrl } from "@/lib/publish";
 
 type UseWallBackupActionsOptions = {
@@ -30,9 +32,9 @@ export const useWallBackupActions = ({
 }: UseWallBackupActionsOptions) => {
   const exportJson = useCallback(() => {
     const snapshot = selectPersistedSnapshot(useWallStore.getState());
-    downloadJsonFile(`idea-wall-backup-${makeDownloadId()}.json`, snapshot);
+    downloadJsonFile(`agy-backup-${makeDownloadId()}.json`, snapshot);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(backupReminderLastPromptStorageKey, String(Date.now()));
+      writeStorageValue(backupReminderLastPromptStorageKey, String(Date.now()));
     }
     setExportOpen(false);
   }, [backupReminderLastPromptStorageKey, downloadJsonFile, makeDownloadId, setExportOpen]);
@@ -80,13 +82,13 @@ export const useWallBackupActions = ({
       return;
     }
     const now = Date.now();
-    const lastPromptRaw = window.localStorage.getItem(backupReminderLastPromptStorageKey);
+    const lastPromptRaw = readStorageValue(backupReminderLastPromptStorageKey, legacyBackupReminderLastPromptStorageKeys);
     const lastPrompt = lastPromptRaw ? Number(lastPromptRaw) : 0;
     if (!shouldPromptBackupReminder(backupReminderCadence, lastPrompt, now)) {
       return;
     }
 
-    window.localStorage.setItem(backupReminderLastPromptStorageKey, String(now));
+    writeStorageValue(backupReminderLastPromptStorageKey, String(now));
     const wantsExport = window.confirm(`Backup reminder (${backupReminderCadence}): export a full JSON backup now?`);
     if (wantsExport) {
       exportJson();

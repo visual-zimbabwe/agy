@@ -1,3 +1,6 @@
+import { appSlug, legacyAppSlug } from "@/lib/brand";
+import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
+
 export type ThemePreference = "system" | "light" | "dark";
 export type StartupBehavior = "default_page" | "continue_last";
 export type StartupPage = "/wall" | "/decks";
@@ -10,13 +13,25 @@ export type UserPreferences = {
   manualTimezone: string;
 };
 
+const keyWithSlug = (suffix: string) => `${appSlug}-${suffix}`;
+const legacyKeyWithSlug = (suffix: string) => `${legacyAppSlug}-${suffix}`;
+
 export const preferenceStorageKeys = {
-  theme: "idea-wall-pref-theme",
-  startupBehavior: "idea-wall-pref-startup-behavior",
-  startupDefaultPage: "idea-wall-pref-startup-default-page",
-  autoTimezone: "idea-wall-pref-auto-timezone",
-  manualTimezone: "idea-wall-pref-manual-timezone",
-  lastVisitedPath: "idea-wall-last-visited-path",
+  theme: keyWithSlug("pref-theme"),
+  startupBehavior: keyWithSlug("pref-startup-behavior"),
+  startupDefaultPage: keyWithSlug("pref-startup-default-page"),
+  autoTimezone: keyWithSlug("pref-auto-timezone"),
+  manualTimezone: keyWithSlug("pref-manual-timezone"),
+  lastVisitedPath: keyWithSlug("last-visited-path"),
+} as const;
+
+const legacyPreferenceStorageKeys = {
+  theme: legacyKeyWithSlug("pref-theme"),
+  startupBehavior: legacyKeyWithSlug("pref-startup-behavior"),
+  startupDefaultPage: legacyKeyWithSlug("pref-startup-default-page"),
+  autoTimezone: legacyKeyWithSlug("pref-auto-timezone"),
+  manualTimezone: legacyKeyWithSlug("pref-manual-timezone"),
+  lastVisitedPath: legacyKeyWithSlug("last-visited-path"),
 } as const;
 
 const defaultPreferences: UserPreferences = {
@@ -41,11 +56,16 @@ export const readStoredPreferences = (): UserPreferences => {
 
   try {
     return {
-      theme: normalizeThemePreference(window.localStorage.getItem(preferenceStorageKeys.theme)),
-      startupBehavior: window.localStorage.getItem(preferenceStorageKeys.startupBehavior) === "default_page" ? "default_page" : "continue_last",
-      startupDefaultPage: window.localStorage.getItem(preferenceStorageKeys.startupDefaultPage) === "/decks" ? "/decks" : "/wall",
-      autoTimezone: window.localStorage.getItem(preferenceStorageKeys.autoTimezone) !== "false",
-      manualTimezone: window.localStorage.getItem(preferenceStorageKeys.manualTimezone) || defaultPreferences.manualTimezone,
+      theme: normalizeThemePreference(readStorageValue(preferenceStorageKeys.theme, [legacyPreferenceStorageKeys.theme])),
+      startupBehavior:
+        readStorageValue(preferenceStorageKeys.startupBehavior, [legacyPreferenceStorageKeys.startupBehavior]) === "default_page"
+          ? "default_page"
+          : "continue_last",
+      startupDefaultPage:
+        readStorageValue(preferenceStorageKeys.startupDefaultPage, [legacyPreferenceStorageKeys.startupDefaultPage]) === "/decks" ? "/decks" : "/wall",
+      autoTimezone: readStorageValue(preferenceStorageKeys.autoTimezone, [legacyPreferenceStorageKeys.autoTimezone]) !== "false",
+      manualTimezone:
+        readStorageValue(preferenceStorageKeys.manualTimezone, [legacyPreferenceStorageKeys.manualTimezone]) || defaultPreferences.manualTimezone,
     };
   } catch {
     return defaultPreferences;
@@ -58,11 +78,11 @@ export const persistPreferences = (preferences: UserPreferences) => {
   }
 
   try {
-    window.localStorage.setItem(preferenceStorageKeys.theme, preferences.theme);
-    window.localStorage.setItem(preferenceStorageKeys.startupBehavior, preferences.startupBehavior);
-    window.localStorage.setItem(preferenceStorageKeys.startupDefaultPage, preferences.startupDefaultPage);
-    window.localStorage.setItem(preferenceStorageKeys.autoTimezone, String(preferences.autoTimezone));
-    window.localStorage.setItem(preferenceStorageKeys.manualTimezone, preferences.manualTimezone);
+    writeStorageValue(preferenceStorageKeys.theme, preferences.theme);
+    writeStorageValue(preferenceStorageKeys.startupBehavior, preferences.startupBehavior);
+    writeStorageValue(preferenceStorageKeys.startupDefaultPage, preferences.startupDefaultPage);
+    writeStorageValue(preferenceStorageKeys.autoTimezone, String(preferences.autoTimezone));
+    writeStorageValue(preferenceStorageKeys.manualTimezone, preferences.manualTimezone);
   } catch {
     // Ignore write failures (private mode/quota constraints).
   }

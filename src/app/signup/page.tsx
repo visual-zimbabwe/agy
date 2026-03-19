@@ -48,7 +48,7 @@ export default function SignupPage() {
     <main className="route-shell px-5 py-10 sm:px-8 sm:py-12">
       <section className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center gap-7 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="order-2 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-glass)] p-6 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)] lg:order-1 lg:p-8">
-          <p className="text-[10px] font-semibold tracking-[0.14em] uppercase">Idea-Wall Account</p>
+          <p className="text-[10px] font-semibold tracking-[0.14em] uppercase">Agy Account</p>
           <h1 className="mt-3 text-3xl leading-tight font-semibold text-[var(--color-text)] sm:text-4xl">Set up cloud sync.</h1>
           <p className="mt-4 leading-7">Create your account to keep one wall in sync across sessions.</p>
         </div>
@@ -114,3 +114,4 @@ export default function SignupPage() {
     </main>
   );
 }
+

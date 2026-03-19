@@ -4,6 +4,8 @@ import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } f
 
 import { ModalShell } from "@/components/ui/ModalShell";
 import { Button } from "@/components/ui/Button";
+import { appSlug, legacyAppSlug } from "@/lib/brand";
+import { readStorageValue, removeStorageKeys, writeStorageValue } from "@/lib/local-storage";
 
 type ConversionMode = "pdf_to_word" | "word_to_pdf";
 type RunPreference = "auto" | "single" | "batch";
@@ -30,8 +32,10 @@ type FileConversionModalProps = {
   preferredMode?: ConversionMode | null;
 };
 
-const modeStorageKey = "idea-wall-file-conversion-last-mode";
-const historyStorageKey = "idea-wall-file-conversion-history-v1";
+const modeStorageKey = `${appSlug}-file-conversion-last-mode`;
+const historyStorageKey = `${appSlug}-file-conversion-history-v1`;
+const legacyModeStorageKey = `${legacyAppSlug}-file-conversion-last-mode`;
+const legacyHistoryStorageKey = `${legacyAppSlug}-file-conversion-history-v1`;
 const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
 const maxFileSizeBytes = 100 * 1024 * 1024;
 const maxBatchFiles = 20;
@@ -138,12 +142,12 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
     if (typeof window === "undefined") {
       return;
     }
-    const storedMode = window.localStorage.getItem(modeStorageKey);
+    const storedMode = readStorageValue(modeStorageKey, [legacyModeStorageKey]);
     if (storedMode === "pdf_to_word" || storedMode === "word_to_pdf") {
       setMode(storedMode);
     }
     try {
-      const raw = window.localStorage.getItem(historyStorageKey);
+      const raw = readStorageValue(historyStorageKey, [legacyHistoryStorageKey]);
       if (!raw) {
         return;
       }
@@ -154,7 +158,7 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
         .sort((left, right) => right.createdAt - left.createdAt)
         .slice(0, 400);
       setHistory(pruned);
-      window.localStorage.setItem(historyStorageKey, JSON.stringify(pruned));
+      writeStorageValue(historyStorageKey, JSON.stringify(pruned));
     } catch {
       // Ignore malformed local history payloads.
     }
@@ -164,7 +168,7 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
     if (typeof window === "undefined") {
       return;
     }
-    window.localStorage.setItem(modeStorageKey, mode);
+    writeStorageValue(modeStorageKey, mode);
   }, [mode]);
 
   useEffect(() => {
@@ -198,7 +202,7 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
         .filter((item) => now - item.createdAt <= sevenDaysMs)
         .slice(0, 400);
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(historyStorageKey, JSON.stringify(next));
+        writeStorageValue(historyStorageKey, JSON.stringify(next));
       }
       return next;
     });
@@ -674,7 +678,7 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
                   variant="ghost"
                   onClick={() => {
                     setHistory([]);
-                    window.localStorage.removeItem(historyStorageKey);
+                    removeStorageKeys([historyStorageKey, legacyHistoryStorageKey]);
                   }}
                 >
                   Clear
@@ -762,3 +766,10 @@ export const FileConversionModal = ({ open, onClose, onOpen, preferredMode }: Fi
     </>
   );
 };
+
+
+
+
+
+
+

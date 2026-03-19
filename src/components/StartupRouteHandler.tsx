@@ -9,6 +9,7 @@ import {
   normalizeAccountSettings,
   persistAccountSettingsLocally,
 } from "@/lib/account-settings";
+import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 import { applyPreferencesToDocument, preferenceStorageKeys, readStoredPreferences } from "@/lib/preferences";
 
 const allowedStartupPaths = new Set(["/wall", "/decks"]);
@@ -78,7 +79,7 @@ export const StartupRouteHandler = () => {
       return;
     }
     if (allowedStartupPaths.has(pathname)) {
-      window.localStorage.setItem(preferenceStorageKeys.lastVisitedPath, pathname);
+      writeStorageValue(preferenceStorageKeys.lastVisitedPath, pathname);
     }
   }, [pathname]);
 
@@ -89,7 +90,7 @@ export const StartupRouteHandler = () => {
     handledHomeRedirectRef.current = true;
 
     const preferences = readStoredPreferences();
-    const lastVisitedPath = window.localStorage.getItem(preferenceStorageKeys.lastVisitedPath);
+    const lastVisitedPath = readStorageValue(preferenceStorageKeys.lastVisitedPath, []);
     if (
       preferences.startupBehavior === "continue_last" &&
       lastVisitedPath &&

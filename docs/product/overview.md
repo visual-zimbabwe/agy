@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This document describes the current product surface of Idea-Wall.
+This document describes the current product surface of Agy.
 
-Idea-Wall is brain RAM: a visual system for capturing, organizing, and interacting with ideas across spatial, document, and review-oriented workspaces.
+Agy is brain RAM: a visual system for capturing, organizing, and interacting with ideas across spatial, document, and review-oriented workspaces.
 
 ## Scope
 
@@ -12,7 +12,7 @@ This is a current-state overview. It explains the product shape and the major us
 
 ## Current Product Surface
 
-Idea-Wall currently has four primary surfaces:
+Agy currently has four primary surfaces:
 
 - `Wall`: spatial thinking and relationship mapping
 - `Page`: structured block editing on an infinite document canvas
@@ -102,3 +102,4 @@ The unifying idea is that the user can move between capture, organization, refle
 - `docs/features/timeline-view.md`
 - `docs/features/page-editor.md`
 - `docs/features/decks.md`
+

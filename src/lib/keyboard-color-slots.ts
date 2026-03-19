@@ -1,7 +1,10 @@
 import { NOTE_COLORS } from "@/features/wall/constants";
+import { appSlug, legacyAppSlug } from "@/lib/brand";
+import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 export const MAX_KEYBOARD_COLOR_SLOTS = 9;
-export const keyboardColorSlotsStorageKey = "idea-wall-keyboard-color-slots-v1";
+export const keyboardColorSlotsStorageKey = `${appSlug}-keyboard-color-slots-v1`;
+const legacyKeyboardColorSlotsStorageKey = `${legacyAppSlug}-keyboard-color-slots-v1`;
 
 const normalizeHexColor = (raw: string) => {
   const trimmed = raw.trim().replace(/^#/, "");
@@ -26,7 +29,7 @@ export const readKeyboardColorSlots = () => {
   }
 
   try {
-    const raw = window.localStorage.getItem(keyboardColorSlotsStorageKey);
+    const raw = readStorageValue(keyboardColorSlotsStorageKey, [legacyKeyboardColorSlotsStorageKey]);
     if (!raw) {
       return [...defaultKeyboardColorSlots];
     }
@@ -60,7 +63,7 @@ export const writeKeyboardColorSlots = (slots: Array<string | null>) => {
     return normalizeHexColor(value);
   });
   try {
-    window.localStorage.setItem(keyboardColorSlotsStorageKey, JSON.stringify(normalized));
+    writeStorageValue(keyboardColorSlotsStorageKey, JSON.stringify(normalized));
   } catch {
     // Ignore storage write failures.
   }

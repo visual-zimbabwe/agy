@@ -5,7 +5,7 @@ Accepted
 
 ## Context
 
-Idea-Wall needs to feel fast during capture, editing, movement, and review. The product also needs account-backed continuity across devices and sessions.
+Agy needs to feel fast during capture, editing, movement, and review. The product also needs account-backed continuity across devices and sessions.
 
 A cloud-only interaction model would put core workspace behavior behind network and backend availability. A purely local model would make signed-in continuity, recovery, and multi-device use much weaker.
 
@@ -55,3 +55,4 @@ Rejected because it would weaken account continuity, recovery, and device-to-dev
 - local reset actions must be treated carefully
 - schema evolution needs compatibility-aware handling where possible
 - contributors must treat persistence changes as documentation-impacting changes
+

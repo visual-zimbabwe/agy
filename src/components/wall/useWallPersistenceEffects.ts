@@ -6,6 +6,8 @@ import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
+import { defaultWallTitle } from "@/lib/brand";
+import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 type UseWallPersistenceEffectsOptions = {
   hydrate: (state: PersistedWallState) => void;
@@ -80,7 +82,7 @@ export const useWallPersistenceEffects = ({
           const createResponse = await fetch("/api/walls", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: "My Wall" }),
+            body: JSON.stringify({ title: defaultWallTitle }),
           });
           if (!createResponse.ok) {
             const payload = (await createResponse.json().catch(() => ({}))) as { error?: string };
@@ -104,8 +106,9 @@ export const useWallPersistenceEffects = ({
 
         const snapshotPayload = (await snapshotResponse.json()) as { snapshot: PersistedWallState };
         const serverSnapshot = snapshotPayload.snapshot;
-        const migrationKey = `idea-wall-cloud-imported-v1:${wallId}`;
-        const canPromptImport = typeof window !== "undefined" && !window.localStorage.getItem(migrationKey);
+        const migrationKey = `agy-cloud-imported-v1:${wallId}`;
+        const legacyMigrationKey = `idea-wall-cloud-imported-v1:${wallId}`;
+        const canPromptImport = typeof window !== "undefined" && !readStorageValue(migrationKey, [legacyMigrationKey]);
         let nextSnapshot = mergeSnapshotsLww(serverSnapshot, snapshot);
 
         if (hasContent(snapshot) && !hasContent(serverSnapshot) && canPromptImport && typeof window !== "undefined") {
@@ -114,7 +117,7 @@ export const useWallPersistenceEffects = ({
             nextSnapshot = snapshot;
             await syncSnapshotToCloud(wallId, snapshot);
           }
-          window.localStorage.setItem(migrationKey, "1");
+          writeStorageValue(migrationKey, "1");
         } else if (JSON.stringify(nextSnapshot) !== JSON.stringify(serverSnapshot)) {
           await syncSnapshotToCloud(wallId, nextSnapshot);
         }
@@ -193,3 +196,5 @@ export const useWallPersistenceEffects = ({
     syncSnapshotToCloud,
   ]);
 };
+
+

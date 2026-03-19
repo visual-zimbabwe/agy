@@ -1,4 +1,4 @@
-# Idea-Wall Product Improvements
+# Agy Product Improvements
 
 ## Core Product Roadmap
 1. AI-assisted clustering and labeling
@@ -45,3 +45,4 @@
 - `npm run build`
 4. QA baseline artifacts exist in `docs/baselines/2026-02-11/`.
 5. Manual verification remains governed by `docs/qa.md` for interactive behavior checks.
+

@@ -1,10 +1,10 @@
 {
-  "name": "idea-wall-studio",
+  "name": "agy-studio",
   "version": "0.1.0",
   "private": true,
-  "description": "Idea Wall Studio desktop app powered by Electron and Next.js",
+  "description": "Agy desktop app powered by Electron and Next.js",
   "main": "electron/main.cjs",
-  "author": "Idea Wall Team",
+  "author": "Agy Team",
   "license": "UNLICENSED",
   "scripts": {
     "dev:web": "npm --prefix .. run dev",
@@ -29,8 +29,8 @@
     "electron-updater": "^6.6.2"
   },
   "build": {
-    "appId": "com.ideawall.studio",
-    "productName": "Idea Wall Studio",
+    "appId": "com.agy.app",
+    "productName": "Agy",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -87,3 +87,4 @@
     }
   }
 }
+

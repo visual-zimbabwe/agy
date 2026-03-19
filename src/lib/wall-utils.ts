@@ -115,7 +115,7 @@ export const notesToMarkdown = (notes: Note[], zones: Zone[]) => {
       )
       .map((zone) => zone.id);
 
-  const lines: string[] = ["# Idea Wall Export", ""];
+  const lines: string[] = ["# Agy Export", ""];
 
   for (const note of notes) {
     lines.push(`## ${note.text.trim().split("\n")[0] || "Untitled note"}`);
@@ -171,5 +171,6 @@ export const notesToMarkdown = (notes: Note[], zones: Zone[]) => {
 
   return lines.join("\n");
 };
+
 
 

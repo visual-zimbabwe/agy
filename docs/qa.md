@@ -1,4 +1,4 @@
-# Idea-Wall Manual QA Checklist
+# Agy Manual QA Checklist
 
 ## Block Page Editor (`/page`) (2026-03-05)
 1. Open `/page` and verify there is no fixed sidebar/top toolbar.
@@ -190,10 +190,10 @@ Expected:
 - Dropping on empty canvas creates a new image note; dropping on an existing note replaces its image.
 - The insert modal feels like a proper wall UI panel, not a browser alert or prompt.
 ## Electron Desktop Packaging (2026-02-18)
-1. In `idea-wall-studio`, run `npm install`.
+1. In `agy-studio`, run `npm install`.
 2. Run `npm run dist`.
-3. Verify installer exists at `idea-wall-studio/release/Idea Wall Studio-Setup-0.1.0.exe`.
-4. Launch unpacked app from `idea-wall-studio/release/win-unpacked/Idea Wall Studio.exe`.
+3. Verify installer exists at `agy-studio/release/Agy-Setup-0.1.0.exe`.
+4. Launch unpacked app from `agy-studio/release/win-unpacked/Agy.exe`.
 5. Verify routes work in desktop app:
    - `/` landing loads
    - `/wall` loads and note interactions work
@@ -220,7 +220,7 @@ Expected:
 10. Open `Import File`, upload sample `.csv` or tab-delimited `.txt`, map columns, import notes.
 11. Save an import preset, close modal, reopen, and apply the saved preset.
 12. Switch to dark mode on `/decks` and verify deck backgrounds, panels, badges, and modal surfaces render as pure `#000000`, while text and status/icon indicators remain readable.
-13. Verify Decks behavior in Electron app build (`idea-wall-studio`) by opening `/decks`, adding one note, and reviewing one card.
+13. Verify Decks behavior in Electron app build (`agy-studio`) by opening `/decks`, adding one note, and reviewing one card.
 
 Expected:
 - Decks route is reachable from both landing and wall.
@@ -651,7 +651,7 @@ Expected:
 
 ## Data Backup - JSON Export/Import and Reminder
 1. Open `Export` modal and click `Export JSON`.
-2. Verify a backup file is downloaded (filename starts with `idea-wall-backup-`).
+2. Verify a backup file is downloaded (filename starts with `agy-backup-`).
 3. Make a visible wall change (create or move note).
 4. In `Export` modal, click `Import JSON` and choose the exported backup file.
 5. Confirm import prompt.
@@ -896,7 +896,7 @@ Expected:
 2. Open `/wall` in a local/dev session and perform:
    - open `Tools`, `Details`, `Search`, `Export`, and `Shortcuts`
    - first wall interaction (pointer or keyboard)
-3. Inspect `localStorage["idea-wall-ux-telemetry-v1"]` in DevTools.
+3. Inspect `localStorage["agy-ux-telemetry-v1"]` in DevTools.
 4. Export JSON backup from `Export` modal, then import it back.
 
 Expected:
@@ -1013,5 +1013,6 @@ Expected:
 - Eisenhower Matrix notes can be created from the UI, command palette, and keyboard shortcut.
 - The note renders as one polished card with four clearly labeled, independently editable quadrants.
 - Date, footer task count, compact mode, and persistence behave like native wall features rather than an add-on.
+
 
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document describes the current high-level system shape of the Idea-Wall codebase.
+This document describes the current high-level system shape of the Agy codebase.
 
 ## Scope
 
@@ -10,7 +10,7 @@ This is the cross-cutting architecture summary for routes, UI composition, domai
 
 ## Application Shape
 
-Idea-Wall is a Next.js App Router application with multiple authenticated and unauthenticated workspaces:
+Agy is a Next.js App Router application with multiple authenticated and unauthenticated workspaces:
 
 - landing page
 - auth routes
@@ -68,7 +68,7 @@ Examples:
 
 ## Persistence Model
 
-Idea-Wall is local-first in interaction and cloud-backed when signed in.
+Agy is local-first in interaction and cloud-backed when signed in.
 
 ### Local Persistence
 
@@ -139,3 +139,4 @@ The decks schema includes deck hierarchy, note types, cards, study state, and sc
 - `docs/features/page-editor.md`
 - `docs/features/decks.md`
 - `docs/features/timeline-view.md`
+

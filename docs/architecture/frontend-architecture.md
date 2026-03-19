@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the current UI structure and frontend module boundaries for Idea-Wall.
+This document defines the current UI structure and frontend module boundaries for Agy.
 
 ## Scope
 
@@ -114,3 +114,4 @@ Avoid:
 - `docs/features/page-editor.md`
 - `docs/features/decks.md`
 - `docs/features/timeline-view.md`
+

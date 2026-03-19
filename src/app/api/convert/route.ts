@@ -157,7 +157,7 @@ export async function POST(request: Request) {
   }
 
   const meta = outputMetaByMode[mode];
-  const workspace = await fs.mkdtemp(path.join(tmpdir(), "idea-wall-convert-"));
+  const workspace = await fs.mkdtemp(path.join(tmpdir(), "agy-convert-"));
   const inputPath = path.join(workspace, file.name);
   const baseName = path.basename(file.name, inputExt);
   const outputPath = path.join(workspace, `${baseName}${meta.ext}`);
@@ -207,3 +207,4 @@ export async function POST(request: Request) {
     await fs.rm(workspace, { recursive: true, force: true });
   }
 }
+

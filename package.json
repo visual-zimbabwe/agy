@@ -1,5 +1,5 @@
 {
-  "name": "idea-wall",
+  "name": "agy",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -49,3 +49,4 @@
     "vitest": "^4.0.18"
   }
 }
+

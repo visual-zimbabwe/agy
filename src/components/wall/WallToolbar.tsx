@@ -163,7 +163,7 @@ export const WallToolbar = ({
     const target = `/decks${params.size > 0 ? `?${params.toString()}` : ""}`;
     const isDesktop = Boolean(window.desktopMeta?.isDesktop || window.desktopApi);
     if (isDesktop) {
-      window.open(target, "idea-wall-decks-window", "width=1320,height=920");
+      window.open(target, "agy-decks-window", "width=1320,height=920");
     } else {
       window.open(target, "_blank");
     }
@@ -277,3 +277,4 @@ export const WallToolbar = ({
     </>
   );
 };
+

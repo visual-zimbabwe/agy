@@ -14,8 +14,8 @@ Use this runbook when local workspace state appears corrupted, stale, or unusabl
 
 1. Identify which local store is affected.
    Current local databases include:
-   - wall: `idea-wall-db`
-   - page: `idea-wall-page-db`
+   - wall: `agy-db`
+   - page: `agy-page-db`
 
 2. Determine whether the issue is local-only or also present in cloud-backed data.
    Check whether the same problem reproduces after sign-in on another machine or clean browser profile.
@@ -49,6 +49,7 @@ Use this runbook when local workspace state appears corrupted, stale, or unusabl
    - the editor should rebuild from cloud snapshot or start clean for the target doc id
 
 8. Re-apply settings only if needed.
+   After the rename, some preferences may be transparently copied from legacy `idea-wall-*` browser keys into new `agy-*` keys on first read.
    Some preferences are locally cached even when account settings also exist remotely.
 
 ## Expected Outcome
@@ -70,3 +71,5 @@ Escalate when:
 - `docs/architecture/state-and-storage.md`
 - `docs/api/walls.md`
 - `docs/api/page.md`
+
+

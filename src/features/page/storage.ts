@@ -1,6 +1,7 @@
 import Dexie, { type Table } from "dexie";
 
 import type { PageBlock, PersistedPageState } from "@/features/page/types";
+import { appSlug, legacyAppSlug } from "@/lib/brand";
 
 type PageDocRecord = {
   id: string;
@@ -8,11 +9,14 @@ type PageDocRecord = {
   updatedAt: number;
 };
 
-class IdeaWallPageDatabase extends Dexie {
+const pageDatabaseName = `${appSlug}-page-db`;
+const legacyPageDatabaseName = `${legacyAppSlug}-page-db`;
+
+class PageDatabase extends Dexie {
   pageDocs!: Table<PageDocRecord, string>;
 
-  constructor() {
-    super("idea-wall-page-db");
+  constructor(name: string) {
+    super(name);
     this.version(1).stores({
       pageDocs: "id, updatedAt",
     });
@@ -20,8 +24,34 @@ class IdeaWallPageDatabase extends Dexie {
 }
 
 export const defaultPageDocId = "default";
-const db = new IdeaWallPageDatabase();
+const db = new PageDatabase(pageDatabaseName);
+const legacyDb = new PageDatabase(legacyPageDatabaseName);
 const defaultCamera = { x: 0, y: 0, zoom: 1 } as const;
+let migrationPromise: Promise<void> | null = null;
+
+const migrateLegacyPageDatabaseIfNeeded = async () => {
+  if (!migrationPromise) {
+    migrationPromise = (async () => {
+      const legacyExists = await Dexie.exists(legacyPageDatabaseName);
+      if (!legacyExists) {
+        return;
+      }
+
+      await Promise.all([db.open(), legacyDb.open()]);
+      const [nextCount, legacyCount] = await Promise.all([db.pageDocs.count(), legacyDb.pageDocs.count()]);
+      if (nextCount > 0 || legacyCount === 0) {
+        return;
+      }
+
+      const docs = await legacyDb.pageDocs.toArray();
+      if (docs.length > 0) {
+        await db.pageDocs.bulkPut(docs);
+      }
+    })();
+  }
+
+  await migrationPromise;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -230,6 +260,7 @@ const normalizeSnapshot = (value: unknown): PersistedPageState | null => {
 };
 
 export const loadPageSnapshot = async (docId = defaultPageDocId): Promise<PersistedPageState | null> => {
+  await migrateLegacyPageDatabaseIfNeeded();
   const row = await db.pageDocs.get(docId);
   if (!row?.snapshot) {
     return null;
@@ -238,6 +269,7 @@ export const loadPageSnapshot = async (docId = defaultPageDocId): Promise<Persis
 };
 
 export const savePageSnapshot = async (snapshot: PersistedPageState, docId = defaultPageDocId): Promise<void> => {
+  await migrateLegacyPageDatabaseIfNeeded();
   await db.pageDocs.put({
     id: docId,
     snapshot,
@@ -246,6 +278,7 @@ export const savePageSnapshot = async (snapshot: PersistedPageState, docId = def
 };
 
 export const listPageDocIds = async (): Promise<string[]> => {
+  await migrateLegacyPageDatabaseIfNeeded();
   const rows = await db.pageDocs.orderBy("updatedAt").reverse().toArray();
   return rows.map((row) => row.id);
 };

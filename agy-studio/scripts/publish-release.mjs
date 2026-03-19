@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
 import process from "node:process";
 
-const publishUrl = process.env.IDEA_WALL_AUTO_UPDATE_URL;
+const publishUrl = process.env.AGY_AUTO_UPDATE_URL ?? process.env.IDEA_WALL_AUTO_UPDATE_URL;
 
 if (!publishUrl) {
-  console.error("IDEA_WALL_AUTO_UPDATE_URL is required for dist:publish.");
+  console.error("AGY_AUTO_UPDATE_URL is required for dist:publish.");
   process.exit(1);
 }
 
@@ -24,3 +24,4 @@ const child = spawn(process.platform === "win32" ? "npx.cmd" : "npx", args, {
 child.on("exit", (code) => {
   process.exit(code ?? 1);
 });
+

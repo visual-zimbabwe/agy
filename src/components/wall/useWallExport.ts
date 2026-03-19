@@ -84,7 +84,7 @@ export const useWallExport = ({
 
       if (scope === "view") {
         const dataUrl = stageRef.current.toDataURL({ pixelRatio });
-        downloadDataUrl(`idea-wall-view-${makeDownloadId()}.png`, dataUrl);
+        downloadDataUrl(`agy-view-${makeDownloadId()}.png`, dataUrl);
         return;
       }
 
@@ -99,7 +99,7 @@ export const useWallExport = ({
         setCamera(fitBoundsCamera(bounds, viewport));
         await waitForPaint();
         const dataUrl = stageRef.current.toDataURL({ pixelRatio });
-        downloadDataUrl(`idea-wall-${scope}-${makeDownloadId()}.png`, dataUrl);
+        downloadDataUrl(`agy-${scope}-${makeDownloadId()}.png`, dataUrl);
       } finally {
         setCamera(previousCamera);
       }
@@ -146,7 +146,7 @@ export const useWallExport = ({
         format: [image.width, image.height],
       });
       pdf.addImage(dataUrl, "PNG", 0, 0, image.width, image.height);
-      pdf.save(`idea-wall-${scope}-${makeDownloadId()}.pdf`);
+      pdf.save(`agy-${scope}-${makeDownloadId()}.pdf`);
     },
     [camera, fitBoundsCamera, makeDownloadId, resolveBoundsForScope, setCamera, stageRef, viewport, waitForPaint],
   );
@@ -163,7 +163,7 @@ export const useWallExport = ({
             : visibleNotes;
 
     const content = notesToMarkdown(selectedNotes, allZones);
-    downloadTextFile(`idea-wall-${makeDownloadId()}.md`, content);
+    downloadTextFile(`agy-${makeDownloadId()}.md`, content);
     setExportOpen(false);
   }, [
     activeSelectedNoteIds,
@@ -185,3 +185,6 @@ export const useWallExport = ({
     exportMarkdown,
   };
 };
+
+
+

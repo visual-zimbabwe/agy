@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the current contributor workflow for making changes in the Idea-Wall repository.
+This document defines the current contributor workflow for making changes in the Agy repository.
 
 ## Scope
 
@@ -117,3 +117,4 @@ The repo may contain unrelated local changes or experimental assets. Do not assu
 - `README.md`
 - `docs/releases/changelog.md`
 - `docs/qa.md`
+
