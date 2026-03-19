@@ -1,6 +1,6 @@
 # Agy
 
-Electron desktop wrapper for the `agy` Next.js app.
+Electron desktop wrapper for the `Agy` Next.js app.
 
 ## Commands
 
@@ -40,5 +40,3 @@ Electron desktop wrapper for the `agy` Next.js app.
   - `APPLE_TEAM_ID`
 - Auto-update publishing:
   - `AGY_AUTO_UPDATE_URL`
-
-

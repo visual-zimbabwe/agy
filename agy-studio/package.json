@@ -1,5 +1,5 @@
 {
-  "name": "agy-studio",
+  "name": "agy",
   "version": "0.1.0",
   "private": true,
   "description": "Agy desktop app powered by Electron and Next.js",
@@ -87,4 +87,3 @@
     }
   }
 }
-
