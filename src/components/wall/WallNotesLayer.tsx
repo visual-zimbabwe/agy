@@ -963,7 +963,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isCurrency && (
+            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;
@@ -1059,7 +1059,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isCurrency &&
+            {showNoteTags && !isImageNote && !isEisenhower && !isJoker &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -1084,7 +1084,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isCurrency && overflowTags > 0 && (
+            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}
@@ -1101,6 +1101,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 
