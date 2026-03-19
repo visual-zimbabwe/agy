@@ -7,6 +7,8 @@ const log = require("electron-log/main");
 const { autoUpdater } = require("electron-updater");
 
 const DEV_URL = "http://127.0.0.1:3000";
+const APP_NAME = "Agy";
+const APP_USER_MODEL_ID = "com.agy.app";
 const PROD_PORT = process.env.AGY_DESKTOP_PORT || process.env.IDEA_WALL_DESKTOP_PORT || "3210";
 const SERVER_READY_TIMEOUT_MS = 25000;
 
@@ -74,6 +76,12 @@ async function waitForServerReady(url, timeoutMs) {
 
 function getPackagedWebRoot() {
   return path.join(process.resourcesPath, "app", "web");
+}
+
+function getWindowIconPath() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "app", "build", "icon.ico")
+    : path.join(app.getAppPath(), "build", "icon.ico");
 }
 
 function startPackagedWebServer() {
@@ -356,6 +364,7 @@ function createAppWindow(mainUrl, role = "main") {
     show: false,
     backgroundColor: "#F9FAFB",
     autoHideMenuBar: true,
+    icon: getWindowIconPath(),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -414,6 +423,11 @@ app.on("second-instance", () => {
   }
   target.focus();
 });
+
+app.setName(APP_NAME);
+if (process.platform === "win32") {
+  app.setAppUserModelId(APP_USER_MODEL_ID);
+}
 
 app.whenReady().then(async () => {
   log.initialize();

@@ -12,10 +12,11 @@
     "dev": "concurrently -k \"npm run dev:web\" \"npm run dev:electron\"",
     "build:web": "cross-env NEXT_OUTPUT=standalone npm --prefix .. run build",
     "prep:web": "node ./scripts/prepare-web.mjs",
-    "pack": "npm run build:web && npm run prep:web && electron-builder --dir",
-    "dist": "npm run build:web && npm run prep:web && electron-builder",
-    "dist:publish": "npm run build:web && npm run prep:web && node ./scripts/publish-release.mjs",
-    "smoke": "node ./scripts/smoke-check.mjs"
+    "pack": "npm run prep:brand && npm run build:web && npm run prep:web && electron-builder --dir",
+    "dist": "npm run prep:brand && npm run build:web && npm run prep:web && electron-builder",
+    "dist:publish": "npm run prep:brand && npm run build:web && npm run prep:web && node ./scripts/publish-release.mjs",
+    "smoke": "node ./scripts/smoke-check.mjs",
+    "prep:brand": "node ./scripts/sync-brand-assets.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
@@ -61,7 +62,8 @@
           ]
         }
       ],
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "publisherName": "Agy Team"
     },
     "nsis": {
       "oneClick": false,
@@ -84,6 +86,7 @@
       ],
       "category": "Office",
       "artifactName": "${productName}-${version}.${ext}"
-    }
+    },
+    "executableName": "Agy"
   }
 }
