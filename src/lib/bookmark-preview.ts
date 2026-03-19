@@ -5,6 +5,7 @@ import type { WebBookmarkKind, WebBookmarkMetadata } from "@/features/wall/types
 
 const MAX_REDIRECTS = 3;
 const FETCH_TIMEOUT_MS = 7000;
+const OEMBED_TIMEOUT_MS = 4000;
 const MAX_HTML_BYTES = 524288;
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
@@ -28,6 +29,8 @@ type ParsedHead = {
   links: ParsedTag[];
   title: string;
 };
+
+type MetadataDraft = Partial<Pick<WebBookmarkMetadata, "title" | "description" | "siteName" | "faviconUrl" | "imageUrl" | "kind">>;
 
 const decodeHtml = (value: string) =>
   value.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity: string) => {
@@ -245,6 +248,99 @@ const fetchWithRedirects = async (urlValue: string) => {
   throw new Error("Too many redirects.");
 };
 
+const extractYouTubeVideoId = (urlValue: URL) => {
+  if (urlValue.hostname.includes("youtu.be")) {
+    return urlValue.pathname.split("/").filter(Boolean)[0] ?? "";
+  }
+  if (urlValue.searchParams.get("v")) {
+    return urlValue.searchParams.get("v") ?? "";
+  }
+  const pathParts = urlValue.pathname.split("/").filter(Boolean);
+  if (pathParts[0] === "embed" || pathParts[0] === "shorts" || pathParts[0] === "live") {
+    return pathParts[1] ?? "";
+  }
+  return "";
+};
+
+const mergeMetadata = (base: WebBookmarkMetadata, draft?: MetadataDraft | null): WebBookmarkMetadata => {
+  if (!draft) {
+    return base;
+  }
+  const domain = base.domain.toLowerCase();
+  const titleLooksWeak = !base.title.trim() || base.title.trim().toLowerCase() === domain;
+  const siteLooksWeak = !base.siteName.trim() || base.siteName.trim().toLowerCase() === domain;
+  const descriptionLooksWeak = !base.description.trim();
+
+  return {
+    ...base,
+    title: draft.title && titleLooksWeak ? draft.title : base.title,
+    description: draft.description && descriptionLooksWeak ? draft.description : base.description,
+    siteName: draft.siteName && siteLooksWeak ? draft.siteName : base.siteName,
+    faviconUrl: draft.faviconUrl || base.faviconUrl,
+    imageUrl: draft.imageUrl || base.imageUrl,
+    kind: draft.kind || base.kind,
+  };
+};
+
+const fetchYouTubeMetadata = async (normalizedUrl: string): Promise<MetadataDraft | null> => {
+  const parsed = new URL(normalizedUrl);
+  if (!parsed.hostname.includes("youtube.") && !parsed.hostname.includes("youtu.be")) {
+    return null;
+  }
+
+  const videoId = extractYouTubeVideoId(parsed);
+  const fallbackThumbnail = videoId ? `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : "";
+
+  try {
+    const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(normalizedUrl)}&format=json`, {
+      headers: {
+        "User-Agent": BROWSER_USER_AGENT,
+        Accept: "application/json",
+      },
+      signal: AbortSignal.timeout(OEMBED_TIMEOUT_MS),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("YouTube oEmbed failed.");
+    }
+
+    const payload = (await response.json()) as {
+      title?: string;
+      thumbnail_url?: string;
+      author_name?: string;
+      provider_name?: string;
+    };
+
+    return {
+      title: payload.title ? sanitizeText(payload.title, 220) : undefined,
+      siteName: sanitizeText(payload.provider_name || "YouTube", 120) || "YouTube",
+      imageUrl: payload.thumbnail_url ? safeAbsoluteUrl(payload.thumbnail_url, normalizedUrl) : fallbackThumbnail || undefined,
+      faviconUrl: `https://www.google.com/s2/favicons?domain=${encodeURIComponent("youtube.com")}&sz=64`,
+      kind: "video",
+      description: payload.author_name ? `From ${sanitizeText(payload.author_name, 120)}` : undefined,
+    };
+  } catch {
+    if (!fallbackThumbnail) {
+      return null;
+    }
+    return {
+      siteName: "YouTube",
+      imageUrl: fallbackThumbnail,
+      faviconUrl: `https://www.google.com/s2/favicons?domain=${encodeURIComponent("youtube.com")}&sz=64`,
+      kind: "video",
+    };
+  }
+};
+
+const fetchProviderMetadata = async (normalizedUrl: string) => {
+  const youtube = await fetchYouTubeMetadata(normalizedUrl);
+  if (youtube) {
+    return youtube;
+  }
+  return null;
+};
+
 export const buildBookmarkMetadata = (urlValue: string, finalUrlValue: string, html: string, contentType: string): WebBookmarkMetadata => {
   const finalUrl = new URL(finalUrlValue);
   const domain = finalUrl.hostname.replace(/^www\./i, "");
@@ -278,6 +374,7 @@ export const buildBookmarkMetadata = (urlValue: string, finalUrlValue: string, h
 export const fetchBookmarkMetadata = async (rawUrl: string) => {
   const parsed = await assertSafeUrl(rawUrl);
   const normalizedUrl = parsed.toString();
+  const providerMetadata = await fetchProviderMetadata(normalizedUrl);
   const { response, finalUrl } = await fetchWithRedirects(normalizedUrl);
   if (!response.ok) {
     throw new Error("Unable to fetch preview.");
@@ -288,27 +385,31 @@ export const fetchBookmarkMetadata = async (rawUrl: string) => {
   const domain = finalParsed.hostname.replace(/^www\./i, "");
 
   if (!contentType.includes("text/html")) {
+    const base = {
+      url: normalizedUrl,
+      finalUrl,
+      title: domain,
+      description: "",
+      siteName: domain,
+      domain,
+      faviconUrl: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`,
+      kind: inferKind(finalParsed, contentType, { siteName: domain, title: domain, description: "" }),
+      contentType: contentType || undefined,
+    } satisfies WebBookmarkMetadata;
+
     return {
       url: normalizedUrl,
       normalizedUrl,
-      metadata: {
-        url: normalizedUrl,
-        finalUrl,
-        title: domain,
-        description: "",
-        siteName: domain,
-        domain,
-        faviconUrl: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`,
-        kind: inferKind(finalParsed, contentType, { siteName: domain, title: domain, description: "" }),
-        contentType: contentType || undefined,
-      } satisfies WebBookmarkMetadata,
+      metadata: mergeMetadata(base, providerMetadata),
     };
   }
 
   const html = await readHtml(response);
+  const metadata = mergeMetadata(buildBookmarkMetadata(normalizedUrl, finalUrl, html, contentType), providerMetadata);
+
   return {
     url: normalizedUrl,
     normalizedUrl,
-    metadata: buildBookmarkMetadata(normalizedUrl, finalUrl, html, contentType),
+    metadata,
   };
 };

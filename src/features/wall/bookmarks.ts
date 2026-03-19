@@ -7,11 +7,14 @@ export const WEB_BOOKMARK_ACCENT = "#004753";
 export const WEB_BOOKMARK_LIGHT_SURFACE = "#FFFFFF";
 export const WEB_BOOKMARK_DARK_SURFACE = "#000000";
 export const WEB_BOOKMARK_DEFAULTS = {
-  width: 320,
-  height: 208,
-  compactHeight: 132,
-  comfortableHeight: 182,
-  expandedHeight: 248,
+  width: 560,
+  height: 126,
+  compactHeight: 116,
+  comfortableHeight: 126,
+  expandedHeight: 170,
+  compactWidth: 320,
+  comfortableWidth: 560,
+  expandedWidth: 640,
   color: WEB_BOOKMARK_LIGHT_SURFACE,
   textColor: "#052C33",
   textFont: "work_sans" as const,
@@ -20,6 +23,12 @@ export const WEB_BOOKMARK_DEFAULTS = {
 
 const cacheKey = `${appSlug}-bookmark-preview-cache-v2`;
 const legacyCacheKeys = [`${legacyAppSlug}-bookmark-preview-cache-v2`, `${appSlug}-bookmark-preview-cache-v1`, `${legacyAppSlug}-bookmark-preview-cache-v1`];
+
+const LEGACY_AUTO_RESIZE_SIZES = [
+  { w: 320, h: 208 },
+  { w: 320, h: 182 },
+  { w: 320, h: 248 },
+];
 
 type BookmarkCacheEntry = {
   metadata?: WebBookmarkMetadata;
@@ -77,6 +86,18 @@ export const bookmarkDomainLabel = (value?: string) => {
   }
 };
 
+export const bookmarkUrlLabel = (value?: string) => {
+  if (!value) {
+    return "";
+  }
+  try {
+    const parsed = new URL(value.includes("://") ? value : `https://${value}`);
+    return `${parsed.hostname.replace(/^www\./i, "")}${parsed.pathname === "/" ? "" : parsed.pathname}${parsed.search}`;
+  } catch {
+    return value;
+  }
+};
+
 export const bookmarkUpdatedLabel = (timestamp?: number) => {
   if (!timestamp) {
     return "Not fetched yet";
@@ -95,10 +116,10 @@ export const bookmarkUpdatedLabel = (timestamp?: number) => {
 };
 
 export const resolveBookmarkDisplaySize = (note: Pick<Note, "w" | "h">) => {
-  if (note.w < 260 || note.h < 150) {
+  if (note.w < 420 || note.h < 120) {
     return "compact" as const;
   }
-  if (note.w >= 320 && note.h >= 220) {
+  if (note.w >= 620 || note.h >= 160) {
     return "expanded" as const;
   }
   return "comfortable" as const;
@@ -183,6 +204,16 @@ export const isBookmarkMetadataRich = (metadata?: WebBookmarkMetadata | null) =>
       (siteName && siteName.toLowerCase() !== domain.toLowerCase()),
   );
 };
+
+export const getBookmarkPreferredSize = (metadata?: WebBookmarkMetadata | null) => {
+  if (metadata?.imageUrl) {
+    return { w: WEB_BOOKMARK_DEFAULTS.comfortableWidth, h: WEB_BOOKMARK_DEFAULTS.comfortableHeight };
+  }
+  return { w: 460, h: 134 };
+};
+
+export const shouldAutoResizeBookmarkNote = (note: Pick<Note, "w" | "h">) =>
+  LEGACY_AUTO_RESIZE_SIZES.some((size) => size.w === Math.round(note.w) && size.h === Math.round(note.h)) || note.h >= 180;
 
 export const createBookmarkNoteState = (url = ""): WebBookmarkNote => {
   const normalizedUrl = normalizeBookmarkUrl(url);

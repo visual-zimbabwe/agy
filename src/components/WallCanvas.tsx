@@ -103,7 +103,7 @@ import {
   updateLinkType,
   updateZone,
 } from "@/features/wall/commands";
-import { createBookmarkNoteState, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
+import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
 import { EISENHOWER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { isCurrencyNote } from "@/features/wall/currency";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
@@ -1072,7 +1072,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           fetchedAt,
           lastSuccessAt: fetchedAt,
         });
+        const currentNote = useWallStore.getState().notes[noteId];
+        const preferredSize = getBookmarkPreferredSize(payload.metadata);
         updateNote(noteId, {
+          ...(currentNote && shouldAutoResizeBookmarkNote(currentNote)
+            ? {
+                w: preferredSize.w,
+                h: preferredSize.h,
+              }
+            : {}),
           bookmark: {
             url: rawUrl,
             normalizedUrl: payload.normalizedUrl,
@@ -2954,6 +2962,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
+
+
 
 
 

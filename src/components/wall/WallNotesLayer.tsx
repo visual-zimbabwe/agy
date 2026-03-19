@@ -6,7 +6,7 @@ import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
-import { inferBookmarkKindLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
+import { bookmarkUrlLabel, inferBookmarkKindLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { jokerLoadingText } from "@/features/wall/joker";
@@ -682,146 +682,144 @@ export const WallNotesLayer = ({
                 <Rect
                   width={noteView.w}
                   height={noteView.h}
-                  cornerRadius={22}
-                  fill="#F7FBFB"
-                  stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#2b5560" : "rgba(0,71,83,0.22)"}
-                  strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.6 : 1}
+                  cornerRadius={18}
+                  fill="#FFFDFC"
+                  stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#2b5560" : "rgba(0,71,83,0.18)"}
+                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2.2 : isHovered ? 1.4 : 1}
                   shadowColor="#062b32"
-                  shadowBlur={isFlashing ? 30 : isDragging ? 24 : 14}
-                  shadowOpacity={isFlashing ? 0.32 : isDragging ? 0.24 : 0.14}
-                  shadowOffsetY={isDragging ? 7 : 3}
+                  shadowBlur={isFlashing ? 24 : isDragging ? 20 : 10}
+                  shadowOpacity={isFlashing ? 0.24 : isDragging ? 0.18 : 0.1}
+                  shadowOffsetY={isDragging ? 6 : 2}
                 />
-                <Rect width={noteView.w} height={8} cornerRadius={[22, 22, 0, 0]} fill={WEB_BOOKMARK_ACCENT} listening={false} />
-                <Text
-                  x={16}
-                  y={18}
-                  width={72}
-                  fontSize={10}
-                  fontStyle="bold"
-                  fill="rgba(0,71,83,0.78)"
-                  text={inferBookmarkKindLabel(bookmarkMetadata?.kind).toUpperCase()}
-                  listening={false}
-                />
-                <Group
-                  x={Math.max(16, noteView.w - 78)}
-                  y={16}
-                  onClick={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    event.cancelBubble = true;
-                    const targetUrl = bookmarkMetadata?.finalUrl || bookmarkState?.normalizedUrl || bookmarkState?.url;
-                    if (targetUrl) {
-                      openExternalUrl(targetUrl);
-                    }
-                  }}
-                  onTap={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    event.cancelBubble = true;
-                    const targetUrl = bookmarkMetadata?.finalUrl || bookmarkState?.normalizedUrl || bookmarkState?.url;
-                    if (targetUrl) {
-                      openExternalUrl(targetUrl);
-                    }
-                  }}
-                >
-                  <Rect width={62} height={22} cornerRadius={11} fill="rgba(0,71,83,0.10)" stroke="rgba(0,71,83,0.20)" strokeWidth={1} />
-                  <Text x={0} y={6} width={62} align="center" fontSize={10} fontStyle="bold" fill="#0B3F49" text="OPEN" />
-                </Group>
-                {bookmarkDisplaySize === "compact" ? null : (
-                  <>
-                    <Rect
-                      x={Math.max(16, noteView.w - (bookmarkDisplaySize === "expanded" ? 140 : 124))}
-                      y={44}
-                      width={bookmarkDisplaySize === "expanded" ? 124 : 108}
-                      height={bookmarkDisplaySize === "expanded" ? 108 : 92}
-                      cornerRadius={18}
-                      fill="rgba(0,71,83,0.08)"
-                      stroke="rgba(0,71,83,0.10)"
-                      strokeWidth={1}
-                      listening={false}
-                    />
-                    {bookmarkImage ? (
-                      <KonvaImage
-                        x={Math.max(16, noteView.w - (bookmarkDisplaySize === "expanded" ? 140 : 124))}
-                        y={44}
-                        width={bookmarkDisplaySize === "expanded" ? 124 : 108}
-                        height={bookmarkDisplaySize === "expanded" ? 108 : 92}
-                        image={bookmarkImage}
-                        cornerRadius={18}
-                        listening={false}
-                      />
-                    ) : null}
-                    {!bookmarkImage ? (
+                <Rect width={noteView.w} height={6} cornerRadius={[18, 18, 0, 0]} fill={WEB_BOOKMARK_ACCENT} listening={false} />
+                {(() => {
+                  const hasThumb = Boolean(bookmarkImage) && bookmarkDisplaySize !== "compact";
+                  const thumbWidth = bookmarkDisplaySize === "expanded" ? 178 : 156;
+                  const thumbHeight = bookmarkDisplaySize === "expanded" ? Math.max(92, noteView.h - 28) : Math.max(78, noteView.h - 34);
+                  const thumbX = hasThumb ? Math.max(16, noteView.w - thumbWidth - 16) : 0;
+                  const thumbY = hasThumb ? Math.max(14, (noteView.h - thumbHeight) / 2) : 0;
+                  const contentWidth = Math.max(0, noteView.w - (hasThumb ? thumbWidth + 48 : 32));
+                  const titleY = 24;
+                  const descriptionY = 52;
+                  const footerY = Math.max(16, noteView.h - 28);
+                  const targetUrl = bookmarkMetadata?.finalUrl || bookmarkState?.normalizedUrl || bookmarkState?.url;
+                  const sourceLabel = bookmarkUrlLabel(bookmarkState?.url || bookmarkState?.normalizedUrl || bookmarkMetadata?.finalUrl || "") || bookmarkMetadata?.siteName?.trim() || bookmarkMetadata?.domain || "Website";
+
+                  return (
+                    <>
                       <Text
-                        x={Math.max(16, noteView.w - (bookmarkDisplaySize === "expanded" ? 140 : 124)) + 14}
-                        y={86}
-                        width={Math.max(0, (bookmarkDisplaySize === "expanded" ? 124 : 108) - 28)}
-                        align="center"
-                        fontSize={11}
+                        x={16}
+                        y={14}
+                        width={72}
+                        fontSize={10}
                         fontStyle="bold"
-                        fill="rgba(0,71,83,0.62)"
-                        text={bookmarkMetadata?.siteName?.trim() || bookmarkMetadata?.domain || "Preview"}
-                        ellipsis
+                        fill="rgba(0,71,83,0.76)"
+                        text={inferBookmarkKindLabel(bookmarkMetadata?.kind).toUpperCase()}
                         listening={false}
                       />
-                    ) : null}
-                  </>
-                )}
-                <Text
-                  x={16}
-                  y={48}
-                  width={Math.max(0, noteView.w - (bookmarkDisplaySize === "compact" ? 32 : bookmarkDisplaySize === "expanded" ? 164 : 148))}
-                  fontSize={bookmarkDisplaySize === "compact" ? 15 : bookmarkDisplaySize === "expanded" ? 18 : 17}
-                  fontStyle="bold"
-                  fill="#052C33"
-                  text={bookmarkMetadata?.title?.trim() || bookmarkMetadata?.domain || "Paste a URL"}
-                  ellipsis
-                  lineHeight={1.18}
-                  listening={false}
-                />
-                {bookmarkDisplaySize !== "compact" && (
-                  <Text
-                    x={16}
-                    y={84}
-                    width={Math.max(0, noteView.w - (bookmarkDisplaySize === "expanded" ? 164 : 148))}
-                    height={Math.max(0, noteView.h - 128)}
-                    fontSize={12}
-                    lineHeight={1.42}
-                    fill="rgba(5,44,51,0.72)"
-                    text={bookmarkMetadata?.description?.trim() || bookmarkState?.error || "Paste a URL to fetch bookmark metadata."}
-                    ellipsis
-                    listening={false}
-                  />
-                )}
-                <Group x={16} y={Math.max(16, noteView.h - 34)} listening={false}>
-                  {bookmarkFavicon ? (
-                    <KonvaImage x={0} y={0} width={16} height={16} image={bookmarkFavicon} cornerRadius={4} listening={false} />
-                  ) : (
-                    <Rect x={0} y={0} width={16} height={16} cornerRadius={4} fill={WEB_BOOKMARK_ACCENT} listening={false} />
-                  )}
-                  <Text
-                    x={24}
-                    y={1}
-                    width={Math.max(0, noteView.w - 140)}
-                    fontSize={11}
-                    fill="rgba(5,44,51,0.74)"
-                    text={bookmarkMetadata?.siteName?.trim() || bookmarkMetadata?.domain || bookmarkState?.normalizedUrl || "Website"}
-                    ellipsis
-                    listening={false}
-                  />
-                  <Text
-                    x={Math.max(104, noteView.w - 112)}
-                    y={1}
-                    width={96}
-                    align="right"
-                    fontSize={10}
-                    fill="rgba(5,44,51,0.52)"
-                    text={bookmarkState?.status === "ready" ? "Updated" : bookmarkState?.status === "loading" ? "Fetching" : bookmarkState?.status === "error" ? "Retry needed" : "Preview"}
-                    listening={false}
-                  />
-                </Group>
+                      <Group
+                        x={Math.max(16, noteView.w - 84)}
+                        y={14}
+                        onClick={(event) => {
+                          if (isTimeLocked) {
+                            return;
+                          }
+                          event.cancelBubble = true;
+                          if (targetUrl) {
+                            openExternalUrl(targetUrl);
+                          }
+                        }}
+                        onTap={(event) => {
+                          if (isTimeLocked) {
+                            return;
+                          }
+                          event.cancelBubble = true;
+                          if (targetUrl) {
+                            openExternalUrl(targetUrl);
+                          }
+                        }}
+                      >
+                        <Rect width={68} height={24} cornerRadius={12} fill="rgba(0,71,83,0.08)" stroke="rgba(0,71,83,0.16)" strokeWidth={1} />
+                        <Text x={0} y={7} width={68} align="center" fontSize={10} fontStyle="bold" fill="#0B3F49" text="OPEN" />
+                      </Group>
+                      <Text
+                        x={16}
+                        y={titleY}
+                        width={contentWidth}
+                        fontSize={bookmarkDisplaySize === "compact" ? 14 : 17}
+                        fontStyle="bold"
+                        fill="#122C34"
+                        text={bookmarkMetadata?.title?.trim() || bookmarkMetadata?.domain || "Paste a URL"}
+                        ellipsis
+                        lineHeight={1.16}
+                        listening={false}
+                      />
+                      {bookmarkDisplaySize !== "compact" && (
+                        <Text
+                          x={16}
+                          y={descriptionY}
+                          width={contentWidth}
+                          height={Math.max(24, noteView.h - 84)}
+                          fontSize={12}
+                          lineHeight={1.32}
+                          fill="rgba(18,44,52,0.72)"
+                          text={bookmarkMetadata?.description?.trim() || bookmarkState?.error || "Bookmark preview is still loading metadata."}
+                          ellipsis
+                          listening={false}
+                        />
+                      )}
+                      {hasThumb ? (
+                        <>
+                          <Rect x={thumbX} y={thumbY} width={thumbWidth} height={thumbHeight} cornerRadius={14} fill="rgba(0,71,83,0.06)" stroke="rgba(0,71,83,0.10)" strokeWidth={1} listening={false} />
+                          {bookmarkImage ? (
+                            <KonvaImage x={thumbX} y={thumbY} width={thumbWidth} height={thumbHeight} image={bookmarkImage} cornerRadius={14} listening={false} />
+                          ) : null}
+                          {!bookmarkImage ? (
+                            <Text
+                              x={thumbX + 12}
+                              y={thumbY + thumbHeight / 2 - 8}
+                              width={Math.max(0, thumbWidth - 24)}
+                              align="center"
+                              fontSize={11}
+                              fontStyle="bold"
+                              fill="rgba(0,71,83,0.58)"
+                              text={bookmarkMetadata?.siteName?.trim() || bookmarkMetadata?.domain || "Preview"}
+                              ellipsis
+                              listening={false}
+                            />
+                          ) : null}
+                        </>
+                      ) : null}
+                      <Group x={16} y={footerY} listening={false}>
+                        {bookmarkFavicon ? (
+                          <KonvaImage x={0} y={0} width={16} height={16} image={bookmarkFavicon} cornerRadius={4} listening={false} />
+                        ) : (
+                          <Rect x={0} y={0} width={16} height={16} cornerRadius={4} fill={WEB_BOOKMARK_ACCENT} listening={false} />
+                        )}
+                        <Text
+                          x={24}
+                          y={1}
+                          width={Math.max(0, noteView.w - (hasThumb ? thumbWidth + 144 : 150))}
+                          fontSize={11}
+                          fill="rgba(18,44,52,0.72)"
+                          text={sourceLabel}
+                          ellipsis
+                          listening={false}
+                        />
+                        <Text
+                          x={Math.max(104, noteView.w - 116)}
+                          y={1}
+                          width={100}
+                          align="right"
+                          fontSize={10}
+                          fill="rgba(18,44,52,0.46)"
+                          text={bookmarkState?.status === "ready" ? "Updated" : bookmarkState?.status === "loading" ? "Fetching" : bookmarkState?.status === "error" ? "Retry needed" : "Preview"}
+                          listening={false}
+                        />
+                      </Group>
+                    </>
+                  );
+                })()}
               </>
             ) : isImageNote && imageNoteLayout ? (
               <>
@@ -1239,6 +1237,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 

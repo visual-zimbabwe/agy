@@ -147,14 +147,14 @@ Expected:
 2. Verify a bookmark editor appears with a URL field and preview card shell.
 3. Paste a bare domain such as `example.com`, submit, and verify it normalizes to `https://example.com`.
 4. Paste a common rich URL such as a GitHub repo, YouTube video, article, or docs page and verify a preview card renders title, description, source/site name, badge, and updated state.\n4a. For the default bookmark note size, verify a rich site thumbnail appears in the card when the target page exposes `og:image` or `twitter:image`.
-5. Resize the note smaller and larger; verify compact, comfortable, and expanded layouts adjust gracefully.
-6. Click the in-note `OPEN` action and verify the URL opens in a new tab without a full app reload.
-7. Double-click the bookmark note and verify the bookmark editor opens again.
-8. In `Details > Note Type`, convert a standard note to `Bookmark`, paste a URL, and verify it fetches metadata into the converted note.
-9. In `Details > Bookmark`, click `Refresh` and verify the note refetches metadata without creating a duplicate note.
-10. Reload `/wall` and verify bookmark metadata, status, and last fetch state persist.
-11. If cloud sync is enabled, sync, reload, and verify the bookmark note still shows its preview data.
-12. Try a broken or metadata-poor URL and verify the note falls back to a clean domain-first card plus readable error/retry state instead of a broken layout.
+5. Verify a newly fetched bookmark note defaults to a compact horizontal card shape instead of a tall blank panel.\n6. Resize the note smaller and larger; verify compact, comfortable, and expanded layouts adjust gracefully.
+7. Click the in-note `OPEN` action and verify the URL opens in a new tab without a full app reload.
+8. Double-click the bookmark note and verify the bookmark editor opens again.
+9. In `Details > Note Type`, convert a standard note to `Bookmark`, paste a URL, and verify it fetches metadata into the converted note.
+10. In `Details > Bookmark`, click `Refresh` and verify the note refetches metadata without creating a duplicate note.
+11. Reload `/wall` and verify bookmark metadata, status, last fetch state, and upgraded compact card dimensions persist.
+12. If cloud sync is enabled, sync, reload, and verify the bookmark note still shows its preview data.
+13. Try a broken or metadata-poor URL and verify the note falls back to a clean domain-first card plus readable error/retry state instead of a broken layout.\n14. Paste a YouTube or `youtu.be` URL and verify the non-edit card shows a real title and thumbnail even when raw page scraping is weak.
 
 Expected:
 - Web bookmark notes are creatable from `Tools` and from the details-side note type controls.
@@ -1088,4 +1088,5 @@ Expected:
 - Location detection degrades from geolocation to IP lookup to USD fallback cleanly.
 - Exchange-rate fetches are lazy, cached, debounced, and recover gracefully from API failures.
 - The note remains legible and premium-looking in both light and dark themes.
+
 
