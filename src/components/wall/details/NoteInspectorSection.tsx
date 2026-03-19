@@ -18,6 +18,7 @@ import type { Note, NoteTextFont } from "@/features/wall/types";
 type NoteInspectorSectionProps = {
   selectedNote?: Note;
   isTimeLocked: boolean;
+  hasJokerNote: boolean;
   linkingFromNoteId?: string;
   isFocused: boolean;
   backlinks: Array<{ noteId: string; title: string }>;
@@ -32,6 +33,7 @@ type NoteInspectorSectionProps = {
   onTogglePin: (noteId: string) => void;
   onToggleHighlight: (noteId: string) => void;
   onToggleFocus: (noteId: string) => void;
+  onToggleOrRefreshJoker: (noteId: string) => void;
   onStartLink: (noteId: string) => void;
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
 };
@@ -54,6 +56,7 @@ const colorSwatchClass = "h-7 w-8 cursor-pointer overflow-hidden rounded-md bord
 export const NoteInspectorSection = ({
   selectedNote,
   isTimeLocked,
+  hasJokerNote,
   linkingFromNoteId,
   isFocused,
   backlinks,
@@ -68,6 +71,7 @@ export const NoteInspectorSection = ({
   onTogglePin,
   onToggleHighlight,
   onToggleFocus,
+  onToggleOrRefreshJoker,
   onStartLink,
   onUpdateNote,
 }: NoteInspectorSectionProps) => {
@@ -280,6 +284,9 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("canon")} className={typeButtonClass(selectedNote.noteKind === "canon")} disabled={isTimeLocked}>Canon</button>
             <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked}>Journal</button>
             <button type="button" onClick={() => setNoteKind("eisenhower")} className={typeButtonClass(selectedNote.noteKind === "eisenhower")} disabled={isTimeLocked}>Eisenhower</button>
+            <button type="button" onClick={() => onToggleOrRefreshJoker(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "joker")} disabled={isTimeLocked}>
+              {selectedNote.noteKind === "joker" || hasJokerNote ? "Refresh Joker" : "Joker"}
+            </button>
           </div>
         </div>
 
@@ -297,7 +304,3 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
-
-
-
-

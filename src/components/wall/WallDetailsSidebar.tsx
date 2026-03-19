@@ -20,6 +20,7 @@ type WallDetailsSidebarProps = {
   onTagInputChange: (value: string) => void;
   onAddTag: () => void;
   selectedNote?: Note;
+  hasJokerNote: boolean;
   selectedNoteId?: string;
   selectedNoteIdsCount: number;
   displayedTags: string[];
@@ -38,6 +39,7 @@ type WallDetailsSidebarProps = {
   onTogglePinSelectedNote: (noteId: string) => void;
   onToggleHighlightSelectedNote: (noteId: string) => void;
   onToggleFocusSelectedNote: (noteId: string) => void;
+  onToggleOrRefreshJokerSelectedNote: (noteId: string) => void;
   onStartLinkFromSelectedNote: (noteId: string) => void;
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   detailsSectionsOpen: DetailsSectionState;
@@ -116,6 +118,7 @@ export const WallDetailsSidebar = ({
   onTagInputChange,
   onAddTag,
   selectedNote,
+  hasJokerNote,
   selectedNoteId,
   selectedNoteIdsCount,
   displayedTags,
@@ -134,6 +137,7 @@ export const WallDetailsSidebar = ({
   onTogglePinSelectedNote,
   onToggleHighlightSelectedNote,
   onToggleFocusSelectedNote,
+  onToggleOrRefreshJokerSelectedNote,
   onStartLinkFromSelectedNote,
   onUpdateSelectedNote,
   detailsSectionsOpen,
@@ -215,6 +219,7 @@ export const WallDetailsSidebar = ({
         onTagInputChange={onTagInputChange}
         onAddTag={onAddTag}
         selectedNote={selectedNote}
+        hasJokerNote={hasJokerNote}
         selectedNoteId={selectedNoteId}
         selectedNoteIdsCount={selectedNoteIdsCount}
         displayedTags={displayedTags}
@@ -233,6 +238,7 @@ export const WallDetailsSidebar = ({
         onTogglePinSelectedNote={onTogglePinSelectedNote}
         onToggleHighlightSelectedNote={onToggleHighlightSelectedNote}
         onToggleFocusSelectedNote={onToggleFocusSelectedNote}
+        onToggleOrRefreshJokerSelectedNote={onToggleOrRefreshJokerSelectedNote}
         onStartLinkFromSelectedNote={onStartLinkFromSelectedNote}
         onUpdateSelectedNote={onUpdateSelectedNote}
         detailsSectionsOpen={detailsSectionsOpen}

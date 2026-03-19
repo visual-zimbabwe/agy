@@ -1,6 +1,6 @@
 import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
-import { buildJokerPlaceholderNote, fetchJokerJoke, formatJokerNoteText, hasJokerCard, hasJokerCardBeenActivated, isJokerNote, isJokerReplacementPending, JOKER_NOTE_SOURCE, jokerErrorText, jokerLoadingText, markJokerCardActivated, sanitizeStandardNoteColor, setJokerReplacementPending } from "@/features/wall/joker";
+import { buildJokerPlaceholderNote, fetchJokerJoke, formatJokerNoteText, hasJokerCardBeenActivated, isJokerNote, JOKER_NOTE_SOURCE, jokerErrorText, jokerLoadingText, markJokerCardActivated, sanitizeStandardNoteColor } from "@/features/wall/joker";
 import { useWallStore } from "@/features/wall/store";
 import type { Link, LinkType, Note, NoteGroup, TemplateType, Zone, ZoneGroup, ZoneKind } from "@/features/wall/types";
 
@@ -61,6 +61,8 @@ const createStandardNote = (x: number, y: number, color?: string) => {
   return note.id;
 };
 
+const findJokerNote = () => Object.values(useWallStore.getState().notes).find((note) => isJokerNote(note));
+
 const populateJokerNote = async (noteId: string) => {
   try {
     const joke = await fetchJokerJoke();
@@ -105,7 +107,7 @@ export const refreshJokerNote = (noteId: string) => {
   void populateJokerNote(noteId);
 };
 
-export const createJokerNote = (x: number, y: number, options?: { select?: boolean; markLifecycle?: boolean; pendingReplacement?: boolean }) => {
+export const createJokerNote = (x: number, y: number, options?: { select?: boolean; markLifecycle?: boolean }) => {
   const now = Date.now();
   const note = buildJokerPlaceholderNote(makeId(), x, y, now);
   const { upsertNote, selectNote } = useWallStore.getState();
@@ -116,16 +118,41 @@ export const createJokerNote = (x: number, y: number, options?: { select?: boole
   if (options?.markLifecycle !== false) {
     markJokerCardActivated();
   }
-  setJokerReplacementPending(options?.pendingReplacement ?? false);
   void populateJokerNote(note.id);
   return note.id;
 };
 
-export const createUserStandardNote = (x: number, y: number, color?: string) => {
-  if (hasJokerCardBeenActivated() && isJokerReplacementPending() && !hasJokerCard(useWallStore.getState().notes)) {
-    return createJokerNote(x, y, { markLifecycle: false, pendingReplacement: false });
+export const createOrRefreshJokerNote = (options?: { noteId?: string; x?: number; y?: number; select?: boolean }) => {
+  const existing = findJokerNote();
+  if (existing) {
+    if (options?.select !== false) {
+      useWallStore.getState().selectNote(existing.id);
+    }
+    refreshJokerNote(existing.id);
+    return existing.id;
   }
-  return createStandardNote(x, y, color);
+
+  const sourceNote = options?.noteId ? useWallStore.getState().notes[options.noteId] : undefined;
+  if (sourceNote) {
+    const jokerNote = buildJokerPlaceholderNote(sourceNote.id, sourceNote.x, sourceNote.y, sourceNote.createdAt);
+    useWallStore.getState().upsertNote({
+      ...jokerNote,
+      createdAt: sourceNote.createdAt,
+      updatedAt: Date.now(),
+      pinned: sourceNote.pinned,
+      highlighted: sourceNote.highlighted,
+    });
+    if (options?.select !== false) {
+      useWallStore.getState().selectNote(sourceNote.id);
+    }
+    if (!hasJokerCardBeenActivated()) {
+      markJokerCardActivated();
+    }
+    void populateJokerNote(sourceNote.id);
+    return sourceNote.id;
+  }
+
+  return createJokerNote(options?.x ?? 0, options?.y ?? 0, { select: options?.select });
 };
 
 export const createNote = (x: number, y: number, color?: string) => createStandardNote(x, y, color);
@@ -246,11 +273,7 @@ export const moveNote = (noteId: string, x: number, y: number) => {
 };
 
 export const deleteNote = (noteId: string) => {
-  const note = useWallStore.getState().notes[noteId];
   useWallStore.getState().removeNote(noteId);
-  if (note && isJokerNote(note)) {
-    setJokerReplacementPending(true);
-  }
 };
 
 const normalizeNoteText = (text: string) => text.trim().toLowerCase().replace(/\s+/g, " ").replace(/[^a-z0-9 ]+/g, "");

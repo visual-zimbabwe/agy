@@ -31,6 +31,7 @@ type WallDetailsContentProps = {
   onTagInputChange: (value: string) => void;
   onAddTag: () => void;
   selectedNote?: Note;
+  hasJokerNote: boolean;
   selectedNoteId?: string;
   selectedNoteIdsCount: number;
   displayedTags: string[];
@@ -49,6 +50,7 @@ type WallDetailsContentProps = {
   onTogglePinSelectedNote: (noteId: string) => void;
   onToggleHighlightSelectedNote: (noteId: string) => void;
   onToggleFocusSelectedNote: (noteId: string) => void;
+  onToggleOrRefreshJokerSelectedNote: (noteId: string) => void;
   onStartLinkFromSelectedNote: (noteId: string) => void;
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   detailsSectionsOpen: DetailsSectionState;
@@ -140,6 +142,7 @@ export const WallDetailsContent = ({
   onTagInputChange,
   onAddTag,
   selectedNote,
+  hasJokerNote,
   selectedNoteId,
   selectedNoteIdsCount,
   displayedTags,
@@ -158,6 +161,7 @@ export const WallDetailsContent = ({
   onTogglePinSelectedNote,
   onToggleHighlightSelectedNote,
   onToggleFocusSelectedNote,
+  onToggleOrRefreshJokerSelectedNote,
   onStartLinkFromSelectedNote,
   onUpdateSelectedNote,
   detailsSectionsOpen,
@@ -263,6 +267,7 @@ export const WallDetailsContent = ({
           />
           <NoteInspectorSection
             selectedNote={selectedNote}
+            hasJokerNote={hasJokerNote}
             isTimeLocked={isTimeLocked}
             linkingFromNoteId={linkingFromNoteId}
             isFocused={isSelectedNoteFocused}
@@ -278,6 +283,7 @@ export const WallDetailsContent = ({
             onTogglePin={onTogglePinSelectedNote}
             onToggleHighlight={onToggleHighlightSelectedNote}
             onToggleFocus={onToggleFocusSelectedNote}
+            onToggleOrRefreshJoker={onToggleOrRefreshJokerSelectedNote}
             onStartLink={onStartLinkFromSelectedNote}
             onUpdateNote={onUpdateSelectedNote}
           />

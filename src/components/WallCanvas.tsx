@@ -78,10 +78,10 @@ import {
   assignZoneToGroup,
   createNote,
   createCanonNote,
+  createOrRefreshJokerNote,
   createJournalNote,
   createQuoteNote,
   createEisenhowerNote,
-  createUserStandardNote,
   createLink,
   createZone,
   createZoneGroup,
@@ -1004,6 +1004,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setReviewRevealMeaning(false);
   }, [camera, isTimeLocked, selectNote, ui.lastColor, viewport.h, viewport.w]);
 
+  const makeJokerNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const id = createOrRefreshJokerNote({
+      x: world.x - NOTE_DEFAULTS.width / 2,
+      y: world.y - NOTE_DEFAULTS.height / 2,
+    });
+    setSelectedNoteIds([id]);
+    selectNote(id);
+  }, [camera, isTimeLocked, selectNote, viewport.h, viewport.w]);
+
   const makeQuoteNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
@@ -1124,7 +1137,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setPresentationMode,
     setPresentationIndex,
     setReadingMode,
-    createNote: createUserStandardNote,
+    createNote: createNote,
     createCanonNote: makeCanonNoteAtViewportCenter,
     createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
@@ -1465,7 +1478,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setLastColor,
     syncPrimarySelection,
     toWorldPoint,
-    createNote: createUserStandardNote,
+    createNote: createNote,
     createZone,
     applyTemplate,
     updateNote,
@@ -2338,6 +2351,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           <WallToolsPanel
             leftPanelOpen={leftPanelOpen}
             isTimeLocked={isTimeLocked}
+            hasJokerNote={notes.some((note) => note.noteKind === "joker")}
             selectedNoteId={ui.selectedNoteId}
             linkingFromNoteId={ui.linkingFromNoteId}
             linkType={ui.linkType}
@@ -2353,6 +2367,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateJournalNote={makeJournalNoteAtViewportCenter}
             onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
             onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
+            onCreateOrRefreshJokerNote={makeJokerNoteAtViewportCenter}
             onCreateWordNote={makeWordNoteAtViewportCenter}
             onCreateZone={makeZoneAtViewportCenter}
             onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}
@@ -2609,6 +2624,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onTagInputChange={setTagInput}
           onAddTag={addTagToSelectedNote}
           selectedNote={primarySelectedNote}
+          hasJokerNote={notes.some((note) => note.noteKind === "joker")}
           selectedNoteId={ui.selectedNoteId}
           selectedNoteIdsCount={activeSelectedNoteIds.length}
           displayedTags={displayedTags}
@@ -2657,6 +2673,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onTogglePinSelectedNote={togglePinOnNote}
           onToggleHighlightSelectedNote={toggleHighlightOnNote}
           onToggleFocusSelectedNote={toggleFocusNote}
+          onToggleOrRefreshJokerSelectedNote={(noteId) => {
+            const selected = renderSnapshot.notes[noteId];
+            const id = createOrRefreshJokerNote({
+              noteId: selected?.noteKind === "joker" ? undefined : noteId,
+            });
+            setSelectedNoteIds([id]);
+            selectNote(id);
+          }}
           onStartLinkFromSelectedNote={setLinkingFromNote}
           onUpdateSelectedNote={updateNote}
           detailsSectionsOpen={detailsSectionsOpen}

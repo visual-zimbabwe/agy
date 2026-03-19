@@ -67,7 +67,7 @@ export const useWallPersistenceEffects = ({
       }
 
       if (allowSeed && !publishedReadOnly && !hasJokerCardBeenActivated() && !hasContent(snapshot)) {
-        createJokerNote(-120, -92, { select: false, pendingReplacement: false });
+        createJokerNote(-120, -92, { select: false });
         lastPersistedSerializedRef.current = JSON.stringify(selectPersistedSnapshot(useWallStore.getState()));
       }
     };

@@ -8,9 +8,8 @@ export const JOKER_NOTE_COLOR = "#D6FF57";
 export const JOKER_NOTE_TEXT_COLOR = "#2E1065";
 export const JOKER_NOTE_SOURCE = "JokeAPI";
 export const jokerLifecycleStorageKey = "agy-wall-joker-card-enabled-v1";
-export const jokerPendingReplacementStorageKey = "agy-wall-joker-card-pending-v1";
 export const jokerLoadingText = "Drawing a joke from JokeAPI...";
-export const jokerErrorText = "JokeAPI is unavailable right now.\n\nCreate another standard note later to try again.";
+export const jokerErrorText = "JokeAPI is unavailable right now.\n\nRefresh the Joker note later to try again.";
 
 export type JokeApiResponse =
   | {
@@ -48,11 +47,6 @@ export const markJokerCardActivated = () => {
   writeStorageValue(jokerLifecycleStorageKey, "1");
 };
 
-export const isJokerReplacementPending = () => Boolean(readStorageValue(jokerPendingReplacementStorageKey));
-
-export const setJokerReplacementPending = (pending: boolean) => {
-  writeStorageValue(jokerPendingReplacementStorageKey, pending ? "1" : "");
-};
 
 export const sanitizeStandardNoteColor = (color: string | undefined, fallback = jokerFallbackColor) => {
   if (!color) {

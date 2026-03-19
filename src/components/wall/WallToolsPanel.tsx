@@ -12,6 +12,7 @@ type LinkTypeOption = {
 type WallToolsPanelProps = {
   leftPanelOpen: boolean;
   isTimeLocked: boolean;
+  hasJokerNote: boolean;
   selectedNoteId?: string;
   linkingFromNoteId?: string;
   linkType: LinkType;
@@ -27,6 +28,7 @@ type WallToolsPanelProps = {
   onCreateJournalNote: () => void;
   onCreateQuoteNote: () => void;
   onCreateEisenhowerNote: () => void;
+  onCreateOrRefreshJokerNote: () => void;
   onCreateWordNote: () => void;
   onCreateZone: (kind?: ZoneKind) => void;
   onToggleBoxSelect: () => void;
@@ -47,6 +49,7 @@ type WallToolsPanelProps = {
 export const WallToolsPanel = ({
   leftPanelOpen,
   isTimeLocked,
+  hasJokerNote,
   selectedNoteId,
   linkingFromNoteId,
   linkType,
@@ -62,6 +65,7 @@ export const WallToolsPanel = ({
   onCreateJournalNote,
   onCreateQuoteNote,
   onCreateEisenhowerNote,
+  onCreateOrRefreshJokerNote,
   onCreateWordNote,
   onCreateZone,
   onToggleBoxSelect,
@@ -95,6 +99,22 @@ export const WallToolsPanel = ({
           <button type="button" onClick={onCreateNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtnPrimary}`} title="Create note (N or Ctrl/Cmd + N)">
             <Icon name="note" />
             <span>New Note</span>
+          </button>
+        </ControlTooltip>
+        <ControlTooltip
+          label={hasJokerNote ? "Refresh the Joker note with a new joke" : "Create the Joker note at viewport center"}
+          className="relative block"
+          side="right"
+        >
+          <button
+            type="button"
+            onClick={onCreateOrRefreshJokerNote}
+            disabled={isTimeLocked}
+            className={`w-full justify-start ${toolbarBtn}`}
+            title={hasJokerNote ? "Refresh Joker note" : "Create Joker note"}
+          >
+            <Icon name="note" />
+            <span>{hasJokerNote ? "Refresh Joker" : "New Joker"}</span>
           </button>
         </ControlTooltip>
         <ControlTooltip label="Create vocabulary word note" className="relative block" side="right">
@@ -262,5 +282,3 @@ export const WallToolsPanel = ({
     </aside>
   );
 };
-
-

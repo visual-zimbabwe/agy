@@ -10,7 +10,7 @@ This covers current note kinds, creation surfaces, related organization primitiv
 
 ## Behavior
 
-Wall notes are not limited to plain sticky-note text. A fresh wall now seeds one Joker card that fetches a joke from JokeAPI, and if the user deletes it the very next manually created standard note is repurposed into the Joker card.
+Wall notes are not limited to plain sticky-note text. A fresh wall now seeds one Joker card that fetches a joke from JokeAPI. If that card is deleted, the wall does not silently repurpose the next standard note. Instead, users can explicitly create a new Joker note from the Tools panel or convert the currently selected standard note by choosing `Joker` in the note-type controls. If a Joker note already exists, those same actions refresh it with a new joke instead of creating duplicates.
 
 Current note creation entry points include:
 
@@ -97,4 +97,5 @@ This makes notes the core unit of wall content, but not the only structural elem
 - `docs/architecture/state-and-storage.md`
 - `docs/features/search-and-retrieval.md`
 - `docs/features/timeline-view.md`
+
 
