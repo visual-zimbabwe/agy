@@ -12,6 +12,8 @@ This covers current note kinds, creation surfaces, related organization primitiv
 
 Wall notes are not limited to plain sticky-note text. A fresh wall now seeds one Joker card that fetches a joke from JokeAPI. If that card is deleted, the wall does not silently repurpose the next standard note. Instead, users can explicitly create a new Joker note from the Tools panel or convert the currently selected standard note by choosing `Joker` in the note-type controls. If a Joker note already exists, those same actions refresh it with a new joke instead of creating duplicates.
 
+The wall also supports one dedicated Throne note. It is created explicitly from the Tools panel or by converting the currently selected standard note with `Throne` in the note-type controls. Once a Throne note exists, those same actions refresh the existing note with a new Game of Thrones quote instead of creating duplicates. Its bright red color is reserved for that note type and not reused by normal notes.
+
 Current note creation entry points include:
 
 The wall also maintains one permanent system note: currency. It is seeded automatically, cannot be deleted or duplicated, can be repositioned, and uses location plus exchange-rate lookups to keep a USD conversion widget on the canvas.
@@ -44,7 +46,8 @@ Current wall note kinds include:
 - `canon`
 - `journal`
 - `eisenhower`
-- joker 
+- `joker`
+- `throne`
 - `currency`
 - `web-bookmark`
 In addition to explicit `noteKind`, notes can also carry vocabulary review payloads, which makes vocabulary notes a meaningful note workflow even when not represented as a separate `noteKind` enum value.
@@ -63,6 +66,7 @@ Important fields include:
 - canon payload
 - Eisenhower payload
 - Joker note source metadata from JokeAPI
+- Throne note source metadata from the Game of Thrones Quotes API
 - currency payload for detected region, live USD rate, cache state, trend, and converter input
 - web bookmark payload for normalized URL, sanitized metadata, fetch status, last success, and error state
 - vocabulary payload

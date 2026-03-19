@@ -20,6 +20,7 @@ type NoteInspectorSectionProps = {
   selectedNote?: Note;
   isTimeLocked: boolean;
   hasJokerNote: boolean;
+  hasThroneNote: boolean;
   linkingFromNoteId?: string;
   isFocused: boolean;
   backlinks: Array<{ noteId: string; title: string }>;
@@ -35,6 +36,7 @@ type NoteInspectorSectionProps = {
   onToggleHighlight: (noteId: string) => void;
   onToggleFocus: (noteId: string) => void;
   onToggleOrRefreshJoker: (noteId: string) => void;
+  onToggleOrRefreshThrone: (noteId: string) => void;
   onStartLink: (noteId: string) => void;
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -60,6 +62,7 @@ export const NoteInspectorSection = ({
   selectedNote,
   isTimeLocked,
   hasJokerNote,
+  hasThroneNote,
   linkingFromNoteId,
   isFocused,
   backlinks,
@@ -75,6 +78,7 @@ export const NoteInspectorSection = ({
   onToggleHighlight,
   onToggleFocus,
   onToggleOrRefreshJoker,
+  onToggleOrRefreshThrone,
   onStartLink,
   onUpdateNote,
   onSubmitBookmarkUrl,
@@ -346,6 +350,9 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked}>Bookmark</button>
             <button type="button" onClick={() => onToggleOrRefreshJoker(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "joker")} disabled={isTimeLocked}>
               {selectedNote.noteKind === "joker" || hasJokerNote ? "Refresh Joker" : "Joker"}
+            </button>
+            <button type="button" onClick={() => onToggleOrRefreshThrone(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "throne")} disabled={isTimeLocked}>
+              {selectedNote.noteKind === "throne" || hasThroneNote ? "Refresh Throne" : "Throne"}
             </button>
           </div>
         </div>

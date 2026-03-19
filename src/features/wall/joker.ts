@@ -1,10 +1,9 @@
-import { NOTE_COLORS, NOTE_DEFAULTS } from "@/features/wall/constants";
+import { NOTE_DEFAULTS } from "@/features/wall/constants";
+import { JOKER_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import type { Note } from "@/features/wall/types";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
-const jokerFallbackColor: string = NOTE_COLORS[0] ?? "#FEEA89";
-
-export const JOKER_NOTE_COLOR = "#D6FF57";
+export { JOKER_NOTE_COLOR, sanitizeStandardNoteColor };
 export const JOKER_NOTE_TEXT_COLOR = "#2E1065";
 export const JOKER_NOTE_SOURCE = "JokeAPI";
 export const jokerLifecycleStorageKey = "agy-wall-joker-card-enabled-v1";
@@ -47,13 +46,6 @@ export const markJokerCardActivated = () => {
   writeStorageValue(jokerLifecycleStorageKey, "1");
 };
 
-
-export const sanitizeStandardNoteColor = (color: string | undefined, fallback = jokerFallbackColor) => {
-  if (!color) {
-    return fallback;
-  }
-  return color.toUpperCase() === JOKER_NOTE_COLOR ? fallback : color;
-};
 
 export const formatJokerNoteText = (response: Extract<JokeApiResponse, { error: false }>) =>
   response.type === "single" ? response.joke.trim() : `${response.setup.trim()}\n\n${response.delivery.trim()}`;

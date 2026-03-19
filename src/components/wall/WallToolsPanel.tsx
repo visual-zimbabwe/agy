@@ -13,6 +13,7 @@ type WallToolsPanelProps = {
   leftPanelOpen: boolean;
   isTimeLocked: boolean;
   hasJokerNote: boolean;
+  hasThroneNote: boolean;
   selectedNoteId?: string;
   linkingFromNoteId?: string;
   linkType: LinkType;
@@ -30,6 +31,7 @@ type WallToolsPanelProps = {
   onCreateWebBookmarkNote: () => void;
   onCreateEisenhowerNote: () => void;
   onCreateOrRefreshJokerNote: () => void;
+  onCreateOrRefreshThroneNote: () => void;
   onCreateWordNote: () => void;
   onCreateZone: (kind?: ZoneKind) => void;
   onToggleBoxSelect: () => void;
@@ -51,6 +53,7 @@ export const WallToolsPanel = ({
   leftPanelOpen,
   isTimeLocked,
   hasJokerNote,
+  hasThroneNote,
   selectedNoteId,
   linkingFromNoteId,
   linkType,
@@ -68,6 +71,7 @@ export const WallToolsPanel = ({
   onCreateWebBookmarkNote,
   onCreateEisenhowerNote,
   onCreateOrRefreshJokerNote,
+  onCreateOrRefreshThroneNote,
   onCreateWordNote,
   onCreateZone,
   onToggleBoxSelect,
@@ -117,6 +121,22 @@ export const WallToolsPanel = ({
           >
             <Icon name="note" />
             <span>{hasJokerNote ? "Refresh Joker" : "New Joker"}</span>
+          </button>
+        </ControlTooltip>
+        <ControlTooltip
+          label={hasThroneNote ? "Refresh the Throne note with a new quote" : "Create the Throne note at viewport center"}
+          className="relative block"
+          side="right"
+        >
+          <button
+            type="button"
+            onClick={onCreateOrRefreshThroneNote}
+            disabled={isTimeLocked}
+            className={`w-full justify-start ${toolbarBtn}`}
+            title={hasThroneNote ? "Refresh Throne note" : "Create Throne note"}
+          >
+            <Icon name="note" />
+            <span>{hasThroneNote ? "Refresh Throne" : "New Throne"}</span>
           </button>
         </ControlTooltip>
         <ControlTooltip label="Create vocabulary word note" className="relative block" side="right">

@@ -10,6 +10,7 @@ import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } fro
 import { CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { jokerLoadingText } from "@/features/wall/joker";
+import { throneLoadingText } from "@/features/wall/throne";
 import type { LinkType, Note } from "@/features/wall/types";
 
 type GuideLineState = {
@@ -361,6 +362,7 @@ export const WallNotesLayer = ({
         const isJournal = noteView.noteKind === "journal";
         const isEisenhower = noteView.noteKind === "eisenhower";
         const isJoker = noteView.noteKind === "joker";
+        const isThrone = noteView.noteKind === "throne";
         const isCurrency = isCurrencyNote(noteView);
         const isBookmark = noteView.noteKind === "web-bookmark";
         const canon = noteView.canon;
@@ -381,7 +383,8 @@ export const WallNotesLayer = ({
         const journalWritingX = 56;
         const journalFirstLineY = 30;
         const journalLineGap = 31;
-        const textX = isJoker ? 14 : isQuote ? 18 : isJournal ? journalWritingX : 12;
+        const isApiQuoteNote = isJoker || isThrone;
+        const textX = isApiQuoteNote ? 14 : isQuote ? 18 : isJournal ? journalWritingX : 12;
         const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalWritingX + 18 : 24));
         const currencyState = noteView.currency;
         const currencyAmountUsd = parseCurrencyAmountInput(currencyState?.amountInput) * (currencyState?.usdRate ?? 1);
@@ -406,8 +409,8 @@ export const WallNotesLayer = ({
           ? ""
           : isImageNote
           ? imageCaption
-          : isJoker
-            ? truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - 86, 40) }) || jokerLoadingText
+          : isApiQuoteNote
+            ? truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - 86, 40) }) || (isJoker ? jokerLoadingText : throneLoadingText)
           : isVocabulary
             ? isVocabularyBack
               ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
@@ -428,7 +431,7 @@ export const WallNotesLayer = ({
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
         const tagPalette = noteTagChipPalette(noteView.color);
-        const textY = isImageNote ? 0 : isJoker ? 52 : 12 + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
+        const textY = isImageNote ? 0 : isApiQuoteNote ? 52 : 12 + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
         const textHeight = isImageNote
           ? 0
           : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 43 : 0) - wikiFooterHeight);
@@ -927,11 +930,38 @@ export const WallNotesLayer = ({
                 )}
               </>
             )}
-            {isJoker && (
+            {isApiQuoteNote && (
               <>
-                <Rect x={10} y={10} width={Math.max(1, noteView.w - 20)} height={30} cornerRadius={10} fill="rgba(46,16,101,0.12)" listening={false} />
-                <Text x={18} y={17} width={Math.max(0, noteView.w - 120)} fontSize={11} fontStyle="bold" fill="#3F1277" text="JOKER CARD" listening={false} />
-                <Text x={Math.max(18, noteView.w - 108)} y={17} width={90} align="right" fontSize={10} fontStyle="bold" fill="#4C1D95" text={noteView.quoteSource?.trim() || "Fresh joke"} listening={false} />
+                <Rect
+                  x={10}
+                  y={10}
+                  width={Math.max(1, noteView.w - 20)}
+                  height={30}
+                  cornerRadius={10}
+                  fill={isJoker ? "rgba(46,16,101,0.12)" : "rgba(127,29,29,0.22)"}
+                  listening={false}
+                />
+                <Text
+                  x={18}
+                  y={17}
+                  width={Math.max(0, noteView.w - 120)}
+                  fontSize={11}
+                  fontStyle="bold"
+                  fill={isJoker ? "#3F1277" : "#FFF5E6"}
+                  text={isJoker ? "JOKER CARD" : "THRONE NOTE"}
+                  listening={false}
+                />
+                <Text
+                  x={Math.max(18, noteView.w - 108)}
+                  y={17}
+                  width={90}
+                  align="right"
+                  fontSize={10}
+                  fontStyle="bold"
+                  fill={isJoker ? "#4C1D95" : "#FFE4D6"}
+                  text={noteView.quoteSource?.trim() || (isJoker ? "Fresh joke" : "Westeros")}
+                  listening={false}
+                />
               </>
             )}
             {isHighlighted && (
@@ -1078,7 +1108,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isBookmark && (
+            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;
@@ -1143,15 +1173,15 @@ export const WallNotesLayer = ({
                 )}
               </>
             )}
-            {isJoker && (
+            {isApiQuoteNote && (
               <Text
                 x={14}
                 y={Math.max(12, noteView.h - 22)}
                 width={Math.max(0, noteView.w - 28)}
                 fontSize={10}
                 fontStyle="bold"
-                fill="#4C1D95"
-                text="jokeapi.dev"
+                fill={isJoker ? "#4C1D95" : "#FFE4D6"}
+                text={isJoker ? "jokeapi.dev" : "gameofthronesquotes.xyz"}
                 listening={false}
               />
             )}
@@ -1174,7 +1204,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isImageNote && !isEisenhower && !isJoker &&
+            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isThrone &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -1199,7 +1229,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && overflowTags > 0 && (
+            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isThrone && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}

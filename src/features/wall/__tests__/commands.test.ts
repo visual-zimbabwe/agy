@@ -6,9 +6,11 @@ import {
   createLink,
   createCanonNote,
   createOrRefreshJokerNote,
+  createOrRefreshThroneNote,
   createJournalNote,
   createEisenhowerNote,
   createJokerNote,
+  createThroneNote,
   createNote,
   createQuoteNote,
   createZone,
@@ -20,6 +22,7 @@ import {
 } from "@/features/wall/commands";
 import { NOTE_COLORS } from "@/features/wall/constants";
 import { JOKER_NOTE_COLOR } from "@/features/wall/joker";
+import { THRONE_NOTE_COLOR } from "@/features/wall/throne";
 import { useWallStore } from "@/features/wall/store";
 import type { PersistedWallState } from "@/features/wall/types";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -197,6 +200,30 @@ describe("wall commands", () => {
     const jokerNotes = Object.values(useWallStore.getState().notes).filter((note) => note.noteKind === "joker");
     expect(resultId).toBe(jokerId);
     expect(jokerNotes).toHaveLength(1);
+  });
+
+  it("creates a dedicated throne note and keeps its unique color", () => {
+    const throneId = createThroneNote(80, 120, { select: false });
+    const throne = useWallStore.getState().notes[throneId];
+    expect(throne?.noteKind).toBe("throne");
+    expect(throne?.color).toBe(THRONE_NOTE_COLOR);
+    expect(throne?.quoteAuthor).toBe("Game of Thrones Quotes API");
+  });
+
+  it("converts a selected standard note into the throne note when none exists", () => {
+    const standardId = createNote(100, 160);
+    const createdId = createOrRefreshThroneNote({ noteId: standardId });
+    const created = useWallStore.getState().notes[createdId];
+    expect(created?.noteKind).toBe("throne");
+    expect(created?.color).toBe(THRONE_NOTE_COLOR);
+  });
+
+  it("refreshes the existing throne note instead of creating another one", () => {
+    const throneId = createThroneNote(140, 200, { select: false });
+    const resultId = createOrRefreshThroneNote({ x: 260, y: 280 });
+    const throneNotes = Object.values(useWallStore.getState().notes).filter((note) => note.noteKind === "throne");
+    expect(resultId).toBe(throneId);
+    expect(throneNotes).toHaveLength(1);
   });
 
   it("merges notes and rewires relationships", () => {

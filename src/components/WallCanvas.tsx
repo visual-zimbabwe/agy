@@ -80,6 +80,7 @@ import {
   createNote,
   createCanonNote,
   createOrRefreshJokerNote,
+  createOrRefreshThroneNote,
   createJournalNote,
   createQuoteNote,
   createWebBookmarkNote,
@@ -329,6 +330,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     lastColor: ui.lastColor,
   };
   const notes = useMemo(() => Object.values(renderSnapshot.notes), [renderSnapshot.notes]);
+  const hasJokerNote = useMemo(() => notes.some((note) => note.noteKind === "joker"), [notes]);
+  const hasThroneNote = useMemo(() => notes.some((note) => note.noteKind === "throne"), [notes]);
   const zones = useMemo(() => Object.values(renderSnapshot.zones), [renderSnapshot.zones]);
   const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
@@ -1162,6 +1165,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
     const id = createOrRefreshJokerNote({
+      x: world.x - NOTE_DEFAULTS.width / 2,
+      y: world.y - NOTE_DEFAULTS.height / 2,
+    });
+    setSelectedNoteIds([id]);
+    selectNote(id);
+  }, [camera, isTimeLocked, selectNote, viewport.h, viewport.w]);
+
+  const makeThroneNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const id = createOrRefreshThroneNote({
       x: world.x - NOTE_DEFAULTS.width / 2,
       y: world.y - NOTE_DEFAULTS.height / 2,
     });
@@ -2504,7 +2520,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           <WallToolsPanel
             leftPanelOpen={leftPanelOpen}
             isTimeLocked={isTimeLocked}
-            hasJokerNote={notes.some((note) => note.noteKind === "joker")}
+            hasJokerNote={hasJokerNote}
+            hasThroneNote={hasThroneNote}
             selectedNoteId={ui.selectedNoteId}
             linkingFromNoteId={ui.linkingFromNoteId}
             linkType={ui.linkType}
@@ -2522,6 +2539,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
             onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
             onCreateOrRefreshJokerNote={makeJokerNoteAtViewportCenter}
+            onCreateOrRefreshThroneNote={makeThroneNoteAtViewportCenter}
             onCreateWordNote={makeWordNoteAtViewportCenter}
             onCreateZone={makeZoneAtViewportCenter}
             onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}
@@ -2785,7 +2803,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onTagInputChange={setTagInput}
           onAddTag={addTagToSelectedNote}
           selectedNote={primarySelectedNote}
-          hasJokerNote={notes.some((note) => note.noteKind === "joker")}
+          hasJokerNote={hasJokerNote}
+          hasThroneNote={hasThroneNote}
           selectedNoteId={ui.selectedNoteId}
           selectedNoteIdsCount={activeSelectedNoteIds.length}
           displayedTags={displayedTags}
@@ -2838,6 +2857,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             const selected = renderSnapshot.notes[noteId];
             const id = createOrRefreshJokerNote({
               noteId: selected?.noteKind === "joker" ? undefined : noteId,
+            });
+            setSelectedNoteIds([id]);
+            selectNote(id);
+          }}
+          onToggleOrRefreshThroneSelectedNote={(noteId) => {
+            const selected = renderSnapshot.notes[noteId];
+            const id = createOrRefreshThroneNote({
+              noteId: selected?.noteKind === "throne" ? undefined : noteId,
             });
             setSelectedNoteIds([id]);
             selectNote(id);

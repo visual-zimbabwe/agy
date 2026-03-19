@@ -180,6 +180,24 @@ Expected:
 - After deletion, Joker recreation is explicit from `Tools` or the selected note's `Joker` note type action.
 - If a Joker note already exists, Joker actions refresh that note instead of creating duplicates.
 - The Joker color remains reserved for the Joker card.
+
+## Throne Note (`/wall`) (2026-03-19)
+1. Open `/wall` and verify no Throne note is created automatically on a fresh wall.
+2. Click `New Throne` in the `Tools` panel and verify a dedicated Throne note appears at viewport center.
+3. Confirm it uses the reserved red color `#FF2400` and shows a Game of Thrones quote.
+4. Verify the note shows the speaking character and a house or source label.
+5. Delete the Throne note.
+6. Create one standard note, select it, click `Throne` in `Details > Note Type`, and verify that selected note becomes the Throne note when no Throne note exists.
+7. With a Throne note already on the wall, click `Refresh Throne` from `Tools` and verify the existing Throne note updates with a new quote instead of creating a second Throne note.
+8. With the Throne note selected, click `Refresh Throne` in `Details > Note Type` and verify the quote refreshes again without changing the note count.
+9. Create another standard note and verify it stays a normal standard note.
+10. Try color shortcuts on a normal note and verify the Throne red is not applied.
+
+Expected:
+- Throne note creation is explicit from `Tools` or the selected note's `Throne` note type action.
+- If a Throne note already exists, Throne actions refresh that note instead of creating duplicates.
+- The Throne color remains reserved for the Throne note.
+
 ## Wall Note Editing UI (`/wall`) (2026-03-16)
 1. Open `/wall`, double-click a standard note to enter edit mode, and confirm no persistent formatting toolbar is shown before text selection.
 2. Select a word or phrase inside the note and verify a compact toolbar fades in above the selection, centered on the highlighted text.

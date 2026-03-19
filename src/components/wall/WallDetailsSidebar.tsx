@@ -21,6 +21,7 @@ type WallDetailsSidebarProps = {
   onAddTag: () => void;
   selectedNote?: Note;
   hasJokerNote: boolean;
+  hasThroneNote: boolean;
   selectedNoteId?: string;
   selectedNoteIdsCount: number;
   displayedTags: string[];
@@ -40,6 +41,7 @@ type WallDetailsSidebarProps = {
   onToggleHighlightSelectedNote: (noteId: string) => void;
   onToggleFocusSelectedNote: (noteId: string) => void;
   onToggleOrRefreshJokerSelectedNote: (noteId: string) => void;
+  onToggleOrRefreshThroneSelectedNote: (noteId: string) => void;
   onStartLinkFromSelectedNote: (noteId: string) => void;
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -121,6 +123,7 @@ export const WallDetailsSidebar = ({
   onAddTag,
   selectedNote,
   hasJokerNote,
+  hasThroneNote,
   selectedNoteId,
   selectedNoteIdsCount,
   displayedTags,
@@ -140,6 +143,7 @@ export const WallDetailsSidebar = ({
   onToggleHighlightSelectedNote,
   onToggleFocusSelectedNote,
   onToggleOrRefreshJokerSelectedNote,
+  onToggleOrRefreshThroneSelectedNote,
   onStartLinkFromSelectedNote,
   onUpdateSelectedNote,
   onSubmitBookmarkUrl,
@@ -224,6 +228,7 @@ export const WallDetailsSidebar = ({
         onAddTag={onAddTag}
         selectedNote={selectedNote}
         hasJokerNote={hasJokerNote}
+        hasThroneNote={hasThroneNote}
         selectedNoteId={selectedNoteId}
         selectedNoteIdsCount={selectedNoteIdsCount}
         displayedTags={displayedTags}
@@ -243,6 +248,7 @@ export const WallDetailsSidebar = ({
         onToggleHighlightSelectedNote={onToggleHighlightSelectedNote}
         onToggleFocusSelectedNote={onToggleFocusSelectedNote}
         onToggleOrRefreshJokerSelectedNote={onToggleOrRefreshJokerSelectedNote}
+        onToggleOrRefreshThroneSelectedNote={onToggleOrRefreshThroneSelectedNote}
         onStartLinkFromSelectedNote={onStartLinkFromSelectedNote}
         onUpdateSelectedNote={onUpdateSelectedNote}
         onSubmitBookmarkUrl={onSubmitBookmarkUrl}

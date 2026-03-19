@@ -47,6 +47,15 @@ export const JOKER_NOTE_DEFAULTS = {
   textSizePx: 17,
 };
 
+export const THRONE_NOTE_DEFAULTS = {
+  color: "#FF2400",
+  width: 240,
+  height: 184,
+  textColor: "#FFF5E6",
+  textFont: "nunito" as const,
+  textSizePx: 17,
+};
+
 export const CURRENCY_NOTE_DEFAULTS = {
   color: "#4B3F72",
   width: 332,

@@ -32,6 +32,7 @@ type WallDetailsContentProps = {
   onAddTag: () => void;
   selectedNote?: Note;
   hasJokerNote: boolean;
+  hasThroneNote: boolean;
   selectedNoteId?: string;
   selectedNoteIdsCount: number;
   displayedTags: string[];
@@ -51,6 +52,7 @@ type WallDetailsContentProps = {
   onToggleHighlightSelectedNote: (noteId: string) => void;
   onToggleFocusSelectedNote: (noteId: string) => void;
   onToggleOrRefreshJokerSelectedNote: (noteId: string) => void;
+  onToggleOrRefreshThroneSelectedNote: (noteId: string) => void;
   onStartLinkFromSelectedNote: (noteId: string) => void;
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -145,6 +147,7 @@ export const WallDetailsContent = ({
   onAddTag,
   selectedNote,
   hasJokerNote,
+  hasThroneNote,
   selectedNoteId,
   selectedNoteIdsCount,
   displayedTags,
@@ -164,6 +167,7 @@ export const WallDetailsContent = ({
   onToggleHighlightSelectedNote,
   onToggleFocusSelectedNote,
   onToggleOrRefreshJokerSelectedNote,
+  onToggleOrRefreshThroneSelectedNote,
   onStartLinkFromSelectedNote,
   onUpdateSelectedNote,
   onSubmitBookmarkUrl,
@@ -272,6 +276,7 @@ export const WallDetailsContent = ({
           <NoteInspectorSection
             selectedNote={selectedNote}
             hasJokerNote={hasJokerNote}
+            hasThroneNote={hasThroneNote}
             isTimeLocked={isTimeLocked}
             linkingFromNoteId={linkingFromNoteId}
             isFocused={isSelectedNoteFocused}
@@ -288,6 +293,7 @@ export const WallDetailsContent = ({
             onToggleHighlight={onToggleHighlightSelectedNote}
             onToggleFocus={onToggleFocusSelectedNote}
             onToggleOrRefreshJoker={onToggleOrRefreshJokerSelectedNote}
+            onToggleOrRefreshThrone={onToggleOrRefreshThroneSelectedNote}
             onStartLink={onStartLinkFromSelectedNote}
             onUpdateNote={onUpdateSelectedNote}
             onSubmitBookmarkUrl={onSubmitBookmarkUrl}

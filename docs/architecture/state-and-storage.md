@@ -43,6 +43,7 @@ Wall notes can also contain richer payloads such as:
 - vocabulary review state
 - Eisenhower payloads
 - Joker card metadata via `noteKind`, note body text, and source fields
+- Throne note metadata via `noteKind`, note body text, and source fields
 - currency widget payloads for detected location, base currency, cached/live USD rate, trend, and converter state
 - web bookmark payloads for normalized URLs, sanitized metadata, fetch status, cache timestamps, and retry state
 - image URLs

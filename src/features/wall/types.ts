@@ -124,7 +124,7 @@ export type WebBookmarkNote = {
 
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "currency" | "web-bookmark";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
