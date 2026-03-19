@@ -240,7 +240,7 @@ const VocabularyRenderer = ({ note, width, height, readableText, activeBackgroun
   );
 };
 
-const CurrencyRenderer = ({ note, width, height, readableText, mutedText, activeBackground, activeText, tone }: RendererProps) => {
+const CurrencyRenderer = ({ note, width, height, activeBackground, activeText, tone }: Pick<RendererProps, "note" | "width" | "height" | "activeBackground" | "activeText" | "tone">) => {
   const state = note.currency;
   const converted = parseCurrencyAmountInput(state?.amountInput) * (state?.usdRate ?? 1);
   const trendGlyph = state?.trend === "up" ? "↑" : state?.trend === "down" ? "↓" : "•";
@@ -263,7 +263,7 @@ const CurrencyRenderer = ({ note, width, height, readableText, mutedText, active
   );
 };
 
-const WebBookmarkRenderer = ({ note, width, height, tone }: RendererProps) => (
+const WebBookmarkRenderer = ({ note, width, height, tone }: Pick<RendererProps, "note" | "width" | "height" | "tone">) => (
   <div style={{ width, height }}>
     <WebBookmarkCard note={note} tone={tone} />
   </div>
@@ -425,6 +425,8 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
     </div>
   );
 });
+
+
 
 
 

@@ -27,7 +27,7 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 
 These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands.
 
-Web bookmark notes create a rich preview card from a URL using a server-side metadata fetch route. The card stores the original URL, normalized URL, sanitized metadata, fetch timestamps, and status so the wall can render cached previews without re-requesting metadata on every render.
+Web bookmark notes create a rich preview card from a URL using a server-side metadata fetch route. The parser prioritizes Open Graph tags, then Twitter card tags, then document title and meta description, and resolves preview images plus favicons into safe absolute URLs. The card stores the original URL, normalized URL, sanitized metadata, fetch timestamps, and status so the wall can render cached previews without re-requesting metadata on every render. v2 cache entries skip earlier domain-only fallback results so upgraded walls refetch richer previews instead of reusing weak metadata.
 
 Image note creation now supports three insert sources from the wall image modal:
 
@@ -106,6 +106,7 @@ This makes notes the core unit of wall content, but not the only structural elem
 - `docs/architecture/state-and-storage.md`
 - `docs/features/search-and-retrieval.md`
 - `docs/features/timeline-view.md`
+
 
 
 

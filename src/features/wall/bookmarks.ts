@@ -18,8 +18,8 @@ export const WEB_BOOKMARK_DEFAULTS = {
   textSizePx: 15,
 };
 
-const cacheKey = `${appSlug}-bookmark-preview-cache-v1`;
-const legacyCacheKeys = [`${legacyAppSlug}-bookmark-preview-cache-v1`];
+const cacheKey = `${appSlug}-bookmark-preview-cache-v2`;
+const legacyCacheKeys = [`${legacyAppSlug}-bookmark-preview-cache-v2`, `${appSlug}-bookmark-preview-cache-v1`, `${legacyAppSlug}-bookmark-preview-cache-v1`];
 
 type BookmarkCacheEntry = {
   metadata?: WebBookmarkMetadata;
@@ -65,7 +65,17 @@ export const normalizeBookmarkUrl = (value: string) => {
 
 export const inferBookmarkKindLabel = (kind?: WebBookmarkKind) => (kind ? kindLabels[kind] : "Website");
 
-export const bookmarkDomainLabel = (value?: string) => value?.replace(/^www\./i, "") ?? "";
+export const bookmarkDomainLabel = (value?: string) => {
+  if (!value) {
+    return "";
+  }
+  try {
+    const parsed = value.includes("://") ? new URL(value) : undefined;
+    return (parsed?.hostname ?? value).replace(/^www\./i, "");
+  } catch {
+    return value.replace(/^www\./i, "");
+  }
+};
 
 export const bookmarkUpdatedLabel = (timestamp?: number) => {
   if (!timestamp) {
@@ -155,6 +165,23 @@ export const buildBookmarkFallbackMetadata = (normalizedUrl: string): WebBookmar
     faviconUrl: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`,
     kind: "website",
   };
+};
+
+export const isBookmarkMetadataRich = (metadata?: WebBookmarkMetadata | null) => {
+  if (!metadata) {
+    return false;
+  }
+  const domain = bookmarkDomainLabel(metadata.domain || metadata.finalUrl || metadata.url);
+  const title = metadata.title.trim();
+  const description = metadata.description.trim();
+  const siteName = metadata.siteName.trim();
+
+  return Boolean(
+    description ||
+      metadata.imageUrl ||
+      (title && title.toLowerCase() !== domain.toLowerCase()) ||
+      (siteName && siteName.toLowerCase() !== domain.toLowerCase()),
+  );
 };
 
 export const createBookmarkNoteState = (url = ""): WebBookmarkNote => {

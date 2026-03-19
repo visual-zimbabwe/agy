@@ -146,7 +146,7 @@ Expected:
 1. Open `/wall`, open `Tools`, and click `New Bookmark`.
 2. Verify a bookmark editor appears with a URL field and preview card shell.
 3. Paste a bare domain such as `example.com`, submit, and verify it normalizes to `https://example.com`.
-4. Paste a common rich URL such as a GitHub repo, YouTube video, article, or docs page and verify a preview card renders title, domain, badge, and updated state.
+4. Paste a common rich URL such as a GitHub repo, YouTube video, article, or docs page and verify a preview card renders title, description, source/site name, badge, and updated state.\n4a. For the default bookmark note size, verify a rich site thumbnail appears in the card when the target page exposes `og:image` or `twitter:image`.
 5. Resize the note smaller and larger; verify compact, comfortable, and expanded layouts adjust gracefully.
 6. Click the in-note `OPEN` action and verify the URL opens in a new tab without a full app reload.
 7. Double-click the bookmark note and verify the bookmark editor opens again.
@@ -1088,3 +1088,4 @@ Expected:
 - Location detection degrades from geolocation to IP lookup to USD fallback cleanly.
 - Exchange-rate fetches are lazy, cached, debounced, and recover gracefully from API failures.
 - The note remains legible and premium-looking in both light and dark themes.
+

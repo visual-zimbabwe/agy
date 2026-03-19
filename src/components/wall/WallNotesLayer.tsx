@@ -698,10 +698,26 @@ export const WallNotesLayer = ({
                     <Rect x={0} y={8} width={noteView.w} height={92} fill="rgba(0,0,0,0.08)" listening={false} />
                   </>
                 ) : null}
+                {bookmarkDisplaySize === "comfortable" && bookmarkImage ? (
+                  <>
+                    <Rect
+                      x={Math.max(16, noteView.w - 104)}
+                      y={46}
+                      width={88}
+                      height={72}
+                      cornerRadius={16}
+                      fill="rgba(0,71,83,0.08)"
+                      stroke="rgba(0,71,83,0.10)"
+                      strokeWidth={1}
+                      listening={false}
+                    />
+                    <KonvaImage x={Math.max(16, noteView.w - 104)} y={46} width={88} height={72} image={bookmarkImage} cornerRadius={16} listening={false} />
+                  </>
+                ) : null}
                 <Text
                   x={16}
-                  y={bookmarkDisplaySize === "expanded" ? 116 : 22}
-                  width={Math.max(0, noteView.w - 32)}
+                  y={bookmarkDisplaySize === "expanded" ? 116 : 24}
+                  width={Math.max(0, noteView.w - (bookmarkDisplaySize === "comfortable" && bookmarkImage ? 128 : 32))}
                   fontSize={bookmarkDisplaySize === "compact" ? 15 : bookmarkDisplaySize === "expanded" ? 18 : 17}
                   fontStyle="bold"
                   fill="#052C33"
@@ -713,8 +729,8 @@ export const WallNotesLayer = ({
                 {bookmarkDisplaySize !== "compact" && (
                   <Text
                     x={16}
-                    y={bookmarkDisplaySize === "expanded" ? 152 : 52}
-                    width={Math.max(0, noteView.w - 32)}
+                    y={bookmarkDisplaySize === "expanded" ? 152 : 60}
+                    width={Math.max(0, noteView.w - (bookmarkDisplaySize === "comfortable" && bookmarkImage ? 128 : 32))}
                     height={Math.max(0, noteView.h - (bookmarkDisplaySize === "expanded" ? 108 : 84))}
                     fontSize={12}
                     lineHeight={1.42}
@@ -1205,6 +1221,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 

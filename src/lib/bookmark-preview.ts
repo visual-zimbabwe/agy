@@ -5,7 +5,9 @@ import type { WebBookmarkKind, WebBookmarkMetadata } from "@/features/wall/types
 
 const MAX_REDIRECTS = 3;
 const FETCH_TIMEOUT_MS = 7000;
-const MAX_HTML_BYTES = 262144;
+const MAX_HTML_BYTES = 524288;
+const BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
 
 const entityMap: Record<string, string> = {
   amp: "&",
@@ -14,6 +16,17 @@ const entityMap: Record<string, string> = {
   lt: "<",
   gt: ">",
   nbsp: " ",
+};
+
+type ParsedTag = {
+  name: string;
+  attributes: Record<string, string>;
+};
+
+type ParsedHead = {
+  metas: ParsedTag[];
+  links: ParsedTag[];
+  title: string;
 };
 
 const decodeHtml = (value: string) =>
@@ -29,29 +42,7 @@ const collapseWhitespace = (value: string) => value.replace(/\s+/g, " ").trim();
 
 const sanitizeText = (value: string, maxLength: number) => collapseWhitespace(decodeHtml(value).replace(/[\u0000-\u001F\u007F]/g, "")).slice(0, maxLength);
 
-const metaPatterns = (name: string) => [
-  new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i"),
-  new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${name}["'][^>]*>`, "i"),
-];
-
-const pickMeta = (html: string, names: string[]) => {
-  for (const name of names) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    for (const pattern of metaPatterns(escaped)) {
-      const match = html.match(pattern);
-      const content = match?.[1] ? sanitizeText(match[1], 500) : "";
-      if (content) {
-        return content;
-      }
-    }
-  }
-  return "";
-};
-
-const pickTitle = (html: string) => {
-  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  return match?.[1] ? sanitizeText(match[1], 180) : "";
-};
+const sanitizeMetaKey = (value: string) => value.trim().toLowerCase();
 
 const safeAbsoluteUrl = (raw: string, base: string) => {
   try {
@@ -60,6 +51,110 @@ const safeAbsoluteUrl = (raw: string, base: string) => {
   } catch {
     return "";
   }
+};
+
+const stripAtPrefix = (value: string) => value.replace(/^@+/, "").trim();
+
+const parseTagAttributes = (tagHtml: string) => {
+  const attributes: Record<string, string> = {};
+  const attrPattern = /([^\s"'=<>`]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = attrPattern.exec(tagHtml))) {
+    const name = match[1]?.toLowerCase();
+    if (!name || name.startsWith("<") || name === "meta" || name === "link") {
+      continue;
+    }
+    const rawValue = match[2] ?? match[3] ?? match[4] ?? "";
+    attributes[name] = decodeHtml(rawValue.trim());
+  }
+
+  return attributes;
+};
+
+const parseHeadTags = (html: string): ParsedHead => {
+  const metas = [...html.matchAll(/<meta\b[^>]*>/gi)].map((match) => ({
+    name: "meta",
+    attributes: parseTagAttributes(match[0]),
+  }));
+  const links = [...html.matchAll(/<link\b[^>]*>/gi)].map((match) => ({
+    name: "link",
+    attributes: parseTagAttributes(match[0]),
+  }));
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+
+  return {
+    metas,
+    links,
+    title: titleMatch?.[1] ? sanitizeText(titleMatch[1], 220) : "",
+  };
+};
+
+const buildMetaIndex = (tags: ParsedTag[]) => {
+  const index = new Map<string, string>();
+
+  for (const tag of tags) {
+    const content = sanitizeText(tag.attributes.content ?? "", 700);
+    if (!content) {
+      continue;
+    }
+
+    const keys = [tag.attributes.property, tag.attributes.name, tag.attributes.itemprop]
+      .map((value) => (value ? sanitizeMetaKey(value) : ""))
+      .filter(Boolean);
+
+    for (const key of keys) {
+      if (!index.has(key)) {
+        index.set(key, content);
+      }
+    }
+  }
+
+  return index;
+};
+
+const pickMeta = (index: Map<string, string>, keys: string[]) => {
+  for (const key of keys) {
+    const value = index.get(sanitizeMetaKey(key));
+    if (value) {
+      return value;
+    }
+  }
+  return "";
+};
+
+const pickFavicon = (links: ParsedTag[], baseUrl: string) => {
+  const candidates = links
+    .map((tag) => {
+      const rel = (tag.attributes.rel ?? "").toLowerCase();
+      const href = tag.attributes.href ?? "";
+      return {
+        rel,
+        href,
+      };
+    })
+    .filter((candidate) => candidate.href && candidate.rel.includes("icon"))
+    .sort((left, right) => {
+      const score = (value: string) => {
+        if (value.includes("apple-touch-icon")) {
+          return 3;
+        }
+        if (value.includes("shortcut icon")) {
+          return 2;
+        }
+        return 1;
+      };
+      return score(right.rel) - score(left.rel);
+    });
+
+  for (const candidate of candidates) {
+    const resolved = safeAbsoluteUrl(candidate.href, baseUrl);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return "";
 };
 
 const isPrivateHostname = (hostname: string) => {
@@ -125,8 +220,11 @@ const fetchWithRedirects = async (urlValue: string) => {
     const response = await fetch(currentUrl, {
       method: "GET",
       headers: {
-        "User-Agent": "AgyBookmarkBot/1.0",
-        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": BROWSER_USER_AGENT,
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
       },
       redirect: "manual",
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -150,15 +248,20 @@ const fetchWithRedirects = async (urlValue: string) => {
 export const buildBookmarkMetadata = (urlValue: string, finalUrlValue: string, html: string, contentType: string): WebBookmarkMetadata => {
   const finalUrl = new URL(finalUrlValue);
   const domain = finalUrl.hostname.replace(/^www\./i, "");
-  const title = pickMeta(html, ["og:title", "twitter:title"]) || pickTitle(html) || domain;
-  const description = pickMeta(html, ["og:description", "twitter:description", "description"]);
-  const siteName = pickMeta(html, ["og:site_name", "application-name"]) || domain;
-  const imageRaw = pickMeta(html, ["og:image", "twitter:image", "twitter:image:src"]);
-  const faviconRaw = pickMeta(html, ["og:image:secure_url", "apple-touch-icon"]);
+  const parsedHead = parseHeadTags(html);
+  const metaIndex = buildMetaIndex(parsedHead.metas);
+
+  const title = pickMeta(metaIndex, ["og:title", "twitter:title"]) || parsedHead.title || domain;
+  const description = pickMeta(metaIndex, ["og:description", "twitter:description", "description"]);
+  const siteName =
+    pickMeta(metaIndex, ["og:site_name", "application-name"]) || stripAtPrefix(pickMeta(metaIndex, ["twitter:site", "twitter:creator"])) || domain;
+  const imageRaw = pickMeta(metaIndex, ["og:image", "og:image:secure_url", "twitter:image", "twitter:image:src"]);
   const imageUrl = imageRaw ? safeAbsoluteUrl(imageRaw, finalUrl.toString()) : "";
+  const faviconFromLink = pickFavicon(parsedHead.links, finalUrl.toString());
   const fallbackFavicon = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
-  const faviconUrl = safeAbsoluteUrl(faviconRaw, finalUrl.origin) || safeAbsoluteUrl("/favicon.ico", finalUrl.origin) || fallbackFavicon;
-  const metadata = {
+  const faviconUrl = faviconFromLink || safeAbsoluteUrl("/favicon.ico", finalUrl.origin) || fallbackFavicon;
+
+  return {
     url: urlValue,
     finalUrl: finalUrl.toString(),
     title,
@@ -170,7 +273,6 @@ export const buildBookmarkMetadata = (urlValue: string, finalUrlValue: string, h
     kind: inferKind(finalUrl, contentType, { siteName, title, description }),
     contentType: contentType || undefined,
   } satisfies WebBookmarkMetadata;
-  return metadata;
 };
 
 export const fetchBookmarkMetadata = async (rawUrl: string) => {
@@ -180,10 +282,12 @@ export const fetchBookmarkMetadata = async (rawUrl: string) => {
   if (!response.ok) {
     throw new Error("Unable to fetch preview.");
   }
+
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+  const finalParsed = new URL(finalUrl);
+  const domain = finalParsed.hostname.replace(/^www\./i, "");
+
   if (!contentType.includes("text/html")) {
-    const finalParsed = new URL(finalUrl);
-    const domain = finalParsed.hostname.replace(/^www\./i, "");
     return {
       url: normalizedUrl,
       normalizedUrl,

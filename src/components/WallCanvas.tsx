@@ -103,7 +103,7 @@ import {
   updateLinkType,
   updateZone,
 } from "@/features/wall/commands";
-import { createBookmarkNoteState, isBookmarkCacheFresh, readBookmarkCacheEntry, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
+import { createBookmarkNoteState, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
 import { EISENHOWER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { isCurrencyNote } from "@/features/wall/currency";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
@@ -1028,7 +1028,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       }
 
       const cached = readBookmarkCacheEntry(normalizedUrl);
-      if (!options?.force && cached?.metadata && isBookmarkCacheFresh(cached)) {
+      if (!options?.force && cached?.metadata && isBookmarkCacheFresh(cached) && isBookmarkMetadataRich(cached.metadata)) {
         updateNote(noteId, {
           bookmark: {
             url: rawUrl,
@@ -2933,6 +2933,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
 
 
 

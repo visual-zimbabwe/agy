@@ -71,7 +71,7 @@ The local wall layer also:
 - stores camera and last color in meta records
 - normalizes old payloads through storage migration helpers
 - preserves the permanent currency note and its last wall position inside normal wall snapshots
-- keeps bookmark preview metadata in note payloads while a shared local cache avoids repeat metadata fetches for the same normalized URL during the 24 hour TTL window
+- keeps bookmark preview metadata in note payloads while a shared local cache avoids repeat metadata fetches for the same normalized URL during the 24 hour TTL window\n- uses a cache version bump to avoid reusing older domain-only bookmark preview entries after parser upgrades
 
 ### Cloud wall storage
 
@@ -191,6 +191,7 @@ Page persistence does not currently expose the same explicit entity-level merge 
 - `docs/api/walls.md`
 - `docs/api/page.md`
 - `docs/runbooks/sync-debugging.md`
+
 
 
 
