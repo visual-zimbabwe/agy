@@ -795,16 +795,6 @@ export const WallNotesLayer = ({
                           ellipsis
                           listening={false}
                         />
-                        <Text
-                          x={Math.max(104, noteView.w - 116)}
-                          y={1}
-                          width={100}
-                          align="right"
-                          fontSize={10}
-                          fill="rgba(18,44,52,0.46)"
-                          text={bookmarkState?.status === "ready" ? "Updated" : bookmarkState?.status === "loading" ? "Fetching" : bookmarkState?.status === "error" ? "Retry needed" : "Preview"}
-                          listening={false}
-                        />
                       </Group>
                     </>
                   );
@@ -1226,6 +1216,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 
