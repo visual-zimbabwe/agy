@@ -41,7 +41,7 @@ Current appearance and startup settings include:
 - startup default page
 - timezone mode and manual timezone
 
-The startup default page currently includes wall and decks destinations.
+The startup default page currently includes wall, page, decks, and settings destinations.
 
 ### Keyboard
 

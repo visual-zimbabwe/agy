@@ -30,6 +30,7 @@
 
 ### Fixed
 
+- Electron desktop routing now allows current internal routes (`/wall`, `/page`, `/decks`, `/settings`) without blocking valid in-app navigation, and startup preferences now cover the same route surface as the web app
 - Removed the stale flat `docs/frontend-architecture.md` file so there is a single canonical frontend architecture doc
 - Archived older flat planning and discovery docs under `docs/archive/legacy-plans/`
 - Promoted the quick-capture guide into `docs/features/quick-capture.md`
@@ -37,8 +38,3 @@
 ## Notes
 
 Use this file as the running release history for user-visible and contributor-relevant documentation changes. Add dated release files later if release-specific notes need more detail.
-
-
-
-
-

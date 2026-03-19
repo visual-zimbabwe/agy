@@ -3,7 +3,7 @@ import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 export type ThemePreference = "system" | "light" | "dark";
 export type StartupBehavior = "default_page" | "continue_last";
-export type StartupPage = "/wall" | "/decks";
+export type StartupPage = "/wall" | "/page" | "/decks" | "/settings";
 
 export type UserPreferences = {
   theme: ThemePreference;
@@ -61,8 +61,13 @@ export const readStoredPreferences = (): UserPreferences => {
         readStorageValue(preferenceStorageKeys.startupBehavior, [legacyPreferenceStorageKeys.startupBehavior]) === "default_page"
           ? "default_page"
           : "continue_last",
-      startupDefaultPage:
-        readStorageValue(preferenceStorageKeys.startupDefaultPage, [legacyPreferenceStorageKeys.startupDefaultPage]) === "/decks" ? "/decks" : "/wall",
+      startupDefaultPage: (() => {
+        const value = readStorageValue(preferenceStorageKeys.startupDefaultPage, [legacyPreferenceStorageKeys.startupDefaultPage]);
+        if (value === "/page" || value === "/decks" || value === "/settings") {
+          return value;
+        }
+        return "/wall";
+      })(),
       autoTimezone: readStorageValue(preferenceStorageKeys.autoTimezone, [legacyPreferenceStorageKeys.autoTimezone]) !== "false",
       manualTimezone:
         readStorageValue(preferenceStorageKeys.manualTimezone, [legacyPreferenceStorageKeys.manualTimezone]) || defaultPreferences.manualTimezone,

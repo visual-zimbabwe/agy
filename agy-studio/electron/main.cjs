@@ -12,6 +12,7 @@ const SERVER_READY_TIMEOUT_MS = 25000;
 
 let mainWindow = null;
 let wallWindow = null;
+let pageWindow = null;
 let decksWindow = null;
 let webServerProcess = null;
 let baseAppUrl = null;
@@ -37,6 +38,9 @@ function classifyWindowRole(url) {
   const parsed = new URL(url);
   if (parsed.pathname.startsWith("/decks")) {
     return "decks";
+  }
+  if (parsed.pathname.startsWith("/page")) {
+    return "page";
   }
   if (parsed.pathname.startsWith("/wall")) {
     return "wall";
@@ -166,6 +170,19 @@ function openOrFocusInternalWindow(targetUrl) {
     return;
   }
 
+  if (role === "page") {
+    if (pageWindow && !pageWindow.isDestroyed()) {
+      pageWindow.loadURL(targetUrl);
+      if (pageWindow.isMinimized()) {
+        pageWindow.restore();
+      }
+      pageWindow.focus();
+      return;
+    }
+    pageWindow = createAppWindow(targetUrl, "page");
+    return;
+  }
+
   if (role === "wall") {
     if (wallWindow && !wallWindow.isDestroyed()) {
       wallWindow.loadURL(targetUrl);
@@ -198,7 +215,7 @@ function openOrFocusInternalWindow(targetUrl) {
   mainWindow = createAppWindow(targetUrl, "main");
 }
 
-function applyWindowSecurity(mainUrl, webContents) {
+function applyWindowSecurity(webContents) {
   webContents.setWindowOpenHandler(({ url }) => {
     if (isInternalAppUrl(url)) {
       openOrFocusInternalWindow(url);
@@ -211,7 +228,7 @@ function applyWindowSecurity(mainUrl, webContents) {
   });
 
   webContents.on("will-navigate", (event, url) => {
-    if (url.startsWith(mainUrl)) {
+    if (isInternalAppUrl(url)) {
       return;
     }
     event.preventDefault();
@@ -348,7 +365,7 @@ function createAppWindow(mainUrl, role = "main") {
     }
   });
 
-  applyWindowSecurity(mainUrl, nextWindow.webContents);
+  applyWindowSecurity(nextWindow.webContents);
 
   nextWindow.once("ready-to-show", () => {
     nextWindow.show();
@@ -361,6 +378,10 @@ function createAppWindow(mainUrl, role = "main") {
     }
     if (role === "wall") {
       wallWindow = null;
+      return;
+    }
+    if (role === "page") {
+      pageWindow = null;
       return;
     }
     if (role === "decks") {
@@ -427,4 +448,3 @@ app.on("activate", () => {
 app.on("before-quit", () => {
   stopPackagedWebServer();
 });
-

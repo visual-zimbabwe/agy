@@ -197,6 +197,9 @@ Expected:
 5. Verify routes work in desktop app:
    - `/` landing loads
    - `/wall` loads and note interactions work
+   - `/page` loads and canvas interactions work
+   - `/decks` loads and study workspace renders
+   - `/settings` loads after sign-in
    - `/login` and `/signup` render
 6. Create note(s), reload app window, verify local persistence.
 7. Open an external link from the app and verify it opens in system browser (not in-app webview).
@@ -1013,6 +1016,3 @@ Expected:
 - Eisenhower Matrix notes can be created from the UI, command palette, and keyboard shortcut.
 - The note renders as one polished card with four clearly labeled, independently editable quadrants.
 - Date, footer task count, compact mode, and persistence behave like native wall features rather than an add-on.
-
-
-

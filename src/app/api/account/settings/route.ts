@@ -7,7 +7,7 @@ import { requireApiUser } from "@/lib/api/auth";
 const settingsSchema = z.object({
   theme: z.enum(["system", "light", "dark"]),
   startupBehavior: z.enum(["default_page", "continue_last"]),
-  startupDefaultPage: z.enum(["/wall", "/decks"]),
+  startupDefaultPage: z.enum(["/wall", "/page", "/decks", "/settings"]),
   autoTimezone: z.boolean(),
   manualTimezone: z.string().trim().min(1).max(120),
   keyboardColorSlots: z.array(z.string().nullable()).length(9),

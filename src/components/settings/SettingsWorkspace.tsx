@@ -962,7 +962,9 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                         label="Default startup page"
                         options={[
                           { value: "/wall", label: "Wall" },
+                          { value: "/page", label: "Page" },
                           { value: "/decks", label: "Decks" },
+                          { value: "/settings", label: "Settings" },
                         ]}
                       />
                     }
@@ -1158,8 +1160,3 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
     </main>
   );
 };
-
-
-
-
-

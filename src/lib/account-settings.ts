@@ -57,8 +57,12 @@ export const normalizeThemePreference = (value: unknown): ThemePreference =>
 export const normalizeStartupBehavior = (value: unknown): StartupBehavior =>
   value === "default_page" ? "default_page" : "continue_last";
 
-export const normalizeStartupPage = (value: unknown): StartupPage =>
-  value === "/decks" ? "/decks" : "/wall";
+export const normalizeStartupPage = (value: unknown): StartupPage => {
+  if (value === "/page" || value === "/decks" || value === "/settings") {
+    return value;
+  }
+  return "/wall";
+};
 
 export const normalizeControlsMode = (value: unknown): ControlsMode =>
   value === "advanced" ? "advanced" : "basic";
