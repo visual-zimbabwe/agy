@@ -4,6 +4,7 @@
 
 ### Added
 
+- Wall `web-bookmark` notes with server-side metadata fetch, local URL-level caching, timeline/detail previews, and synced bookmark payload support
 - Canonical documentation structure under `docs/product`, `docs/architecture`, `docs/features`, `docs/api`, `docs/runbooks`, and `docs/releases`
 - Initial convert API doc
 - Initial page file storage debugging runbook

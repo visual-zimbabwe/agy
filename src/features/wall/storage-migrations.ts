@@ -1,7 +1,8 @@
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
+import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/wall/bookmarks";
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import type { CanonNote, CurrencyNote, Link, Note, NoteGroup, PersistedWallState, VocabularyReviewOutcome, Zone, ZoneGroup } from "@/features/wall/types";
+import type { CanonNote, CurrencyNote, Link, Note, NoteGroup, PersistedWallState, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -106,6 +107,60 @@ const normalizeCurrency = (value: unknown): CurrencyNote | undefined => {
   };
 };
 
+const normalizeBookmarkMetadata = (value: unknown): WebBookmarkMetadata | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const finalUrl = normalizeBookmarkUrl(asString(value.finalUrl) || asString(value.url));
+  if (!finalUrl) {
+    return undefined;
+  }
+  const fallback = buildBookmarkFallbackMetadata(finalUrl);
+  return {
+    url: normalizeBookmarkUrl(asString(value.url)) || finalUrl,
+    finalUrl,
+    title: asString(value.title, fallback.title),
+    description: asString(value.description),
+    siteName: asString(value.siteName, fallback.siteName),
+    domain: asString(value.domain, fallback.domain),
+    faviconUrl: asString(value.faviconUrl) || fallback.faviconUrl,
+    imageUrl: asString(value.imageUrl) || undefined,
+    kind:
+      value.kind === "article" ||
+      value.kind === "video" ||
+      value.kind === "repo" ||
+      value.kind === "docs" ||
+      value.kind === "product" ||
+      value.kind === "post" ||
+      value.kind === "paper"
+        ? value.kind
+        : "website",
+    contentType: asString(value.contentType) || undefined,
+  };
+};
+
+const normalizeBookmark = (value: unknown): WebBookmarkNote | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const normalizedUrl = normalizeBookmarkUrl(asString(value.normalizedUrl) || asString(value.url));
+  if (!normalizedUrl) {
+    return undefined;
+  }
+
+  return {
+    url: asString(value.url, normalizedUrl),
+    normalizedUrl,
+    metadata: normalizeBookmarkMetadata(value.metadata) ?? buildBookmarkFallbackMetadata(normalizedUrl),
+    status: value.status === "loading" || value.status === "ready" || value.status === "error" ? value.status : "idle",
+    fetchedAt: typeof value.fetchedAt === "number" ? asNumber(value.fetchedAt) : undefined,
+    lastSuccessAt: typeof value.lastSuccessAt === "number" ? asNumber(value.lastSuccessAt) : undefined,
+    error: asString(value.error) || undefined,
+  };
+};
+
 const normalizeNoteFont = (value: unknown) => {
   if (
     value === "roboto" ||
@@ -192,7 +247,16 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
   if (!id) {
     return null;
   }
-  const noteKind = entry.noteKind === "quote" || entry.noteKind === "canon" || entry.noteKind === "journal" || entry.noteKind === "eisenhower" || entry.noteKind === "joker" || entry.noteKind === "currency" ? entry.noteKind : "standard";
+  const noteKind =
+    entry.noteKind === "quote" ||
+    entry.noteKind === "canon" ||
+    entry.noteKind === "journal" ||
+    entry.noteKind === "eisenhower" ||
+    entry.noteKind === "joker" ||
+    entry.noteKind === "currency" ||
+    entry.noteKind === "web-bookmark"
+      ? entry.noteKind
+      : "standard";
   return {
     id,
     noteKind,
@@ -202,6 +266,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     canon: normalizeCanon(entry.canon),
     eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(entry.eisenhower, asNumber(entry.createdAt, Date.now())) : undefined,
     currency: noteKind === "currency" ? normalizeCurrency(entry.currency) : undefined,
+    bookmark: noteKind === "web-bookmark" ? normalizeBookmark(entry.bookmark) : undefined,
     imageUrl: asString(entry.imageUrl).trim() || undefined,
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
     textVAlign: entry.textVAlign === "middle" || entry.textVAlign === "bottom" ? entry.textVAlign : NOTE_DEFAULTS.textVAlign,

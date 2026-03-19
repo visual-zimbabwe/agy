@@ -16,6 +16,7 @@ Agy currently uses multiple persistence layers:
 - local IndexedDB for page state
 - local browser storage for some preference and migration flags
 - local browser storage for currency note location/rate caches
+- local browser storage for wall bookmark metadata cache entries keyed by normalized URL
 - Supabase Postgres for cloud-backed records and snapshots
 - Supabase Storage for page file uploads
 
@@ -41,9 +42,9 @@ Wall notes can also contain richer payloads such as:
 - canon payloads
 - vocabulary review state
 - Eisenhower payloads
-- Joker card metadata via 
-oteKind, note body text, and source fields
+- Joker card metadata via `noteKind`, note body text, and source fields
 - currency widget payloads for detected location, base currency, cached/live USD rate, trend, and converter state
+- web bookmark payloads for normalized URLs, sanitized metadata, fetch status, cache timestamps, and retry state
 - image URLs
 - text formatting and visual flags
 
@@ -70,6 +71,7 @@ The local wall layer also:
 - stores camera and last color in meta records
 - normalizes old payloads through storage migration helpers
 - preserves the permanent currency note and its last wall position inside normal wall snapshots
+- keeps bookmark preview metadata in note payloads while a shared local cache avoids repeat metadata fetches for the same normalized URL during the 24 hour TTL window
 
 ### Cloud wall storage
 
@@ -84,6 +86,7 @@ Important current behavior:
 - local camera wins during merge
 - local last color wins when present
 - currency note exchange-rate fetches are lazy, cached in local storage, and fall back to stale cache/default USD when live requests fail
+- web bookmark preview fetches run through authenticated server routes that validate URLs, block private-network targets, follow a small redirect budget, and return only sanitized metadata JSON
 
 If local content exists and the server is empty, the UI can prompt the user to import local data into the cloud account.
 
@@ -188,6 +191,7 @@ Page persistence does not currently expose the same explicit entity-level merge 
 - `docs/api/walls.md`
 - `docs/api/page.md`
 - `docs/runbooks/sync-debugging.md`
+
 
 
 

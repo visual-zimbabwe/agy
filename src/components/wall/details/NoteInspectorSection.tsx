@@ -12,6 +12,7 @@ import {
   detailSectionTitle,
 } from "@/components/wall/details/detailSectionStyles";
 import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
+import { createBookmarkNoteState, normalizeBookmarkUrl, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import type { Note, NoteTextFont } from "@/features/wall/types";
 
@@ -36,6 +37,8 @@ type NoteInspectorSectionProps = {
   onToggleOrRefreshJoker: (noteId: string) => void;
   onStartLink: (noteId: string) => void;
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
+  onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
+  onOpenBookmarkUrl: (url: string) => void;
 };
 
 const sectionBlockClass = "space-y-2 border-t border-[var(--color-border-muted)] pt-3 first:border-t-0 first:pt-0";
@@ -74,6 +77,8 @@ export const NoteInspectorSection = ({
   onToggleOrRefreshJoker,
   onStartLink,
   onUpdateNote,
+  onSubmitBookmarkUrl,
+  onOpenBookmarkUrl,
 }: NoteInspectorSectionProps) => {
   if (!selectedNote) {
     return null;
@@ -84,9 +89,11 @@ export const NoteInspectorSection = ({
     const toCanon = kind === "canon" && selectedNote.noteKind !== "canon";
     const toJournal = kind === "journal" && selectedNote.noteKind !== "journal";
     const toEisenhower = kind === "eisenhower" && selectedNote.noteKind !== "eisenhower";
+    const toBookmark = kind === "web-bookmark" && selectedNote.noteKind !== "web-bookmark";
 
     onUpdateNote(selectedNote.id, {
       noteKind: selectedNote.noteKind === kind ? "standard" : kind,
+      text: toBookmark ? "" : selectedNote.text,
       quoteAuthor: toQuote ? "" : undefined,
       quoteSource: toQuote ? "" : undefined,
       canon: toCanon
@@ -101,18 +108,22 @@ export const NoteInspectorSection = ({
           }
         : undefined,
       eisenhower: toEisenhower ? createEisenhowerNotePayload(selectedNote.createdAt) : undefined,
-      vocabulary: toCanon || toJournal || toEisenhower ? undefined : selectedNote.vocabulary,
-      color: toJournal ? JOURNAL_NOTE_DEFAULTS.color : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.color : selectedNote.color,
-      textFont: toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textFont : selectedNote.textFont,
-      textColor: toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textColor : selectedNote.textColor,
-      textSizePx: toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textSizePx : selectedNote.textSizePx,
-      w: toEisenhower ? EISENHOWER_NOTE_DEFAULTS.width : selectedNote.w,
-      h: toEisenhower ? EISENHOWER_NOTE_DEFAULTS.height : selectedNote.h,
+      bookmark: toBookmark ? createBookmarkNoteState(selectedNote.bookmark?.url ?? "") : undefined,
+      imageUrl: toBookmark ? undefined : selectedNote.imageUrl,
+      vocabulary: toCanon || toJournal || toEisenhower || toBookmark ? undefined : selectedNote.vocabulary,
+      color: toBookmark ? WEB_BOOKMARK_DEFAULTS.color : toJournal ? JOURNAL_NOTE_DEFAULTS.color : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.color : selectedNote.color,
+      textFont: toBookmark ? WEB_BOOKMARK_DEFAULTS.textFont : toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textFont : selectedNote.textFont,
+      textColor: toBookmark ? WEB_BOOKMARK_DEFAULTS.textColor : toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textColor : selectedNote.textColor,
+      textSizePx: toBookmark ? WEB_BOOKMARK_DEFAULTS.textSizePx : toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textSizePx : selectedNote.textSizePx,
+      w: toBookmark ? WEB_BOOKMARK_DEFAULTS.width : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.width : selectedNote.w,
+      h: toBookmark ? WEB_BOOKMARK_DEFAULTS.height : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.height : selectedNote.h,
       tags: toJournal
         ? [...new Set([...selectedNote.tags, "journal"])]
         : toEisenhower
           ? [...new Set([...selectedNote.tags, "matrix", "priority"])]
-          : selectedNote.tags,
+          : toBookmark
+            ? [...new Set([...selectedNote.tags, "bookmark", "link"])]
+            : selectedNote.tags,
     });
   };
 
@@ -202,6 +213,54 @@ export const NoteInspectorSection = ({
           </div>
         )}
 
+
+        {selectedNote.noteKind === "web-bookmark" && (
+          <div className={sectionBlockClass}>
+            <p className={sectionLabelClass}>Bookmark</p>
+            <div className="grid gap-2">
+              <input
+                type="text"
+                value={selectedNote.bookmark?.url ?? ""}
+                onChange={(event) =>
+                  onUpdateNote(selectedNote.id, {
+                    bookmark: {
+                      ...(selectedNote.bookmark ?? createBookmarkNoteState()),
+                      url: event.target.value,
+                      normalizedUrl: normalizeBookmarkUrl(event.target.value),
+                    },
+                  })
+                }
+                onBlur={(event) => {
+                  if (event.target.value.trim()) {
+                    onSubmitBookmarkUrl(selectedNote.id, event.target.value);
+                  }
+                }}
+                className={detailField}
+                placeholder="https://example.com"
+                disabled={isTimeLocked}
+                aria-label="Bookmark URL"
+              />
+              <div className="grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => onSubmitBookmarkUrl(selectedNote.id, selectedNote.bookmark?.url ?? "")} className={detailButton} disabled={isTimeLocked}>Fetch</button>
+                <button type="button" onClick={() => onSubmitBookmarkUrl(selectedNote.id, selectedNote.bookmark?.url ?? "", { force: true })} className={detailButton} disabled={isTimeLocked}>Refresh</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetUrl = selectedNote.bookmark?.metadata?.finalUrl ?? selectedNote.bookmark?.normalizedUrl ?? selectedNote.bookmark?.url;
+                    if (targetUrl) {
+                      onOpenBookmarkUrl(targetUrl);
+                    }
+                  }}
+                  className={detailButton}
+                  disabled={!selectedNote.bookmark?.url}
+                >
+                  Open
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Backlinks</p>
           {backlinks.length === 0 ? (
@@ -284,6 +343,7 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("canon")} className={typeButtonClass(selectedNote.noteKind === "canon")} disabled={isTimeLocked}>Canon</button>
             <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked}>Journal</button>
             <button type="button" onClick={() => setNoteKind("eisenhower")} className={typeButtonClass(selectedNote.noteKind === "eisenhower")} disabled={isTimeLocked}>Eisenhower</button>
+            <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked}>Bookmark</button>
             <button type="button" onClick={() => onToggleOrRefreshJoker(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "joker")} disabled={isTimeLocked}>
               {selectedNote.noteKind === "joker" || hasJokerNote ? "Refresh Joker" : "Joker"}
             </button>

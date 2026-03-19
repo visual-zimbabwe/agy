@@ -82,6 +82,7 @@ import {
   createOrRefreshJokerNote,
   createJournalNote,
   createQuoteNote,
+  createWebBookmarkNote,
   createEisenhowerNote,
   createLink,
   createZone,
@@ -102,11 +103,12 @@ import {
   updateLinkType,
   updateZone,
 } from "@/features/wall/commands";
+import { createBookmarkNoteState, isBookmarkCacheFresh, readBookmarkCacheEntry, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
 import { EISENHOWER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { isCurrencyNote } from "@/features/wall/currency";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
-import type { PersistedWallState } from "@/features/wall/types";
+import type { PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
 import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
@@ -995,6 +997,118 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     rightPanelOpen,
     ui.selectedNoteId,
   ]);
+
+  const openBookmarkUrl = useCallback((url: string) => {
+    const target = url.trim();
+    if (!target || typeof window === "undefined") {
+      return;
+    }
+    window.open(target, "_blank", "noopener,noreferrer");
+  }, []);
+
+  const fetchBookmarkPreview = useCallback(
+    async (noteId: string, rawUrl: string, options?: { force?: boolean }) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const normalizedUrl = createBookmarkNoteState(rawUrl).normalizedUrl;
+      if (!normalizedUrl) {
+        updateNote(noteId, {
+          bookmark: {
+            ...(renderSnapshot.notes[noteId]?.bookmark ?? createBookmarkNoteState(rawUrl)),
+            url: rawUrl,
+            normalizedUrl: "",
+            metadata: undefined,
+            status: "error",
+            fetchedAt: Date.now(),
+            error: "Enter a valid http(s) URL.",
+          },
+        });
+        return;
+      }
+
+      const cached = readBookmarkCacheEntry(normalizedUrl);
+      if (!options?.force && cached?.metadata && isBookmarkCacheFresh(cached)) {
+        updateNote(noteId, {
+          bookmark: {
+            url: rawUrl,
+            normalizedUrl,
+            metadata: cached.metadata,
+            status: "ready",
+            fetchedAt: cached.fetchedAt,
+            lastSuccessAt: cached.lastSuccessAt ?? cached.fetchedAt,
+            error: undefined,
+          },
+        });
+        return;
+      }
+
+      updateNote(noteId, {
+        bookmark: {
+          url: rawUrl,
+          normalizedUrl,
+          metadata: cached?.metadata ?? renderSnapshot.notes[noteId]?.bookmark?.metadata,
+          status: "loading",
+          fetchedAt: Date.now(),
+          lastSuccessAt: renderSnapshot.notes[noteId]?.bookmark?.lastSuccessAt,
+          error: undefined,
+        },
+      });
+
+      try {
+        const response = await fetch(`/api/bookmarks/preview?url=${encodeURIComponent(normalizedUrl)}`);
+        const payload = (await response.json()) as {
+          error?: string;
+          normalizedUrl?: string;
+          metadata?: WebBookmarkMetadata;
+        };
+        if (!response.ok || !payload.metadata || !payload.normalizedUrl) {
+          throw new Error(payload.error || "Preview request failed.");
+        }
+        const fetchedAt = Date.now();
+        writeBookmarkCacheEntry(payload.normalizedUrl, {
+          metadata: payload.metadata,
+          fetchedAt,
+          lastSuccessAt: fetchedAt,
+        });
+        updateNote(noteId, {
+          bookmark: {
+            url: rawUrl,
+            normalizedUrl: payload.normalizedUrl,
+            metadata: payload.metadata,
+            status: "ready",
+            fetchedAt,
+            lastSuccessAt: fetchedAt,
+            error: undefined,
+          },
+        });
+      } catch (error) {
+        updateNote(noteId, {
+          bookmark: {
+            url: rawUrl,
+            normalizedUrl,
+            metadata: cached?.metadata ?? renderSnapshot.notes[noteId]?.bookmark?.metadata,
+            status: "error",
+            fetchedAt: Date.now(),
+            lastSuccessAt: cached?.lastSuccessAt ?? renderSnapshot.notes[noteId]?.bookmark?.lastSuccessAt,
+            error: error instanceof Error ? error.message : "Preview request failed.",
+          },
+        });
+      }
+    },
+    [isTimeLocked, renderSnapshot.notes],
+  );
+
+  const makeWebBookmarkNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const id = createWebBookmarkNote(world.x - WEB_BOOKMARK_DEFAULTS.width / 2, world.y - WEB_BOOKMARK_DEFAULTS.height / 2);
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, "");
+  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
 
   const makeWordNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
@@ -2376,6 +2490,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateCanonNote={makeCanonNoteAtViewportCenter}
             onCreateJournalNote={makeJournalNoteAtViewportCenter}
             onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
+            onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
             onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
             onCreateOrRefreshJokerNote={makeJokerNoteAtViewportCenter}
             onCreateWordNote={makeWordNoteAtViewportCenter}
@@ -2536,6 +2651,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               wikiLinksByNoteId={wikiLinksByNoteId}
               onNavigateWikiLink={focusNote}
               editingId={editing?.id}
+              openExternalUrl={openBookmarkUrl}
             />
 
             <WallOverlaysLayer
@@ -2621,6 +2737,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onCurrencyAmountChange={updateCurrencyAmountInput}
           onSetManualBaseCurrency={(value) => { void setManualBaseCurrency(value); }}
           onResetToDetectedCurrency={() => { void resetToDetectedCurrency(); }}
+          onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
+          onOpenBookmarkUrl={openBookmarkUrl}
         />
         )}
 
@@ -2697,6 +2815,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           }}
           onStartLinkFromSelectedNote={setLinkingFromNote}
           onUpdateSelectedNote={updateNote}
+          onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
+          onOpenBookmarkUrl={openBookmarkUrl}
           detailsSectionsOpen={detailsSectionsOpen}
           onToggleDetailsSection={toggleDetailsSection}
           timelineEntriesCount={timelineEntries.length}

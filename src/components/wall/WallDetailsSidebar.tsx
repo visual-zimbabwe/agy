@@ -42,6 +42,8 @@ type WallDetailsSidebarProps = {
   onToggleOrRefreshJokerSelectedNote: (noteId: string) => void;
   onStartLinkFromSelectedNote: (noteId: string) => void;
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
+  onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
+  onOpenBookmarkUrl: (url: string) => void;
   detailsSectionsOpen: DetailsSectionState;
   onToggleDetailsSection: (key: DetailsSectionKey) => void;
   timelineEntriesCount: number;
@@ -140,6 +142,8 @@ export const WallDetailsSidebar = ({
   onToggleOrRefreshJokerSelectedNote,
   onStartLinkFromSelectedNote,
   onUpdateSelectedNote,
+  onSubmitBookmarkUrl,
+  onOpenBookmarkUrl,
   detailsSectionsOpen,
   onToggleDetailsSection,
   timelineEntriesCount,
@@ -241,6 +245,8 @@ export const WallDetailsSidebar = ({
         onToggleOrRefreshJokerSelectedNote={onToggleOrRefreshJokerSelectedNote}
         onStartLinkFromSelectedNote={onStartLinkFromSelectedNote}
         onUpdateSelectedNote={onUpdateSelectedNote}
+        onSubmitBookmarkUrl={onSubmitBookmarkUrl}
+        onOpenBookmarkUrl={onOpenBookmarkUrl}
         detailsSectionsOpen={detailsSectionsOpen}
         onToggleDetailsSection={onToggleDetailsSection}
         timelineEntriesCount={timelineEntriesCount}

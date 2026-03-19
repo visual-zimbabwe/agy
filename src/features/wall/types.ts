@@ -95,15 +95,43 @@ export type CurrencyNote = {
   error?: string;
 };
 
+export type WebBookmarkPreviewStatus = "idle" | "loading" | "ready" | "error";
+
+export type WebBookmarkKind = "article" | "video" | "repo" | "docs" | "product" | "post" | "paper" | "website";
+
+export type WebBookmarkMetadata = {
+  url: string;
+  finalUrl: string;
+  title: string;
+  description: string;
+  siteName: string;
+  domain: string;
+  faviconUrl?: string;
+  imageUrl?: string;
+  kind: WebBookmarkKind;
+  contentType?: string;
+};
+
+export type WebBookmarkNote = {
+  url: string;
+  normalizedUrl: string;
+  metadata?: WebBookmarkMetadata;
+  status: WebBookmarkPreviewStatus;
+  fetchedAt?: number;
+  lastSuccessAt?: number;
+  error?: string;
+};
+
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "currency";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "currency" | "web-bookmark";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
   canon?: CanonNote;
   eisenhower?: EisenhowerNote;
   currency?: CurrencyNote;
+  bookmark?: WebBookmarkNote;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";

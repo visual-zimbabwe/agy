@@ -27,6 +27,7 @@ type WallToolsPanelProps = {
   onCreateCanonNote: () => void;
   onCreateJournalNote: () => void;
   onCreateQuoteNote: () => void;
+  onCreateWebBookmarkNote: () => void;
   onCreateEisenhowerNote: () => void;
   onCreateOrRefreshJokerNote: () => void;
   onCreateWordNote: () => void;
@@ -64,6 +65,7 @@ export const WallToolsPanel = ({
   onCreateCanonNote,
   onCreateJournalNote,
   onCreateQuoteNote,
+  onCreateWebBookmarkNote,
   onCreateEisenhowerNote,
   onCreateOrRefreshJokerNote,
   onCreateWordNote,
@@ -133,6 +135,12 @@ export const WallToolsPanel = ({
           <button type="button" onClick={onCreateQuoteNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create quote note">
             <Icon name="note" />
             <span>New Quote</span>
+          </button>
+        </ControlTooltip>
+        <ControlTooltip label="Create web bookmark note from a URL" className="relative block" side="right">
+          <button type="button" onClick={onCreateWebBookmarkNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create web bookmark note">
+            <Icon name="link" />
+            <span>New Bookmark</span>
           </button>
         </ControlTooltip>
         <ControlTooltip label="Create an Eisenhower Matrix note" className="relative block" side="right">

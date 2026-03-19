@@ -3,6 +3,7 @@
 import { memo, type CSSProperties, type ReactNode } from "react";
 
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, truncateNoteText } from "@/components/wall/wall-canvas-helpers";
+import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { parseCurrencyAmountInput } from "@/features/wall/currency";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
@@ -262,6 +263,12 @@ const CurrencyRenderer = ({ note, width, height, readableText, mutedText, active
   );
 };
 
+const WebBookmarkRenderer = ({ note, width, height, tone }: RendererProps) => (
+  <div style={{ width, height }}>
+    <WebBookmarkCard note={note} tone={tone} />
+  </div>
+);
+
 const ImageRenderer = ({ note, width, height, readableText, mutedText, textFontFamily, bodyClamp, tone }: RendererProps) => (
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
     <div className="flex h-full flex-col rounded-[inherit] bg-white/96 p-1.5">
@@ -365,6 +372,7 @@ const noteRenderers: Record<string, NoteRenderer> = {
   journal: JournalRenderer,
   eisenhower: EisenhowerRenderer,
   currency: CurrencyRenderer,
+  "web-bookmark": WebBookmarkRenderer,
   image: ImageRenderer,
   vocabulary: VocabularyRenderer,
   fallback: FallbackRenderer,

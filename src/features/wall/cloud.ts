@@ -1,7 +1,8 @@
+import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/wall/bookmarks";
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import type { CanonNote, CurrencyNote, PersistedWallState, VocabularyNote, VocabularyReviewOutcome } from "@/features/wall/types";
+import type { CanonNote, CurrencyNote, PersistedWallState, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
 
 type WallRow = {
   camera_x: number;
@@ -27,6 +28,7 @@ type NoteRow = {
   canon?: unknown;
   eisenhower?: unknown;
   currency?: unknown;
+  bookmark?: unknown;
   tags: unknown;
   text_size: string | null;
   x: number;
@@ -230,6 +232,65 @@ const parseCanon = (raw: unknown): CanonNote | undefined => {
   };
 };
 
+const parseBookmarkMetadata = (raw: unknown): WebBookmarkMetadata | undefined => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const value = raw as Record<string, unknown>;
+  const asString = (entry: unknown, fallback = "") => (typeof entry === "string" ? entry : fallback);
+  const finalUrl = normalizeBookmarkUrl(asString(value.finalUrl) || asString(value.url));
+  if (!finalUrl) {
+    return undefined;
+  }
+  const fallback = buildBookmarkFallbackMetadata(finalUrl);
+  return {
+    url: normalizeBookmarkUrl(asString(value.url)) || finalUrl,
+    finalUrl,
+    title: asString(value.title, fallback.title),
+    description: asString(value.description),
+    siteName: asString(value.siteName, fallback.siteName),
+    domain: asString(value.domain, fallback.domain),
+    faviconUrl: asString(value.faviconUrl) || fallback.faviconUrl,
+    imageUrl: asString(value.imageUrl) || undefined,
+    kind:
+      value.kind === "article" ||
+      value.kind === "video" ||
+      value.kind === "repo" ||
+      value.kind === "docs" ||
+      value.kind === "product" ||
+      value.kind === "post" ||
+      value.kind === "paper"
+        ? value.kind
+        : "website",
+    contentType: asString(value.contentType) || undefined,
+  };
+};
+
+const parseBookmark = (raw: unknown): WebBookmarkNote | undefined => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const value = raw as Record<string, unknown>;
+  const asString = (entry: unknown, fallback = "") => (typeof entry === "string" ? entry : fallback);
+  const asNumber = (entry: unknown) => (typeof entry === "number" && Number.isFinite(entry) ? entry : undefined);
+  const normalizedUrl = normalizeBookmarkUrl(asString(value.normalizedUrl) || asString(value.url));
+  if (!normalizedUrl) {
+    return undefined;
+  }
+
+  return {
+    url: asString(value.url, normalizedUrl),
+    normalizedUrl,
+    metadata: parseBookmarkMetadata(value.metadata) ?? buildBookmarkFallbackMetadata(normalizedUrl),
+    status: value.status === "loading" || value.status === "ready" || value.status === "error" ? value.status : "idle",
+    fetchedAt: asNumber(value.fetchedAt),
+    lastSuccessAt: asNumber(value.lastSuccessAt),
+    error: asString(value.error) || undefined,
+  };
+};
+
 const parseCurrency = (raw: unknown): CurrencyNote | undefined => {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return undefined;
@@ -286,7 +347,8 @@ export const rowsToSnapshot = (rows: {
         note.note_kind === "journal" ||
         note.note_kind === "eisenhower" ||
         note.note_kind === "joker" ||
-        note.note_kind === "currency"
+        note.note_kind === "currency" ||
+        note.note_kind === "web-bookmark"
           ? note.note_kind
           : "standard";
 
@@ -310,6 +372,7 @@ export const rowsToSnapshot = (rows: {
           canon: parseCanon(note.canon),
           eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(note.eisenhower, fromIso(note.created_at)) : undefined,
           currency: noteKind === "currency" ? parseCurrency(note.currency) : undefined,
+          bookmark: noteKind === "web-bookmark" ? parseBookmark(note.bookmark) : undefined,
           tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
           x: note.x,
           y: note.y,

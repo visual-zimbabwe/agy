@@ -142,6 +142,27 @@ Expected:
 - Page state (blocks + camera) persists after refresh.
 
 
+## Web Bookmark Note (`/wall`) (2026-03-19)
+1. Open `/wall`, open `Tools`, and click `New Bookmark`.
+2. Verify a bookmark editor appears with a URL field and preview card shell.
+3. Paste a bare domain such as `example.com`, submit, and verify it normalizes to `https://example.com`.
+4. Paste a common rich URL such as a GitHub repo, YouTube video, article, or docs page and verify a preview card renders title, domain, badge, and updated state.
+5. Resize the note smaller and larger; verify compact, comfortable, and expanded layouts adjust gracefully.
+6. Click the in-note `OPEN` action and verify the URL opens in a new tab without a full app reload.
+7. Double-click the bookmark note and verify the bookmark editor opens again.
+8. In `Details > Note Type`, convert a standard note to `Bookmark`, paste a URL, and verify it fetches metadata into the converted note.
+9. In `Details > Bookmark`, click `Refresh` and verify the note refetches metadata without creating a duplicate note.
+10. Reload `/wall` and verify bookmark metadata, status, and last fetch state persist.
+11. If cloud sync is enabled, sync, reload, and verify the bookmark note still shows its preview data.
+12. Try a broken or metadata-poor URL and verify the note falls back to a clean domain-first card plus readable error/retry state instead of a broken layout.
+
+Expected:
+- Web bookmark notes are creatable from `Tools` and from the details-side note type controls.
+- Metadata fetches run through the backend preview route, not direct browser HTML scraping.
+- Bookmark previews cache by normalized URL and do not refetch on every render.
+- Compact, comfortable, and expanded card states remain polished on the wall and in preview surfaces.
+- Invalid, missing, or partial metadata degrades gracefully without clipping or unsafe HTML rendering.
+
 ## Joker Card (`/wall`) (2026-03-19)
 1. Sign in with a fresh wall state and open `/wall`.
 2. Verify a dedicated Joker card appears automatically.

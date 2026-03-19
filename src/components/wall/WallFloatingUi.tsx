@@ -6,6 +6,7 @@ import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { CurrencyNoteEditor } from "@/components/wall/CurrencyNoteEditor";
 import { EisenhowerMatrixEditor } from "@/components/wall/EisenhowerMatrixEditor";
 import { NoteTextEditor } from "@/components/wall/NoteTextEditor";
+import { WebBookmarkEditor } from "@/components/wall/WebBookmarkEditor";
 import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
@@ -81,6 +82,8 @@ type WallFloatingUiProps = {
   onCurrencyAmountChange: (value: string) => void;
   onSetManualBaseCurrency: (value: string) => void;
   onResetToDetectedCurrency: () => void;
+  onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
+  onOpenBookmarkUrl: (url: string) => void;
 };
 
 const noteEditorSectionClass =
@@ -155,6 +158,8 @@ export const WallFloatingUi = ({
   onCurrencyAmountChange,
   onSetManualBaseCurrency,
   onResetToDetectedCurrency,
+  onSubmitBookmarkUrl,
+  onOpenBookmarkUrl,
 }: WallFloatingUiProps) => {
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
@@ -177,7 +182,19 @@ export const WallFloatingUi = ({
               onResetToDetectedCurrency={onResetToDetectedCurrency}
             />
           )}
-          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && (
+          {editingNote.noteKind === "web-bookmark" && (
+            <WebBookmarkEditor
+              key={editing.id}
+              editing={editing}
+              editingNote={editingNote}
+              camera={camera}
+              toScreenPoint={toScreenPoint}
+              onClose={() => setEditing(null)}
+              onSubmit={onSubmitBookmarkUrl}
+              onOpenUrl={onOpenBookmarkUrl}
+            />
+          )}
+          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && (
             <NoteTextEditor
               editing={editing}
               editingNote={editingNote}

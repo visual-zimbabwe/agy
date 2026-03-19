@@ -74,9 +74,32 @@ const currencySchema = z.object({
   error: z.string().optional(),
 });
 
+const bookmarkMetadataSchema = z.object({
+  url: z.string(),
+  finalUrl: z.string(),
+  title: z.string(),
+  description: z.string(),
+  siteName: z.string(),
+  domain: z.string(),
+  faviconUrl: z.string().optional(),
+  imageUrl: z.string().optional(),
+  kind: z.enum(["article", "video", "repo", "docs", "product", "post", "paper", "website"]),
+  contentType: z.string().optional(),
+});
+
+const bookmarkSchema = z.object({
+  url: z.string(),
+  normalizedUrl: z.string(),
+  metadata: bookmarkMetadataSchema.optional(),
+  status: z.enum(["idle", "loading", "ready", "error"]),
+  fetchedAt: z.number().optional(),
+  lastSuccessAt: z.number().optional(),
+  error: z.string().optional(),
+});
+
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "currency"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "currency", "web-bookmark"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -101,6 +124,7 @@ const noteSchema = z.object({
   canon: canonSchema.optional(),
   eisenhower: eisenhowerSchema.optional(),
   currency: currencySchema.optional(),
+  bookmark: bookmarkSchema.optional(),
 });
 
 const zoneSchema = z.object({
@@ -180,6 +204,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.canon does not exist") ||
         message.includes("column notes.eisenhower does not exist") ||
         message.includes("column notes.currency does not exist") ||
+        message.includes("column notes.bookmark does not exist") ||
         message.includes("column notes.text_size does not exist") ||
         message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
@@ -261,6 +286,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               canon: note.canon ?? null,
               eisenhower: note.eisenhower ?? null,
               currency: note.currency ?? null,
+              bookmark: note.bookmark ?? null,
               image_url: note.imageUrl?.trim() || null,
               text_align: note.textAlign ?? null,
               text_v_align: note.textVAlign ?? null,

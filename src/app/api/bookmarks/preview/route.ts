@@ -17,12 +17,7 @@ export async function GET(request: Request) {
 
   try {
     const result = await fetchBookmarkMetadata(url);
-    return NextResponse.json({
-      title: result.metadata.title,
-      description: result.metadata.description,
-      imageUrl: result.metadata.imageUrl ?? "",
-      hostname: result.metadata.domain,
-    });
+    return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Preview request failed." }, { status: 400 });
   }

@@ -53,6 +53,8 @@ type WallDetailsContentProps = {
   onToggleOrRefreshJokerSelectedNote: (noteId: string) => void;
   onStartLinkFromSelectedNote: (noteId: string) => void;
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
+  onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
+  onOpenBookmarkUrl: (url: string) => void;
   detailsSectionsOpen: DetailsSectionState;
   onToggleDetailsSection: (key: DetailsSectionKey) => void;
   timelineEntriesCount: number;
@@ -164,6 +166,8 @@ export const WallDetailsContent = ({
   onToggleOrRefreshJokerSelectedNote,
   onStartLinkFromSelectedNote,
   onUpdateSelectedNote,
+  onSubmitBookmarkUrl,
+  onOpenBookmarkUrl,
   detailsSectionsOpen,
   onToggleDetailsSection,
   timelineEntriesCount,
@@ -286,6 +290,8 @@ export const WallDetailsContent = ({
             onToggleOrRefreshJoker={onToggleOrRefreshJokerSelectedNote}
             onStartLink={onStartLinkFromSelectedNote}
             onUpdateNote={onUpdateSelectedNote}
+            onSubmitBookmarkUrl={onSubmitBookmarkUrl}
+            onOpenBookmarkUrl={onOpenBookmarkUrl}
           />
         </div>
       ) : null}

@@ -1,5 +1,6 @@
 import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
+import { createBookmarkNoteState, isWebBookmarkNote, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import { buildJokerPlaceholderNote, fetchJokerJoke, formatJokerNoteText, hasJokerCardBeenActivated, isJokerNote, JOKER_NOTE_SOURCE, jokerErrorText, jokerLoadingText, markJokerCardActivated, sanitizeStandardNoteColor } from "@/features/wall/joker";
 import { useWallStore } from "@/features/wall/store";
@@ -242,6 +243,30 @@ export const createEisenhowerNote = (x: number, y: number) => {
   return noteId;
 };
 
+export const createWebBookmarkNote = (x: number, y: number, url = "") => {
+  const noteId = createNote(x, y, WEB_BOOKMARK_DEFAULTS.color);
+  useWallStore.getState().patchNote(noteId, {
+    noteKind: "web-bookmark",
+    text: "",
+    quoteAuthor: undefined,
+    quoteSource: undefined,
+    vocabulary: undefined,
+    canon: undefined,
+    eisenhower: undefined,
+    currency: undefined,
+    imageUrl: undefined,
+    bookmark: createBookmarkNoteState(url),
+    textFont: WEB_BOOKMARK_DEFAULTS.textFont,
+    textColor: WEB_BOOKMARK_DEFAULTS.textColor,
+    textSizePx: WEB_BOOKMARK_DEFAULTS.textSizePx,
+    w: WEB_BOOKMARK_DEFAULTS.width,
+    h: WEB_BOOKMARK_DEFAULTS.height,
+    color: WEB_BOOKMARK_DEFAULTS.color,
+    tags: ["bookmark", "link"],
+  });
+  return noteId;
+};
+
 export const updateNote = (noteId: string, patch: Partial<Note>) => {
   const current = useWallStore.getState().notes[noteId];
   if (!current) {
@@ -276,6 +301,28 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       color: JOKER_NOTE_DEFAULTS.color,
       textColor: patch.textColor ?? current.textColor ?? JOKER_NOTE_DEFAULTS.textColor,
       tags: ["joker"],
+    });
+    return;
+  }
+
+  if (isWebBookmarkNote(current)) {
+    useWallStore.getState().patchNote(noteId, {
+      ...patch,
+      noteKind: "web-bookmark",
+      text: "",
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      canon: undefined,
+      eisenhower: undefined,
+      currency: undefined,
+      vocabulary: undefined,
+      imageUrl: undefined,
+      color: WEB_BOOKMARK_DEFAULTS.color,
+      textColor: patch.textColor ?? current.textColor ?? WEB_BOOKMARK_DEFAULTS.textColor,
+      textFont: patch.textFont ?? current.textFont ?? WEB_BOOKMARK_DEFAULTS.textFont,
+      textSizePx: patch.textSizePx ?? current.textSizePx ?? WEB_BOOKMARK_DEFAULTS.textSizePx,
+      bookmark: patch.bookmark ?? current.bookmark,
+      tags: patch.tags ?? current.tags,
     });
     return;
   }

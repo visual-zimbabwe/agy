@@ -6,6 +6,7 @@ import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
+import { inferBookmarkKindLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { jokerLoadingText } from "@/features/wall/joker";
@@ -132,6 +133,7 @@ type WallNotesLayerProps = {
   wikiLinksByNoteId: Record<string, Array<{ targetNoteId: string; title: string }>>;
   onNavigateWikiLink: (noteId: string) => void;
   editingId?: string;
+  openExternalUrl: (url: string) => void;
 };
 
 export const WallNotesLayer = ({
@@ -179,6 +181,7 @@ export const WallNotesLayer = ({
   wikiLinksByNoteId,
   onNavigateWikiLink,
   editingId,
+  openExternalUrl,
 }: WallNotesLayerProps) => {
   const previousColorRef = useRef<Record<string, string>>({});
   const previousTextSizeRef = useRef<Record<string, string>>({});
@@ -257,7 +260,13 @@ export const WallNotesLayer = ({
 
   useEffect(() => {
     let cancelled = false;
-    const urls = [...new Set(visibleNotes.map((note) => note.imageUrl?.trim()).filter((url): url is string => Boolean(url)))];
+    const urls = [
+      ...new Set(
+        visibleNotes
+          .flatMap((note) => [note.imageUrl?.trim(), note.bookmark?.metadata?.imageUrl?.trim(), note.bookmark?.metadata?.faviconUrl?.trim()])
+          .filter((url): url is string => Boolean(url)),
+      ),
+    ];
     const nextLoads = urls.filter((url) => !loadedImagesByUrl[url] && !failedImagesByUrl[url]);
     for (const url of nextLoads) {
       const image = new window.Image();
@@ -353,6 +362,7 @@ export const WallNotesLayer = ({
         const isEisenhower = noteView.noteKind === "eisenhower";
         const isJoker = noteView.noteKind === "joker";
         const isCurrency = isCurrencyNote(noteView);
+        const isBookmark = noteView.noteKind === "web-bookmark";
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
@@ -377,6 +387,13 @@ export const WallNotesLayer = ({
         const currencyAmountUsd = parseCurrencyAmountInput(currencyState?.amountInput) * (currencyState?.usdRate ?? 1);
         const currencyTrendGlyph = currencyState?.trend === "up" ? "↑" : currencyState?.trend === "down" ? "↓" : "•";
         const imageUrl = noteView.imageUrl?.trim();
+        const bookmarkState = noteView.bookmark;
+        const bookmarkMetadata = bookmarkState?.metadata;
+        const bookmarkDisplaySize = resolveBookmarkDisplaySize(noteView);
+        const bookmarkImageUrl = bookmarkMetadata?.imageUrl?.trim();
+        const bookmarkFaviconUrl = bookmarkMetadata?.faviconUrl?.trim();
+        const bookmarkImage = bookmarkImageUrl ? loadedImagesByUrl[bookmarkImageUrl] : undefined;
+        const bookmarkFavicon = bookmarkFaviconUrl ? loadedImagesByUrl[bookmarkFaviconUrl] : undefined;
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
         const isImageNote = Boolean(imageUrl);
         const imageCaption = noteView.text.trim();
@@ -385,7 +402,7 @@ export const WallNotesLayer = ({
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
-        const noteTextContent = isCurrency
+        const noteTextContent = isCurrency || isBookmark
           ? ""
           : isImageNote
           ? imageCaption
@@ -660,6 +677,118 @@ export const WallNotesLayer = ({
                 lineJoin="round"
                 tension={0.12}
               />
+            ) : isBookmark ? (
+              <>
+                <Rect
+                  width={noteView.w}
+                  height={noteView.h}
+                  cornerRadius={22}
+                  fill="#F7FBFB"
+                  stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#2b5560" : "rgba(0,71,83,0.22)"}
+                  strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.6 : 1}
+                  shadowColor="#062b32"
+                  shadowBlur={isFlashing ? 30 : isDragging ? 24 : 14}
+                  shadowOpacity={isFlashing ? 0.32 : isDragging ? 0.24 : 0.14}
+                  shadowOffsetY={isDragging ? 7 : 3}
+                />
+                <Rect width={noteView.w} height={8} cornerRadius={[22, 22, 0, 0]} fill={WEB_BOOKMARK_ACCENT} listening={false} />
+                {bookmarkDisplaySize === "expanded" && bookmarkImage ? (
+                  <>
+                    <KonvaImage x={0} y={8} width={noteView.w} height={92} image={bookmarkImage} cornerRadius={[0, 0, 18, 18]} listening={false} />
+                    <Rect x={0} y={8} width={noteView.w} height={92} fill="rgba(0,0,0,0.08)" listening={false} />
+                  </>
+                ) : null}
+                <Text
+                  x={16}
+                  y={bookmarkDisplaySize === "expanded" ? 116 : 22}
+                  width={Math.max(0, noteView.w - 32)}
+                  fontSize={bookmarkDisplaySize === "compact" ? 15 : bookmarkDisplaySize === "expanded" ? 18 : 17}
+                  fontStyle="bold"
+                  fill="#052C33"
+                  text={bookmarkMetadata?.title?.trim() || bookmarkMetadata?.domain || "Paste a URL"}
+                  ellipsis
+                  lineHeight={1.18}
+                  listening={false}
+                />
+                {bookmarkDisplaySize !== "compact" && (
+                  <Text
+                    x={16}
+                    y={bookmarkDisplaySize === "expanded" ? 152 : 52}
+                    width={Math.max(0, noteView.w - 32)}
+                    height={Math.max(0, noteView.h - (bookmarkDisplaySize === "expanded" ? 108 : 84))}
+                    fontSize={12}
+                    lineHeight={1.42}
+                    fill="rgba(5,44,51,0.72)"
+                    text={bookmarkMetadata?.description?.trim() || bookmarkState?.error || "Paste a URL to fetch bookmark metadata."}
+                    ellipsis
+                    listening={false}
+                  />
+                )}
+                <Text
+                  x={16}
+                  y={22}
+                  width={92}
+                  fontSize={10}
+                  fontStyle="bold"
+                  fill="rgba(0,71,83,0.78)"
+                  text={inferBookmarkKindLabel(bookmarkMetadata?.kind).toUpperCase()}
+                  listening={false}
+                />
+                <Group
+                  x={Math.max(16, noteView.w - 78)}
+                  y={16}
+                  onClick={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    event.cancelBubble = true;
+                    const targetUrl = bookmarkMetadata?.finalUrl || bookmarkState?.normalizedUrl || bookmarkState?.url;
+                    if (targetUrl) {
+                      openExternalUrl(targetUrl);
+                    }
+                  }}
+                  onTap={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    event.cancelBubble = true;
+                    const targetUrl = bookmarkMetadata?.finalUrl || bookmarkState?.normalizedUrl || bookmarkState?.url;
+                    if (targetUrl) {
+                      openExternalUrl(targetUrl);
+                    }
+                  }}
+                >
+                  <Rect width={62} height={22} cornerRadius={11} fill="rgba(0,71,83,0.10)" stroke="rgba(0,71,83,0.20)" strokeWidth={1} />
+                  <Text x={0} y={6} width={62} align="center" fontSize={10} fontStyle="bold" fill="#0B3F49" text="OPEN" />
+                </Group>
+                <Group x={16} y={Math.max(16, noteView.h - 34)} listening={false}>
+                  {bookmarkFavicon ? (
+                    <KonvaImage x={0} y={0} width={16} height={16} image={bookmarkFavicon} cornerRadius={4} listening={false} />
+                  ) : (
+                    <Rect x={0} y={0} width={16} height={16} cornerRadius={4} fill={WEB_BOOKMARK_ACCENT} listening={false} />
+                  )}
+                  <Text
+                    x={24}
+                    y={1}
+                    width={Math.max(0, noteView.w - 130)}
+                    fontSize={11}
+                    fill="rgba(5,44,51,0.74)"
+                    text={bookmarkMetadata?.siteName?.trim() || bookmarkMetadata?.domain || bookmarkState?.normalizedUrl || "Website"}
+                    ellipsis
+                    listening={false}
+                  />
+                  <Text
+                    x={Math.max(88, noteView.w - 112)}
+                    y={1}
+                    width={96}
+                    align="right"
+                    fontSize={10}
+                    fill="rgba(5,44,51,0.52)"
+                    text={bookmarkState?.status === "ready" ? "Updated" : bookmarkState?.status === "loading" ? "Fetching" : bookmarkState?.status === "error" ? "Retry needed" : "Preview"}
+                    listening={false}
+                  />
+                </Group>
+              </>
             ) : isImageNote && imageNoteLayout ? (
               <>
                 <Rect
@@ -685,21 +814,7 @@ export const WallNotesLayer = ({
                     cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
                     listening={false}
                   />
-                ) : isEisenhower ? (
-              <EisenhowerMatrixNote
-                note={noteView}
-                isSelected={isSelected}
-                isHovered={isHovered}
-                isDragging={isDragging}
-                isFlashing={isFlashing}
-                isHighlighted={isHighlighted}
-                colorWashOpacity={colorWashOpacity}
-                textSpringFactor={textSpringFactor}
-                openEditor={openEditor}
-                selectSingleNote={selectSingleNote}
-                isTimeLocked={isTimeLocked}
-              />
-            ) : (
+                ) : (
                   <>
                     <Rect
                       x={IMAGE_NOTE_PADDING}
@@ -883,7 +998,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isImageNote && !isEisenhower && !isCurrency && (
+            {!isImageNote && !isEisenhower && !isCurrency && !isBookmark && (
               <Text
                 x={textX}
                 y={textY}
@@ -952,7 +1067,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && (
+            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isBookmark && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;

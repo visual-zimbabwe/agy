@@ -23,8 +23,11 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 - quote note creation
 - Eisenhower Matrix note creation
 - canon note creation
+- web bookmark note creation
 
 These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands.
+
+Web bookmark notes create a rich preview card from a URL using a server-side metadata fetch route. The card stores the original URL, normalized URL, sanitized metadata, fetch timestamps, and status so the wall can render cached previews without re-requesting metadata on every render.
 
 Image note creation now supports three insert sources from the wall image modal:
 
@@ -43,6 +46,7 @@ Current wall note kinds include:
 - `eisenhower`
 - joker 
 - `currency`
+- `web-bookmark`
 In addition to explicit `noteKind`, notes can also carry vocabulary review payloads, which makes vocabulary notes a meaningful note workflow even when not represented as a separate `noteKind` enum value.
 
 ## Note Fields
@@ -60,6 +64,7 @@ Important fields include:
 - Eisenhower payload
 - Joker note source metadata from JokeAPI
 - currency payload for detected region, live USD rate, cache state, trend, and converter input
+- web bookmark payload for normalized URL, sanitized metadata, fetch status, last success, and error state
 - vocabulary payload
 - image URL
 - Unsplash-sourced image URLs
