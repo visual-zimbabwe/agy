@@ -20,6 +20,7 @@ type UseWallViewStateOptions = {
   activeSelectedNoteIds: string[];
   selectedNotes: Note[];
   hoveredNoteId?: string;
+  draggingNoteId?: string;
   camera: { x: number; y: number; zoom: number };
   publishedReadOnly: boolean;
 };
@@ -33,6 +34,7 @@ export const useWallViewState = ({
   activeSelectedNoteIds,
   selectedNotes,
   hoveredNoteId,
+  draggingNoteId,
   camera,
   publishedReadOnly,
 }: UseWallViewStateOptions) => {
@@ -64,7 +66,7 @@ export const useWallViewState = ({
   const tagPreviewNote = hoveredNoteId ? notesById[hoveredNoteId] : primarySelectedNote;
   const tagPreviewPalette = tagPreviewNote ? noteTagChipPalette(tagPreviewNote.color) : undefined;
   const tagPreviewScreen =
-    tagPreviewNote && tagPreviewNote.tags.length > 0
+    tagPreviewNote && tagPreviewNote.tags.length > 0 && tagPreviewNote.id !== draggingNoteId
       ? toScreenPoint(tagPreviewNote.x + tagPreviewNote.w / 2, tagPreviewNote.y - 10, camera)
       : undefined;
 

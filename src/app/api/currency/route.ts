@@ -27,9 +27,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid base currency" }, { status: 400 });
   }
 
-  const apiKey = process.env.CURRENCY_API_KEY;
+  const apiKey = process.env.CURRENCY_API_KEY ?? process.env.CURRENCYAPI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: "Missing CURRENCY_API_KEY" }, { status: 503 });
+    return NextResponse.json({ error: "Missing CURRENCY_API_KEY or CURRENCYAPI_API_KEY" }, { status: 503 });
   }
 
   const upstreamUrl = new URL("https://api.currencyapi.com/v3/latest");

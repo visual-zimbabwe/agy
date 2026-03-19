@@ -1798,6 +1798,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     activeSelectedNoteIds,
     selectedNotes,
     hoveredNoteId,
+    draggingNoteId,
     camera,
     publishedReadOnly,
   });

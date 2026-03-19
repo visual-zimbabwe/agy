@@ -80,6 +80,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 UNSPLASH_ACCESS_KEY=your-unsplash-access-key
 CURRENCY_API_KEY=your-currencyapi-com-api-key
+# or, if you already use CurrencyAPI's naming
+CURRENCYAPI_API_KEY=your-currencyapi-com-api-key
 ```
 
 If you are setting up a fresh environment, apply the required Supabase migrations from `supabase/migrations/`.
