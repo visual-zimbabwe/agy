@@ -6,7 +6,7 @@ import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
-import { CURRENCY_NOTE_BORDER, CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
+import { CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { jokerLoadingText } from "@/features/wall/joker";
 import type { LinkType, Note } from "@/features/wall/types";
@@ -807,17 +807,6 @@ export const WallNotesLayer = ({
                 <Text x={18} y={17} width={Math.max(0, noteView.w - 120)} fontSize={11} fontStyle="bold" fill="#3F1277" text="JOKER CARD" listening={false} />
                 <Text x={Math.max(18, noteView.w - 108)} y={17} width={90} align="right" fontSize={10} fontStyle="bold" fill="#4C1D95" text={noteView.quoteSource?.trim() || "Fresh joke"} listening={false} />
               </>
-            )}
-            {isCurrency && (
-              <Rect
-                width={noteView.w}
-                height={noteView.h}
-                cornerRadius={14}
-                stroke={CURRENCY_NOTE_BORDER}
-                strokeWidth={1.3}
-                opacity={0.88}
-                dash={[8, 5]}
-              />
             )}
             {isHighlighted && (
               <Rect
