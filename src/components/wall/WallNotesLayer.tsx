@@ -6,7 +6,7 @@ import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
-import { bookmarkUrlLabel, inferBookmarkKindLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
+import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { jokerLoadingText } from "@/features/wall/joker";
@@ -706,16 +706,6 @@ export const WallNotesLayer = ({
 
                   return (
                     <>
-                      <Text
-                        x={16}
-                        y={14}
-                        width={72}
-                        fontSize={10}
-                        fontStyle="bold"
-                        fill="rgba(0,71,83,0.76)"
-                        text={inferBookmarkKindLabel(bookmarkMetadata?.kind).toUpperCase()}
-                        listening={false}
-                      />
                       <Group
                         x={Math.max(16, noteView.w - 84)}
                         y={14}
@@ -1236,6 +1226,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 
