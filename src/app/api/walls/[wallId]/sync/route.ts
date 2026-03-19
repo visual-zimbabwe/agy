@@ -57,7 +57,7 @@ const eisenhowerSchema = z.object({
 
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -447,6 +447,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     serverTime: Date.now(),
   });
 }
+
 
 
 

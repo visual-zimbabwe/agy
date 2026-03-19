@@ -5,6 +5,7 @@ import { useEffect, useRef, type MutableRefObject } from "react";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
 import type { Note } from "@/features/wall/types";
+import { JOKER_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/joker";
 import { readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 
 type Camera = { x: number; y: number; zoom: number };
@@ -157,17 +158,19 @@ export const useWallKeyboard = ({
         return;
       }
       const { patchNote, setLastColor } = useWallStore.getState();
+      const safeColor = sanitizeStandardNoteColor(color, ui.lastColor);
 
       const targetIds = selectedNoteIds.length > 0 ? selectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
       if (targetIds.length === 0) {
-        setLastColor(color);
+        setLastColor(safeColor);
         return;
       }
 
       for (const noteId of targetIds) {
-        patchNote(noteId, { color });
+        const note = notesMap[noteId];
+        patchNote(noteId, { color: note?.noteKind === "joker" ? JOKER_NOTE_COLOR : safeColor });
       }
-      setLastColor(color);
+      setLastColor(safeColor);
     };
 
     const applyColorByIndex = (index: number) => {
@@ -345,10 +348,12 @@ export const useWallKeyboard = ({
         event.preventDefault();
         const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
         const createdId = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor);
-        const createdNote = notesMap[createdId];
+        const createdNote = useWallStore.getState().notes[createdId];
         setSelectedNoteIds([createdId]);
         selectNote(createdId);
-        openEditor(createdId, createdNote?.text ?? "");
+        if (createdNote?.noteKind !== "joker") {
+          openEditor(createdId, createdNote?.text ?? "");
+        }
         return;
       }
 
@@ -582,6 +587,9 @@ export const useWallKeyboard = ({
     viewport,
   ]);
 };
+
+
+
 
 
 

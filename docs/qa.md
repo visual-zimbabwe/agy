@@ -142,6 +142,20 @@ Expected:
 - Page state (blocks + camera) persists after refresh.
 
 
+## Joker Card (`/wall`) (2026-03-19)
+1. Sign in with a fresh wall state and open `/wall`.
+2. Verify a dedicated Joker card appears automatically.
+3. Confirm it uses a bright green color not shared by regular notes and shows a JokeAPI-backed joke.
+4. Delete the Joker card.
+5. Create one new standard note from the tools panel or with `N`.
+6. Verify that single new note becomes the Joker card.
+7. Create another standard note and verify it stays a normal standard note.
+8. Try color shortcuts on a normal note and verify the Joker green is not applied.
+
+Expected:
+- Empty walls seed one Joker card automatically.
+- Deleting the Joker card only affects the next manually created standard note, not every future note.
+- The Joker color remains reserved for the Joker card.
 ## Wall Note Editing UI (`/wall`) (2026-03-16)
 1. Open `/wall`, double-click a standard note to enter edit mode, and confirm no persistent formatting toolbar is shown before text selection.
 2. Select a word or phrase inside the note and verify a compact toolbar fades in above the selection, centered on the highlighted text.
@@ -1025,3 +1039,4 @@ Expected:
 - Eisenhower Matrix notes can be created from the UI, command palette, and keyboard shortcut.
 - The note renders as one polished card with four clearly labeled, independently editable quadrants.
 - Date, footer task count, compact mode, and persistence behave like native wall features rather than an add-on.
+

@@ -155,7 +155,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
   if (!id) {
     return null;
   }
-  const noteKind = entry.noteKind === "quote" || entry.noteKind === "canon" || entry.noteKind === "journal" || entry.noteKind === "eisenhower" ? entry.noteKind : "standard";
+  const noteKind = entry.noteKind === "quote" || entry.noteKind === "canon" || entry.noteKind === "journal" || entry.noteKind === "eisenhower" || entry.noteKind === "joker" ? entry.noteKind : "standard";
   return {
     id,
     noteKind,
@@ -292,5 +292,6 @@ export const parseTimelinePayload = (payload: string): PersistedWallState | null
     return null;
   }
 };
+
 
 

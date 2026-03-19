@@ -7,6 +7,7 @@ import type Konva from "konva";
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
+import { jokerLoadingText } from "@/features/wall/joker";
 import type { LinkType, Note } from "@/features/wall/types";
 
 type GuideLineState = {
@@ -349,6 +350,7 @@ export const WallNotesLayer = ({
         const isCanon = noteView.noteKind === "canon";
         const isJournal = noteView.noteKind === "journal";
         const isEisenhower = noteView.noteKind === "eisenhower";
+        const isJoker = noteView.noteKind === "joker";
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
@@ -367,7 +369,7 @@ export const WallNotesLayer = ({
         const journalWritingX = 56;
         const journalFirstLineY = 30;
         const journalLineGap = 31;
-        const textX = isQuote ? 18 : isJournal ? journalWritingX : 12;
+        const textX = isJoker ? 14 : isQuote ? 18 : isJournal ? journalWritingX : 12;
         const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalWritingX + 18 : 24));
         const imageUrl = noteView.imageUrl?.trim();
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
@@ -380,6 +382,8 @@ export const WallNotesLayer = ({
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
         const noteTextContent = isImageNote
           ? imageCaption
+          : isJoker
+            ? truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - 86, 40) }) || jokerLoadingText
           : isVocabulary
             ? isVocabularyBack
               ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
@@ -400,7 +404,7 @@ export const WallNotesLayer = ({
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
         const tagPalette = noteTagChipPalette(noteView.color);
-        const textY = isImageNote ? 0 : 12 + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
+        const textY = isImageNote ? 0 : isJoker ? 52 : 12 + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
         const textHeight = isImageNote
           ? 0
           : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 43 : 0) - wikiFooterHeight);
@@ -777,6 +781,13 @@ export const WallNotesLayer = ({
                 shadowOffsetY={isDragging ? 7 : 3}
               />
             )}
+            {isJoker && (
+              <>
+                <Rect x={10} y={10} width={Math.max(1, noteView.w - 20)} height={30} cornerRadius={10} fill="rgba(46,16,101,0.12)" listening={false} />
+                <Text x={18} y={17} width={Math.max(0, noteView.w - 120)} fontSize={11} fontStyle="bold" fill="#3F1277" text="JOKER CARD" listening={false} />
+                <Text x={Math.max(18, noteView.w - 108)} y={17} width={90} align="right" fontSize={10} fontStyle="bold" fill="#4C1D95" text={noteView.quoteSource?.trim() || "Fresh joke"} listening={false} />
+              </>
+            )}
             {isHighlighted && (
               <Rect
                 width={noteView.w}
@@ -921,7 +932,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && (
+            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;
@@ -973,6 +984,18 @@ export const WallNotesLayer = ({
                 })}
               </>
             )}
+            {isJoker && (
+              <Text
+                x={14}
+                y={Math.max(12, noteView.h - 22)}
+                width={Math.max(0, noteView.w - 28)}
+                fontSize={10}
+                fontStyle="bold"
+                fill="#4C1D95"
+                text="jokeapi.dev"
+                listening={false}
+              />
+            )}
             {isVocabulary && (
               <Text
                 x={12}
@@ -992,7 +1015,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isImageNote && !isEisenhower &&
+            {showNoteTags && !isImageNote && !isEisenhower && !isJoker &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -1017,7 +1040,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isImageNote && !isEisenhower && overflowTags > 0 && (
+            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}
@@ -1034,6 +1057,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 

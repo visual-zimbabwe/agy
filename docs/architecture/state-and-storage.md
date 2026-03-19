@@ -40,6 +40,7 @@ Wall notes can also contain richer payloads such as:
 - canon payloads
 - vocabulary review state
 - Eisenhower payloads
+- Joker card metadata via `noteKind`, note body text, and source fields
 - image URLs
 - text formatting and visual flags
 
@@ -182,5 +183,6 @@ Page persistence does not currently expose the same explicit entity-level merge 
 - `docs/api/walls.md`
 - `docs/api/page.md`
 - `docs/runbooks/sync-debugging.md`
+
 
 

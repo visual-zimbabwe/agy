@@ -81,6 +81,7 @@ import {
   createJournalNote,
   createQuoteNote,
   createEisenhowerNote,
+  createUserStandardNote,
   createLink,
   createZone,
   createZoneGroup,
@@ -1123,7 +1124,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setPresentationMode,
     setPresentationIndex,
     setReadingMode,
-    createNote,
+    createNote: createUserStandardNote,
     createCanonNote: makeCanonNoteAtViewportCenter,
     createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
@@ -1464,7 +1465,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setLastColor,
     syncPrimarySelection,
     toWorldPoint,
-    createNote,
+    createNote: createUserStandardNote,
     createZone,
     applyTemplate,
     updateNote,
@@ -2774,6 +2775,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
+
 
 
 

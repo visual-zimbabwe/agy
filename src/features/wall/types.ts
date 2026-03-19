@@ -70,7 +70,7 @@ export type EisenhowerNote = {
 
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
@@ -200,4 +200,5 @@ export type WallState = {
 export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links" | "camera"> & {
   lastColor?: string;
 };
+
 

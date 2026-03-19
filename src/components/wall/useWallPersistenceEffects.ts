@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
+import { createJokerNote, refreshJokerNote } from "@/features/wall/commands";
 import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
+import { hasJokerCardBeenActivated, jokerErrorText, jokerLoadingText, markJokerCardActivated } from "@/features/wall/joker";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
@@ -52,12 +54,31 @@ export const useWallPersistenceEffects = ({
     const timer = cloudSyncTimerRef.current;
     let cancelled = false;
 
+    const finalizeJokerState = (snapshot: PersistedWallState, allowSeed: boolean) => {
+      const jokerNotes = Object.values(snapshot.notes).filter((note) => note.noteKind === "joker");
+      if (jokerNotes.length > 0) {
+        markJokerCardActivated();
+        jokerNotes.forEach((note) => {
+          if (note.text === jokerLoadingText || note.text === jokerErrorText) {
+            refreshJokerNote(note.id);
+          }
+        });
+        return;
+      }
+
+      if (allowSeed && !publishedReadOnly && !hasJokerCardBeenActivated() && !hasContent(snapshot)) {
+        createJokerNote(-120, -92, { select: false, pendingReplacement: false });
+        lastPersistedSerializedRef.current = JSON.stringify(selectPersistedSnapshot(useWallStore.getState()));
+      }
+    };
+
     const load = async () => {
       const [snapshot, loadedTimeline] = await Promise.all([loadWallSnapshot(), loadTimelineEntries(500)]);
       lastPersistedSerializedRef.current = JSON.stringify(snapshot);
 
       if (!cancelled) {
         hydrate(snapshot);
+        finalizeJokerState(snapshot, false);
         setTimelineEntries(loadedTimeline);
         if (loadedTimeline.length > 0) {
           setTimelineIndex(loadedTimeline.length - 1);
@@ -126,11 +147,13 @@ export const useWallPersistenceEffects = ({
 
         if (!cancelled) {
           hydrate(nextSnapshot);
+          finalizeJokerState(nextSnapshot, true);
           cloudReadyRef.current = true;
           setSyncError(null);
         }
       } catch (error) {
         if (!cancelled) {
+          finalizeJokerState(snapshot, true);
           const message = error instanceof Error ? error.message : "Cloud sync unavailable";
           setSyncError(message);
           cloudReadyRef.current = false;
@@ -196,5 +219,7 @@ export const useWallPersistenceEffects = ({
     syncSnapshotToCloud,
   ]);
 };
+
+
 
 

@@ -7,7 +7,9 @@ import {
   createCanonNote,
   createJournalNote,
   createEisenhowerNote,
+  createJokerNote,
   createNote,
+  createUserStandardNote,
   createQuoteNote,
   createZone,
   createZoneGroup,
@@ -17,6 +19,7 @@ import {
   toggleNoteGroupCollapse,
 } from "@/features/wall/commands";
 import { NOTE_COLORS } from "@/features/wall/constants";
+import { JOKER_NOTE_COLOR, setJokerReplacementPending } from "@/features/wall/joker";
 import { useWallStore } from "@/features/wall/store";
 import type { PersistedWallState } from "@/features/wall/types";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -172,6 +175,24 @@ describe("wall commands", () => {
     expect(group.collapsed).toBe(true);
   });
 
+
+  it("creates a dedicated joker note and keeps its unique color", () => {
+    const jokerId = createJokerNote(80, 120, { select: false });
+    const joker = useWallStore.getState().notes[jokerId];
+    expect(joker?.noteKind).toBe("joker");
+    expect(joker?.color).toBe(JOKER_NOTE_COLOR);
+    expect(joker?.quoteAuthor).toBe("JokeAPI");
+  });
+
+  it("recreates the joker card only for the next user-created standard note", () => {
+    setJokerReplacementPending(true);
+    const createdId = createUserStandardNote(100, 160);
+    const created = useWallStore.getState().notes[createdId];
+    expect(created?.noteKind).toBe("joker");
+
+    const secondId = createUserStandardNote(140, 200);
+    expect(useWallStore.getState().notes[secondId]?.noteKind).toBe("standard");
+  });
   it("merges notes and rewires relationships", () => {
     const keepId = createNote(0, 0);
     const mergeId = createNote(240, 0);
@@ -194,5 +215,7 @@ describe("wall commands", () => {
     expect(links[0]?.toNoteId).toBe(tailId);
   });
 });
+
+
 
 

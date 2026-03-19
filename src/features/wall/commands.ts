@@ -1,5 +1,6 @@
-import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
+import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
+import { buildJokerPlaceholderNote, fetchJokerJoke, formatJokerNoteText, hasJokerCard, hasJokerCardBeenActivated, isJokerNote, isJokerReplacementPending, JOKER_NOTE_SOURCE, jokerErrorText, jokerLoadingText, markJokerCardActivated, sanitizeStandardNoteColor, setJokerReplacementPending } from "@/features/wall/joker";
 import { useWallStore } from "@/features/wall/store";
 import type { Link, LinkType, Note, NoteGroup, TemplateType, Zone, ZoneGroup, ZoneKind } from "@/features/wall/types";
 
@@ -24,9 +25,9 @@ const withHistoryGroup = <T>(run: () => T): T => {
   }
 };
 
-export const createNote = (x: number, y: number, color?: string) => {
+const createStandardNote = (x: number, y: number, color?: string) => {
   const now = Date.now();
-  const chosenColor = color ?? useWallStore.getState().ui.lastColor ?? firstColor(NOTE_COLORS, "#FEEA89");
+  const chosenColor = sanitizeStandardNoteColor(color ?? useWallStore.getState().ui.lastColor ?? firstColor(NOTE_COLORS, "#FEEA89"));
   const note: Note = {
     id: makeId(),
     noteKind: "standard",
@@ -59,6 +60,75 @@ export const createNote = (x: number, y: number, color?: string) => {
 
   return note.id;
 };
+
+const populateJokerNote = async (noteId: string) => {
+  try {
+    const joke = await fetchJokerJoke();
+    const note = useWallStore.getState().notes[noteId];
+    if (!note || !isJokerNote(note)) {
+      return;
+    }
+
+    useWallStore.getState().patchNote(noteId, {
+      text: formatJokerNoteText(joke),
+      quoteAuthor: JOKER_NOTE_SOURCE,
+      quoteSource: joke.category,
+      textColor: JOKER_NOTE_DEFAULTS.textColor,
+    });
+  } catch {
+    const note = useWallStore.getState().notes[noteId];
+    if (!note || !isJokerNote(note)) {
+      return;
+    }
+
+    useWallStore.getState().patchNote(noteId, {
+      text: jokerErrorText,
+      quoteAuthor: JOKER_NOTE_SOURCE,
+      quoteSource: "Unavailable",
+      textColor: JOKER_NOTE_DEFAULTS.textColor,
+    });
+  }
+};
+
+export const refreshJokerNote = (noteId: string) => {
+  const note = useWallStore.getState().notes[noteId];
+  if (!note || !isJokerNote(note)) {
+    return;
+  }
+
+  useWallStore.getState().patchNote(noteId, {
+    text: jokerLoadingText,
+    quoteAuthor: JOKER_NOTE_SOURCE,
+    quoteSource: "Loading...",
+    textColor: JOKER_NOTE_DEFAULTS.textColor,
+  });
+  void populateJokerNote(noteId);
+};
+
+export const createJokerNote = (x: number, y: number, options?: { select?: boolean; markLifecycle?: boolean; pendingReplacement?: boolean }) => {
+  const now = Date.now();
+  const note = buildJokerPlaceholderNote(makeId(), x, y, now);
+  const { upsertNote, selectNote } = useWallStore.getState();
+  upsertNote(note);
+  if (options?.select !== false) {
+    selectNote(note.id);
+  }
+  if (options?.markLifecycle !== false) {
+    markJokerCardActivated();
+  }
+  setJokerReplacementPending(options?.pendingReplacement ?? false);
+  void populateJokerNote(note.id);
+  return note.id;
+};
+
+export const createUserStandardNote = (x: number, y: number, color?: string) => {
+  if (hasJokerCardBeenActivated() && isJokerReplacementPending() && !hasJokerCard(useWallStore.getState().notes)) {
+    return createJokerNote(x, y, { markLifecycle: false, pendingReplacement: false });
+  }
+  return createStandardNote(x, y, color);
+};
+
+export const createNote = (x: number, y: number, color?: string) => createStandardNote(x, y, color);
 
 export const createQuoteNote = (x: number, y: number, color?: string) => {
   const noteId = createNote(x, y, color);
@@ -145,7 +215,26 @@ export const createEisenhowerNote = (x: number, y: number) => {
 };
 
 export const updateNote = (noteId: string, patch: Partial<Note>) => {
-  useWallStore.getState().patchNote(noteId, patch);
+  const current = useWallStore.getState().notes[noteId];
+  if (!current) {
+    return;
+  }
+
+  if (isJokerNote(current)) {
+    useWallStore.getState().patchNote(noteId, {
+      ...patch,
+      noteKind: "joker",
+      color: JOKER_NOTE_DEFAULTS.color,
+      textColor: patch.textColor ?? current.textColor ?? JOKER_NOTE_DEFAULTS.textColor,
+      tags: ["joker"],
+    });
+    return;
+  }
+
+  useWallStore.getState().patchNote(noteId, {
+    ...patch,
+    color: patch.color ? sanitizeStandardNoteColor(patch.color, current.color) : patch.color,
+  });
 };
 
 export const moveNote = (noteId: string, x: number, y: number) => {
@@ -157,7 +246,11 @@ export const moveNote = (noteId: string, x: number, y: number) => {
 };
 
 export const deleteNote = (noteId: string) => {
+  const note = useWallStore.getState().notes[noteId];
   useWallStore.getState().removeNote(noteId);
+  if (note && isJokerNote(note)) {
+    setJokerReplacementPending(true);
+  }
 };
 
 const normalizeNoteText = (text: string) => text.trim().toLowerCase().replace(/\s+/g, " ").replace(/[^a-z0-9 ]+/g, "");
@@ -264,6 +357,11 @@ export const duplicateNote = (noteId: string) => {
   const duplicated: Note = {
     ...current,
     id: makeId(),
+    noteKind: isJokerNote(current) ? "standard" : current.noteKind,
+    quoteAuthor: isJokerNote(current) ? undefined : current.quoteAuthor,
+    quoteSource: isJokerNote(current) ? undefined : current.quoteSource,
+    tags: isJokerNote(current) ? [] : current.tags,
+    color: isJokerNote(current) ? sanitizeStandardNoteColor(undefined) : current.color,
     x: current.x + 24,
     y: current.y + 24,
     createdAt: now,
@@ -285,6 +383,11 @@ export const duplicateNoteAt = (noteId: string, x: number, y: number) => {
   const duplicated: Note = {
     ...current,
     id: makeId(),
+    noteKind: isJokerNote(current) ? "standard" : current.noteKind,
+    quoteAuthor: isJokerNote(current) ? undefined : current.quoteAuthor,
+    quoteSource: isJokerNote(current) ? undefined : current.quoteSource,
+    tags: isJokerNote(current) ? [] : current.tags,
+    color: isJokerNote(current) ? sanitizeStandardNoteColor(undefined) : current.color,
     x,
     y,
     createdAt: now,
@@ -634,5 +737,9 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
     state.selectGroup(groupId);
   });
 };
+
+
+
+
 
 

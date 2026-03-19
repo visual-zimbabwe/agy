@@ -10,7 +10,7 @@ This covers current note kinds, creation surfaces, related organization primitiv
 
 ## Behavior
 
-Wall notes are not limited to plain sticky-note text.
+Wall notes are not limited to plain sticky-note text. A fresh wall now seeds one Joker card that fetches a joke from JokeAPI, and if the user deletes it the very next manually created standard note is repurposed into the Joker card.
 
 Current note creation entry points include:
 
@@ -38,6 +38,7 @@ Current wall note kinds include:
 - `canon`
 - `journal`
 - `eisenhower`
+- `joker`
 
 In addition to explicit `noteKind`, notes can also carry vocabulary review payloads, which makes vocabulary notes a meaningful note workflow even when not represented as a separate `noteKind` enum value.
 
@@ -54,6 +55,7 @@ Important fields include:
 - quote author and source
 - canon payload
 - Eisenhower payload
+- Joker note source metadata from JokeAPI
 - vocabulary payload
 - image URL
 - Unsplash-sourced image URLs
@@ -95,3 +97,4 @@ This makes notes the core unit of wall content, but not the only structural elem
 - `docs/architecture/state-and-storage.md`
 - `docs/features/search-and-retrieval.md`
 - `docs/features/timeline-view.md`
+

@@ -38,6 +38,15 @@ export const EISENHOWER_NOTE_DEFAULTS = {
   textSizePx: 14,
 };
 
+export const JOKER_NOTE_DEFAULTS = {
+  color: "#D6FF57",
+  width: 240,
+  height: 184,
+  textColor: "#2E1065",
+  textFont: "nunito" as const,
+  textSizePx: 17,
+};
+
 export const NOTE_TEXT_SIZES = [
   { value: "sm", label: "S", fontSize: 14, lineHeight: 1.32 },
   { value: "md", label: "M", fontSize: 17, lineHeight: 1.35 },
@@ -109,5 +118,6 @@ export const TEMPLATE_TYPES = [
 ] as const;
 
 export const GROUP_COLORS = ["#FB7185", "#22C55E", "#3B82F6", "#F59E0B", "#A855F7"] as const;
+
 
 

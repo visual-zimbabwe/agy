@@ -238,7 +238,7 @@ export const rowsToSnapshot = (rows: {
 }): PersistedWallState => ({
   notes: Object.fromEntries(
     rows.notes.map((note) => {
-      const noteKind = note.note_kind === "quote" || note.note_kind === "canon" || note.note_kind === "journal" || note.note_kind === "eisenhower" ? note.note_kind : "standard";
+      const noteKind = note.note_kind === "quote" || note.note_kind === "canon" || note.note_kind === "journal" || note.note_kind === "eisenhower" || note.note_kind === "joker" ? note.note_kind : "standard";
       return [
         note.id,
         {
@@ -340,6 +340,7 @@ export const rowsToSnapshot = (rows: {
   },
   lastColor: rows.wall.last_color ?? undefined,
 });
+
 
 
 

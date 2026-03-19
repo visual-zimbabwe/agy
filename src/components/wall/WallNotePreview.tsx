@@ -23,6 +23,7 @@ type RendererProps = WallNotePreviewProps & {
   softText: string;
   activeBackground: string;
   activeText: string;
+  exactTextColor: string;
   textFontFamily: string;
   baseFontSize: number;
   baseLineHeight: number;
@@ -155,7 +156,7 @@ const QuoteRenderer = ({ note, width, height, readableText, mutedText, textFontF
   </NoteShell>
 );
 
-const JournalRenderer = ({ note, width, height, readableText, textFontFamily, baseFontSize, bodyClamp, tone }: RendererProps) => {
+const JournalRenderer = ({ note, width, height, exactTextColor, textFontFamily, baseFontSize, bodyClamp, tone }: RendererProps) => {
   const dateLabel = formatJournalDateLabel(note.createdAt);
   const lineCount = Math.max(4, Math.floor(height / 32));
   const lines = Array.from({ length: lineCount }, (_, index) => 28 + index * 31);
@@ -167,15 +168,15 @@ const JournalRenderer = ({ note, width, height, readableText, textFontFamily, ba
           <div key={`${note.id}-line-${line}`} className="absolute left-3 right-3 border-t border-[rgba(233,233,233,0.92)]" style={{ top: `${line}px` }} />
         ))}
         <div className="relative z-10 pl-11 pt-0.5">
-          <p className="text-[13px]" style={{ color: readableText, fontFamily: textFontFamily }}>{dateLabel}</p>
-          <div className="mt-1 h-px w-28 max-w-full" style={{ background: readableText, opacity: 0.82 }} />
+          <p className="text-[13px]" style={{ color: exactTextColor, fontFamily: textFontFamily }}>{dateLabel}</p>
+          <div className="mt-1 h-px w-28 max-w-full" style={{ background: exactTextColor, opacity: 0.82 }} />
         </div>
         <div className="relative z-10 mt-4 h-[calc(100%-58px)] pl-11">
           <p
             className="whitespace-pre-wrap [overflow-wrap:anywhere]"
             style={{
               ...lineClampStyle(tone === "detail" ? 999 : bodyClamp),
-              color: readableText,
+              color: exactTextColor,
               fontFamily: textFontFamily,
               fontSize: Math.max(16, baseFontSize),
               lineHeight: 1.72,
@@ -351,6 +352,9 @@ const resolveRendererKey = (note: Note) => {
   if (note.vocabulary) {
     return "vocabulary";
   }
+  if (note.noteKind === "joker") {
+    return "quote";
+  }
   if (note.noteKind && note.noteKind in noteRenderers) {
     return note.noteKind;
   }
@@ -378,6 +382,7 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
         softText: colors.softText,
         activeBackground: colors.activeBackground,
         activeText: colors.activeText,
+        exactTextColor: note.textColor || NOTE_DEFAULTS.textColor,
         textFontFamily: getNoteTextFontFamily(note.textFont),
         baseFontSize: textStyle.fontSize,
         baseLineHeight: textStyle.lineHeight,
@@ -387,6 +392,11 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
     </div>
   );
 });
+
+
+
+
+
 
 
 
