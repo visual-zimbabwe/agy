@@ -132,35 +132,37 @@ export const UnsplashPicker = ({
       )}
 
       {results.length > 0 ? (
-        <div className={`grid gap-3 ${compact ? "grid-cols-2" : "grid-cols-3"}`}>
-          {results.map((photo) => {
-            const selected = selectedIds.includes(photo.id);
-            return (
-              <div
-                key={photo.id}
-                className={`overflow-hidden rounded-[24px] border bg-white shadow-sm transition ${selected ? "border-[var(--color-focus)] ring-2 ring-[var(--color-focus)]/25" : "border-[var(--color-border)]"}`}
-              >
-                <button
-                  type="button"
-                  className="block w-full text-left"
-                  onClick={() => {
-                    if (selectionMode === "multi") {
-                      toggleSelection(photo.id);
-                      return;
-                    }
-                    void handleSingleSelect(photo);
-                  }}
-                  disabled={submitting}
+        <div className="max-h-[min(60vh,38rem)] overflow-y-auto pr-1">
+          <div className={`grid gap-3 ${compact ? "grid-cols-2" : "grid-cols-3"}`}>
+            {results.map((photo) => {
+              const selected = selectedIds.includes(photo.id);
+              return (
+                <div
+                  key={photo.id}
+                  className={`overflow-hidden rounded-[24px] border bg-white shadow-sm transition ${selected ? "border-[var(--color-focus)] ring-2 ring-[var(--color-focus)]/25" : "border-[var(--color-border)]"}`}
                 >
-                  <Image src={photo.urls.small} alt={photo.alt} width={photo.width} height={photo.height} unoptimized className={`w-full object-cover ${compact ? "h-28" : "h-36"}`} />
-                  <div className="space-y-1 px-3 py-2.5">
-                    <p className="line-clamp-2 text-sm font-medium text-[var(--color-text)]">{photo.alt}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">Photo by {photo.user.name}</p>
-                  </div>
-                </button>
-              </div>
-            );
-          })}
+                  <button
+                    type="button"
+                    className="block w-full text-left"
+                    onClick={() => {
+                      if (selectionMode === "multi") {
+                        toggleSelection(photo.id);
+                        return;
+                      }
+                      void handleSingleSelect(photo);
+                    }}
+                    disabled={submitting}
+                  >
+                    <Image src={photo.urls.small} alt={photo.alt} width={photo.width} height={photo.height} unoptimized className={`w-full object-cover ${compact ? "h-28" : "h-36"}`} />
+                    <div className="space-y-1 px-3 py-2.5">
+                      <p className="line-clamp-2 text-sm font-medium text-[var(--color-text)]">{photo.alt}</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">Photo by {photo.user.name}</p>
+                    </div>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-6 text-center text-sm text-[var(--color-text-muted)]">
