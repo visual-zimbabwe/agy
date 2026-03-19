@@ -71,7 +71,6 @@ export const WebBookmarkCard = ({ note, tone = "card", interactive = false, onOp
       }}
       {...buttonProps}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5" style={{ background: WEB_BOOKMARK_ACCENT }} />
 
       {showExpandedImage ? (
         <div className="relative h-32 overflow-hidden border-b border-[color:rgba(0,71,83,0.10)] bg-[color:rgba(0,71,83,0.08)]">
@@ -142,4 +141,6 @@ export const WebBookmarkCard = ({ note, tone = "card", interactive = false, onOp
     </div>
   );
 };
+
+
 

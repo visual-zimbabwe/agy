@@ -691,7 +691,6 @@ export const WallNotesLayer = ({
                   shadowOpacity={isFlashing ? 0.24 : isDragging ? 0.18 : 0.1}
                   shadowOffsetY={isDragging ? 6 : 2}
                 />
-                <Rect width={noteView.w} height={6} cornerRadius={[18, 18, 0, 0]} fill={WEB_BOOKMARK_ACCENT} listening={false} />
                 {(() => {
                   const hasThumb = Boolean(bookmarkImage) && bookmarkDisplaySize !== "compact";
                   const thumbWidth = bookmarkDisplaySize === "expanded" ? 178 : 156;
@@ -1237,6 +1236,8 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
+
 
 
 
