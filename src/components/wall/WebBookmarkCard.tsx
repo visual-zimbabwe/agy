@@ -142,3 +142,4 @@ export const WebBookmarkCard = ({ note, tone = "card", interactive = false, onOp
     </div>
   );
 };
+
