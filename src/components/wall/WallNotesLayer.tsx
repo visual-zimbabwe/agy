@@ -378,6 +378,7 @@ export const WallNotesLayer = ({
         const canonTitle = canon?.title?.trim();
         const quoteAttribution = noteView.quoteAuthor?.trim() ?? "";
         const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
+        const throneSpeakerHeight = isThrone && quoteAttribution ? 18 : 0;
         const quoteMarkInset = isQuote ? 13 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
         const journalWritingX = 56;
@@ -410,7 +411,7 @@ export const WallNotesLayer = ({
           : isImageNote
           ? imageCaption
           : isApiQuoteNote
-            ? truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - 86, 40) }) || (isJoker ? jokerLoadingText : throneLoadingText)
+            ? truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - 86 - throneSpeakerHeight, 40) }) || (isJoker ? jokerLoadingText : throneLoadingText)
           : isVocabulary
             ? isVocabularyBack
               ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
@@ -434,7 +435,7 @@ export const WallNotesLayer = ({
         const textY = isImageNote ? 0 : isApiQuoteNote ? 52 : 12 + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
         const textHeight = isImageNote
           ? 0
-          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - (isJournal ? 43 : 0) - wikiFooterHeight);
+          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - throneSpeakerHeight - quoteMarkInset - canonTitleInset - (isJournal ? 43 : 0) - wikiFooterHeight);
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
         const journalDateFontSize = Math.max(13, noteTextStyle.fontSize - 2);
         const journalDateUnderlineWidth = Math.min(estimateJournalDateWidth(journalDateLabel, journalDateFontSize), Math.max(0, noteView.w - journalWritingX - 18));
@@ -1172,6 +1173,20 @@ export const WallNotesLayer = ({
                   <Text x={16} y={Math.max(168, noteView.h - 24)} width={Math.max(0, noteView.w - 32)} fontSize={10} fill="#FECACA" text={currencyState.error} ellipsis listening={false} />
                 )}
               </>
+            )}
+            {isThrone && quoteAttribution && (
+              <Text
+                x={14}
+                y={Math.max(12, noteView.h - 38)}
+                width={Math.max(0, noteView.w - 28)}
+                fontSize={10}
+                fontStyle="bold"
+                fill="#FFF5E6"
+                text={`— ${quoteAttribution}`}
+                wrap="none"
+                ellipsis
+                listening={false}
+              />
             )}
             {isApiQuoteNote && (
               <Text
