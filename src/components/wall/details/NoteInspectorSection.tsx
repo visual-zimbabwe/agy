@@ -11,7 +11,7 @@ import {
   detailSectionHeading,
   detailSectionTitle,
 } from "@/components/wall/details/detailSectionStyles";
-import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
+import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import type { Note, NoteTextFont } from "@/features/wall/types";
 
@@ -263,7 +263,7 @@ export const NoteInspectorSection = ({
               <span>Background</span>
               <input
                 type="color"
-                value={selectedNote.color}
+                value={selectedNote.color ?? NOTE_COLORS[0] ?? "#FEEA89"}
                 onChange={(event) => onBackgroundColorChange(event.target.value.toUpperCase())}
                 className={colorSwatchClass}
                 disabled={isTimeLocked}
@@ -297,6 +297,7 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
+
 
 
 
