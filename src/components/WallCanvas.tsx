@@ -1189,19 +1189,18 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     if (isTimeLocked) {
       return;
     }
-    const seedTextColor = ui.selectedNoteId ? renderSnapshot.notes[ui.selectedNoteId]?.textColor : undefined;
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
     const id = createQuoteNote(
       world.x - NOTE_DEFAULTS.width / 2,
       world.y - NOTE_DEFAULTS.height / 2,
     );
     updateNote(id, {
-      textColor: seedTextColor ?? NOTE_DEFAULTS.textColor,
+      textColor: NOTE_DEFAULTS.textColor,
     });
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, renderSnapshot.notes, selectNote, ui.selectedNoteId, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
 
   const makeCanonNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {

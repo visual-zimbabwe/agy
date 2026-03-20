@@ -110,6 +110,8 @@ const buildInlineListPrefix = (kind: "bulleted" | "todo" | "numbered" | "toggle"
   return `${indent}- `;
 };
 
+const hasUsableColor = (value?: string) => typeof value === "string" && value.trim().length > 0;
+
 export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, handleEditorBlur, setEditing, updateNote, openImageInsert, wikiLinkOptions }: NoteTextEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [slashMenu, setSlashMenu] = useState<FloatingMenuState | null>(null);
@@ -121,6 +123,9 @@ export const NoteTextEditor = ({ editing, editingNote, camera, toScreenPoint, ha
   const isEditingJournal = editingNote.noteKind === "journal";
   const isImageCaptionEditor = Boolean(editingNote.imageUrl?.trim());
   const imageCaptionEditorHeight = Math.min(Math.max(72, editingNote.h * camera.zoom * 0.24), 112);
+  const safeNoteBackground = hasUsableColor(editingNote.color) ? editingNote.color.trim() : "#FEEA89";
+  const noteTextColor = editingNote.textColor ?? "";
+  const safeNoteTextColor = hasUsableColor(noteTextColor) ? noteTextColor.trim() : NOTE_DEFAULTS.textColor;
 
   const commandQuery = slashMenu?.query.trim().toLowerCase() ?? "";
   const filteredCommands = commandQuery
@@ -617,7 +622,7 @@ ${nextPrefix}${afterContent}${normalizedValue.slice(context.lineEnd)}`;
             aria-hidden="true"
             className="pointer-events-none absolute z-[1] text-left"
             style={{
-              color: editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor,
+              color: safeNoteTextColor,
               fontFamily: getNoteTextFontFamily(editingNote.textFont),
               fontSize: `${Math.max(13, editingTextStyle.fontSize - 2)}px`,
               lineHeight: "1.1",
@@ -627,7 +632,7 @@ ${nextPrefix}${afterContent}${normalizedValue.slice(context.lineEnd)}`;
           >
             <span
               style={{
-                borderBottom: `2px solid ${editingNote.textColor ?? JOURNAL_NOTE_DEFAULTS.textColor}`,
+                borderBottom: `2px solid ${safeNoteTextColor}`,
                 paddingBottom: "1px",
                 display: "inline-block",
               }}
@@ -659,13 +664,13 @@ ${nextPrefix}${afterContent}${normalizedValue.slice(context.lineEnd)}`;
             updateSlashMenu();
             updateWikiMenu();
           }}
-          className="w-full resize-none rounded-[22px] border border-black/10 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_22px_58px_rgba(15,23,42,0.18)] outline-none backdrop-blur-sm transition-[box-shadow,border-color] duration-150 focus:border-black/15"
+          className="w-full resize-none rounded-[22px] border border-black/10 bg-transparent p-4 shadow-[0_22px_58px_rgba(15,23,42,0.18)] outline-none backdrop-blur-sm transition-[box-shadow,border-color] duration-150 focus:border-black/15"
           style={(() => {
             const baseStyle = {
               height: `${editingNote.h * camera.zoom}px`,
               textAlign: editingNote.textAlign ?? "left",
               fontFamily: getNoteTextFontFamily(editingNote.textFont),
-              color: editingNote.textColor ?? NOTE_DEFAULTS.textColor,
+              color: safeNoteTextColor,
               fontSize: `${editingTextStyle.fontSize}px`,
               lineHeight: `${isEditingJournal ? 1.72 : editingTextStyle.lineHeight}`,
               fontStyle: editingNote.noteKind === "quote" ? "italic" : "normal",
@@ -701,7 +706,7 @@ ${nextPrefix}${afterContent}${normalizedValue.slice(context.lineEnd)}`;
 
             return {
               ...baseStyle,
-              backgroundColor: editingNote.color,
+              backgroundColor: safeNoteBackground,
             };
           })()}
           placeholder={isImageCaptionEditor ? "Add caption" : "Type '/' for commands or use [[Note Title]]"}

@@ -420,6 +420,7 @@ Expected:
 5. Open search (`Ctrl/Cmd + K`) and search by quote author/source text.
 6. Select the quote and use `More > Convert to Standard`, then `More > Convert to Quote` again.
 7. Switch to dark mode, reopen the quote note editor, and verify `Author`, `Source`, and tag input text remains readable while typing and when placeholders are visible.
+8. Select a note that uses a light or custom text color, then create another `New Quote` note and verify the new quote still starts with the default readable text color.
 
 Expected:
 - Quote notes render with quote styling and attribution footer.
@@ -427,6 +428,7 @@ Expected:
 - Command palette note search matches quote body, author, and source.
 - Quote/standard conversion works without losing core note content.
 - Dark mode keeps quote attribution and tag editor text/placeholder contrast readable.
+- New quote notes do not inherit unreadable text colors from the previously selected note.
 
 ## Journal Notes
 1. In `/wall`, click `New Journal` from the Tools panel, use `Shift + J`, or run `Create journal note` from the command palette.
