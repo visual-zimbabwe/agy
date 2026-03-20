@@ -65,6 +65,32 @@ describe("storage migrations", () => {
     expect(normalized?.lastColor).toBe("#abc");
   });
 
+  it("rounds fractional text sizes from legacy local snapshots", () => {
+    const normalized = normalizePersistedWallState({
+      notes: {
+        n1: {
+          id: "n1",
+          text: "Sized note",
+          textSizePx: 17.6,
+          x: 10,
+          y: 20,
+          w: 200,
+          h: 140,
+          color: "#FEEA89",
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      },
+      zones: {},
+      zoneGroups: {},
+      noteGroups: {},
+      links: {},
+      camera: { x: 0, y: 0, zoom: 1 },
+    });
+
+    expect(normalized?.notes.n1?.textSizePx).toBe(18);
+  });
+
   it("defaults legacy zones to frame kind and preserves explicit kind", () => {
     const normalized = normalizePersistedWallState({
       notes: {},

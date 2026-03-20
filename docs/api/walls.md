@@ -112,6 +112,8 @@ The route validates richer wall payloads, including:
 - zone kinds
 - wiki links and other link types
 
+The sync handler also normalizes finite `textSizePx` values into the persisted integer range `8-72` so older local snapshots do not fail cloud sync over fractional font sizes alone.
+
 ## Auth
 
 All wall API routes require an authenticated user except published read-only snapshot usage, which is handled at the route/UI layer rather than through these API endpoints.

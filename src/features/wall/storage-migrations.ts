@@ -274,7 +274,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     textFont: normalizeNoteFont(entry.textFont),
     textColor: asString(entry.textColor, NOTE_DEFAULTS.textColor),
     textSizePx:
-      typeof entry.textSizePx === "number" && Number.isFinite(entry.textSizePx) ? Math.max(8, Math.min(72, entry.textSizePx)) : NOTE_DEFAULTS.textSizePx,
+      typeof entry.textSizePx === "number" && Number.isFinite(entry.textSizePx) ? Math.round(Math.max(8, Math.min(72, entry.textSizePx))) : NOTE_DEFAULTS.textSizePx,
     tags: normalizeStringList(entry.tags),
     textSize: entry.textSize === "sm" || entry.textSize === "md" || entry.textSize === "lg" ? entry.textSize : NOTE_DEFAULTS.textSize,
     pinned: Boolean(entry.pinned),

@@ -112,7 +112,7 @@ const noteSchema = z.object({
   highlighted: z.boolean().optional(),
   tags: z.array(z.string()),
   textSize: z.enum(["sm", "md", "lg"]).optional(),
-  textSizePx: z.number().int().min(8).max(72).optional(),
+  textSizePx: z.number().finite().min(8).max(72).transform((value) => Math.round(value)).optional(),
   x: z.number(),
   y: z.number(),
   w: z.number(),
