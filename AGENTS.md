@@ -2,6 +2,7 @@
 
 ## Required Pre-Read
 - Read the repository root `SKILL.md` before making any meaningful code changes.
+- Read `GITHUB.md` before doing any repository work.
 - Treat `SKILL.md` as the documentation gate for implementation work: identify doc impact before coding and update canonical docs in the same change whenever possible.
 
 ## Project Structure & Module Organization
