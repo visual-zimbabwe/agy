@@ -4,13 +4,16 @@ import { useCallback, useEffect, useRef } from "react";
 import jsPDF from "jspdf";
 
 import {
-  defaultPoetryNoteState,
+  buildPoetryCacheKey,  defaultPoetryNoteState,
   formatPoetryNoteText,
   getPoetryDateKey,
   getPoetryExportBaseName,
   getPoetryNoteDimensions,
   getPoetryTitle,
   isPoetryNote,
+  normalizePoetryMatchType,
+  normalizePoetrySearchField,
+  normalizePoetrySearchQuery,
   POETRY_NOTE_CACHE_KEY,
   POETRY_NOTE_REFRESH_INTERVAL_MS,
   POETRY_NOTE_SOURCE,
@@ -18,7 +21,7 @@ import {
   shouldRefreshPoetry,
 } from "@/features/wall/poetry";
 import { useWallStore } from "@/features/wall/store";
-import type { Note, PoetryNote } from "@/features/wall/types";
+import type { Note, PoetryNote, PoetrySearchField, PoetrySearchMatchType } from "@/features/wall/types";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 type PoetryCache = Record<string, PoetryNote>;
@@ -29,7 +32,17 @@ type PoetryApiPayload = {
   lines?: string[];
   lineCount?: number;
   sourceUrl?: string;
+  searchField?: PoetrySearchField;
+  searchQuery?: string;
+  matchType?: PoetrySearchMatchType;
   error?: string;
+};
+
+type RefreshPoetryOptions = {
+  force?: boolean;
+  field?: PoetrySearchField;
+  query?: string;
+  matchType?: PoetrySearchMatchType;
 };
 
 const readPoetryCache = (): PoetryCache => {
@@ -128,11 +141,11 @@ const renderPoetryCanvas = (note: Note & { noteKind: "poetry" }) => {
   cursorY += 8;
   context.font = "600 24px Georgia";
   context.fillStyle = "rgba(255,248,238,0.9)";
-  const authorLine = (poetry?.author?.trim() || note.quoteAuthor?.trim() || "Unknown Poet");
+  const authorLine = poetry?.author?.trim() || note.quoteAuthor?.trim() || "Unknown Poet";
   context.fillText(`by ${authorLine}`, padding + 18, cursorY);
   cursorY += 36;
 
-  context.font = "500 18px Inter, Segoe UI, sans-serif";
+  context.font = "500 18px Georgia";
   context.fillStyle = "rgba(255,248,238,0.76)";
   context.fillText(`Source: ${POETRY_NOTE_SOURCE}`, padding + 18, cursorY);
   cursorY += 42;
@@ -172,7 +185,7 @@ export const usePoetryNotes = ({ hydrated, publishedReadOnly }: { hydrated: bool
   }, []);
 
   const refreshPoetryNote = useCallback(
-    async (noteId: string, options?: { force?: boolean }) => {
+    async (noteId: string, options?: RefreshPoetryOptions) => {
       if (publishedReadOnly) {
         return;
       }
@@ -186,23 +199,69 @@ export const usePoetryNotes = ({ hydrated, publishedReadOnly }: { hydrated: bool
         return inFlightRef.current[noteId];
       }
 
+      const searchField = normalizePoetrySearchField(options?.field ?? existing.poetry?.searchField);
+      const searchQuery = normalizePoetrySearchQuery(options?.query ?? existing.poetry?.searchQuery);
+      const matchType = normalizePoetryMatchType(options?.matchType ?? existing.poetry?.matchType);
       const targetDate = getPoetryDateKey();
+      const cacheKey = buildPoetryCacheKey({
+        dateKey: targetDate,
+        searchField,
+        searchQuery,
+        matchType,
+      });
       const cache = readPoetryCache();
-      const cached = cache[targetDate];
+      const cached = cache[cacheKey] ?? (searchField === "random" ? cache[targetDate] : undefined);
       if (cached && !options?.force) {
-        applyPoetryPayload(noteId, defaultPoetryNoteState({ ...cached, status: "ready", error: undefined }));
+        applyPoetryPayload(
+          noteId,
+          defaultPoetryNoteState({
+            ...cached,
+            status: "ready",
+            error: undefined,
+            searchField,
+            searchQuery: searchField === "random" ? "" : searchQuery,
+            matchType,
+          }),
+        );
+        return;
+      }
+
+      if (searchField !== "random" && !searchQuery) {
+        useWallStore.getState().patchNote(noteId, {
+          poetry: defaultPoetryNoteState({
+            ...existing.poetry,
+            status: existing.poetry?.lastSuccessAt ? "ready" : "error",
+            searchField,
+            searchQuery,
+            matchType,
+            error: `Enter a ${searchField} search before fetching poetry.`,
+          }),
+        });
         return;
       }
 
       useWallStore.getState().patchNote(noteId, {
         text: poetryLoadingText,
         quoteSource: POETRY_NOTE_SOURCE,
-        poetry: defaultPoetryNoteState({ ...existing.poetry, status: "loading", error: undefined }),
+        poetry: defaultPoetryNoteState({
+          ...existing.poetry,
+          status: "loading",
+          error: undefined,
+          searchField,
+          searchQuery: searchField === "random" ? "" : searchQuery,
+          matchType,
+        }),
       });
 
       const task = (async () => {
         try {
-          const response = await fetch("/api/poetry", { cache: "no-store" });
+          const params = new URLSearchParams();
+          params.set("field", searchField);
+          if (searchField !== "random") {
+            params.set("query", searchQuery);
+            params.set("match", matchType);
+          }
+          const response = await fetch(`/api/poetry?${params.toString()}`, { cache: "no-store" });
           const payload = (await response.json()) as PoetryApiPayload;
           if (!response.ok) {
             throw new Error(payload.error ?? `Poetry request failed with ${response.status}`);
@@ -217,12 +276,15 @@ export const usePoetryNotes = ({ hydrated, publishedReadOnly }: { hydrated: bool
             lines: payload.lines ?? [],
             lineCount: payload.lineCount ?? payload.lines?.length ?? 0,
             sourceUrl: payload.sourceUrl,
+            searchField: payload.searchField ?? searchField,
+            searchQuery: payload.searchField === "random" ? "" : payload.searchQuery ?? searchQuery,
+            matchType: payload.matchType ?? matchType,
             fetchedAt: now,
             lastSuccessAt: now,
             error: undefined,
           });
 
-          cache[targetDate] = nextPoetry;
+          cache[cacheKey] = nextPoetry;
           writePoetryCache(cache);
           applyPoetryPayload(noteId, nextPoetry);
         } catch (error) {
@@ -235,6 +297,9 @@ export const usePoetryNotes = ({ hydrated, publishedReadOnly }: { hydrated: bool
             poetry: defaultPoetryNoteState({
               ...latest.poetry,
               status: latest.poetry?.lastSuccessAt ? "ready" : "error",
+              searchField,
+              searchQuery: searchField === "random" ? "" : searchQuery,
+              matchType,
               error: error instanceof Error ? error.message : "Poetry refresh failed",
               fetchedAt: Date.now(),
             }),

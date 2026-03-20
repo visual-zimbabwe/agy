@@ -1119,20 +1119,23 @@ Expected:
 4. Confirm the note height adapts so the full poem text is visible without manual resize when the poem first loads.
 5. Open the command palette, run `Create Poetry note`, and verify another Poetry note is created at viewport center.
 6. Convert an existing standard note through `Details > Note Type > Poetry` and verify it becomes a Poetry note with the reserved styling.
-7. Open the Poetry floating editor and click `Refresh Poetry`; verify the note fetches a different poem and updates its size if needed.
-8. Click `Download Image` and verify a PNG export downloads with poem title and poet metadata.
-9. Click `Download PDF` and verify a PDF export downloads with the same poem content.
-10. Refresh `/wall` and verify the Poetry note restores with the cached poem metadata and text.
-11. If cloud sync is enabled, sync, reload, and verify the Poetry payload still renders after hydration.
-12. Simulate a local date change or wait until the next day, then reopen `/wall`; verify the Poetry note auto-refreshes to a new poem for the new local date.
+7. With the Poetry note selected, open `Details > Poetry Search`, choose `Author`, enter a poet such as `Emily Dickinson`, and click `Search Poetry`; verify the note updates to a matching poem and the search selection persists when you reselect the note.
+8. Change the search method to `Title`, enter a known title, switch match mode between `Partial` and `Exact`, and verify the fetched result follows the chosen criteria.
+9. Click `Reset to Random` and verify the note returns to random-daily search behavior.
+10. Open the Poetry floating editor and click `Refresh Poetry`; verify the note refreshes using the note's saved search method rather than always falling back to random.
+11. Click `Download Image` and verify a PNG export downloads with poem title and poet metadata.
+12. Click `Download PDF` and verify a PDF export downloads with the same poem content.
+13. Refresh `/wall` and verify the Poetry note restores with the cached poem metadata, text, and saved Poetry search settings.
+14. If cloud sync is enabled, sync, reload, and verify the Poetry payload and saved search settings still render after hydration.
+15. Simulate a local date change or wait until the next day, then reopen `/wall`; verify the Poetry note auto-refreshes using the same saved search method for the new local date.
 
 Expected:
 - Poetry notes are creatable from `Tools`, the command palette, and note-type conversion in `Details`.
 - Poetry text wraps cleanly inside the note and the default note size grows to fit the poem on first load.
-- Poetry notes auto-refresh on local day changes and also allow manual refresh without creating duplicate notes.
+- The details sidebar exposes Poetry-only search controls for random, author, title, line text, and line count lookups.
+- Poetry notes auto-refresh on local day changes and manual refresh reuses the note's saved search method without creating duplicate notes.
 - Poetry notes can be exported directly as PNG or PDF from the floating editor.
 - The reserved Poetry color remains fixed and persists through refresh and sync.
-
 ## Currency Note (`/wall`) (2026-03-19)
 1. Open `/wall` and verify one indigo `Currency` system note is present near the top-left of the wall.
 2. Refresh the page and verify the note still exists.

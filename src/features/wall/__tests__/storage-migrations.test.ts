@@ -334,6 +334,9 @@ describe("storage migrations", () => {
             author: "Emily Dickinson",
             lines: ["Hope is the thing with feathers", "That perches in the soul"],
             lineCount: 2,
+            searchField: "author",
+            searchQuery: "Emily Dickinson",
+            matchType: "exact",
             fetchedAt: 10,
             lastSuccessAt: 10,
           },
@@ -357,6 +360,9 @@ describe("storage migrations", () => {
     expect(normalized?.notes.p1?.noteKind).toBe("poetry");
     expect(normalized?.notes.p1?.poetry?.author).toBe("Emily Dickinson");
     expect(normalized?.notes.p1?.poetry?.lines).toEqual(["Hope is the thing with feathers", "That perches in the soul"]);
+    expect(normalized?.notes.p1?.poetry?.searchField).toBe("author");
+    expect(normalized?.notes.p1?.poetry?.searchQuery).toBe("Emily Dickinson");
+    expect(normalized?.notes.p1?.poetry?.matchType).toBe("exact");
   });
 });
 

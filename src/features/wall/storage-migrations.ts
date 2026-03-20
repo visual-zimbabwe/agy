@@ -302,6 +302,12 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
             lines: normalizeStringList(entry.poetry.lines),
             lineCount: typeof entry.poetry.lineCount === "number" ? asNumber(entry.poetry.lineCount) : undefined,
             sourceUrl: asString(entry.poetry.sourceUrl) || undefined,
+            searchField:
+              entry.poetry.searchField === "author" || entry.poetry.searchField === "title" || entry.poetry.searchField === "lines" || entry.poetry.searchField === "linecount"
+                ? entry.poetry.searchField
+                : "random",
+            searchQuery: asString(entry.poetry.searchQuery) || "",
+            matchType: entry.poetry.matchType === "exact" ? "exact" : "partial",
             fetchedAt: typeof entry.poetry.fetchedAt === "number" ? asNumber(entry.poetry.fetchedAt) : undefined,
             lastSuccessAt: typeof entry.poetry.lastSuccessAt === "number" ? asNumber(entry.poetry.lastSuccessAt) : undefined,
             error: asString(entry.poetry.error) || undefined,

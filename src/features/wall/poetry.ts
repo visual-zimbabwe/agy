@@ -1,12 +1,21 @@
 import { NOTE_DEFAULTS, POETRY_NOTE_DEFAULTS } from "@/features/wall/constants";
 import { POETRY_NOTE_COLOR } from "@/features/wall/special-notes";
-import type { Note, PoetryNote } from "@/features/wall/types";
+import type { Note, PoetryNote, PoetrySearchField, PoetrySearchMatchType } from "@/features/wall/types";
 
 export const POETRY_NOTE_CACHE_KEY = "agy-poetry-cache-v1";
 export const POETRY_NOTE_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 export const POETRY_NOTE_SOURCE = "PoetryDB";
 export const poetryLoadingText = "Finding a poem from PoetryDB...";
 export const poetryErrorText = "PoetryDB is unavailable right now.\n\nRefresh the Poetry note later to try again.";
+export const DEFAULT_POETRY_SEARCH_FIELD: PoetrySearchField = "random";
+export const DEFAULT_POETRY_MATCH_TYPE: PoetrySearchMatchType = "partial";
+export const POETRY_SEARCH_FIELD_OPTIONS: Array<{ value: PoetrySearchField; label: string; placeholder: string }> = [
+  { value: "random", label: "Random", placeholder: "Load a daily random poem" },
+  { value: "author", label: "Author", placeholder: "Emily Dickinson" },
+  { value: "title", label: "Title", placeholder: "Ozymandias" },
+  { value: "lines", label: "Lines", placeholder: "part of a line" },
+  { value: "linecount", label: "Line Count", placeholder: "14" },
+];
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
@@ -15,11 +24,50 @@ export const getPoetryDateKey = (timestamp = Date.now()) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
 
-export const defaultPoetryNoteState = (overrides?: Partial<PoetryNote>): PoetryNote => ({
-  status: "idle",
-  lines: [],
-  ...overrides,
-});
+export const normalizePoetrySearchQuery = (value?: string | null) => value?.trim().replace(/\s+/g, " ") ?? "";
+
+export const normalizePoetrySearchField = (value?: string | null): PoetrySearchField =>
+  value === "author" || value === "title" || value === "lines" || value === "linecount" ? value : DEFAULT_POETRY_SEARCH_FIELD;
+
+export const normalizePoetryMatchType = (value?: string | null): PoetrySearchMatchType =>
+  value === "exact" ? "exact" : DEFAULT_POETRY_MATCH_TYPE;
+
+export const buildPoetryCacheKey = ({
+  dateKey,
+  searchField,
+  searchQuery,
+  matchType,
+}: {
+  dateKey: string;
+  searchField?: PoetrySearchField;
+  searchQuery?: string;
+  matchType?: PoetrySearchMatchType;
+}) => {
+  const normalizedField = normalizePoetrySearchField(searchField);
+  const normalizedQuery = normalizePoetrySearchQuery(searchQuery).toLowerCase();
+  const normalizedMatch = normalizePoetryMatchType(matchType);
+  return `${dateKey}::${normalizedField}::${normalizedMatch}::${normalizedQuery || "-"}`;
+};
+
+export const defaultPoetryNoteState = (overrides?: Partial<PoetryNote>): PoetryNote => {
+  const normalizedOverrides = overrides
+    ? {
+        ...overrides,
+        searchField: normalizePoetrySearchField(overrides.searchField),
+        searchQuery: normalizePoetrySearchQuery(overrides.searchQuery),
+        matchType: normalizePoetryMatchType(overrides.matchType),
+      }
+    : undefined;
+
+  return {
+    status: "idle",
+    lines: [],
+    searchField: DEFAULT_POETRY_SEARCH_FIELD,
+    searchQuery: "",
+    matchType: DEFAULT_POETRY_MATCH_TYPE,
+    ...normalizedOverrides,
+  };
+};
 
 export const formatPoetryNoteText = (poetry?: Pick<PoetryNote, "lines"> | null) => poetry?.lines?.join("\n") ?? "";
 
@@ -169,4 +217,3 @@ export const getPoetryExportBaseName = (poetry?: Pick<PoetryNote, "dateKey" | "t
   const author = slugify(poetry?.author?.trim() || "poetrydb");
   return `poetry-${date}-${author}-${title}`;
 };
-

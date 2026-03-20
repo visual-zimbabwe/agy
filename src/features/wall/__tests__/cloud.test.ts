@@ -331,6 +331,9 @@ describe("cloud rows mapping", () => {
             author: "Emily Dickinson",
             lines: ["Hope is the thing with feathers", "That perches in the soul"],
             lineCount: 2,
+            searchField: "author",
+            searchQuery: "Emily Dickinson",
+            matchType: "exact",
             fetchedAt: 10,
             lastSuccessAt: 10,
           },
@@ -355,6 +358,9 @@ describe("cloud rows mapping", () => {
     expect(poetry?.noteKind).toBe("poetry");
     expect(poetry?.poetry?.title).toBe("'Hope' is the thing with feathers");
     expect(poetry?.poetry?.author).toBe("Emily Dickinson");
+    expect(poetry?.poetry?.searchField).toBe("author");
+    expect(poetry?.poetry?.searchQuery).toBe("Emily Dickinson");
+    expect(poetry?.poetry?.matchType).toBe("exact");
     expect(poetry?.quoteSource).toBe("PoetryDB");
   });
 });

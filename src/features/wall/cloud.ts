@@ -335,6 +335,12 @@ const parsePoetry = (raw: unknown): PoetryNote | undefined => {
     lines: Array.isArray(value.lines) ? value.lines.filter((line): line is string => typeof line === "string") : [],
     lineCount: asNumber(value.lineCount),
     sourceUrl: asString(value.sourceUrl) || undefined,
+    searchField:
+      value.searchField === "author" || value.searchField === "title" || value.searchField === "lines" || value.searchField === "linecount"
+        ? value.searchField
+        : "random",
+    searchQuery: asString(value.searchQuery),
+    matchType: value.matchType === "exact" ? "exact" : "partial",
     fetchedAt: asNumber(value.fetchedAt),
     lastSuccessAt: asNumber(value.lastSuccessAt),
     error: asString(value.error) || undefined,

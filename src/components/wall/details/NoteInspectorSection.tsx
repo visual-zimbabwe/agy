@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   detailButton,
   detailChip,
@@ -12,11 +14,26 @@ import {
   detailSectionTitle,
 } from "@/components/wall/details/detailSectionStyles";
 import { APOD_NOTE_DEFAULTS, defaultApodNoteState } from "@/features/wall/apod";
-import { defaultPoetryNoteState } from "@/features/wall/poetry";
+import {
+  DEFAULT_POETRY_MATCH_TYPE,
+  DEFAULT_POETRY_SEARCH_FIELD,
+  defaultPoetryNoteState,
+  normalizePoetryMatchType,
+  normalizePoetrySearchField,
+  normalizePoetrySearchQuery,
+  POETRY_SEARCH_FIELD_OPTIONS,
+} from "@/features/wall/poetry";
 import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS, POETRY_NOTE_DEFAULTS } from "@/features/wall/constants";
 import { createBookmarkNoteState, normalizeBookmarkUrl, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
-import type { Note, NoteTextFont } from "@/features/wall/types";
+import type { Note, NoteTextFont, PoetrySearchField, PoetrySearchMatchType } from "@/features/wall/types";
+
+type PoetryRefreshOptions = {
+  force?: boolean;
+  field?: PoetrySearchField;
+  query?: string;
+  matchType?: PoetrySearchMatchType;
+};
 
 type NoteInspectorSectionProps = {
   selectedNote?: Note;
@@ -39,7 +56,7 @@ type NoteInspectorSectionProps = {
   onToggleFocus: (noteId: string) => void;
   onToggleOrRefreshJoker: (noteId: string) => void;
   onToggleOrRefreshThrone: (noteId: string) => void;
-  onRefreshPoetry: (noteId: string) => void;
+  onRefreshPoetry: (noteId: string, options?: PoetryRefreshOptions) => void;
   onStartLink: (noteId: string) => void;
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -88,6 +105,15 @@ export const NoteInspectorSection = ({
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
 }: NoteInspectorSectionProps) => {
+  const [poetrySearchField, setPoetrySearchField] = useState<PoetrySearchField>(
+    selectedNote?.noteKind === "poetry" ? normalizePoetrySearchField(selectedNote.poetry?.searchField) : DEFAULT_POETRY_SEARCH_FIELD,
+  );
+  const [poetrySearchQuery, setPoetrySearchQuery] = useState(
+    selectedNote?.noteKind === "poetry" ? normalizePoetrySearchQuery(selectedNote.poetry?.searchQuery) : "",
+  );
+  const [poetryMatchType, setPoetryMatchType] = useState<PoetrySearchMatchType>(
+    selectedNote?.noteKind === "poetry" ? normalizePoetryMatchType(selectedNote.poetry?.matchType) : DEFAULT_POETRY_MATCH_TYPE,
+  );
   if (!selectedNote) {
     return null;
   }
@@ -142,6 +168,16 @@ export const NoteInspectorSection = ({
                 : selectedNote.tags,
     });
   };
+
+  const normalizedPoetryQuery = normalizePoetrySearchQuery(poetrySearchQuery);
+  const poetryFieldMeta = POETRY_SEARCH_FIELD_OPTIONS.find((option) => option.value === poetrySearchField) ?? POETRY_SEARCH_FIELD_OPTIONS[0];
+  const canSearchPoetry = poetrySearchField === "random" || Boolean(normalizedPoetryQuery);
+  const poetrySearchSummary =
+    selectedNote.noteKind === "poetry"
+      ? normalizePoetrySearchField(selectedNote.poetry?.searchField) === "random"
+        ? "Daily random poem"
+        : `${normalizePoetrySearchField(selectedNote.poetry?.searchField)}: ${selectedNote.poetry?.searchQuery || "Not set"}`
+      : "";
 
   return (
     <section className={detailSectionCard} aria-label="Note inspector">
@@ -229,7 +265,6 @@ export const NoteInspectorSection = ({
           </div>
         )}
 
-
         {selectedNote.noteKind === "web-bookmark" && (
           <div className={sectionBlockClass}>
             <p className={sectionLabelClass}>Bookmark</p>
@@ -273,6 +308,102 @@ export const NoteInspectorSection = ({
                   Open
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {selectedNote.noteKind === "poetry" && (
+          <div className={sectionBlockClass}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className={sectionLabelClass}>Poetry Search</p>
+                <p className="mt-1 text-[11px] leading-5 text-[var(--color-text-muted)]">Search PoetryDB by author, title, lines, or line count. Results pick one matching poem and future refreshes reuse the saved method.</p>
+              </div>
+              <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--color-text-muted)]">{poetrySearchSummary}</span>
+            </div>
+            <div className="grid gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={poetrySearchField}
+                  onChange={(event) => setPoetrySearchField(normalizePoetrySearchField(event.target.value))}
+                  className={detailField}
+                  disabled={isTimeLocked}
+                  aria-label="Poetry search field"
+                >
+                  {POETRY_SEARCH_FIELD_OPTIONS.map((option) => (
+                    <option key={`poetry-search-${option.value}`} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={poetryMatchType}
+                  onChange={(event) => setPoetryMatchType(normalizePoetryMatchType(event.target.value))}
+                  className={detailField}
+                  disabled={isTimeLocked || poetrySearchField === "random"}
+                  aria-label="Poetry search match"
+                >
+                  <option value="partial">Partial match</option>
+                  <option value="exact">Exact match</option>
+                </select>
+              </div>
+              {poetrySearchField !== "random" && (
+                <input
+                  type="text"
+                  value={poetrySearchQuery}
+                  onChange={(event) => setPoetrySearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && canSearchPoetry && !isTimeLocked) {
+                      onRefreshPoetry(selectedNote.id, {
+                        force: true,
+                        field: poetrySearchField,
+                        query: normalizedPoetryQuery,
+                        matchType: poetryMatchType,
+                      });
+                    }
+                  }}
+                  className={detailField}
+                  placeholder={poetryFieldMeta?.placeholder}
+                  disabled={isTimeLocked}
+                  aria-label="Poetry search value"
+                />
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onRefreshPoetry(selectedNote.id, {
+                      force: true,
+                      field: poetrySearchField,
+                      query: normalizedPoetryQuery,
+                      matchType: poetryMatchType,
+                    })
+                  }
+                  className={detailButton}
+                  disabled={isTimeLocked || !canSearchPoetry}
+                >
+                  {poetrySearchField === "random" ? "Fetch Random" : "Search Poetry"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPoetrySearchField(DEFAULT_POETRY_SEARCH_FIELD);
+                    setPoetrySearchQuery("");
+                    setPoetryMatchType(DEFAULT_POETRY_MATCH_TYPE);
+                    onRefreshPoetry(selectedNote.id, {
+                      force: true,
+                      field: DEFAULT_POETRY_SEARCH_FIELD,
+                      query: "",
+                      matchType: DEFAULT_POETRY_MATCH_TYPE,
+                    });
+                  }}
+                  className={detailButton}
+                  disabled={isTimeLocked}
+                >
+                  Reset to Random
+                </button>
+              </div>
+              {selectedNote.poetry?.error && <p className="text-[11px] leading-5 text-[#B42318]">{selectedNote.poetry.error}</p>}
             </div>
           </div>
         )}
@@ -385,4 +516,3 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
-

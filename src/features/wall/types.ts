@@ -142,6 +142,8 @@ export type ApodNote = {
 };
 
 export type PoetryNoteStatus = "idle" | "loading" | "ready" | "error";
+export type PoetrySearchField = "random" | "author" | "title" | "lines" | "linecount";
+export type PoetrySearchMatchType = "partial" | "exact";
 
 export type PoetryNote = {
   status: PoetryNoteStatus;
@@ -151,6 +153,9 @@ export type PoetryNote = {
   lines: string[];
   lineCount?: number;
   sourceUrl?: string;
+  searchField?: PoetrySearchField;
+  searchQuery?: string;
+  matchType?: PoetrySearchMatchType;
   fetchedAt?: number;
   lastSuccessAt?: number;
   error?: string;

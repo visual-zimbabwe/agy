@@ -2932,8 +2932,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             setSelectedNoteIds([id]);
             selectNote(id);
           }}
-          onRefreshPoetrySelectedNote={(noteId) => {
-            void refreshPoetryNote(noteId, { force: true });
+          onRefreshPoetrySelectedNote={(noteId, options) => {
+            void refreshPoetryNote(noteId, options ?? { force: true });
           }}
           onStartLinkFromSelectedNote={setLinkingFromNote}
           onUpdateSelectedNote={updateNote}
