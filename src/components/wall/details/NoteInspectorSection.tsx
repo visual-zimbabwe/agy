@@ -39,6 +39,7 @@ type NoteInspectorSectionProps = {
   onToggleFocus: (noteId: string) => void;
   onToggleOrRefreshJoker: (noteId: string) => void;
   onToggleOrRefreshThrone: (noteId: string) => void;
+  onRefreshPoetry: (noteId: string) => void;
   onStartLink: (noteId: string) => void;
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -81,6 +82,7 @@ export const NoteInspectorSection = ({
   onToggleFocus,
   onToggleOrRefreshJoker,
   onToggleOrRefreshThrone,
+  onRefreshPoetry,
   onStartLink,
   onUpdateNote,
   onSubmitBookmarkUrl,
@@ -359,7 +361,7 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("eisenhower")} className={typeButtonClass(selectedNote.noteKind === "eisenhower")} disabled={isTimeLocked}>Eisenhower</button>
             <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked}>Bookmark</button>
             <button type="button" onClick={() => setNoteKind("apod")} className={typeButtonClass(selectedNote.noteKind === "apod")} disabled={isTimeLocked}>APOD</button>
-            <button type="button" onClick={() => setNoteKind("poetry")} className={typeButtonClass(selectedNote.noteKind === "poetry")} disabled={isTimeLocked}>Poetry</button>
+            <button type="button" onClick={() => selectedNote.noteKind === "poetry" ? onRefreshPoetry(selectedNote.id) : setNoteKind("poetry")} className={typeButtonClass(selectedNote.noteKind === "poetry")} disabled={isTimeLocked}>{selectedNote.noteKind === "poetry" ? "Refresh Poetry" : "Poetry"}</button>
             <button type="button" onClick={() => onToggleOrRefreshJoker(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "joker")} disabled={isTimeLocked}>
               {selectedNote.noteKind === "joker" || hasJokerNote ? "Refresh Joker" : "Joker"}
             </button>

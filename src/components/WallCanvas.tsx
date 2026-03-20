@@ -2932,6 +2932,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             setSelectedNoteIds([id]);
             selectNote(id);
           }}
+          onRefreshPoetrySelectedNote={(noteId) => {
+            void refreshPoetryNote(noteId, { force: true });
+          }}
           onStartLinkFromSelectedNote={setLinkingFromNote}
           onUpdateSelectedNote={updateNote}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}

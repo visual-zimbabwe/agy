@@ -53,6 +53,7 @@ type WallDetailsContentProps = {
   onToggleFocusSelectedNote: (noteId: string) => void;
   onToggleOrRefreshJokerSelectedNote: (noteId: string) => void;
   onToggleOrRefreshThroneSelectedNote: (noteId: string) => void;
+  onRefreshPoetrySelectedNote: (noteId: string) => void;
   onStartLinkFromSelectedNote: (noteId: string) => void;
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -168,6 +169,7 @@ export const WallDetailsContent = ({
   onToggleFocusSelectedNote,
   onToggleOrRefreshJokerSelectedNote,
   onToggleOrRefreshThroneSelectedNote,
+  onRefreshPoetrySelectedNote,
   onStartLinkFromSelectedNote,
   onUpdateSelectedNote,
   onSubmitBookmarkUrl,
@@ -294,6 +296,7 @@ export const WallDetailsContent = ({
             onToggleFocus={onToggleFocusSelectedNote}
             onToggleOrRefreshJoker={onToggleOrRefreshJokerSelectedNote}
             onToggleOrRefreshThrone={onToggleOrRefreshThroneSelectedNote}
+            onRefreshPoetry={onRefreshPoetrySelectedNote}
             onStartLink={onStartLinkFromSelectedNote}
             onUpdateNote={onUpdateSelectedNote}
             onSubmitBookmarkUrl={onSubmitBookmarkUrl}
@@ -448,3 +451,4 @@ export const WallDetailsContent = ({
     </div>
   );
 };
+

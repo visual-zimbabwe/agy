@@ -42,6 +42,7 @@ type WallDetailsSidebarProps = {
   onToggleFocusSelectedNote: (noteId: string) => void;
   onToggleOrRefreshJokerSelectedNote: (noteId: string) => void;
   onToggleOrRefreshThroneSelectedNote: (noteId: string) => void;
+  onRefreshPoetrySelectedNote: (noteId: string) => void;
   onStartLinkFromSelectedNote: (noteId: string) => void;
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -144,6 +145,7 @@ export const WallDetailsSidebar = ({
   onToggleFocusSelectedNote,
   onToggleOrRefreshJokerSelectedNote,
   onToggleOrRefreshThroneSelectedNote,
+  onRefreshPoetrySelectedNote,
   onStartLinkFromSelectedNote,
   onUpdateSelectedNote,
   onSubmitBookmarkUrl,
@@ -249,6 +251,7 @@ export const WallDetailsSidebar = ({
         onToggleFocusSelectedNote={onToggleFocusSelectedNote}
         onToggleOrRefreshJokerSelectedNote={onToggleOrRefreshJokerSelectedNote}
         onToggleOrRefreshThroneSelectedNote={onToggleOrRefreshThroneSelectedNote}
+        onRefreshPoetrySelectedNote={onRefreshPoetrySelectedNote}
         onStartLinkFromSelectedNote={onStartLinkFromSelectedNote}
         onUpdateSelectedNote={onUpdateSelectedNote}
         onSubmitBookmarkUrl={onSubmitBookmarkUrl}
