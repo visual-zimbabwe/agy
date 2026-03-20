@@ -457,7 +457,7 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       poetry: patch.poetry ?? current.poetry,
       imageUrl: undefined,
       color: POETRY_NOTE_DEFAULTS.color,
-      textColor: patch.textColor ?? current.textColor ?? POETRY_NOTE_DEFAULTS.textColor,
+      textColor: POETRY_NOTE_DEFAULTS.textColor,
       textFont: patch.textFont ?? current.textFont ?? POETRY_NOTE_DEFAULTS.textFont,
       textSizePx: patch.textSizePx ?? current.textSizePx ?? POETRY_NOTE_DEFAULTS.textSizePx,
       tags: patch.tags ?? current.tags,

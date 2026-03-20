@@ -69,7 +69,7 @@ export const POETRY_NOTE_DEFAULTS = {
   color: "#B73A3A",
   width: 320,
   height: 260,
-  textColor: "#FFF8EE",
+  textColor: "#000000",
   textFont: "merriweather" as const,
   textSizePx: 14,
 };
