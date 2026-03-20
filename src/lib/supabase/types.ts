@@ -109,6 +109,9 @@ export type Database = {
           quote_source: string | null;
           canon: unknown;
           eisenhower: unknown;
+          currency: unknown;
+          bookmark: unknown;
+          apod: unknown;
           image_url: string | null;
           text_align: string | null;
           text_v_align: string | null;
@@ -138,6 +141,9 @@ export type Database = {
           quote_source?: string | null;
           canon?: unknown;
           eisenhower?: unknown;
+          currency?: unknown;
+          bookmark?: unknown;
+          apod?: unknown;
           image_url?: string | null;
           text_align?: string | null;
           text_v_align?: string | null;
@@ -164,6 +170,9 @@ export type Database = {
           quote_source?: string | null;
           canon?: unknown;
           eisenhower?: unknown;
+          currency?: unknown;
+          bookmark?: unknown;
+          apod?: unknown;
           image_url?: string | null;
           text_align?: string | null;
           text_v_align?: string | null;

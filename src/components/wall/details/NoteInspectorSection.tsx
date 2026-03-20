@@ -11,6 +11,7 @@ import {
   detailSectionHeading,
   detailSectionTitle,
 } from "@/components/wall/details/detailSectionStyles";
+import { APOD_NOTE_DEFAULTS, defaultApodNoteState } from "@/features/wall/apod";
 import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
 import { createBookmarkNoteState, normalizeBookmarkUrl, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
@@ -94,6 +95,7 @@ export const NoteInspectorSection = ({
     const toJournal = kind === "journal" && selectedNote.noteKind !== "journal";
     const toEisenhower = kind === "eisenhower" && selectedNote.noteKind !== "eisenhower";
     const toBookmark = kind === "web-bookmark" && selectedNote.noteKind !== "web-bookmark";
+    const toApod = kind === "apod" && selectedNote.noteKind !== "apod";
 
     onUpdateNote(selectedNote.id, {
       noteKind: selectedNote.noteKind === kind ? "standard" : kind,
@@ -113,21 +115,24 @@ export const NoteInspectorSection = ({
         : undefined,
       eisenhower: toEisenhower ? createEisenhowerNotePayload(selectedNote.createdAt) : undefined,
       bookmark: toBookmark ? createBookmarkNoteState(selectedNote.bookmark?.url ?? "") : undefined,
-      imageUrl: toBookmark ? undefined : selectedNote.imageUrl,
-      vocabulary: toCanon || toJournal || toEisenhower || toBookmark ? undefined : selectedNote.vocabulary,
-      color: toBookmark ? WEB_BOOKMARK_DEFAULTS.color : toJournal ? JOURNAL_NOTE_DEFAULTS.color : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.color : selectedNote.color,
-      textFont: toBookmark ? WEB_BOOKMARK_DEFAULTS.textFont : toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textFont : selectedNote.textFont,
-      textColor: toBookmark ? WEB_BOOKMARK_DEFAULTS.textColor : toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textColor : selectedNote.textColor,
-      textSizePx: toBookmark ? WEB_BOOKMARK_DEFAULTS.textSizePx : toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textSizePx : selectedNote.textSizePx,
-      w: toBookmark ? WEB_BOOKMARK_DEFAULTS.width : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.width : selectedNote.w,
-      h: toBookmark ? WEB_BOOKMARK_DEFAULTS.height : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.height : selectedNote.h,
+      apod: toApod ? defaultApodNoteState(selectedNote.apod) : undefined,
+      imageUrl: toBookmark || toApod ? undefined : selectedNote.imageUrl,
+      vocabulary: toCanon || toJournal || toEisenhower || toBookmark || toApod ? undefined : selectedNote.vocabulary,
+      color: toBookmark ? WEB_BOOKMARK_DEFAULTS.color : toApod ? APOD_NOTE_DEFAULTS.color : toJournal ? JOURNAL_NOTE_DEFAULTS.color : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.color : selectedNote.color,
+      textFont: toBookmark ? WEB_BOOKMARK_DEFAULTS.textFont : toApod ? APOD_NOTE_DEFAULTS.textFont : toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textFont : selectedNote.textFont,
+      textColor: toBookmark ? WEB_BOOKMARK_DEFAULTS.textColor : toApod ? APOD_NOTE_DEFAULTS.textColor : toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textColor : selectedNote.textColor,
+      textSizePx: toBookmark ? WEB_BOOKMARK_DEFAULTS.textSizePx : toApod ? APOD_NOTE_DEFAULTS.textSizePx : toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textSizePx : selectedNote.textSizePx,
+      w: toBookmark ? WEB_BOOKMARK_DEFAULTS.width : toApod ? APOD_NOTE_DEFAULTS.width : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.width : selectedNote.w,
+      h: toBookmark ? WEB_BOOKMARK_DEFAULTS.height : toApod ? APOD_NOTE_DEFAULTS.height : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.height : selectedNote.h,
       tags: toJournal
         ? [...new Set([...selectedNote.tags, "journal"])]
         : toEisenhower
           ? [...new Set([...selectedNote.tags, "matrix", "priority"])]
           : toBookmark
             ? [...new Set([...selectedNote.tags, "bookmark", "link"])]
-            : selectedNote.tags,
+            : toApod
+              ? [...new Set([...selectedNote.tags, "space", "nasa", "apod"])]
+              : selectedNote.tags,
     });
   };
 
@@ -348,6 +353,7 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked}>Journal</button>
             <button type="button" onClick={() => setNoteKind("eisenhower")} className={typeButtonClass(selectedNote.noteKind === "eisenhower")} disabled={isTimeLocked}>Eisenhower</button>
             <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked}>Bookmark</button>
+            <button type="button" onClick={() => setNoteKind("apod")} className={typeButtonClass(selectedNote.noteKind === "apod")} disabled={isTimeLocked}>APOD</button>
             <button type="button" onClick={() => onToggleOrRefreshJoker(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "joker")} disabled={isTimeLocked}>
               {selectedNote.noteKind === "joker" || hasJokerNote ? "Refresh Joker" : "Joker"}
             </button>

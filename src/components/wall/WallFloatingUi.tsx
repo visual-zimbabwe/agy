@@ -3,6 +3,7 @@
 import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
+import { ApodNoteEditor } from "@/components/wall/ApodNoteEditor";
 import { CurrencyNoteEditor } from "@/components/wall/CurrencyNoteEditor";
 import { EisenhowerMatrixEditor } from "@/components/wall/EisenhowerMatrixEditor";
 import { NoteTextEditor } from "@/components/wall/NoteTextEditor";
@@ -85,6 +86,9 @@ type WallFloatingUiProps = {
   onResetToDetectedCurrency: () => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
   onOpenBookmarkUrl: (url: string) => void;
+  onRefreshApodNote: (noteId: string) => void;
+  onDownloadApodImage: (noteId: string) => void;
+  onOpenApodSource: (noteId: string) => void;
 };
 
 const noteEditorSectionClass =
@@ -161,6 +165,9 @@ export const WallFloatingUi = ({
   onResetToDetectedCurrency,
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
+  onRefreshApodNote,
+  onDownloadApodImage,
+  onOpenApodSource,
 }: WallFloatingUiProps) => {
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
@@ -196,7 +203,18 @@ export const WallFloatingUi = ({
               onOpenUrl={onOpenBookmarkUrl}
             />
           )}
-          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && (
+          {editingNote.noteKind === "apod" && (
+            <ApodNoteEditor
+              editingNote={editingNote}
+              camera={camera}
+              toScreenPoint={toScreenPoint}
+              onClose={() => setEditing(null)}
+              onRefresh={() => onRefreshApodNote(editing.id)}
+              onDownload={() => onDownloadApodImage(editing.id)}
+              onOpenSource={() => onOpenApodSource(editing.id)}
+            />
+          )}
+          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "apod" && (
             <NoteTextEditor
               editing={editing}
               editingNote={editingNote}

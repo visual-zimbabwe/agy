@@ -97,9 +97,24 @@ const bookmarkSchema = z.object({
   error: z.string().optional(),
 });
 
+const apodSchema = z.object({
+  status: z.enum(["idle", "loading", "ready", "error"]),
+  date: z.string().optional(),
+  title: z.string().optional(),
+  explanation: z.string().optional(),
+  copyright: z.string().optional(),
+  mediaType: z.enum(["image", "video", "other"]).optional(),
+  imageUrl: z.string().optional(),
+  fallbackImageUrl: z.string().optional(),
+  pageUrl: z.string().optional(),
+  fetchedAt: z.number().optional(),
+  lastSuccessAt: z.number().optional(),
+  error: z.string().optional(),
+});
+
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark", "apod"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -125,6 +140,7 @@ const noteSchema = z.object({
   eisenhower: eisenhowerSchema.optional(),
   currency: currencySchema.optional(),
   bookmark: bookmarkSchema.optional(),
+  apod: apodSchema.optional(),
 });
 
 const zoneSchema = z.object({
@@ -205,6 +221,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.eisenhower does not exist") ||
         message.includes("column notes.currency does not exist") ||
         message.includes("column notes.bookmark does not exist") ||
+        message.includes("column notes.apod does not exist") ||
         message.includes("column notes.text_size does not exist") ||
         message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
@@ -287,6 +304,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               eisenhower: note.eisenhower ?? null,
               currency: note.currency ?? null,
               bookmark: note.bookmark ?? null,
+              apod: note.apod ?? null,
               image_url: note.imageUrl?.trim() || null,
               text_align: note.textAlign ?? null,
               text_v_align: note.textVAlign ?? null,

@@ -3,6 +3,7 @@
 import { memo, type CSSProperties, type ReactNode } from "react";
 
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, truncateNoteText } from "@/components/wall/wall-canvas-helpers";
+import { getApodCaption } from "@/features/wall/apod";
 import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { parseCurrencyAmountInput } from "@/features/wall/currency";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
@@ -300,6 +301,43 @@ const ImageRenderer = ({ note, width, height, readableText, mutedText, textFontF
   </NoteShell>
 );
 
+const ApodRenderer = ({ note, width, height, readableText, mutedText, textFontFamily, bodyClamp, tone }: RendererProps) => {
+  const caption = getApodCaption(note);
+  return (
+    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
+      <div className="flex h-full flex-col rounded-[inherit] bg-white/96 p-1.5">
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-[14px] bg-[linear-gradient(180deg,#eef4fb,#dfe8f5)]">
+          {note.imageUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={note.imageUrl} alt={note.apod?.title || "NASA APOD"} className="h-full w-full object-contain" loading="lazy" />
+            </>
+          ) : (
+            <div className="flex h-full items-center justify-center px-4 text-center text-[11px]" style={{ color: mutedText }}>
+              {note.apod?.error || "Loading APOD"}
+            </div>
+          )}
+          <div className="absolute left-2 top-2 rounded-full bg-[rgba(15,23,42,0.78)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">NASA APOD</div>
+        </div>
+        {caption && (
+          <p
+            className="mt-2 px-2 pb-1 whitespace-pre-wrap [overflow-wrap:anywhere]"
+            style={{
+              ...lineClampStyle(tone === "detail" ? 999 : bodyClamp),
+              color: readableText,
+              fontFamily: textFontFamily,
+              fontSize: 12,
+              lineHeight: 1.35,
+            }}
+          >
+            {caption}
+          </p>
+        )}
+      </div>
+    </NoteShell>
+  );
+};
+
 const EisenhowerRenderer = ({ note, width, height, readableText, mutedText, softText, quadrantClamp, tone }: RendererProps) => {
   const matrix = normalizeEisenhowerNote(note.eisenhower, note.createdAt);
   return (
@@ -373,12 +411,16 @@ const noteRenderers: Record<string, NoteRenderer> = {
   eisenhower: EisenhowerRenderer,
   currency: CurrencyRenderer,
   "web-bookmark": WebBookmarkRenderer,
+  apod: ApodRenderer,
   image: ImageRenderer,
   vocabulary: VocabularyRenderer,
   fallback: FallbackRenderer,
 };
 
 const resolveRendererKey = (note: Note) => {
+  if (note.noteKind === "apod") {
+    return "apod";
+  }
   if (note.imageUrl?.trim()) {
     return "image";
   }

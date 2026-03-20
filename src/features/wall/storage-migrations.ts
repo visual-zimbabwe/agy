@@ -2,7 +2,7 @@ import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/wall/bookmarks";
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import type { CanonNote, CurrencyNote, Link, Note, NoteGroup, PersistedWallState, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
+import type { ApodNote, CanonNote, CurrencyNote, Link, Note, NoteGroup, PersistedWallState, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -161,6 +161,27 @@ const normalizeBookmark = (value: unknown): WebBookmarkNote | undefined => {
   };
 };
 
+const normalizeApod = (value: unknown): ApodNote | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    status: value.status === "loading" || value.status === "ready" || value.status === "error" ? value.status : "idle",
+    date: asString(value.date) || undefined,
+    title: asString(value.title) || undefined,
+    explanation: asString(value.explanation) || undefined,
+    copyright: asString(value.copyright) || undefined,
+    mediaType: value.mediaType === "image" || value.mediaType === "video" ? value.mediaType : "other",
+    imageUrl: asString(value.imageUrl) || undefined,
+    fallbackImageUrl: asString(value.fallbackImageUrl) || undefined,
+    pageUrl: asString(value.pageUrl) || undefined,
+    fetchedAt: typeof value.fetchedAt === "number" ? asNumber(value.fetchedAt) : undefined,
+    lastSuccessAt: typeof value.lastSuccessAt === "number" ? asNumber(value.lastSuccessAt) : undefined,
+    error: asString(value.error) || undefined,
+  };
+};
+
 const normalizeNoteFont = (value: unknown) => {
   if (
     value === "roboto" ||
@@ -255,7 +276,8 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     entry.noteKind === "joker" ||
     entry.noteKind === "throne" ||
     entry.noteKind === "currency" ||
-    entry.noteKind === "web-bookmark"
+    entry.noteKind === "web-bookmark" ||
+    entry.noteKind === "apod"
       ? entry.noteKind
       : "standard";
   return {
@@ -268,6 +290,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(entry.eisenhower, asNumber(entry.createdAt, Date.now())) : undefined,
     currency: noteKind === "currency" ? normalizeCurrency(entry.currency) : undefined,
     bookmark: noteKind === "web-bookmark" ? normalizeBookmark(entry.bookmark) : undefined,
+    apod: noteKind === "apod" ? normalizeApod(entry.apod) : undefined,
     imageUrl: asString(entry.imageUrl).trim() || undefined,
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
     textVAlign: entry.textVAlign === "middle" || entry.textVAlign === "bottom" ? entry.textVAlign : NOTE_DEFAULTS.textVAlign,

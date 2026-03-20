@@ -2,7 +2,7 @@ import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import type { CanonNote, CurrencyNote, PersistedWallState, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
+import type { ApodNote, CanonNote, CurrencyNote, PersistedWallState, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
 
 type WallRow = {
   camera_x: number;
@@ -29,6 +29,7 @@ type NoteRow = {
   eisenhower?: unknown;
   currency?: unknown;
   bookmark?: unknown;
+  apod?: unknown;
   tags: unknown;
   text_size: string | null;
   x: number;
@@ -291,6 +292,31 @@ const parseBookmark = (raw: unknown): WebBookmarkNote | undefined => {
   };
 };
 
+const parseApod = (raw: unknown): ApodNote | undefined => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const value = raw as Record<string, unknown>;
+  const asString = (entry: unknown, fallback = "") => (typeof entry === "string" ? entry : fallback);
+  const asNumber = (entry: unknown) => (typeof entry === "number" && Number.isFinite(entry) ? entry : undefined);
+
+  return {
+    status: value.status === "loading" || value.status === "ready" || value.status === "error" ? value.status : "idle",
+    date: asString(value.date) || undefined,
+    title: asString(value.title) || undefined,
+    explanation: asString(value.explanation) || undefined,
+    copyright: asString(value.copyright) || undefined,
+    mediaType: value.mediaType === "image" || value.mediaType === "video" ? value.mediaType : "other",
+    imageUrl: asString(value.imageUrl) || undefined,
+    fallbackImageUrl: asString(value.fallbackImageUrl) || undefined,
+    pageUrl: asString(value.pageUrl) || undefined,
+    fetchedAt: asNumber(value.fetchedAt),
+    lastSuccessAt: asNumber(value.lastSuccessAt),
+    error: asString(value.error) || undefined,
+  };
+};
+
 const parseCurrency = (raw: unknown): CurrencyNote | undefined => {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return undefined;
@@ -349,7 +375,8 @@ export const rowsToSnapshot = (rows: {
         note.note_kind === "joker" ||
         note.note_kind === "throne" ||
         note.note_kind === "currency" ||
-        note.note_kind === "web-bookmark"
+        note.note_kind === "web-bookmark" ||
+        note.note_kind === "apod"
           ? note.note_kind
           : "standard";
 
@@ -374,6 +401,7 @@ export const rowsToSnapshot = (rows: {
           eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(note.eisenhower, fromIso(note.created_at)) : undefined,
           currency: noteKind === "currency" ? parseCurrency(note.currency) : undefined,
           bookmark: noteKind === "web-bookmark" ? parseBookmark(note.bookmark) : undefined,
+          apod: noteKind === "apod" ? parseApod(note.apod) : undefined,
           tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
           x: note.x,
           y: note.y,

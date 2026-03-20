@@ -29,6 +29,7 @@ type WallToolsPanelProps = {
   onCreateJournalNote: () => void;
   onCreateQuoteNote: () => void;
   onCreateWebBookmarkNote: () => void;
+  onCreateApodNote: () => void;
   onCreateEisenhowerNote: () => void;
   onCreateOrRefreshJokerNote: () => void;
   onCreateOrRefreshThroneNote: () => void;
@@ -69,6 +70,7 @@ export const WallToolsPanel = ({
   onCreateJournalNote,
   onCreateQuoteNote,
   onCreateWebBookmarkNote,
+  onCreateApodNote,
   onCreateEisenhowerNote,
   onCreateOrRefreshJokerNote,
   onCreateOrRefreshThroneNote,
@@ -161,6 +163,12 @@ export const WallToolsPanel = ({
           <button type="button" onClick={onCreateWebBookmarkNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create web bookmark note">
             <Icon name="link" />
             <span>New Bookmark</span>
+          </button>
+        </ControlTooltip>
+        <ControlTooltip label="Create a NASA Astronomy Picture of the Day note" className="relative block" side="right">
+          <button type="button" onClick={onCreateApodNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create APOD note">
+            <Icon name="note" />
+            <span>New APOD</span>
           </button>
         </ControlTooltip>
         <ControlTooltip label="Create an Eisenhower Matrix note" className="relative block" side="right">

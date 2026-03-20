@@ -55,6 +55,7 @@ import { useWallSnapping } from "@/components/wall/useWallSnapping";
 import { WallStage } from "@/components/wall/WallStage";
 import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
+import { useApodNotes } from "@/components/wall/useApodNotes";
 import { useCurrencySystemNote } from "@/components/wall/useCurrencySystemNote";
 import { useWallBackupActions } from "@/components/wall/useWallBackupActions";
 import { useAnimatedCamera } from "@/components/wall/useAnimatedCamera";
@@ -79,6 +80,7 @@ import {
   assignZoneToGroup,
   createNote,
   createCanonNote,
+  createApodNote,
   createOrRefreshJokerNote,
   createOrRefreshThroneNote,
   createJournalNote,
@@ -802,6 +804,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setManualBaseCurrency,
     resetToDetectedCurrency,
   } = useCurrencySystemNote({ hydrated, publishedReadOnly });
+  const { refreshApodNote, downloadApodImage } = useApodNotes({ hydrated, publishedReadOnly });
 
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
@@ -1142,6 +1145,18 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     openEditor(id, "");
   }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
 
+  const makeApodNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const id = createApodNote(world.x - 160, world.y - 140);
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, "");
+    void refreshApodNote(id, { force: true });
+  }, [camera, isTimeLocked, openEditor, refreshApodNote, selectNote, viewport.h, viewport.w]);
+
   const makeWordNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
@@ -1308,6 +1323,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     createCanonNote: makeCanonNoteAtViewportCenter,
     createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
+    createApodNote: makeApodNoteAtViewportCenter,
     createEisenhowerNote: makeEisenhowerNoteAtViewportCenter,
     createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
@@ -2049,6 +2065,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: makeQuoteNoteAtViewportCenter,
       },
       {
+        id: "new-apod-note",
+        label: "Create APOD note",
+        description: "Add the latest NASA Astronomy Picture of the Day as a note.",
+        shortcut: "Shift + A",
+        keywords: ["nasa", "space", "astronomy", "apod", "picture"],
+        disabled: isTimeLocked,
+        onSelect: makeApodNoteAtViewportCenter,
+      },
+      {
         id: "new-eisenhower-note",
         label: "Create Eisenhower Matrix note",
         description: "Add a four-quadrant priority note with editable sections.",
@@ -2329,6 +2354,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       makeCanonNoteAtViewportCenter,
       makeJournalNoteAtViewportCenter,
       makeQuoteNoteAtViewportCenter,
+      makeApodNoteAtViewportCenter,
       makeEisenhowerNoteAtViewportCenter,
       makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
@@ -2536,6 +2562,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateJournalNote={makeJournalNoteAtViewportCenter}
             onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
             onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
+            onCreateApodNote={makeApodNoteAtViewportCenter}
             onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
             onCreateOrRefreshJokerNote={makeJokerNoteAtViewportCenter}
             onCreateOrRefreshThroneNote={makeThroneNoteAtViewportCenter}
@@ -2785,6 +2812,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onResetToDetectedCurrency={() => { void resetToDetectedCurrency(); }}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
           onOpenBookmarkUrl={openBookmarkUrl}
+          onRefreshApodNote={(noteId) => { void refreshApodNote(noteId, { force: true }); }}
+          onDownloadApodImage={downloadApodImage}
+          onOpenApodSource={(noteId) => {
+            const apodUrl = renderSnapshot.notes[noteId]?.apod?.pageUrl || renderSnapshot.notes[noteId]?.imageUrl;
+            if (apodUrl) {
+              openBookmarkUrl(apodUrl);
+            }
+          }}
         />
         )}
 

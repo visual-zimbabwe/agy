@@ -122,9 +122,28 @@ export type WebBookmarkNote = {
   error?: string;
 };
 
+export type ApodNoteStatus = "idle" | "loading" | "ready" | "error";
+
+export type ApodNoteMediaType = "image" | "video" | "other";
+
+export type ApodNote = {
+  status: ApodNoteStatus;
+  date?: string;
+  title?: string;
+  explanation?: string;
+  copyright?: string;
+  mediaType?: ApodNoteMediaType;
+  imageUrl?: string;
+  fallbackImageUrl?: string;
+  pageUrl?: string;
+  fetchedAt?: number;
+  lastSuccessAt?: number;
+  error?: string;
+};
+
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
@@ -132,6 +151,7 @@ export type Note = {
   eisenhower?: EisenhowerNote;
   currency?: CurrencyNote;
   bookmark?: WebBookmarkNote;
+  apod?: ApodNote;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";
@@ -256,6 +276,7 @@ export type WallState = {
 export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links" | "camera"> & {
   lastColor?: string;
 };
+
 
 
 

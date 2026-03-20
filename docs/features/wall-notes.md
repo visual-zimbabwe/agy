@@ -26,6 +26,7 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 - Eisenhower Matrix note creation
 - canon note creation
 - web bookmark note creation
+- NASA APOD note creation
 
 These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands.
 
@@ -36,6 +37,8 @@ Image note creation now supports three insert sources from the wall image modal:
 - `Upload` for local image files
 - `Paste URL` for direct remote image links
 - `Unsplash` search for single-image insertion or 3-10 image moodboards
+
+NASA APOD notes create a dedicated astronomy card powered by the NASA Astronomy Picture of the Day API. The wall can create them explicitly from the Tools panel, from the command palette, from the `Shift + A` shortcut, or by converting an existing note through `Details > Note Type`. APOD notes refresh automatically against the current UTC day, cache the latest payload locally, persist their metadata through local storage and cloud sync, and expose actions to manually refresh, open the NASA source page, or download the current image through the app backend. When the APOD entry is a video or otherwise lacks a primary still image, the wall falls back to the best available thumbnail while keeping the note readable.
 
 ## Note Kinds
 
@@ -50,6 +53,7 @@ Current wall note kinds include:
 - `throne`
 - `currency`
 - `web-bookmark`
+- `apod`
 In addition to explicit `noteKind`, notes can also carry vocabulary review payloads, which makes vocabulary notes a meaningful note workflow even when not represented as a separate `noteKind` enum value.
 
 ## Note Fields
@@ -69,6 +73,7 @@ Important fields include:
 - Throne note source metadata from the Game of Thrones Quotes API
 - currency payload for detected region, live USD rate, cache state, trend, and converter input
 - web bookmark payload for normalized URL, sanitized metadata, fetch status, last success, and error state
+- APOD payload for NASA media type, title, explanation, copyright, source URLs, fetch timestamps, and refresh error state
 - vocabulary payload
 - image URL
 - Unsplash-sourced image URLs

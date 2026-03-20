@@ -163,6 +163,30 @@ Expected:
 - Compact, comfortable, and expanded card states remain polished on the wall and in preview surfaces.
 - Invalid, missing, or partial metadata degrades gracefully without clipping or unsafe HTML rendering.
 
+## NASA APOD Note (`/wall`) (2026-03-20)
+1. Open `/wall`, open `Tools`, and click `New APOD`.
+2. Verify a new APOD note appears and loads the current Astronomy Picture of the Day instead of a blank image card.
+3. Verify the note shows the APOD title, date, and readable source metadata.
+4. Open the command palette, run `Create APOD note`, and verify another APOD note is created at viewport center.
+5. Press `Shift + A` and verify the same APOD note creation flow works from the keyboard.
+6. Convert an existing standard note through `Details > Note Type > APOD` and verify it becomes an APOD note and fetches the latest APOD payload.
+7. In the APOD floating editor, click `Refresh Now` and verify the note refetches data without creating a duplicate note.
+8. Click `Open Source` and verify the NASA APOD page opens in a new tab.
+9. Click `Download Image` and verify the current APOD image downloads locally with a readable filename.
+10. Resize the APOD note smaller and larger, then zoom out and back in; verify the media remains sharp and uses a contained layout rather than stretching into a blurry crop.
+11. Collapse back to the default note size and verify the image preview is still crisp.
+12. Refresh `/wall` and verify the APOD note restores with its cached metadata and image.
+13. If cloud sync is enabled, sync, reload, and verify the APOD payload still renders after hydration.
+14. If the current APOD entry is a video, verify the note falls back to a usable thumbnail/image state and the card remains readable.
+15. Leave the wall open across a date boundary or mock a new day, then trigger visibility/focus recovery and verify the APOD note updates to the new day instead of staying stale.
+
+Expected:
+- APOD notes are creatable from `Tools`, command palette, keyboard shortcut, and note-type conversion.
+- APOD note data is fetched through the app backend using the configured NASA API key rather than from the browser directly.
+- APOD notes auto-refresh for a new day, while manual refresh remains available.
+- Downloaded APOD media is served as a local attachment through the backend.
+- Expanded and contracted APOD notes keep the image crisp, fully visible, and unclipped on desktop and mobile-sized wall layouts.
+
 ## Joker Card (`/wall`) (2026-03-19)
 1. Sign in with a fresh wall state and open `/wall`.
 2. Verify a dedicated Joker card appears automatically.

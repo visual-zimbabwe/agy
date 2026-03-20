@@ -6,6 +6,7 @@ import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
+import { getApodCaption, isApodNote } from "@/features/wall/apod";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { CURRENCY_NOTE_DEFAULTS, CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
@@ -43,9 +44,9 @@ const estimateImageCaptionHeight = (noteWidth: number, caption: string) => {
   return Math.ceil(lines * IMAGE_NOTE_CAPTION_FONT_SIZE * IMAGE_NOTE_CAPTION_LINE_HEIGHT + 18);
 };
 
-const getImageNoteAutoHeight = (note: Pick<Note, "w" | "text">, image?: HTMLImageElement) => {
+const getImageNoteAutoHeight = (note: Pick<Note, "w">, caption: string, image?: HTMLImageElement) => {
   const availableWidth = Math.max(1, note.w - IMAGE_NOTE_PADDING * 2);
-  const captionHeight = estimateImageCaptionHeight(note.w, note.text);
+  const captionHeight = estimateImageCaptionHeight(note.w, caption);
   const captionGap = captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0;
   const fallbackHeight = availableWidth * 0.7;
 
@@ -57,8 +58,8 @@ const getImageNoteAutoHeight = (note: Pick<Note, "w" | "text">, image?: HTMLImag
   return Math.max(NOTE_DEFAULTS.minHeight, Math.round(IMAGE_NOTE_PADDING * 2 + intrinsicHeight + captionGap + captionHeight));
 };
 
-const getContainedImageLayout = (note: Pick<Note, "w" | "h" | "text">, image?: HTMLImageElement) => {
-  const captionHeight = estimateImageCaptionHeight(note.w, note.text);
+const getContainedImageLayout = (note: Pick<Note, "w" | "h">, caption: string, image?: HTMLImageElement) => {
+  const captionHeight = estimateImageCaptionHeight(note.w, caption);
   const captionGap = captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0;
   const availableWidth = Math.max(1, note.w - IMAGE_NOTE_PADDING * 2);
   const availableHeight = Math.max(1, note.h - IMAGE_NOTE_PADDING * 2 - captionHeight - captionGap);
@@ -328,13 +329,14 @@ export const WallNotesLayer = ({
         continue;
       }
 
-      const signature = `${imageUrl}|${note.w}|${note.text.trim()}|${image.naturalWidth}x${image.naturalHeight}`;
+      const caption = isApodNote(note) ? getApodCaption(note) : note.text.trim();
+      const signature = `${imageUrl}|${note.w}|${caption}|${image.naturalWidth}x${image.naturalHeight}`;
       nextSignatures[note.id] = signature;
       if (imageLayoutSignatureRef.current[note.id] === signature) {
         continue;
       }
 
-      const nextHeight = getImageNoteAutoHeight(note, image);
+      const nextHeight = getImageNoteAutoHeight(note, caption, image);
       if (Math.abs(note.h - nextHeight) > 2) {
         updateNote(note.id, { h: nextHeight });
       }
@@ -379,6 +381,7 @@ export const WallNotesLayer = ({
         const isThrone = noteView.noteKind === "throne";
         const isCurrency = isCurrencyNote(noteView);
         const isBookmark = noteView.noteKind === "web-bookmark";
+        const isApod = isApodNote(noteView);
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
@@ -414,8 +417,8 @@ export const WallNotesLayer = ({
         const bookmarkFavicon = bookmarkFaviconUrl ? loadedImagesByUrl[bookmarkFaviconUrl] : undefined;
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
         const isImageNote = Boolean(imageUrl);
-        const imageCaption = noteView.text.trim();
-        const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, noteImage) : null;
+        const imageCaption = isApod ? getApodCaption(noteView) : noteView.text.trim();
+        const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, imageCaption, noteImage) : null;
         const strippedNoteText = stripWikiLinkMarkup(noteView.text);
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
@@ -516,6 +519,10 @@ export const WallNotesLayer = ({
               selectSingleNote(note.id);
               if (note.vocabulary) {
                 toggleVocabularyFlip(note.id);
+                return;
+              }
+              if (isApod) {
+                openEditor(note.id, noteView.text);
                 return;
               }
               if (imageUrl) {
@@ -834,6 +841,12 @@ export const WallNotesLayer = ({
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={resolvedNoteColor} opacity={0.08} listening={false} />
+                {isApod && (
+                  <Group x={12} y={12} listening={false}>
+                    <Rect width={76} height={22} cornerRadius={11} fill="rgba(15,23,42,0.82)" />
+                    <Text x={0} y={6} width={76} align="center" fontSize={10} fontStyle="bold" fill="#FFFFFF" text="NASA APOD" />
+                  </Group>
+                )}
                 {noteImage ? (
                   <KonvaImage
                     x={imageNoteLayout.imageX}
@@ -865,7 +878,7 @@ export const WallNotesLayer = ({
                       align="center"
                       fontSize={11}
                       fill="#64748B"
-                      text={imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image..."}
+                      text={isApod ? noteView.apod?.error || (imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image...") : imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image..."}
                       listening={false}
                     />
                   </>

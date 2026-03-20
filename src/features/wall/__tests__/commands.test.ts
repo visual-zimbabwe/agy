@@ -4,6 +4,7 @@ import {
   assignZoneToGroup,
   createNoteGroup,
   createLink,
+  createApodNote,
   createCanonNote,
   createOrRefreshJokerNote,
   createOrRefreshThroneNote,
@@ -94,6 +95,16 @@ describe("wall commands", () => {
     expect(matrix?.eisenhower?.displayDate).toContain(",");
     expect(matrix?.eisenhower?.quadrants.doFirst.title).toBe("Do First");
   });
+  it("creates APOD notes with daily media defaults", () => {
+    const apodId = createApodNote(64, 96);
+    const apod = useWallStore.getState().notes[apodId];
+    expect(apod?.noteKind).toBe("apod");
+    expect(apod?.apod?.status).toBe("idle");
+    expect(apod?.apod?.date).toBeUndefined();
+    expect(apod?.imageUrl).toBeUndefined();
+    expect(apod?.tags).toEqual(["space", "nasa", "apod"]);
+  });
+
 
   it("creates links and rejects duplicate/self links", () => {
     const fromId = createNote(0, 0);
