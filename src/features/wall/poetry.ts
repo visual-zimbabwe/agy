@@ -24,30 +24,82 @@ export const defaultPoetryNoteState = (overrides?: Partial<PoetryNote>): PoetryN
 export const formatPoetryNoteText = (poetry?: Pick<PoetryNote, "lines"> | null) => poetry?.lines?.join("\n") ?? "";
 
 const roughWrappedLines = (text: string, maxWidth: number, characterWidth: number) => {
-  const roughChars = Math.max(18, Math.floor(maxWidth / characterWidth));
+  const roughChars = Math.max(12, Math.floor(maxWidth / characterWidth));
   return Math.max(1, Math.ceil(Math.max(1, text.length) / roughChars));
 };
 
-const measureWrappedLines = (text: string, maxWidth: number, fontSize: number, characterWidth = fontSize * 0.58) => {
+const measureWrappedLinesWithCanvas = (text: string, maxWidth: number, font: string, fallbackCharacterWidth: number) => {
   const paragraphs = text.split("\n");
-  return paragraphs.reduce((total, paragraph) => total + roughWrappedLines(paragraph.trim() || " ", maxWidth, characterWidth), 0);
+
+  if (typeof document === "undefined") {
+    return paragraphs.reduce(
+      (total, paragraph) => total + roughWrappedLines(paragraph.trim() || " ", maxWidth, fallbackCharacterWidth),
+      0,
+    );
+  }
+
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return paragraphs.reduce(
+      (total, paragraph) => total + roughWrappedLines(paragraph.trim() || " ", maxWidth, fallbackCharacterWidth),
+      0,
+    );
+  }
+
+  context.font = font;
+  let lines = 0;
+
+  for (const paragraph of paragraphs) {
+    const trimmed = paragraph.trim();
+    if (!trimmed) {
+      lines += 1;
+      continue;
+    }
+
+    const words = trimmed.split(/\s+/);
+    let currentLine = "";
+
+    for (const word of words) {
+      const candidate = currentLine ? `${currentLine} ${word}` : word;
+      if (context.measureText(candidate).width <= maxWidth) {
+        currentLine = candidate;
+        continue;
+      }
+
+      if (currentLine) {
+        lines += 1;
+      }
+      currentLine = word;
+    }
+
+    if (currentLine) {
+      lines += 1;
+    }
+  }
+
+  return Math.max(1, lines);
 };
 
 export const getPoetryNoteDimensions = (poetry?: Pick<PoetryNote, "title" | "author" | "lines"> | null) => {
   const width = POETRY_NOTE_DEFAULTS.width;
   const innerWidth = width - 36;
-  const titleLines = measureWrappedLines(poetry?.title?.trim() || "Poetry", innerWidth, 20, 11);
-  const authorLines = measureWrappedLines(poetry?.author?.trim() || POETRY_NOTE_SOURCE, innerWidth, 13, 7.2);
+  const titleLines = measureWrappedLinesWithCanvas(poetry?.title?.trim() || "Poetry", innerWidth, "600 20px Georgia", 11);
+  const authorLines = measureWrappedLinesWithCanvas(poetry?.author?.trim() || POETRY_NOTE_SOURCE, innerWidth, "italic 13px Georgia", 7.2);
   const bodyLines = Math.max(
     3,
     (poetry?.lines?.length ?? 0) > 0
-      ? poetry!.lines.reduce((sum, line) => sum + measureWrappedLines(line, innerWidth, POETRY_NOTE_DEFAULTS.textSizePx, 8), 0)
+      ? (poetry?.lines ?? []).reduce(
+          (sum, line) => sum + measureWrappedLinesWithCanvas(line, innerWidth, `400 ${POETRY_NOTE_DEFAULTS.textSizePx}px Georgia`, 7.4),
+          0,
+        )
       : 3,
   );
+  const stanzaBreaks = Math.max(0, (poetry?.lines ?? []).filter((line) => !line.trim()).length);
 
   const height = Math.max(
     NOTE_DEFAULTS.minHeight,
-    Math.round(48 + titleLines * 26 + authorLines * 18 + bodyLines * 22 + 44),
+    Math.round(52 + titleLines * 28 + authorLines * 20 + bodyLines * 24 + stanzaBreaks * 10 + 52),
   );
 
   return { width, height };
@@ -117,3 +169,4 @@ export const getPoetryExportBaseName = (poetry?: Pick<PoetryNote, "dateKey" | "t
   const author = slugify(poetry?.author?.trim() || "poetrydb");
   return `poetry-${date}-${author}-${title}`;
 };
+
