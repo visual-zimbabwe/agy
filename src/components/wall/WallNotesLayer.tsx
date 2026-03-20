@@ -7,9 +7,10 @@ import type Konva from "konva";
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
-import { CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
+import { CURRENCY_NOTE_DEFAULTS, CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { jokerLoadingText } from "@/features/wall/joker";
+import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { throneLoadingText } from "@/features/wall/throne";
 import type { LinkType, Note } from "@/features/wall/types";
 
@@ -88,6 +89,19 @@ const getContainedImageLayout = (note: Pick<Note, "w" | "h" | "text">, image?: H
 };
 
 const stripWikiLinkMarkup = (text: string) => text.replace(/\[\[([^\]\n]+?)\]\]/g, "$1");
+
+const resolveNoteFillColor = (note: Note) => {
+  if (note.noteKind === "joker") {
+    return "#D6FF57";
+  }
+  if (note.noteKind === "throne") {
+    return "#FF2400";
+  }
+  if (isCurrencyNote(note)) {
+    return CURRENCY_NOTE_DEFAULTS.color;
+  }
+  return sanitizeStandardNoteColor(note.color, DEFAULT_STANDARD_NOTE_COLOR);
+};
 
 type WallNotesLayerProps = {
   visibleNotes: Note[];
@@ -431,7 +445,8 @@ export const WallNotesLayer = ({
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
-        const tagPalette = noteTagChipPalette(noteView.color);
+        const resolvedNoteColor = resolveNoteFillColor(noteView);
+        const tagPalette = noteTagChipPalette(resolvedNoteColor);
         const textY = isImageNote ? 0 : isApiQuoteNote ? 52 : 12 + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
         const textHeight = isImageNote
           ? 0
@@ -818,7 +833,7 @@ export const WallNotesLayer = ({
                   shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={note.color} opacity={0.08} listening={false} />
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={resolvedNoteColor} opacity={0.08} listening={false} />
                 {noteImage ? (
                   <KonvaImage
                     x={imageNoteLayout.imageX}
@@ -909,7 +924,7 @@ export const WallNotesLayer = ({
                 width={noteView.w}
                 height={noteView.h}
                 cornerRadius={14}
-                fill={isJoker ? "#D6FF57" : isThrone ? "#FF2400" : note.color}
+                fill={resolvedNoteColor}
                 stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
                 strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
                 shadowColor="#101010"
@@ -1261,28 +1276,4 @@ export const WallNotesLayer = ({
     </>
   );
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
-import { isCurrencyNote } from "@/features/wall/currency";
+import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
+import { JOKER_NOTE_COLOR, sanitizeStandardNoteColor, THRONE_NOTE_COLOR } from "@/features/wall/special-notes";
 
 import type {
   Camera,
@@ -306,12 +307,24 @@ export const useWallStore = create<WallStore>((set) => ({
         return state;
       }
 
+      const nextNoteKind = patch.noteKind ?? current.noteKind;
+      const nextColor = Object.prototype.hasOwnProperty.call(patch, "color")
+        ? nextNoteKind === "joker"
+          ? JOKER_NOTE_COLOR
+          : nextNoteKind === "throne"
+            ? THRONE_NOTE_COLOR
+            : nextNoteKind === "currency"
+              ? CURRENCY_NOTE_DEFAULTS.color
+              : sanitizeStandardNoteColor(patch.color, sanitizeStandardNoteColor(current.color))
+        : current.color;
+
       return applyWithHistory(state, {
         notes: {
           ...state.notes,
           [noteId]: {
             ...current,
             ...patch,
+            color: nextColor,
             updatedAt: Date.now(),
           },
         },

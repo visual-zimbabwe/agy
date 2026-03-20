@@ -212,6 +212,7 @@ Expected:
 11. In a note, create `/bulleted`, `/numbered`, `/toggle`, and `/todo` lines, then press `Enter` at end-of-line, mid-line, and on an empty list line; verify bullets/toggles/tasks continue correctly, numbered items auto-increment, and empty list lines exit back to plain text.
 12. With the caret on a list line, press `Tab` and `Shift + Tab`; verify list indentation and outdent behave predictably without leaving edit mode.
 13. Open the slash menu and selection toolbar near viewport edges on desktop and mobile widths; verify they remain visible and are not clipped by surrounding wall UI.
+14. Double-click a standard note with a custom background color, edit text, then blur the editor; verify the note keeps its background color while editing and after exiting edit mode. Repeat with a legacy note that has no stored color and verify it falls back to the default sticky-note yellow instead of rendering transparent.
 
 Expected:
 - Wall note editing feels contextual: no heavy always-on toolbar, only a compact selection toolbar when text is highlighted.
@@ -1108,5 +1109,4 @@ Expected:
 - Location detection degrades from geolocation to IP lookup to USD fallback cleanly.
 - Exchange-rate fetches are lazy, cached, debounced, and recover gracefully from API failures.
 - The note remains legible and premium-looking in both light and dark themes.
-
 

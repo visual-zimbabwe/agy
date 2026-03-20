@@ -11,6 +11,7 @@ import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { WallZoomControls } from "@/components/wall/WallZoomControls";
+import { sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import type { LinkType, Note } from "@/features/wall/types";
 
 type LinkContextMenuState = {
@@ -164,6 +165,7 @@ export const WallFloatingUi = ({
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
   const editingCanon = editingNote?.canon;
+  const editingBackgroundColor = editingNote ? sanitizeStandardNoteColor(editingNote.color) : undefined;
   const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
 
   return (
@@ -208,7 +210,7 @@ export const WallFloatingUi = ({
             />
           )}
           {editingNote.noteKind === "canon" && editingCanon && (
-            <div data-note-edit-tags="true" className="rounded-xl border border-zinc-700/40 p-3 shadow-xl" style={{ backgroundColor: editingNote.color }}>
+            <div data-note-edit-tags="true" className="rounded-xl border border-zinc-700/40 p-3 shadow-xl" style={{ backgroundColor: editingBackgroundColor }}>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600">Canon Note</p>
               <div className="mt-2 grid gap-2">
                 <input
@@ -581,9 +583,4 @@ export const WallFloatingUi = ({
     </>
   );
 };
-
-
-
-
-
 

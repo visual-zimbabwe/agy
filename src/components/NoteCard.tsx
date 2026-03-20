@@ -156,7 +156,7 @@ export const NoteSwatches = ({ value, onSelect, sortMode = "recency", showCustom
     });
   };
 
-  const selected = value ? normalizeHex(value) : undefined;
+  const selected = value?.trim() ? normalizeHex(value) : undefined;
 
   return (
     <div className="flex items-center gap-2">
@@ -204,8 +204,4 @@ export const NoteSwatches = ({ value, onSelect, sortMode = "recency", showCustom
     </div>
   );
 };
-
-
-
-
 
