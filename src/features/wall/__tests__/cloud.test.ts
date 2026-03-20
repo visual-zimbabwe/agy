@@ -159,6 +159,53 @@ describe("cloud rows mapping", () => {
     expect(vocabulary?.lastOutcome).toBe("good");
   });
 
+  it("maps throne note metadata from cloud rows", () => {
+    const snapshot = rowsToSnapshot({
+      wall: { camera_x: 0, camera_y: 0, camera_zoom: 1, last_color: null },
+      notes: [
+        {
+          id: "t1",
+          wall_id: "wall-1",
+          note_kind: "throne",
+          text: "There are no men like me. Only me.",
+          quote_author: "Jaime Lannister",
+          quote_source: "House Lannister",
+          x: 10,
+          y: 20,
+          w: 240,
+          h: 184,
+          color: "#FF2400",
+          text_align: null,
+          text_v_align: null,
+          text_font: null,
+          text_color: null,
+          text_size: null,
+          text_size_px: null,
+          tags: ["throne", "quote"],
+          image_url: null,
+          canon: null,
+          eisenhower: null,
+          currency: null,
+          bookmark: null,
+          pinned: false,
+          highlighted: false,
+          created_at: "2026-03-19T00:00:00.000Z",
+          updated_at: "2026-03-19T00:00:01.000Z",
+        },
+      ],
+      zones: [],
+      zoneGroups: [],
+      noteGroups: [],
+      links: [],
+    });
+
+    const throne = snapshot.notes.t1;
+    expect(throne?.noteKind).toBe("throne");
+    expect(throne?.quoteAuthor).toBe("Jaime Lannister");
+    expect(throne?.quoteSource).toBe("House Lannister");
+    expect(throne?.color).toBe("#FF2400");
+  });
+
   it("maps quote note metadata from cloud rows", () => {
     const snapshot = rowsToSnapshot({
       wall: { camera_x: 0, camera_y: 0, camera_zoom: 1, last_color: null },

@@ -99,7 +99,7 @@ const bookmarkSchema = z.object({
 
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "currency", "web-bookmark"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),

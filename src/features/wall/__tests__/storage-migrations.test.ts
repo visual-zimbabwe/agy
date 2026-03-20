@@ -195,6 +195,34 @@ describe("storage migrations", () => {
     expect(normalized?.notes.q1?.quoteSource).toBe("Stanford Commencement, 2005");
   });
 
+  it("preserves throne note kind when present", () => {
+    const normalized = normalizePersistedWallState({
+      notes: {
+        t1: {
+          id: "t1",
+          noteKind: "throne",
+          text: "There are no men like me. Only me.",
+          quoteAuthor: "Jaime Lannister",
+          quoteSource: "House Lannister",
+          x: 20,
+          y: 30,
+          w: 240,
+          h: 184,
+          color: "#FF2400",
+          createdAt: 1000,
+          updatedAt: 2000,
+          tags: ["throne", "quote"],
+        },
+      },
+      zones: {},
+      camera: { x: 0, y: 0, zoom: 1 },
+    });
+
+    expect(normalized?.notes.t1?.noteKind).toBe("throne");
+    expect(normalized?.notes.t1?.quoteAuthor).toBe("Jaime Lannister");
+    expect(normalized?.notes.t1?.color).toBe("#FF2400");
+  });
+
   it("normalizes journal note metadata when present", () => {
     const normalized = normalizePersistedWallState({
       notes: {

@@ -347,6 +347,7 @@ export const rowsToSnapshot = (rows: {
         note.note_kind === "journal" ||
         note.note_kind === "eisenhower" ||
         note.note_kind === "joker" ||
+        note.note_kind === "throne" ||
         note.note_kind === "currency" ||
         note.note_kind === "web-bookmark"
           ? note.note_kind
