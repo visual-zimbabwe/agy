@@ -10,6 +10,7 @@ import { getApodCaption, isApodNote } from "@/features/wall/apod";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { CURRENCY_NOTE_DEFAULTS, CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
+import { getPoetryTitle } from "@/features/wall/poetry";
 import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { throneLoadingText } from "@/features/wall/throne";
@@ -377,6 +378,7 @@ export const WallNotesLayer = ({
         const isCanon = noteView.noteKind === "canon";
         const isJournal = noteView.noteKind === "journal";
         const isEisenhower = noteView.noteKind === "eisenhower";
+        const isPoetry = noteView.noteKind === "poetry";
         const isJoker = noteView.noteKind === "joker";
         const isThrone = noteView.noteKind === "throne";
         const isCurrency = isCurrencyNote(noteView);
@@ -393,11 +395,14 @@ export const WallNotesLayer = ({
           .filter(Boolean)
           .join("\n\n");
         const canonTitle = canon?.title?.trim();
+        const poetryTitle = isPoetry ? getPoetryTitle(noteView) : "";
+        const poetryAuthor = isPoetry ? noteView.poetry?.author?.trim() || noteView.quoteAuthor?.trim() || "Unknown Poet" : "";
         const quoteAttribution = noteView.quoteAuthor?.trim() ?? "";
         const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
         const throneSpeakerHeight = isThrone && quoteAttribution ? 18 : 0;
         const quoteMarkInset = isQuote ? 13 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
+        const poetryHeaderInset = isPoetry ? 52 : 0;
         const journalWritingX = 56;
         const journalFirstLineY = 30;
         const journalLineGap = 31;
@@ -437,6 +442,8 @@ export const WallNotesLayer = ({
               ? canon?.mode === "list"
                 ? canonListPreview || "Add list items"
                 : canonSinglePreview || "Add statement"
+            : isPoetry
+              ? strippedNoteText || noteView.poetry?.error || "Loading poem..."
             : isQuote
               ? truncateNoteText(strippedNoteText, {
                   ...noteView,
@@ -450,10 +457,10 @@ export const WallNotesLayer = ({
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
         const resolvedNoteColor = resolveNoteFillColor(noteView);
         const tagPalette = noteTagChipPalette(resolvedNoteColor);
-        const textY = isImageNote ? 0 : isApiQuoteNote ? 52 : 12 + quoteMarkInset + canonTitleInset + (isJournal ? 43 : 0);
+        const textY = isImageNote ? 0 : isApiQuoteNote ? 52 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 43 : 0);
         const textHeight = isImageNote
           ? 0
-          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - throneSpeakerHeight - quoteMarkInset - canonTitleInset - (isJournal ? 43 : 0) - wikiFooterHeight);
+          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - throneSpeakerHeight - quoteMarkInset - canonTitleInset - poetryHeaderInset - (isJournal ? 43 : 0) - wikiFooterHeight);
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
         const journalDateFontSize = Math.max(13, noteTextStyle.fontSize - 2);
         const journalDateUnderlineWidth = Math.min(estimateJournalDateWidth(journalDateLabel, journalDateFontSize), Math.max(0, noteView.w - journalWritingX - 18));
@@ -521,7 +528,7 @@ export const WallNotesLayer = ({
                 toggleVocabularyFlip(note.id);
                 return;
               }
-              if (isApod) {
+              if (isApod || isPoetry) {
                 openEditor(note.id, noteView.text);
                 return;
               }
@@ -841,12 +848,6 @@ export const WallNotesLayer = ({
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={resolvedNoteColor} opacity={0.08} listening={false} />
-                {isApod && (
-                  <Group x={12} y={12} listening={false}>
-                    <Rect width={76} height={22} cornerRadius={11} fill="rgba(15,23,42,0.82)" />
-                    <Text x={0} y={6} width={76} align="center" fontSize={10} fontStyle="bold" fill="#FFFFFF" text="NASA APOD" />
-                  </Group>
-                )}
                 {noteImage ? (
                   <KonvaImage
                     x={imageNoteLayout.imageX}
@@ -1124,6 +1125,35 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
+            {isPoetry && (
+              <>
+                <Text
+                  x={12}
+                  y={12}
+                  width={Math.max(0, noteView.w - 24)}
+                  fontSize={14}
+                  fontStyle="bold"
+                  fontFamily="Georgia"
+                  fill={resolvedTextColor}
+                  text={poetryTitle}
+                  ellipsis
+                  listening={false}
+                />
+                <Text
+                  x={12}
+                  y={32}
+                  width={Math.max(0, noteView.w - 24)}
+                  fontSize={10}
+                  fontStyle="italic"
+                  fill={resolvedTextColor}
+                  opacity={0.82}
+                  text={poetryAuthor}
+                  wrap="none"
+                  ellipsis
+                  listening={false}
+                />
+              </>
+            )}
             {isQuote && quoteAttribution && !isEisenhower && (
               <Text
                 x={12}
@@ -1137,7 +1167,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && (
+            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && !isPoetry && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;
@@ -1247,7 +1277,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isThrone &&
+            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -1272,7 +1302,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isThrone && overflowTags > 0 && (
+            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}

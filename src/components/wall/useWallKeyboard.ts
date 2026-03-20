@@ -60,6 +60,7 @@ type WallKeyboardOptions = {
   createJournalNote: () => void;
   createQuoteNote: () => void;
   createApodNote: () => void;
+  createPoetryNote: () => void;
   createEisenhowerNote: () => void;
   createWordNote: () => void;
   openEditor: (noteId: string, text: string, focusField?: string) => void;

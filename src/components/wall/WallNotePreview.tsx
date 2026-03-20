@@ -9,6 +9,7 @@ import { parseCurrencyAmountInput } from "@/features/wall/currency";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
+import { getPoetryTitle } from "@/features/wall/poetry";
 import type { Note } from "@/features/wall/types";
 
 type WallNotePreviewProps = {
@@ -317,7 +318,6 @@ const ApodRenderer = ({ note, width, height, readableText, mutedText, textFontFa
               {note.apod?.error || "Loading APOD"}
             </div>
           )}
-          <div className="absolute left-2 top-2 rounded-full bg-[rgba(15,23,42,0.78)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">NASA APOD</div>
         </div>
         {caption && (
           <p
@@ -337,6 +337,34 @@ const ApodRenderer = ({ note, width, height, readableText, mutedText, textFontFa
     </NoteShell>
   );
 };
+
+const PoetryRenderer = ({ note, width, height, readableText, mutedText, textFontFamily, bodyClamp, tone }: RendererProps) => (
+  <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
+    <div className="flex h-full flex-col p-3.5">
+      <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: mutedText }}>
+        Poetry
+      </p>
+      <p className="mt-1 whitespace-pre-wrap text-base font-semibold [overflow-wrap:anywhere]" style={{ color: readableText, fontFamily: "Georgia, serif", lineHeight: 1.28 }}>
+        {getPoetryTitle(note)}
+      </p>
+      <p className="mt-1 truncate text-[11px] italic" style={{ color: mutedText }}>
+        {note.poetry?.author?.trim() || note.quoteAuthor?.trim() || "Unknown Poet"}
+      </p>
+      <p
+        className="mt-3 whitespace-pre-wrap [overflow-wrap:anywhere]"
+        style={{
+          ...lineClampStyle(tone === "detail" ? 999 : bodyClamp + 2),
+          color: readableText,
+          fontFamily: textFontFamily,
+          fontSize: 13,
+          lineHeight: 1.52,
+        }}
+      >
+        {note.text.trim() || note.poetry?.error || "Loading poem..."}
+      </p>
+    </div>
+  </NoteShell>
+);
 
 const EisenhowerRenderer = ({ note, width, height, readableText, mutedText, softText, quadrantClamp, tone }: RendererProps) => {
   const matrix = normalizeEisenhowerNote(note.eisenhower, note.createdAt);
@@ -412,6 +440,7 @@ const noteRenderers: Record<string, NoteRenderer> = {
   currency: CurrencyRenderer,
   "web-bookmark": WebBookmarkRenderer,
   apod: ApodRenderer,
+  poetry: PoetryRenderer,
   image: ImageRenderer,
   vocabulary: VocabularyRenderer,
   fallback: FallbackRenderer,
@@ -420,6 +449,9 @@ const noteRenderers: Record<string, NoteRenderer> = {
 const resolveRendererKey = (note: Note) => {
   if (note.noteKind === "apod") {
     return "apod";
+  }
+  if (note.noteKind === "poetry") {
+    return "poetry";
   }
   if (note.imageUrl?.trim()) {
     return "image";

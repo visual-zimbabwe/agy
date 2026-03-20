@@ -317,5 +317,46 @@ describe("storage migrations", () => {
     expect(normalized?.notes.c1?.canon?.mode).toBe("list");
     expect(normalized?.notes.c1?.canon?.items).toHaveLength(2);
   });
+
+  it("normalizes poetry note payload when present", () => {
+    const normalized = normalizePersistedWallState({
+      notes: {
+        p1: {
+          id: "p1",
+          noteKind: "poetry",
+          text: "Hope is the thing with feathers",
+          quoteAuthor: "Emily Dickinson",
+          quoteSource: "PoetryDB",
+          poetry: {
+            status: "ready",
+            dateKey: "2026-03-20",
+            title: "'Hope' is the thing with feathers",
+            author: "Emily Dickinson",
+            lines: ["Hope is the thing with feathers", "That perches in the soul"],
+            lineCount: 2,
+            fetchedAt: 10,
+            lastSuccessAt: 10,
+          },
+          tags: ["poetry", "poem"],
+          x: 0,
+          y: 0,
+          w: 320,
+          h: 280,
+          color: "#B73A3A",
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      },
+      zones: {},
+      zoneGroups: {},
+      noteGroups: {},
+      links: {},
+      camera: { x: 0, y: 0, zoom: 1 },
+    });
+
+    expect(normalized?.notes.p1?.noteKind).toBe("poetry");
+    expect(normalized?.notes.p1?.poetry?.author).toBe("Emily Dickinson");
+    expect(normalized?.notes.p1?.poetry?.lines).toEqual(["Hope is the thing with feathers", "That perches in the soul"]);
+  });
 });
 

@@ -16,7 +16,7 @@ This repository is local-first in day-to-day interaction and cloud-backed when s
 ### Wall
 
 - Infinite canvas with pan and zoom
-- Rich note types including standard, quote, canon, journal, vocabulary, and Eisenhower-style workflows
+- Rich note types including standard, quote, canon, journal, vocabulary, Eisenhower, APOD, bookmark, and Poetry workflows
 - Tags, wiki-style links, directional links, zones, zone groups, and note groups
 - Search, quick capture, recall, timeline view, presentation mode, and multiple export paths
 - Cloud sync and published read-only snapshot links
@@ -160,7 +160,7 @@ Persisted wall state includes:
 - camera
 - last-used color
 
-Wall notes can also carry richer payloads such as canon content, vocabulary review state, Eisenhower data, quote metadata, image URLs, text formatting, highlight state, and the permanent currency widget state.
+Wall notes can also carry richer payloads such as canon content, vocabulary review state, Eisenhower data, quote metadata, APOD metadata, PoetryDB poem state, image URLs, text formatting, highlight state, and the permanent currency widget state.
 
 ### Page
 

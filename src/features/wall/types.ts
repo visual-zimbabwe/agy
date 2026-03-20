@@ -141,9 +141,24 @@ export type ApodNote = {
   error?: string;
 };
 
+export type PoetryNoteStatus = "idle" | "loading" | "ready" | "error";
+
+export type PoetryNote = {
+  status: PoetryNoteStatus;
+  dateKey?: string;
+  title?: string;
+  author?: string;
+  lines: string[];
+  lineCount?: number;
+  sourceUrl?: string;
+  fetchedAt?: number;
+  lastSuccessAt?: number;
+  error?: string;
+};
+
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod" | "poetry";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
@@ -152,6 +167,7 @@ export type Note = {
   currency?: CurrencyNote;
   bookmark?: WebBookmarkNote;
   apod?: ApodNote;
+  poetry?: PoetryNote;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";
@@ -276,6 +292,10 @@ export type WallState = {
 export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links" | "camera"> & {
   lastColor?: string;
 };
+
+
+
+
 
 
 

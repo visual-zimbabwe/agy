@@ -56,6 +56,7 @@ import { WallStage } from "@/components/wall/WallStage";
 import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
 import { useApodNotes } from "@/components/wall/useApodNotes";
+import { usePoetryNotes } from "@/components/wall/usePoetryNotes";
 import { useCurrencySystemNote } from "@/components/wall/useCurrencySystemNote";
 import { useWallBackupActions } from "@/components/wall/useWallBackupActions";
 import { useAnimatedCamera } from "@/components/wall/useAnimatedCamera";
@@ -81,6 +82,7 @@ import {
   createNote,
   createCanonNote,
   createApodNote,
+  createPoetryNote,
   createOrRefreshJokerNote,
   createOrRefreshThroneNote,
   createJournalNote,
@@ -805,6 +807,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     resetToDetectedCurrency,
   } = useCurrencySystemNote({ hydrated, publishedReadOnly });
   const { refreshApodNote, downloadApodImage } = useApodNotes({ hydrated, publishedReadOnly });
+  const { refreshPoetryNote, downloadPoetryAsImage, downloadPoetryAsPdf } = usePoetryNotes({ hydrated, publishedReadOnly });
 
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
@@ -1157,6 +1160,18 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     void refreshApodNote(id, { force: true });
   }, [camera, isTimeLocked, openEditor, refreshApodNote, selectNote, viewport.h, viewport.w]);
 
+  const makePoetryNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const id = createPoetryNote(world.x - 160, world.y - 140);
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, "");
+    void refreshPoetryNote(id, { force: true });
+  }, [camera, isTimeLocked, openEditor, refreshPoetryNote, selectNote, viewport.h, viewport.w]);
+
   const makeWordNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
@@ -1324,6 +1339,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
     createApodNote: makeApodNoteAtViewportCenter,
+    createPoetryNote: makePoetryNoteAtViewportCenter,
     createEisenhowerNote: makeEisenhowerNoteAtViewportCenter,
     createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
@@ -2074,6 +2090,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: makeApodNoteAtViewportCenter,
       },
       {
+        id: "new-poetry-note",
+        label: "Create Poetry note",
+        description: "Add a daily PoetryDB poem with refresh and export actions.",
+        keywords: ["poetry", "poem", "poet", "poetrydb", "verse"],
+        disabled: isTimeLocked,
+        onSelect: makePoetryNoteAtViewportCenter,
+      },
+      {
         id: "new-eisenhower-note",
         label: "Create Eisenhower Matrix note",
         description: "Add a four-quadrant priority note with editable sections.",
@@ -2355,6 +2379,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       makeJournalNoteAtViewportCenter,
       makeQuoteNoteAtViewportCenter,
       makeApodNoteAtViewportCenter,
+      makePoetryNoteAtViewportCenter,
       makeEisenhowerNoteAtViewportCenter,
       makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
@@ -2563,6 +2588,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
             onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
             onCreateApodNote={makeApodNoteAtViewportCenter}
+            onCreatePoetryNote={makePoetryNoteAtViewportCenter}
             onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
             onCreateOrRefreshJokerNote={makeJokerNoteAtViewportCenter}
             onCreateOrRefreshThroneNote={makeThroneNoteAtViewportCenter}
@@ -2820,6 +2846,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               openBookmarkUrl(apodUrl);
             }
           }}
+          onRefreshPoetryNote={(noteId) => { void refreshPoetryNote(noteId, { force: true }); }}
+          onDownloadPoetryImage={downloadPoetryAsImage}
+          onDownloadPoetryPdf={downloadPoetryAsPdf}
         />
         )}
 

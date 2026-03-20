@@ -33,6 +33,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.currency does not exist") ||
         message.includes("column notes.bookmark does not exist") ||
         message.includes("column notes.apod does not exist") ||
+        message.includes("column notes.poetry does not exist") ||
         message.includes("column notes.text_size does not exist") ||
         message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
@@ -113,7 +114,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   const notesWithFormattingResult = await auth.supabase
     .from("notes")
     .select(
-      "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,tags,text_size,x,y,w,h,color,created_at,updated_at",
+      "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,poetry,tags,text_size,x,y,w,h,color,created_at,updated_at",
     )
     .eq("wall_id", wallId)
     .eq("owner_id", auth.user.id)
@@ -124,7 +125,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     const notesWithoutVocabularyResult = await auth.supabase
       .from("notes")
       .select(
-        "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,bookmark,apod,tags,text_size,x,y,w,h,color,created_at,updated_at",
+        "id,note_kind,text,quote_author,quote_source,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,bookmark,apod,poetry,tags,text_size,x,y,w,h,color,created_at,updated_at",
       )
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
@@ -159,6 +160,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
           currency: null,
           bookmark: null,
           apod: null,
+          poetry: null,
         })) as SnapshotArgs["notes"]) ?? [];
     } else if (notesWithoutVocabularyResult.error) {
       return NextResponse.json({ error: notesWithoutVocabularyResult.error.message }, { status: 500 });
@@ -194,6 +196,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
         currency: null,
         bookmark: null,
         apod: null,
+          poetry: null,
       })) as SnapshotArgs["notes"]) ?? [];
   } else if (notesWithFormattingResult.error) {
     return NextResponse.json({ error: notesWithFormattingResult.error.message }, { status: 500 });

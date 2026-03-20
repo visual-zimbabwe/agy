@@ -1111,6 +1111,28 @@ Expected:
 
 
 
+
+## Poetry Note (`/wall`) (2026-03-20)
+1. Open `/wall`, open `Tools`, and click `New Poetry`.
+2. Verify a new Poetry note appears with the reserved `#B73A3A` color and a loading state before the poem resolves.
+3. Verify the note loads a poem title, poet name, and wrapped body text from PoetryDB.
+4. Confirm the note height adapts so the full poem text is visible without manual resize when the poem first loads.
+5. Open the command palette, run `Create Poetry note`, and verify another Poetry note is created at viewport center.
+6. Convert an existing standard note through `Details > Note Type > Poetry` and verify it becomes a Poetry note with the reserved styling.
+7. Open the Poetry floating editor and click `Refresh Poetry`; verify the note fetches a different poem and updates its size if needed.
+8. Click `Download Image` and verify a PNG export downloads with poem title and poet metadata.
+9. Click `Download PDF` and verify a PDF export downloads with the same poem content.
+10. Refresh `/wall` and verify the Poetry note restores with the cached poem metadata and text.
+11. If cloud sync is enabled, sync, reload, and verify the Poetry payload still renders after hydration.
+12. Simulate a local date change or wait until the next day, then reopen `/wall`; verify the Poetry note auto-refreshes to a new poem for the new local date.
+
+Expected:
+- Poetry notes are creatable from `Tools`, the command palette, and note-type conversion in `Details`.
+- Poetry text wraps cleanly inside the note and the default note size grows to fit the poem on first load.
+- Poetry notes auto-refresh on local day changes and also allow manual refresh without creating duplicate notes.
+- Poetry notes can be exported directly as PNG or PDF from the floating editor.
+- The reserved Poetry color remains fixed and persists through refresh and sync.
+
 ## Currency Note (`/wall`) (2026-03-19)
 1. Open `/wall` and verify one indigo `Currency` system note is present near the top-left of the wall.
 2. Refresh the page and verify the note still exists.

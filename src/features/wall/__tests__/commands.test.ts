@@ -5,6 +5,7 @@ import {
   createNoteGroup,
   createLink,
   createApodNote,
+  createPoetryNote,
   createCanonNote,
   createOrRefreshJokerNote,
   createOrRefreshThroneNote,
@@ -22,6 +23,7 @@ import {
   toggleNoteGroupCollapse,
 } from "@/features/wall/commands";
 import { NOTE_COLORS } from "@/features/wall/constants";
+import { POETRY_NOTE_COLOR } from "@/features/wall/special-notes";
 import { JOKER_NOTE_COLOR } from "@/features/wall/joker";
 import { THRONE_NOTE_COLOR } from "@/features/wall/throne";
 import { useWallStore } from "@/features/wall/store";
@@ -103,6 +105,16 @@ describe("wall commands", () => {
     expect(apod?.apod?.date).toBeUndefined();
     expect(apod?.imageUrl).toBeUndefined();
     expect(apod?.tags).toEqual(["space", "nasa", "apod"]);
+  });
+
+  it("creates Poetry notes with fixed styling and poem payload defaults", () => {
+    const poetryId = createPoetryNote(64, 96);
+    const poetry = useWallStore.getState().notes[poetryId];
+    expect(poetry?.noteKind).toBe("poetry");
+    expect(poetry?.color).toBe(POETRY_NOTE_COLOR);
+    expect(poetry?.poetry?.status).toBe("idle");
+    expect(poetry?.tags).toEqual(["poetry", "poem"]);
+    expect(poetry?.quoteSource).toBe("PoetryDB");
   });
 
 

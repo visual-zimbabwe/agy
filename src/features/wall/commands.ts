@@ -1,6 +1,7 @@
-import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
+import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, POETRY_NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
 import { buildApodNote, isApodNote } from "@/features/wall/apod";
+import { buildPoetryNote, isPoetryNote } from "@/features/wall/poetry";
 import { createBookmarkNoteState, isWebBookmarkNote, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import { buildJokerPlaceholderNote, fetchJokerJoke, formatJokerNoteText, hasJokerCardBeenActivated, isJokerNote, JOKER_NOTE_SOURCE, jokerErrorText, jokerLoadingText, markJokerCardActivated, sanitizeStandardNoteColor } from "@/features/wall/joker";
@@ -340,6 +341,14 @@ export const createApodNote = (x: number, y: number) => {
   return note.id;
 };
 
+export const createPoetryNote = (x: number, y: number) => {
+  const note = buildPoetryNote(makeId(), x, y);
+  const { upsertNote, selectNote } = useWallStore.getState();
+  upsertNote(note);
+  selectNote(note.id);
+  return note.id;
+};
+
 export const createWebBookmarkNote = (x: number, y: number, url = "") => {
   const noteId = createNote(x, y, WEB_BOOKMARK_DEFAULTS.color);
   useWallStore.getState().patchNote(noteId, {
@@ -429,6 +438,28 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       textColor: patch.textColor ?? current.textColor,
       textFont: patch.textFont ?? current.textFont,
       textSizePx: patch.textSizePx ?? current.textSizePx,
+      tags: patch.tags ?? current.tags,
+    });
+    return;
+  }
+
+  if (isPoetryNote(current)) {
+    useWallStore.getState().patchNote(noteId, {
+      ...patch,
+      noteKind: "poetry",
+      quoteAuthor: patch.quoteAuthor ?? current.quoteAuthor,
+      quoteSource: patch.quoteSource ?? current.quoteSource ?? "PoetryDB",
+      canon: undefined,
+      eisenhower: undefined,
+      currency: undefined,
+      bookmark: undefined,
+      apod: undefined,
+      poetry: patch.poetry ?? current.poetry,
+      imageUrl: undefined,
+      color: POETRY_NOTE_DEFAULTS.color,
+      textColor: patch.textColor ?? current.textColor ?? POETRY_NOTE_DEFAULTS.textColor,
+      textFont: patch.textFont ?? current.textFont ?? POETRY_NOTE_DEFAULTS.textFont,
+      textSizePx: patch.textSizePx ?? current.textSizePx ?? POETRY_NOTE_DEFAULTS.textSizePx,
       tags: patch.tags ?? current.tags,
     });
     return;
@@ -964,6 +995,11 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
     state.selectGroup(groupId);
   });
 };
+
+
+
+
+
 
 
 

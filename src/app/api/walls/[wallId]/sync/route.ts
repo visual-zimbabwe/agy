@@ -112,9 +112,22 @@ const apodSchema = z.object({
   error: z.string().optional(),
 });
 
+const poetrySchema = z.object({
+  status: z.enum(["idle", "loading", "ready", "error"]),
+  dateKey: z.string().optional(),
+  title: z.string().optional(),
+  author: z.string().optional(),
+  lines: z.array(z.string()),
+  lineCount: z.number().optional(),
+  sourceUrl: z.string().optional(),
+  fetchedAt: z.number().optional(),
+  lastSuccessAt: z.number().optional(),
+  error: z.string().optional(),
+});
+
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark", "apod"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark", "apod", "poetry"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -141,6 +154,7 @@ const noteSchema = z.object({
   currency: currencySchema.optional(),
   bookmark: bookmarkSchema.optional(),
   apod: apodSchema.optional(),
+  poetry: poetrySchema.optional(),
 });
 
 const zoneSchema = z.object({
@@ -222,6 +236,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.currency does not exist") ||
         message.includes("column notes.bookmark does not exist") ||
         message.includes("column notes.apod does not exist") ||
+        message.includes("column notes.poetry does not exist") ||
         message.includes("column notes.text_size does not exist") ||
         message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
@@ -305,6 +320,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               currency: note.currency ?? null,
               bookmark: note.bookmark ?? null,
               apod: note.apod ?? null,
+              poetry: note.poetry ?? null,
               image_url: note.imageUrl?.trim() || null,
               text_align: note.textAlign ?? null,
               text_v_align: note.textVAlign ?? null,

@@ -313,5 +313,49 @@ describe("cloud rows mapping", () => {
     expect(canon?.canon?.title).toBe("Ten Commandments");
     expect(canon?.canon?.items).toHaveLength(2);
   });
+
+  it("maps poetry note payload from cloud rows", () => {
+    const snapshot = rowsToSnapshot({
+      wall: { camera_x: 0, camera_y: 0, camera_zoom: 1, last_color: null },
+      notes: [
+        {
+          id: "p1",
+          note_kind: "poetry",
+          text: "Hope is the thing with feathers",
+          quote_author: "Emily Dickinson",
+          quote_source: "PoetryDB",
+          poetry: {
+            status: "ready",
+            dateKey: "2026-03-20",
+            title: "'Hope' is the thing with feathers",
+            author: "Emily Dickinson",
+            lines: ["Hope is the thing with feathers", "That perches in the soul"],
+            lineCount: 2,
+            fetchedAt: 10,
+            lastSuccessAt: 10,
+          },
+          tags: ["poetry", "poem"],
+          text_size: null,
+          x: 0,
+          y: 0,
+          w: 320,
+          h: 280,
+          color: "#B73A3A",
+          created_at: "2026-03-20T08:00:00.000Z",
+          updated_at: "2026-03-20T09:00:00.000Z",
+        },
+      ],
+      zones: [],
+      zoneGroups: [],
+      noteGroups: [],
+      links: [],
+    });
+
+    const poetry = snapshot.notes.p1;
+    expect(poetry?.noteKind).toBe("poetry");
+    expect(poetry?.poetry?.title).toBe("'Hope' is the thing with feathers");
+    expect(poetry?.poetry?.author).toBe("Emily Dickinson");
+    expect(poetry?.quoteSource).toBe("PoetryDB");
+  });
 });
 

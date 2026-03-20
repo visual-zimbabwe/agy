@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
-import { JOKER_NOTE_COLOR, sanitizeStandardNoteColor, THRONE_NOTE_COLOR } from "@/features/wall/special-notes";
+import { JOKER_NOTE_COLOR, POETRY_NOTE_COLOR, sanitizeStandardNoteColor, THRONE_NOTE_COLOR } from "@/features/wall/special-notes";
 
 import type {
   Camera,
@@ -313,9 +313,11 @@ export const useWallStore = create<WallStore>((set) => ({
           ? JOKER_NOTE_COLOR
           : nextNoteKind === "throne"
             ? THRONE_NOTE_COLOR
-            : nextNoteKind === "currency"
-              ? CURRENCY_NOTE_DEFAULTS.color
-              : sanitizeStandardNoteColor(patch.color, sanitizeStandardNoteColor(current.color))
+            : nextNoteKind === "poetry"
+              ? POETRY_NOTE_COLOR
+              : nextNoteKind === "currency"
+                ? CURRENCY_NOTE_DEFAULTS.color
+                : sanitizeStandardNoteColor(patch.color, sanitizeStandardNoteColor(current.color))
         : current.color;
 
       return applyWithHistory(state, {
@@ -683,4 +685,7 @@ export const selectPersistedSnapshot = (state: WallStore): PersistedWallState =>
   camera: state.camera,
   lastColor: state.ui.lastColor,
 });
+
+
+
 

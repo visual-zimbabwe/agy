@@ -277,7 +277,8 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     entry.noteKind === "throne" ||
     entry.noteKind === "currency" ||
     entry.noteKind === "web-bookmark" ||
-    entry.noteKind === "apod"
+    entry.noteKind === "apod" ||
+    entry.noteKind === "poetry"
       ? entry.noteKind
       : "standard";
   return {
@@ -291,6 +292,21 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     currency: noteKind === "currency" ? normalizeCurrency(entry.currency) : undefined,
     bookmark: noteKind === "web-bookmark" ? normalizeBookmark(entry.bookmark) : undefined,
     apod: noteKind === "apod" ? normalizeApod(entry.apod) : undefined,
+    poetry:
+      noteKind === "poetry" && isRecord(entry.poetry)
+        ? {
+            status: entry.poetry.status === "loading" || entry.poetry.status === "ready" || entry.poetry.status === "error" ? entry.poetry.status : "idle",
+            dateKey: asString(entry.poetry.dateKey) || undefined,
+            title: asString(entry.poetry.title) || undefined,
+            author: asString(entry.poetry.author) || undefined,
+            lines: normalizeStringList(entry.poetry.lines),
+            lineCount: typeof entry.poetry.lineCount === "number" ? asNumber(entry.poetry.lineCount) : undefined,
+            sourceUrl: asString(entry.poetry.sourceUrl) || undefined,
+            fetchedAt: typeof entry.poetry.fetchedAt === "number" ? asNumber(entry.poetry.fetchedAt) : undefined,
+            lastSuccessAt: typeof entry.poetry.lastSuccessAt === "number" ? asNumber(entry.poetry.lastSuccessAt) : undefined,
+            error: asString(entry.poetry.error) || undefined,
+          }
+        : undefined,
     imageUrl: asString(entry.imageUrl).trim() || undefined,
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
     textVAlign: entry.textVAlign === "middle" || entry.textVAlign === "bottom" ? entry.textVAlign : NOTE_DEFAULTS.textVAlign,

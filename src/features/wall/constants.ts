@@ -65,6 +65,15 @@ export const CURRENCY_NOTE_DEFAULTS = {
   textSizePx: 15,
 };
 
+export const POETRY_NOTE_DEFAULTS = {
+  color: "#B73A3A",
+  width: 320,
+  height: 260,
+  textColor: "#FFF8EE",
+  textFont: "merriweather" as const,
+  textSizePx: 14,
+};
+
 export const NOTE_TEXT_SIZES = [
   { value: "sm", label: "S", fontSize: 14, lineHeight: 1.32 },
   { value: "md", label: "M", fontSize: 17, lineHeight: 1.35 },
@@ -136,6 +145,8 @@ export const TEMPLATE_TYPES = [
 ] as const;
 
 export const GROUP_COLORS = ["#FB7185", "#22C55E", "#3B82F6", "#F59E0B", "#A855F7"] as const;
+
+
 
 
 
