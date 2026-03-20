@@ -10,7 +10,7 @@ import { getApodCaption, isApodNote } from "@/features/wall/apod";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { CURRENCY_NOTE_DEFAULTS, CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
-import { getPoetryTitle } from "@/features/wall/poetry";
+import { getPoetryHeaderHeight, getPoetryTitle } from "@/features/wall/poetry";
 import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { throneLoadingText } from "@/features/wall/throne";
@@ -402,7 +402,7 @@ export const WallNotesLayer = ({
         const throneSpeakerHeight = isThrone && quoteAttribution ? 18 : 0;
         const quoteMarkInset = isQuote ? 13 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
-        const poetryHeaderInset = isPoetry ? 52 : 0;
+        const poetryHeaderInset = isPoetry ? getPoetryHeaderHeight(noteView.w, noteView.poetry) : 0;
         const journalWritingX = 56;
         const journalFirstLineY = 30;
         const journalLineGap = 31;
@@ -1141,7 +1141,7 @@ export const WallNotesLayer = ({
                 />
                 <Text
                   x={12}
-                  y={32}
+                  y={12 + Math.max(18, poetryHeaderInset - 22)}
                   width={Math.max(0, noteView.w - 24)}
                   fontSize={10}
                   fontStyle="italic"
