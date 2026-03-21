@@ -28,6 +28,7 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 - web bookmark note creation
 - NASA APOD note creation
 - Poetry note creation
+- Magazine cover note creation through the Economist note shell
 
 These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands.
 
@@ -42,6 +43,9 @@ Image note creation now supports three insert sources from the wall image modal:
 NASA APOD notes create a dedicated astronomy card powered by the NASA Astronomy Picture of the Day API. The wall can create them explicitly from the Tools panel, from the command palette, from the `Shift + A` shortcut, or by converting an existing note through `Details > Note Type`. APOD notes refresh automatically against the current UTC day, cache the latest payload locally, persist their metadata through local storage and cloud sync, and expose actions to manually refresh, open the NASA source page, or download the current image through the app backend. When the APOD entry is a video or otherwise lacks a primary still image, the wall falls back to the best available thumbnail while keeping the note readable.
 
 Poetry notes create a dedicated poem card powered by PoetryDB. The wall can create them from the Tools panel, from the command palette, or by converting an existing note through `Details > Note Type`. In `Details`, Poetry notes expose a search form that can query PoetryDB by random daily poem, author, title, line text, or line count, with partial or exact matching where supported. The selected search method is saved with the note, reused by manual refresh, and reused again when the local-day auto-refresh runs. Poetry notes cache results per day and search method locally, wrap the poem body, and resize themselves so the full poem is visible on initial creation. Poetry notes also expose manual refresh plus image and PDF export actions from the floating editor. Their deep red `#B73A3A` color is reserved for this note type.
+
+
+Economist notes create a dedicated magazine-cover card powered by the local Ravens Magazine Cover API through the app backend routes at `/api/economist-cover` and `/api/economist-cover/sources`. The wall now uses the Economist note shell for every supported magazine source returned by the API docs, so the Tools panel, command palette, and `Shift + M` shortcut create one cover note per source instead of just one Economist note. In `Details > Note Type`, the singular `Magazine Cover` option converts only the selected note. When some magazine-cover notes already exist, that conversion now prefers the first missing source on the wall so recreating a deleted Barron's/New Yorker/Newsweek/Forbes note does not default back to Economist. The `Magazine Source` picker still lets that note switch to Economist, Barron's, The New Yorker, Newsweek, or Forbes without regenerating the full set. Each created note seeds its own source name and archive URL, stores the fetched cover image in `imageUrl`, keeps the source cover page in quote metadata, and reuses a per-source local cache so repeated refreshes do not hammer the upstream service. When a signed-in wall hydrates, existing magazine-cover notes force-refresh against their own source so the issue art updates on login without collapsing every note back to Economist. Their warm paper `#F6EFE2` color is reserved for this note type.
 
 ## Note Kinds
 
@@ -58,6 +62,7 @@ Current wall note kinds include:
 - `web-bookmark`
 - `apod`
 - `poetry`
+- `economist`
 In addition to explicit `noteKind`, notes can also carry vocabulary review payloads, which makes vocabulary notes a meaningful note workflow even when not represented as a separate `noteKind` enum value.
 
 ## Note Fields
@@ -79,6 +84,7 @@ Important fields include:
 - web bookmark payload for normalized URL, sanitized metadata, fetch status, last success, and error state
 - APOD payload for NASA media type, title, explanation, copyright, source URLs, fetch timestamps, and refresh error state
 - Poetry payload for date key, title, author, wrapped poem lines, line count, source URL, saved search field/query/match type, fetch timestamps, and refresh error state
+- Economist cover metadata stored through image URL plus source/date quote fields
 - vocabulary payload
 - image URL
 - Unsplash-sourced image URLs
@@ -120,6 +126,9 @@ This makes notes the core unit of wall content, but not the only structural elem
 - `docs/architecture/state-and-storage.md`
 - `docs/features/search-and-retrieval.md`
 - `docs/features/timeline-view.md`
+
+
+
 
 
 

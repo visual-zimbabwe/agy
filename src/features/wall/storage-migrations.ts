@@ -278,7 +278,8 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     entry.noteKind === "currency" ||
     entry.noteKind === "web-bookmark" ||
     entry.noteKind === "apod" ||
-    entry.noteKind === "poetry"
+    entry.noteKind === "poetry" ||
+    entry.noteKind === "economist"
       ? entry.noteKind
       : "standard";
   return {

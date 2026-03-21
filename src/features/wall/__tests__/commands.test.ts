@@ -6,6 +6,7 @@ import {
   createLink,
   createApodNote,
   createPoetryNote,
+  createEconomistNote,
   createCanonNote,
   createOrRefreshJokerNote,
   createOrRefreshThroneNote,
@@ -115,6 +116,15 @@ describe("wall commands", () => {
     expect(poetry?.poetry?.status).toBe("idle");
     expect(poetry?.tags).toEqual(["poetry", "poem"]);
     expect(poetry?.quoteSource).toBe("PoetryDB");
+  });
+
+  it("creates Economist notes with reserved styling and cover metadata defaults", () => {
+    const economistId = createEconomistNote(64, 96);
+    const economist = useWallStore.getState().notes[economistId];
+    expect(economist?.noteKind).toBe("economist");
+    expect(economist?.imageUrl).toBeUndefined();
+    expect(economist?.quoteAuthor).toBe("https://www.economist.com/printedition/covers");
+    expect(economist?.tags).toEqual(["economist", "cover", "magazine"]);
   });
 
 
@@ -271,3 +281,4 @@ describe("wall commands", () => {
     expect(links[0]?.toNoteId).toBe(tailId);
   });
 });
+

@@ -25,6 +25,7 @@ import {
 } from "@/features/wall/poetry";
 import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS, POETRY_NOTE_DEFAULTS } from "@/features/wall/constants";
 import { createBookmarkNoteState, normalizeBookmarkUrl, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
+import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, formatEconomistNoteText, getEconomistMagazineSource, getEconomistNoteSourceId } from "@/features/wall/economist";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import type { Note, NoteTextFont, PoetrySearchField, PoetrySearchMatchType } from "@/features/wall/types";
 
@@ -37,6 +38,7 @@ type PoetryRefreshOptions = {
 
 type NoteInspectorSectionProps = {
   selectedNote?: Note;
+  notes: Note[];
   isTimeLocked: boolean;
   hasJokerNote: boolean;
   hasThroneNote: boolean;
@@ -57,6 +59,7 @@ type NoteInspectorSectionProps = {
   onToggleOrRefreshJoker: (noteId: string) => void;
   onToggleOrRefreshThrone: (noteId: string) => void;
   onRefreshPoetry: (noteId: string, options?: PoetryRefreshOptions) => void;
+  onRefreshEconomist: (noteId: string) => void;
   onStartLink: (noteId: string) => void;
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -80,6 +83,7 @@ const colorSwatchClass = "h-7 w-8 cursor-pointer overflow-hidden rounded-md bord
 
 export const NoteInspectorSection = ({
   selectedNote,
+  notes,
   isTimeLocked,
   hasJokerNote,
   hasThroneNote,
@@ -100,6 +104,7 @@ export const NoteInspectorSection = ({
   onToggleOrRefreshJoker,
   onToggleOrRefreshThrone,
   onRefreshPoetry,
+  onRefreshEconomist,
   onStartLink,
   onUpdateNote,
   onSubmitBookmarkUrl,
@@ -118,6 +123,16 @@ export const NoteInspectorSection = ({
     return null;
   }
 
+  const selectedMagazineSourceId = selectedNote.noteKind === "economist" ? getEconomistNoteSourceId(selectedNote) ?? "economist" : "economist";
+  const usedMagazineSourceIds = new Set(
+    notes
+      .filter((note) => note.id !== selectedNote.id && note.noteKind === "economist")
+      .map((note) => getEconomistNoteSourceId(note))
+      .filter((sourceId): sourceId is NonNullable<ReturnType<typeof getEconomistNoteSourceId>> => Boolean(sourceId)),
+  );
+  const preferredMagazineSourceId =
+    ECONOMIST_MAGAZINE_SOURCES.find((source) => !usedMagazineSourceIds.has(source.sourceId))?.sourceId ?? selectedMagazineSourceId;
+
   const setNoteKind = (kind: Note["noteKind"]) => {
     const toQuote = kind === "quote" && selectedNote.noteKind !== "quote";
     const toCanon = kind === "canon" && selectedNote.noteKind !== "canon";
@@ -126,12 +141,18 @@ export const NoteInspectorSection = ({
     const toBookmark = kind === "web-bookmark" && selectedNote.noteKind !== "web-bookmark";
     const toApod = kind === "apod" && selectedNote.noteKind !== "apod";
     const toPoetry = kind === "poetry" && selectedNote.noteKind !== "poetry";
+    const toEconomist = kind === "economist" && selectedNote.noteKind !== "economist";
+    const economistSource = getEconomistMagazineSource(toEconomist ? preferredMagazineSourceId : selectedMagazineSourceId);
 
     onUpdateNote(selectedNote.id, {
       noteKind: selectedNote.noteKind === kind ? "standard" : kind,
-      text: toBookmark ? "" : selectedNote.text,
-      quoteAuthor: toQuote ? "" : undefined,
-      quoteSource: toQuote ? "" : undefined,
+      text: toBookmark
+        ? ""
+        : toEconomist
+          ? formatEconomistNoteText({ sourceName: economistSource.sourceName, displayLabel: "Latest cover", displayDate: "" })
+          : selectedNote.text,
+      quoteAuthor: toQuote ? "" : toEconomist ? economistSource.sourceUrl : undefined,
+      quoteSource: toQuote ? "" : toEconomist ? "Latest cover" : undefined,
       canon: toCanon
         ? {
             mode: "single",
@@ -147,14 +168,14 @@ export const NoteInspectorSection = ({
       bookmark: toBookmark ? createBookmarkNoteState(selectedNote.bookmark?.url ?? "") : undefined,
       apod: toApod ? defaultApodNoteState(selectedNote.apod) : undefined,
       poetry: toPoetry ? defaultPoetryNoteState(selectedNote.poetry) : undefined,
-      imageUrl: toBookmark || toApod || toPoetry ? undefined : selectedNote.imageUrl,
-      vocabulary: toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry ? undefined : selectedNote.vocabulary,
-      color: toBookmark ? WEB_BOOKMARK_DEFAULTS.color : toApod ? APOD_NOTE_DEFAULTS.color : toPoetry ? POETRY_NOTE_DEFAULTS.color : toJournal ? JOURNAL_NOTE_DEFAULTS.color : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.color : selectedNote.color,
-      textFont: toBookmark ? WEB_BOOKMARK_DEFAULTS.textFont : toApod ? APOD_NOTE_DEFAULTS.textFont : toPoetry ? POETRY_NOTE_DEFAULTS.textFont : toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textFont : selectedNote.textFont,
-      textColor: toBookmark ? WEB_BOOKMARK_DEFAULTS.textColor : toApod ? APOD_NOTE_DEFAULTS.textColor : toPoetry ? POETRY_NOTE_DEFAULTS.textColor : toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textColor : selectedNote.textColor,
-      textSizePx: toBookmark ? WEB_BOOKMARK_DEFAULTS.textSizePx : toApod ? APOD_NOTE_DEFAULTS.textSizePx : toPoetry ? POETRY_NOTE_DEFAULTS.textSizePx : toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textSizePx : selectedNote.textSizePx,
-      w: toBookmark ? WEB_BOOKMARK_DEFAULTS.width : toApod ? APOD_NOTE_DEFAULTS.width : toPoetry ? POETRY_NOTE_DEFAULTS.width : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.width : selectedNote.w,
-      h: toBookmark ? WEB_BOOKMARK_DEFAULTS.height : toApod ? APOD_NOTE_DEFAULTS.height : toPoetry ? POETRY_NOTE_DEFAULTS.height : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.height : selectedNote.h,
+      imageUrl: toBookmark || toApod || toPoetry || toEconomist ? undefined : selectedNote.imageUrl,
+      vocabulary: toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry || toEconomist ? undefined : selectedNote.vocabulary,
+      color: toBookmark ? WEB_BOOKMARK_DEFAULTS.color : toApod ? APOD_NOTE_DEFAULTS.color : toPoetry ? POETRY_NOTE_DEFAULTS.color : toEconomist ? ECONOMIST_NOTE_DEFAULTS.color : toJournal ? JOURNAL_NOTE_DEFAULTS.color : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.color : selectedNote.color,
+      textFont: toBookmark ? WEB_BOOKMARK_DEFAULTS.textFont : toApod ? APOD_NOTE_DEFAULTS.textFont : toPoetry ? POETRY_NOTE_DEFAULTS.textFont : toEconomist ? ECONOMIST_NOTE_DEFAULTS.textFont : toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textFont : selectedNote.textFont,
+      textColor: toBookmark ? WEB_BOOKMARK_DEFAULTS.textColor : toApod ? APOD_NOTE_DEFAULTS.textColor : toPoetry ? POETRY_NOTE_DEFAULTS.textColor : toEconomist ? ECONOMIST_NOTE_DEFAULTS.textColor : toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textColor : selectedNote.textColor,
+      textSizePx: toBookmark ? WEB_BOOKMARK_DEFAULTS.textSizePx : toApod ? APOD_NOTE_DEFAULTS.textSizePx : toPoetry ? POETRY_NOTE_DEFAULTS.textSizePx : toEconomist ? ECONOMIST_NOTE_DEFAULTS.textSizePx : toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textSizePx : selectedNote.textSizePx,
+      w: toBookmark ? WEB_BOOKMARK_DEFAULTS.width : toApod ? APOD_NOTE_DEFAULTS.width : toPoetry ? POETRY_NOTE_DEFAULTS.width : toEconomist ? ECONOMIST_NOTE_DEFAULTS.width : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.width : selectedNote.w,
+      h: toBookmark ? WEB_BOOKMARK_DEFAULTS.height : toApod ? APOD_NOTE_DEFAULTS.height : toPoetry ? POETRY_NOTE_DEFAULTS.height : toEconomist ? ECONOMIST_NOTE_DEFAULTS.height : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.height : selectedNote.h,
       tags: toJournal
         ? [...new Set([...selectedNote.tags, "journal"])]
         : toEisenhower
@@ -165,8 +186,22 @@ export const NoteInspectorSection = ({
               ? [...new Set([...selectedNote.tags, "space", "nasa", "apod"])]
               : toPoetry
                 ? [...new Set([...selectedNote.tags, "poetry", "poem"])]
-                : selectedNote.tags,
+                : toEconomist
+                  ? [economistSource.sourceId, "cover", "magazine"]
+                  : selectedNote.tags,
     });
+  };
+
+  const applyMagazineSource = (sourceId: string) => {
+    const source = getEconomistMagazineSource(sourceId);
+    onUpdateNote(selectedNote.id, {
+      text: formatEconomistNoteText({ sourceName: source.sourceName, displayLabel: "Latest cover", displayDate: "" }),
+      quoteAuthor: source.sourceUrl,
+      quoteSource: "Latest cover",
+      imageUrl: undefined,
+      tags: [source.sourceId, "cover", "magazine"],
+    });
+    onRefreshEconomist(selectedNote.id);
   };
 
   const normalizedPoetryQuery = normalizePoetrySearchQuery(poetrySearchQuery);
@@ -408,6 +443,31 @@ export const NoteInspectorSection = ({
           </div>
         )}
 
+        {selectedNote.noteKind === "economist" && (
+          <div className={sectionBlockClass}>
+            <p className={sectionLabelClass}>Magazine Source</p>
+            <div className="grid gap-2">
+              <select
+                value={selectedMagazineSourceId}
+                onChange={(event) => applyMagazineSource(event.target.value)}
+                className={detailField}
+                disabled={isTimeLocked}
+                aria-label="Magazine cover source"
+              >
+                {ECONOMIST_MAGAZINE_SOURCES.map((source) => (
+                  <option key={`magazine-source-${source.sourceId}`} value={source.sourceId}>
+                    {source.sourceName}
+                  </option>
+                ))}
+              </select>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => onRefreshEconomist(selectedNote.id)} className={detailButton} disabled={isTimeLocked}>Refresh Cover</button>
+                <button type="button" onClick={() => onOpenBookmarkUrl(selectedNote.quoteAuthor ?? getEconomistMagazineSource(selectedMagazineSourceId).sourceUrl)} className={detailButton}>Open Source</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Backlinks</p>
           {backlinks.length === 0 ? (
@@ -493,6 +553,7 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked}>Bookmark</button>
             <button type="button" onClick={() => setNoteKind("apod")} className={typeButtonClass(selectedNote.noteKind === "apod")} disabled={isTimeLocked}>APOD</button>
             <button type="button" onClick={() => selectedNote.noteKind === "poetry" ? onRefreshPoetry(selectedNote.id) : setNoteKind("poetry")} className={typeButtonClass(selectedNote.noteKind === "poetry")} disabled={isTimeLocked}>{selectedNote.noteKind === "poetry" ? "Refresh Poetry" : "Poetry"}</button>
+            <button type="button" onClick={() => selectedNote.noteKind === "economist" ? onRefreshEconomist(selectedNote.id) : setNoteKind("economist")} className={typeButtonClass(selectedNote.noteKind === "economist")} disabled={isTimeLocked}>{selectedNote.noteKind === "economist" ? "Refresh Cover" : "Magazine Cover"}</button>
             <button type="button" onClick={() => onToggleOrRefreshJoker(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "joker")} disabled={isTimeLocked}>
               {selectedNote.noteKind === "joker" || hasJokerNote ? "Refresh Joker" : "Joker"}
             </button>
@@ -516,3 +577,4 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
+

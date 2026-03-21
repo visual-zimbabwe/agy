@@ -407,7 +407,8 @@ export const rowsToSnapshot = (rows: {
         note.note_kind === "currency" ||
         note.note_kind === "web-bookmark" ||
         note.note_kind === "apod" ||
-        note.note_kind === "poetry"
+        note.note_kind === "poetry" ||
+        note.note_kind === "economist"
           ? note.note_kind
           : "standard";
 

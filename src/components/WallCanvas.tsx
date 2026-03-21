@@ -56,6 +56,7 @@ import { WallStage } from "@/components/wall/WallStage";
 import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
 import { useApodNotes } from "@/components/wall/useApodNotes";
+import { useEconomistNotes } from "@/components/wall/useEconomistNotes";
 import { usePoetryNotes } from "@/components/wall/usePoetryNotes";
 import { useCurrencySystemNote } from "@/components/wall/useCurrencySystemNote";
 import { useWallBackupActions } from "@/components/wall/useWallBackupActions";
@@ -82,6 +83,7 @@ import {
   createNote,
   createCanonNote,
   createApodNote,
+  createEconomistNote,
   createPoetryNote,
   createOrRefreshJokerNote,
   createOrRefreshThroneNote,
@@ -111,6 +113,7 @@ import {
 import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
 import { EISENHOWER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { isCurrencyNote } from "@/features/wall/currency";
+import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, type EconomistMagazineSource } from "@/features/wall/economist";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
@@ -807,6 +810,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     resetToDetectedCurrency,
   } = useCurrencySystemNote({ hydrated, publishedReadOnly });
   const { refreshApodNote, downloadApodImage } = useApodNotes({ hydrated, publishedReadOnly });
+  const { refreshEconomistNote } = useEconomistNotes({ hydrated, publishedReadOnly, loginKey: userEmail });
   const { refreshPoetryNote, downloadPoetryAsImage, downloadPoetryAsPdf } = usePoetryNotes({ hydrated, publishedReadOnly });
 
   useEffect(() => {
@@ -1172,6 +1176,61 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     void refreshPoetryNote(id, { force: true });
   }, [camera, isTimeLocked, openEditor, refreshPoetryNote, selectNote, viewport.h, viewport.w]);
 
+  const makeEconomistNoteAtViewportCenter = useCallback(async () => {
+    if (isTimeLocked) {
+      return;
+    }
+
+    let sources: EconomistMagazineSource[] = ECONOMIST_MAGAZINE_SOURCES;
+    try {
+      const response = await fetch("/api/economist-cover/sources", { cache: "no-store" });
+      const payload = (await response.json()) as { sources?: EconomistMagazineSource[] };
+      if (response.ok && Array.isArray(payload.sources) && payload.sources.length > 0) {
+        sources = payload.sources;
+      }
+    } catch {
+      // Fall back to the local supported-source list if the docs endpoint is unavailable.
+    }
+
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const columns = Math.min(3, Math.max(1, sources.length));
+    const rows = Math.ceil(sources.length / columns);
+    const gapX = 40;
+    const gapY = 40;
+    const totalWidth = columns * ECONOMIST_NOTE_DEFAULTS.width + Math.max(0, columns - 1) * gapX;
+    const totalHeight = rows * ECONOMIST_NOTE_DEFAULTS.height + Math.max(0, rows - 1) * gapY;
+    const createdIds: string[] = [];
+
+    runHistoryGroup(() => {
+      sources.forEach((source, index) => {
+        const column = index % columns;
+        const row = Math.floor(index / columns);
+        const x = world.x - totalWidth / 2 + column * (ECONOMIST_NOTE_DEFAULTS.width + gapX);
+        const y = world.y - totalHeight / 2 + row * (ECONOMIST_NOTE_DEFAULTS.height + gapY);
+        const id = createEconomistNote(
+          x,
+          y,
+          {
+            sourceId: source.sourceId,
+            sourceName: source.sourceName,
+            sourceUrl: source.sourceUrl,
+            displayLabel: "Latest cover",
+          },
+          { select: false },
+        );
+        createdIds.push(id);
+      });
+    });
+
+    const firstId = createdIds[0];
+    if (firstId) {
+      setSelectedNoteIds([firstId]);
+      selectNote(firstId);
+    }
+
+    await Promise.allSettled(createdIds.map((id) => refreshEconomistNote(id, { force: true })));
+  }, [camera, isTimeLocked, refreshEconomistNote, runHistoryGroup, selectNote, viewport.h, viewport.w]);
+
   const makeWordNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
@@ -1340,6 +1399,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     createQuoteNote: makeQuoteNoteAtViewportCenter,
     createApodNote: makeApodNoteAtViewportCenter,
     createPoetryNote: makePoetryNoteAtViewportCenter,
+    createEconomistNote: makeEconomistNoteAtViewportCenter,
     createEisenhowerNote: makeEisenhowerNoteAtViewportCenter,
     createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
@@ -2098,6 +2158,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: makePoetryNoteAtViewportCenter,
       },
       {
+        id: "new-economist-note",
+        label: "Create magazine cover notes",
+        description: "Add one magazine-cover note for each source exposed by the local API.",
+        keywords: ["economist", "cover", "magazine", "issue", "barrons", "newyorker", "newsweek", "forbes"],
+        disabled: isTimeLocked,
+        onSelect: makeEconomistNoteAtViewportCenter,
+      },
+      {
         id: "new-eisenhower-note",
         label: "Create Eisenhower Matrix note",
         description: "Add a four-quadrant priority note with editable sections.",
@@ -2380,6 +2448,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       makeQuoteNoteAtViewportCenter,
       makeApodNoteAtViewportCenter,
       makePoetryNoteAtViewportCenter,
+      makeEconomistNoteAtViewportCenter,
       makeEisenhowerNoteAtViewportCenter,
       makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
@@ -2589,6 +2658,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
             onCreateApodNote={makeApodNoteAtViewportCenter}
             onCreatePoetryNote={makePoetryNoteAtViewportCenter}
+            onCreateEconomistNote={makeEconomistNoteAtViewportCenter}
             onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
             onCreateOrRefreshJokerNote={makeJokerNoteAtViewportCenter}
             onCreateOrRefreshThroneNote={makeThroneNoteAtViewportCenter}
@@ -2849,6 +2919,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onRefreshPoetryNote={(noteId) => { void refreshPoetryNote(noteId, { force: true }); }}
           onDownloadPoetryImage={downloadPoetryAsImage}
           onDownloadPoetryPdf={downloadPoetryAsPdf}
+          onRefreshEconomistNote={(noteId) => { void refreshEconomistNote(noteId, { force: true }); }}
+          onOpenEconomistSource={(noteId) => {
+            const economistUrl = renderSnapshot.notes[noteId]?.quoteAuthor || "https://www.economist.com/printedition/covers";
+            openBookmarkUrl(economistUrl);
+          }}
         />
         )}
 
@@ -2934,6 +3009,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           }}
           onRefreshPoetrySelectedNote={(noteId, options) => {
             void refreshPoetryNote(noteId, options ?? { force: true });
+          }}
+          onRefreshEconomistSelectedNote={(noteId) => {
+            void refreshEconomistNote(noteId, { force: true });
           }}
           onStartLinkFromSelectedNote={setLinkingFromNote}
           onUpdateSelectedNote={updateNote}
@@ -3055,6 +3133,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
 
 
 

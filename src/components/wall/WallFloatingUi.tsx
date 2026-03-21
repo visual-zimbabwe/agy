@@ -4,6 +4,7 @@ import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { ApodNoteEditor } from "@/components/wall/ApodNoteEditor";
+import { EconomistCoverEditor } from "@/components/wall/EconomistCoverEditor";
 import { PoetryNoteEditor } from "@/components/wall/PoetryNoteEditor";
 import { CurrencyNoteEditor } from "@/components/wall/CurrencyNoteEditor";
 import { EisenhowerMatrixEditor } from "@/components/wall/EisenhowerMatrixEditor";
@@ -93,6 +94,8 @@ type WallFloatingUiProps = {
   onRefreshPoetryNote: (noteId: string) => void;
   onDownloadPoetryImage: (noteId: string) => void;
   onDownloadPoetryPdf: (noteId: string) => void;
+  onRefreshEconomistNote: (noteId: string) => void;
+  onOpenEconomistSource: (noteId: string) => void;
 };
 
 const noteEditorSectionClass =
@@ -175,6 +178,8 @@ export const WallFloatingUi = ({
   onRefreshPoetryNote,
   onDownloadPoetryImage,
   onDownloadPoetryPdf,
+  onRefreshEconomistNote,
+  onOpenEconomistSource,
 }: WallFloatingUiProps) => {
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
@@ -232,7 +237,17 @@ export const WallFloatingUi = ({
               onDownloadPdf={() => onDownloadPoetryPdf(editing.id)}
             />
           )}
-          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "apod" && editingNote.noteKind !== "poetry" && (
+          {editingNote.noteKind === "economist" && (
+            <EconomistCoverEditor
+              note={editingNote as Note & { noteKind: "economist" }}
+              camera={camera}
+              toScreenPoint={toScreenPoint}
+              onClose={() => setEditing(null)}
+              onRefresh={() => onRefreshEconomistNote(editing.id)}
+              onOpenSource={() => onOpenEconomistSource(editing.id)}
+            />
+          )}
+          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "apod" && editingNote.noteKind !== "poetry" && editingNote.noteKind !== "economist" && (
             <NoteTextEditor
               editing={editing}
               editingNote={editingNote as Note & { noteKind: "poetry" }}
