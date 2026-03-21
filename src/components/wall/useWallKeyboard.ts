@@ -61,6 +61,7 @@ type WallKeyboardOptions = {
   createQuoteNote: () => void;
   createApodNote: () => void;
   createPoetryNote: () => void;
+  createEconomistNote: () => void;
   createEisenhowerNote: () => void;
   createWordNote: () => void;
   openEditor: (noteId: string, text: string, focusField?: string) => void;
@@ -129,6 +130,8 @@ export const useWallKeyboard = ({
   createJournalNote,
   createQuoteNote,
   createApodNote,
+  createPoetryNote,
+  createEconomistNote,
   createEisenhowerNote,
   createWordNote,
   openEditor,
@@ -385,6 +388,18 @@ export const useWallKeyboard = ({
         return;
       }
 
+      if (!ctrlOrMeta && event.shiftKey && key === "p") {
+        event.preventDefault();
+        createPoetryNote();
+        return;
+      }
+
+      if (!ctrlOrMeta && event.shiftKey && key === "m") {
+        event.preventDefault();
+        createEconomistNote();
+        return;
+      }
+
       if (!ctrlOrMeta && event.shiftKey && key === "j") {
         event.preventDefault();
         if (typeof createJournalNote === "function") {
@@ -553,6 +568,8 @@ export const useWallKeyboard = ({
     createJournalNote,
     createQuoteNote,
     createApodNote,
+    createPoetryNote,
+    createEconomistNote,
     createEisenhowerNote,
     createWordNote,
     deleteGroup,

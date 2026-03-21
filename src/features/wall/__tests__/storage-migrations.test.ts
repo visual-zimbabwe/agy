@@ -364,5 +364,39 @@ describe("storage migrations", () => {
     expect(normalized?.notes.p1?.poetry?.searchQuery).toBe("Emily Dickinson");
     expect(normalized?.notes.p1?.poetry?.matchType).toBe("exact");
   });
+
+
+  it("normalizes economist note payload when present", () => {
+    const normalized = normalizePersistedWallState({
+      notes: {
+        e1: {
+          id: "e1",
+          noteKind: "economist",
+          text: "The Economist\n2026-03-21",
+          quoteAuthor: "https://www.economist.com/printedition/covers",
+          quoteSource: "2026-03-21",
+          imageUrl: "https://www.economist.com/cdn-cgi/image/width=1424,quality=80,format=auto/content-assets/images/20260321_DE_US.jpg",
+          tags: ["economist", "cover", "magazine"],
+          x: 0,
+          y: 0,
+          w: 332,
+          h: 508,
+          color: "#F6EFE2",
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      },
+      zones: {},
+      zoneGroups: {},
+      noteGroups: {},
+      links: {},
+      camera: { x: 0, y: 0, zoom: 1 },
+    });
+
+    expect(normalized?.notes.e1?.noteKind).toBe("economist");
+    expect(normalized?.notes.e1?.imageUrl).toContain("20260321_DE_US.jpg");
+    expect(normalized?.notes.e1?.quoteAuthor).toBe("https://www.economist.com/printedition/covers");
+    expect(normalized?.notes.e1?.quoteSource).toBe("2026-03-21");
+  });
 });
 

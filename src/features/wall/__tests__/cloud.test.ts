@@ -363,5 +363,41 @@ describe("cloud rows mapping", () => {
     expect(poetry?.poetry?.matchType).toBe("exact");
     expect(poetry?.quoteSource).toBe("PoetryDB");
   });
+
+
+  it("maps economist note payload from cloud rows", () => {
+    const snapshot = rowsToSnapshot({
+      wall: { camera_x: 0, camera_y: 0, camera_zoom: 1, last_color: null },
+      notes: [
+        {
+          id: "e1",
+          note_kind: "economist",
+          text: "The Economist\n2026-03-21",
+          quote_author: "https://www.economist.com/printedition/covers",
+          quote_source: "2026-03-21",
+          tags: ["economist", "cover", "magazine"],
+          image_url: "https://www.economist.com/cdn-cgi/image/width=1424,quality=80,format=auto/content-assets/images/20260321_DE_US.jpg",
+          text_size: null,
+          x: 0,
+          y: 0,
+          w: 332,
+          h: 508,
+          color: "#F6EFE2",
+          created_at: "2026-03-20T08:00:00.000Z",
+          updated_at: "2026-03-20T09:00:00.000Z",
+        },
+      ],
+      zones: [],
+      zoneGroups: [],
+      noteGroups: [],
+      links: [],
+    });
+
+    const economist = snapshot.notes.e1;
+    expect(economist?.noteKind).toBe("economist");
+    expect(economist?.imageUrl).toContain("20260321_DE_US.jpg");
+    expect(economist?.quoteAuthor).toBe("https://www.economist.com/printedition/covers");
+    expect(economist?.quoteSource).toBe("2026-03-21");
+  });
 });
 

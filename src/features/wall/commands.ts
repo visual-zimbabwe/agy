@@ -1,5 +1,6 @@
 import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, POETRY_NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
+import { buildEconomistNote, ECONOMIST_NOTE_DEFAULTS, isEconomistNote } from "@/features/wall/economist";
 import { buildApodNote, isApodNote } from "@/features/wall/apod";
 import { buildPoetryNote, isPoetryNote } from "@/features/wall/poetry";
 import { createBookmarkNoteState, isWebBookmarkNote, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
@@ -349,6 +350,14 @@ export const createPoetryNote = (x: number, y: number) => {
   return note.id;
 };
 
+export const createEconomistNote = (x: number, y: number) => {
+  const note = buildEconomistNote(makeId(), x, y);
+  const { upsertNote, selectNote } = useWallStore.getState();
+  upsertNote(note);
+  selectNote(note.id);
+  return note.id;
+};
+
 export const createWebBookmarkNote = (x: number, y: number, url = "") => {
   const noteId = createNote(x, y, WEB_BOOKMARK_DEFAULTS.color);
   useWallStore.getState().patchNote(noteId, {
@@ -483,6 +492,26 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       textSizePx: patch.textSizePx ?? current.textSizePx ?? WEB_BOOKMARK_DEFAULTS.textSizePx,
       bookmark: patch.bookmark ?? current.bookmark,
       tags: patch.tags ?? current.tags,
+    });
+    return;
+  }
+
+  if (isEconomistNote(current)) {
+    useWallStore.getState().patchNote(noteId, {
+      ...patch,
+      noteKind: "economist",
+      canon: undefined,
+      eisenhower: undefined,
+      currency: undefined,
+      bookmark: undefined,
+      apod: undefined,
+      poetry: undefined,
+      color: ECONOMIST_NOTE_DEFAULTS.color,
+      textColor: patch.textColor ?? current.textColor ?? ECONOMIST_NOTE_DEFAULTS.textColor,
+      textFont: patch.textFont ?? current.textFont ?? ECONOMIST_NOTE_DEFAULTS.textFont,
+      textSizePx: patch.textSizePx ?? current.textSizePx ?? ECONOMIST_NOTE_DEFAULTS.textSizePx,
+      tags: patch.tags ?? current.tags,
+      imageUrl: patch.imageUrl ?? current.imageUrl,
     });
     return;
   }

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
+import { ECONOMIST_NOTE_DEFAULTS } from "@/features/wall/economist";
 import { JOKER_NOTE_COLOR, POETRY_NOTE_COLOR, sanitizeStandardNoteColor, THRONE_NOTE_COLOR } from "@/features/wall/special-notes";
 
 import type {
@@ -317,7 +318,9 @@ export const useWallStore = create<WallStore>((set) => ({
               ? POETRY_NOTE_COLOR
               : nextNoteKind === "currency"
                 ? CURRENCY_NOTE_DEFAULTS.color
-                : sanitizeStandardNoteColor(patch.color, sanitizeStandardNoteColor(current.color))
+                : nextNoteKind === "economist"
+                  ? ECONOMIST_NOTE_DEFAULTS.color
+                  : sanitizeStandardNoteColor(patch.color, sanitizeStandardNoteColor(current.color))
         : current.color;
 
       return applyWithHistory(state, {

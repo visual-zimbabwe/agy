@@ -1136,6 +1136,27 @@ Expected:
 - Poetry notes auto-refresh on local day changes and manual refresh reuses the note's saved search method without creating duplicate notes.
 - Poetry notes can be exported directly as PNG or PDF from the floating editor.
 - The reserved Poetry color remains fixed and persists through refresh and sync.
+
+## Economist Cover Note (`/wall`) (2026-03-20)
+1. Open `/wall`, open `Tools`, and click `New Economist`.
+2. Verify a new Economist note appears with the reserved warm paper styling and a cover-image shell instead of a blank text note.
+3. Verify the note loads the latest Economist cover image, shows `The Economist`, and shows the current issue date label.
+4. Open the command palette, run `Create Economist cover note`, and verify another Economist note is created at viewport center.
+5. Press `Shift + M` and verify the keyboard shortcut creates a new Economist note.
+6. Convert an existing standard note through `Details > Note Type > Economist` and verify it becomes an Economist note with the reserved styling.
+7. Open the Economist floating editor and click `Refresh Cover`; verify the note refetches the latest cover without creating a duplicate note.
+8. Click `Open Source` and verify the Economist covers page opens in a new tab.
+9. Refresh `/wall` while signed in and verify existing Economist notes automatically refresh to the latest cover on hydration/login.
+10. Refresh `/wall` again without a newer issue available and verify the note remains stable instead of duplicating or breaking layout.
+11. If cloud sync is enabled, sync, reload, and verify the Economist note still renders its cover image and source/date metadata after hydration.
+12. Resize the note smaller and larger on desktop and mobile-sized viewports; verify the cover image remains visible, floating controls stay on-screen, and nothing clips against viewport edges.
+
+Expected:
+- Economist notes are creatable from `Tools`, the command palette, keyboard shortcut, and note-type conversion in `Details`.
+- The note uses the local backend proxy route rather than calling the local cover API directly from the browser.
+- Sign-in or wall hydration refreshes existing Economist notes to the latest cover automatically.
+- Manual refresh updates the existing note in place without creating duplicates.
+- Cover imagery, source actions, and floating editors remain fully visible on desktop and mobile layouts.
 ## Currency Note (`/wall`) (2026-03-19)
 1. Open `/wall` and verify one indigo `Currency` system note is present near the top-left of the wall.
 2. Refresh the page and verify the note still exists.
