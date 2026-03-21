@@ -1143,7 +1143,7 @@ Expected:
 3. Verify each note loads a cover image and shows the correct magazine title plus issue label instead of all notes collapsing to `The Economist`.
 4. Open the command palette, run `Create magazine cover notes`, and verify another full set of magazine-cover notes is created near viewport center.
 5. Press `Shift + M` and verify the keyboard shortcut creates another full set of magazine-cover notes.
-6. Convert an existing standard note through `Details > Note Type > Magazine Cover` and verify it becomes a single magazine-cover note with the reserved styling.
+6. Delete one source from the multi-cover set, then convert an existing standard note through `Details > Note Type > Magazine Cover` and verify it recreates the first missing magazine source instead of defaulting back to Economist.
 7. In `Details`, change `Magazine Source` on that selected note to `Barron's`, verify only that note switches source, and verify it refreshes to the latest Barron's cover without changing the other magazine notes.
 8. Use `Refresh Cover` and `Open Source` in `Details` for the selected note, then verify the refresh only affects that note and the source link opens the correct archive page for the chosen magazine.
 9. Refresh `/wall` while signed in and verify existing magazine-cover notes automatically refresh against their own sources on hydration/login.
@@ -1155,7 +1155,7 @@ Expected:
 - The multi-cover action creates one Economist-shell note per magazine source exposed by the local API.
 - The note uses the local backend proxy routes rather than calling the local cover API directly from the browser.
 - Sign-in or wall hydration refreshes existing magazine-cover notes against their own sources automatically.
-- The Details `Magazine Source` picker lets a single selected note switch to a different magazine source without recreating the full set.
+- `Details > Note Type > Magazine Cover` prefers the first missing magazine source on the wall when recreating a deleted cover.`r`n- The Details `Magazine Source` picker lets a single selected note switch to a different magazine source without recreating the full set.
 - Manual refresh updates the existing note in place without cross-overwriting other magazine notes.
 - Cover imagery, source actions, and floating editors remain fully visible on desktop and mobile layouts.
 ## Currency Note (`/wall`) (2026-03-19)
@@ -1180,6 +1180,7 @@ Expected:
 - Location detection degrades from geolocation to IP lookup to USD fallback cleanly.
 - Exchange-rate fetches are lazy, cached, debounced, and recover gracefully from API failures.
 - The note remains legible and premium-looking in both light and dark themes.
+
 
 
 

@@ -279,6 +279,7 @@ export const WallDetailsContent = ({
           />
           <NoteInspectorSection key={selectedNote.id}
             selectedNote={selectedNote}
+            notes={notes}
             hasJokerNote={hasJokerNote}
             hasThroneNote={hasThroneNote}
             isTimeLocked={isTimeLocked}
@@ -454,4 +455,5 @@ export const WallDetailsContent = ({
     </div>
   );
 };
+
 

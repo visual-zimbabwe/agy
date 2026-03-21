@@ -38,6 +38,7 @@ type PoetryRefreshOptions = {
 
 type NoteInspectorSectionProps = {
   selectedNote?: Note;
+  notes: Note[];
   isTimeLocked: boolean;
   hasJokerNote: boolean;
   hasThroneNote: boolean;
@@ -82,6 +83,7 @@ const colorSwatchClass = "h-7 w-8 cursor-pointer overflow-hidden rounded-md bord
 
 export const NoteInspectorSection = ({
   selectedNote,
+  notes,
   isTimeLocked,
   hasJokerNote,
   hasThroneNote,
@@ -122,6 +124,14 @@ export const NoteInspectorSection = ({
   }
 
   const selectedMagazineSourceId = selectedNote.noteKind === "economist" ? getEconomistNoteSourceId(selectedNote) ?? "economist" : "economist";
+  const usedMagazineSourceIds = new Set(
+    notes
+      .filter((note) => note.id !== selectedNote.id && note.noteKind === "economist")
+      .map((note) => getEconomistNoteSourceId(note))
+      .filter((sourceId): sourceId is NonNullable<ReturnType<typeof getEconomistNoteSourceId>> => Boolean(sourceId)),
+  );
+  const preferredMagazineSourceId =
+    ECONOMIST_MAGAZINE_SOURCES.find((source) => !usedMagazineSourceIds.has(source.sourceId))?.sourceId ?? selectedMagazineSourceId;
 
   const setNoteKind = (kind: Note["noteKind"]) => {
     const toQuote = kind === "quote" && selectedNote.noteKind !== "quote";
@@ -132,7 +142,7 @@ export const NoteInspectorSection = ({
     const toApod = kind === "apod" && selectedNote.noteKind !== "apod";
     const toPoetry = kind === "poetry" && selectedNote.noteKind !== "poetry";
     const toEconomist = kind === "economist" && selectedNote.noteKind !== "economist";
-    const economistSource = getEconomistMagazineSource(selectedMagazineSourceId);
+    const economistSource = getEconomistMagazineSource(toEconomist ? preferredMagazineSourceId : selectedMagazineSourceId);
 
     onUpdateNote(selectedNote.id, {
       noteKind: selectedNote.noteKind === kind ? "standard" : kind,
@@ -567,3 +577,4 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
+
