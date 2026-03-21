@@ -18,6 +18,7 @@ export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, 
   const [mode, setMode] = useState<"create" | "unlock">(hasConfig ? "unlock" : "create");
   const [passphrase, setPassphrase] = useState("");
   const [confirmPassphrase, setConfirmPassphrase] = useState("");
+  const [showPassphrase, setShowPassphrase] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -58,6 +59,7 @@ export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, 
 
             setPassphrase("");
             setConfirmPassphrase("");
+            setShowPassphrase(false);
           } finally {
             setSubmitting(false);
           }
@@ -67,7 +69,7 @@ export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, 
           <FieldLabel htmlFor="confidential-passphrase">Passphrase</FieldLabel>
           <TextField
             id="confidential-passphrase"
-            type="password"
+            type={showPassphrase ? "text" : "password"}
             value={passphrase}
             onChange={(event) => setPassphrase(event.target.value)}
             autoFocus
@@ -76,16 +78,28 @@ export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, 
         </div>
 
         {mode === "create" && (
-          <div>
-            <FieldLabel htmlFor="confidential-passphrase-confirm">Confirm Passphrase</FieldLabel>
-            <TextField
-              id="confidential-passphrase-confirm"
-              type="password"
-              value={confirmPassphrase}
-              onChange={(event) => setConfirmPassphrase(event.target.value)}
-              autoComplete="off"
-            />
-          </div>
+          <>
+            <div>
+              <FieldLabel htmlFor="confidential-passphrase-confirm">Confirm Passphrase</FieldLabel>
+              <TextField
+                id="confidential-passphrase-confirm"
+                type={showPassphrase ? "text" : "password"}
+                value={confirmPassphrase}
+                onChange={(event) => setConfirmPassphrase(event.target.value)}
+                autoComplete="off"
+              />
+            </div>
+
+            <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+              <input
+                type="checkbox"
+                checked={showPassphrase}
+                onChange={(event) => setShowPassphrase(event.target.checked)}
+                className="h-4 w-4 rounded border-[var(--color-border-strong)]"
+              />
+              Show passphrase
+            </label>
+          </>
         )}
 
         {error ? <p className="text-sm text-[var(--color-danger)]">{error}</p> : null}
@@ -102,6 +116,7 @@ export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, 
               setError(null);
               setPassphrase("");
               setConfirmPassphrase("");
+              setShowPassphrase(false);
               setMode((previous) => (previous === "create" ? "unlock" : "create"));
             }}
           >
