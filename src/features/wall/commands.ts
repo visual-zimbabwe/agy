@@ -5,6 +5,7 @@ import type { EconomistCoverPayload } from "@/features/wall/economist";
 import { buildApodNote, isApodNote } from "@/features/wall/apod";
 import { buildPoetryNote, isPoetryNote } from "@/features/wall/poetry";
 import { createBookmarkNoteState, isWebBookmarkNote, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
+import { isPrivateNote } from "@/features/wall/private-notes";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import { buildJokerPlaceholderNote, fetchJokerJoke, formatJokerNoteText, hasJokerCardBeenActivated, isJokerNote, JOKER_NOTE_SOURCE, jokerErrorText, jokerLoadingText, markJokerCardActivated, sanitizeStandardNoteColor } from "@/features/wall/joker";
 import { useWallStore } from "@/features/wall/store";
@@ -579,7 +580,7 @@ export const mergeNotes = (keepNoteId: string, mergeNoteId: string) => {
     const state = useWallStore.getState();
     const keep = state.notes[keepNoteId];
     const merge = state.notes[mergeNoteId];
-    if (!keep || !merge || isCurrencyNote(keep) || isCurrencyNote(merge)) {
+    if (!keep || !merge || isCurrencyNote(keep) || isCurrencyNote(merge) || isPrivateNote(keep) || isPrivateNote(merge)) {
       return;
     }
 

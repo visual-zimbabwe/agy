@@ -11,6 +11,7 @@ import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } fro
 import { CURRENCY_NOTE_DEFAULTS, CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { getPoetryHeaderHeight, getPoetryTitle } from "@/features/wall/poetry";
+import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { throneLoadingText } from "@/features/wall/throne";
@@ -379,6 +380,7 @@ export const WallNotesLayer = ({
         const isJournal = noteView.noteKind === "journal";
         const isEisenhower = noteView.noteKind === "eisenhower";
         const isPoetry = noteView.noteKind === "poetry";
+        const isPrivate = isPrivateNote(noteView);
         const isJoker = noteView.noteKind === "joker";
         const isThrone = noteView.noteKind === "throne";
         const isCurrency = isCurrencyNote(noteView);
@@ -428,7 +430,9 @@ export const WallNotesLayer = ({
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
-        const noteTextContent = isCurrency || isBookmark
+        const noteTextContent = isPrivate
+          ? ""
+          : isCurrency || isBookmark
           ? ""
           : isImageNote
           ? imageCaption
@@ -933,6 +937,27 @@ export const WallNotesLayer = ({
                 selectSingleNote={selectSingleNote}
                 isTimeLocked={isTimeLocked}
               />
+            ) : isPrivate ? (
+              <>
+                <Rect
+                  width={noteView.w}
+                  height={noteView.h}
+                  cornerRadius={14}
+                  fill={resolvedNoteColor}
+                  stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
+                  strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
+                  shadowColor="#101010"
+                  shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
+                  shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
+                  shadowOffsetY={isDragging ? 7 : 3}
+                />
+                <Rect x={12} y={12} width={Math.max(1, noteView.w - 24)} height={34} cornerRadius={12} fill="rgba(255,255,255,0.65)" listening={false} />
+                <Text x={20} y={22} width={Math.max(0, noteView.w - 40)} fontSize={11} fontStyle="bold" fill="#475569" text="PROTECTED" listening={false} />
+                <Text x={16} y={62} width={Math.max(0, noteView.w - 32)} fontSize={18} fontStyle="bold" fill={resolvedTextColor} text={privateNoteTitle(noteView)} listening={false} />
+                <Text x={16} y={92} width={Math.max(0, noteView.w - 32)} height={Math.max(0, noteView.h - 138)} fontSize={12} lineHeight={1.45} fill="#475569" text="Content stays hidden on the wall and requires the note passphrase to open in the editor." listening={false} />
+                <Rect x={16} y={Math.max(16, noteView.h - 38)} width={Math.min(150, Math.max(90, noteView.w - 32))} height={20} cornerRadius={10} fill="rgba(15,23,42,0.08)" listening={false} />
+                <Text x={24} y={Math.max(20, noteView.h - 33)} width={Math.min(142, Math.max(82, noteView.w - 40))} fontSize={10} fontStyle="bold" fill="#334155" text="Passphrase required" listening={false} />
+              </>
             ) : (
               <Rect
                 width={noteView.w}
@@ -1069,7 +1094,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isImageNote && !isEisenhower && !isCurrency && !isBookmark && (
+            {!isPrivate && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && (
               <Text
                 x={textX}
                 y={textY}
@@ -1277,7 +1302,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry &&
+            {showNoteTags && !isPrivate && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -1302,7 +1327,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && overflowTags > 0 && (
+            {showNoteTags && !isPrivate && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}

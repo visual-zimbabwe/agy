@@ -1,4 +1,5 @@
 import { EISENHOWER_QUADRANTS } from "@/features/wall/eisenhower";
+import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import type { Note, Zone } from "@/features/wall/types";
 
 type Bounds = { x: number; y: number; w: number; h: number };
@@ -118,9 +119,10 @@ export const notesToMarkdown = (notes: Note[], zones: Zone[]) => {
   const lines: string[] = ["# Agy Export", ""];
 
   for (const note of notes) {
-    lines.push(`## ${note.text.trim().split("\n")[0] || "Untitled note"}`);
+    const privateTitle = isPrivateNote(note) ? privateNoteTitle(note) : undefined;
+    lines.push(`## ${privateTitle || note.text.trim().split("\n")[0] || "Untitled note"}`);
     lines.push("");
-    lines.push(note.text || "(empty)");
+    lines.push(isPrivateNote(note) ? "[Private note hidden from Markdown export]" : note.text || "(empty)");
     lines.push("");
     lines.push(`- id: ${note.id}`);
     lines.push(`- position: (${Math.round(note.x)}, ${Math.round(note.y)})`);

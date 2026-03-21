@@ -161,12 +161,22 @@ export type PoetryNote = {
   error?: string;
 };
 
+export type PrivateNoteData = {
+  version: 1;
+  salt: string;
+  iv: string;
+  ciphertext: string;
+  protectedAt: number;
+  updatedAt: number;
+};
+
 export type Note = {
   id: string;
   noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod" | "poetry" | "economist";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
+  privateNote?: PrivateNoteData;
   canon?: CanonNote;
   eisenhower?: EisenhowerNote;
   currency?: CurrencyNote;

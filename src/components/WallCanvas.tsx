@@ -8,6 +8,7 @@ import type { CommandPaletteCommand } from "@/components/SearchPalette";
 import type { DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { useWallActions } from "@/components/wall/useWallActions";
 import { WallDetailsSidebar } from "@/components/wall/WallDetailsSidebar";
+import { PrivateNoteModal } from "@/components/wall/PrivateNoteModal";
 import { WallFloatingUi } from "@/components/wall/WallFloatingUi";
 import { WallGlobalModals } from "@/components/wall/WallGlobalModals";
 import { WallHeaderBar } from "@/components/wall/WallHeaderBar";
@@ -112,6 +113,7 @@ import {
   updateZone,
 } from "@/features/wall/commands";
 import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
+import { PRIVATE_NOTE_AUTO_LOCK_MS, canProtectNote, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
 import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { isCurrencyNote } from "@/features/wall/currency";
@@ -155,6 +157,21 @@ type ImageInsertState = {
   noteId?: string;
   x?: number;
   y?: number;
+};
+
+type PrivateSession = {
+  passphrase: string;
+  text: string;
+  lastActivityAt: number;
+};
+
+type PrivateModalState = {
+  open: boolean;
+  mode: "protect" | "unlock";
+  noteId?: string;
+  focusField?: string;
+  reopenEditor?: boolean;
+  error?: string;
 };
 
 type LinkContextMenuState = {
@@ -244,6 +261,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   const [viewport, setViewport] = useState({ w: 1200, h: 800 });
   const [editing, setEditing] = useState<EditingState | null>(null);
+  const [privateSessions, setPrivateSessions] = useState<Record<string, PrivateSession>>({});
+  const privateSessionsRef = useRef<Record<string, PrivateSession>>({});
+  const [privateModal, setPrivateModal] = useState<PrivateModalState>({ open: false, mode: "unlock" });
   const [imageInsertState, setImageInsertState] = useState<ImageInsertState>({ open: false });
   const [isImageDragOver, setIsImageDragOver] = useState(false);
   const [isSpaceDown, setIsSpaceDown] = useState(false);
@@ -425,15 +445,60 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   }, []);
 
   useEffect(() => {
+    privateSessionsRef.current = privateSessions;
+  }, [privateSessions]);
+
+  const setPrivateSession = useCallback((noteId: string, next: PrivateSession) => {
+    setPrivateSessions((previous) => ({ ...previous, [noteId]: next }));
+  }, []);
+
+  const clearPrivateSession = useCallback((noteId: string) => {
+    setPrivateSessions((previous) => {
+      if (!(noteId in previous)) {
+        return previous;
+      }
+      const next = { ...previous };
+      delete next[noteId];
+      return next;
+    });
+  }, []);
+
+  const lockPrivateNote = useCallback((noteId: string) => {
+    clearPrivateSession(noteId);
+    setEditing((current) => (current?.id === noteId ? null : current));
+  }, [clearPrivateSession]);
+
+  const lockAllPrivateNotes = useCallback(() => {
+    setPrivateSessions({});
+    setEditing((current) => (current && isPrivateNote(renderSnapshot.notes[current.id] ?? null) ? null : current));
+  }, [renderSnapshot.notes]);
+
+  const openPrivateModal = useCallback((mode: "protect" | "unlock", noteId: string, options?: { focusField?: string; reopenEditor?: boolean; error?: string }) => {
+    setPrivateModal({
+      open: true,
+      mode,
+      noteId,
+      focusField: options?.focusField,
+      reopenEditor: options?.reopenEditor,
+      error: options?.error,
+    });
+  }, []);
+
+  const closePrivateModal = useCallback(() => {
+    setPrivateModal({ open: false, mode: "unlock" });
+  }, []);
+
+  useEffect(() => {
     if (!timelineViewActive) {
       return;
     }
+    lockAllPrivateNotes();
     setEditing(null);
     setQuickCaptureOpen(false);
     setSearchOpen(false);
     setExportOpen(false);
     setIsTimelinePlaying(false);
-  }, [setExportOpen, setSearchOpen, timelineViewActive]);
+  }, [lockAllPrivateNotes, setExportOpen, setSearchOpen, timelineViewActive]);
 
   const syncWikiLinksForNote = useCallback((sourceNoteId: string, text: string) => {
     const existingSource = useWallStore.getState().notes[sourceNoteId];
@@ -498,7 +563,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setSelectedNoteIds([sourceNoteId]);
   }, [placeNewNote, setSelectedNoteIds]);
 
-  const commitEditedNoteText = useCallback((noteId: string, rawText: string) => {
+  const commitEditedNoteText = useCallback(async (noteId: string, rawText: string) => {
     const current = renderSnapshot.notes[noteId];
     if (!current) {
       return;
@@ -506,29 +571,78 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const parsed = parseTaggedText(rawText);
     const mergedTags = [...new Set([...current.tags, ...parsed.tags])];
     const state = useWallStore.getState();
+    if (isPrivateNote(current)) {
+      const session = privateSessionsRef.current[noteId];
+      if (!session) {
+        return;
+      }
+      const encrypted = await encryptPrivateNote(session.passphrase, { text: parsed.text });
+      state.beginHistoryGroup();
+      try {
+        updateNote(noteId, {
+          text: "",
+          tags: mergedTags,
+          privateNote: encrypted,
+          vocabulary: current.vocabulary
+            ? {
+                ...current.vocabulary,
+                word: parsed.text.trim(),
+              }
+            : current.vocabulary,
+        });
+        syncWikiLinksForNote(noteId, "");
+        setPrivateSession(noteId, {
+          ...session,
+          text: parsed.text,
+          lastActivityAt: Date.now(),
+        });
+      } finally {
+        useWallStore.getState().endHistoryGroup();
+      }
+      return;
+    }
     state.beginHistoryGroup();
     try {
       updateNote(noteId, {
-      text: parsed.text,
-      tags: mergedTags,
-      vocabulary: current.vocabulary
-        ? {
-            ...current.vocabulary,
-            word: parsed.text.trim(),
-          }
-        : current.vocabulary,
+        text: parsed.text,
+        tags: mergedTags,
+        vocabulary: current.vocabulary
+          ? {
+              ...current.vocabulary,
+              word: parsed.text.trim(),
+            }
+          : current.vocabulary,
       });
       syncWikiLinksForNote(noteId, parsed.text);
     } finally {
       useWallStore.getState().endHistoryGroup();
     }
-  }, [renderSnapshot.notes, syncWikiLinksForNote]);
+  }, [renderSnapshot.notes, setPrivateSession, syncWikiLinksForNote]);
 
   const openEditor = useCallback((noteId: string, text: string, focusField?: string) => {
+    const note = renderSnapshot.notes[noteId];
+    if (!note) {
+      return;
+    }
+    if (isPrivateNote(note)) {
+      const session = privateSessionsRef.current[noteId];
+      if (!session) {
+        openPrivateModal("unlock", noteId, { focusField, reopenEditor: true });
+        return;
+      }
+      setEditTagInput("");
+      setEditTagRenameFrom(null);
+      setPrivateSession(noteId, {
+        ...session,
+        lastActivityAt: Date.now(),
+      });
+      setEditing({ id: noteId, text: session.text, focusField });
+      return;
+    }
     setEditTagInput("");
     setEditTagRenameFrom(null);
     setEditing({ id: noteId, text, focusField });
-  }, []);
+  }, [openPrivateModal, renderSnapshot.notes, setPrivateSession]);
 
   const normalizeTag = (raw: string) => raw.trim().replace(/^#/, "").toLowerCase();
 
@@ -588,9 +702,110 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     if (!editing) {
       return;
     }
-    commitEditedNoteText(editing.id, editing.text);
+    void commitEditedNoteText(editing.id, editing.text);
     setEditing(null);
   };
+
+  const submitPrivateModal = useCallback(async (passphrase: string) => {
+    const noteId = privateModal.noteId;
+    if (!noteId) {
+      closePrivateModal();
+      return;
+    }
+    const note = renderSnapshot.notes[noteId];
+    if (!note) {
+      closePrivateModal();
+      return;
+    }
+    try {
+      if (privateModal.mode === "protect") {
+        if (!canProtectNote(note)) {
+          setPrivateModal((current) => ({ ...current, error: "This note type cannot be protected yet." }));
+          return;
+        }
+        const plaintext = note.text;
+        const encrypted = await encryptPrivateNote(passphrase, { text: plaintext });
+        updateNote(noteId, { text: "", privateNote: encrypted });
+        syncWikiLinksForNote(noteId, "");
+        setPrivateSession(noteId, {
+          passphrase,
+          text: plaintext,
+          lastActivityAt: Date.now(),
+        });
+        closePrivateModal();
+        return;
+      }
+      if (!note.privateNote) {
+        closePrivateModal();
+        return;
+      }
+      const decrypted = await decryptPrivateNote(passphrase, note.privateNote);
+      setPrivateSession(noteId, {
+        passphrase,
+        text: decrypted.text,
+        lastActivityAt: Date.now(),
+      });
+      const reopenEditor = privateModal.reopenEditor;
+      const focusField = privateModal.focusField;
+      closePrivateModal();
+      if (reopenEditor) {
+        setEditTagInput("");
+        setEditTagRenameFrom(null);
+        setEditing({ id: noteId, text: decrypted.text, focusField });
+      }
+    } catch {
+      setPrivateModal((current) => ({
+        ...current,
+        error: privateModal.mode === "protect" ? "Could not protect this note right now." : "Passphrase did not unlock this note.",
+      }));
+    }
+  }, [closePrivateModal, privateModal, renderSnapshot.notes, setPrivateSession, syncWikiLinksForNote, updateNote]);
+
+  useEffect(() => {
+    if (isTimeLocked) {
+      lockAllPrivateNotes();
+    }
+  }, [isTimeLocked, lockAllPrivateNotes]);
+
+  useEffect(() => {
+    const lockStaleNotes = () => {
+      const now = Date.now();
+      const staleIds = Object.entries(privateSessionsRef.current)
+        .filter(([, session]) => now - session.lastActivityAt >= PRIVATE_NOTE_AUTO_LOCK_MS)
+        .map(([noteId]) => noteId);
+      if (staleIds.length === 0) {
+        return;
+      }
+      setPrivateSessions((previous) => {
+        const next = { ...previous };
+        for (const noteId of staleIds) {
+          delete next[noteId];
+        }
+        return next;
+      });
+      setEditing((current) => (current && staleIds.includes(current.id) ? null : current));
+    };
+
+    const timer = setInterval(lockStaleNotes, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        lockAllPrivateNotes();
+      }
+    };
+    const handleBeforeUnload = () => {
+      lockAllPrivateNotes();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [lockAllPrivateNotes]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -905,7 +1120,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
 
     const timer = setTimeout(() => {
-      commitEditedNoteText(editing.id, editing.text);
+      void commitEditedNoteText(editing.id, editing.text);
     }, 280);
 
     return () => clearTimeout(timer);
@@ -2094,6 +2309,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     publishedReadOnly,
   });
   const selectedVocabularyNote = selectedNote && isVocabularyNote(selectedNote) ? selectedNote : undefined;
+  const selectedPrivateNote = primarySelectedNote && isPrivateNote(primarySelectedNote) ? primarySelectedNote : undefined;
+  const selectedPrivateNoteSupported = Boolean(primarySelectedNote && (isPrivateNote(primarySelectedNote) || canProtectNote(primarySelectedNote)));
+  const isSelectedPrivateUnlocked = Boolean(selectedPrivateNote && privateSessions[selectedPrivateNote.id]);
+  const privateModalNote = privateModal.noteId ? renderSnapshot.notes[privateModal.noteId] : undefined;
 
   useEffect(() => {
     setReviewRevealMeaning(false);
@@ -3058,6 +3277,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onUpdateSelectedNote={updateNote}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
           onOpenBookmarkUrl={openBookmarkUrl}
+          privateNoteSupported={selectedPrivateNoteSupported}
+          isPrivateEnabled={Boolean(selectedPrivateNote)}
+          isPrivateUnlocked={isSelectedPrivateUnlocked}
+          onProtectPrivateNote={(noteId) => openPrivateModal("protect", noteId)}
+          onUnlockPrivateNote={(noteId) => openPrivateModal("unlock", noteId)}
+          onLockPrivateNote={lockPrivateNote}
+          onRemovePrivateProtection={(noteId) => {
+            const selected = renderSnapshot.notes[noteId];
+            const session = privateSessions[noteId];
+            if (!selected || !isPrivateNote(selected) || !session) {
+              return;
+            }
+            updateNote(noteId, { text: session.text, privateNote: undefined });
+            syncWikiLinksForNote(noteId, session.text);
+            lockPrivateNote(noteId);
+          }}
           detailsSectionsOpen={detailsSectionsOpen}
           onToggleDetailsSection={toggleDetailsSection}
           timelineEntriesCount={timelineEntries.length}
@@ -3140,6 +3375,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         )}
 
       </div>
+
+      <PrivateNoteModal
+        open={privateModal.open}
+        mode={privateModal.mode}
+        noteLabel={privateModalNote ? privateNoteTitle(privateModalNote) : "Private note"}
+        error={privateModal.error}
+        onClose={closePrivateModal}
+        onSubmit={(passphrase) => { void submitPrivateModal(passphrase); }}
+      />
 
       <WallGlobalModals
         quickCaptureOpen={quickCaptureOpen} isTimeLocked={isTimeLocked} onCloseQuickCapture={() => setQuickCaptureOpen(false)} onCapture={captureNotes}

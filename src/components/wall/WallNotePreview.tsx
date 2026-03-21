@@ -10,6 +10,7 @@ import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { getPoetryTitle } from "@/features/wall/poetry";
+import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import type { Note } from "@/features/wall/types";
 
 type WallNotePreviewProps = {
@@ -105,6 +106,32 @@ const NoteShell = ({ children, note, width, height, selected, tone }: WallNotePr
   >
     {children}
   </div>
+);
+
+const PrivateRenderer = ({ note, width, height, readableText, mutedText, activeBackground, activeText, tone }: RendererProps) => (
+  <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
+    <div className="flex h-full flex-col justify-between p-3.5">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: mutedText }}>
+          Protected
+        </p>
+        <p className="mt-2 text-lg font-semibold" style={{ color: readableText }}>
+          {privateNoteTitle(note)}
+        </p>
+        <p className="mt-2 text-sm leading-6" style={{ color: mutedText }}>
+          Content stays hidden on the wall, in timeline previews, and in standard exports.
+        </p>
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: activeBackground, color: activeText }}>
+          Passphrase required
+        </span>
+        <span className="text-[11px]" style={{ color: mutedText }}>
+          Locked shell
+        </span>
+      </div>
+    </div>
+  </NoteShell>
 );
 
 const StandardRenderer = ({ note, width, height, readableText, textFontFamily, baseFontSize, baseLineHeight, bodyClamp, tone }: RendererProps) => {
@@ -432,6 +459,7 @@ const FallbackRenderer = ({ note, width, height, readableText, mutedText, textFo
 type NoteRenderer = (props: RendererProps) => ReactNode;
 
 const noteRenderers: Record<string, NoteRenderer> = {
+  private: PrivateRenderer,
   standard: StandardRenderer,
   quote: QuoteRenderer,
   canon: CanonRenderer,
@@ -447,6 +475,9 @@ const noteRenderers: Record<string, NoteRenderer> = {
 };
 
 const resolveRendererKey = (note: Note) => {
+  if (isPrivateNote(note)) {
+    return "private";
+  }
   if (note.noteKind === "apod") {
     return "apod";
   }

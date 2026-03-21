@@ -46,4 +46,42 @@ describe("backup compatibility", () => {
     expect(shouldPromptBackupReminder("daily", now - 2 * 60 * 60 * 1000, now)).toBe(false);
     expect(shouldPromptBackupReminder("weekly", now - 8 * 24 * 60 * 60 * 1000, now)).toBe(true);
   });
+
+  it("keeps private note payloads in parsed backups", () => {
+    const parsed = parseBackupJson(
+      JSON.stringify({
+        notes: {
+          p1: {
+            id: "p1",
+            text: "",
+            noteKind: "journal",
+            tags: [],
+            x: 0,
+            y: 0,
+            w: 220,
+            h: 160,
+            color: "#FEEA89",
+            createdAt: 1,
+            updatedAt: 2,
+            privateNote: {
+              version: 1,
+              salt: "salt",
+              iv: "iv",
+              ciphertext: "cipher",
+              protectedAt: 10,
+              updatedAt: 11,
+            },
+          },
+        },
+        zones: {},
+        zoneGroups: {},
+        noteGroups: {},
+        links: {},
+        camera: { x: 0, y: 0, zoom: 1 },
+      }),
+    );
+
+    expect(parsed?.notes.p1?.privateNote?.ciphertext).toBe("cipher");
+  });
+
 });

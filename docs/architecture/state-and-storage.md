@@ -48,6 +48,7 @@ Wall notes can also contain richer payloads such as:
 - web bookmark payloads for normalized URLs, sanitized metadata, fetch status, cache timestamps, and retry state
 - image URLs
 - text formatting and visual flags
+- private note ciphertext payloads for passphrase-protected notes
 
 ### Local wall storage
 
@@ -73,6 +74,7 @@ The local wall layer also:
 - normalizes old payloads through storage migration helpers
 - preserves the permanent currency note and its last wall position inside normal wall snapshots
 - keeps bookmark preview metadata in note payloads while a shared local cache avoids repeat metadata fetches for the same normalized URL during the 24 hour TTL window\n- uses a cache version bump to avoid reusing older domain-only bookmark preview entries after parser upgrades
+- stores private note bodies as ciphertext in persisted wall snapshots while unlock passphrases remain in memory only for the active browser session
 
 ### Cloud wall storage
 
@@ -88,6 +90,7 @@ Important current behavior:
 - local last color wins when present
 - currency note exchange-rate fetches are lazy, cached in local storage, and fall back to stale cache/default USD when live requests fail
 - web bookmark preview fetches run through authenticated server routes that validate URLs, block private-network targets, follow a small redirect budget, and return only sanitized metadata JSON
+- private notes sync through the normal wall snapshot pipeline as ciphertext plus harmless shell metadata; search and Markdown export exclude locked content
 
 If local content exists and the server is empty, the UI can prompt the user to import local data into the cloud account.
 

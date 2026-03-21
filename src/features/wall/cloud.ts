@@ -2,7 +2,7 @@ import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import type { ApodNote, CanonNote, CurrencyNote, PersistedWallState, PoetryNote, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
+import type { ApodNote, CanonNote, CurrencyNote, PersistedWallState, PoetryNote, PrivateNoteData, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
 
 type WallRow = {
   camera_x: number;
@@ -17,6 +17,7 @@ type NoteRow = {
   text: string;
   quote_author?: string | null;
   quote_source?: string | null;
+  private_note?: unknown;
   image_url?: string | null;
   text_align?: string | null;
   text_v_align?: string | null;
@@ -293,6 +294,25 @@ const parseBookmark = (raw: unknown): WebBookmarkNote | undefined => {
   };
 };
 
+const parsePrivateNote = (raw: unknown): PrivateNoteData | undefined => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const value = raw as Record<string, unknown>;
+  const asString = (entry: unknown, fallback = "") => (typeof entry === "string" ? entry : fallback);
+  const asNumber = (entry: unknown) => (typeof entry === "number" && Number.isFinite(entry) ? entry : 0);
+
+  return {
+    version: 1,
+    salt: asString(value.salt),
+    iv: asString(value.iv),
+    ciphertext: asString(value.ciphertext),
+    protectedAt: asNumber(value.protectedAt),
+    updatedAt: asNumber(value.updatedAt),
+  };
+};
+
 const parseApod = (raw: unknown): ApodNote | undefined => {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return undefined;
@@ -421,6 +441,7 @@ export const rowsToSnapshot = (rows: {
           text: note.text,
           quoteAuthor: note.quote_author?.trim() || undefined,
           quoteSource: note.quote_source?.trim() || undefined,
+          privateNote: parsePrivateNote(note.private_note),
           imageUrl: note.image_url?.trim() || undefined,
           textAlign: note.text_align === "center" || note.text_align === "right" ? note.text_align : "left",
           textVAlign: note.text_v_align === "middle" || note.text_v_align === "bottom" ? note.text_v_align : NOTE_DEFAULTS.textVAlign,
