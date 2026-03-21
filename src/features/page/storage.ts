@@ -211,6 +211,7 @@ const normalizeBlock = (value: unknown, index: number): PageBlock | null => {
           alt: typeof fileValue.alt === "string" ? fileValue.alt : undefined,
           attributionName: typeof fileValue.attributionName === "string" ? fileValue.attributionName : undefined,
           attributionUrl: typeof fileValue.attributionUrl === "string" ? fileValue.attributionUrl : undefined,
+          encrypted: fileValue.encrypted === true,
         }
       : undefined;
 
@@ -268,6 +269,8 @@ const normalizeSnapshot = (value: unknown): PersistedPageState | null => {
           source: coverValue.source === "embed" ? ("embed" as const) : coverValue.source === "unsplash" ? ("unsplash" as const) : ("upload" as const),
           attributionName: typeof coverValue.attributionName === "string" ? coverValue.attributionName : undefined,
           attributionUrl: typeof coverValue.attributionUrl === "string" ? coverValue.attributionUrl : undefined,
+          mimeType: typeof coverValue.mimeType === "string" ? coverValue.mimeType : undefined,
+          encrypted: coverValue.encrypted === true,
         }
       : undefined;
 
@@ -379,3 +382,4 @@ export const createPageSnapshotSaver = (
 
   return { schedule, flush };
 };
+

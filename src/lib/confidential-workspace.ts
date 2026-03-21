@@ -12,6 +12,13 @@ export type ConfidentialEnvelope = {
   updatedAt: number;
 };
 
+export type ConfidentialBinaryPayload = {
+  kind: "file";
+  name: string;
+  mimeType: string;
+  bytesBase64: string;
+};
+
 export type ConfidentialWorkspaceConfig = {
   version: 1;
   verification: ConfidentialEnvelope;
@@ -91,11 +98,33 @@ export const encryptConfidentialPayload = async <T>(passphrase: string, payload:
 export const decryptConfidentialPayload = async <T>(passphrase: string, envelope: ConfidentialEnvelope): Promise<T> => {
   const key = await deriveKey(passphrase, base64ToBytes(envelope.salt), envelope.iterations);
   const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64ToBytes(envelope.iv) },
+    { name: "AES-GCM", iv: toBufferSource(base64ToBytes(envelope.iv)) },
     key,
-    base64ToBytes(envelope.ciphertext),
+    toBufferSource(base64ToBytes(envelope.ciphertext)),
   );
   return JSON.parse(decoder.decode(plaintext)) as T;
+};
+
+export const encryptConfidentialFile = async (passphrase: string, file: File) => {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const payload: ConfidentialBinaryPayload = {
+    kind: "file",
+    name: file.name,
+    mimeType: file.type || "application/octet-stream",
+    bytesBase64: bytesToBase64(bytes),
+  };
+  const envelope = await encryptConfidentialPayload(passphrase, payload);
+  return new File([JSON.stringify(envelope)], `${file.name}.agyc`, { type: "application/json" });
+};
+
+export const decryptConfidentialFile = async (passphrase: string, bytes: Uint8Array) => {
+  const text = decoder.decode(bytes);
+  const parsed = JSON.parse(text) as unknown;
+  if (!isConfidentialEnvelope(parsed)) {
+    throw new Error("Invalid encrypted file payload.");
+  }
+  const payload = await decryptConfidentialPayload<ConfidentialBinaryPayload>(passphrase, parsed);
+  return new Blob([base64ToBytes(payload.bytesBase64)], { type: payload.mimeType || "application/octet-stream" });
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -181,4 +210,3 @@ export const resetConfidentialWorkspace = () => {
   removeStorageKeys([workspaceConfigKey, legacyWorkspaceConfigKey]);
   lockConfidentialWorkspace();
 };
-

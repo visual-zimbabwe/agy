@@ -23,6 +23,7 @@ import { UnsplashPicker } from "@/components/media/UnsplashPicker";
 import { ConfidentialAccessGate } from "@/components/security/ConfidentialAccessGate";
 import { useConfidentialAccess } from "@/components/security/useConfidentialAccess";
 import { cn } from "@/lib/cn";
+import { decryptConfidentialFile, encryptConfidentialFile } from "@/lib/confidential-workspace";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { trackUnsplashDownload } from "@/lib/unsplash-client";
@@ -1591,17 +1592,35 @@ export function PageEditor() {
     [queueFocus],
   );
 
-  const signFileUrl = useCallback(async (path: string) => {
-    const response = await fetch("/api/page/files/sign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path }),
-    });
-    const payload = (await response.json().catch(() => ({}))) as { signedUrl?: string; error?: string };
-    if (!response.ok || !payload.signedUrl) throw new Error(payload.error ?? "Unable to sign file URL.");
-    setSignedUrls((previous) => ({ ...previous, [path]: payload.signedUrl! }));
-    return payload.signedUrl;
-  }, []);
+  const signFileUrl = useCallback(
+    async (path: string, options?: { encrypted?: boolean; mimeType?: string }) => {
+      const response = await fetch("/api/page/files/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { signedUrl?: string; error?: string };
+      if (!response.ok || !payload.signedUrl) throw new Error(payload.error ?? "Unable to sign file URL.");
+
+      if (!options?.encrypted) {
+        setSignedUrls((previous) => ({ ...previous, [path]: payload.signedUrl! }));
+        return payload.signedUrl;
+      }
+
+      const fileResponse = await fetch(payload.signedUrl);
+      if (!fileResponse.ok) {
+        throw new Error("Unable to download encrypted file.");
+      }
+      const bytes = new Uint8Array(await fileResponse.arrayBuffer());
+      const blob = await decryptConfidentialFile(confidentialPassphrase ?? "", bytes);
+      const objectUrl = URL.createObjectURL(
+        new File([blob], path.split("/").pop() ?? "file", { type: options.mimeType || blob.type || "application/octet-stream" }),
+      );
+      setSignedUrls((previous) => ({ ...previous, [path]: objectUrl }));
+      return objectUrl;
+    },
+    [confidentialPassphrase],
+  );
 
 
   const applyPageCover = useCallback((nextCover: PageCover | undefined) => {
@@ -1666,10 +1685,20 @@ export function PageEditor() {
       setUploading(true);
       try {
         const formData = new FormData();
-        for (const file of files) formData.append("files", file);
+        const metadata: Array<{ name: string; size: number; mimeType: string; encrypted: boolean }> = [];
+        for (const file of files) {
+          formData.append("files", await encryptConfidentialFile(confidentialPassphrase ?? "", file));
+          metadata.push({
+            name: file.name,
+            size: file.size,
+            mimeType: file.type || "application/octet-stream",
+            encrypted: true,
+          });
+        }
+        formData.append("metadata", JSON.stringify(metadata));
         const response = await fetch("/api/page/files", { method: "POST", body: formData });
         const payload = (await response.json().catch(() => ({}))) as {
-          files?: Array<{ path: string; name: string; size: number; mimeType: string }>;
+          files?: Array<{ path: string; name: string; size: number; mimeType: string; encrypted?: boolean }>;
           error?: string;
         };
         if (!response.ok || !payload.files) throw new Error(payload.error ?? "Upload failed.");
@@ -1683,8 +1712,10 @@ export function PageEditor() {
             path: uploaded.path,
             alt: uploaded.name,
             source: "upload",
+            mimeType: uploaded.mimeType,
+            encrypted: uploaded.encrypted === true,
           });
-          void signFileUrl(uploaded.path);
+          void signFileUrl(uploaded.path, { encrypted: uploaded.encrypted === true, mimeType: uploaded.mimeType });
           return;
         }
 
@@ -1703,6 +1734,7 @@ export function PageEditor() {
             size: file.size,
             mimeType: file.mimeType || "application/octet-stream",
             source: "upload",
+            encrypted: file.encrypted === true,
           },
         }));
         setBlocks((previous) => {
@@ -1715,7 +1747,9 @@ export function PageEditor() {
         });
 
         for (const file of payload.files) {
-          if (isImageMime(file.mimeType) || intent === "video" || intent === "audio") void signFileUrl(file.path);
+          if (isImageMime(file.mimeType) || intent === "video" || intent === "audio") {
+            void signFileUrl(file.path, { encrypted: file.encrypted === true, mimeType: file.mimeType });
+          }
         }
       } catch (error) {
         window.alert(error instanceof Error ? error.message : "Upload failed.");
@@ -1723,7 +1757,7 @@ export function PageEditor() {
         setUploading(false);
       }
     },
-    [applyPageCover, signFileUrl],
+    [applyPageCover, confidentialPassphrase, signFileUrl],
   );
 
   const triggerUploadPickerAt = useCallback((worldX: number, worldY: number, intent: FileInsertIntent = "file", afterBlockId?: string) => {
@@ -2051,12 +2085,12 @@ export function PageEditor() {
     );
     for (const block of mediaBlocks) {
       const path = block.file!.path!;
-      if (!signedUrls[path]) void signFileUrl(path);
+      if (!signedUrls[path]) void signFileUrl(path, { encrypted: block.file?.encrypted === true, mimeType: block.file?.mimeType });
     }
     if (cover?.path && !signedUrls[cover.path]) {
-      void signFileUrl(cover.path);
+      void signFileUrl(cover.path, { encrypted: cover.encrypted === true, mimeType: cover.mimeType });
     }
-  }, [blocks, cover?.path, signFileUrl, signedUrls]);
+  }, [blocks, cover?.encrypted, cover?.mimeType, cover?.path, signFileUrl, signedUrls]);
 
   useEffect(() => {
     const bookmarkBlocks = blocks.filter((block) => block.type === "bookmark" && block.bookmark?.url);
@@ -3681,7 +3715,7 @@ export function PageEditor() {
         const url = block.file.externalUrl
           ? block.file.externalUrl
           : block.file.path
-            ? signedUrls[block.file.path] ?? (await signFileUrl(block.file.path))
+            ? signedUrls[block.file.path] ?? (await signFileUrl(block.file.path, { encrypted: block.file.encrypted === true, mimeType: block.file.mimeType }))
             : null;
         if (!url) return;
         window.open(url, "_blank", "noopener,noreferrer");
@@ -3699,7 +3733,7 @@ export function PageEditor() {
         const url = block.file.externalUrl
           ? block.file.externalUrl
           : block.file.path
-            ? signedUrls[block.file.path] ?? (await signFileUrl(block.file.path))
+            ? signedUrls[block.file.path] ?? (await signFileUrl(block.file.path, { encrypted: block.file.encrypted === true, mimeType: block.file.mimeType }))
             : null;
         if (!url) return;
         const anchor = document.createElement("a");
@@ -5788,10 +5822,4 @@ export function PageEditor() {
     </>
   );
 }
-
-
-
-
-
-
 

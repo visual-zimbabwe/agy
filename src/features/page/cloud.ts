@@ -49,6 +49,7 @@ export const saveCloudPageSnapshot = async (docId: string, snapshot: PersistedPa
         owner_id: ownerId,
         doc_id: docId,
         secure_snapshot: await encryptConfidentialPayload(passphrase, snapshot),
+        snapshot: null,
       } as Record<string, unknown>)
     : ({
         owner_id: ownerId,
@@ -85,5 +86,4 @@ export const listCloudPageDocIds = async (): Promise<string[]> => {
   }
   return (data ?? []).map((doc) => doc.doc_id);
 };
-
 

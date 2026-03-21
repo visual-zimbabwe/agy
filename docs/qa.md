@@ -15,21 +15,22 @@
 10. Press `Esc` with slash menu open and verify it closes.
 11. In any text block, type `/file` then press `Enter`; verify file insert popover appears with `Upload` and `Paste URL` tabs.
 12. In `/file` popover `Upload` tab, click `Choose a file`, upload a document, and verify a file block appears with file name + size metadata.
-13. In `/file` popover `Paste URL` tab, paste a URL (PDF, Drive file, or Maps URL) and verify an embedded file block appears with inferred title and `External` size label.
-14. In any text block, type `/image` then press `Enter`; verify the image insert popover shows `Upload`, `Paste URL`, and `Unsplash` tabs.
-15. In `/image` > `Unsplash`, search for a term, choose one result, and verify an inline image block is inserted with preview and attribution text.
-16. In any text block, type `/cover` then press `Enter`; verify the cover insert popover opens with `Upload`, `Paste URL`, and `Unsplash` tabs.
-17. In `/cover` > `Unsplash`, search for a term, choose one result, and verify the page cover updates above the document blocks and persists after refresh.
-14. Type `/image`, `/video`, and `/audio` (one at a time), press `Enter`, and verify each opens the same two-option popover and inserts a specialized media block after upload/link.
-15. Hover a file/media block and verify toolbar actions appear: `Caption`, `Comment`, `Download`.
-16. Use hover toolbar `Caption`; verify caption is saved and shown under the file metadata.
-17. Use hover toolbar `Comment`; verify comment thread is added to the target block.
-18. Use hover toolbar `Download`; verify uploaded files download and embedded links open in a downloadable/openable target.
-19. Verify slash command menu visual parity: compact light menu, left-side command symbols, right-side trigger hints, and `Close menu / esc` footer.
-20. Open slash menu near each viewport edge and confirm it repositions (above/below and left/right) to stay visible while minimizing overlap with nearby canvas content.
-21. Right-click empty canvas and click `Upload files here`; choose at least 2 files and verify each becomes its own movable file block.
-22. Drag-and-drop multiple files from desktop onto canvas and verify each file inserts at drop area.
-23. Upload at least one image file and verify inline image preview appears in its block.
+13. Refresh while the workspace stays unlocked and verify the uploaded file still opens and downloads correctly, confirming the encrypted file round-trip works.
+14. In `/file` popover `Paste URL` tab, paste a URL (PDF, Drive file, or Maps URL) and verify an embedded file block appears with inferred title and `External` size label.
+15. In any text block, type `/image` then press `Enter`; verify the image insert popover shows `Upload`, `Paste URL`, and `Unsplash` tabs.
+16. In `/image` > `Unsplash`, search for a term, choose one result, and verify an inline image block is inserted with preview and attribution text.
+17. In any text block, type `/cover` then press `Enter`; verify the cover insert popover opens with `Upload`, `Paste URL`, and `Unsplash` tabs.
+18. In `/cover` > `Unsplash`, search for a term, choose one result, and verify the page cover updates above the document blocks and persists after refresh.
+19. Type `/image`, `/video`, and `/audio` (one at a time), press `Enter`, and verify each opens the same two-option popover and inserts a specialized media block after upload/link.
+20. Hover a file/media block and verify toolbar actions appear: `Caption`, `Comment`, `Download`.
+21. Use hover toolbar `Caption`; verify caption is saved and shown under the file metadata.
+22. Use hover toolbar `Comment`; verify comment thread is added to the target block.
+23. Use hover toolbar `Download`; verify uploaded files download and embedded links open in a downloadable/openable target.
+24. Verify slash command menu visual parity: compact light menu, left-side command symbols, right-side trigger hints, and `Close menu / esc` footer.
+25. Open slash menu near each viewport edge and confirm it repositions (above/below and left/right) to stay visible while minimizing overlap with nearby canvas content.
+26. Right-click empty canvas and click `Upload files here`; choose at least 2 files and verify each becomes its own movable file block.
+27. Drag-and-drop multiple files from desktop onto canvas and verify each file inserts at drop area.
+28. Upload at least one image file and verify inline image preview appears in its block.
 24. Click a file block and verify it opens in a new tab.
 25. Right-click a file block and run `Rename title`; verify title changes without changing stored file.
 26. Right-click a file block and run `Delete file`; verify block is removed and backend delete succeeds.
@@ -1230,3 +1231,4 @@ Expected results:
 - Public snapshot links are disabled.
 - Readable exports require confirmation.
 - Existing content remains accessible after migration.
+
