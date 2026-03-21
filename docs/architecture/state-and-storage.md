@@ -12,12 +12,12 @@ This is a current-state architecture doc for persistence, normalization, merge b
 
 Agy currently uses multiple persistence layers:
 
-- local IndexedDB for wall state
-- local IndexedDB for page state
+- local IndexedDB for encrypted wall snapshots and legacy wall fallback state
+- local IndexedDB for encrypted page snapshots and legacy page fallback state
 - local browser storage for some preference and migration flags
 - local browser storage for currency note location/rate caches
 - local browser storage for wall bookmark metadata cache entries keyed by normalized URL
-- Supabase Postgres for cloud-backed records and snapshots
+- Supabase Postgres for cloud metadata plus encrypted wall/page snapshot storage
 - Supabase Storage for page file uploads
 
 These layers serve different purposes and should not be treated as interchangeable.
@@ -68,8 +68,9 @@ Local wall tables currently include:
 
 The local wall layer also:
 
+- writes encrypted wall snapshots after unlock while keeping legacy readers for migration
 - debounces snapshot writes
-- records timeline snapshots
+- records encrypted timeline snapshots after unlock
 - stores camera and last color in meta records
 - normalizes old payloads through storage migration helpers
 - preserves the permanent currency note and its last wall position inside normal wall snapshots
@@ -84,13 +85,14 @@ Important current behavior:
 
 - the app loads local wall state first
 - then loads or creates the remote wall record
-- then fetches the cloud snapshot
+- then fetches the encrypted cloud snapshot when available
 - then merges local and server state with a last-write-wins strategy for entity maps
 - local camera wins during merge
 - local last color wins when present
 - currency note exchange-rate fetches are lazy, cached in local storage, and fall back to stale cache/default USD when live requests fail
 - web bookmark preview fetches run through authenticated server routes that validate URLs, block private-network targets, follow a small redirect budget, and return only sanitized metadata JSON
 - private notes sync through the normal wall snapshot pipeline as ciphertext plus harmless shell metadata; search and Markdown export exclude locked content
+- full wall snapshots now sync as ciphertext when the secure schema is available, while legacy plaintext rows remain as migration fallback until cleanup tooling ships
 
 If local content exists and the server is empty, the UI can prompt the user to import local data into the cloud account.
 
@@ -137,7 +139,7 @@ The page layer normalizes blocks when loading persisted snapshots so older or ma
 
 Page cloud persistence is implemented both through direct Supabase browser access in `src/features/page/cloud.ts` and through server routes under `src/app/api/page/`.
 
-The current cloud model stores page snapshots in `page_docs` keyed by:
+The current cloud model stores encrypted page snapshots in `page_docs` when the secure schema is available, while legacy plaintext `snapshot` reads remain for migration. Records are keyed by:
 
 - `owner_id`
 - `doc_id`
@@ -180,7 +182,7 @@ Page persistence does not currently expose the same explicit entity-level merge 
 - IndexedDB schemas evolve through explicit versioning and migration helpers.
 - Cloud schema rollout is not assumed to be perfectly synchronized; some API paths contain compatibility fallbacks for missing columns or tables.
 - File storage is separate from snapshot storage.
-- Published wall snapshots are read-only and should not re-enter normal persistence flows as editable state.
+- Public wall snapshot links are disabled for confidential workspaces and should not be treated as an approved persistence or sharing path.
 
 ## Failure Modes
 
@@ -191,10 +193,12 @@ Page persistence does not currently expose the same explicit entity-level merge 
 
 ## Related Docs
 
+- `docs/features/confidential-workspace.md`
 - `docs/architecture/overview.md`
 - `docs/api/walls.md`
 - `docs/api/page.md`
 - `docs/runbooks/sync-debugging.md`
+
 
 
 

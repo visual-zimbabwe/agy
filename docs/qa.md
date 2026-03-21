@@ -1209,3 +1209,24 @@ Expected:
 - Passphrases unlock private notes only for the active browser session and are not persisted with the wall snapshot.
 - Search, Markdown export, and wiki-link generation exclude locked private note content.
 - Refreshing, syncing, hiding the tab, or letting the unlock session expire does not lose encrypted note contents.
+
+## Confidential Workspace Migration
+
+1. Open `/wall` and verify the confidentiality gate appears before normal wall persistence starts.
+2. Create a passphrase and confirm the wall unlocks.
+3. Add or edit notes, refresh the page, unlock again, and verify wall content restores.
+4. Open Export and run `Export Encrypted Backup`. Verify the downloaded file uses encrypted envelope fields rather than readable wall JSON.
+5. Import the encrypted backup and verify the wall restores without errors.
+6. Attempt `Public Sharing Disabled` and verify the app blocks URL sharing.
+7. Export PNG, PDF, and Markdown and verify each action warns that it creates a readable copy.
+8. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
+9. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
+
+Expected results:
+
+- Wall and page persistence remain blocked until unlock.
+- Local restore works through encrypted snapshot storage.
+- Encrypted backup export/import works.
+- Public snapshot links are disabled.
+- Readable exports require confirmation.
+- Existing content remains accessible after migration.

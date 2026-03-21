@@ -20,6 +20,8 @@ import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnap
 import { listCloudPageDocIds, loadCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
 import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageCover, PageEmbedData, PageNumberedFormat, PageTableData, PersistedPageState } from "@/features/page/types";
 import { UnsplashPicker } from "@/components/media/UnsplashPicker";
+import { ConfidentialAccessGate } from "@/components/security/ConfidentialAccessGate";
+import { useConfidentialAccess } from "@/components/security/useConfidentialAccess";
 import { cn } from "@/lib/cn";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { UnsplashPhoto } from "@/lib/unsplash";
@@ -1352,6 +1354,7 @@ const SlashCommandIcon = ({ id }: { id: SlashCommandId }) => {
 };
 
 export function PageEditor() {
+  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace } = useConfidentialAccess();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1416,26 +1419,26 @@ export function PageEditor() {
   const lastNonEmptyBlocksRef = useRef<PageBlock[] | null>(null);
   const recoveringFromEmptyRef = useRef(false);
   const viewportRef = useRef(viewport);
-  const saverRef = useRef(createPageSnapshotSaver(260, docId));
+  const saverRef = useRef(createPageSnapshotSaver(confidentialPassphrase ?? undefined, 260, docId));
 
   const saveDocSnapshot = useCallback(
     async (snapshot: Parameters<typeof savePageSnapshot>[0], targetDocId: string) => {
-      await savePageSnapshot(snapshot, targetDocId);
+      await savePageSnapshot(snapshot, targetDocId, confidentialPassphrase ?? undefined);
       try {
-        await saveCloudPageSnapshot(targetDocId, snapshot);
+        await saveCloudPageSnapshot(targetDocId, snapshot, confidentialPassphrase ?? undefined);
       } catch {
         // Local persistence already succeeded.
       }
     },
-    [],
+    [confidentialPassphrase],
   );
 
   const loadDocSnapshot = useCallback(
     async (targetDocId: string) => {
-      const localSnapshot = await loadPageSnapshot(targetDocId);
+      const localSnapshot = await loadPageSnapshot(targetDocId, confidentialPassphrase ?? undefined);
       let cloudSnapshot: PersistedPageState | null = null;
       try {
-        cloudSnapshot = await loadCloudPageSnapshot(targetDocId);
+        cloudSnapshot = await loadCloudPageSnapshot(targetDocId, confidentialPassphrase ?? undefined);
       } catch {
         cloudSnapshot = null;
       }
@@ -1444,14 +1447,14 @@ export function PageEditor() {
       const cloudUpdatedAt = cloudSnapshot?.updatedAt ?? 0;
 
       if (cloudSnapshot && cloudUpdatedAt > localUpdatedAt) {
-        await savePageSnapshot(cloudSnapshot, targetDocId);
+        await savePageSnapshot(cloudSnapshot, targetDocId, confidentialPassphrase ?? undefined);
         return cloudSnapshot;
       }
 
       if (localSnapshot) {
         if (!cloudSnapshot || localUpdatedAt > cloudUpdatedAt) {
           try {
-            await saveCloudPageSnapshot(targetDocId, localSnapshot);
+            await saveCloudPageSnapshot(targetDocId, localSnapshot, confidentialPassphrase ?? undefined);
           } catch {
             // Local snapshot remains the source of truth if cloud sync fails.
           }
@@ -1461,7 +1464,7 @@ export function PageEditor() {
 
       return cloudSnapshot;
     },
-    [],
+    [confidentialPassphrase],
   );
 
   const refreshAvailableDocIds = useCallback(async () => {
@@ -1926,8 +1929,8 @@ export function PageEditor() {
   }, [viewport]);
 
   useEffect(() => {
-    saverRef.current = createPageSnapshotSaver(260, docId, saveDocSnapshot);
-  }, [docId, saveDocSnapshot]);
+    saverRef.current = createPageSnapshotSaver(confidentialPassphrase ?? undefined, 260, docId, saveDocSnapshot);
+  }, [confidentialPassphrase, docId, saveDocSnapshot]);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -1944,6 +1947,9 @@ export function PageEditor() {
   }, []);
 
   useEffect(() => {
+    if (!confidentialReady) {
+      return;
+    }
     let cancelled = false;
     const saver = saverRef.current;
     hasLoadedRef.current = false;
@@ -1977,7 +1983,7 @@ export function PageEditor() {
       cancelled = true;
       void saver.flush();
     };
-  }, [docId, loadDocSnapshot]);
+  }, [confidentialReady, docId, loadDocSnapshot]);
 
   useEffect(() => {
     setBlocks((previous) => {
@@ -1995,6 +2001,9 @@ export function PageEditor() {
   }, [remeasureAllTextareas]);
 
   useEffect(() => {
+    if (!confidentialReady) {
+      return;
+    }
     let cancelled = false;
     if (typeof document !== "undefined" && "fonts" in document) {
       void (document as Document & { fonts: FontFaceSet }).fonts.ready.then(() => {
@@ -2005,13 +2014,13 @@ export function PageEditor() {
     return () => {
       cancelled = true;
     };
-  }, [docId, remeasureAllTextareas]);
+  }, [confidentialReady, docId, remeasureAllTextareas]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
     if (blocks.length === 0 && loadedNonEmptyRef.current) return;
     saverRef.current.schedule({ blocks, camera, updatedAt: Date.now(), cover });
-  }, [blocks, camera, cover]);
+  }, [blocks, camera, confidentialReady, cover]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
@@ -2152,7 +2161,7 @@ export function PageEditor() {
         clearTimeout(snapAnimateTimerRef.current);
       }
     },
-    [],
+    [confidentialPassphrase],
   );
 
   useEffect(() => {
@@ -4515,7 +4524,15 @@ export function PageEditor() {
     };
   }, [camera.zoom, fileInsert.intent, fileInsert.mode, fileInsert.open, fileInsert.worldX, fileInsert.worldY, fileInsert.x, fileInsert.y, toScreenPoint, viewport.h, viewport.w]);
   return (
-    <main className="route-shell page-workspace-shell text-[var(--color-text)]">
+    <>
+      <ConfidentialAccessGate
+        open={!confidentialReady}
+        hasConfig={confidentialHasConfig}
+        scopeLabel="Page Editor"
+        onCreate={createConfidentialPassphrase}
+        onUnlock={unlockConfidentialWorkspace}
+      />
+      <main className="route-shell page-workspace-shell text-[var(--color-text)]">
       <input
         ref={fileInputRef}
         type="file"
@@ -5767,8 +5784,14 @@ export function PageEditor() {
           </div>
         )}
       </div>
-    </main>
+      </main>
+    </>
   );
 }
+
+
+
+
+
 
 

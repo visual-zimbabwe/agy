@@ -49,7 +49,7 @@ export const ExportModal = ({
       open={open}
       onClose={onClose}
       title="Export"
-      description="Create image/text exports and full JSON backups."
+      description="Create exports and encrypted wall backups."
       maxWidthClassName="max-w-2xl"
     >
       <div
@@ -112,9 +112,9 @@ export const ExportModal = ({
         </Button>
         <Button onClick={() => onExportPdf(scope)}>Export PDF</Button>
         <Button onClick={onExportMarkdown}>Export Markdown</Button>
-        <Button onClick={onExportJson}>Export JSON</Button>
+        <Button onClick={onExportJson}>Export Encrypted Backup</Button>
         <label className="cursor-pointer rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-muted)]">
-            Import JSON
+            Import Backup
             <input
               type="file"
               accept="application/json,.json"
@@ -128,7 +128,7 @@ export const ExportModal = ({
               }}
             />
         </label>
-        <Button onClick={onPublishSnapshot}>Publish Read-Only Link</Button>
+        <Button onClick={onPublishSnapshot}>Public Sharing Disabled</Button>
         <Button className="ml-auto" onClick={onClose}>
           Close
         </Button>
@@ -137,3 +137,4 @@ export const ExportModal = ({
     </ModalShell>
   );
 };
+

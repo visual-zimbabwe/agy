@@ -1,11 +1,13 @@
 import Dexie, { type Table } from "dexie";
 
+import { decryptConfidentialPayload, encryptConfidentialPayload, isConfidentialEnvelope } from "@/lib/confidential-workspace";
 import type { PageBlock, PageCover, PersistedPageState } from "@/features/page/types";
 import { appSlug, legacyAppSlug } from "@/lib/brand";
 
 type PageDocRecord = {
   id: string;
-  snapshot: PersistedPageState;
+  snapshot?: PersistedPageState;
+  secureSnapshot?: string;
   updatedAt: number;
 };
 
@@ -18,6 +20,9 @@ class PageDatabase extends Dexie {
   constructor(name: string) {
     super(name);
     this.version(1).stores({
+      pageDocs: "id, updatedAt",
+    });
+    this.version(2).stores({
       pageDocs: "id, updatedAt",
     });
   }
@@ -276,17 +281,61 @@ const normalizeSnapshot = (value: unknown): PersistedPageState | null => {
   };
 };
 
-export const loadPageSnapshot = async (docId = defaultPageDocId): Promise<PersistedPageState | null> => {
-  await migrateLegacyPageDatabaseIfNeeded();
-  const row = await db.pageDocs.get(docId);
-  if (!row?.snapshot) {
+const loadDecryptedSecureSnapshot = async (row: PageDocRecord, passphrase: string) => {
+  if (!row.secureSnapshot) {
     return null;
   }
-  return normalizeSnapshot(row.snapshot);
+
+  const parsed = JSON.parse(row.secureSnapshot) as unknown;
+  if (!isConfidentialEnvelope(parsed)) {
+    return null;
+  }
+
+  return normalizeSnapshot(await decryptConfidentialPayload<PersistedPageState>(passphrase, parsed));
 };
 
-export const savePageSnapshot = async (snapshot: PersistedPageState, docId = defaultPageDocId): Promise<void> => {
+const saveSecureSnapshot = async (snapshot: PersistedPageState, docId: string, passphrase: string) => {
+  const envelope = await encryptConfidentialPayload(passphrase, snapshot);
+  await db.pageDocs.put({
+    id: docId,
+    secureSnapshot: JSON.stringify(envelope),
+    updatedAt: Date.now(),
+  });
+};
+
+export const loadPageSnapshot = async (docId = defaultPageDocId, passphrase?: string): Promise<PersistedPageState | null> => {
   await migrateLegacyPageDatabaseIfNeeded();
+  const row = await db.pageDocs.get(docId);
+  if (!row) {
+    return null;
+  }
+
+  if (passphrase) {
+    const secureSnapshot = await loadDecryptedSecureSnapshot(row, passphrase);
+    if (secureSnapshot) {
+      return secureSnapshot;
+    }
+  }
+
+  if (!row.snapshot) {
+    return null;
+  }
+
+  const snapshot = normalizeSnapshot(row.snapshot);
+  if (snapshot && passphrase && !row.secureSnapshot) {
+    await saveSecureSnapshot(snapshot, docId, passphrase);
+  }
+  return snapshot;
+};
+
+export const savePageSnapshot = async (snapshot: PersistedPageState, docId = defaultPageDocId, passphrase?: string): Promise<void> => {
+  await migrateLegacyPageDatabaseIfNeeded();
+
+  if (passphrase) {
+    await saveSecureSnapshot(snapshot, docId, passphrase);
+    return;
+  }
+
   await db.pageDocs.put({
     id: docId,
     snapshot,
@@ -301,9 +350,10 @@ export const listPageDocIds = async (): Promise<string[]> => {
 };
 
 export const createPageSnapshotSaver = (
+  passphrase?: string,
   delayMs = 300,
   docId = defaultPageDocId,
-  persist: (snapshot: PersistedPageState, docId: string) => Promise<void> = savePageSnapshot,
+  persist: (snapshot: PersistedPageState, docId: string, passphrase?: string) => Promise<void> = savePageSnapshot,
 ) => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let latest: PersistedPageState | undefined;
@@ -314,7 +364,7 @@ export const createPageSnapshotSaver = (
     }
     const snapshot = latest;
     latest = undefined;
-    await persist(snapshot, docId);
+    await persist(snapshot, docId, passphrase);
   };
 
   const schedule = (snapshot: PersistedPageState) => {

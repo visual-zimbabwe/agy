@@ -1,3 +1,4 @@
+- Confidential workspace migration: passphrase-gated wall/page unlock, encrypted local snapshots, encrypted wall backups, ciphertext-first wall/page sync compatibility, and disabled public snapshot sharing.
 # Changelog
 
 ## Unreleased
@@ -43,6 +44,7 @@
 ## Notes
 
 Use this file as the running release history for user-visible and contributor-relevant documentation changes. Add dated release files later if release-specific notes need more detail.
+
 
 
 

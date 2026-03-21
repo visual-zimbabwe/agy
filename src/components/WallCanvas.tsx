@@ -6,6 +6,8 @@ import { Layer, Rect } from "react-konva";
 import type Konva from "konva";
 
 import type { CommandPaletteCommand } from "@/components/SearchPalette";
+import { ConfidentialAccessGate } from "@/components/security/ConfidentialAccessGate";
+import { useConfidentialAccess } from "@/components/security/useConfidentialAccess";
 import type { DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { useWallActions } from "@/components/wall/useWallActions";
 import { WallDetailsSidebar } from "@/components/wall/WallDetailsSidebar";
@@ -63,6 +65,7 @@ import { useEconomistNotes } from "@/components/wall/useEconomistNotes";
 import { usePoetryNotes } from "@/components/wall/usePoetryNotes";
 import { useCurrencySystemNote } from "@/components/wall/useCurrencySystemNote";
 import { useWallBackupActions } from "@/components/wall/useWallBackupActions";
+import { encryptConfidentialPayload } from "@/lib/confidential-workspace";
 import { useAnimatedCamera } from "@/components/wall/useAnimatedCamera";
 import { useWallTelemetry } from "@/components/wall/useWallTelemetry";
 import { useWallTimeline } from "@/components/wall/useWallTimeline";
@@ -216,6 +219,7 @@ type WallCanvasProps = {
 };
 
 export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
+  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace } = useConfidentialAccess();
   const notesMap = useWallStore((state) => state.notes);
   const zonesMap = useWallStore((state) => state.zones);
   const zoneGroupsMap = useWallStore((state) => state.zoneGroups);
@@ -942,7 +946,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   const syncSnapshotToCloud = useCallback(
     async (wallId: string, snapshot: PersistedWallState) => {
-      if (publishedReadOnly) {
+      if (publishedReadOnly || !confidentialPassphrase) {
         return;
       }
 
@@ -955,13 +959,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       setSyncError(null);
 
       try {
+        const secureSnapshot = await encryptConfidentialPayload(confidentialPassphrase, snapshot);
         const response = await fetch(`/api/walls/${wallId}/sync`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            ...snapshot,
+            secureSnapshot,
             clientSyncedAt: lastCloudSyncedAtRef.current || undefined,
           }),
         });
@@ -984,7 +989,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         setIsSyncing(false);
       }
     },
-    [publishedReadOnly],
+    [confidentialPassphrase, publishedReadOnly],
   );
 
   const scheduleCloudSync = useCallback(
@@ -1029,6 +1034,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   useWallPersistenceEffects({
     hydrate,
+    confidentialPassphrase: confidentialPassphrase ?? "",
+    confidentialReady: confidentialReady || publishedReadOnly,
     publishedReadOnly,
     scheduleCloudSync,
     syncSnapshotToCloud,
@@ -2274,6 +2281,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   const { exportJson, importJson, publishReadOnlySnapshot } = useWallBackupActions({
     backupReminderCadence,
+    confidentialPassphrase: confidentialPassphrase ?? "",
     backupReminderLastPromptStorageKey,
     publishedReadOnly,
     makeDownloadId,
@@ -2753,7 +2761,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     ],
   );
   return (
-    <div className="route-shell flex h-screen flex-col text-[var(--color-text)]">
+    <>
+      <ConfidentialAccessGate
+        open={!publishedReadOnly && !confidentialReady}
+        hasConfig={confidentialHasConfig}
+        scopeLabel="Wall"
+        onCreate={createConfidentialPassphrase}
+        onUnlock={unlockConfidentialWorkspace}
+      />
+      <div className="route-shell flex h-screen flex-col text-[var(--color-text)]">
       {!readingMode && !timelineViewActive && (
         <WallHeaderBar
         presentationMode={presentationMode}
@@ -3416,9 +3432,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onCloseSettings={() => setSettingsOpen(false)}
         userEmail={userEmail}
       />
-    </div>
+      </div>
+    </>
   );
 };
+
+
+
 
 
 

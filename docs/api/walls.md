@@ -44,12 +44,13 @@ Current success response:
 
 ### `GET /api/walls/:wallId`
 
-Returns wall metadata and a normalized wall snapshot for the authenticated owner.
+Returns wall metadata plus either an encrypted wall snapshot or a normalized legacy wall snapshot for the authenticated owner.
 
 Current response shape:
 
 - `wall`
-- `snapshot`
+- `secureSnapshot` when encrypted sync is active
+- `snapshot` during legacy fallback reads
 
 The snapshot includes:
 
@@ -88,11 +89,12 @@ Camera constraints:
 
 ### `POST /api/walls/:wallId/sync`
 
-Upserts the full wall snapshot for the authenticated owner.
+Upserts either an encrypted wall snapshot or the legacy normalized wall snapshot for the authenticated owner.
 
-Accepted payload includes:
+Accepted payload includes either:
 
-- `notes`
+- `secureSnapshot` for confidentiality-first sync
+- or legacy plaintext fields such as `notes`
 - `zones`
 - `zoneGroups`
 - `noteGroups`
@@ -128,7 +130,9 @@ All wall API routes require an authenticated user except published read-only sna
 
 ## Related Docs
 
+- `docs/features/confidential-workspace.md`
 - `docs/architecture/overview.md`
 - `docs/features/timeline-view.md`
 - `docs/product/overview.md`
+
 

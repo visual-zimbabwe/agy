@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
+import { decryptConfidentialPayload, encryptConfidentialPayload, isConfidentialEnvelope } from "@/lib/confidential-workspace";
 import type { Camera, Link, Note, NoteGroup, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
 import { normalizePersistedWallState, parseTimelinePayload } from "@/features/wall/storage-migrations";
 import { appSlug, legacyAppSlug } from "@/lib/brand";
@@ -15,8 +16,21 @@ type TimelineSnapshotRecord = {
   payload: string;
 };
 
+type SecureRecord = {
+  key: string;
+  payload: string;
+  updatedAt: number;
+};
+
+type SecureTimelineSnapshotRecord = {
+  id?: number;
+  ts: number;
+  payload: string;
+};
+
 const wallDatabaseName = `${appSlug}-db`;
 const legacyWallDatabaseName = `${legacyAppSlug}-db`;
+const secureSnapshotKey = "secure-snapshot-v1";
 
 class WallDatabase extends Dexie {
   notes!: Table<Note, string>;
@@ -26,6 +40,8 @@ class WallDatabase extends Dexie {
   links!: Table<Link, string>;
   meta!: Table<MetaRecord, string>;
   timelineSnapshots!: Table<TimelineSnapshotRecord, number>;
+  secure!: Table<SecureRecord, string>;
+  secureTimelineSnapshots!: Table<SecureTimelineSnapshotRecord, number>;
 
   constructor(name: string) {
     super(name);
@@ -64,6 +80,17 @@ class WallDatabase extends Dexie {
       meta: "key",
       timelineSnapshots: "++id, ts",
     });
+    this.version(6).stores({
+      notes: "id, updatedAt",
+      zones: "id, groupId, updatedAt",
+      zoneGroups: "id, updatedAt",
+      noteGroups: "id, updatedAt",
+      links: "id, fromNoteId, toNoteId, updatedAt",
+      meta: "key",
+      timelineSnapshots: "++id, ts",
+      secure: "key, updatedAt",
+      secureTimelineSnapshots: "++id, ts",
+    });
   }
 }
 
@@ -82,6 +109,8 @@ const databaseHasData = async (database: WallDatabase) => {
     database.links.count(),
     database.meta.count(),
     database.timelineSnapshots.count(),
+    database.secure.count(),
+    database.secureTimelineSnapshots.count(),
   ]);
   return counts.some((count) => count > 0);
 };
@@ -100,7 +129,7 @@ const migrateLegacyWallDatabaseIfNeeded = async () => {
         return;
       }
 
-      const [notes, zones, zoneGroups, noteGroups, links, meta, timelineSnapshots] = await Promise.all([
+      const [notes, zones, zoneGroups, noteGroups, links, meta, timelineSnapshots, secure, secureTimelineSnapshots] = await Promise.all([
         legacyDb.notes.toArray(),
         legacyDb.zones.toArray(),
         legacyDb.zoneGroups.toArray(),
@@ -108,39 +137,50 @@ const migrateLegacyWallDatabaseIfNeeded = async () => {
         legacyDb.links.toArray(),
         legacyDb.meta.toArray(),
         legacyDb.timelineSnapshots.toArray(),
+        legacyDb.secure.toArray().catch(() => []),
+        legacyDb.secureTimelineSnapshots.toArray().catch(() => []),
       ]);
 
-      await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta, db.timelineSnapshots], async () => {
-        if (notes.length > 0) {
-          await db.notes.bulkPut(notes);
-        }
-        if (zones.length > 0) {
-          await db.zones.bulkPut(zones);
-        }
-        if (zoneGroups.length > 0) {
-          await db.zoneGroups.bulkPut(zoneGroups);
-        }
-        if (noteGroups.length > 0) {
-          await db.noteGroups.bulkPut(noteGroups);
-        }
-        if (links.length > 0) {
-          await db.links.bulkPut(links);
-        }
-        if (meta.length > 0) {
-          await db.meta.bulkPut(meta);
-        }
-        if (timelineSnapshots.length > 0) {
-          await db.timelineSnapshots.bulkPut(timelineSnapshots);
-        }
-      });
+      await db.transaction(
+        "rw",
+        [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta, db.timelineSnapshots, db.secure, db.secureTimelineSnapshots],
+        async () => {
+          if (notes.length > 0) {
+            await db.notes.bulkPut(notes);
+          }
+          if (zones.length > 0) {
+            await db.zones.bulkPut(zones);
+          }
+          if (zoneGroups.length > 0) {
+            await db.zoneGroups.bulkPut(zoneGroups);
+          }
+          if (noteGroups.length > 0) {
+            await db.noteGroups.bulkPut(noteGroups);
+          }
+          if (links.length > 0) {
+            await db.links.bulkPut(links);
+          }
+          if (meta.length > 0) {
+            await db.meta.bulkPut(meta);
+          }
+          if (timelineSnapshots.length > 0) {
+            await db.timelineSnapshots.bulkPut(timelineSnapshots);
+          }
+          if (secure.length > 0) {
+            await db.secure.bulkPut(secure);
+          }
+          if (secureTimelineSnapshots.length > 0) {
+            await db.secureTimelineSnapshots.bulkPut(secureTimelineSnapshots);
+          }
+        },
+      );
     })();
   }
 
   await migrationPromise;
 };
 
-export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
-  await migrateLegacyWallDatabaseIfNeeded();
+const loadLegacyWallSnapshot = async (): Promise<PersistedWallState> => {
   const [notesList, zonesList, zoneGroupsList, noteGroupsList, linksList, cameraMeta, lastColorMeta] = await Promise.all([
     db.notes.toArray(),
     db.zones.toArray(),
@@ -170,8 +210,22 @@ export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
   return normalized ?? { notes: {}, zones: {}, zoneGroups: {}, noteGroups: {}, links: {}, camera: defaultCamera };
 };
 
-export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
-  await migrateLegacyWallDatabaseIfNeeded();
+const loadSecureWallSnapshot = async (passphrase: string): Promise<PersistedWallState | null> => {
+  const row = await db.secure.get(secureSnapshotKey);
+  if (!row) {
+    return null;
+  }
+
+  const parsed = JSON.parse(row.payload) as unknown;
+  if (!isConfidentialEnvelope(parsed)) {
+    return null;
+  }
+
+  const decrypted = await decryptConfidentialPayload<PersistedWallState>(passphrase, parsed);
+  return normalizePersistedWallState(decrypted) ?? { notes: {}, zones: {}, zoneGroups: {}, noteGroups: {}, links: {}, camera: defaultCamera };
+};
+
+const saveLegacyWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
   await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta], async () => {
     const notes = Object.values(snapshot.notes);
     const zones = Object.values(snapshot.zones);
@@ -212,7 +266,109 @@ export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<vo
   });
 };
 
+const saveSecureWallSnapshot = async (snapshot: PersistedWallState, passphrase: string) => {
+  const envelope = await encryptConfidentialPayload(passphrase, snapshot);
+  await db.secure.put({
+    key: secureSnapshotKey,
+    payload: JSON.stringify(envelope),
+    updatedAt: envelope.updatedAt,
+  });
+};
+
+const loadLegacyTimelineEntries = async (limit: number): Promise<TimelineEntry[]> => {
+  const rows = await db.timelineSnapshots.orderBy("ts").reverse().limit(limit).toArray();
+  return rows
+    .reverse()
+    .map((row) => {
+      const snapshot = parseTimelinePayload(row.payload);
+      if (!snapshot) {
+        return null;
+      }
+      return { ts: row.ts, snapshot };
+    })
+    .filter((entry): entry is TimelineEntry => Boolean(entry));
+};
+
+const loadSecureTimelineEntries = async (limit: number, passphrase: string): Promise<TimelineEntry[]> => {
+  const rows = await db.secureTimelineSnapshots.orderBy("ts").reverse().limit(limit).toArray();
+  const entries = await Promise.all(
+    rows.reverse().map(async (row) => {
+      try {
+        const parsed = JSON.parse(row.payload) as unknown;
+        if (!isConfidentialEnvelope(parsed)) {
+          return null;
+        }
+        const snapshot = await decryptConfidentialPayload<PersistedWallState>(passphrase, parsed);
+        return { ts: row.ts, snapshot };
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  return entries.filter((entry): entry is TimelineEntry => Boolean(entry));
+};
+
+const migrateLegacyWallSnapshotToSecure = async (snapshot: PersistedWallState, passphrase?: string) => {
+  if (!passphrase) {
+    return;
+  }
+
+  const existing = await db.secure.get(secureSnapshotKey);
+  if (!existing) {
+    await saveSecureWallSnapshot(snapshot, passphrase);
+  }
+};
+
+const migrateLegacyTimelineToSecure = async (entries: TimelineEntry[], passphrase?: string) => {
+  if (!passphrase || entries.length === 0) {
+    return;
+  }
+
+  const secureCount = await db.secureTimelineSnapshots.count();
+  if (secureCount > 0) {
+    return;
+  }
+
+  const payloads = await Promise.all(
+    entries.map(async (entry) => ({
+      ts: entry.ts,
+      payload: JSON.stringify(await encryptConfidentialPayload(passphrase, entry.snapshot)),
+    })),
+  );
+  if (payloads.length > 0) {
+    await db.secureTimelineSnapshots.bulkPut(payloads);
+  }
+};
+
+export const loadWallSnapshot = async (passphrase?: string): Promise<PersistedWallState> => {
+  await migrateLegacyWallDatabaseIfNeeded();
+
+  if (passphrase) {
+    const secureSnapshot = await loadSecureWallSnapshot(passphrase);
+    if (secureSnapshot) {
+      return secureSnapshot;
+    }
+  }
+
+  const legacySnapshot = await loadLegacyWallSnapshot();
+  await migrateLegacyWallSnapshotToSecure(legacySnapshot, passphrase);
+  return legacySnapshot;
+};
+
+export const saveWallSnapshot = async (snapshot: PersistedWallState, passphrase?: string): Promise<void> => {
+  await migrateLegacyWallDatabaseIfNeeded();
+
+  if (passphrase) {
+    await saveSecureWallSnapshot(snapshot, passphrase);
+    return;
+  }
+
+  await saveLegacyWallSnapshot(snapshot);
+};
+
 export const createSnapshotSaver = (
+  passphrase?: string,
   delayMs = 350,
   callbacks?: {
     onSchedule?: () => void;
@@ -234,7 +390,7 @@ export const createSnapshotSaver = (
     pendingWrites += 1;
 
     try {
-      await saveWallSnapshot(snapshot);
+      await saveWallSnapshot(snapshot, passphrase);
       pendingWrites = Math.max(0, pendingWrites - 1);
       if (pendingWrites === 0) {
         callbacks?.onSuccess?.();
@@ -267,23 +423,41 @@ export type TimelineEntry = {
   snapshot: PersistedWallState;
 };
 
-export const loadTimelineEntries = async (limit = 500): Promise<TimelineEntry[]> => {
+export const loadTimelineEntries = async (limit = 500, passphrase?: string): Promise<TimelineEntry[]> => {
   await migrateLegacyWallDatabaseIfNeeded();
-  const rows = await db.timelineSnapshots.orderBy("ts").reverse().limit(limit).toArray();
-  return rows
-    .reverse()
-    .map((row) => {
-      const snapshot = parseTimelinePayload(row.payload);
-      if (!snapshot) {
-        return null;
-      }
-      return { ts: row.ts, snapshot };
-    })
-    .filter((entry): entry is TimelineEntry => Boolean(entry));
+
+  if (passphrase) {
+    const secureEntries = await loadSecureTimelineEntries(limit, passphrase);
+    if (secureEntries.length > 0) {
+      return secureEntries;
+    }
+  }
+
+  const legacyEntries = await loadLegacyTimelineEntries(limit);
+  await migrateLegacyTimelineToSecure(legacyEntries, passphrase);
+  return legacyEntries;
 };
 
-const persistTimelineSnapshot = async (snapshot: PersistedWallState, maxEntries: number) => {
+const persistTimelineSnapshot = async (snapshot: PersistedWallState, maxEntries: number, passphrase?: string) => {
   await migrateLegacyWallDatabaseIfNeeded();
+
+  if (passphrase) {
+    await db.secureTimelineSnapshots.add({
+      ts: Date.now(),
+      payload: JSON.stringify(await encryptConfidentialPayload(passphrase, snapshot)),
+    });
+
+    const count = await db.secureTimelineSnapshots.count();
+    if (count > maxEntries) {
+      const overflow = count - maxEntries;
+      const keys = await db.secureTimelineSnapshots.orderBy("ts").limit(overflow).primaryKeys();
+      if (keys.length > 0) {
+        await db.secureTimelineSnapshots.bulkDelete(keys);
+      }
+    }
+    return;
+  }
+
   await db.timelineSnapshots.add({
     ts: Date.now(),
     payload: JSON.stringify(snapshot),
@@ -299,7 +473,7 @@ const persistTimelineSnapshot = async (snapshot: PersistedWallState, maxEntries:
   }
 };
 
-export const createTimelineRecorder = (options?: { delayMs?: number; minIntervalMs?: number; maxEntries?: number }) => {
+export const createTimelineRecorder = (passphrase?: string, options?: { delayMs?: number; minIntervalMs?: number; maxEntries?: number }) => {
   const delayMs = options?.delayMs ?? 1200;
   const minIntervalMs = options?.minIntervalMs ?? 1400;
   const maxEntries = options?.maxEntries ?? 500;
@@ -321,7 +495,7 @@ export const createTimelineRecorder = (options?: { delayMs?: number; minInterval
 
     const snapshot = latest;
     latest = undefined;
-    await persistTimelineSnapshot(snapshot, maxEntries);
+    await persistTimelineSnapshot(snapshot, maxEntries, passphrase);
     lastSerialized = serialized;
     lastWrittenAt = now;
   };

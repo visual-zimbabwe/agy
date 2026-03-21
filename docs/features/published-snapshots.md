@@ -2,60 +2,32 @@
 
 ## Purpose
 
-This document describes the current read-only published snapshot workflow for wall content.
+This document describes the current public-sharing behavior for wall content.
 
 ## Scope
 
-This covers URL-based wall snapshot publishing and the behavioral differences between normal wall mode and published snapshot mode.
+This covers the status of the former URL-based published snapshot workflow.
 
-## Behavior
+## Current Behavior
 
-Published snapshots are generated from the current persisted wall state and encoded into the URL.
+Public snapshot publishing is disabled for confidential workspaces.
 
-Current flow:
+The previous implementation encoded an entire wall snapshot into a `snapshot` query parameter. That workflow is no longer offered from the export surface because it exposed readable wall content in URLs, browser history, clipboard history, and other secondary surfaces.
 
-- take the current wall snapshot
-- compress and encode it into the `snapshot` query parameter
-- build a `/wall?snapshot=...` URL
-- copy the URL to the clipboard or prompt for manual copy
+## Allowed Alternatives
 
-The current implementation uses compressed URL encoding, not a server-stored published snapshot record.
+Current sharing-safe behavior is limited to:
 
-## Read-Only Behavior
+- encrypted wall backup export
+- local readable exports that require explicit user confirmation
 
-When `/wall` is loaded with a `snapshot` query parameter:
+There is no public read-only link workflow for confidential wall content.
 
-- the route bypasses the normal auth gate
-- the wall can load without a signed-in user
-- the experience is read-only
-- normal authenticated cloud sync should not be treated as active for this mode
+## Migration Note
 
-Published snapshots are for viewing and sharing, not editing.
-
-## Data and Storage
-
-Published snapshots currently use:
-
-- serialized `PersistedWallState`
-- compressed URL encoding through `lz-string`
-- client-side URL generation
-
-This means the snapshot is self-contained in the URL rather than stored as a separate server object.
-
-## Edge Cases
-
-- invalid or malformed snapshot parameters must degrade safely
-- published snapshots need to avoid entering normal editable persistence flows
-- large walls can create large encoded URLs, which constrains this publishing model
-
-## Limitations
-
-- snapshots are URL-backed rather than server-backed
-- the current model is suitable for read-only sharing, not collaborative publishing
-- long or complex snapshots may pressure URL length and practical shareability
+Older `snapshot` URLs may still be readable by existing route logic, but they should be treated as legacy behavior and not as an approved confidentiality feature.
 
 ## Related Docs
 
-- `docs/api/walls.md`
-- `docs/runbooks/sync-debugging.md`
+- `docs/features/confidential-workspace.md`
 - `docs/architecture/state-and-storage.md`

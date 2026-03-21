@@ -6,12 +6,13 @@ import { parseBackupJson, shouldPromptBackupReminder, type BackupReminderCadence
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { PersistedWallState } from "@/features/wall/types";
 import { legacyBackupReminderLastPromptStorageKeys } from "@/components/wall/wall-canvas-helpers";
+import { decryptConfidentialPayload, encryptConfidentialPayload, isConfidentialEnvelope } from "@/lib/confidential-workspace";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
-import { buildPublishedSnapshotUrl } from "@/lib/publish";
 
 type UseWallBackupActionsOptions = {
   backupReminderCadence: BackupReminderCadence;
   backupReminderLastPromptStorageKey: string;
+  confidentialPassphrase: string;
   publishedReadOnly: boolean;
   makeDownloadId: () => string;
   downloadJsonFile: (filename: string, data: unknown) => void;
@@ -23,6 +24,7 @@ type UseWallBackupActionsOptions = {
 export const useWallBackupActions = ({
   backupReminderCadence,
   backupReminderLastPromptStorageKey,
+  confidentialPassphrase,
   publishedReadOnly,
   makeDownloadId,
   downloadJsonFile,
@@ -30,25 +32,37 @@ export const useWallBackupActions = ({
   hydrate,
   clearSelectedNotes,
 }: UseWallBackupActionsOptions) => {
-  const exportJson = useCallback(() => {
+  const exportJson = useCallback(async () => {
     const snapshot = selectPersistedSnapshot(useWallStore.getState());
-    downloadJsonFile(`agy-backup-${makeDownloadId()}.json`, snapshot);
+    const encryptedBackup = await encryptConfidentialPayload(confidentialPassphrase, {
+      kind: "wall-backup",
+      snapshot,
+      exportedAt: Date.now(),
+    });
+    downloadJsonFile(`agy-backup-${makeDownloadId()}.enc.json`, encryptedBackup);
     if (typeof window !== "undefined") {
       writeStorageValue(backupReminderLastPromptStorageKey, String(Date.now()));
     }
     setExportOpen(false);
-  }, [backupReminderLastPromptStorageKey, downloadJsonFile, makeDownloadId, setExportOpen]);
+  }, [backupReminderLastPromptStorageKey, confidentialPassphrase, downloadJsonFile, makeDownloadId, setExportOpen]);
 
   const importJson = useCallback(
     async (file: File) => {
       try {
         const raw = await file.text();
-        const parsed = parseBackupJson(raw);
+        const parsedJson = JSON.parse(raw) as unknown;
+        let parsed = parseBackupJson(raw);
+
+        if (!parsed && isConfidentialEnvelope(parsedJson)) {
+          const decrypted = await decryptConfidentialPayload<{ kind?: string; snapshot?: PersistedWallState }>(confidentialPassphrase, parsedJson);
+          parsed = decrypted.snapshot ? parseBackupJson(JSON.stringify(decrypted.snapshot)) : null;
+        }
+
         if (!parsed) {
           window.alert("Invalid backup file format.");
           return;
         }
-        const ok = window.confirm("Import JSON backup and replace current wall state?");
+        const ok = window.confirm("Import backup and replace current wall state?");
         if (!ok) {
           return;
         }
@@ -57,24 +71,14 @@ export const useWallBackupActions = ({
         setExportOpen(false);
         window.alert("Backup imported successfully.");
       } catch {
-        window.alert("Unable to import JSON backup.");
+        window.alert("Unable to import backup.");
       }
     },
-    [clearSelectedNotes, hydrate, setExportOpen],
+    [clearSelectedNotes, confidentialPassphrase, hydrate, setExportOpen],
   );
 
   const publishReadOnlySnapshot = useCallback(async () => {
-    const snapshot = selectPersistedSnapshot(useWallStore.getState());
-    const url = buildPublishedSnapshotUrl(snapshot);
-    if (!url) {
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      window.alert("Read-only snapshot link copied to clipboard.");
-    } catch {
-      window.prompt("Copy read-only snapshot URL", url);
-    }
+    window.alert("Public snapshot links are disabled for confidential workspaces. Use encrypted backups instead.");
   }, []);
 
   useEffect(() => {
@@ -89,9 +93,9 @@ export const useWallBackupActions = ({
     }
 
     writeStorageValue(backupReminderLastPromptStorageKey, String(now));
-    const wantsExport = window.confirm(`Backup reminder (${backupReminderCadence}): export a full JSON backup now?`);
+    const wantsExport = window.confirm(`Backup reminder (${backupReminderCadence}): export an encrypted backup now?`);
     if (wantsExport) {
-      exportJson();
+      void exportJson();
     }
   }, [backupReminderCadence, backupReminderLastPromptStorageKey, exportJson, publishedReadOnly]);
 

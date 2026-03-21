@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
+import { decryptConfidentialPayload } from "@/lib/confidential-workspace";
 import { createJokerNote, refreshJokerNote } from "@/features/wall/commands";
 import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { hasJokerCardBeenActivated, jokerErrorText, jokerLoadingText, markJokerCardActivated } from "@/features/wall/joker";
@@ -13,6 +14,8 @@ import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 type UseWallPersistenceEffectsOptions = {
   hydrate: (state: PersistedWallState) => void;
+  confidentialPassphrase: string;
+  confidentialReady: boolean;
   publishedReadOnly: boolean;
   scheduleCloudSync: (snapshot: PersistedWallState) => void;
   syncSnapshotToCloud: (cloudWallId: string, snapshot: PersistedWallState) => Promise<void>;
@@ -29,6 +32,8 @@ type UseWallPersistenceEffectsOptions = {
 
 export const useWallPersistenceEffects = ({
   hydrate,
+  confidentialPassphrase,
+  confidentialReady,
   publishedReadOnly,
   scheduleCloudSync,
   syncSnapshotToCloud,
@@ -45,12 +50,16 @@ export const useWallPersistenceEffects = ({
   const lastPersistedSerializedRef = useRef("");
 
   useEffect(() => {
-    const saver = createSnapshotSaver(320, {
+    if (!confidentialReady) {
+      return;
+    }
+
+    const saver = createSnapshotSaver(confidentialPassphrase, 320, {
       onSchedule: () => onLocalSaveStateChange("saving"),
       onSuccess: () => onLocalSaveStateChange("saved"),
       onError: () => onLocalSaveStateChange("error"),
     });
-    const timelineRecorder = createTimelineRecorder({ delayMs: 1100, minIntervalMs: 1400, maxEntries: 500 });
+    const timelineRecorder = createTimelineRecorder(confidentialPassphrase, { delayMs: 1100, minIntervalMs: 1400, maxEntries: 500 });
     const timer = cloudSyncTimerRef.current;
     let cancelled = false;
 
@@ -73,7 +82,10 @@ export const useWallPersistenceEffects = ({
     };
 
     const load = async () => {
-      const [snapshot, loadedTimeline] = await Promise.all([loadWallSnapshot(), loadTimelineEntries(500)]);
+      const [snapshot, loadedTimeline] = await Promise.all([
+        loadWallSnapshot(confidentialPassphrase),
+        loadTimelineEntries(500, confidentialPassphrase),
+      ]);
       lastPersistedSerializedRef.current = JSON.stringify(snapshot);
 
       if (!cancelled) {
@@ -125,8 +137,10 @@ export const useWallPersistenceEffects = ({
           throw new Error(payload.error ?? "Unable to load cloud snapshot");
         }
 
-        const snapshotPayload = (await snapshotResponse.json()) as { snapshot: PersistedWallState };
-        const serverSnapshot = snapshotPayload.snapshot;
+        const snapshotPayload = (await snapshotResponse.json()) as { snapshot?: PersistedWallState; secureSnapshot?: unknown };
+        const serverSnapshot = snapshotPayload.secureSnapshot
+          ? await decryptConfidentialPayload<PersistedWallState>(confidentialPassphrase, snapshotPayload.secureSnapshot as never)
+          : snapshotPayload.snapshot ?? { notes: {}, zones: {}, zoneGroups: {}, noteGroups: {}, links: {}, camera: { x: 0, y: 0, zoom: 1 } };
         const migrationKey = `agy-cloud-imported-v1:${wallId}`;
         const legacyMigrationKey = `idea-wall-cloud-imported-v1:${wallId}`;
         const canPromptImport = typeof window !== "undefined" && !readStorageValue(migrationKey, [legacyMigrationKey]);
@@ -206,6 +220,8 @@ export const useWallPersistenceEffects = ({
   }, [
     cloudReadyRef,
     cloudSyncTimerRef,
+    confidentialPassphrase,
+    confidentialReady,
     hydrate,
     lastTimelineRecordedAt,
     lastTimelineSerialized,
@@ -219,7 +235,3 @@ export const useWallPersistenceEffects = ({
     syncSnapshotToCloud,
   ]);
 };
-
-
-
-
