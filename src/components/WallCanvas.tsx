@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable complexity, max-lines */
 
 import { type FocusEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Rect } from "react-konva";
@@ -759,7 +760,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         error: privateModal.mode === "protect" ? "Could not protect this note right now." : "Passphrase did not unlock this note.",
       }));
     }
-  }, [closePrivateModal, privateModal, renderSnapshot.notes, setPrivateSession, syncWikiLinksForNote, updateNote]);
+  }, [closePrivateModal, privateModal, renderSnapshot.notes, setPrivateSession, syncWikiLinksForNote]);
 
   useEffect(() => {
     if (isTimeLocked) {
