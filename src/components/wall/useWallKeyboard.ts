@@ -3,7 +3,6 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 
 import { CURRENCY_NOTE_DEFAULTS } from "@/features/wall/currency";
-import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
 import type { Note } from "@/features/wall/types";
 import { JOKER_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/joker";
@@ -55,7 +54,7 @@ type WallKeyboardOptions = {
   setPresentationMode: (enabled: boolean) => void;
   setPresentationIndex: (value: number | ((previous: number) => number)) => void;
   setReadingMode: (enabled: boolean) => void;
-  createNote: (x: number, y: number, color?: string) => string;
+  createViewportNote: () => string | undefined;
   createCanonNote: () => void;
   createJournalNote: () => void;
   createQuoteNote: () => void;
@@ -86,11 +85,6 @@ const isTypingInField = (event: KeyboardEvent) => {
   const tagName = target.tagName.toLowerCase();
   return tagName === "input" || tagName === "textarea" || target.isContentEditable;
 };
-
-const toWorldPoint = (screenX: number, screenY: number, camera: Camera) => ({
-  x: (screenX - camera.x) / camera.zoom,
-  y: (screenY - camera.y) / camera.zoom,
-});
 
 export const useWallKeyboard = ({
   camera,
@@ -125,7 +119,7 @@ export const useWallKeyboard = ({
   setPresentationMode,
   setPresentationIndex,
   setReadingMode,
-  createNote,
+  createViewportNote,
   createCanonNote,
   createJournalNote,
   createQuoteNote,
@@ -353,8 +347,10 @@ export const useWallKeyboard = ({
           return;
         }
         event.preventDefault();
-        const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-        const createdId = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor);
+        const createdId = createViewportNote();
+        if (!createdId) {
+          return;
+        }
         const createdNote = useWallStore.getState().notes[createdId];
         setSelectedNoteIds([createdId]);
         selectNote(createdId);
@@ -563,7 +559,7 @@ export const useWallKeyboard = ({
   }, [
     camera,
     clearGuideLines,
-    createNote,
+    createViewportNote,
     createCanonNote,
     createJournalNote,
     createQuoteNote,

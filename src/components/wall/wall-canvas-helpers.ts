@@ -8,6 +8,7 @@ import { clamp } from "@/lib/wall-utils";
 export type Bounds = { x: number; y: number; w: number; h: number };
 type Camera = { x: number; y: number; zoom: number };
 type Viewport = { w: number; h: number };
+type Rect = { x: number; y: number; w: number; h: number };
 
 export const toWorldPoint = (screenX: number, screenY: number, camera: Camera) => ({
   x: (screenX - camera.x) / camera.zoom,
@@ -137,6 +138,104 @@ export const fitBoundsCamera = (bounds: Bounds, viewport: Viewport, padding = 64
     y: viewport.h / 2 - centerY * zoom,
     zoom,
   };
+};
+
+const clampRectToViewport = (rect: Rect, camera: Camera, viewport: Viewport) => {
+  const viewportLeft = -camera.x / camera.zoom;
+  const viewportTop = -camera.y / camera.zoom;
+  const viewportRight = viewportLeft + viewport.w / camera.zoom;
+  const viewportBottom = viewportTop + viewport.h / camera.zoom;
+
+  const minX = viewportLeft;
+  const minY = viewportTop;
+  const maxX = Math.max(minX, viewportRight - rect.w);
+  const maxY = Math.max(minY, viewportBottom - rect.h);
+
+  return {
+    ...rect,
+    x: clamp(rect.x, minX, maxX),
+    y: clamp(rect.y, minY, maxY),
+  };
+};
+
+const rectsOverlap = (left: Rect, right: Rect, padding: number) =>
+  left.x < right.x + right.w + padding &&
+  left.x + left.w + padding > right.x &&
+  left.y < right.y + right.h + padding &&
+  left.y + left.h + padding > right.y;
+
+type FindOpenNotePositionOptions = {
+  camera: Camera;
+  viewport: Viewport;
+  occupiedRects: Rect[];
+  preferred: { x: number; y: number };
+  size: { w: number; h: number };
+  padding?: number;
+};
+
+export const findOpenNotePosition = ({
+  camera,
+  viewport,
+  occupiedRects,
+  preferred,
+  size,
+  padding = 20,
+}: FindOpenNotePositionOptions) => {
+  const baseRect = clampRectToViewport(
+    {
+      x: preferred.x,
+      y: preferred.y,
+      w: size.w,
+      h: size.h,
+    },
+    camera,
+    viewport,
+  );
+  const collides = (candidate: Rect) => occupiedRects.some((rect) => rectsOverlap(candidate, rect, padding));
+  if (!collides(baseRect)) {
+    return { x: baseRect.x, y: baseRect.y };
+  }
+
+  const stepX = Math.max(24, Math.round(size.w / 5));
+  const stepY = Math.max(24, Math.round(size.h / 5));
+  const viewportLeft = -camera.x / camera.zoom;
+  const viewportTop = -camera.y / camera.zoom;
+  const viewportRight = viewportLeft + viewport.w / camera.zoom;
+  const viewportBottom = viewportTop + viewport.h / camera.zoom;
+  const columns = Math.max(1, Math.ceil(Math.max(0, viewportRight - viewportLeft - size.w) / stepX));
+  const rows = Math.max(1, Math.ceil(Math.max(0, viewportBottom - viewportTop - size.h) / stepY));
+  const maxOffsetX = columns + 1;
+  const maxOffsetY = rows + 1;
+  const candidates = new Map<string, Rect>();
+
+  for (let offsetX = -maxOffsetX; offsetX <= maxOffsetX; offsetX += 1) {
+    for (let offsetY = -maxOffsetY; offsetY <= maxOffsetY; offsetY += 1) {
+      const candidate = clampRectToViewport(
+        {
+          x: baseRect.x + offsetX * stepX,
+          y: baseRect.y + offsetY * stepY,
+          w: size.w,
+          h: size.h,
+        },
+        camera,
+        viewport,
+      );
+      candidates.set(`${candidate.x}:${candidate.y}`, candidate);
+    }
+  }
+
+  const ordered = [...candidates.values()].sort((left, right) => {
+    const leftDistance = Math.hypot(left.x - baseRect.x, left.y - baseRect.y);
+    const rightDistance = Math.hypot(right.x - baseRect.x, right.y - baseRect.y);
+    return leftDistance - rightDistance;
+  });
+
+  const available = ordered.find((candidate) => !collides(candidate));
+  if (available) {
+    return { x: available.x, y: available.y };
+  }
+
+  return { x: baseRect.x, y: baseRect.y };
 };
 
 export const waitForPaint = () =>

@@ -25,6 +25,7 @@ import {
   downloadTextFile,
   dragSnapThreshold,
   fitBoundsCamera,
+  findOpenNotePosition,
   getNoteTextStyle,
   getNoteTextFontFamily,
   layoutPrefsStorageKey,
@@ -111,9 +112,11 @@ import {
   updateZone,
 } from "@/features/wall/commands";
 import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
-import { EISENHOWER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
+import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
+import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { isCurrencyNote } from "@/features/wall/currency";
 import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, type EconomistMagazineSource } from "@/features/wall/economist";
+import { getPoetryNoteDimensions } from "@/features/wall/poetry";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
@@ -387,6 +390,21 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     [vocabularyNotes, wallClockTs],
   );
   const vocabularyFocusNotes = useMemo(() => vocabularyNotes.filter((note) => note.vocabulary.isFocus), [vocabularyNotes]);
+  const occupiedNoteRects = useMemo(() => notes.map((note) => ({ x: note.x, y: note.y, w: note.w, h: note.h })), [notes]);
+  const placeNewNote = useCallback(
+    (preferredCenter: { x: number; y: number }, size = { w: NOTE_DEFAULTS.width, h: NOTE_DEFAULTS.height }, extraOccupiedRects: Array<{ x: number; y: number; w: number; h: number }> = []) =>
+      findOpenNotePosition({
+        camera,
+        viewport,
+        occupiedRects: [...occupiedNoteRects, ...extraOccupiedRects],
+        preferred: {
+          x: preferredCenter.x - size.w / 2,
+          y: preferredCenter.y - size.h / 2,
+        },
+        size,
+      }),
+    [camera, occupiedNoteRects, viewport],
+  );
   const reviewedTodayCount = useMemo(() => {
     const start = dayStartTs(wallClockTs);
     return vocabularyNotes.filter((note) => (note.vocabulary.lastReviewedAt ?? 0) >= start).length;
@@ -439,7 +457,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           if (!source) {
             continue;
           }
-          const createdId = createNote(source.x + source.w + 96 + (createdCount % 2) * 28, source.y + createdCount * 42, source.color);
+          const position = placeNewNote(
+            {
+              x: source.x + source.w + 96 + (createdCount % 2) * 28 + NOTE_DEFAULTS.width / 2,
+              y: source.y + createdCount * 42 + NOTE_DEFAULTS.height / 2,
+            },
+          );
+          const createdId = createNote(position.x, position.y, source.color);
           updateNote(createdId, { text: title });
           target = useWallStore.getState().notes[createdId];
           createdCount += 1;
@@ -472,7 +496,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
     nextState.selectNote(sourceNoteId);
     setSelectedNoteIds([sourceNoteId]);
-  }, [setSelectedNoteIds]);
+  }, [placeNewNote, setSelectedNoteIds]);
 
   const commitEditedNoteText = useCallback((noteId: string, rawText: string) => {
     const current = renderSnapshot.notes[noteId];
@@ -1146,35 +1170,39 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createWebBookmarkNote(world.x - WEB_BOOKMARK_DEFAULTS.width / 2, world.y - WEB_BOOKMARK_DEFAULTS.height / 2);
+    const position = placeNewNote(world, { w: WEB_BOOKMARK_DEFAULTS.width, h: WEB_BOOKMARK_DEFAULTS.height });
+    const id = createWebBookmarkNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeApodNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createApodNote(world.x - 160, world.y - 140);
+    const position = placeNewNote(world, { w: APOD_NOTE_DEFAULTS.width, h: APOD_NOTE_DEFAULTS.height });
+    const id = createApodNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
     void refreshApodNote(id, { force: true });
-  }, [camera, isTimeLocked, openEditor, refreshApodNote, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, refreshApodNote, selectNote, viewport.h, viewport.w]);
 
   const makePoetryNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createPoetryNote(world.x - 160, world.y - 140);
+    const poetrySize = getPoetryNoteDimensions();
+    const position = placeNewNote(world, { w: poetrySize.width, h: poetrySize.height });
+    const id = createPoetryNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
     void refreshPoetryNote(id, { force: true });
-  }, [camera, isTimeLocked, openEditor, refreshPoetryNote, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, refreshPoetryNote, selectNote, viewport.h, viewport.w]);
 
   const makeEconomistNoteAtViewportCenter = useCallback(async () => {
     if (isTimeLocked) {
@@ -1200,16 +1228,20 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const totalWidth = columns * ECONOMIST_NOTE_DEFAULTS.width + Math.max(0, columns - 1) * gapX;
     const totalHeight = rows * ECONOMIST_NOTE_DEFAULTS.height + Math.max(0, rows - 1) * gapY;
     const createdIds: string[] = [];
+    const occupiedRects = [...occupiedNoteRects];
 
     runHistoryGroup(() => {
       sources.forEach((source, index) => {
         const column = index % columns;
         const row = Math.floor(index / columns);
-        const x = world.x - totalWidth / 2 + column * (ECONOMIST_NOTE_DEFAULTS.width + gapX);
-        const y = world.y - totalHeight / 2 + row * (ECONOMIST_NOTE_DEFAULTS.height + gapY);
+        const preferredCenter = {
+          x: world.x - totalWidth / 2 + column * (ECONOMIST_NOTE_DEFAULTS.width + gapX) + ECONOMIST_NOTE_DEFAULTS.width / 2,
+          y: world.y - totalHeight / 2 + row * (ECONOMIST_NOTE_DEFAULTS.height + gapY) + ECONOMIST_NOTE_DEFAULTS.height / 2,
+        };
+        const position = placeNewNote(preferredCenter, { w: ECONOMIST_NOTE_DEFAULTS.width, h: ECONOMIST_NOTE_DEFAULTS.height }, occupiedRects);
         const id = createEconomistNote(
-          x,
-          y,
+          position.x,
+          position.y,
           {
             sourceId: source.sourceId,
             sourceName: source.sourceName,
@@ -1219,6 +1251,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           { select: false },
         );
         createdIds.push(id);
+        occupiedRects.push({ x: position.x, y: position.y, w: ECONOMIST_NOTE_DEFAULTS.width, h: ECONOMIST_NOTE_DEFAULTS.height });
       });
     });
 
@@ -1229,14 +1262,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
 
     await Promise.allSettled(createdIds.map((id) => refreshEconomistNote(id, { force: true })));
-  }, [camera, isTimeLocked, refreshEconomistNote, runHistoryGroup, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, occupiedNoteRects, placeNewNote, refreshEconomistNote, runHistoryGroup, selectNote, viewport.h, viewport.w]);
 
   const makeWordNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor ?? NOTE_COLORS[0]);
+    const position = placeNewNote(world);
+    const id = createNote(position.x, position.y, ui.lastColor ?? NOTE_COLORS[0]);
     updateNote(id, {
       text: "",
       tags: ["vocab"],
@@ -1246,92 +1280,86 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setSelectedNoteIds([id]);
     selectNote(id);
     setReviewRevealMeaning(false);
-  }, [camera, isTimeLocked, selectNote, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, placeNewNote, selectNote, ui.lastColor, viewport.h, viewport.w]);
 
   const makeJokerNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const position = placeNewNote(world, { w: JOKER_NOTE_DEFAULTS.width, h: JOKER_NOTE_DEFAULTS.height });
     const id = createOrRefreshJokerNote({
-      x: world.x - NOTE_DEFAULTS.width / 2,
-      y: world.y - NOTE_DEFAULTS.height / 2,
+      x: position.x,
+      y: position.y,
     });
     setSelectedNoteIds([id]);
     selectNote(id);
-  }, [camera, isTimeLocked, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeThroneNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const position = placeNewNote(world, { w: THRONE_NOTE_DEFAULTS.width, h: THRONE_NOTE_DEFAULTS.height });
     const id = createOrRefreshThroneNote({
-      x: world.x - NOTE_DEFAULTS.width / 2,
-      y: world.y - NOTE_DEFAULTS.height / 2,
+      x: position.x,
+      y: position.y,
     });
     setSelectedNoteIds([id]);
     selectNote(id);
-  }, [camera, isTimeLocked, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeQuoteNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createQuoteNote(
-      world.x - NOTE_DEFAULTS.width / 2,
-      world.y - NOTE_DEFAULTS.height / 2,
-    );
+    const position = placeNewNote(world);
+    const id = createQuoteNote(position.x, position.y);
     updateNote(id, {
       textColor: NOTE_DEFAULTS.textColor,
     });
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeCanonNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createCanonNote(
-      world.x - NOTE_DEFAULTS.width / 2,
-      world.y - NOTE_DEFAULTS.height / 2,
-    );
+    const position = placeNewNote(world);
+    const id = createCanonNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeJournalNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createJournalNote(
-      world.x - NOTE_DEFAULTS.width / 2,
-      world.y - NOTE_DEFAULTS.height / 2,
-    );
+    const position = placeNewNote(world, { w: JOURNAL_NOTE_DEFAULTS.width, h: JOURNAL_NOTE_DEFAULTS.height });
+    const id = createJournalNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
-  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeEisenhowerNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createEisenhowerNote(
-      world.x - EISENHOWER_NOTE_DEFAULTS.width / 2,
-      world.y - EISENHOWER_NOTE_DEFAULTS.height / 2,
-    );
+    const position = placeNewNote(world, { w: EISENHOWER_NOTE_DEFAULTS.width, h: EISENHOWER_NOTE_DEFAULTS.height });
+    const id = createEisenhowerNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "", "doFirst");
-  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const toggleVocabularyFlip = useCallback(
     (noteId: string) => {
@@ -1393,7 +1421,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setPresentationMode,
     setPresentationIndex,
     setReadingMode,
-    createNote: createNote,
+    createViewportNote: () => {
+      if (isTimeLocked) {
+        return undefined;
+      }
+      const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+      const position = placeNewNote(world);
+      return createNote(position.x, position.y, ui.lastColor);
+    },
     createCanonNote: makeCanonNoteAtViewportCenter,
     createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
@@ -1560,12 +1595,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const fallbackPoint = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
     const worldX = target?.x ?? fallbackPoint.x;
     const worldY = target?.y ?? fallbackPoint.y;
-    const noteId = createNote(worldX - NOTE_DEFAULTS.width / 2, worldY - NOTE_DEFAULTS.height / 2, ui.lastColor);
+    const position = placeNewNote({ x: worldX, y: worldY });
+    const noteId = createNote(position.x, position.y, ui.lastColor);
     updateNote(noteId, { imageUrl: source });
     syncPrimarySelection([noteId]);
     selectNote(noteId);
     return noteId;
-  }, [camera, renderSnapshot.notes, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, placeNewNote, renderSnapshot.notes, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
 
   const handleImageFileInsert = useCallback(async (file: File, target?: { noteId?: string; x?: number; y?: number }) => {
     const dataUrl = await readImageFileAsDataUrl(file);
@@ -1607,6 +1643,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const columns = photos.length <= 4 ? 2 : photos.length <= 6 ? 3 : 4;
     const gap = 28;
     const createdIds: string[] = [];
+    const occupiedRects = [...occupiedNoteRects];
     runHistoryGroup(() => {
       photos.forEach((photo, index) => {
         const aspectRatio = Math.max(0.65, Math.min(1.5, photo.height / Math.max(photo.width, 1)));
@@ -1617,12 +1654,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         const rows = Math.ceil(photos.length / columns);
         const offsetX = (column - (columns - 1) / 2) * (width + gap) + (row % 2 === 0 ? 0 : 18);
         const offsetY = (row - (rows - 1) / 2) * (220 + gap) + (column % 2 === 0 ? 0 : 16);
-        const noteId = createNote(anchor.x + offsetX - width / 2, anchor.y + offsetY - height / 2, ui.lastColor);
+        const finalHeight = Math.max(150, Math.min(320, height));
+        const position = placeNewNote({ x: anchor.x + offsetX, y: anchor.y + offsetY }, { w: width, h: finalHeight }, occupiedRects);
+        const noteId = createNote(position.x, position.y, ui.lastColor);
         updateNote(noteId, {
           imageUrl: photo.urls.regular,
           w: width,
-          h: Math.max(150, Math.min(320, height)),
+          h: finalHeight,
         });
+        occupiedRects.push({ x: position.x, y: position.y, w: width, h: finalHeight });
         createdIds.push(noteId);
       });
     });
@@ -1632,7 +1672,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       syncPrimarySelection(createdIds);
       selectNote(createdIds[0]);
     }
-  }, [camera, renderSnapshot.notes, runHistoryGroup, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, occupiedNoteRects, placeNewNote, renderSnapshot.notes, runHistoryGroup, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
 
   useEffect(() => {
     if (isTimeLocked) {
@@ -1737,6 +1777,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setLastColor,
     syncPrimarySelection,
     toWorldPoint,
+    findOpenNotePosition: placeNewNote,
     createNote: createNote,
     createZone,
     applyTemplate,

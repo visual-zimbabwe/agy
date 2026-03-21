@@ -29,6 +29,7 @@ type UseWallActionsOptions = {
   setLastColor: (color: string) => void;
   syncPrimarySelection: (ids: string[]) => void;
   toWorldPoint: (screenX: number, screenY: number, camera: Camera) => { x: number; y: number };
+  findOpenNotePosition: (preferredCenter: { x: number; y: number }, size?: { w: number; h: number }, occupiedRects?: Array<{ x: number; y: number; w: number; h: number }>) => { x: number; y: number };
   createNote: (x: number, y: number, color?: string) => string;
   createZone: (x: number, y: number, label?: string, kind?: ZoneKind) => string;
   applyTemplate: (type: TemplateType, x: number, y: number) => void;
@@ -55,6 +56,7 @@ export const useWallActions = ({
   setLastColor,
   syncPrimarySelection,
   toWorldPoint,
+  findOpenNotePosition,
   createNote,
   createZone,
   applyTemplate,
@@ -216,12 +218,14 @@ export const useWallActions = ({
 
   const makeNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
-      return;
+      return undefined;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, lastColor);
+    const position = findOpenNotePosition(world);
+    const id = createNote(position.x, position.y, lastColor);
     syncPrimarySelection([id]);
-  }, [camera, createNote, isTimeLocked, lastColor, syncPrimarySelection, toWorldPoint, viewport.h, viewport.w]);
+    return id;
+  }, [camera, createNote, findOpenNotePosition, isTimeLocked, lastColor, syncPrimarySelection, toWorldPoint, viewport.h, viewport.w]);
 
   const makeZoneAtViewportCenter = useCallback((kind: ZoneKind = "frame") => {
     if (isTimeLocked) {
@@ -302,19 +306,24 @@ export const useWallActions = ({
       const gapY = NOTE_DEFAULTS.height + 20;
 
       const createdIds: string[] = [];
+      const occupiedRects: Array<{ x: number; y: number; w: number; h: number }> = [];
       items.forEach((item, index) => {
         const row = Math.floor(index / columns);
         const col = index % columns;
-        const x = world.x + (col - (columns - 1) / 2) * gapX;
-        const y = world.y + row * gapY;
-        const id = createNote(x, y, lastColor);
+        const preferredCenter = {
+          x: world.x + (col - (columns - 1) / 2) * gapX + NOTE_DEFAULTS.width / 2,
+          y: world.y + row * gapY + NOTE_DEFAULTS.height / 2,
+        };
+        const position = findOpenNotePosition(preferredCenter, undefined, occupiedRects);
+        const id = createNote(position.x, position.y, lastColor);
         updateNote(id, { text: item.text, tags: item.tags });
         createdIds.push(id);
+        occupiedRects.push({ x: position.x, y: position.y, w: NOTE_DEFAULTS.width, h: NOTE_DEFAULTS.height });
       });
 
       syncPrimarySelection(createdIds);
     },
-    [camera, createNote, isTimeLocked, lastColor, syncPrimarySelection, toWorldPoint, updateNote, viewport.h, viewport.w],
+    [camera, createNote, findOpenNotePosition, isTimeLocked, lastColor, syncPrimarySelection, toWorldPoint, updateNote, viewport.h, viewport.w],
   );
 
   return {

@@ -771,9 +771,11 @@ Expected:
 6. Press `T` and `H` to toggle time-based views.
 7. Press `Delete` with selected note (and optionally selected zone/note group).
 8. Press `?` to open shortcuts overlay.
+9. Pan to a crowded part of the wall, press `N` several times, create at least one typed note from the command palette, and paste an image with no note selected.
 
 Expected:
 - All shortcuts work without needing mouse for command invocation.
+- Newly created notes stay fully inside the visible viewport and do not overlap existing notes when an empty slot is available in-frame.
 
 ## Accessibility Guardrail
 1. On `/wall`, inspect quick-action toolbar buttons (`Text size`, `Pin`, `Highlight`, `Focus`, `Link`, align/distribute) and verify hit areas are at least ~36px.

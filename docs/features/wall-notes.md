@@ -30,7 +30,7 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 - Poetry note creation
 - Magazine cover note creation through the Economist note shell
 
-These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands.
+These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands. When a new wall note is created from viewport-centered creation flows, the wall now places it in the nearest collision-free space that still fits inside the user's current frame instead of stacking it on top of an existing note.
 
 Web bookmark notes create a rich preview card from a URL using a server-side metadata fetch route. The parser prioritizes Open Graph tags, then Twitter card tags, then document title and meta description, and resolves preview images plus favicons into safe absolute URLs. Provider-aware enrichment now upgrades common video links such as YouTube when raw page scraping is weak, so the wall can still show a real title and thumbnail. The default non-edit bookmark note now renders as a compact horizontal link card instead of a tall note shell. The card stores the original URL, normalized URL, sanitized metadata, fetch timestamps, and status so the wall can render cached previews without re-requesting metadata on every render. v2 cache entries skip earlier domain-only fallback results so upgraded walls refetch richer previews instead of reusing weak metadata.
 
@@ -110,7 +110,7 @@ This makes notes the core unit of wall content, but not the only structural elem
 
 ## Edge Cases
 
-- Unsplash moodboards create multiple image notes in one grouped insert action and place them near the current target or viewport center.
+- Unsplash moodboards create multiple image notes in one grouped insert action and place them near the current target or viewport center while still avoiding note-on-note overlap inside the visible frame when space is available.
 - Note data must survive both local persistence and cloud sync.
 - Richer note payloads depend on newer schema support; compatibility paths exist in wall APIs for some missing columns.
 - Published wall snapshots are read-only even though they display wall note content.
