@@ -2,7 +2,7 @@ import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/wall/bookmarks";
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import type { ApodNote, CanonNote, CurrencyNote, Link, Note, NoteGroup, PersistedWallState, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
+import type { ApodNote, CanonNote, CurrencyNote, Link, Note, NoteGroup, PersistedWallState, PrivateNoteData, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -161,6 +161,21 @@ const normalizeBookmark = (value: unknown): WebBookmarkNote | undefined => {
   };
 };
 
+const normalizePrivateNote = (value: unknown): PrivateNoteData | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    version: 1,
+    salt: asString(value.salt),
+    iv: asString(value.iv),
+    ciphertext: asString(value.ciphertext),
+    protectedAt: asNumber(value.protectedAt),
+    updatedAt: asNumber(value.updatedAt),
+  };
+};
+
 const normalizeApod = (value: unknown): ApodNote | undefined => {
   if (!isRecord(value)) {
     return undefined;
@@ -288,6 +303,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     text: asString(entry.text),
     quoteAuthor: asString(entry.quoteAuthor).trim() || undefined,
     quoteSource: asString(entry.quoteSource).trim() || undefined,
+    privateNote: normalizePrivateNote(entry.privateNote),
     canon: normalizeCanon(entry.canon),
     eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(entry.eisenhower, asNumber(entry.createdAt, Date.now())) : undefined,
     currency: noteKind === "currency" ? normalizeCurrency(entry.currency) : undefined,

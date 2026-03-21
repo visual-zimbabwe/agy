@@ -398,5 +398,48 @@ describe("storage migrations", () => {
     expect(normalized?.notes.e1?.quoteAuthor).toBe("https://www.economist.com/printedition/covers");
     expect(normalized?.notes.e1?.quoteSource).toBe("2026-03-21");
   });
+
+  it("preserves private note payloads when normalizing snapshots", () => {
+    const normalized = normalizePersistedWallState({
+      notes: {
+        p1: {
+          id: "p1",
+          noteKind: "journal",
+          text: "",
+          tags: ["private"],
+          x: 0,
+          y: 0,
+          w: 220,
+          h: 160,
+          color: "#FEEA89",
+          createdAt: 1,
+          updatedAt: 2,
+          privateNote: {
+            version: 1,
+            salt: "salt",
+            iv: "iv",
+            ciphertext: "cipher",
+            protectedAt: 10,
+            updatedAt: 11,
+          },
+        },
+      },
+      zones: {},
+      zoneGroups: {},
+      noteGroups: {},
+      links: {},
+      camera: { x: 0, y: 0, zoom: 1 },
+    });
+
+    expect(normalized?.notes.p1?.privateNote).toEqual({
+      version: 1,
+      salt: "salt",
+      iv: "iv",
+      ciphertext: "cipher",
+      protectedAt: 10,
+      updatedAt: 11,
+    });
+  });
+
 });
 

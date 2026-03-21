@@ -7,6 +7,7 @@ import type { RecallDateFilter } from "@/components/wall/details/DetailsSectionT
 import { zoneContainsNote, noteInAnyZone, graphPathLinks } from "@/components/wall/wall-canvas-helpers";
 import { computeContentBounds, detectClusters, clamp } from "@/lib/wall-utils";
 import { findSmartMergeSuggestions, type SmartMergeSuggestion } from "@/lib/smart-merge";
+import { isPrivateNote } from "@/features/wall/private-notes";
 import type { Link, Note, Zone, ZoneGroup } from "@/features/wall/types";
 
 type Bounds = { x: number; y: number; w: number; h: number };
@@ -63,9 +64,10 @@ export const useWallDerivedData = ({
     return new Set(notes.filter((note) => noteInAnyZone(note, collapsedZones)).map((note) => note.id));
   }, [collapsedGroupIds, notes, zones]);
   const baseVisibleNotes = useMemo(() => notes.filter((note) => !hiddenNotes.has(note.id)), [hiddenNotes, notes]);
+  const recallSearchableNotes = useMemo(() => baseVisibleNotes.filter((note) => !isPrivateNote(note)), [baseVisibleNotes]);
   const recallFuse = useMemo(
     () =>
-      new Fuse(baseVisibleNotes, {
+      new Fuse(recallSearchableNotes, {
         keys: [
           "text",
           "quoteAuthor",
@@ -86,7 +88,7 @@ export const useWallDerivedData = ({
         threshold: 0.35,
         ignoreLocation: true,
       }),
-    [baseVisibleNotes],
+    [recallSearchableNotes],
   );
   const recallQueryIds = useMemo(() => {
     const query = recallQuery.trim();

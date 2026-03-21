@@ -112,6 +112,15 @@ const apodSchema = z.object({
   error: z.string().optional(),
 });
 
+const privateNoteSchema = z.object({
+  version: z.literal(1),
+  salt: z.string(),
+  iv: z.string(),
+  ciphertext: z.string(),
+  protectedAt: z.number(),
+  updatedAt: z.number(),
+});
+
 const poetrySchema = z.object({
   status: z.enum(["idle", "loading", "ready", "error"]),
   dateKey: z.string().optional(),
@@ -134,6 +143,7 @@ const noteSchema = z.object({
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
+  privateNote: privateNoteSchema.optional(),
   imageUrl: z.string().optional(),
   textAlign: z.enum(["left", "center", "right"]).optional(),
   textVAlign: z.enum(["top", "middle", "bottom"]).optional(),
@@ -234,6 +244,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
       (message.includes("column notes.note_kind does not exist") ||
         message.includes("column notes.quote_author does not exist") ||
         message.includes("column notes.quote_source does not exist") ||
+        message.includes("column notes.private_note does not exist") ||
         message.includes("column notes.canon does not exist") ||
         message.includes("column notes.eisenhower does not exist") ||
         message.includes("column notes.currency does not exist") ||
@@ -318,6 +329,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               note_kind: note.noteKind ?? "standard",
               quote_author: note.quoteAuthor?.trim() || null,
               quote_source: note.quoteSource?.trim() || null,
+              private_note: note.privateNote ?? null,
               canon: note.canon ?? null,
               eisenhower: note.eisenhower ?? null,
               currency: note.currency ?? null,

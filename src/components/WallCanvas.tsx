@@ -8,6 +8,7 @@ import type { CommandPaletteCommand } from "@/components/SearchPalette";
 import type { DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { useWallActions } from "@/components/wall/useWallActions";
 import { WallDetailsSidebar } from "@/components/wall/WallDetailsSidebar";
+import { PrivateNoteModal } from "@/components/wall/PrivateNoteModal";
 import { WallFloatingUi } from "@/components/wall/WallFloatingUi";
 import { WallGlobalModals } from "@/components/wall/WallGlobalModals";
 import { WallHeaderBar } from "@/components/wall/WallHeaderBar";
@@ -25,6 +26,7 @@ import {
   downloadTextFile,
   dragSnapThreshold,
   fitBoundsCamera,
+  findOpenNotePosition,
   getNoteTextStyle,
   getNoteTextFontFamily,
   layoutPrefsStorageKey,
@@ -111,9 +113,12 @@ import {
   updateZone,
 } from "@/features/wall/commands";
 import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
-import { EISENHOWER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
+import { PRIVATE_NOTE_AUTO_LOCK_MS, canProtectNote, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
+import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
+import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { isCurrencyNote } from "@/features/wall/currency";
 import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, type EconomistMagazineSource } from "@/features/wall/economist";
+import { getPoetryNoteDimensions } from "@/features/wall/poetry";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
@@ -152,6 +157,21 @@ type ImageInsertState = {
   noteId?: string;
   x?: number;
   y?: number;
+};
+
+type PrivateSession = {
+  passphrase: string;
+  text: string;
+  lastActivityAt: number;
+};
+
+type PrivateModalState = {
+  open: boolean;
+  mode: "protect" | "unlock";
+  noteId?: string;
+  focusField?: string;
+  reopenEditor?: boolean;
+  error?: string;
 };
 
 type LinkContextMenuState = {
@@ -241,6 +261,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   const [viewport, setViewport] = useState({ w: 1200, h: 800 });
   const [editing, setEditing] = useState<EditingState | null>(null);
+  const [privateSessions, setPrivateSessions] = useState<Record<string, PrivateSession>>({});
+  const privateSessionsRef = useRef<Record<string, PrivateSession>>({});
+  const [privateModal, setPrivateModal] = useState<PrivateModalState>({ open: false, mode: "unlock" });
   const [imageInsertState, setImageInsertState] = useState<ImageInsertState>({ open: false });
   const [isImageDragOver, setIsImageDragOver] = useState(false);
   const [isSpaceDown, setIsSpaceDown] = useState(false);
@@ -387,6 +410,21 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     [vocabularyNotes, wallClockTs],
   );
   const vocabularyFocusNotes = useMemo(() => vocabularyNotes.filter((note) => note.vocabulary.isFocus), [vocabularyNotes]);
+  const occupiedNoteRects = useMemo(() => notes.map((note) => ({ x: note.x, y: note.y, w: note.w, h: note.h })), [notes]);
+  const placeNewNote = useCallback(
+    (preferredCenter: { x: number; y: number }, size = { w: NOTE_DEFAULTS.width, h: NOTE_DEFAULTS.height }, extraOccupiedRects: Array<{ x: number; y: number; w: number; h: number }> = []) =>
+      findOpenNotePosition({
+        camera,
+        viewport,
+        occupiedRects: [...occupiedNoteRects, ...extraOccupiedRects],
+        preferred: {
+          x: preferredCenter.x - size.w / 2,
+          y: preferredCenter.y - size.h / 2,
+        },
+        size,
+      }),
+    [camera, occupiedNoteRects, viewport],
+  );
   const reviewedTodayCount = useMemo(() => {
     const start = dayStartTs(wallClockTs);
     return vocabularyNotes.filter((note) => (note.vocabulary.lastReviewedAt ?? 0) >= start).length;
@@ -407,15 +445,60 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   }, []);
 
   useEffect(() => {
+    privateSessionsRef.current = privateSessions;
+  }, [privateSessions]);
+
+  const setPrivateSession = useCallback((noteId: string, next: PrivateSession) => {
+    setPrivateSessions((previous) => ({ ...previous, [noteId]: next }));
+  }, []);
+
+  const clearPrivateSession = useCallback((noteId: string) => {
+    setPrivateSessions((previous) => {
+      if (!(noteId in previous)) {
+        return previous;
+      }
+      const next = { ...previous };
+      delete next[noteId];
+      return next;
+    });
+  }, []);
+
+  const lockPrivateNote = useCallback((noteId: string) => {
+    clearPrivateSession(noteId);
+    setEditing((current) => (current?.id === noteId ? null : current));
+  }, [clearPrivateSession]);
+
+  const lockAllPrivateNotes = useCallback(() => {
+    setPrivateSessions({});
+    setEditing((current) => (current && isPrivateNote(renderSnapshot.notes[current.id] ?? null) ? null : current));
+  }, [renderSnapshot.notes]);
+
+  const openPrivateModal = useCallback((mode: "protect" | "unlock", noteId: string, options?: { focusField?: string; reopenEditor?: boolean; error?: string }) => {
+    setPrivateModal({
+      open: true,
+      mode,
+      noteId,
+      focusField: options?.focusField,
+      reopenEditor: options?.reopenEditor,
+      error: options?.error,
+    });
+  }, []);
+
+  const closePrivateModal = useCallback(() => {
+    setPrivateModal({ open: false, mode: "unlock" });
+  }, []);
+
+  useEffect(() => {
     if (!timelineViewActive) {
       return;
     }
+    lockAllPrivateNotes();
     setEditing(null);
     setQuickCaptureOpen(false);
     setSearchOpen(false);
     setExportOpen(false);
     setIsTimelinePlaying(false);
-  }, [setExportOpen, setSearchOpen, timelineViewActive]);
+  }, [lockAllPrivateNotes, setExportOpen, setSearchOpen, timelineViewActive]);
 
   const syncWikiLinksForNote = useCallback((sourceNoteId: string, text: string) => {
     const existingSource = useWallStore.getState().notes[sourceNoteId];
@@ -439,7 +522,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           if (!source) {
             continue;
           }
-          const createdId = createNote(source.x + source.w + 96 + (createdCount % 2) * 28, source.y + createdCount * 42, source.color);
+          const position = placeNewNote(
+            {
+              x: source.x + source.w + 96 + (createdCount % 2) * 28 + NOTE_DEFAULTS.width / 2,
+              y: source.y + createdCount * 42 + NOTE_DEFAULTS.height / 2,
+            },
+          );
+          const createdId = createNote(position.x, position.y, source.color);
           updateNote(createdId, { text: title });
           target = useWallStore.getState().notes[createdId];
           createdCount += 1;
@@ -472,9 +561,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
     nextState.selectNote(sourceNoteId);
     setSelectedNoteIds([sourceNoteId]);
-  }, [setSelectedNoteIds]);
+  }, [placeNewNote, setSelectedNoteIds]);
 
-  const commitEditedNoteText = useCallback((noteId: string, rawText: string) => {
+  const commitEditedNoteText = useCallback(async (noteId: string, rawText: string) => {
     const current = renderSnapshot.notes[noteId];
     if (!current) {
       return;
@@ -482,29 +571,78 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const parsed = parseTaggedText(rawText);
     const mergedTags = [...new Set([...current.tags, ...parsed.tags])];
     const state = useWallStore.getState();
+    if (isPrivateNote(current)) {
+      const session = privateSessionsRef.current[noteId];
+      if (!session) {
+        return;
+      }
+      const encrypted = await encryptPrivateNote(session.passphrase, { text: parsed.text });
+      state.beginHistoryGroup();
+      try {
+        updateNote(noteId, {
+          text: "",
+          tags: mergedTags,
+          privateNote: encrypted,
+          vocabulary: current.vocabulary
+            ? {
+                ...current.vocabulary,
+                word: parsed.text.trim(),
+              }
+            : current.vocabulary,
+        });
+        syncWikiLinksForNote(noteId, "");
+        setPrivateSession(noteId, {
+          ...session,
+          text: parsed.text,
+          lastActivityAt: Date.now(),
+        });
+      } finally {
+        useWallStore.getState().endHistoryGroup();
+      }
+      return;
+    }
     state.beginHistoryGroup();
     try {
       updateNote(noteId, {
-      text: parsed.text,
-      tags: mergedTags,
-      vocabulary: current.vocabulary
-        ? {
-            ...current.vocabulary,
-            word: parsed.text.trim(),
-          }
-        : current.vocabulary,
+        text: parsed.text,
+        tags: mergedTags,
+        vocabulary: current.vocabulary
+          ? {
+              ...current.vocabulary,
+              word: parsed.text.trim(),
+            }
+          : current.vocabulary,
       });
       syncWikiLinksForNote(noteId, parsed.text);
     } finally {
       useWallStore.getState().endHistoryGroup();
     }
-  }, [renderSnapshot.notes, syncWikiLinksForNote]);
+  }, [renderSnapshot.notes, setPrivateSession, syncWikiLinksForNote]);
 
   const openEditor = useCallback((noteId: string, text: string, focusField?: string) => {
+    const note = renderSnapshot.notes[noteId];
+    if (!note) {
+      return;
+    }
+    if (isPrivateNote(note)) {
+      const session = privateSessionsRef.current[noteId];
+      if (!session) {
+        openPrivateModal("unlock", noteId, { focusField, reopenEditor: true });
+        return;
+      }
+      setEditTagInput("");
+      setEditTagRenameFrom(null);
+      setPrivateSession(noteId, {
+        ...session,
+        lastActivityAt: Date.now(),
+      });
+      setEditing({ id: noteId, text: session.text, focusField });
+      return;
+    }
     setEditTagInput("");
     setEditTagRenameFrom(null);
     setEditing({ id: noteId, text, focusField });
-  }, []);
+  }, [openPrivateModal, renderSnapshot.notes, setPrivateSession]);
 
   const normalizeTag = (raw: string) => raw.trim().replace(/^#/, "").toLowerCase();
 
@@ -564,9 +702,110 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     if (!editing) {
       return;
     }
-    commitEditedNoteText(editing.id, editing.text);
+    void commitEditedNoteText(editing.id, editing.text);
     setEditing(null);
   };
+
+  const submitPrivateModal = useCallback(async (passphrase: string) => {
+    const noteId = privateModal.noteId;
+    if (!noteId) {
+      closePrivateModal();
+      return;
+    }
+    const note = renderSnapshot.notes[noteId];
+    if (!note) {
+      closePrivateModal();
+      return;
+    }
+    try {
+      if (privateModal.mode === "protect") {
+        if (!canProtectNote(note)) {
+          setPrivateModal((current) => ({ ...current, error: "This note type cannot be protected yet." }));
+          return;
+        }
+        const plaintext = note.text;
+        const encrypted = await encryptPrivateNote(passphrase, { text: plaintext });
+        updateNote(noteId, { text: "", privateNote: encrypted });
+        syncWikiLinksForNote(noteId, "");
+        setPrivateSession(noteId, {
+          passphrase,
+          text: plaintext,
+          lastActivityAt: Date.now(),
+        });
+        closePrivateModal();
+        return;
+      }
+      if (!note.privateNote) {
+        closePrivateModal();
+        return;
+      }
+      const decrypted = await decryptPrivateNote(passphrase, note.privateNote);
+      setPrivateSession(noteId, {
+        passphrase,
+        text: decrypted.text,
+        lastActivityAt: Date.now(),
+      });
+      const reopenEditor = privateModal.reopenEditor;
+      const focusField = privateModal.focusField;
+      closePrivateModal();
+      if (reopenEditor) {
+        setEditTagInput("");
+        setEditTagRenameFrom(null);
+        setEditing({ id: noteId, text: decrypted.text, focusField });
+      }
+    } catch {
+      setPrivateModal((current) => ({
+        ...current,
+        error: privateModal.mode === "protect" ? "Could not protect this note right now." : "Passphrase did not unlock this note.",
+      }));
+    }
+  }, [closePrivateModal, privateModal, renderSnapshot.notes, setPrivateSession, syncWikiLinksForNote, updateNote]);
+
+  useEffect(() => {
+    if (isTimeLocked) {
+      lockAllPrivateNotes();
+    }
+  }, [isTimeLocked, lockAllPrivateNotes]);
+
+  useEffect(() => {
+    const lockStaleNotes = () => {
+      const now = Date.now();
+      const staleIds = Object.entries(privateSessionsRef.current)
+        .filter(([, session]) => now - session.lastActivityAt >= PRIVATE_NOTE_AUTO_LOCK_MS)
+        .map(([noteId]) => noteId);
+      if (staleIds.length === 0) {
+        return;
+      }
+      setPrivateSessions((previous) => {
+        const next = { ...previous };
+        for (const noteId of staleIds) {
+          delete next[noteId];
+        }
+        return next;
+      });
+      setEditing((current) => (current && staleIds.includes(current.id) ? null : current));
+    };
+
+    const timer = setInterval(lockStaleNotes, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        lockAllPrivateNotes();
+      }
+    };
+    const handleBeforeUnload = () => {
+      lockAllPrivateNotes();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [lockAllPrivateNotes]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -881,7 +1120,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
 
     const timer = setTimeout(() => {
-      commitEditedNoteText(editing.id, editing.text);
+      void commitEditedNoteText(editing.id, editing.text);
     }, 280);
 
     return () => clearTimeout(timer);
@@ -1146,35 +1385,39 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createWebBookmarkNote(world.x - WEB_BOOKMARK_DEFAULTS.width / 2, world.y - WEB_BOOKMARK_DEFAULTS.height / 2);
+    const position = placeNewNote(world, { w: WEB_BOOKMARK_DEFAULTS.width, h: WEB_BOOKMARK_DEFAULTS.height });
+    const id = createWebBookmarkNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeApodNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createApodNote(world.x - 160, world.y - 140);
+    const position = placeNewNote(world, { w: APOD_NOTE_DEFAULTS.width, h: APOD_NOTE_DEFAULTS.height });
+    const id = createApodNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
     void refreshApodNote(id, { force: true });
-  }, [camera, isTimeLocked, openEditor, refreshApodNote, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, refreshApodNote, selectNote, viewport.h, viewport.w]);
 
   const makePoetryNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createPoetryNote(world.x - 160, world.y - 140);
+    const poetrySize = getPoetryNoteDimensions();
+    const position = placeNewNote(world, { w: poetrySize.width, h: poetrySize.height });
+    const id = createPoetryNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
     void refreshPoetryNote(id, { force: true });
-  }, [camera, isTimeLocked, openEditor, refreshPoetryNote, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, refreshPoetryNote, selectNote, viewport.h, viewport.w]);
 
   const makeEconomistNoteAtViewportCenter = useCallback(async () => {
     if (isTimeLocked) {
@@ -1200,16 +1443,20 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const totalWidth = columns * ECONOMIST_NOTE_DEFAULTS.width + Math.max(0, columns - 1) * gapX;
     const totalHeight = rows * ECONOMIST_NOTE_DEFAULTS.height + Math.max(0, rows - 1) * gapY;
     const createdIds: string[] = [];
+    const occupiedRects = [...occupiedNoteRects];
 
     runHistoryGroup(() => {
       sources.forEach((source, index) => {
         const column = index % columns;
         const row = Math.floor(index / columns);
-        const x = world.x - totalWidth / 2 + column * (ECONOMIST_NOTE_DEFAULTS.width + gapX);
-        const y = world.y - totalHeight / 2 + row * (ECONOMIST_NOTE_DEFAULTS.height + gapY);
+        const preferredCenter = {
+          x: world.x - totalWidth / 2 + column * (ECONOMIST_NOTE_DEFAULTS.width + gapX) + ECONOMIST_NOTE_DEFAULTS.width / 2,
+          y: world.y - totalHeight / 2 + row * (ECONOMIST_NOTE_DEFAULTS.height + gapY) + ECONOMIST_NOTE_DEFAULTS.height / 2,
+        };
+        const position = placeNewNote(preferredCenter, { w: ECONOMIST_NOTE_DEFAULTS.width, h: ECONOMIST_NOTE_DEFAULTS.height }, occupiedRects);
         const id = createEconomistNote(
-          x,
-          y,
+          position.x,
+          position.y,
           {
             sourceId: source.sourceId,
             sourceName: source.sourceName,
@@ -1219,6 +1466,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           { select: false },
         );
         createdIds.push(id);
+        occupiedRects.push({ x: position.x, y: position.y, w: ECONOMIST_NOTE_DEFAULTS.width, h: ECONOMIST_NOTE_DEFAULTS.height });
       });
     });
 
@@ -1229,14 +1477,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
 
     await Promise.allSettled(createdIds.map((id) => refreshEconomistNote(id, { force: true })));
-  }, [camera, isTimeLocked, refreshEconomistNote, runHistoryGroup, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, occupiedNoteRects, placeNewNote, refreshEconomistNote, runHistoryGroup, selectNote, viewport.h, viewport.w]);
 
   const makeWordNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createNote(world.x - NOTE_DEFAULTS.width / 2, world.y - NOTE_DEFAULTS.height / 2, ui.lastColor ?? NOTE_COLORS[0]);
+    const position = placeNewNote(world);
+    const id = createNote(position.x, position.y, ui.lastColor ?? NOTE_COLORS[0]);
     updateNote(id, {
       text: "",
       tags: ["vocab"],
@@ -1246,92 +1495,86 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setSelectedNoteIds([id]);
     selectNote(id);
     setReviewRevealMeaning(false);
-  }, [camera, isTimeLocked, selectNote, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, placeNewNote, selectNote, ui.lastColor, viewport.h, viewport.w]);
 
   const makeJokerNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const position = placeNewNote(world, { w: JOKER_NOTE_DEFAULTS.width, h: JOKER_NOTE_DEFAULTS.height });
     const id = createOrRefreshJokerNote({
-      x: world.x - NOTE_DEFAULTS.width / 2,
-      y: world.y - NOTE_DEFAULTS.height / 2,
+      x: position.x,
+      y: position.y,
     });
     setSelectedNoteIds([id]);
     selectNote(id);
-  }, [camera, isTimeLocked, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeThroneNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const position = placeNewNote(world, { w: THRONE_NOTE_DEFAULTS.width, h: THRONE_NOTE_DEFAULTS.height });
     const id = createOrRefreshThroneNote({
-      x: world.x - NOTE_DEFAULTS.width / 2,
-      y: world.y - NOTE_DEFAULTS.height / 2,
+      x: position.x,
+      y: position.y,
     });
     setSelectedNoteIds([id]);
     selectNote(id);
-  }, [camera, isTimeLocked, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeQuoteNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createQuoteNote(
-      world.x - NOTE_DEFAULTS.width / 2,
-      world.y - NOTE_DEFAULTS.height / 2,
-    );
+    const position = placeNewNote(world);
+    const id = createQuoteNote(position.x, position.y);
     updateNote(id, {
       textColor: NOTE_DEFAULTS.textColor,
     });
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeCanonNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createCanonNote(
-      world.x - NOTE_DEFAULTS.width / 2,
-      world.y - NOTE_DEFAULTS.height / 2,
-    );
+    const position = placeNewNote(world);
+    const id = createCanonNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeJournalNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createJournalNote(
-      world.x - NOTE_DEFAULTS.width / 2,
-      world.y - NOTE_DEFAULTS.height / 2,
-    );
+    const position = placeNewNote(world, { w: JOURNAL_NOTE_DEFAULTS.width, h: JOURNAL_NOTE_DEFAULTS.height });
+    const id = createJournalNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
-  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeEisenhowerNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
     }
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const id = createEisenhowerNote(
-      world.x - EISENHOWER_NOTE_DEFAULTS.width / 2,
-      world.y - EISENHOWER_NOTE_DEFAULTS.height / 2,
-    );
+    const position = placeNewNote(world, { w: EISENHOWER_NOTE_DEFAULTS.width, h: EISENHOWER_NOTE_DEFAULTS.height });
+    const id = createEisenhowerNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "", "doFirst");
-  }, [camera, isTimeLocked, openEditor, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const toggleVocabularyFlip = useCallback(
     (noteId: string) => {
@@ -1393,7 +1636,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setPresentationMode,
     setPresentationIndex,
     setReadingMode,
-    createNote: createNote,
+    createViewportNote: () => {
+      if (isTimeLocked) {
+        return undefined;
+      }
+      const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+      const position = placeNewNote(world);
+      return createNote(position.x, position.y, ui.lastColor);
+    },
     createCanonNote: makeCanonNoteAtViewportCenter,
     createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
@@ -1560,12 +1810,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const fallbackPoint = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
     const worldX = target?.x ?? fallbackPoint.x;
     const worldY = target?.y ?? fallbackPoint.y;
-    const noteId = createNote(worldX - NOTE_DEFAULTS.width / 2, worldY - NOTE_DEFAULTS.height / 2, ui.lastColor);
+    const position = placeNewNote({ x: worldX, y: worldY });
+    const noteId = createNote(position.x, position.y, ui.lastColor);
     updateNote(noteId, { imageUrl: source });
     syncPrimarySelection([noteId]);
     selectNote(noteId);
     return noteId;
-  }, [camera, renderSnapshot.notes, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, placeNewNote, renderSnapshot.notes, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
 
   const handleImageFileInsert = useCallback(async (file: File, target?: { noteId?: string; x?: number; y?: number }) => {
     const dataUrl = await readImageFileAsDataUrl(file);
@@ -1607,6 +1858,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const columns = photos.length <= 4 ? 2 : photos.length <= 6 ? 3 : 4;
     const gap = 28;
     const createdIds: string[] = [];
+    const occupiedRects = [...occupiedNoteRects];
     runHistoryGroup(() => {
       photos.forEach((photo, index) => {
         const aspectRatio = Math.max(0.65, Math.min(1.5, photo.height / Math.max(photo.width, 1)));
@@ -1617,12 +1869,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         const rows = Math.ceil(photos.length / columns);
         const offsetX = (column - (columns - 1) / 2) * (width + gap) + (row % 2 === 0 ? 0 : 18);
         const offsetY = (row - (rows - 1) / 2) * (220 + gap) + (column % 2 === 0 ? 0 : 16);
-        const noteId = createNote(anchor.x + offsetX - width / 2, anchor.y + offsetY - height / 2, ui.lastColor);
+        const finalHeight = Math.max(150, Math.min(320, height));
+        const position = placeNewNote({ x: anchor.x + offsetX, y: anchor.y + offsetY }, { w: width, h: finalHeight }, occupiedRects);
+        const noteId = createNote(position.x, position.y, ui.lastColor);
         updateNote(noteId, {
           imageUrl: photo.urls.regular,
           w: width,
-          h: Math.max(150, Math.min(320, height)),
+          h: finalHeight,
         });
+        occupiedRects.push({ x: position.x, y: position.y, w: width, h: finalHeight });
         createdIds.push(noteId);
       });
     });
@@ -1632,7 +1887,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       syncPrimarySelection(createdIds);
       selectNote(createdIds[0]);
     }
-  }, [camera, renderSnapshot.notes, runHistoryGroup, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, occupiedNoteRects, placeNewNote, renderSnapshot.notes, runHistoryGroup, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
 
   useEffect(() => {
     if (isTimeLocked) {
@@ -1737,6 +1992,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setLastColor,
     syncPrimarySelection,
     toWorldPoint,
+    findOpenNotePosition: placeNewNote,
     createNote: createNote,
     createZone,
     applyTemplate,
@@ -2053,6 +2309,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     publishedReadOnly,
   });
   const selectedVocabularyNote = selectedNote && isVocabularyNote(selectedNote) ? selectedNote : undefined;
+  const selectedPrivateNote = primarySelectedNote && isPrivateNote(primarySelectedNote) ? primarySelectedNote : undefined;
+  const selectedPrivateNoteSupported = Boolean(primarySelectedNote && (isPrivateNote(primarySelectedNote) || canProtectNote(primarySelectedNote)));
+  const isSelectedPrivateUnlocked = Boolean(selectedPrivateNote && privateSessions[selectedPrivateNote.id]);
+  const privateModalNote = privateModal.noteId ? renderSnapshot.notes[privateModal.noteId] : undefined;
 
   useEffect(() => {
     setReviewRevealMeaning(false);
@@ -3017,6 +3277,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onUpdateSelectedNote={updateNote}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
           onOpenBookmarkUrl={openBookmarkUrl}
+          privateNoteSupported={selectedPrivateNoteSupported}
+          isPrivateEnabled={Boolean(selectedPrivateNote)}
+          isPrivateUnlocked={isSelectedPrivateUnlocked}
+          onProtectPrivateNote={(noteId) => openPrivateModal("protect", noteId)}
+          onUnlockPrivateNote={(noteId) => openPrivateModal("unlock", noteId)}
+          onLockPrivateNote={lockPrivateNote}
+          onRemovePrivateProtection={(noteId) => {
+            const selected = renderSnapshot.notes[noteId];
+            const session = privateSessions[noteId];
+            if (!selected || !isPrivateNote(selected) || !session) {
+              return;
+            }
+            updateNote(noteId, { text: session.text, privateNote: undefined });
+            syncWikiLinksForNote(noteId, session.text);
+            lockPrivateNote(noteId);
+          }}
           detailsSectionsOpen={detailsSectionsOpen}
           onToggleDetailsSection={toggleDetailsSection}
           timelineEntriesCount={timelineEntries.length}
@@ -3099,6 +3375,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         )}
 
       </div>
+
+      <PrivateNoteModal
+        open={privateModal.open}
+        mode={privateModal.mode}
+        noteLabel={privateModalNote ? privateNoteTitle(privateModalNote) : "Private note"}
+        error={privateModal.error}
+        onClose={closePrivateModal}
+        onSubmit={(passphrase) => { void submitPrivateModal(passphrase); }}
+      />
 
       <WallGlobalModals
         quickCaptureOpen={quickCaptureOpen} isTimeLocked={isTimeLocked} onCloseQuickCapture={() => setQuickCaptureOpen(false)} onCapture={captureNotes}

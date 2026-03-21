@@ -67,6 +67,30 @@ describe("wall commands", () => {
     expect(state.ui.selectedNoteId).not.toBe(firstId);
   });
 
+
+  it("does not merge private notes into plaintext notes", () => {
+    const keepId = createNote(0, 0);
+    const mergeId = createNote(200, 0);
+    const state = useWallStore.getState();
+    state.patchNote(keepId, { text: "Visible note" });
+    state.patchNote(mergeId, {
+      text: "",
+      privateNote: {
+        version: 1,
+        salt: "salt",
+        iv: "iv",
+        ciphertext: "cipher",
+        protectedAt: 10,
+        updatedAt: 11,
+      },
+    });
+
+    mergeNotes(keepId, mergeId);
+
+    expect(useWallStore.getState().notes[mergeId]).toBeDefined();
+    expect(useWallStore.getState().notes[keepId]?.text).toBe("Visible note");
+  });
+
   it("creates quote notes with quote metadata fields", () => {
     const quoteId = createQuoteNote(64, 96);
     const quote = useWallStore.getState().notes[quoteId];

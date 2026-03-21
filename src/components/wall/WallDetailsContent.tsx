@@ -59,6 +59,13 @@ type WallDetailsContentProps = {
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
   onOpenBookmarkUrl: (url: string) => void;
+  privateNoteSupported: boolean;
+  isPrivateEnabled: boolean;
+  isPrivateUnlocked: boolean;
+  onProtectPrivateNote: (noteId: string) => void;
+  onUnlockPrivateNote: (noteId: string) => void;
+  onLockPrivateNote: (noteId: string) => void;
+  onRemovePrivateProtection: (noteId: string) => void;
   detailsSectionsOpen: DetailsSectionState;
   onToggleDetailsSection: (key: DetailsSectionKey) => void;
   timelineEntriesCount: number;
@@ -176,6 +183,13 @@ export const WallDetailsContent = ({
   onUpdateSelectedNote,
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
+  privateNoteSupported,
+  isPrivateEnabled,
+  isPrivateUnlocked,
+  onProtectPrivateNote,
+  onUnlockPrivateNote,
+  onLockPrivateNote,
+  onRemovePrivateProtection,
   detailsSectionsOpen,
   onToggleDetailsSection,
   timelineEntriesCount,
@@ -305,6 +319,13 @@ export const WallDetailsContent = ({
             onUpdateNote={onUpdateSelectedNote}
             onSubmitBookmarkUrl={onSubmitBookmarkUrl}
             onOpenBookmarkUrl={onOpenBookmarkUrl}
+            privateNoteSupported={privateNoteSupported}
+            isPrivateEnabled={isPrivateEnabled}
+            isPrivateUnlocked={isPrivateUnlocked}
+            onProtectPrivateNote={onProtectPrivateNote}
+            onUnlockPrivateNote={onUnlockPrivateNote}
+            onLockPrivateNote={onLockPrivateNote}
+            onRemovePrivateProtection={onRemovePrivateProtection}
           />
         </div>
       ) : null}

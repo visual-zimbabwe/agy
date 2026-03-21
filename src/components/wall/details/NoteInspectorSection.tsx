@@ -64,6 +64,13 @@ type NoteInspectorSectionProps = {
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
   onOpenBookmarkUrl: (url: string) => void;
+  privateNoteSupported: boolean;
+  isPrivateEnabled: boolean;
+  isPrivateUnlocked: boolean;
+  onProtectPrivateNote: (noteId: string) => void;
+  onUnlockPrivateNote: (noteId: string) => void;
+  onLockPrivateNote: (noteId: string) => void;
+  onRemovePrivateProtection: (noteId: string) => void;
 };
 
 const sectionBlockClass = "space-y-2 border-t border-[var(--color-border-muted)] pt-3 first:border-t-0 first:pt-0";
@@ -109,6 +116,13 @@ export const NoteInspectorSection = ({
   onUpdateNote,
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
+  privateNoteSupported,
+  isPrivateEnabled,
+  isPrivateUnlocked,
+  onProtectPrivateNote,
+  onUnlockPrivateNote,
+  onLockPrivateNote,
+  onRemovePrivateProtection,
 }: NoteInspectorSectionProps) => {
   const [poetrySearchField, setPoetrySearchField] = useState<PoetrySearchField>(
     selectedNote?.noteKind === "poetry" ? normalizePoetrySearchField(selectedNote.poetry?.searchField) : DEFAULT_POETRY_SEARCH_FIELD,
@@ -230,13 +244,37 @@ export const NoteInspectorSection = ({
 
       <div className="mt-4 space-y-4">
         <div className={sectionBlockClass}>
+          <p className={sectionLabelClass}>Privacy</p>
+          {isPrivateEnabled ? (
+            <div className="grid gap-2">
+              <div className={detailMutedPanel}>{isPrivateUnlocked ? "This note is currently unlocked in this browser session. The wall still shows a protected shell." : "This note is protected. Enter the passphrase to open it in the editor."}</div>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => (isPrivateUnlocked ? onLockPrivateNote(selectedNote.id) : onUnlockPrivateNote(selectedNote.id))} className={detailButton} disabled={isTimeLocked}>
+                  {isPrivateUnlocked ? "Lock note" : "Unlock note"}
+                </button>
+                <button type="button" onClick={() => onRemovePrivateProtection(selectedNote.id)} className={detailButton} disabled={isTimeLocked || !isPrivateUnlocked}>
+                  Remove protection
+                </button>
+              </div>
+            </div>
+          ) : privateNoteSupported ? (
+            <div className="grid gap-2">
+              <div className={detailMutedPanel}>Seal this note behind a passphrase. Content stays hidden on the wall and in standard exports.</div>
+              <button type="button" onClick={() => onProtectPrivateNote(selectedNote.id)} className={detailButton} disabled={isTimeLocked}>Protect note</button>
+            </div>
+          ) : (
+            <div className={detailMutedPanel}>Private-note protection currently supports standard and journal notes without image, card, or system payloads.</div>
+          )}
+        </div>
+
+        <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Text</p>
           <div className="grid gap-2">
             <select
               value={selectedNote.textFont ?? "nunito"}
               onChange={(event) => onTextFontChange(event.target.value as NoteTextFont)}
               className={detailField}
-              disabled={isTimeLocked}
+              disabled={isTimeLocked || isPrivateEnabled}
               aria-label="Font family"
             >
               {NOTE_TEXT_FONTS.map((option) => (
@@ -250,7 +288,7 @@ export const NoteInspectorSection = ({
                 value={selectedNote.textSizePx ?? NOTE_DEFAULTS.textSizePx}
                 onChange={(event) => onTextSizeChange(Number(event.target.value))}
                 className={detailField}
-                disabled={isTimeLocked}
+                disabled={isTimeLocked || isPrivateEnabled}
                 aria-label="Font size"
               >
                 {NOTE_TEXT_SIZE_OPTIONS.map((size) => (
@@ -266,7 +304,7 @@ export const NoteInspectorSection = ({
                   value={selectedNote.textColor ?? NOTE_DEFAULTS.textColor}
                   onChange={(event) => onTextColorChange(event.target.value.toUpperCase())}
                   className={colorSwatchClass}
-                  disabled={isTimeLocked}
+                  disabled={isTimeLocked || isPrivateEnabled}
                   aria-label="Text color"
                 />
               </label>
@@ -284,7 +322,7 @@ export const NoteInspectorSection = ({
                 onChange={(event) => onUpdateNote(selectedNote.id, { quoteAuthor: event.target.value })}
                 className={detailField}
                 placeholder="Author"
-                disabled={isTimeLocked}
+                disabled={isTimeLocked || isPrivateEnabled}
                 aria-label="Quote author"
               />
               <input
@@ -293,7 +331,7 @@ export const NoteInspectorSection = ({
                 onChange={(event) => onUpdateNote(selectedNote.id, { quoteSource: event.target.value })}
                 className={detailField}
                 placeholder="Source"
-                disabled={isTimeLocked}
+                disabled={isTimeLocked || isPrivateEnabled}
                 aria-label="Quote source"
               />
             </div>
@@ -323,12 +361,12 @@ export const NoteInspectorSection = ({
                 }}
                 className={detailField}
                 placeholder="https://example.com"
-                disabled={isTimeLocked}
+                disabled={isTimeLocked || isPrivateEnabled}
                 aria-label="Bookmark URL"
               />
               <div className="grid grid-cols-3 gap-2">
-                <button type="button" onClick={() => onSubmitBookmarkUrl(selectedNote.id, selectedNote.bookmark?.url ?? "")} className={detailButton} disabled={isTimeLocked}>Fetch</button>
-                <button type="button" onClick={() => onSubmitBookmarkUrl(selectedNote.id, selectedNote.bookmark?.url ?? "", { force: true })} className={detailButton} disabled={isTimeLocked}>Refresh</button>
+                <button type="button" onClick={() => onSubmitBookmarkUrl(selectedNote.id, selectedNote.bookmark?.url ?? "")} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>Fetch</button>
+                <button type="button" onClick={() => onSubmitBookmarkUrl(selectedNote.id, selectedNote.bookmark?.url ?? "", { force: true })} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>Refresh</button>
                 <button
                   type="button"
                   onClick={() => {
@@ -362,7 +400,7 @@ export const NoteInspectorSection = ({
                   value={poetrySearchField}
                   onChange={(event) => setPoetrySearchField(normalizePoetrySearchField(event.target.value))}
                   className={detailField}
-                  disabled={isTimeLocked}
+                  disabled={isTimeLocked || isPrivateEnabled}
                   aria-label="Poetry search field"
                 >
                   {POETRY_SEARCH_FIELD_OPTIONS.map((option) => (
@@ -375,7 +413,7 @@ export const NoteInspectorSection = ({
                   value={poetryMatchType}
                   onChange={(event) => setPoetryMatchType(normalizePoetryMatchType(event.target.value))}
                   className={detailField}
-                  disabled={isTimeLocked || poetrySearchField === "random"}
+                  disabled={isTimeLocked || isPrivateEnabled || poetrySearchField === "random"}
                   aria-label="Poetry search match"
                 >
                   <option value="partial">Partial match</option>
@@ -399,7 +437,7 @@ export const NoteInspectorSection = ({
                   }}
                   className={detailField}
                   placeholder={poetryFieldMeta?.placeholder}
-                  disabled={isTimeLocked}
+                  disabled={isTimeLocked || isPrivateEnabled}
                   aria-label="Poetry search value"
                 />
               )}
@@ -415,7 +453,7 @@ export const NoteInspectorSection = ({
                     })
                   }
                   className={detailButton}
-                  disabled={isTimeLocked || !canSearchPoetry}
+                  disabled={isTimeLocked || isPrivateEnabled || !canSearchPoetry}
                 >
                   {poetrySearchField === "random" ? "Fetch Random" : "Search Poetry"}
                 </button>
@@ -433,7 +471,7 @@ export const NoteInspectorSection = ({
                     });
                   }}
                   className={detailButton}
-                  disabled={isTimeLocked}
+                  disabled={isTimeLocked || isPrivateEnabled}
                 >
                   Reset to Random
                 </button>
@@ -451,7 +489,7 @@ export const NoteInspectorSection = ({
                 value={selectedMagazineSourceId}
                 onChange={(event) => applyMagazineSource(event.target.value)}
                 className={detailField}
-                disabled={isTimeLocked}
+                disabled={isTimeLocked || isPrivateEnabled}
                 aria-label="Magazine cover source"
               >
                 {ECONOMIST_MAGAZINE_SOURCES.map((source) => (
@@ -461,7 +499,7 @@ export const NoteInspectorSection = ({
                 ))}
               </select>
               <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => onRefreshEconomist(selectedNote.id)} className={detailButton} disabled={isTimeLocked}>Refresh Cover</button>
+                <button type="button" onClick={() => onRefreshEconomist(selectedNote.id)} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>Refresh Cover</button>
                 <button type="button" onClick={() => onOpenBookmarkUrl(selectedNote.quoteAuthor ?? getEconomistMagazineSource(selectedMagazineSourceId).sourceUrl)} className={detailButton}>Open Source</button>
               </div>
             </div>
@@ -500,7 +538,7 @@ export const NoteInspectorSection = ({
                     type="button"
                     onClick={() => onTextHorizontalAlignChange(align)}
                     className={(selectedNote.textAlign ?? "left") === align ? segmentedButtonActiveClass : segmentedButtonClass}
-                    disabled={isTimeLocked}
+                    disabled={isTimeLocked || isPrivateEnabled}
                   >
                     {align[0]?.toUpperCase() + align.slice(1)}
                   </button>
@@ -516,7 +554,7 @@ export const NoteInspectorSection = ({
                     type="button"
                     onClick={() => onTextVerticalAlignChange(align)}
                     className={(selectedNote.textVAlign ?? NOTE_DEFAULTS.textVAlign) === align ? segmentedButtonActiveClass : segmentedButtonClass}
-                    disabled={isTimeLocked}
+                    disabled={isTimeLocked || isPrivateEnabled}
                   >
                     {align[0]?.toUpperCase() + align.slice(1)}
                   </button>
@@ -536,7 +574,7 @@ export const NoteInspectorSection = ({
                 value={selectedNote.color ?? NOTE_COLORS[0] ?? "#FEEA89"}
                 onChange={(event) => onBackgroundColorChange(event.target.value.toUpperCase())}
                 className={colorSwatchClass}
-                disabled={isTimeLocked}
+                disabled={isTimeLocked || isPrivateEnabled}
                 aria-label="Background color"
               />
             </label>
@@ -546,18 +584,18 @@ export const NoteInspectorSection = ({
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Note Type</p>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => setNoteKind("quote")} className={typeButtonClass(selectedNote.noteKind === "quote")} disabled={isTimeLocked}>Quote</button>
-            <button type="button" onClick={() => setNoteKind("canon")} className={typeButtonClass(selectedNote.noteKind === "canon")} disabled={isTimeLocked}>Canon</button>
-            <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked}>Journal</button>
-            <button type="button" onClick={() => setNoteKind("eisenhower")} className={typeButtonClass(selectedNote.noteKind === "eisenhower")} disabled={isTimeLocked}>Eisenhower</button>
-            <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked}>Bookmark</button>
-            <button type="button" onClick={() => setNoteKind("apod")} className={typeButtonClass(selectedNote.noteKind === "apod")} disabled={isTimeLocked}>APOD</button>
-            <button type="button" onClick={() => selectedNote.noteKind === "poetry" ? onRefreshPoetry(selectedNote.id) : setNoteKind("poetry")} className={typeButtonClass(selectedNote.noteKind === "poetry")} disabled={isTimeLocked}>{selectedNote.noteKind === "poetry" ? "Refresh Poetry" : "Poetry"}</button>
-            <button type="button" onClick={() => selectedNote.noteKind === "economist" ? onRefreshEconomist(selectedNote.id) : setNoteKind("economist")} className={typeButtonClass(selectedNote.noteKind === "economist")} disabled={isTimeLocked}>{selectedNote.noteKind === "economist" ? "Refresh Cover" : "Magazine Cover"}</button>
-            <button type="button" onClick={() => onToggleOrRefreshJoker(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "joker")} disabled={isTimeLocked}>
+            <button type="button" onClick={() => setNoteKind("quote")} className={typeButtonClass(selectedNote.noteKind === "quote")} disabled={isTimeLocked || isPrivateEnabled}>Quote</button>
+            <button type="button" onClick={() => setNoteKind("canon")} className={typeButtonClass(selectedNote.noteKind === "canon")} disabled={isTimeLocked || isPrivateEnabled}>Canon</button>
+            <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked || isPrivateEnabled}>Journal</button>
+            <button type="button" onClick={() => setNoteKind("eisenhower")} className={typeButtonClass(selectedNote.noteKind === "eisenhower")} disabled={isTimeLocked || isPrivateEnabled}>Eisenhower</button>
+            <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked || isPrivateEnabled}>Bookmark</button>
+            <button type="button" onClick={() => setNoteKind("apod")} className={typeButtonClass(selectedNote.noteKind === "apod")} disabled={isTimeLocked || isPrivateEnabled}>APOD</button>
+            <button type="button" onClick={() => selectedNote.noteKind === "poetry" ? onRefreshPoetry(selectedNote.id) : setNoteKind("poetry")} className={typeButtonClass(selectedNote.noteKind === "poetry")} disabled={isTimeLocked || isPrivateEnabled}>{selectedNote.noteKind === "poetry" ? "Refresh Poetry" : "Poetry"}</button>
+            <button type="button" onClick={() => selectedNote.noteKind === "economist" ? onRefreshEconomist(selectedNote.id) : setNoteKind("economist")} className={typeButtonClass(selectedNote.noteKind === "economist")} disabled={isTimeLocked || isPrivateEnabled}>{selectedNote.noteKind === "economist" ? "Refresh Cover" : "Magazine Cover"}</button>
+            <button type="button" onClick={() => onToggleOrRefreshJoker(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "joker")} disabled={isTimeLocked || isPrivateEnabled}>
               {selectedNote.noteKind === "joker" || hasJokerNote ? "Refresh Joker" : "Joker"}
             </button>
-            <button type="button" onClick={() => onToggleOrRefreshThrone(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "throne")} disabled={isTimeLocked}>
+            <button type="button" onClick={() => onToggleOrRefreshThrone(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "throne")} disabled={isTimeLocked || isPrivateEnabled}>
               {selectedNote.noteKind === "throne" || hasThroneNote ? "Refresh Throne" : "Throne"}
             </button>
           </div>

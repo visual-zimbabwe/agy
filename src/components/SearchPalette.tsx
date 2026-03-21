@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { TextField } from "@/components/ui/Field";
 import { getEisenhowerPreview } from "@/features/wall/eisenhower";
+import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import type { Note } from "@/features/wall/types";
 
 export type CommandPaletteCommand = {
@@ -94,10 +95,11 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
     if (commandsOnly) {
       return [];
     }
+    const searchableNotes = notes.filter((note) => !isPrivateNote(note));
     if (!normalizedQuery) {
-      return notes.slice(0, 12);
+      return searchableNotes.slice(0, 12);
     }
-    return notesFuse.search(normalizedQuery, { limit: 20 }).map((result) => result.item);
+    return notesFuse.search(normalizedQuery, { limit: 20 }).map((result) => result.item).filter((note) => !isPrivateNote(note));
   }, [commandsOnly, normalizedQuery, notes, notesFuse]);
 
   const results = useMemo<PaletteResult[]>(
@@ -241,8 +243,9 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
           }
 
           const note = result.note;
-          const noteTitle =
-            note.noteKind === "canon"
+          const noteTitle = isPrivateNote(note)
+            ? privateNoteTitle(note)
+            : note.noteKind === "canon"
               ? note.canon?.title?.trim() || note.text.trim().split("\n")[0]
               : note.text.trim().split("\n")[0];
           const notePreview =
@@ -256,7 +259,9 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
                 : [note.canon?.statement, note.canon?.interpretation].filter(Boolean).join(" ")
               : note.noteKind === "eisenhower"
                 ? getEisenhowerPreview(note)
-                : note.text;
+                : isPrivateNote(note)
+                  ? "Protected content is hidden from search results."
+                  : note.text;
           return (
             <button
               type="button"
