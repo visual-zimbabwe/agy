@@ -25,7 +25,7 @@ import {
 } from "@/features/wall/poetry";
 import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS, POETRY_NOTE_DEFAULTS } from "@/features/wall/constants";
 import { createBookmarkNoteState, normalizeBookmarkUrl, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
-import { ECONOMIST_NOTE_DEFAULTS } from "@/features/wall/economist";
+import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, formatEconomistNoteText, getEconomistMagazineSource, getEconomistNoteSourceId } from "@/features/wall/economist";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import type { Note, NoteTextFont, PoetrySearchField, PoetrySearchMatchType } from "@/features/wall/types";
 
@@ -121,6 +121,8 @@ export const NoteInspectorSection = ({
     return null;
   }
 
+  const selectedMagazineSourceId = selectedNote.noteKind === "economist" ? getEconomistNoteSourceId(selectedNote) ?? "economist" : "economist";
+
   const setNoteKind = (kind: Note["noteKind"]) => {
     const toQuote = kind === "quote" && selectedNote.noteKind !== "quote";
     const toCanon = kind === "canon" && selectedNote.noteKind !== "canon";
@@ -130,12 +132,17 @@ export const NoteInspectorSection = ({
     const toApod = kind === "apod" && selectedNote.noteKind !== "apod";
     const toPoetry = kind === "poetry" && selectedNote.noteKind !== "poetry";
     const toEconomist = kind === "economist" && selectedNote.noteKind !== "economist";
+    const economistSource = getEconomistMagazineSource(selectedMagazineSourceId);
 
     onUpdateNote(selectedNote.id, {
       noteKind: selectedNote.noteKind === kind ? "standard" : kind,
-      text: toBookmark ? "" : selectedNote.text,
-      quoteAuthor: toQuote ? "" : undefined,
-      quoteSource: toQuote ? "" : undefined,
+      text: toBookmark
+        ? ""
+        : toEconomist
+          ? formatEconomistNoteText({ sourceName: economistSource.sourceName, displayLabel: "Latest cover", displayDate: "" })
+          : selectedNote.text,
+      quoteAuthor: toQuote ? "" : toEconomist ? economistSource.sourceUrl : undefined,
+      quoteSource: toQuote ? "" : toEconomist ? "Latest cover" : undefined,
       canon: toCanon
         ? {
             mode: "single",
@@ -170,9 +177,21 @@ export const NoteInspectorSection = ({
               : toPoetry
                 ? [...new Set([...selectedNote.tags, "poetry", "poem"])]
                 : toEconomist
-                  ? [...new Set([...selectedNote.tags, "economist", "cover", "magazine"])]
+                  ? [economistSource.sourceId, "cover", "magazine"]
                   : selectedNote.tags,
     });
+  };
+
+  const applyMagazineSource = (sourceId: string) => {
+    const source = getEconomistMagazineSource(sourceId);
+    onUpdateNote(selectedNote.id, {
+      text: formatEconomistNoteText({ sourceName: source.sourceName, displayLabel: "Latest cover", displayDate: "" }),
+      quoteAuthor: source.sourceUrl,
+      quoteSource: "Latest cover",
+      imageUrl: undefined,
+      tags: [source.sourceId, "cover", "magazine"],
+    });
+    onRefreshEconomist(selectedNote.id);
   };
 
   const normalizedPoetryQuery = normalizePoetrySearchQuery(poetrySearchQuery);
@@ -414,6 +433,31 @@ export const NoteInspectorSection = ({
           </div>
         )}
 
+        {selectedNote.noteKind === "economist" && (
+          <div className={sectionBlockClass}>
+            <p className={sectionLabelClass}>Magazine Source</p>
+            <div className="grid gap-2">
+              <select
+                value={selectedMagazineSourceId}
+                onChange={(event) => applyMagazineSource(event.target.value)}
+                className={detailField}
+                disabled={isTimeLocked}
+                aria-label="Magazine cover source"
+              >
+                {ECONOMIST_MAGAZINE_SOURCES.map((source) => (
+                  <option key={`magazine-source-${source.sourceId}`} value={source.sourceId}>
+                    {source.sourceName}
+                  </option>
+                ))}
+              </select>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => onRefreshEconomist(selectedNote.id)} className={detailButton} disabled={isTimeLocked}>Refresh Cover</button>
+                <button type="button" onClick={() => onOpenBookmarkUrl(selectedNote.quoteAuthor ?? getEconomistMagazineSource(selectedMagazineSourceId).sourceUrl)} className={detailButton}>Open Source</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Backlinks</p>
           {backlinks.length === 0 ? (
@@ -499,7 +543,7 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked}>Bookmark</button>
             <button type="button" onClick={() => setNoteKind("apod")} className={typeButtonClass(selectedNote.noteKind === "apod")} disabled={isTimeLocked}>APOD</button>
             <button type="button" onClick={() => selectedNote.noteKind === "poetry" ? onRefreshPoetry(selectedNote.id) : setNoteKind("poetry")} className={typeButtonClass(selectedNote.noteKind === "poetry")} disabled={isTimeLocked}>{selectedNote.noteKind === "poetry" ? "Refresh Poetry" : "Poetry"}</button>
-            <button type="button" onClick={() => selectedNote.noteKind === "economist" ? onRefreshEconomist(selectedNote.id) : setNoteKind("economist")} className={typeButtonClass(selectedNote.noteKind === "economist")} disabled={isTimeLocked}>{selectedNote.noteKind === "economist" ? "Refresh Economist" : "Economist"}</button>
+            <button type="button" onClick={() => selectedNote.noteKind === "economist" ? onRefreshEconomist(selectedNote.id) : setNoteKind("economist")} className={typeButtonClass(selectedNote.noteKind === "economist")} disabled={isTimeLocked}>{selectedNote.noteKind === "economist" ? "Refresh Cover" : "Magazine Cover"}</button>
             <button type="button" onClick={() => onToggleOrRefreshJoker(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "joker")} disabled={isTimeLocked}>
               {selectedNote.noteKind === "joker" || hasJokerNote ? "Refresh Joker" : "Joker"}
             </button>

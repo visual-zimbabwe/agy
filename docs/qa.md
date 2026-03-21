@@ -1143,9 +1143,9 @@ Expected:
 3. Verify each note loads a cover image and shows the correct magazine title plus issue label instead of all notes collapsing to `The Economist`.
 4. Open the command palette, run `Create magazine cover notes`, and verify another full set of magazine-cover notes is created near viewport center.
 5. Press `Shift + M` and verify the keyboard shortcut creates another full set of magazine-cover notes.
-6. Convert an existing standard note through `Details > Note Type > Economist` and verify it becomes a single Economist-shell cover note with the reserved styling.
-7. Open any magazine floating editor and click `Refresh Cover`; verify that note refetches only its own source without changing the other magazine notes.
-8. Click `Open Source` on at least two different magazine notes and verify each opens the correct archive page for that magazine.
+6. Convert an existing standard note through `Details > Note Type > Magazine Cover` and verify it becomes a single magazine-cover note with the reserved styling.
+7. In `Details`, change `Magazine Source` on that selected note to `Barron's`, verify only that note switches source, and verify it refreshes to the latest Barron's cover without changing the other magazine notes.
+8. Use `Refresh Cover` and `Open Source` in `Details` for the selected note, then verify the refresh only affects that note and the source link opens the correct archive page for the chosen magazine.
 9. Refresh `/wall` while signed in and verify existing magazine-cover notes automatically refresh against their own sources on hydration/login.
 10. Duplicate a non-Economist magazine-cover note and verify the duplicate keeps the reserved styling, then refresh it and verify it still resolves the same magazine source.
 11. If cloud sync is enabled, sync, reload, and verify the magazine-cover notes still render their cover images and source/date metadata after hydration.
@@ -1155,6 +1155,7 @@ Expected:
 - The multi-cover action creates one Economist-shell note per magazine source exposed by the local API.
 - The note uses the local backend proxy routes rather than calling the local cover API directly from the browser.
 - Sign-in or wall hydration refreshes existing magazine-cover notes against their own sources automatically.
+- The Details `Magazine Source` picker lets a single selected note switch to a different magazine source without recreating the full set.
 - Manual refresh updates the existing note in place without cross-overwriting other magazine notes.
 - Cover imagery, source actions, and floating editors remain fully visible on desktop and mobile layouts.
 ## Currency Note (`/wall`) (2026-03-19)
@@ -1179,6 +1180,8 @@ Expected:
 - Location detection degrades from geolocation to IP lookup to USD fallback cleanly.
 - Exchange-rate fetches are lazy, cached, debounced, and recover gracefully from API failures.
 - The note remains legible and premium-looking in both light and dark themes.
+
+
 
 
 
