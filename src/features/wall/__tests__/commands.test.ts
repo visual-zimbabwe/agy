@@ -281,3 +281,4 @@ describe("wall commands", () => {
     expect(links[0]?.toNoteId).toBe(tailId);
   });
 });
+

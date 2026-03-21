@@ -7,7 +7,7 @@
 - Wall `web-bookmark` notes with server-side metadata fetch, local URL-level caching, timeline/detail previews, and synced bookmark payload support
 - Wall `apod` notes backed by the NASA Astronomy Picture of the Day API, including daily refresh, backend download flow, and synced APOD payload support
 - Wall `poetry` notes backed by PoetryDB, including daily auto-refresh, details-sidebar poem search by PoetryDB fields, adaptive poem sizing, and PNG/PDF export actions
-- Wall `economist` cover notes backed by the local magazine-cover API, including login-time refresh, details conversion, and floating source/refresh actions
+- Wall `economist` cover notes backed by the local magazine-cover API, including multi-source creation for Economist/Barron's/New Yorker/Newsweek/Forbes, login-time refresh, details conversion, and floating source/refresh actions
 - Canonical documentation structure under `docs/product`, `docs/architecture`, `docs/features`, `docs/api`, `docs/runbooks`, and `docs/releases`
 - Initial convert API doc
 - Initial page file storage debugging runbook
@@ -43,6 +43,7 @@
 ## Notes
 
 Use this file as the running release history for user-visible and contributor-relevant documentation changes. Add dated release files later if release-specific notes need more detail.
+
 
 
 

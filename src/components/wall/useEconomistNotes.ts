@@ -6,19 +6,23 @@ import {
   defaultEconomistCoverPayload,
   ECONOMIST_NOTE_CACHE_KEY,
   formatEconomistNoteText,
+  getEconomistNoteSourceId,
   isEconomistNote,
-  shouldRefreshEconomistNote,
   type EconomistCoverPayload,
+  type EconomistSourceId,
+  shouldRefreshEconomistNote,
 } from "@/features/wall/economist";
 import { useWallStore } from "@/features/wall/store";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
-const readEconomistCache = () => {
+const getEconomistCacheKey = (sourceId: EconomistSourceId) => `${ECONOMIST_NOTE_CACHE_KEY}:${sourceId}`;
+
+const readEconomistCache = (sourceId: EconomistSourceId) => {
   if (typeof window === "undefined") {
     return null;
   }
   try {
-    const raw = readStorageValue(ECONOMIST_NOTE_CACHE_KEY);
+    const raw = readStorageValue(getEconomistCacheKey(sourceId));
     if (!raw) {
       return null;
     }
@@ -33,7 +37,7 @@ const writeEconomistCache = (payload: EconomistCoverPayload) => {
     return;
   }
   try {
-    writeStorageValue(ECONOMIST_NOTE_CACHE_KEY, JSON.stringify(payload));
+    writeStorageValue(getEconomistCacheKey(payload.sourceId), JSON.stringify(payload));
   } catch {
     // Ignore cache write failures; live refresh still works.
   }
@@ -47,31 +51,38 @@ const applyEconomistPayload = (noteId: string, payload: EconomistCoverPayload) =
     quoteAuthor: payload.sourceUrl,
     quoteSource: payload.displayDate || payload.displayLabel,
     imageUrl: payload.imageUrl,
+    tags: [payload.sourceId, "cover", "magazine"],
   });
 };
 
 export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { hydrated: boolean; publishedReadOnly: boolean; loginKey?: string }) => {
   const notesMap = useWallStore((state) => state.notes);
-  const inFlightRef = useRef<Promise<EconomistCoverPayload> | null>(null);
+  const inFlightRef = useRef<Partial<Record<EconomistSourceId, Promise<EconomistCoverPayload>>>>({});
 
-  const fetchEconomistCover = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
-    const cached = readEconomistCache();
+  const fetchEconomistCover = useCallback(async ({ sourceId = "economist", force = false }: { sourceId?: EconomistSourceId; force?: boolean } = {}) => {
+    const cached = readEconomistCache(sourceId);
     if (cached && !force) {
       return cached;
     }
 
-    if (inFlightRef.current) {
-      return inFlightRef.current;
+    const inFlight = inFlightRef.current[sourceId];
+    if (inFlight) {
+      return inFlight;
     }
 
     const task = (async () => {
-      const response = await fetch(`/api/economist-cover${force ? "?refresh=true" : ""}`, { cache: "no-store" });
+      const params = new URLSearchParams({ source: sourceId });
+      if (force) {
+        params.set("refresh", "true");
+      }
+      const response = await fetch(`/api/economist-cover?${params.toString()}`, { cache: "no-store" });
       const payload = (await response.json()) as Partial<EconomistCoverPayload> & { error?: string };
       if (!response.ok || !payload.imageUrl) {
-        throw new Error(payload.error ?? `Economist cover request failed with ${response.status}`);
+        throw new Error(payload.error ?? `Magazine cover request failed with ${response.status}`);
       }
 
       const nextPayload = defaultEconomistCoverPayload({
+        sourceId,
         sourceName: payload.sourceName,
         displayDate: payload.displayDate,
         displayLabel: payload.displayLabel,
@@ -82,10 +93,10 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
       writeEconomistCache(nextPayload);
       return nextPayload;
     })().finally(() => {
-      inFlightRef.current = null;
+      delete inFlightRef.current[sourceId];
     });
 
-    inFlightRef.current = task;
+    inFlightRef.current[sourceId] = task;
     return task;
   }, []);
 
@@ -98,7 +109,8 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
       if (!note || !isEconomistNote(note)) {
         return;
       }
-      const payload = await fetchEconomistCover({ force: options?.force });
+      const sourceId = getEconomistNoteSourceId(note) ?? "economist";
+      const payload = await fetchEconomistCover({ sourceId, force: options?.force });
       applyEconomistPayload(noteId, payload);
     },
     [fetchEconomistCover, publishedReadOnly],
@@ -120,14 +132,22 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
         return;
       }
 
-      try {
-        const payload = await fetchEconomistCover({ force });
-        for (const note of targetNotes) {
-          applyEconomistPayload(note.id, payload);
-        }
-      } catch {
-        // Keep last successful local state; manual refresh can retry.
+      const notesBySource = new Map<EconomistSourceId, typeof targetNotes>();
+      for (const note of targetNotes) {
+        const sourceId = getEconomistNoteSourceId(note) ?? "economist";
+        const group = notesBySource.get(sourceId) ?? [];
+        group.push(note);
+        notesBySource.set(sourceId, group);
       }
+
+      await Promise.allSettled(
+        Array.from(notesBySource.entries()).map(async ([sourceId, groupedNotes]) => {
+          const payload = await fetchEconomistCover({ sourceId, force });
+          for (const note of groupedNotes) {
+            applyEconomistPayload(note.id, payload);
+          }
+        }),
+      );
     },
     [fetchEconomistCover, publishedReadOnly],
   );

@@ -1,6 +1,7 @@
 import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, POETRY_NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
 import { buildEconomistNote, ECONOMIST_NOTE_DEFAULTS, isEconomistNote } from "@/features/wall/economist";
+import type { EconomistCoverPayload } from "@/features/wall/economist";
 import { buildApodNote, isApodNote } from "@/features/wall/apod";
 import { buildPoetryNote, isPoetryNote } from "@/features/wall/poetry";
 import { createBookmarkNoteState, isWebBookmarkNote, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
@@ -350,11 +351,13 @@ export const createPoetryNote = (x: number, y: number) => {
   return note.id;
 };
 
-export const createEconomistNote = (x: number, y: number) => {
-  const note = buildEconomistNote(makeId(), x, y);
+export const createEconomistNote = (x: number, y: number, payload?: Partial<EconomistCoverPayload>, options?: { select?: boolean }) => {
+  const note = buildEconomistNote(makeId(), x, y, payload);
   const { upsertNote, selectNote } = useWallStore.getState();
   upsertNote(note);
-  selectNote(note.id);
+  if (options?.select !== false) {
+    selectNote(note.id);
+  }
   return note.id;
 };
 
@@ -1024,6 +1027,10 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
     state.selectGroup(groupId);
   });
 };
+
+
+
+
 
 
 

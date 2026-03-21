@@ -28,7 +28,7 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 - web bookmark note creation
 - NASA APOD note creation
 - Poetry note creation
-- Economist cover note creation
+- Magazine cover note creation through the Economist note shell
 
 These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands.
 
@@ -45,7 +45,7 @@ NASA APOD notes create a dedicated astronomy card powered by the NASA Astronomy 
 Poetry notes create a dedicated poem card powered by PoetryDB. The wall can create them from the Tools panel, from the command palette, or by converting an existing note through `Details > Note Type`. In `Details`, Poetry notes expose a search form that can query PoetryDB by random daily poem, author, title, line text, or line count, with partial or exact matching where supported. The selected search method is saved with the note, reused by manual refresh, and reused again when the local-day auto-refresh runs. Poetry notes cache results per day and search method locally, wrap the poem body, and resize themselves so the full poem is visible on initial creation. Poetry notes also expose manual refresh plus image and PDF export actions from the floating editor. Their deep red `#B73A3A` color is reserved for this note type.
 
 
-Economist notes create a dedicated magazine-cover card powered by the local Ravens Magazine Cover API through the app backend route at `/api/economist-cover`. The wall can create them from the Tools panel, from the command palette, from the `Shift + M` shortcut, or by converting an existing note through `Details > Note Type`. Economist notes store the latest cover image in `imageUrl`, keep the source cover page in quote metadata, and reuse a local cache so repeated refreshes do not hammer the upstream service. When a signed-in wall hydrates, Economist notes force-refresh against the latest cover so the issue art updates on login without creating duplicate notes. Their warm paper `#F6EFE2` color is reserved for this note type.
+Economist notes create a dedicated magazine-cover card powered by the local Ravens Magazine Cover API through the app backend routes at `/api/economist-cover` and `/api/economist-cover/sources`. The wall now uses the Economist note shell for every supported magazine source returned by the API docs, so the Tools panel, command palette, and `Shift + M` shortcut create one cover note per source instead of just one Economist note. Each created note seeds its own source name and archive URL, stores the fetched cover image in `imageUrl`, keeps the source cover page in quote metadata, and reuses a per-source local cache so repeated refreshes do not hammer the upstream service. When a signed-in wall hydrates, existing magazine-cover notes force-refresh against their own source so the issue art updates on login without collapsing every note back to Economist. Their warm paper `#F6EFE2` color is reserved for this note type.
 
 ## Note Kinds
 
@@ -126,6 +126,7 @@ This makes notes the core unit of wall content, but not the only structural elem
 - `docs/architecture/state-and-storage.md`
 - `docs/features/search-and-retrieval.md`
 - `docs/features/timeline-view.md`
+
 
 
 

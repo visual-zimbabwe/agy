@@ -181,10 +181,10 @@ export const WallToolsPanel = ({
             <span>New Poetry</span>
           </button>
         </ControlTooltip>
-        <ControlTooltip label="Create an Economist cover note that loads the latest issue art" className="relative block" side="right">
-          <button type="button" onClick={onCreateEconomistNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create Economist cover note">
+        <ControlTooltip label="Create one magazine-cover note for each source exposed by the local API" className="relative block" side="right">
+          <button type="button" onClick={onCreateEconomistNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create magazine cover notes">
             <Icon name="note" />
-            <span>New Economist</span>
+            <span>Magazine Covers</span>
           </button>
         </ControlTooltip>
         <ControlTooltip label="Create an Eisenhower Matrix note" className="relative block" side="right">
@@ -334,3 +334,4 @@ export const WallToolsPanel = ({
     </aside>
   );
 };
+

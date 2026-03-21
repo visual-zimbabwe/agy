@@ -1138,24 +1138,24 @@ Expected:
 - The reserved Poetry color remains fixed and persists through refresh and sync.
 
 ## Economist Cover Note (`/wall`) (2026-03-20)
-1. Open `/wall`, open `Tools`, and click `New Economist`.
-2. Verify a new Economist note appears with the reserved warm paper styling and a cover-image shell instead of a blank text note.
-3. Verify the note loads the latest Economist cover image, shows `The Economist`, and shows the current issue date label.
-4. Open the command palette, run `Create Economist cover note`, and verify another Economist note is created at viewport center.
-5. Press `Shift + M` and verify the keyboard shortcut creates a new Economist note.
-6. Convert an existing standard note through `Details > Note Type > Economist` and verify it becomes an Economist note with the reserved styling.
-7. Open the Economist floating editor and click `Refresh Cover`; verify the note refetches the latest cover without creating a duplicate note.
-8. Click `Open Source` and verify the Economist covers page opens in a new tab.
-9. Refresh `/wall` while signed in and verify existing Economist notes automatically refresh to the latest cover on hydration/login.
-10. Refresh `/wall` again without a newer issue available and verify the note remains stable instead of duplicating or breaking layout.
-11. If cloud sync is enabled, sync, reload, and verify the Economist note still renders its cover image and source/date metadata after hydration.
-12. Resize the note smaller and larger on desktop and mobile-sized viewports; verify the cover image remains visible, floating controls stay on-screen, and nothing clips against viewport edges.
+1. Open `/wall`, open `Tools`, and click `Magazine Covers`.
+2. Verify five warm-paper magazine-cover notes appear near viewport center, one each for `The Economist`, `Barron's`, `The New Yorker`, `Newsweek`, and `Forbes`.
+3. Verify each note loads a cover image and shows the correct magazine title plus issue label instead of all notes collapsing to `The Economist`.
+4. Open the command palette, run `Create magazine cover notes`, and verify another full set of magazine-cover notes is created near viewport center.
+5. Press `Shift + M` and verify the keyboard shortcut creates another full set of magazine-cover notes.
+6. Convert an existing standard note through `Details > Note Type > Economist` and verify it becomes a single Economist-shell cover note with the reserved styling.
+7. Open any magazine floating editor and click `Refresh Cover`; verify that note refetches only its own source without changing the other magazine notes.
+8. Click `Open Source` on at least two different magazine notes and verify each opens the correct archive page for that magazine.
+9. Refresh `/wall` while signed in and verify existing magazine-cover notes automatically refresh against their own sources on hydration/login.
+10. Duplicate a non-Economist magazine-cover note and verify the duplicate keeps the reserved styling, then refresh it and verify it still resolves the same magazine source.
+11. If cloud sync is enabled, sync, reload, and verify the magazine-cover notes still render their cover images and source/date metadata after hydration.
+12. Resize the notes smaller and larger on desktop and mobile-sized viewports; verify the cover image remains visible, floating controls stay on-screen, and nothing clips against viewport edges.
 
 Expected:
-- Economist notes are creatable from `Tools`, the command palette, keyboard shortcut, and note-type conversion in `Details`.
-- The note uses the local backend proxy route rather than calling the local cover API directly from the browser.
-- Sign-in or wall hydration refreshes existing Economist notes to the latest cover automatically.
-- Manual refresh updates the existing note in place without creating duplicates.
+- The multi-cover action creates one Economist-shell note per magazine source exposed by the local API.
+- The note uses the local backend proxy routes rather than calling the local cover API directly from the browser.
+- Sign-in or wall hydration refreshes existing magazine-cover notes against their own sources automatically.
+- Manual refresh updates the existing note in place without cross-overwriting other magazine notes.
 - Cover imagery, source actions, and floating editors remain fully visible on desktop and mobile layouts.
 ## Currency Note (`/wall`) (2026-03-19)
 1. Open `/wall` and verify one indigo `Currency` system note is present near the top-left of the wall.
@@ -1179,4 +1179,7 @@ Expected:
 - Location detection degrades from geolocation to IP lookup to USD fallback cleanly.
 - Exchange-rate fetches are lazy, cached, debounced, and recover gracefully from API failures.
 - The note remains legible and premium-looking in both light and dark themes.
+
+
+
 
