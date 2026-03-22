@@ -1226,7 +1226,7 @@ Expected:
 11. Enter a wrong replacement passphrase for an already-encrypted workspace and verify the app relocks into a recovery notice instead of crashing with a crypto error.
 12. Retry with the original passphrase and verify unlock succeeds immediately, the local config is repaired from ciphertext validation, and the recovery notice clears.
 13. Enter another incorrect passphrase after recovery and verify the gate rejects it before the wall loads with a sync error banner.
-14. From the unlock recovery notice, run `Run local recovery diagnostic` and verify it reports whether encrypted wall and page snapshots exist on the current device.
+14. In unlock mode, run `Run local recovery diagnostic` and verify it reports whether encrypted wall and page snapshots exist on the current device, even when the gate only shows an inline passphrase error.
 15. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
 16. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
 
@@ -1238,4 +1238,5 @@ Expected results:
 - Public snapshot links are disabled.
 - Readable exports require confirmation.
 - Existing content remains accessible after migration.
+
 

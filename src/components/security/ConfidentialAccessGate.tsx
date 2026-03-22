@@ -95,23 +95,6 @@ export const ConfidentialAccessGate = ({
               <Button type="button" variant="secondary" onClick={() => onClearRecoveryMessage?.()}>
                 Dismiss notice
               </Button>
-              {onRunRecoveryDiagnostic ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={diagnosticPending}
-                  onClick={async () => {
-                    setDiagnosticPending(true);
-                    try {
-                      setDiagnostic(await onRunRecoveryDiagnostic());
-                    } finally {
-                      setDiagnosticPending(false);
-                    }
-                  }}
-                >
-                  {diagnosticPending ? "Checking local data..." : "Run local recovery diagnostic"}
-                </Button>
-              ) : null}
             </div>
           </div>
         ) : null}
@@ -169,6 +152,23 @@ export const ConfidentialAccessGate = ({
           <Button type="submit" variant="primary" disabled={submitting}>
             {mode === "create" ? "Enable Confidential Mode" : "Unlock"}
           </Button>
+          {mode === "unlock" && onRunRecoveryDiagnostic ? (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={diagnosticPending || submitting}
+              onClick={async () => {
+                setDiagnosticPending(true);
+                try {
+                  setDiagnostic(await onRunRecoveryDiagnostic());
+                } finally {
+                  setDiagnosticPending(false);
+                }
+              }}
+            >
+              {diagnosticPending ? "Checking local data..." : "Run local recovery diagnostic"}
+            </Button>
+          ) : null}
           {!hasConfig ? (
             <Button
               type="button"
