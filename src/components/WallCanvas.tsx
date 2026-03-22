@@ -122,7 +122,7 @@ import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, type EconomistMaga
 import { getPoetryNoteDimensions } from "@/features/wall/poetry";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
-import type { PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
+import type { Note, PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
 import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
@@ -1738,11 +1738,37 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     viewport,
     setCamera,
   });
+  const displayNotesById = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(renderSnapshot.notes).map(([noteId, note]) => {
+          const session = privateSessions[noteId];
+          if (!isPrivateNote(note) || !session) {
+            return [noteId, note];
+          }
+          return [
+            noteId,
+            {
+              ...note,
+              ...session.hidden,
+              noteKind: session.hidden.noteKind ?? note.noteKind,
+              tags: session.hidden.tags.length > 0 ? session.hidden.tags : note.tags,
+              privateNote: undefined,
+            },
+          ];
+        }),
+      ) as Record<string, Note>,
+    [privateSessions, renderSnapshot.notes],
+  );
   const focusedNote = focusedNoteId ? renderSnapshot.notes[focusedNoteId] : undefined;
   const isFocusMode = Boolean(focusedNote);
   const renderVisibleNotes = useMemo(
     () => (focusedNote ? visibleNotes.filter((note) => note.id === focusedNote.id) : visibleNotes),
     [focusedNote, visibleNotes],
+  );
+  const displayVisibleNotes = useMemo(
+    () => renderVisibleNotes.map((note) => displayNotesById[note.id] ?? note),
+    [displayNotesById, renderVisibleNotes],
   );
   const renderVisibleZones = useMemo(() => (focusedNote ? [] : visibleZones), [focusedNote, visibleZones]);
   const renderVisibleLinks = useMemo(() => (focusedNote ? [] : visibleLinks), [focusedNote, visibleLinks]);
@@ -2993,7 +3019,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             <WallLinksZonesLayer
               visibleLinks={renderVisibleLinks}
               visibleZones={renderVisibleZones}
-              notesById={renderSnapshot.notes}
+              notesById={displayNotesById}
               selectedLinkId={ui.selectedLinkId}
               selectedNoteId={ui.selectedNoteId}
               selectedZoneId={ui.selectedZoneId}
@@ -3041,7 +3067,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             )}
 
             <WallNotesLayer
-              visibleNotes={renderVisibleNotes}
+              visibleNotes={displayVisibleNotes}
               activeSelectedNoteIds={activeSelectedNoteIds}
               selectedNoteId={ui.selectedNoteId}
               flashNoteId={ui.flashNoteId}
