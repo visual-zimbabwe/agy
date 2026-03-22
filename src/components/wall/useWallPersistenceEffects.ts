@@ -7,7 +7,7 @@ import { createJokerNote, refreshJokerNote } from "@/features/wall/commands";
 import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { hasJokerCardBeenActivated, jokerErrorText, jokerLoadingText, markJokerCardActivated } from "@/features/wall/joker";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
-import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
+import { archiveWallRecoverySnapshot, createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
 import { defaultWallTitle } from "@/lib/brand";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
@@ -163,6 +163,23 @@ export const useWallPersistenceEffects = ({
         const migrationKey = `agy-cloud-imported-v1:${wallId}`;
         const legacyMigrationKey = `idea-wall-cloud-imported-v1:${wallId}`;
         const canPromptImport = typeof window !== "undefined" && !readStorageValue(migrationKey, [legacyMigrationKey]);
+        const localSerialized = JSON.stringify(snapshot);
+        const serverSerialized = JSON.stringify(serverSnapshot);
+        const snapshotsConflict = hasContent(snapshot) && hasContent(serverSnapshot) && localSerialized !== serverSerialized;
+
+        if (snapshotsConflict) {
+          await Promise.all([
+            archiveWallRecoverySnapshot(snapshot, confidentialPassphrase, {
+              scope: "local",
+              reason: `pre-merge-local:${wallId}`,
+            }),
+            archiveWallRecoverySnapshot(serverSnapshot, confidentialPassphrase, {
+              scope: "cloud",
+              reason: `pre-merge-cloud:${wallId}`,
+            }),
+          ]);
+        }
+
         let nextSnapshot = mergeSnapshotsLww(serverSnapshot, snapshot);
 
         if (hasContent(snapshot) && !hasContent(serverSnapshot) && canPromptImport && typeof window !== "undefined") {

@@ -21,7 +21,9 @@ This covers workspace unlock, local persistence, cloud snapshot sync, encrypted 
 - When a decrypt mismatch is detected, the workspace relocks and the access gate shows a recovery notice instead of surfacing a raw crypto error.
 - Unlock verifies the entered passphrase against locally stored encrypted wall or page snapshots when available, then repairs the local config only after ciphertext verification succeeds.
 - The unlock gate can run a local recovery diagnostic that reports whether encrypted wall snapshots, encrypted page snapshots, and a local workspace config are present on the current device.
+- The unlock gate also reports how many encrypted wall recovery snapshots were preserved locally before conflicting cloud merges.
 - Local wall snapshots, wall timeline history, and page snapshots are written as encrypted payloads after unlock.
+- When both local and cloud wall snapshots contain different content, the client preserves encrypted recovery copies of each side locally before continuing the merge flow.
 - Cloud wall sync stores an encrypted snapshot on the `walls` row when the latest migration is present.
 - Cloud page sync stores an encrypted snapshot on the `page_docs` row when the latest migration is present.
 - Page file uploads are encrypted client-side before they are stored in Supabase Storage, and the browser decrypts them only after a signed URL is resolved during an unlocked session.
@@ -46,6 +48,7 @@ Ciphertext exists in:
 - encrypted page cloud snapshots
 - encrypted page file objects in Supabase Storage
 - encrypted wall backup exports
+- encrypted local wall recovery snapshots created before conflicting cloud merges
 
 ## Migration and Recovery
 

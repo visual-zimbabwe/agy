@@ -105,8 +105,9 @@ export const ConfidentialAccessGate = ({
             <p>Encrypted wall snapshot on this device: {diagnostic.localSecureWallSnapshot ? "yes" : "no"}</p>
             <p>Encrypted page snapshot on this device: {diagnostic.localSecurePageSnapshot ? "yes" : "no"}</p>
             <p>Local workspace config present: {diagnostic.configPresent ? "yes" : "no"}</p>
+            <p>Archived wall recovery snapshots on this device: {diagnostic.wallRecoverySnapshots}</p>
             <p className="text-[var(--color-text-muted)]">
-              If encrypted local snapshots exist, the correct passphrase should unlock before any cloud sync runs. If both are `no`, recovery depends on another unlocked session or a cloud path not yet exposed here.
+              If encrypted local snapshots exist, the correct passphrase should unlock before any cloud sync runs. Recovery snapshots are encrypted copies preserved before conflicting local and cloud wall states merge. If both local snapshot checks are `no`, recovery depends on another unlocked session or a cloud path not yet exposed here.
             </p>
           </div>
         ) : null}

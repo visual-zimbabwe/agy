@@ -28,9 +28,19 @@ type SecureTimelineSnapshotRecord = {
   payload: string;
 };
 
+type RecoverySnapshotRecord = {
+  id?: number;
+  ts: number;
+  scope: "local" | "cloud";
+  reason: string;
+  fingerprint: string;
+  payload: string;
+};
+
 const wallDatabaseName = `${appSlug}-db`;
 const legacyWallDatabaseName = `${legacyAppSlug}-db`;
 const secureSnapshotKey = "secure-snapshot-v1";
+const recoverySnapshotLimit = 24;
 
 class WallDatabase extends Dexie {
   notes!: Table<Note, string>;
@@ -42,6 +52,7 @@ class WallDatabase extends Dexie {
   timelineSnapshots!: Table<TimelineSnapshotRecord, number>;
   secure!: Table<SecureRecord, string>;
   secureTimelineSnapshots!: Table<SecureTimelineSnapshotRecord, number>;
+  recoverySnapshots!: Table<RecoverySnapshotRecord, number>;
 
   constructor(name: string) {
     super(name);
@@ -91,6 +102,18 @@ class WallDatabase extends Dexie {
       secure: "key, updatedAt",
       secureTimelineSnapshots: "++id, ts",
     });
+    this.version(7).stores({
+      notes: "id, updatedAt",
+      zones: "id, groupId, updatedAt",
+      zoneGroups: "id, updatedAt",
+      noteGroups: "id, updatedAt",
+      links: "id, fromNoteId, toNoteId, updatedAt",
+      meta: "key",
+      timelineSnapshots: "++id, ts",
+      secure: "key, updatedAt",
+      secureTimelineSnapshots: "++id, ts",
+      recoverySnapshots: "++id, ts, fingerprint",
+    });
   }
 }
 
@@ -111,8 +134,26 @@ const databaseHasData = async (database: WallDatabase) => {
     database.timelineSnapshots.count(),
     database.secure.count(),
     database.secureTimelineSnapshots.count(),
+    database.recoverySnapshots.count().catch(() => 0),
   ]);
   return counts.some((count) => count > 0);
+};
+
+const buildRecoveryFingerprint = (snapshot: PersistedWallState) => {
+  const notes = Object.values(snapshot.notes);
+  const imageNotes = notes.filter((note) => Boolean(note.imageUrl?.trim())).length;
+  const latestUpdatedAt = notes.reduce((max, note) => Math.max(max, note.updatedAt), 0);
+  return [
+    notes.length,
+    Object.keys(snapshot.zones).length,
+    Object.keys(snapshot.links).length,
+    imageNotes,
+    latestUpdatedAt,
+    snapshot.lastColor ?? "",
+    snapshot.camera.x,
+    snapshot.camera.y,
+    snapshot.camera.zoom,
+  ].join("|");
 };
 
 const migrateLegacyWallDatabaseIfNeeded = async () => {
@@ -129,7 +170,7 @@ const migrateLegacyWallDatabaseIfNeeded = async () => {
         return;
       }
 
-      const [notes, zones, zoneGroups, noteGroups, links, meta, timelineSnapshots, secure, secureTimelineSnapshots] = await Promise.all([
+      const [notes, zones, zoneGroups, noteGroups, links, meta, timelineSnapshots, secure, secureTimelineSnapshots, recoverySnapshots] = await Promise.all([
         legacyDb.notes.toArray(),
         legacyDb.zones.toArray(),
         legacyDb.zoneGroups.toArray(),
@@ -139,11 +180,12 @@ const migrateLegacyWallDatabaseIfNeeded = async () => {
         legacyDb.timelineSnapshots.toArray(),
         legacyDb.secure.toArray().catch(() => []),
         legacyDb.secureTimelineSnapshots.toArray().catch(() => []),
+        legacyDb.recoverySnapshots.toArray().catch(() => []),
       ]);
 
       await db.transaction(
         "rw",
-        [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta, db.timelineSnapshots, db.secure, db.secureTimelineSnapshots],
+        [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta, db.timelineSnapshots, db.secure, db.secureTimelineSnapshots, db.recoverySnapshots],
         async () => {
           if (notes.length > 0) {
             await db.notes.bulkPut(notes);
@@ -171,6 +213,9 @@ const migrateLegacyWallDatabaseIfNeeded = async () => {
           }
           if (secureTimelineSnapshots.length > 0) {
             await db.secureTimelineSnapshots.bulkPut(secureTimelineSnapshots);
+          }
+          if (recoverySnapshots.length > 0) {
+            await db.recoverySnapshots.bulkPut(recoverySnapshots);
           }
         },
       );
@@ -230,6 +275,11 @@ export const hasLocalSecureWallSnapshot = async (): Promise<boolean> => {
   return Boolean(await db.secure.get(secureSnapshotKey));
 };
 
+export const countWallRecoverySnapshots = async (): Promise<number> => {
+  await migrateLegacyWallDatabaseIfNeeded();
+  return db.recoverySnapshots.count().catch(() => 0);
+};
+
 export const verifyLocalWallSnapshotPassphrase = async (passphrase: string): Promise<boolean> => {
   await migrateLegacyWallDatabaseIfNeeded();
 
@@ -248,6 +298,42 @@ export const verifyLocalWallSnapshotPassphrase = async (passphrase: string): Pro
     return true;
   } catch {
     return false;
+  }
+};
+
+export const archiveWallRecoverySnapshot = async (
+  snapshot: PersistedWallState,
+  passphrase: string,
+  options: {
+    scope: "local" | "cloud";
+    reason: string;
+  },
+) => {
+  await migrateLegacyWallDatabaseIfNeeded();
+
+  const fingerprint = buildRecoveryFingerprint(snapshot);
+  const recent = await db.recoverySnapshots.orderBy("ts").reverse().limit(8).toArray().catch(() => []);
+  const duplicate = recent.find((entry) => entry.scope === options.scope && entry.reason === options.reason && entry.fingerprint === fingerprint);
+  if (duplicate) {
+    return;
+  }
+
+  const envelope = await encryptConfidentialPayload(passphrase, snapshot);
+  await db.recoverySnapshots.add({
+    ts: Date.now(),
+    scope: options.scope,
+    reason: options.reason,
+    fingerprint,
+    payload: JSON.stringify(envelope),
+  });
+
+  const count = await db.recoverySnapshots.count();
+  if (count > recoverySnapshotLimit) {
+    const overflow = count - recoverySnapshotLimit;
+    const keys = await db.recoverySnapshots.orderBy("ts").limit(overflow).primaryKeys();
+    if (keys.length > 0) {
+      await db.recoverySnapshots.bulkDelete(keys);
+    }
   }
 };
 

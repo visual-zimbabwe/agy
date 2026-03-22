@@ -3,7 +3,7 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import { hasAnyLocalSecurePageSnapshot, verifyAnyLocalPageSnapshotPassphrase } from "@/features/page/storage";
-import { hasLocalSecureWallSnapshot, verifyLocalWallSnapshotPassphrase } from "@/features/wall/storage";
+import { countWallRecoverySnapshots, hasLocalSecureWallSnapshot, verifyLocalWallSnapshotPassphrase } from "@/features/wall/storage";
 import {
   clearConfidentialRecoveryMessage,
   configureConfidentialWorkspace,
@@ -24,6 +24,7 @@ export type ConfidentialRecoveryDiagnostic = {
   localSecureWallSnapshot: boolean;
   localSecurePageSnapshot: boolean;
   configPresent: boolean;
+  wallRecoverySnapshots: number;
 };
 
 export const useConfidentialAccess = () => {
@@ -143,15 +144,17 @@ export const useConfidentialAccess = () => {
   };
 
   const runRecoveryDiagnostic = async (): Promise<ConfidentialRecoveryDiagnostic> => {
-    const [localSecureWallSnapshot, localSecurePageSnapshot] = await Promise.all([
+    const [localSecureWallSnapshot, localSecurePageSnapshot, wallRecoverySnapshots] = await Promise.all([
       hasLocalSecureWallSnapshot(),
       hasAnyLocalSecurePageSnapshot(),
+      countWallRecoverySnapshots(),
     ]);
 
     return {
       localSecureWallSnapshot,
       localSecurePageSnapshot,
       configPresent: Boolean(readConfidentialWorkspaceConfig()),
+      wallRecoverySnapshots,
     };
   };
 

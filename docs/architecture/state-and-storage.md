@@ -71,6 +71,7 @@ The local wall layer also:
 - writes encrypted wall snapshots after unlock while keeping legacy readers for migration
 - debounces snapshot writes
 - records encrypted timeline snapshots after unlock
+- archives encrypted local and cloud recovery snapshots before conflicting wall merges
 - stores camera and last color in meta records
 - normalizes old payloads through storage migration helpers
 - preserves the permanent currency note and its last wall position inside normal wall snapshots
@@ -88,6 +89,7 @@ Important current behavior:
 - then loads or creates the remote wall record
 - then fetches the encrypted cloud snapshot when available
 - then merges local and server state with a last-write-wins strategy for entity maps
+- when both sides differ and contain content, the client first preserves encrypted recovery copies of the local and cloud snapshots in local IndexedDB
 - local camera wins during merge
 - local last color wins when present
 - currency note exchange-rate fetches are lazy, cached in local storage, and fall back to stale cache/default USD when live requests fail

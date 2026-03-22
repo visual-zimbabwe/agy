@@ -36,6 +36,7 @@ Use this runbook when cloud-backed wall state is not loading, local and cloud st
    Current behavior in `useWallPersistenceEffects` is:
    - if local has content and server is empty, the UI may prompt to import local data
    - otherwise server and local snapshots merge with last-write-wins rules
+   - when both sides contain different content, encrypted recovery copies of both snapshots are archived locally before merge continues
    - newer entities win by `updatedAt`
    - local camera wins after merge
    - local last color wins when present
@@ -56,6 +57,7 @@ Use this runbook when cloud-backed wall state is not loading, local and cloud st
 
 9. If the problem is local-only corruption or drift, export and preserve current local state before destructive recovery.
    The wall supports JSON backup/export flows. Preserve user state before resets.
+   The confidential recovery diagnostic also reports how many encrypted wall recovery snapshots were auto-preserved on the current device.
 
 10. If needed, clear or reset local state only after confirming that the desired cloud snapshot is valid and recoverable.
     Local wall state lives in IndexedDB database `agy-db`.
