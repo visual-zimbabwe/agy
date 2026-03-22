@@ -15,22 +15,21 @@
 10. Press `Esc` with slash menu open and verify it closes.
 11. In any text block, type `/file` then press `Enter`; verify file insert popover appears with `Upload` and `Paste URL` tabs.
 12. In `/file` popover `Upload` tab, click `Choose a file`, upload a document, and verify a file block appears with file name + size metadata.
-13. Refresh while the workspace stays unlocked and verify the uploaded file still opens and downloads correctly, confirming the encrypted file round-trip works.
-14. In `/file` popover `Paste URL` tab, paste a URL (PDF, Drive file, or Maps URL) and verify an embedded file block appears with inferred title and `External` size label.
-15. In any text block, type `/image` then press `Enter`; verify the image insert popover shows `Upload`, `Paste URL`, and `Unsplash` tabs.
-16. In `/image` > `Unsplash`, search for a term, choose one result, and verify an inline image block is inserted with preview and attribution text.
-17. In any text block, type `/cover` then press `Enter`; verify the cover insert popover opens with `Upload`, `Paste URL`, and `Unsplash` tabs.
-18. In `/cover` > `Unsplash`, search for a term, choose one result, and verify the page cover updates above the document blocks and persists after refresh.
-19. Type `/image`, `/video`, and `/audio` (one at a time), press `Enter`, and verify each opens the same two-option popover and inserts a specialized media block after upload/link.
-20. Hover a file/media block and verify toolbar actions appear: `Caption`, `Comment`, `Download`.
-21. Use hover toolbar `Caption`; verify caption is saved and shown under the file metadata.
-22. Use hover toolbar `Comment`; verify comment thread is added to the target block.
-23. Use hover toolbar `Download`; verify uploaded files download and embedded links open in a downloadable/openable target.
-24. Verify slash command menu visual parity: compact light menu, left-side command symbols, right-side trigger hints, and `Close menu / esc` footer.
-25. Open slash menu near each viewport edge and confirm it repositions (above/below and left/right) to stay visible while minimizing overlap with nearby canvas content.
-26. Right-click empty canvas and click `Upload files here`; choose at least 2 files and verify each becomes its own movable file block.
-27. Drag-and-drop multiple files from desktop onto canvas and verify each file inserts at drop area.
-28. Upload at least one image file and verify inline image preview appears in its block.
+13. In `/file` popover `Paste URL` tab, paste a URL (PDF, Drive file, or Maps URL) and verify an embedded file block appears with inferred title and `External` size label.
+14. In any text block, type `/image` then press `Enter`; verify the image insert popover shows `Upload`, `Paste URL`, and `Unsplash` tabs.
+15. In `/image` > `Unsplash`, search for a term, choose one result, and verify an inline image block is inserted with preview and attribution text.
+16. In any text block, type `/cover` then press `Enter`; verify the cover insert popover opens with `Upload`, `Paste URL`, and `Unsplash` tabs.
+17. In `/cover` > `Unsplash`, search for a term, choose one result, and verify the page cover updates above the document blocks and persists after refresh.
+14. Type `/image`, `/video`, and `/audio` (one at a time), press `Enter`, and verify each opens the same two-option popover and inserts a specialized media block after upload/link.
+15. Hover a file/media block and verify toolbar actions appear: `Caption`, `Comment`, `Download`.
+16. Use hover toolbar `Caption`; verify caption is saved and shown under the file metadata.
+17. Use hover toolbar `Comment`; verify comment thread is added to the target block.
+18. Use hover toolbar `Download`; verify uploaded files download and embedded links open in a downloadable/openable target.
+19. Verify slash command menu visual parity: compact light menu, left-side command symbols, right-side trigger hints, and `Close menu / esc` footer.
+20. Open slash menu near each viewport edge and confirm it repositions (above/below and left/right) to stay visible while minimizing overlap with nearby canvas content.
+21. Right-click empty canvas and click `Upload files here`; choose at least 2 files and verify each becomes its own movable file block.
+22. Drag-and-drop multiple files from desktop onto canvas and verify each file inserts at drop area.
+23. Upload at least one image file and verify inline image preview appears in its block.
 24. Click a file block and verify it opens in a new tab.
 25. Right-click a file block and run `Rename title`; verify title changes without changing stored file.
 26. Right-click a file block and run `Delete file`; verify block is removed and backend delete succeeds.
@@ -1210,36 +1209,3 @@ Expected:
 - Passphrases unlock private notes only for the active browser session and are not persisted with the wall snapshot.
 - Search, Markdown export, and wiki-link generation exclude locked private note content.
 - Refreshing, syncing, hiding the tab, or letting the unlock session expire does not lose encrypted note contents.
-
-## Confidential Workspace Migration
-
-1. Open `/wall` and verify the confidentiality gate appears before normal wall persistence starts.
-2. In create mode, toggle `Show passphrase` on and off and verify both passphrase fields switch visibility without changing their values.
-3. After the workspace is created, refresh, return to unlock mode, toggle `Show passphrase while unlocking`, and verify the unlock field switches visibility without changing its value.
-4. Create a passphrase and confirm the wall unlocks.
-5. Reopen the confidentiality gate after a refresh and verify it only offers unlock, not passphrase recreation, for an existing workspace.
-6. Add or edit notes, refresh the page, unlock again, and verify wall content restores.
-7. Open Export and run `Export Encrypted Backup`. Verify the downloaded file uses encrypted envelope fields rather than readable wall JSON.
-8. Import the encrypted backup and verify the wall restores without errors.
-8a. In Export, run `Export Legacy Wall JSON`, confirm the warning, and verify the downloaded file is readable wall JSON rather than an encrypted envelope.
-8b. In a build based on commit `6bf2013`, import that legacy file and verify notes, zones, camera state, and private-note ciphertext shells restore without format errors.
-9. Attempt `Public Sharing Disabled` and verify the app blocks URL sharing.
-10. Export PNG, PDF, and Markdown and verify each action warns that it creates a readable copy.
-11. Enter a wrong replacement passphrase for an already-encrypted workspace and verify the app relocks into a recovery notice instead of crashing with a crypto error.
-12. Retry with the original passphrase and verify unlock succeeds immediately, the local config is repaired from ciphertext validation, and the recovery notice clears.
-13. Enter another incorrect passphrase after recovery and verify the gate rejects it before the wall loads with a sync error banner.
-14. In unlock mode, run `Run local recovery diagnostic` and verify it reports whether encrypted wall and page snapshots exist on the current device, shows the archived wall recovery snapshot count, and still works even when the gate only shows an inline passphrase error.
-15. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
-16. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
-
-Expected results:
-
-- Wall and page persistence remain blocked until unlock.
-- Local restore works through encrypted snapshot storage.
-- Encrypted backup export/import works.
-- Legacy rollback export produces a readable wall backup that the pre-confidential private-note build can import.
-- Public snapshot links are disabled.
-- Readable exports require confirmation.
-- Existing content remains accessible after migration.
-
-

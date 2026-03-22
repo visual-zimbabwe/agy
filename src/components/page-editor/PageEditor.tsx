@@ -20,10 +20,7 @@ import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnap
 import { listCloudPageDocIds, loadCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
 import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageCover, PageEmbedData, PageNumberedFormat, PageTableData, PersistedPageState } from "@/features/page/types";
 import { UnsplashPicker } from "@/components/media/UnsplashPicker";
-import { ConfidentialAccessGate } from "@/components/security/ConfidentialAccessGate";
-import { useConfidentialAccess } from "@/components/security/useConfidentialAccess";
 import { cn } from "@/lib/cn";
-import { decryptConfidentialFile, encryptConfidentialFile, ensureConfidentialWorkspaceConfigMatchesPassphrase, isConfidentialDecryptError, lockConfidentialWorkspace, setConfidentialRecoveryMessage } from "@/lib/confidential-workspace";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { trackUnsplashDownload } from "@/lib/unsplash-client";
@@ -1355,7 +1352,6 @@ const SlashCommandIcon = ({ id }: { id: SlashCommandId }) => {
 };
 
 export function PageEditor() {
-  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, configChecked: confidentialConfigChecked, recoveryMessage: confidentialRecoveryMessage, clearRecoveryMessage: clearConfidentialRecoveryMessage, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace, runRecoveryDiagnostic: runConfidentialRecoveryDiagnostic } = useConfidentialAccess();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1420,26 +1416,26 @@ export function PageEditor() {
   const lastNonEmptyBlocksRef = useRef<PageBlock[] | null>(null);
   const recoveringFromEmptyRef = useRef(false);
   const viewportRef = useRef(viewport);
-  const saverRef = useRef(createPageSnapshotSaver(confidentialPassphrase ?? undefined, 260, docId));
+  const saverRef = useRef(createPageSnapshotSaver(260, docId));
 
   const saveDocSnapshot = useCallback(
     async (snapshot: Parameters<typeof savePageSnapshot>[0], targetDocId: string) => {
-      await savePageSnapshot(snapshot, targetDocId, confidentialPassphrase ?? undefined);
+      await savePageSnapshot(snapshot, targetDocId);
       try {
-        await saveCloudPageSnapshot(targetDocId, snapshot, confidentialPassphrase ?? undefined);
+        await saveCloudPageSnapshot(targetDocId, snapshot);
       } catch {
         // Local persistence already succeeded.
       }
     },
-    [confidentialPassphrase],
+    [],
   );
 
   const loadDocSnapshot = useCallback(
     async (targetDocId: string) => {
-      const localSnapshot = await loadPageSnapshot(targetDocId, confidentialPassphrase ?? undefined);
+      const localSnapshot = await loadPageSnapshot(targetDocId);
       let cloudSnapshot: PersistedPageState | null = null;
       try {
-        cloudSnapshot = await loadCloudPageSnapshot(targetDocId, confidentialPassphrase ?? undefined);
+        cloudSnapshot = await loadCloudPageSnapshot(targetDocId);
       } catch {
         cloudSnapshot = null;
       }
@@ -1448,14 +1444,14 @@ export function PageEditor() {
       const cloudUpdatedAt = cloudSnapshot?.updatedAt ?? 0;
 
       if (cloudSnapshot && cloudUpdatedAt > localUpdatedAt) {
-        await savePageSnapshot(cloudSnapshot, targetDocId, confidentialPassphrase ?? undefined);
+        await savePageSnapshot(cloudSnapshot, targetDocId);
         return cloudSnapshot;
       }
 
       if (localSnapshot) {
         if (!cloudSnapshot || localUpdatedAt > cloudUpdatedAt) {
           try {
-            await saveCloudPageSnapshot(targetDocId, localSnapshot, confidentialPassphrase ?? undefined);
+            await saveCloudPageSnapshot(targetDocId, localSnapshot);
           } catch {
             // Local snapshot remains the source of truth if cloud sync fails.
           }
@@ -1465,7 +1461,7 @@ export function PageEditor() {
 
       return cloudSnapshot;
     },
-    [confidentialPassphrase],
+    [],
   );
 
   const refreshAvailableDocIds = useCallback(async () => {
@@ -1592,35 +1588,17 @@ export function PageEditor() {
     [queueFocus],
   );
 
-  const signFileUrl = useCallback(
-    async (path: string, options?: { encrypted?: boolean; mimeType?: string }) => {
-      const response = await fetch("/api/page/files/sign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as { signedUrl?: string; error?: string };
-      if (!response.ok || !payload.signedUrl) throw new Error(payload.error ?? "Unable to sign file URL.");
-
-      if (!options?.encrypted) {
-        setSignedUrls((previous) => ({ ...previous, [path]: payload.signedUrl! }));
-        return payload.signedUrl;
-      }
-
-      const fileResponse = await fetch(payload.signedUrl);
-      if (!fileResponse.ok) {
-        throw new Error("Unable to download encrypted file.");
-      }
-      const bytes = new Uint8Array(await fileResponse.arrayBuffer());
-      const blob = await decryptConfidentialFile(confidentialPassphrase ?? "", bytes);
-      const objectUrl = URL.createObjectURL(
-        new File([blob], path.split("/").pop() ?? "file", { type: options.mimeType || blob.type || "application/octet-stream" }),
-      );
-      setSignedUrls((previous) => ({ ...previous, [path]: objectUrl }));
-      return objectUrl;
-    },
-    [confidentialPassphrase],
-  );
+  const signFileUrl = useCallback(async (path: string) => {
+    const response = await fetch("/api/page/files/sign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as { signedUrl?: string; error?: string };
+    if (!response.ok || !payload.signedUrl) throw new Error(payload.error ?? "Unable to sign file URL.");
+    setSignedUrls((previous) => ({ ...previous, [path]: payload.signedUrl! }));
+    return payload.signedUrl;
+  }, []);
 
 
   const applyPageCover = useCallback((nextCover: PageCover | undefined) => {
@@ -1685,20 +1663,10 @@ export function PageEditor() {
       setUploading(true);
       try {
         const formData = new FormData();
-        const metadata: Array<{ name: string; size: number; mimeType: string; encrypted: boolean }> = [];
-        for (const file of files) {
-          formData.append("files", await encryptConfidentialFile(confidentialPassphrase ?? "", file));
-          metadata.push({
-            name: file.name,
-            size: file.size,
-            mimeType: file.type || "application/octet-stream",
-            encrypted: true,
-          });
-        }
-        formData.append("metadata", JSON.stringify(metadata));
+        for (const file of files) formData.append("files", file);
         const response = await fetch("/api/page/files", { method: "POST", body: formData });
         const payload = (await response.json().catch(() => ({}))) as {
-          files?: Array<{ path: string; name: string; size: number; mimeType: string; encrypted?: boolean }>;
+          files?: Array<{ path: string; name: string; size: number; mimeType: string }>;
           error?: string;
         };
         if (!response.ok || !payload.files) throw new Error(payload.error ?? "Upload failed.");
@@ -1712,10 +1680,8 @@ export function PageEditor() {
             path: uploaded.path,
             alt: uploaded.name,
             source: "upload",
-            mimeType: uploaded.mimeType,
-            encrypted: uploaded.encrypted === true,
           });
-          void signFileUrl(uploaded.path, { encrypted: uploaded.encrypted === true, mimeType: uploaded.mimeType });
+          void signFileUrl(uploaded.path);
           return;
         }
 
@@ -1734,7 +1700,6 @@ export function PageEditor() {
             size: file.size,
             mimeType: file.mimeType || "application/octet-stream",
             source: "upload",
-            encrypted: file.encrypted === true,
           },
         }));
         setBlocks((previous) => {
@@ -1747,9 +1712,7 @@ export function PageEditor() {
         });
 
         for (const file of payload.files) {
-          if (isImageMime(file.mimeType) || intent === "video" || intent === "audio") {
-            void signFileUrl(file.path, { encrypted: file.encrypted === true, mimeType: file.mimeType });
-          }
+          if (isImageMime(file.mimeType) || intent === "video" || intent === "audio") void signFileUrl(file.path);
         }
       } catch (error) {
         window.alert(error instanceof Error ? error.message : "Upload failed.");
@@ -1757,7 +1720,7 @@ export function PageEditor() {
         setUploading(false);
       }
     },
-    [applyPageCover, confidentialPassphrase, signFileUrl],
+    [applyPageCover, signFileUrl],
   );
 
   const triggerUploadPickerAt = useCallback((worldX: number, worldY: number, intent: FileInsertIntent = "file", afterBlockId?: string) => {
@@ -1963,8 +1926,8 @@ export function PageEditor() {
   }, [viewport]);
 
   useEffect(() => {
-    saverRef.current = createPageSnapshotSaver(confidentialPassphrase ?? undefined, 260, docId, saveDocSnapshot);
-  }, [confidentialPassphrase, docId, saveDocSnapshot]);
+    saverRef.current = createPageSnapshotSaver(260, docId, saveDocSnapshot);
+  }, [docId, saveDocSnapshot]);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -1981,9 +1944,6 @@ export function PageEditor() {
   }, []);
 
   useEffect(() => {
-    if (!confidentialReady) {
-      return;
-    }
     let cancelled = false;
     const saver = saverRef.current;
     hasLoadedRef.current = false;
@@ -1991,7 +1951,6 @@ export function PageEditor() {
     void (async () => {
       try {
         const snapshot = await loadDocSnapshot(docId);
-        await ensureConfidentialWorkspaceConfigMatchesPassphrase(confidentialPassphrase ?? "");
         if (cancelled) return;
         const initialBlocks =
           snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks) ? snapshot.blocks : createEmptyPage();
@@ -2010,19 +1969,15 @@ export function PageEditor() {
         setCamera(nextCamera);
         loadedNonEmptyRef.current = safeBlocks.length > 0;
         hasLoadedRef.current = true;
-      } catch (error) {
+      } catch {
         hasLoadedRef.current = true;
-        if (isConfidentialDecryptError(error)) {
-          setConfidentialRecoveryMessage("This workspace was encrypted with a different passphrase than the current local config. Try the passphrase that originally unlocked this workspace.");
-          lockConfidentialWorkspace();
-        }
       }
     })();
     return () => {
       cancelled = true;
       void saver.flush();
     };
-  }, [confidentialPassphrase, confidentialReady, docId, loadDocSnapshot]);
+  }, [docId, loadDocSnapshot]);
 
   useEffect(() => {
     setBlocks((previous) => {
@@ -2040,9 +1995,6 @@ export function PageEditor() {
   }, [remeasureAllTextareas]);
 
   useEffect(() => {
-    if (!confidentialReady) {
-      return;
-    }
     let cancelled = false;
     if (typeof document !== "undefined" && "fonts" in document) {
       void (document as Document & { fonts: FontFaceSet }).fonts.ready.then(() => {
@@ -2053,13 +2005,13 @@ export function PageEditor() {
     return () => {
       cancelled = true;
     };
-  }, [confidentialReady, docId, remeasureAllTextareas]);
+  }, [docId, remeasureAllTextareas]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
     if (blocks.length === 0 && loadedNonEmptyRef.current) return;
     saverRef.current.schedule({ blocks, camera, updatedAt: Date.now(), cover });
-  }, [blocks, camera, confidentialReady, cover]);
+  }, [blocks, camera, cover]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
@@ -2090,12 +2042,12 @@ export function PageEditor() {
     );
     for (const block of mediaBlocks) {
       const path = block.file!.path!;
-      if (!signedUrls[path]) void signFileUrl(path, { encrypted: block.file?.encrypted === true, mimeType: block.file?.mimeType });
+      if (!signedUrls[path]) void signFileUrl(path);
     }
     if (cover?.path && !signedUrls[cover.path]) {
-      void signFileUrl(cover.path, { encrypted: cover.encrypted === true, mimeType: cover.mimeType });
+      void signFileUrl(cover.path);
     }
-  }, [blocks, cover?.encrypted, cover?.mimeType, cover?.path, signFileUrl, signedUrls]);
+  }, [blocks, cover?.path, signFileUrl, signedUrls]);
 
   useEffect(() => {
     const bookmarkBlocks = blocks.filter((block) => block.type === "bookmark" && block.bookmark?.url);
@@ -2200,7 +2152,7 @@ export function PageEditor() {
         clearTimeout(snapAnimateTimerRef.current);
       }
     },
-    [confidentialPassphrase],
+    [],
   );
 
   useEffect(() => {
@@ -3720,7 +3672,7 @@ export function PageEditor() {
         const url = block.file.externalUrl
           ? block.file.externalUrl
           : block.file.path
-            ? signedUrls[block.file.path] ?? (await signFileUrl(block.file.path, { encrypted: block.file.encrypted === true, mimeType: block.file.mimeType }))
+            ? signedUrls[block.file.path] ?? (await signFileUrl(block.file.path))
             : null;
         if (!url) return;
         window.open(url, "_blank", "noopener,noreferrer");
@@ -3738,7 +3690,7 @@ export function PageEditor() {
         const url = block.file.externalUrl
           ? block.file.externalUrl
           : block.file.path
-            ? signedUrls[block.file.path] ?? (await signFileUrl(block.file.path, { encrypted: block.file.encrypted === true, mimeType: block.file.mimeType }))
+            ? signedUrls[block.file.path] ?? (await signFileUrl(block.file.path))
             : null;
         if (!url) return;
         const anchor = document.createElement("a");
@@ -4563,18 +4515,7 @@ export function PageEditor() {
     };
   }, [camera.zoom, fileInsert.intent, fileInsert.mode, fileInsert.open, fileInsert.worldX, fileInsert.worldY, fileInsert.x, fileInsert.y, toScreenPoint, viewport.h, viewport.w]);
   return (
-    <>
-      <ConfidentialAccessGate
-        open={confidentialConfigChecked && !confidentialReady}
-        hasConfig={confidentialHasConfig}
-        scopeLabel="Page Editor"
-        recoveryMessage={confidentialRecoveryMessage}
-        onClearRecoveryMessage={clearConfidentialRecoveryMessage}
-        onRunRecoveryDiagnostic={runConfidentialRecoveryDiagnostic}
-        onCreate={createConfidentialPassphrase}
-        onUnlock={unlockConfidentialWorkspace}
-      />
-      <main className="route-shell page-workspace-shell text-[var(--color-text)]">
+    <main className="route-shell page-workspace-shell text-[var(--color-text)]">
       <input
         ref={fileInputRef}
         type="file"
@@ -5826,8 +5767,8 @@ export function PageEditor() {
           </div>
         )}
       </div>
-      </main>
-    </>
+    </main>
   );
 }
+
 

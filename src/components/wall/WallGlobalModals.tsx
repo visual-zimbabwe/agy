@@ -27,7 +27,6 @@ type WallGlobalModalsProps = {
   onExportPdf: (scope: "view" | "whole" | "selection" | "zone") => void;
   onExportMarkdown: () => void;
   onExportJson: () => void;
-  onExportLegacyJson: () => void;
   onImportJson: (file: File) => void;
   onPublishSnapshot: () => void;
   backupReminderCadence: "off" | "daily" | "weekly";
@@ -66,7 +65,6 @@ export const WallGlobalModals = ({
   onExportPdf,
   onExportMarkdown,
   onExportJson,
-  onExportLegacyJson,
   onImportJson,
   onPublishSnapshot,
   backupReminderCadence,
@@ -105,7 +103,6 @@ export const WallGlobalModals = ({
         onExportPdf={onExportPdf}
         onExportMarkdown={onExportMarkdown}
         onExportJson={onExportJson}
-        onExportLegacyJson={onExportLegacyJson}
         onImportJson={onImportJson}
         onPublishSnapshot={onPublishSnapshot}
         backupReminderCadence={backupReminderCadence}

@@ -15,7 +15,6 @@ type ExportModalProps = {
   onExportPdf: (scope: ExportScope) => void;
   onExportMarkdown: () => void;
   onExportJson: () => void;
-  onExportLegacyJson: () => void;
   onImportJson: (file: File) => void;
   onPublishSnapshot: () => void;
   backupReminderCadence: "off" | "daily" | "weekly";
@@ -29,7 +28,6 @@ export const ExportModal = ({
   onExportPdf,
   onExportMarkdown,
   onExportJson,
-  onExportLegacyJson,
   onImportJson,
   onPublishSnapshot,
   backupReminderCadence,
@@ -51,7 +49,7 @@ export const ExportModal = ({
       open={open}
       onClose={onClose}
       title="Export"
-      description="Create exports, encrypted wall backups, and rollback-safe legacy wall backups."
+      description="Create image/text exports and full JSON backups."
       maxWidthClassName="max-w-2xl"
     >
       <div
@@ -114,10 +112,9 @@ export const ExportModal = ({
         </Button>
         <Button onClick={() => onExportPdf(scope)}>Export PDF</Button>
         <Button onClick={onExportMarkdown}>Export Markdown</Button>
-        <Button onClick={onExportJson}>Export Encrypted Backup</Button>
-        <Button onClick={onExportLegacyJson}>Export Legacy Wall JSON</Button>
+        <Button onClick={onExportJson}>Export JSON</Button>
         <label className="cursor-pointer rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-muted)]">
-            Import Backup
+            Import JSON
             <input
               type="file"
               accept="application/json,.json"
@@ -131,14 +128,12 @@ export const ExportModal = ({
               }}
             />
         </label>
-        <Button onClick={onPublishSnapshot}>Public Sharing Disabled</Button>
+        <Button onClick={onPublishSnapshot}>Publish Read-Only Link</Button>
         <Button className="ml-auto" onClick={onClose}>
           Close
         </Button>
       </div>
-      <p className="mt-2 text-[11px] text-[var(--color-text-muted)]">`Export Legacy Wall JSON` creates a readable rollback file for the pre-confidential private-note build. Keep that file offline or in trusted storage.</p>
-      <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Tip: Press Ctrl/Cmd + Enter to export PNG with current settings.</p>
+      <p className="mt-2 text-[11px] text-[var(--color-text-muted)]">Tip: Press Ctrl/Cmd + Enter to export PNG with current settings.</p>
     </ModalShell>
   );
 };
-

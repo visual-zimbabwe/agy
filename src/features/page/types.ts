@@ -37,7 +37,6 @@ export type PageFileMeta = {
   alt?: string;
   attributionName?: string;
   attributionUrl?: string;
-  encrypted?: boolean;
 };
 
 export type PageCover = {
@@ -47,8 +46,6 @@ export type PageCover = {
   source?: "upload" | "embed" | "unsplash";
   attributionName?: string;
   attributionUrl?: string;
-  mimeType?: string;
-  encrypted?: boolean;
 };
 
 export type PageBlockComment = {

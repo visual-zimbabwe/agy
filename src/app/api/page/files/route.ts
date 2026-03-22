@@ -5,13 +5,6 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const pageFilesBucket = "page-files";
 
-type UploadMetadata = {
-  name: string;
-  size: number;
-  mimeType: string;
-  encrypted?: boolean;
-};
-
 const sanitizeFileName = (value: string) =>
   value
     .toLowerCase()
@@ -35,30 +28,6 @@ const ensureBucket = async () => {
   return admin;
 };
 
-const parseMetadata = (value: FormDataEntryValue | null, count: number): UploadMetadata[] => {
-  if (typeof value !== "string") {
-    return Array.from({ length: count }, () => ({ name: "file", size: 0, mimeType: "application/octet-stream", encrypted: false }));
-  }
-
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-    return parsed.map((entry) => {
-      const item = typeof entry === "object" && entry !== null ? (entry as Record<string, unknown>) : {};
-      return {
-        name: typeof item.name === "string" ? item.name : "file",
-        size: typeof item.size === "number" ? item.size : 0,
-        mimeType: typeof item.mimeType === "string" ? item.mimeType : "application/octet-stream",
-        encrypted: item.encrypted === true,
-      };
-    });
-  } catch {
-    return [];
-  }
-};
-
 export async function POST(request: Request) {
   const auth = await requireApiUser();
   if ("response" in auth) {
@@ -71,18 +40,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Select at least one file first." }, { status: 400 });
   }
 
-  const metadata = parseMetadata(formData.get("metadata"), files.length);
-
   try {
     const admin = await ensureBucket();
-    const uploaded: Array<{ path: string; name: string; size: number; mimeType: string; encrypted: boolean }> = [];
+    const uploaded: Array<{ path: string; name: string; size: number; mimeType: string }> = [];
     const stamp = Date.now();
 
     for (let index = 0; index < files.length; index += 1) {
       const file = files[index]!;
-      const meta = metadata[index] ?? { name: file.name, size: file.size, mimeType: file.type || "application/octet-stream", encrypted: false };
-      const extension = meta.name.includes(".") ? `.${meta.name.split(".").pop()?.toLowerCase() ?? "bin"}` : "";
-      const baseName = sanitizeFileName(meta.name.replace(/\.[^/.]+$/, "")) || "file";
+      const extension = file.name.includes(".") ? `.${file.name.split(".").pop()?.toLowerCase() ?? "bin"}` : "";
+      const baseName = sanitizeFileName(file.name.replace(/\.[^/.]+$/, "")) || "file";
       const path = `${auth.user.id}/${stamp}-${index}-${baseName}${extension}`;
       const bytes = new Uint8Array(await file.arrayBuffer());
 
@@ -96,10 +62,9 @@ export async function POST(request: Request) {
 
       uploaded.push({
         path,
-        name: meta.name,
-        size: meta.size,
-        mimeType: meta.mimeType || "application/octet-stream",
-        encrypted: meta.encrypted === true,
+        name: file.name,
+        size: file.size,
+        mimeType: file.type || "application/octet-stream",
       });
     }
 
@@ -144,3 +109,4 @@ export async function DELETE(request: Request) {
     );
   }
 }
+

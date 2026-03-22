@@ -1,22 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { isConfidentialEnvelope } from "@/lib/confidential-workspace";
 import { requireApiUser } from "@/lib/api/auth";
 
 const paramsSchema = z.object({
   wallId: z.string().uuid(),
-});
-
-const secureEnvelopeSchema = z.object({
-  version: z.literal(1),
-  algorithm: z.literal("aes-256-gcm"),
-  kdf: z.literal("pbkdf2-sha256"),
-  iterations: z.number().int().positive(),
-  salt: z.string(),
-  iv: z.string(),
-  ciphertext: z.string(),
-  updatedAt: z.number(),
 });
 
 const vocabularySchema = z.object({
@@ -241,19 +229,15 @@ const syncSchema = z.object({
   clientSyncedAt: z.number().optional(),
 });
 
-const secureSyncSchema = z.object({
-  secureSnapshot: secureEnvelopeSchema.refine((value) => isConfidentialEnvelope(value), { message: "Invalid secure snapshot payload" }),
-  clientSyncedAt: z.number().optional(),
-});
-
 const toIso = (value: number) => new Date(value).toISOString();
 const toStoredTextSize = (note: { textSize?: "sm" | "md" | "lg"; textSizePx?: number }) =>
   typeof note.textSizePx === "number" ? `px:${Math.max(8, Math.min(72, Math.round(note.textSizePx)))}` : note.textSize ?? null;
 
-const buildInFilter = (ids: string[]) => `(${ids.map((id) => `"${id.replaceAll('"', '\\"')}"`).join(",")})`;
+const buildInFilter = (ids: string[]) =>
+  `(${ids.map((id) => `"${id.replaceAll('"', '\\"')}"`).join(",")})`;
 
-const isMissingSecureSnapshotColumnError = (message?: string) => Boolean(message && message.includes("column walls.secure_snapshot does not exist"));
-const isMissingZoneKindColumnError = (message?: string) => Boolean(message && message.includes("column zones.kind does not exist"));
+const isMissingZoneKindColumnError = (message?: string) =>
+  Boolean(message && message.includes("column zones.kind does not exist"));
 const isMissingNoteFormattingColumnError = (message?: string) =>
   Boolean(
     message &&
@@ -276,8 +260,10 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.pinned does not exist") ||
         message.includes("column notes.highlighted does not exist")),
   );
-const isMissingNoteVocabularyColumnError = (message?: string) => Boolean(message && message.includes("column notes.vocabulary does not exist"));
-const isMissingNoteGroupsTableError = (message?: string) => Boolean(message && message.includes('relation "public.note_groups" does not exist'));
+const isMissingNoteVocabularyColumnError = (message?: string) =>
+  Boolean(message && message.includes("column notes.vocabulary does not exist"));
+const isMissingNoteGroupsTableError = (message?: string) =>
+  Boolean(message && message.includes('relation "public.note_groups" does not exist'));
 
 export async function POST(request: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
@@ -291,35 +277,6 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   }
 
   const payload = await request.json().catch(() => ({}));
-  const secureBody = secureSyncSchema.safeParse(payload);
-  if (secureBody.success) {
-    const secureWallUpdate = { secure_snapshot: secureBody.data.secureSnapshot } as Record<string, unknown>;
-    const secureUpdate = await auth.supabase
-      .from("walls")
-      .update(secureWallUpdate)
-      .eq("id", parsedParams.data.wallId)
-      .eq("owner_id", auth.user.id)
-      .select("id")
-      .maybeSingle();
-
-    if (secureUpdate.error && !isMissingSecureSnapshotColumnError(secureUpdate.error.message)) {
-      return NextResponse.json({ error: secureUpdate.error.message }, { status: 500 });
-    }
-
-    if (secureUpdate.error && isMissingSecureSnapshotColumnError(secureUpdate.error.message)) {
-      return NextResponse.json({ error: "Secure snapshot columns are not available yet. Run the latest migration first." }, { status: 500 });
-    }
-
-    if (!secureUpdate.data) {
-      return NextResponse.json({ error: "Wall not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({
-      serverSnapshot: { secureSnapshot: secureBody.data.secureSnapshot },
-      serverTime: Date.now(),
-    });
-  }
-
   const parsedBody = syncSchema.safeParse(payload);
   if (!parsedBody.success) {
     return NextResponse.json({ error: "Invalid sync payload", details: parsedBody.error.flatten() }, { status: 400 });
@@ -425,6 +382,8 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
       } else {
         notesUpsert = { error: { message: withFormattingAndVocabulary.error.message } };
       }
+    } else {
+      notesUpsert = { error: null };
     }
   }
 
@@ -585,6 +544,3 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     serverTime: Date.now(),
   });
 }
-
-
-

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { JOURNAL_NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS } from "@/features/wall/constants";
 import { normalizePersistedWallState, parseTimelinePayload } from "@/features/wall/storage-migrations";
 
 describe("storage migrations", () => {
@@ -248,7 +247,6 @@ describe("storage migrations", () => {
     expect(normalized?.notes.t1?.noteKind).toBe("throne");
     expect(normalized?.notes.t1?.quoteAuthor).toBe("Jaime Lannister");
     expect(normalized?.notes.t1?.color).toBe("#FF2400");
-    expect(normalized?.notes.t1?.textColor).toBe(THRONE_NOTE_DEFAULTS.textColor);
   });
 
   it("normalizes journal note metadata when present", () => {
@@ -277,7 +275,6 @@ describe("storage migrations", () => {
 
     expect(normalized?.notes.j1?.noteKind).toBe("journal");
     expect(normalized?.notes.j1?.textFont).toBe("patrick_hand");
-    expect(normalized?.notes.j1?.textColor).toBe(JOURNAL_NOTE_DEFAULTS.textColor);
   });
 
   it("normalizes canon note metadata when present", () => {

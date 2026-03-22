@@ -21,7 +21,7 @@ Use this runbook when local workspace state appears corrupted, stale, or unusabl
    Check whether the same problem reproduces after sign-in on another machine or clean browser profile.
 
 3. Preserve recoverable local state before clearing anything.
-   For wall issues, export an encrypted backup first. If you need to move back to the pre-confidential private-note build, also export `Legacy Wall JSON` before changing versions.
+   For wall issues, export a JSON backup if the workspace can still load far enough to do so.
 
 4. Check whether the desired data exists remotely.
    Relevant cloud-backed areas include:

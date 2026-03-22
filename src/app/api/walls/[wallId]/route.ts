@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { isConfidentialEnvelope } from "@/lib/confidential-workspace";
 import { rowsToSnapshot } from "@/features/wall/cloud";
 import { requireApiUser } from "@/lib/api/auth";
 
@@ -21,8 +20,8 @@ const patchWallSchema = z.object({
   lastColor: z.string().trim().optional(),
 });
 
-const isMissingSecureSnapshotColumnError = (message?: string) => Boolean(message && message.includes("column walls.secure_snapshot does not exist"));
-const isMissingZoneKindColumnError = (message?: string) => Boolean(message && message.includes("column zones.kind does not exist"));
+const isMissingZoneKindColumnError = (message?: string) =>
+  Boolean(message && message.includes("column zones.kind does not exist"));
 const isMissingNoteFormattingColumnError = (message?: string) =>
   Boolean(
     message &&
@@ -45,19 +44,12 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.pinned does not exist") ||
         message.includes("column notes.highlighted does not exist")),
   );
-const isMissingNoteVocabularyColumnError = (message?: string) => Boolean(message && message.includes("column notes.vocabulary does not exist"));
-const isMissingNoteGroupsTableError = (message?: string) => Boolean(message && message.includes('relation "public.note_groups" does not exist'));
+const isMissingNoteVocabularyColumnError = (message?: string) =>
+  Boolean(message && message.includes("column notes.vocabulary does not exist"));
+const isMissingNoteGroupsTableError = (message?: string) =>
+  Boolean(message && message.includes('relation "public.note_groups" does not exist'));
 
 type SnapshotArgs = Parameters<typeof rowsToSnapshot>[0];
-
-type SecureWallRow = {
-  id: string;
-  camera_x: number;
-  camera_y: number;
-  camera_zoom: number;
-  last_color: string | null;
-  secure_snapshot?: unknown;
-};
 
 export async function GET(_: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
@@ -72,39 +64,13 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
 
   const wallId = parsedParams.data.wallId;
 
-  const secureWallResult = await auth.supabase
-    .from("walls")
-    .select("id,camera_x,camera_y,camera_zoom,last_color,secure_snapshot")
-    .eq("id", wallId)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
-
-  let wallResult = secureWallResult as { data: SecureWallRow | null; error: { message?: string } | null };
-  if (secureWallResult.error && isMissingSecureSnapshotColumnError(secureWallResult.error.message)) {
-    const legacyWallResult = await auth.supabase
+  const [wallResult, groupsResult, noteGroupsResult, linksResult] = await Promise.all([
+    auth.supabase
       .from("walls")
       .select("id,camera_x,camera_y,camera_zoom,last_color")
       .eq("id", wallId)
       .eq("owner_id", auth.user.id)
-      .maybeSingle();
-    wallResult = {
-      data: legacyWallResult.data ? { ...legacyWallResult.data, secure_snapshot: null } : null,
-      error: legacyWallResult.error ? { message: legacyWallResult.error.message } : null,
-    };
-  }
-
-  if (wallResult.error || !wallResult.data) {
-    return NextResponse.json({ error: "Wall not found" }, { status: 404 });
-  }
-
-  if (isConfidentialEnvelope(wallResult.data.secure_snapshot)) {
-    return NextResponse.json({
-      wall: wallResult.data,
-      secureSnapshot: wallResult.data.secure_snapshot,
-    });
-  }
-
-  const [groupsResult, noteGroupsResult, linksResult] = await Promise.all([
+      .maybeSingle(),
     auth.supabase
       .from("zone_groups")
       .select("id,label,color,zone_ids,collapsed,created_at,updated_at")
@@ -124,6 +90,10 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null),
   ]);
+
+  if (wallResult.error || !wallResult.data) {
+    return NextResponse.json({ error: "Wall not found" }, { status: 404 });
+  }
 
   if (groupsResult.error || linksResult.error) {
     return NextResponse.json(
@@ -229,7 +199,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
         currency: null,
         bookmark: null,
         apod: null,
-        poetry: null,
+          poetry: null,
       })) as SnapshotArgs["notes"]) ?? [];
   } else if (notesWithFormattingResult.error) {
     return NextResponse.json({ error: notesWithFormattingResult.error.message }, { status: 500 });
@@ -352,3 +322,5 @@ export async function DELETE(_: Request, context: { params: Promise<{ wallId: st
 
   return NextResponse.json({ ok: true });
 }
+
+

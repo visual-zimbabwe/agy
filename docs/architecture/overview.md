@@ -60,7 +60,6 @@ Shared infrastructure lives under `src/lib/`.
 Examples:
 
 - Supabase client helpers
-- Supabase auth-session middleware for server routes and server components
 - auth helpers for API routes
 - publish helpers
 - workspace communication
@@ -86,8 +85,6 @@ Supabase is used for:
 - deck records, notes, cards, and stats
 - page files and signed access
 - account settings and profile state
-
-Authenticated App Router pages and API routes depend on request cookies being refreshed through the repository middleware so server-side auth checks keep working after browser sessions age.
 
 ## API Surface
 
@@ -123,7 +120,6 @@ The decks schema includes deck hierarchy, note types, cards, study state, and sc
 ## Constraints
 
 - Authenticated routes must correctly redirect unauthenticated users.
-- Authenticated server routes and server components must receive refreshed Supabase auth cookies or request-scoped auth checks will fail after session aging.
 - UI surfaces are large and need explicit modular boundaries to stay maintainable.
 - API handlers include compatibility paths for older database states in some areas, especially walls and decks.
 - Published wall snapshots must remain read-only.

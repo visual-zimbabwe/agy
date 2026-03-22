@@ -31,7 +31,6 @@ Use this runbook when page file upload, deletion, signed URLs, or bookmark-style
 
 4. For upload issues, verify the file is actually being submitted as multipart form-data with `files` entries.
    The current upload route rejects empty submissions.
-   Confidential uploads can also include a `metadata` JSON field that preserves the original file properties while the uploaded object itself is encrypted.
 
 5. Check Supabase Storage bucket state.
    The current page file upload path expects bucket `page-files` and creates it when missing.
@@ -47,7 +46,6 @@ Use this runbook when page file upload, deletion, signed URLs, or bookmark-style
 
 9. If upload succeeds but the page block still fails, inspect the page block payload.
    Page snapshots store file metadata separately from the actual stored object, so broken metadata can cause apparent file failures even when storage succeeded.
-   For encrypted uploads, also confirm the workspace is unlocked and the client still has the active passphrase needed to decrypt the signed file response.
 
 10. Re-test the flow end to end.
     Verify:

@@ -77,15 +77,12 @@ Uploads one or more files for the authenticated user.
 Current behavior:
 
 - ensures private Supabase Storage bucket `page-files` exists
-- accepts `files` multipart entries plus optional `metadata` JSON describing original name, size, MIME type, and encryption state for each upload
 - stores files under `userId/timestamp-index-sanitized-name.ext`
-- uploaded objects can be opaque encrypted payloads while the returned metadata preserves the original file properties
 - returns uploaded file metadata with:
   - `path`
   - `name`
   - `size`
   - `mimeType`
-  - `encrypted`
 
 #### `DELETE /api/page/files`
 
@@ -119,7 +116,6 @@ All current page API routes require an authenticated user.
 
 - Page document persistence currently stores whole snapshots rather than field-level patches.
 - Page file storage is private and depends on signed URL generation.
-- Encrypted page file uploads depend on a valid in-memory workspace passphrase for client-side decryption after signing.
 - Bookmark preview depends on external site availability and metadata quality.
 
 ## Failure Modes
