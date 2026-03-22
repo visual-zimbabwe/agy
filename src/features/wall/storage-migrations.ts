@@ -2,6 +2,7 @@ import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/wall/bookmarks";
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
+import { resolveDefaultNoteTextColor } from "@/features/wall/note-style-defaults";
 import type { ApodNote, CanonNote, CurrencyNote, Link, Note, NoteGroup, PersistedWallState, PrivateNoteData, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -334,7 +335,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
     textVAlign: entry.textVAlign === "middle" || entry.textVAlign === "bottom" ? entry.textVAlign : NOTE_DEFAULTS.textVAlign,
     textFont: normalizeNoteFont(entry.textFont),
-    textColor: asString(entry.textColor, NOTE_DEFAULTS.textColor),
+    textColor: asString(entry.textColor, resolveDefaultNoteTextColor(noteKind)),
     textSizePx:
       typeof entry.textSizePx === "number" && Number.isFinite(entry.textSizePx) ? Math.round(Math.max(8, Math.min(72, entry.textSizePx))) : NOTE_DEFAULTS.textSizePx,
     tags: normalizeStringList(entry.tags),

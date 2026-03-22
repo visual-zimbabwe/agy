@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { rowsToSnapshot } from "@/features/wall/cloud";
-import { NOTE_DEFAULTS } from "@/features/wall/constants";
+import { JOURNAL_NOTE_DEFAULTS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS } from "@/features/wall/constants";
 
 describe("cloud rows mapping", () => {
   it("maps persisted note formatting fields from cloud rows", () => {
@@ -204,6 +204,7 @@ describe("cloud rows mapping", () => {
     expect(throne?.quoteAuthor).toBe("Jaime Lannister");
     expect(throne?.quoteSource).toBe("House Lannister");
     expect(throne?.color).toBe("#FF2400");
+    expect(throne?.textColor).toBe(THRONE_NOTE_DEFAULTS.textColor);
   });
 
   it("maps quote note metadata from cloud rows", () => {
@@ -268,6 +269,7 @@ describe("cloud rows mapping", () => {
     const journal = snapshot.notes.j1;
     expect(journal?.noteKind).toBe("journal");
     expect(journal?.textFont).toBe("patrick_hand");
+    expect(journal?.textColor).toBe(JOURNAL_NOTE_DEFAULTS.textColor);
   });
 
   it("maps canon note metadata from cloud rows", () => {

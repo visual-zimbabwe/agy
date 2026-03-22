@@ -2,6 +2,7 @@ import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
+import { resolveDefaultNoteTextColor } from "@/features/wall/note-style-defaults";
 import type { ApodNote, CanonNote, CurrencyNote, PersistedWallState, PoetryNote, PrivateNoteData, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
 
 type WallRow = {
@@ -446,7 +447,7 @@ export const rowsToSnapshot = (rows: {
           textAlign: note.text_align === "center" || note.text_align === "right" ? note.text_align : "left",
           textVAlign: note.text_v_align === "middle" || note.text_v_align === "bottom" ? note.text_v_align : NOTE_DEFAULTS.textVAlign,
           textFont: normalizeNoteFont(note.text_font),
-          textColor: typeof note.text_color === "string" && note.text_color ? note.text_color : NOTE_DEFAULTS.textColor,
+          textColor: typeof note.text_color === "string" && note.text_color ? note.text_color : resolveDefaultNoteTextColor(noteKind),
           pinned: Boolean(note.pinned),
           highlighted: Boolean(note.highlighted),
           vocabulary: parseVocabulary(note.vocabulary),
