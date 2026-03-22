@@ -2279,7 +2279,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     zoneContainsNote,
   });
 
-  const { exportJson, importJson, publishReadOnlySnapshot } = useWallBackupActions({
+  const { exportJson, exportLegacyJson, importJson, publishReadOnlySnapshot } = useWallBackupActions({
     backupReminderCadence,
     confidentialPassphrase: confidentialPassphrase ?? "",
     backupReminderLastPromptStorageKey,
@@ -3412,7 +3412,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         isExportOpen={ui.isExportOpen} onCloseExport={() => setExportOpenTracked(false)}
         onExportPng={(scope, pixelRatio) => { void exportPng(scope, pixelRatio); }}
         onExportPdf={(scope) => { void exportPdf(scope); }}
-        onExportMarkdown={exportMarkdown} onExportJson={exportJson}
+        onExportMarkdown={exportMarkdown} onExportJson={exportJson} onExportLegacyJson={exportLegacyJson}
         onImportJson={(file) => { void importJson(file); }}
         onPublishSnapshot={() => { void publishReadOnlySnapshot(); }}
         backupReminderCadence={backupReminderCadence} onBackupReminderCadenceChange={setBackupReminderCadence}

@@ -28,6 +28,7 @@ This covers workspace unlock, local persistence, cloud snapshot sync, encrypted 
 - Cloud page sync stores an encrypted snapshot on the `page_docs` row when the latest migration is present.
 - Page file uploads are encrypted client-side before they are stored in Supabase Storage, and the browser decrypts them only after a signed URL is resolved during an unlocked session.
 - Encrypted wall backup export is the default backup path.
+- The export modal also offers a readable `Legacy Wall JSON` rollback export for the pre-confidential private-note build.
 - Public snapshot sharing is disabled for confidential workspaces.
 - PNG, PDF, and Markdown exports remain available, but the UI warns that they create readable copies outside the encrypted workspace.
 
@@ -36,7 +37,7 @@ This covers workspace unlock, local persistence, cloud snapshot sync, encrypted 
 Plaintext exists in:
 
 - active browser memory during an unlocked session
-- readable exports that the user explicitly confirms, such as PNG, PDF, Markdown, or legacy backups imported from older versions
+- readable exports that the user explicitly confirms, such as PNG, PDF, Markdown, explicit `Legacy Wall JSON` rollback exports, or legacy backups imported from older versions
 - legacy local or cloud records that existed before migration and have not yet been cleaned up
 
 Ciphertext exists in:
@@ -53,6 +54,14 @@ Ciphertext exists in:
 ## Migration and Recovery
 
 The migration is compatibility-first.
+
+### Rollback to the private-note release
+
+- The first private-note release is commit `6bf2013`.
+- The confidential workspace migration begins at commit `e7f8a2c`.
+- A direct code rollback is not data-safe for current encrypted workspaces.
+- The safe rollback path is: export an encrypted backup for full-fidelity preservation, export `Legacy Wall JSON` for the old wall importer, then switch code versions.
+- `Legacy Wall JSON` is intentionally readable plaintext so the pre-confidential build can import it. Treat it like an unencrypted secret.
 
 - Existing plaintext local and cloud snapshots remain readable.
 - When the workspace is unlocked, the client creates encrypted copies alongside the legacy data.

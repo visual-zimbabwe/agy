@@ -1221,6 +1221,8 @@ Expected:
 6. Add or edit notes, refresh the page, unlock again, and verify wall content restores.
 7. Open Export and run `Export Encrypted Backup`. Verify the downloaded file uses encrypted envelope fields rather than readable wall JSON.
 8. Import the encrypted backup and verify the wall restores without errors.
+8a. In Export, run `Export Legacy Wall JSON`, confirm the warning, and verify the downloaded file is readable wall JSON rather than an encrypted envelope.
+8b. In a build based on commit `6bf2013`, import that legacy file and verify notes, zones, camera state, and private-note ciphertext shells restore without format errors.
 9. Attempt `Public Sharing Disabled` and verify the app blocks URL sharing.
 10. Export PNG, PDF, and Markdown and verify each action warns that it creates a readable copy.
 11. Enter a wrong replacement passphrase for an already-encrypted workspace and verify the app relocks into a recovery notice instead of crashing with a crypto error.
@@ -1235,6 +1237,7 @@ Expected results:
 - Wall and page persistence remain blocked until unlock.
 - Local restore works through encrypted snapshot storage.
 - Encrypted backup export/import works.
+- Legacy rollback export produces a readable wall backup that the pre-confidential private-note build can import.
 - Public snapshot links are disabled.
 - Readable exports require confirmation.
 - Existing content remains accessible after migration.

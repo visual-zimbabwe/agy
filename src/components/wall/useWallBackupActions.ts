@@ -46,6 +46,16 @@ export const useWallBackupActions = ({
     setExportOpen(false);
   }, [backupReminderLastPromptStorageKey, confidentialPassphrase, downloadJsonFile, makeDownloadId, setExportOpen]);
 
+  const exportLegacyJson = useCallback(() => {
+    const snapshot = selectPersistedSnapshot(useWallStore.getState());
+    const ok = window.confirm("Export a readable legacy wall backup for the pre-confidential private-note build? Store it securely because it is not encrypted.");
+    if (!ok) {
+      return;
+    }
+    downloadJsonFile(`agy-legacy-wall-backup-${makeDownloadId()}.json`, snapshot);
+    setExportOpen(false);
+  }, [downloadJsonFile, makeDownloadId, setExportOpen]);
+
   const importJson = useCallback(
     async (file: File) => {
       try {
@@ -99,5 +109,5 @@ export const useWallBackupActions = ({
     }
   }, [backupReminderCadence, backupReminderLastPromptStorageKey, exportJson, publishedReadOnly]);
 
-  return { exportJson, importJson, publishReadOnlySnapshot };
+  return { exportJson, exportLegacyJson, importJson, publishReadOnlySnapshot };
 };

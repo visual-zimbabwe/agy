@@ -30,6 +30,8 @@
 
 ### Changed
 
+- Export modal now supports a readable `Legacy Wall JSON` rollback backup so confidential workspaces can be moved back to the pre-confidential private-note build without relying on encrypted backup import support in the older app
+
 - `README.md` now reflects the current multi-surface product instead of describing only the wall workspace
 - Frontend architecture guidance moved into `docs/architecture/frontend-architecture.md`
 - Unsplash-powered image search now backs `/wall` image insertion and `/page` `/image` + `/cover` flows, including clustered wall moodboards and persisted page covers
