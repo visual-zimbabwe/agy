@@ -424,6 +424,7 @@ export const WallNotesLayer = ({
         const bookmarkFavicon = bookmarkFaviconUrl ? loadedImagesByUrl[bookmarkFaviconUrl] : undefined;
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
         const isImageNote = Boolean(imageUrl);
+        const isApodMediaCard = isApod;
         const imageCaption = isApod ? getApodCaption(noteView) : noteView.text.trim();
         const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, imageCaption, noteImage) : null;
         const strippedNoteText = stripWikiLinkMarkup(noteView.text);
@@ -434,6 +435,8 @@ export const WallNotesLayer = ({
           ? ""
           : isCurrency || isBookmark
           ? ""
+          : isApodMediaCard
+          ? imageCaption || noteView.apod?.error || noteView.apod?.title || "NASA APOD"
           : isImageNote
           ? imageCaption
           : isApiQuoteNote
@@ -461,8 +464,8 @@ export const WallNotesLayer = ({
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
         const resolvedNoteColor = resolveNoteFillColor(noteView);
         const tagPalette = noteTagChipPalette(resolvedNoteColor);
-        const textY = isImageNote ? 0 : isApiQuoteNote ? 52 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 43 : 0);
-        const textHeight = isImageNote
+        const textY = isApodMediaCard || isImageNote ? 0 : isApiQuoteNote ? 52 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 43 : 0);
+        const textHeight = isApodMediaCard || isImageNote
           ? 0
           : Math.max(0, noteView.h - 56 - quoteAttributionHeight - throneSpeakerHeight - quoteMarkInset - canonTitleInset - poetryHeaderInset - (isJournal ? 43 : 0) - wikiFooterHeight);
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
@@ -837,7 +840,7 @@ export const WallNotesLayer = ({
                   );
                 })()}
               </>
-            ) : isImageNote && imageNoteLayout ? (
+            ) : isApodMediaCard ? (
               <>
                 <Rect
                   width={noteView.w}
@@ -852,7 +855,7 @@ export const WallNotesLayer = ({
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={resolvedNoteColor} opacity={0.08} listening={false} />
-                {noteImage ? (
+                {isImageNote && imageNoteLayout && noteImage ? (
                   <KonvaImage
                     x={imageNoteLayout.imageX}
                     y={imageNoteLayout.imageY}
@@ -862,7 +865,7 @@ export const WallNotesLayer = ({
                     cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
                     listening={false}
                   />
-                ) : (
+                ) : isImageNote && imageNoteLayout ? (
                   <>
                     <Rect
                       x={IMAGE_NOTE_PADDING}
@@ -883,7 +886,54 @@ export const WallNotesLayer = ({
                       align="center"
                       fontSize={11}
                       fill="#64748B"
-                      text={isApod ? noteView.apod?.error || (imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image...") : imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image..."}
+                      text={noteView.apod?.error || (imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image...")}
+                      listening={false}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Rect
+                      x={IMAGE_NOTE_PADDING}
+                      y={IMAGE_NOTE_PADDING}
+                      width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
+                      height={Math.max(1, noteView.h - 74)}
+                      cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
+                      fill="#EAF1FB"
+                      listening={false}
+                    />
+                    <Rect x={18} y={18} width={58} height={22} cornerRadius={11} fill="rgba(15,23,42,0.75)" listening={false} />
+                    <Text x={18} y={24} width={58} align="center" fontSize={10} fontStyle="bold" fill="#FFFFFF" text="VIDEO" listening={false} />
+                    <Text
+                      x={18}
+                      y={58}
+                      width={Math.max(0, noteView.w - 36)}
+                      fontSize={18}
+                      fontStyle="bold"
+                      fill="#0F172A"
+                      text={noteView.apod?.title?.trim() || "NASA APOD"}
+                      ellipsis
+                      listening={false}
+                    />
+                    <Text
+                      x={18}
+                      y={84}
+                      width={Math.max(0, noteView.w - 36)}
+                      fontSize={11}
+                      fill="#475569"
+                      text={noteView.apod?.date?.trim() || "Loading latest APOD"}
+                      ellipsis
+                      listening={false}
+                    />
+                    <Text
+                      x={18}
+                      y={108}
+                      width={Math.max(0, noteView.w - 36)}
+                      height={Math.max(0, noteView.h - 160)}
+                      fontSize={12}
+                      lineHeight={1.4}
+                      fill="#334155"
+                      text={noteView.apod?.explanation?.trim() || noteView.apod?.error || "Open the APOD note to play the video."}
+                      ellipsis
                       listening={false}
                     />
                   </>
@@ -892,9 +942,9 @@ export const WallNotesLayer = ({
                   <>
                     <Rect
                       x={IMAGE_NOTE_PADDING}
-                      y={noteView.h - IMAGE_NOTE_PADDING - imageNoteLayout.captionHeight - 2}
+                      y={Math.max(IMAGE_NOTE_PADDING, noteView.h - 58)}
                       width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
-                      height={imageNoteLayout.captionHeight + 2}
+                      height={Math.min(52, Math.max(30, noteView.h - Math.max(IMAGE_NOTE_PADDING, noteView.h - 58) - IMAGE_NOTE_PADDING))}
                       cornerRadius={12}
                       fill="#FFFFFF"
                       opacity={0.94}
@@ -902,9 +952,9 @@ export const WallNotesLayer = ({
                     />
                     <Text
                       x={14}
-                      y={noteView.h - IMAGE_NOTE_PADDING - imageNoteLayout.captionHeight + 5}
+                      y={Math.max(11, noteView.h - 50)}
                       width={Math.max(0, noteView.w - 28)}
-                      height={Math.max(0, imageNoteLayout.captionHeight - 10)}
+                      height={36}
                       fontSize={IMAGE_NOTE_CAPTION_FONT_SIZE}
                       fontFamily={noteTextFontFamily}
                       lineHeight={IMAGE_NOTE_CAPTION_LINE_HEIGHT}
@@ -1094,7 +1144,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isPrivate && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && (
+            {!isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && (
               <Text
                 x={textX}
                 y={textY}
@@ -1192,7 +1242,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && !isPoetry && (
+            {wikiLinks.length > 0 && !isApodMediaCard && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && !isPoetry && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;
@@ -1302,7 +1352,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isPrivate && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry &&
+            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -1327,7 +1377,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isPrivate && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && overflowTags > 0 && (
+            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}
