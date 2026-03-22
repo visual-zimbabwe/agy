@@ -973,6 +973,92 @@ export const WallNotesLayer = ({
                   </>
                 )}
               </>
+            ) : isImageNote && imageNoteLayout ? (
+              <>
+                <Rect
+                  width={noteView.w}
+                  height={noteView.h}
+                  cornerRadius={IMAGE_NOTE_RADIUS}
+                  fill="#FFFFFF"
+                  stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
+                  strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
+                  shadowColor="#101010"
+                  shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
+                  shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
+                  shadowOffsetY={isDragging ? 7 : 3}
+                />
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={resolvedNoteColor} opacity={0.08} listening={false} />
+                {noteImage ? (
+                  <KonvaImage
+                    x={imageNoteLayout.imageX}
+                    y={imageNoteLayout.imageY}
+                    width={imageNoteLayout.imageWidth}
+                    height={imageNoteLayout.imageHeight}
+                    image={noteImage}
+                    cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
+                    listening={false}
+                  />
+                ) : (
+                  <>
+                    <Rect
+                      x={IMAGE_NOTE_PADDING}
+                      y={IMAGE_NOTE_PADDING}
+                      width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
+                      height={Math.max(1, noteView.h - IMAGE_NOTE_PADDING * 2 - imageNoteLayout.captionHeight - (imageNoteLayout.captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0))}
+                      cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
+                      fill="#F4F6FB"
+                      stroke="#CBD5E1"
+                      strokeWidth={1}
+                      dash={[6, 4]}
+                      listening={false}
+                    />
+                    <Text
+                      x={14}
+                      y={Math.max(18, noteView.h / 2 - 8)}
+                      width={Math.max(0, noteView.w - 28)}
+                      align="center"
+                      fontSize={11}
+                      fill="#64748B"
+                      text={imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image..."}
+                      listening={false}
+                    />
+                  </>
+                )}
+                {imageCaption && (
+                  <>
+                    <Rect
+                      x={IMAGE_NOTE_PADDING}
+                      y={noteView.h - IMAGE_NOTE_PADDING - imageNoteLayout.captionHeight - 2}
+                      width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
+                      height={imageNoteLayout.captionHeight + 2}
+                      cornerRadius={12}
+                      fill="#FFFFFF"
+                      opacity={0.94}
+                      listening={false}
+                    />
+                    <Text
+                      x={14}
+                      y={noteView.h - IMAGE_NOTE_PADDING - imageNoteLayout.captionHeight + 5}
+                      width={Math.max(0, noteView.w - 28)}
+                      height={Math.max(0, imageNoteLayout.captionHeight - 10)}
+                      fontSize={IMAGE_NOTE_CAPTION_FONT_SIZE}
+                      fontFamily={noteTextFontFamily}
+                      lineHeight={IMAGE_NOTE_CAPTION_LINE_HEIGHT}
+                      fill="#475569"
+                      text={imageCaption}
+                      ellipsis
+                      onClick={(event) => {
+                        if (isTimeLocked) {
+                          return;
+                        }
+                        event.cancelBubble = true;
+                        selectSingleNote(note.id);
+                        openEditor(note.id, noteView.text);
+                      }}
+                    />
+                  </>
+                )}
+              </>
             ) : isEisenhower ? (
               <EisenhowerMatrixNote
                 note={noteView}
