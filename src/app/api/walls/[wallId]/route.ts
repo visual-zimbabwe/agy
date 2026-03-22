@@ -21,31 +21,49 @@ const patchWallSchema = z.object({
 });
 
 const isMissingZoneKindColumnError = (message?: string) =>
-  Boolean(message && message.includes("column zones.kind does not exist"));
+  Boolean(message && (message.includes("column zones.kind does not exist") || message.includes("Could not find the 'kind' column of 'zones' in the schema cache")));
 const isMissingNoteFormattingColumnError = (message?: string) =>
   Boolean(
     message &&
       (message.includes("column notes.note_kind does not exist") ||
+        message.includes("Could not find the 'note_kind' column of 'notes' in the schema cache") ||
         message.includes("column notes.quote_author does not exist") ||
+        message.includes("Could not find the 'quote_author' column of 'notes' in the schema cache") ||
         message.includes("column notes.quote_source does not exist") ||
+        message.includes("Could not find the 'quote_source' column of 'notes' in the schema cache") ||
         message.includes("column notes.private_note does not exist") ||
+        message.includes("Could not find the 'private_note' column of 'notes' in the schema cache") ||
         message.includes("column notes.canon does not exist") ||
+        message.includes("Could not find the 'canon' column of 'notes' in the schema cache") ||
         message.includes("column notes.eisenhower does not exist") ||
+        message.includes("Could not find the 'eisenhower' column of 'notes' in the schema cache") ||
         message.includes("column notes.currency does not exist") ||
+        message.includes("Could not find the 'currency' column of 'notes' in the schema cache") ||
         message.includes("column notes.bookmark does not exist") ||
+        message.includes("Could not find the 'bookmark' column of 'notes' in the schema cache") ||
         message.includes("column notes.apod does not exist") ||
+        message.includes("Could not find the 'apod' column of 'notes' in the schema cache") ||
         message.includes("column notes.poetry does not exist") ||
+        message.includes("Could not find the 'poetry' column of 'notes' in the schema cache") ||
         message.includes("column notes.text_size does not exist") ||
+        message.includes("Could not find the 'text_size' column of 'notes' in the schema cache") ||
         message.includes("column notes.image_url does not exist") ||
+        message.includes("Could not find the 'image_url' column of 'notes' in the schema cache") ||
         message.includes("column notes.text_align does not exist") ||
+        message.includes("Could not find the 'text_align' column of 'notes' in the schema cache") ||
         message.includes("column notes.text_v_align does not exist") ||
+        message.includes("Could not find the 'text_v_align' column of 'notes' in the schema cache") ||
         message.includes("column notes.text_font does not exist") ||
+        message.includes("Could not find the 'text_font' column of 'notes' in the schema cache") ||
         message.includes("column notes.text_color does not exist") ||
+        message.includes("Could not find the 'text_color' column of 'notes' in the schema cache") ||
         message.includes("column notes.pinned does not exist") ||
-        message.includes("column notes.highlighted does not exist")),
+        message.includes("Could not find the 'pinned' column of 'notes' in the schema cache") ||
+        message.includes("column notes.highlighted does not exist") ||
+        message.includes("Could not find the 'highlighted' column of 'notes' in the schema cache")),
   );
 const isMissingNoteVocabularyColumnError = (message?: string) =>
-  Boolean(message && message.includes("column notes.vocabulary does not exist"));
+  Boolean(message && (message.includes("column notes.vocabulary does not exist") || message.includes("Could not find the 'vocabulary' column of 'notes' in the schema cache")));
 const isMissingNoteGroupsTableError = (message?: string) =>
   Boolean(message && message.includes('relation "public.note_groups" does not exist'));
 
