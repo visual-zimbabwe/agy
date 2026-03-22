@@ -338,7 +338,26 @@ const ApodRenderer = ({ note, width, height, readableText, mutedText, textFontFa
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="flex h-full flex-col rounded-[inherit] bg-white/96 p-1.5">
         <div className="relative min-h-0 flex-1 overflow-hidden rounded-[14px] bg-[linear-gradient(180deg,#eef4fb,#dfe8f5)]">
-          {note.imageUrl ? (
+          {isVideo && playback?.kind === "direct" ? (
+            <video
+              src={playback.url}
+              poster={note.imageUrl}
+              className="h-full w-full bg-black object-contain"
+              controls
+              muted
+              loop
+              playsInline
+              preload="metadata"
+            />
+          ) : isVideo && playback?.kind === "embed" ? (
+            <iframe
+              src={playback.url}
+              title={note.apod?.title || "NASA APOD video"}
+              className="h-full w-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          ) : note.imageUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={note.imageUrl} alt={note.apod?.title || "NASA APOD"} className="h-full w-full object-contain" loading="lazy" />
@@ -351,12 +370,7 @@ const ApodRenderer = ({ note, width, height, readableText, mutedText, textFontFa
           {isVideo && (
             <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
               <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">Video</span>
-              {playback && <span className="rounded-full bg-white/88 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f172a]">Playable</span>}
-            </div>
-          )}
-          {isVideo && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-3">
-              <span className="rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">Open note to play</span>
+              {playback && <span className="rounded-full bg-white/88 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f172a]">Live</span>}
             </div>
           )}
         </div>
