@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
+import { hasAnyLocalSecurePageSnapshot, verifyAnyLocalPageSnapshotPassphrase } from "@/features/page/storage";
+import { hasLocalSecureWallSnapshot, verifyLocalWallSnapshotPassphrase } from "@/features/wall/storage";
 import {
   clearConfidentialRecoveryMessage,
   configureConfidentialWorkspace,
@@ -84,12 +86,31 @@ export const useConfidentialAccess = () => {
     }
 
     clearConfidentialRecoveryMessage();
+
+    const [hasLocalWallSnapshot, hasLocalPageSnapshot, matchesLocalWallSnapshot, matchesLocalPageSnapshot] = await Promise.all([
+      hasLocalSecureWallSnapshot(),
+      hasAnyLocalSecurePageSnapshot(),
+      verifyLocalWallSnapshotPassphrase(trimmed),
+      verifyAnyLocalPageSnapshotPassphrase(trimmed),
+    ]);
+    const hasLocalSecureCiphertext = hasLocalWallSnapshot || hasLocalPageSnapshot;
+    const matchesLocalSecureCiphertext = matchesLocalWallSnapshot || matchesLocalPageSnapshot;
+
+    if (hasLocalSecureCiphertext) {
+      if (!matchesLocalSecureCiphertext) {
+        return { ok: false, error: "This passphrase does not match the encrypted workspace data on this device." } as const;
+      }
+
+      await configureConfidentialWorkspace(trimmed);
+      setActiveConfidentialPassphrase(trimmed);
+      return { ok: true } as const;
+    }
+
     const config = readConfidentialWorkspaceConfig();
     if (config) {
       const valid = await verifyConfidentialPassphrase(trimmed, config);
       if (!valid) {
-        setActiveConfidentialPassphrase(trimmed);
-        return { ok: true } as const;
+        return { ok: false, error: "This passphrase does not match the encrypted workspace data on this device." } as const;
       }
     } else if (options?.persistConfig !== false) {
       await configureConfidentialWorkspace(trimmed);

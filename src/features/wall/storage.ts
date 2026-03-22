@@ -225,6 +225,32 @@ const loadSecureWallSnapshot = async (passphrase: string): Promise<PersistedWall
   return normalizePersistedWallState(decrypted) ?? { notes: {}, zones: {}, zoneGroups: {}, noteGroups: {}, links: {}, camera: defaultCamera };
 };
 
+export const hasLocalSecureWallSnapshot = async (): Promise<boolean> => {
+  await migrateLegacyWallDatabaseIfNeeded();
+  return Boolean(await db.secure.get(secureSnapshotKey));
+};
+
+export const verifyLocalWallSnapshotPassphrase = async (passphrase: string): Promise<boolean> => {
+  await migrateLegacyWallDatabaseIfNeeded();
+
+  const row = await db.secure.get(secureSnapshotKey);
+  if (!row) {
+    return false;
+  }
+
+  try {
+    const parsed = JSON.parse(row.payload) as unknown;
+    if (!isConfidentialEnvelope(parsed)) {
+      return false;
+    }
+
+    await decryptConfidentialPayload<PersistedWallState>(passphrase, parsed);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const saveLegacyWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
   await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta], async () => {
     const notes = Object.values(snapshot.notes);

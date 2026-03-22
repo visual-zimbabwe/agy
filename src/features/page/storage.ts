@@ -297,6 +297,37 @@ const loadDecryptedSecureSnapshot = async (row: PageDocRecord, passphrase: strin
   return normalizeSnapshot(await decryptConfidentialPayload<PersistedPageState>(passphrase, parsed));
 };
 
+export const hasAnyLocalSecurePageSnapshot = async (): Promise<boolean> => {
+  await migrateLegacyPageDatabaseIfNeeded();
+  const rows = await db.pageDocs.toArray();
+  return rows.some((row) => typeof row.secureSnapshot === "string" && row.secureSnapshot.length > 0);
+};
+
+export const verifyAnyLocalPageSnapshotPassphrase = async (passphrase: string): Promise<boolean> => {
+  await migrateLegacyPageDatabaseIfNeeded();
+  const rows = await db.pageDocs.toArray();
+
+  for (const row of rows) {
+    if (!row.secureSnapshot) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(row.secureSnapshot) as unknown;
+      if (!isConfidentialEnvelope(parsed)) {
+        continue;
+      }
+
+      await decryptConfidentialPayload<PersistedPageState>(passphrase, parsed);
+      return true;
+    } catch {
+      continue;
+    }
+  }
+
+  return false;
+};
+
 const saveSecureSnapshot = async (snapshot: PersistedPageState, docId: string, passphrase: string) => {
   const envelope = await encryptConfidentialPayload(passphrase, snapshot);
   await db.pageDocs.put({

@@ -1224,9 +1224,10 @@ Expected:
 9. Attempt `Public Sharing Disabled` and verify the app blocks URL sharing.
 10. Export PNG, PDF, and Markdown and verify each action warns that it creates a readable copy.
 11. Enter a wrong replacement passphrase for an already-encrypted workspace and verify the app relocks into a recovery notice instead of crashing with a crypto error.
-12. Retry with the original passphrase and verify unlock succeeds and the recovery notice clears.
-13. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
-14. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
+12. Retry with the original passphrase and verify unlock succeeds immediately, the local config is repaired from ciphertext validation, and the recovery notice clears.
+13. Enter another incorrect passphrase after recovery and verify the gate rejects it before the wall loads with a sync error banner.
+14. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
+15. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
 
 Expected results:
 
