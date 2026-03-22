@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getApodDownloadUrl, getApodPlayback, resolveApodMedia } from "@/lib/apod";
+import { getApodDownloadUrl, getApodPlayback, hasUsableApodPreview, resolveApodMedia } from "@/lib/apod";
 
 describe("resolveApodMedia", () => {
   it("prefers still-image URLs for image APOD entries", () => {
@@ -32,6 +32,21 @@ describe("resolveApodMedia", () => {
       fallbackImageUrl: "https://img.youtube.com/vi/example/hqdefault.jpg",
       pageUrl: "https://www.youtube.com/embed/example",
     });
+  });
+
+  it("keeps embeddable video APOD entries usable even when NASA omits a thumbnail", () => {
+    const media = resolveApodMedia({
+      media_type: "video",
+      url: "https://www.youtube.com/watch?v=abc123",
+    });
+
+    expect(media).toEqual({
+      mediaType: "video",
+      imageUrl: undefined,
+      fallbackImageUrl: undefined,
+      pageUrl: "https://www.youtube.com/watch?v=abc123",
+    });
+    expect(hasUsableApodPreview(media)).toBe(true);
   });
 });
 

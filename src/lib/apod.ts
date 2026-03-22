@@ -132,6 +132,16 @@ export const getApodPlayback = (apod?: Pick<ApodNote, "mediaType" | "pageUrl"> |
   return undefined;
 };
 
+export const hasUsableApodPreview = (apod?: Pick<ApodNote, "mediaType" | "imageUrl" | "pageUrl"> | null) => {
+  if (!apod) {
+    return false;
+  }
+  if (clean(apod.imageUrl)) {
+    return true;
+  }
+  return Boolean(getApodPlayback(apod));
+};
+
 export const getApodDownloadUrl = (apod?: Pick<ApodNote, "mediaType" | "pageUrl" | "imageUrl" | "fallbackImageUrl"> | null) => {
   const pageUrl = clean(apod?.pageUrl);
   if (apod?.mediaType === "video" && pageUrl && isDirectVideoUrl(pageUrl)) {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { cleanApodField, resolveApodMedia, type NasaApodResponse } from "@/lib/apod";
+import { cleanApodField, hasUsableApodPreview, resolveApodMedia, type NasaApodResponse } from "@/lib/apod";
 
 const querySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -37,8 +37,8 @@ export async function GET(request: Request) {
 
     const payload = (await response.json()) as NasaApodResponse;
     const resolvedMedia = resolveApodMedia(payload);
-    if (!resolvedMedia.imageUrl) {
-      return NextResponse.json({ error: "NASA APOD did not include a usable preview image" }, { status: 502 });
+    if (!hasUsableApodPreview(resolvedMedia)) {
+      return NextResponse.json({ error: "NASA APOD did not include a usable preview image or playable video" }, { status: 502 });
     }
 
     return NextResponse.json({
