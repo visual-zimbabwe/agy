@@ -114,7 +114,7 @@ import {
   updateZone,
 } from "@/features/wall/commands";
 import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
-import { PRIVATE_NOTE_AUTO_LOCK_MS, canProtectNote, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
+import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
 import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
 import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { isCurrencyNote } from "@/features/wall/currency";
@@ -161,8 +161,8 @@ type ImageInsertState = {
 };
 
 type PrivateSession = {
-  passphrase: string;
-  text: string;
+  password: string;
+  hidden: PrivateNoteHiddenFields;
   lastActivityAt: number;
 };
 
@@ -577,24 +577,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       if (!session) {
         return;
       }
-      const encrypted = await encryptPrivateNote(session.passphrase, { text: parsed.text });
+      const hidden = {
+        ...session.hidden,
+        text: parsed.text,
+        tags: mergedTags,
+      };
+      const encrypted = await encryptPrivateNote(session.password, hidden);
       state.beginHistoryGroup();
       try {
-        updateNote(noteId, {
-          text: "",
-          tags: mergedTags,
+        state.patchNote(noteId, {
+          ...createPrivateNoteShellPatch(current),
           privateNote: encrypted,
-          vocabulary: current.vocabulary
-            ? {
-                ...current.vocabulary,
-                word: parsed.text.trim(),
-              }
-            : current.vocabulary,
         });
         syncWikiLinksForNote(noteId, "");
         setPrivateSession(noteId, {
           ...session,
-          text: parsed.text,
+          hidden,
           lastActivityAt: Date.now(),
         });
       } finally {
@@ -631,13 +629,16 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         openPrivateModal("unlock", noteId, { focusField, reopenEditor: true });
         return;
       }
-      setEditTagInput("");
-      setEditTagRenameFrom(null);
       setPrivateSession(noteId, {
         ...session,
         lastActivityAt: Date.now(),
       });
-      setEditing({ id: noteId, text: session.text, focusField });
+      if (!canInlineEditPrivateNote(session.hidden)) {
+        return;
+      }
+      setEditTagInput("");
+      setEditTagRenameFrom(null);
+      setEditing({ id: noteId, text: session.hidden.text, focusField });
       return;
     }
     setEditTagInput("");
@@ -707,7 +708,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setEditing(null);
   };
 
-  const submitPrivateModal = useCallback(async (passphrase: string) => {
+  const submitPrivateModal = useCallback(async (password: string) => {
     const noteId = privateModal.noteId;
     if (!noteId) {
       closePrivateModal();
@@ -721,16 +722,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     try {
       if (privateModal.mode === "protect") {
         if (!canProtectNote(note)) {
-          setPrivateModal((current) => ({ ...current, error: "This note type cannot be protected yet." }));
+          setPrivateModal((current) => ({ ...current, error: "This note cannot be protected right now." }));
           return;
         }
-        const plaintext = note.text;
-        const encrypted = await encryptPrivateNote(passphrase, { text: plaintext });
-        updateNote(noteId, { text: "", privateNote: encrypted });
+        const hidden = createPrivateNoteHiddenFields(note);
+        const encrypted = await encryptPrivateNote(password, hidden);
+        useWallStore.getState().patchNote(noteId, {
+          ...createPrivateNoteShellPatch(note),
+          privateNote: encrypted,
+        });
         syncWikiLinksForNote(noteId, "");
         setPrivateSession(noteId, {
-          passphrase,
-          text: plaintext,
+          password,
+          hidden,
           lastActivityAt: Date.now(),
         });
         closePrivateModal();
@@ -740,24 +744,24 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         closePrivateModal();
         return;
       }
-      const decrypted = await decryptPrivateNote(passphrase, note.privateNote);
+      const hidden = await decryptPrivateNote(password, note.privateNote);
       setPrivateSession(noteId, {
-        passphrase,
-        text: decrypted.text,
+        password,
+        hidden,
         lastActivityAt: Date.now(),
       });
-      const reopenEditor = privateModal.reopenEditor;
+      const reopenEditor = privateModal.reopenEditor && canInlineEditPrivateNote(hidden);
       const focusField = privateModal.focusField;
       closePrivateModal();
       if (reopenEditor) {
         setEditTagInput("");
         setEditTagRenameFrom(null);
-        setEditing({ id: noteId, text: decrypted.text, focusField });
+        setEditing({ id: noteId, text: hidden.text, focusField });
       }
     } catch {
       setPrivateModal((current) => ({
         ...current,
-        error: privateModal.mode === "protect" ? "Could not protect this note right now." : "Passphrase did not unlock this note.",
+        error: privateModal.mode === "protect" ? "Could not protect this note right now." : "Password did not unlock this note.",
       }));
     }
   }, [closePrivateModal, privateModal, renderSnapshot.notes, setPrivateSession, syncWikiLinksForNote]);
@@ -3290,8 +3294,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             if (!selected || !isPrivateNote(selected) || !session) {
               return;
             }
-            updateNote(noteId, { text: session.text, privateNote: undefined });
-            syncWikiLinksForNote(noteId, session.text);
+            useWallStore.getState().patchNote(noteId, {
+              ...session.hidden,
+              noteKind: session.hidden.noteKind ?? selected.noteKind,
+              tags: session.hidden.tags.length > 0 ? session.hidden.tags : selected.tags,
+              privateNote: undefined,
+            });
+            syncWikiLinksForNote(noteId, session.hidden.text);
             lockPrivateNote(noteId);
           }}
           detailsSectionsOpen={detailsSectionsOpen}
@@ -3383,7 +3392,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         noteLabel={privateModalNote ? privateNoteTitle(privateModalNote) : "Private note"}
         error={privateModal.error}
         onClose={closePrivateModal}
-        onSubmit={(passphrase) => { void submitPrivateModal(passphrase); }}
+        onSubmit={(password) => { void submitPrivateModal(password); }}
       />
 
       <WallGlobalModals

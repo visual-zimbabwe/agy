@@ -1194,20 +1194,21 @@ Expected:
 
 ## Private Notes (`/wall`) (2026-03-21)
 1. Open `/wall`, create a standard note, add visible text, then choose `Details > Privacy > Protect note`.
-2. Enter and confirm a passphrase; verify the note switches to a locked private shell and the original text no longer shows on the wall.
+2. Enter and confirm a password; verify the note switches to a locked private shell and the original content no longer shows on the wall.
 3. Click the locked note and verify the unlock modal appears instead of the text editor.
-4. Enter the wrong passphrase and verify the note stays locked with an error message.
-5. Enter the correct passphrase and verify the note opens in the editor with its original text.
-6. Edit the unlocked note, blur the editor, refresh `/wall`, and verify the note returns as a locked shell while the edited text is restored after unlocking again.
+4. Enter the wrong password and verify the note stays locked with an error message.
+5. Enter the correct password and verify the note unlocks successfully.
+6. Remove protection from the unlocked note and verify the original note type and content return intact.
 7. Wait at least five minutes without interacting, or hide the tab and return; verify the unlocked note auto-locks and the editor closes.
 8. Search for text that exists only inside the private note and verify it does not appear in search results while the note is locked.
 9. Export Markdown and verify the private note is listed as hidden content rather than exporting plaintext.
 10. In `Details > Privacy`, unlock the note, click `Remove protection`, and verify the plaintext note body returns and can be searched again.
-11. If cloud sync is enabled, sync, reload, and verify the private note remains locked on reload and can still be opened with the same passphrase.
+11. Repeat the flow with an image, bookmark, or APOD note and verify the note restores its original media or card payload after unlocking and removing protection.
+12. If cloud sync is enabled, sync, reload, and verify the private note remains locked on reload and can still be opened with the same password.
 
 Expected:
 - Private notes behave like sealed note shells on the wall and never render plaintext while locked.
-- Passphrases unlock private notes only for the active browser session and are not persisted with the wall snapshot.
+- Passwords unlock private notes only for the active browser session and are not persisted with the wall snapshot.
 - Search, Markdown export, and wiki-link generation exclude locked private note content.
 - Refreshing, syncing, hiding the tab, or letting the unlock session expire does not lose encrypted note contents.
 

@@ -1090,9 +1090,9 @@ export const WallNotesLayer = ({
                 <Rect x={12} y={12} width={Math.max(1, noteView.w - 24)} height={34} cornerRadius={12} fill="rgba(255,255,255,0.65)" listening={false} />
                 <Text x={20} y={22} width={Math.max(0, noteView.w - 40)} fontSize={11} fontStyle="bold" fill="#475569" text="PROTECTED" listening={false} />
                 <Text x={16} y={62} width={Math.max(0, noteView.w - 32)} fontSize={18} fontStyle="bold" fill={resolvedTextColor} text={privateNoteTitle(noteView)} listening={false} />
-                <Text x={16} y={92} width={Math.max(0, noteView.w - 32)} height={Math.max(0, noteView.h - 138)} fontSize={12} lineHeight={1.45} fill="#475569" text="Content stays hidden on the wall and requires the note passphrase to open in the editor." listening={false} />
+                <Text x={16} y={92} width={Math.max(0, noteView.w - 32)} height={Math.max(0, noteView.h - 138)} fontSize={12} lineHeight={1.45} fill="#475569" text="Content stays hidden on the wall and requires the note password to unlock it." listening={false} />
                 <Rect x={16} y={Math.max(16, noteView.h - 38)} width={Math.min(150, Math.max(90, noteView.w - 32))} height={20} cornerRadius={10} fill="rgba(15,23,42,0.08)" listening={false} />
-                <Text x={24} y={Math.max(20, noteView.h - 33)} width={Math.min(142, Math.max(82, noteView.w - 40))} fontSize={10} fontStyle="bold" fill="#334155" text="Passphrase required" listening={false} />
+                <Text x={24} y={Math.max(20, noteView.h - 33)} width={Math.min(142, Math.max(82, noteView.w - 40))} fontSize={10} fontStyle="bold" fill="#334155" text="Password required" listening={false} />
               </>
             ) : (
               <Rect

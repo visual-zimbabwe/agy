@@ -12,18 +12,18 @@ type PrivateNoteModalProps = {
   noteLabel: string;
   error?: string | null;
   onClose: () => void;
-  onSubmit: (passphrase: string) => Promise<void> | void;
+  onSubmit: (password: string) => Promise<void> | void;
 };
 
 export const PrivateNoteModal = ({ open, mode, noteLabel, error, onClose, onSubmit }: PrivateNoteModalProps) => {
-  const [passphrase, setPassphrase] = useState("");
-  const [confirmPassphrase, setConfirmPassphrase] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) {
-      setPassphrase("");
-      setConfirmPassphrase("");
+      setPassword("");
+      setConfirmPassword("");
       setSubmitting(false);
     }
   }, [open]);
@@ -33,43 +33,43 @@ export const PrivateNoteModal = ({ open, mode, noteLabel, error, onClose, onSubm
   }
 
   const protectMode = mode === "protect";
-  const mismatch = protectMode && passphrase && confirmPassphrase && passphrase !== confirmPassphrase;
-  const canSubmit = passphrase.trim().length >= 8 && (!protectMode || (!mismatch && confirmPassphrase.trim().length >= 8));
+  const mismatch = protectMode && password && confirmPassword && password !== confirmPassword;
+  const canSubmit = password.trim().length >= 8 && (!protectMode || (!mismatch && confirmPassword.trim().length >= 8));
 
   return (
     <ModalShell
       open={open}
       onClose={onClose}
       title={protectMode ? "Protect note" : "Unlock private note"}
-      description={protectMode ? `Set a passphrase for ${noteLabel}. If you forget it, the app cannot recover the note.` : `Enter the passphrase for ${noteLabel}.`}
+      description={protectMode ? `Set a password for ${noteLabel}. If you forget it, the app cannot recover the note.` : `Enter the password for ${noteLabel}.`}
       maxWidthClassName="max-w-lg"
     >
       <div className="space-y-3">
         <div>
-          <FieldLabel htmlFor="private-note-passphrase">Passphrase</FieldLabel>
+          <FieldLabel htmlFor="private-note-password">Password</FieldLabel>
           <TextField
-            id="private-note-passphrase"
+            id="private-note-password"
             type="password"
-            value={passphrase}
-            onChange={(event) => setPassphrase(event.target.value)}
-            placeholder="Use a long phrase you can remember"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Use a password you can remember"
             autoFocus
           />
         </div>
         {protectMode && (
           <div>
-            <FieldLabel htmlFor="private-note-confirm">Confirm passphrase</FieldLabel>
+            <FieldLabel htmlFor="private-note-confirm">Confirm password</FieldLabel>
             <TextField
               id="private-note-confirm"
               type="password"
-              value={confirmPassphrase}
-              onChange={(event) => setConfirmPassphrase(event.target.value)}
-              placeholder="Enter the same passphrase again"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              placeholder="Enter the same password again"
             />
           </div>
         )}
-        {protectMode && <p className="text-xs text-[var(--color-text-muted)]">Use at least 8 characters. A short sentence or 4-6 words is better than a short password.</p>}
-        {mismatch && <p className="text-xs text-[#B42318]">Passphrases do not match.</p>}
+        {protectMode && <p className="text-xs text-[var(--color-text-muted)]">Use at least 8 characters.</p>}
+        {mismatch && <p className="text-xs text-[#B42318]">Passwords do not match.</p>}
         {error && <p className="text-xs text-[#B42318]">{error}</p>}
       </div>
 
@@ -84,7 +84,7 @@ export const PrivateNoteModal = ({ open, mode, noteLabel, error, onClose, onSubm
             }
             setSubmitting(true);
             try {
-              await onSubmit(passphrase);
+              await onSubmit(password);
             } finally {
               setSubmitting(false);
             }

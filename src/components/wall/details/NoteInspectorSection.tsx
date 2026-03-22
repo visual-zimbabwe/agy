@@ -247,7 +247,7 @@ export const NoteInspectorSection = ({
           <p className={sectionLabelClass}>Privacy</p>
           {isPrivateEnabled ? (
             <div className="grid gap-2">
-              <div className={detailMutedPanel}>{isPrivateUnlocked ? "This note is currently unlocked in this browser session. The wall still shows a protected shell." : "This note is protected. Enter the passphrase to open it in the editor."}</div>
+              <div className={detailMutedPanel}>{isPrivateUnlocked ? "This note is currently unlocked in this browser session. The wall still shows a protected shell." : "This note is protected. Enter the password to unlock it."}</div>
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => (isPrivateUnlocked ? onLockPrivateNote(selectedNote.id) : onUnlockPrivateNote(selectedNote.id))} className={detailButton} disabled={isTimeLocked}>
                   {isPrivateUnlocked ? "Lock note" : "Unlock note"}
@@ -259,11 +259,11 @@ export const NoteInspectorSection = ({
             </div>
           ) : privateNoteSupported ? (
             <div className="grid gap-2">
-              <div className={detailMutedPanel}>Seal this note behind a passphrase. Content stays hidden on the wall and in standard exports.</div>
+              <div className={detailMutedPanel}>Seal this note behind a password. Content stays hidden on the wall and in standard exports.</div>
               <button type="button" onClick={() => onProtectPrivateNote(selectedNote.id)} className={detailButton} disabled={isTimeLocked}>Protect note</button>
             </div>
           ) : (
-            <div className={detailMutedPanel}>Private-note protection currently supports standard and journal notes without image, card, or system payloads.</div>
+            <div className={detailMutedPanel}>This note cannot be protected right now.</div>
           )}
         </div>
 
