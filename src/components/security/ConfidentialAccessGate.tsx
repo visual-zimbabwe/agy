@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ModalShell } from "@/components/ui/ModalShell";
 import { Button } from "@/components/ui/Button";
@@ -23,6 +23,11 @@ export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, 
   const [submitting, setSubmitting] = useState(false);
 
   const title = useMemo(() => (mode === "create" ? `Protect ${scopeLabel}` : `Unlock ${scopeLabel}`), [mode, scopeLabel]);
+
+  useEffect(() => {
+    setMode(hasConfig ? "unlock" : "create");
+    setShowPassphrase(false);
+  }, [hasConfig]);
 
   if (!open) {
     return null;
@@ -108,20 +113,22 @@ export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, 
           <Button type="submit" variant="primary" disabled={submitting}>
             {mode === "create" ? "Enable Confidential Mode" : "Unlock"}
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={submitting}
-            onClick={() => {
-              setError(null);
-              setPassphrase("");
-              setConfirmPassphrase("");
-              setShowPassphrase(false);
-              setMode((previous) => (previous === "create" ? "unlock" : "create"));
-            }}
-          >
-            {mode === "create" ? "I already have a passphrase" : hasConfig ? "Create a new passphrase" : "Create passphrase"}
-          </Button>
+          {!hasConfig ? (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={submitting}
+              onClick={() => {
+                setError(null);
+                setPassphrase("");
+                setConfirmPassphrase("");
+                setShowPassphrase(false);
+                setMode((previous) => (previous === "create" ? "unlock" : "create"));
+              }}
+            >
+              {mode === "create" ? "I already have a passphrase" : "Create passphrase"}
+            </Button>
+          ) : null}
         </div>
 
         <div className="space-y-1 text-xs text-[var(--color-text-muted)]">
@@ -132,3 +139,4 @@ export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, 
     </ModalShell>
   );
 };
+

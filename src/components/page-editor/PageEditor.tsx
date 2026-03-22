@@ -23,7 +23,7 @@ import { UnsplashPicker } from "@/components/media/UnsplashPicker";
 import { ConfidentialAccessGate } from "@/components/security/ConfidentialAccessGate";
 import { useConfidentialAccess } from "@/components/security/useConfidentialAccess";
 import { cn } from "@/lib/cn";
-import { decryptConfidentialFile, encryptConfidentialFile } from "@/lib/confidential-workspace";
+import { decryptConfidentialFile, encryptConfidentialFile, ensureConfidentialWorkspaceConfigMatchesPassphrase, isConfidentialDecryptError, lockConfidentialWorkspace } from "@/lib/confidential-workspace";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { trackUnsplashDownload } from "@/lib/unsplash-client";
@@ -1991,6 +1991,7 @@ export function PageEditor() {
     void (async () => {
       try {
         const snapshot = await loadDocSnapshot(docId);
+        await ensureConfidentialWorkspaceConfigMatchesPassphrase(confidentialPassphrase ?? "");
         if (cancelled) return;
         const initialBlocks =
           snapshot?.blocks?.length && !isPlaceholderPage(snapshot.blocks) ? snapshot.blocks : createEmptyPage();
@@ -2009,15 +2010,21 @@ export function PageEditor() {
         setCamera(nextCamera);
         loadedNonEmptyRef.current = safeBlocks.length > 0;
         hasLoadedRef.current = true;
-      } catch {
+      } catch (error) {
         hasLoadedRef.current = true;
+        if (isConfidentialDecryptError(error)) {
+          lockConfidentialWorkspace();
+          if (typeof window !== "undefined") {
+            window.alert(error instanceof Error ? error.message : "Unable to decrypt confidential workspace data.");
+          }
+        }
       }
     })();
     return () => {
       cancelled = true;
       void saver.flush();
     };
-  }, [confidentialReady, docId, loadDocSnapshot]);
+  }, [confidentialPassphrase, confidentialReady, docId, loadDocSnapshot]);
 
   useEffect(() => {
     setBlocks((previous) => {

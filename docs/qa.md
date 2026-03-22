@@ -1216,13 +1216,14 @@ Expected:
 1. Open `/wall` and verify the confidentiality gate appears before normal wall persistence starts.
 2. In create mode, toggle `Show passphrase` on and off and verify both passphrase fields switch visibility without changing their values.
 3. Create a passphrase and confirm the wall unlocks.
-4. Add or edit notes, refresh the page, unlock again, and verify wall content restores.
-5. Open Export and run `Export Encrypted Backup`. Verify the downloaded file uses encrypted envelope fields rather than readable wall JSON.
-6. Import the encrypted backup and verify the wall restores without errors.
-7. Attempt `Public Sharing Disabled` and verify the app blocks URL sharing.
-8. Export PNG, PDF, and Markdown and verify each action warns that it creates a readable copy.
-9. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
-10. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
+4. Reopen the confidentiality gate after a refresh and verify it only offers unlock, not passphrase recreation, for an existing workspace.
+5. Add or edit notes, refresh the page, unlock again, and verify wall content restores.
+6. Open Export and run `Export Encrypted Backup`. Verify the downloaded file uses encrypted envelope fields rather than readable wall JSON.
+7. Import the encrypted backup and verify the wall restores without errors.
+8. Attempt `Public Sharing Disabled` and verify the app blocks URL sharing.
+9. Export PNG, PDF, and Markdown and verify each action warns that it creates a readable copy.
+10. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
+11. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
 
 Expected results:
 

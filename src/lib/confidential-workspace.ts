@@ -30,6 +30,8 @@ const verificationPayload = { scope: "agy-confidential-workspace", version: 1 } 
 const workspaceConfigKey = `${appSlug}-confidential-workspace-v1`;
 const legacyWorkspaceConfigKey = `${legacyAppSlug}-confidential-workspace-v1`;
 
+export const confidentialDecryptErrorMessage = "Unable to decrypt confidential workspace data. Use the passphrase that originally encrypted this workspace.";
+
 let activePassphrase: string | null = null;
 const listeners = new Set<(passphrase: string | null) => void>();
 
@@ -97,12 +99,17 @@ export const encryptConfidentialPayload = async <T>(passphrase: string, payload:
 
 export const decryptConfidentialPayload = async <T>(passphrase: string, envelope: ConfidentialEnvelope): Promise<T> => {
   const key = await deriveKey(passphrase, base64ToBytes(envelope.salt), envelope.iterations);
-  const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: toBufferSource(base64ToBytes(envelope.iv)) },
-    key,
-    toBufferSource(base64ToBytes(envelope.ciphertext)),
-  );
-  return JSON.parse(decoder.decode(plaintext)) as T;
+
+  try {
+    const plaintext = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: toBufferSource(base64ToBytes(envelope.iv)) },
+      key,
+      toBufferSource(base64ToBytes(envelope.ciphertext)),
+    );
+    return JSON.parse(decoder.decode(plaintext)) as T;
+  } catch (error) {
+    throw new Error(confidentialDecryptErrorMessage, { cause: error });
+  }
 };
 
 export const encryptConfidentialFile = async (passphrase: string, file: File) => {
@@ -175,6 +182,8 @@ export const configureConfidentialWorkspace = async (passphrase: string) => {
   return next;
 };
 
+export const isConfidentialDecryptError = (error: unknown) => error instanceof Error && error.message === confidentialDecryptErrorMessage;
+
 export const verifyConfidentialPassphrase = async (passphrase: string, config = readConfidentialWorkspaceConfig()) => {
   if (!config) {
     return true;
@@ -185,6 +194,14 @@ export const verifyConfidentialPassphrase = async (passphrase: string, config = 
     return payload.scope === verificationPayload.scope && payload.version === verificationPayload.version;
   } catch {
     return false;
+  }
+};
+
+export const ensureConfidentialWorkspaceConfigMatchesPassphrase = async (passphrase: string) => {
+  const config = readConfidentialWorkspaceConfig();
+  const matches = await verifyConfidentialPassphrase(passphrase, config);
+  if (!matches) {
+    await configureConfidentialWorkspace(passphrase);
   }
 };
 
@@ -210,3 +227,4 @@ export const resetConfidentialWorkspace = () => {
   removeStorageKeys([workspaceConfigKey, legacyWorkspaceConfigKey]);
   lockConfidentialWorkspace();
 };
+

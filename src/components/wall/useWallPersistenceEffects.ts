@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
-import { decryptConfidentialPayload } from "@/lib/confidential-workspace";
+import { decryptConfidentialPayload, ensureConfidentialWorkspaceConfigMatchesPassphrase, isConfidentialDecryptError, lockConfidentialWorkspace } from "@/lib/confidential-workspace";
 import { createJokerNote, refreshJokerNote } from "@/features/wall/commands";
 import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { hasJokerCardBeenActivated, jokerErrorText, jokerLoadingText, markJokerCardActivated } from "@/features/wall/joker";
@@ -82,10 +82,28 @@ export const useWallPersistenceEffects = ({
     };
 
     const load = async () => {
-      const [snapshot, loadedTimeline] = await Promise.all([
-        loadWallSnapshot(confidentialPassphrase),
-        loadTimelineEntries(500, confidentialPassphrase),
-      ]);
+      let snapshot: PersistedWallState;
+      let loadedTimeline: TimelineEntry[];
+
+      try {
+        [snapshot, loadedTimeline] = await Promise.all([
+          loadWallSnapshot(confidentialPassphrase),
+          loadTimelineEntries(500, confidentialPassphrase),
+        ]);
+        await ensureConfidentialWorkspaceConfigMatchesPassphrase(confidentialPassphrase);
+      } catch (error) {
+        if (!cancelled) {
+          onLocalSaveStateChange("error");
+          if (isConfidentialDecryptError(error)) {
+            lockConfidentialWorkspace();
+            setSyncError(error instanceof Error ? error.message : "Unable to decrypt confidential workspace data.");
+          } else {
+            setSyncError(error instanceof Error ? error.message : "Unable to load local wall data.");
+          }
+        }
+        return;
+      }
+
       lastPersistedSerializedRef.current = JSON.stringify(snapshot);
 
       if (!cancelled) {
@@ -235,3 +253,4 @@ export const useWallPersistenceEffects = ({
     syncSnapshotToCloud,
   ]);
 };
+

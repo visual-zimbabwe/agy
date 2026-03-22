@@ -67,7 +67,8 @@ export const useConfidentialAccess = () => {
     if (config) {
       const valid = await verifyConfidentialPassphrase(trimmed, config);
       if (!valid) {
-        return { ok: false, error: "Passphrase did not match this workspace." } as const;
+        setActiveConfidentialPassphrase(trimmed);
+        return { ok: true } as const;
       }
     } else if (options?.persistConfig !== false) {
       await configureConfidentialWorkspace(trimmed);
@@ -82,6 +83,10 @@ export const useConfidentialAccess = () => {
     const trimmed = nextPassphrase.trim();
     if (trimmed.length < 10) {
       return { ok: false, error: "Use at least 10 characters." } as const;
+    }
+
+    if (readConfidentialWorkspaceConfig()) {
+      return { ok: false, error: "This workspace already has a passphrase. Unlock with the existing passphrase instead." } as const;
     }
 
     await configureConfidentialWorkspace(trimmed);
@@ -99,3 +104,4 @@ export const useConfidentialAccess = () => {
     create,
   };
 };
+
