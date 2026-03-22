@@ -1,6 +1,7 @@
 "use client";
 
 import type { Note } from "@/features/wall/types";
+import { getApodDownloadUrl, getApodPlayback } from "@/lib/apod";
 
 const panelClass =
   "absolute z-[48] w-[min(32rem,calc(100vw-2rem))] rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 shadow-[0_24px_60px_rgba(15,23,42,0.22)] backdrop-blur-[var(--blur-panel)]";
@@ -30,7 +31,14 @@ export const ApodNoteEditor = ({
   const viewportWidth = typeof window === "undefined" ? 1280 : window.innerWidth;
   const viewportHeight = typeof window === "undefined" ? 860 : window.innerHeight;
   const apod = editingNote.apod;
+  const playback = getApodPlayback(apod);
   const hasImage = Boolean(editingNote.imageUrl);
+  const downloadUrl = getApodDownloadUrl(apod);
+  const downloadLabel = apod?.mediaType === "video"
+    ? playback?.kind === "direct"
+      ? "Download Video"
+      : "Download Thumbnail"
+    : "Download Image";
 
   return (
     <div
@@ -54,12 +62,27 @@ export const ApodNoteEditor = ({
 
       <div className="mt-4 overflow-hidden rounded-[1.2rem] border border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="relative aspect-[4/3] bg-[linear-gradient(180deg,#eef4fb,#dfe8f5)]">
-          {hasImage ? (
+          {playback?.kind === "direct" ? (
+            <video src={playback.url} poster={editingNote.imageUrl} className="h-full w-full bg-black object-contain" controls preload="metadata" />
+          ) : playback?.kind === "embed" ? (
+            <iframe
+              src={playback.url}
+              title={apod?.title || "NASA APOD video"}
+              className="h-full w-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          ) : hasImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={editingNote.imageUrl} alt={apod?.title || "NASA APOD"} className="h-full w-full object-contain" loading="eager" />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-center text-sm text-[var(--color-text-muted)]">
-              {apod?.error || (apod?.status === "loading" ? "Loading latest APOD..." : "APOD image unavailable.")}
+              {apod?.error || (apod?.status === "loading" ? "Loading latest APOD..." : "APOD media unavailable.")}
+            </div>
+          )}
+          {apod?.mediaType === "video" && (
+            <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
+              Video
             </div>
           )}
         </div>
@@ -69,8 +92,8 @@ export const ApodNoteEditor = ({
         <button type="button" onClick={onRefresh} className={primaryButtonClass} data-note-edit-tags="true">
           {apod?.status === "loading" ? "Refreshing..." : "Refresh Now"}
         </button>
-        <button type="button" onClick={onDownload} className={buttonClass} disabled={!hasImage} data-note-edit-tags="true">
-          Download Image
+        <button type="button" onClick={onDownload} className={buttonClass} disabled={!downloadUrl} data-note-edit-tags="true">
+          {downloadLabel}
         </button>
         <button type="button" onClick={onOpenSource} className={buttonClass} disabled={!apod?.pageUrl} data-note-edit-tags="true">
           Open Source

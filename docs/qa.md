@@ -172,18 +172,19 @@ Expected:
 6. Convert an existing standard note through `Details > Note Type > APOD` and verify it becomes an APOD note and fetches the latest APOD payload.
 7. In the APOD floating editor, click `Refresh Now` and verify the note refetches data without creating a duplicate note.
 8. Click `Open Source` and verify the NASA APOD page opens in a new tab.
-9. Click `Download Image` and verify the current APOD image downloads locally with a readable filename.
+9. Click `Download Image` and verify the current APOD image downloads locally with a readable filename. If the current APOD entry is a direct video file, verify the control switches to `Download Video` and downloads the video instead.
 10. Resize the APOD note smaller and larger, then zoom out and back in; verify the media remains sharp and uses a contained layout rather than stretching into a blurry crop.
 11. Collapse back to the default note size and verify the image preview is still crisp.
 12. Refresh `/wall` and verify the APOD note restores with its cached metadata and image.
 13. If cloud sync is enabled, sync, reload, and verify the APOD payload still renders after hydration.
-14. If the current APOD entry is a video, verify the note falls back to a usable thumbnail/image state and the card remains readable.
+14. If the current APOD entry is a video, verify the wall card stays readable with a video badge/thumbnail and opening the APOD editor shows playable embedded or direct video when the provider is supported.
 15. Leave the wall open across a date boundary or mock a new day, then trigger visibility/focus recovery and verify the APOD note updates to the new day instead of staying stale.
 
 Expected:
 - APOD notes are creatable from `Tools`, command palette, keyboard shortcut, and note-type conversion.
 - APOD note data is fetched through the app backend using the configured NASA API key rather than from the browser directly.
 - APOD notes auto-refresh for a new day, while manual refresh remains available.
+- Supported APOD video entries remain readable on the wall and play inside the APOD editor instead of failing as broken images.
 - Downloaded APOD media is served as a local attachment through the backend.
 - Expanded and contracted APOD notes keep the image crisp, fully visible, and unclipped on desktop and mobile-sized wall layouts.
 
@@ -1209,3 +1210,4 @@ Expected:
 - Passphrases unlock private notes only for the active browser session and are not persisted with the wall snapshot.
 - Search, Markdown export, and wiki-link generation exclude locked private note content.
 - Refreshing, syncing, hiding the tab, or letting the unlock session expire does not lose encrypted note contents.
+

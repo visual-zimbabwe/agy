@@ -40,7 +40,7 @@ Image note creation now supports three insert sources from the wall image modal:
 - `Paste URL` for direct remote image links
 - `Unsplash` search for single-image insertion or 3-10 image moodboards
 
-NASA APOD notes create a dedicated astronomy card powered by the NASA Astronomy Picture of the Day API. The wall can create them explicitly from the Tools panel, from the command palette, from the `Shift + A` shortcut, or by converting an existing note through `Details > Note Type`. APOD notes refresh automatically against the current UTC day, cache the latest payload locally, persist their metadata through local storage and cloud sync, and expose actions to manually refresh, open the NASA source page, or download the current image through the app backend. When the APOD entry is a video or otherwise lacks a primary still image, the wall falls back to the best available thumbnail while keeping the note readable.
+NASA APOD notes create a dedicated astronomy card powered by the NASA Astronomy Picture of the Day API. The wall can create them explicitly from the Tools panel, from the command palette, from the `Shift + A` shortcut, or by converting an existing note through `Details > Note Type`. APOD notes refresh automatically against the current UTC day, cache the latest payload locally, persist their metadata through local storage and cloud sync, and expose actions to manually refresh, open the NASA source page, or download the current image through the app backend. Image APOD entries render as still media, while supported video entries keep a readable thumbnail on the wall and open as playable embedded or direct video inside the APOD editor. When a video provider cannot be embedded directly, the wall still falls back to the best available thumbnail while keeping the note readable.
 
 Poetry notes create a dedicated poem card powered by PoetryDB. The wall can create them from the Tools panel, from the command palette, or by converting an existing note through `Details > Note Type`. In `Details`, Poetry notes expose a search form that can query PoetryDB by random daily poem, author, title, line text, or line count, with partial or exact matching where supported. The selected search method is saved with the note, reused by manual refresh, and reused again when the local-day auto-refresh runs. Poetry notes cache results per day and search method locally, wrap the poem body, and resize themselves so the full poem is visible on initial creation. Poetry notes also expose manual refresh plus image and PDF export actions from the floating editor. Their deep red `#B73A3A` color is reserved for this note type.
 
@@ -126,6 +126,7 @@ This makes notes the core unit of wall content, but not the only structural elem
 - `docs/architecture/state-and-storage.md`
 - `docs/features/search-and-retrieval.md`
 - `docs/features/timeline-view.md`
+
 
 
 

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { APOD_NOTE_CACHE_KEY, APOD_NOTE_REFRESH_INTERVAL_MS, defaultApodNoteState, getApodDateKey, isApodNote, shouldRefreshApod } from "@/features/wall/apod";
 import { useWallStore } from "@/features/wall/store";
 import type { ApodNote } from "@/features/wall/types";
+import { getApodDownloadUrl } from "@/lib/apod";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 type ApodCache = Record<string, ApodNote>;
@@ -162,7 +163,7 @@ export const useApodNotes = ({ hydrated, publishedReadOnly }: { hydrated: boolea
   const downloadApodImage = useCallback((noteId: string) => {
     const note = getApodNote(noteId);
     const apod = note?.apod;
-    const mediaUrl = apod?.imageUrl ?? apod?.fallbackImageUrl;
+    const mediaUrl = getApodDownloadUrl(apod);
     if (!mediaUrl) {
       return;
     }
@@ -178,3 +179,4 @@ export const useApodNotes = ({ hydrated, publishedReadOnly }: { hydrated: boolea
     downloadApodImage,
   };
 };
+

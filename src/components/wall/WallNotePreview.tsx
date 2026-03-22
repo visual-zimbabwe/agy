@@ -4,6 +4,7 @@ import { memo, type CSSProperties, type ReactNode } from "react";
 
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, truncateNoteText } from "@/components/wall/wall-canvas-helpers";
 import { getApodCaption } from "@/features/wall/apod";
+import { getApodPlayback } from "@/lib/apod";
 import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { parseCurrencyAmountInput } from "@/features/wall/currency";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
@@ -331,6 +332,8 @@ const ImageRenderer = ({ note, width, height, readableText, mutedText, textFontF
 
 const ApodRenderer = ({ note, width, height, readableText, mutedText, textFontFamily, bodyClamp, tone }: RendererProps) => {
   const caption = getApodCaption(note);
+  const playback = getApodPlayback(note.apod);
+  const isVideo = note.apod?.mediaType === "video";
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="flex h-full flex-col rounded-[inherit] bg-white/96 p-1.5">
@@ -343,6 +346,17 @@ const ApodRenderer = ({ note, width, height, readableText, mutedText, textFontFa
           ) : (
             <div className="flex h-full items-center justify-center px-4 text-center text-[11px]" style={{ color: mutedText }}>
               {note.apod?.error || "Loading APOD"}
+            </div>
+          )}
+          {isVideo && (
+            <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
+              <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">Video</span>
+              {playback && <span className="rounded-full bg-white/88 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f172a]">Playable</span>}
+            </div>
+          )}
+          {isVideo && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-3">
+              <span className="rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">Open note to play</span>
             </div>
           )}
         </div>

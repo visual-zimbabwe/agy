@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveApodMedia } from "@/lib/apod";
+import { getApodDownloadUrl, getApodPlayback, resolveApodMedia } from "@/lib/apod";
 
 describe("resolveApodMedia", () => {
   it("prefers still-image URLs for image APOD entries", () => {
@@ -32,5 +32,43 @@ describe("resolveApodMedia", () => {
       fallbackImageUrl: "https://img.youtube.com/vi/example/hqdefault.jpg",
       pageUrl: "https://www.youtube.com/embed/example",
     });
+  });
+});
+
+describe("getApodPlayback", () => {
+  it("normalizes YouTube watch URLs into embeddable playback URLs", () => {
+    expect(
+      getApodPlayback({
+        mediaType: "video",
+        pageUrl: "https://www.youtube.com/watch?v=abc123",
+      }),
+    ).toEqual({
+      kind: "embed",
+      url: "https://www.youtube.com/embed/abc123",
+    });
+  });
+
+  it("keeps direct video files as direct playback sources", () => {
+    expect(
+      getApodPlayback({
+        mediaType: "video",
+        pageUrl: "https://apod.nasa.gov/video/galaxy.mp4",
+      }),
+    ).toEqual({
+      kind: "direct",
+      url: "https://apod.nasa.gov/video/galaxy.mp4",
+    });
+  });
+});
+
+describe("getApodDownloadUrl", () => {
+  it("prefers the direct video file for downloadable video APOD entries", () => {
+    expect(
+      getApodDownloadUrl({
+        mediaType: "video",
+        pageUrl: "https://apod.nasa.gov/video/galaxy.mp4",
+        imageUrl: "https://img.youtube.com/vi/example/hqdefault.jpg",
+      }),
+    ).toBe("https://apod.nasa.gov/video/galaxy.mp4");
   });
 });
