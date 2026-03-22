@@ -54,4 +54,29 @@ describe("findOpenNotePosition", () => {
 
     expect(position).toEqual({ x: 580, y: 440 });
   });
+
+  it("keeps searching beyond the viewport instead of returning an overlapping slot", () => {
+    const occupied = [
+      { x: 0, y: 0, w: 220, h: 160 },
+      { x: 240, y: 0, w: 220, h: 160 },
+      { x: 480, y: 0, w: 220, h: 160 },
+      { x: 0, y: 180, w: 220, h: 160 },
+      { x: 240, y: 180, w: 220, h: 160 },
+      { x: 480, y: 180, w: 220, h: 160 },
+      { x: 0, y: 360, w: 220, h: 160 },
+      { x: 240, y: 360, w: 220, h: 160 },
+      { x: 480, y: 360, w: 220, h: 160 },
+    ];
+    const position = findOpenNotePosition({
+      camera,
+      viewport,
+      occupiedRects: occupied,
+      preferred: { x: 120, y: 140 },
+      size,
+    });
+
+    expect(position).not.toEqual({ x: 120, y: 140 });
+    expect(occupied.some((rect) => overlaps({ ...position, ...size }, rect))).toBe(false);
+    expect(position.x + size.w > viewport.w || position.y + size.h > viewport.h || position.x < 0 || position.y < 0).toBe(true);
+  });
 });

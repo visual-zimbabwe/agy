@@ -164,6 +164,28 @@ const rectsOverlap = (left: Rect, right: Rect, padding: number) =>
   left.y < right.y + right.h + padding &&
   left.y + left.h + padding > right.y;
 
+const candidateDistance = (candidate: Rect, anchor: Rect) => Math.hypot(candidate.x - anchor.x, candidate.y - anchor.y);
+
+const axisSearchBounds = (
+  origin: number,
+  step: number,
+  size: number,
+  viewportMin: number,
+  viewportMax: number,
+  occupiedStarts: number[],
+  occupiedEnds: number[],
+) => {
+  const occupiedMin = occupiedStarts.length > 0 ? Math.min(...occupiedStarts) : viewportMin;
+  const occupiedMax = occupiedEnds.length > 0 ? Math.max(...occupiedEnds) : viewportMax - size;
+  const searchMin = Math.min(viewportMin, occupiedMin - size * 2);
+  const searchMax = Math.max(viewportMax - size, occupiedMax + size * 2);
+  return {
+    negative: Math.max(0, Math.ceil((origin - searchMin) / step)),
+    positive: Math.max(0, Math.ceil((searchMax - origin) / step)),
+    overflow: searchMax,
+  };
+};
+
 type FindOpenNotePositionOptions = {
   camera: Camera;
   viewport: Viewport;
@@ -204,12 +226,10 @@ export const findOpenNotePosition = ({
   const viewportBottom = viewportTop + viewport.h / camera.zoom;
   const columns = Math.max(1, Math.ceil(Math.max(0, viewportRight - viewportLeft - size.w) / stepX));
   const rows = Math.max(1, Math.ceil(Math.max(0, viewportBottom - viewportTop - size.h) / stepY));
-  const maxOffsetX = columns + 1;
-  const maxOffsetY = rows + 1;
-  const candidates = new Map<string, Rect>();
+  const viewportCandidates = new Map<string, Rect>();
 
-  for (let offsetX = -maxOffsetX; offsetX <= maxOffsetX; offsetX += 1) {
-    for (let offsetY = -maxOffsetY; offsetY <= maxOffsetY; offsetY += 1) {
+  for (let offsetX = -(columns + 1); offsetX <= columns + 1; offsetX += 1) {
+    for (let offsetY = -(rows + 1); offsetY <= rows + 1; offsetY += 1) {
       const candidate = clampRectToViewport(
         {
           x: baseRect.x + offsetX * stepX,
@@ -220,22 +240,62 @@ export const findOpenNotePosition = ({
         camera,
         viewport,
       );
-      candidates.set(`${candidate.x}:${candidate.y}`, candidate);
+      viewportCandidates.set(`${candidate.x}:${candidate.y}`, candidate);
     }
   }
 
-  const ordered = [...candidates.values()].sort((left, right) => {
-    const leftDistance = Math.hypot(left.x - baseRect.x, left.y - baseRect.y);
-    const rightDistance = Math.hypot(right.x - baseRect.x, right.y - baseRect.y);
-    return leftDistance - rightDistance;
-  });
-
-  const available = ordered.find((candidate) => !collides(candidate));
-  if (available) {
-    return { x: available.x, y: available.y };
+  const orderedViewportCandidates = [...viewportCandidates.values()].sort(
+    (left, right) => candidateDistance(left, baseRect) - candidateDistance(right, baseRect),
+  );
+  const availableInViewport = orderedViewportCandidates.find((candidate) => !collides(candidate));
+  if (availableInViewport) {
+    return { x: availableInViewport.x, y: availableInViewport.y };
   }
 
-  return { x: baseRect.x, y: baseRect.y };
+  const xBounds = axisSearchBounds(
+    baseRect.x,
+    stepX,
+    size.w,
+    viewportLeft,
+    viewportRight,
+    occupiedRects.map((rect) => rect.x),
+    occupiedRects.map((rect) => rect.x + rect.w),
+  );
+  const yBounds = axisSearchBounds(
+    baseRect.y,
+    stepY,
+    size.h,
+    viewportTop,
+    viewportBottom,
+    occupiedRects.map((rect) => rect.y),
+    occupiedRects.map((rect) => rect.y + rect.h),
+  );
+  const expandedCandidates = new Map<string, Rect>();
+
+  for (let offsetX = -xBounds.negative; offsetX <= xBounds.positive; offsetX += 1) {
+    for (let offsetY = -yBounds.negative; offsetY <= yBounds.positive; offsetY += 1) {
+      const candidate = {
+        x: baseRect.x + offsetX * stepX,
+        y: baseRect.y + offsetY * stepY,
+        w: size.w,
+        h: size.h,
+      };
+      expandedCandidates.set(`${candidate.x}:${candidate.y}`, candidate);
+    }
+  }
+
+  const orderedExpandedCandidates = [...expandedCandidates.values()].sort(
+    (left, right) => candidateDistance(left, baseRect) - candidateDistance(right, baseRect),
+  );
+  const availableExpanded = orderedExpandedCandidates.find((candidate) => !collides(candidate));
+  if (availableExpanded) {
+    return { x: availableExpanded.x, y: availableExpanded.y };
+  }
+
+  return {
+    x: xBounds.overflow + padding,
+    y: baseRect.y,
+  };
 };
 
 export const waitForPaint = () =>
