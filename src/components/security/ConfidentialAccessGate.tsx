@@ -106,29 +106,27 @@ export const ConfidentialAccessGate = ({
         </div>
 
         {mode === "create" && (
-          <>
-            <div>
-              <FieldLabel htmlFor="confidential-passphrase-confirm">Confirm Passphrase</FieldLabel>
-              <TextField
-                id="confidential-passphrase-confirm"
-                type={showPassphrase ? "text" : "password"}
-                value={confirmPassphrase}
-                onChange={(event) => setConfirmPassphrase(event.target.value)}
-                autoComplete="off"
-              />
-            </div>
-
-            <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
-              <input
-                type="checkbox"
-                checked={showPassphrase}
-                onChange={(event) => setShowPassphrase(event.target.checked)}
-                className="h-4 w-4 rounded border-[var(--color-border-strong)]"
-              />
-              Show passphrase
-            </label>
-          </>
+          <div>
+            <FieldLabel htmlFor="confidential-passphrase-confirm">Confirm Passphrase</FieldLabel>
+            <TextField
+              id="confidential-passphrase-confirm"
+              type={showPassphrase ? "text" : "password"}
+              value={confirmPassphrase}
+              onChange={(event) => setConfirmPassphrase(event.target.value)}
+              autoComplete="off"
+            />
+          </div>
         )}
+
+        <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+          <input
+            type="checkbox"
+            checked={showPassphrase}
+            onChange={(event) => setShowPassphrase(event.target.checked)}
+            className="h-4 w-4 rounded border-[var(--color-border-strong)]"
+          />
+          {mode === "create" ? "Show passphrase" : "Show passphrase while unlocking"}
+        </label>
 
         {error ? <p className="text-sm text-[var(--color-danger)]">{error}</p> : null}
 

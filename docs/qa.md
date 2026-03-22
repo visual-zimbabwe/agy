@@ -1215,17 +1215,18 @@ Expected:
 
 1. Open `/wall` and verify the confidentiality gate appears before normal wall persistence starts.
 2. In create mode, toggle `Show passphrase` on and off and verify both passphrase fields switch visibility without changing their values.
-3. Create a passphrase and confirm the wall unlocks.
-4. Reopen the confidentiality gate after a refresh and verify it only offers unlock, not passphrase recreation, for an existing workspace.
-5. Add or edit notes, refresh the page, unlock again, and verify wall content restores.
-6. Open Export and run `Export Encrypted Backup`. Verify the downloaded file uses encrypted envelope fields rather than readable wall JSON.
-7. Import the encrypted backup and verify the wall restores without errors.
-8. Attempt `Public Sharing Disabled` and verify the app blocks URL sharing.
-9. Export PNG, PDF, and Markdown and verify each action warns that it creates a readable copy.
-10. Enter a wrong replacement passphrase for an already-encrypted workspace and verify the app relocks into a recovery notice instead of crashing with a crypto error.
-11. Retry with the original passphrase and verify unlock succeeds and the recovery notice clears.
-12. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
-13. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
+3. After the workspace is created, refresh, return to unlock mode, toggle `Show passphrase while unlocking`, and verify the unlock field switches visibility without changing its value.
+4. Create a passphrase and confirm the wall unlocks.
+5. Reopen the confidentiality gate after a refresh and verify it only offers unlock, not passphrase recreation, for an existing workspace.
+6. Add or edit notes, refresh the page, unlock again, and verify wall content restores.
+7. Open Export and run `Export Encrypted Backup`. Verify the downloaded file uses encrypted envelope fields rather than readable wall JSON.
+8. Import the encrypted backup and verify the wall restores without errors.
+9. Attempt `Public Sharing Disabled` and verify the app blocks URL sharing.
+10. Export PNG, PDF, and Markdown and verify each action warns that it creates a readable copy.
+11. Enter a wrong replacement passphrase for an already-encrypted workspace and verify the app relocks into a recovery notice instead of crashing with a crypto error.
+12. Retry with the original passphrase and verify unlock succeeds and the recovery notice clears.
+13. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
+14. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
 
 Expected results:
 
