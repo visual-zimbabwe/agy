@@ -1,22 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { cleanApodField, resolveApodMedia, type NasaApodResponse } from "@/lib/apod";
+
 const querySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
-
-type NasaApodResponse = {
-  date?: string;
-  title?: string;
-  explanation?: string;
-  copyright?: string;
-  media_type?: string;
-  url?: string;
-  hdurl?: string;
-  thumbnail_url?: string;
-};
-
-const clean = (value?: string | null) => value?.trim() || undefined;
 
 export async function GET(request: Request) {
   const parsed = querySchema.safeParse({
@@ -47,21 +36,17 @@ export async function GET(request: Request) {
     }
 
     const payload = (await response.json()) as NasaApodResponse;
-    const mediaType = payload.media_type === "image" || payload.media_type === "video" ? payload.media_type : "other";
-    const imageUrl = clean(payload.hdurl) || clean(payload.url) || clean(payload.thumbnail_url);
-    if (!imageUrl) {
+    const resolvedMedia = resolveApodMedia(payload);
+    if (!resolvedMedia.imageUrl) {
       return NextResponse.json({ error: "NASA APOD did not include a usable preview image" }, { status: 502 });
     }
 
     return NextResponse.json({
-      date: clean(payload.date),
-      title: clean(payload.title),
-      explanation: clean(payload.explanation),
-      copyright: clean(payload.copyright),
-      mediaType,
-      imageUrl,
-      fallbackImageUrl: clean(payload.url) || clean(payload.thumbnail_url),
-      pageUrl: clean(payload.url) || clean(payload.hdurl),
+      date: cleanApodField(payload.date),
+      title: cleanApodField(payload.title),
+      explanation: cleanApodField(payload.explanation),
+      copyright: cleanApodField(payload.copyright),
+      ...resolvedMedia,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "NASA APOD request failed";
