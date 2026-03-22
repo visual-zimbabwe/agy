@@ -944,13 +944,14 @@ Expected:
 2. Verify `/wall` loads and account chip shows signed-in email.
 3. Sign out and verify redirect to `/login`.
 4. Sign in again with same account and verify return to `/wall`.
-5. Create notes/zones/links, wait for `Last synced` to update, refresh page, verify data persists.
-6. Click `Sync now` and confirm sync completes without error banner.
-7. Sign in on a second browser/device with same account and verify wall content appears after sync.
-8. Modify wall on device B, sync, then refresh device A and verify updates propagate.
-9. Turn off network, make local edits, turn network back on, click `Sync now`, verify changes persist and error clears.
-10. Sign in with a second account and verify it does not see the first account's wall.
-11. While signed in, set a note's `Horizontal align`, `Vertical align`, and `Text color`; wait for sync, then close browser, restart `npm run dev`, and reopen `/wall`.
+5. On `/login`, click `Forgot password?`, submit `/forgot-password`, open the recovery link to `/reset-password`, set a new password, and verify the new password works on `/login`.
+6. Create notes/zones/links, wait for `Last synced` to update, refresh page, verify data persists.
+7. Click `Sync now` and confirm sync completes without error banner.
+8. Sign in on a second browser/device with same account and verify wall content appears after sync.
+9. Modify wall on device B, sync, then refresh device A and verify updates propagate.
+10. Turn off network, make local edits, turn network back on, click `Sync now`, verify changes persist and error clears.
+11. Sign in with a second account and verify it does not see the first account's wall.
+12. While signed in, set a note's `Horizontal align`, `Vertical align`, and `Text color`; wait for sync, then close browser, restart `npm run dev`, and reopen `/wall`.
 
 Expected:
 - `/wall` is protected for unauthenticated users.

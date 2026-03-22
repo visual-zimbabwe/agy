@@ -1,37 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
-  const router = useRouter();
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setNotice(null);
     setBusy(true);
     const supabase = createSupabaseBrowserClient();
+    const redirectTo = `${window.location.origin}/reset-password`;
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
 
     setBusy(false);
-    if (signInError) {
-      setError(signInError.message);
+    if (resetError) {
+      setError(resetError.message);
       return;
     }
 
-    router.replace("/wall");
-    router.refresh();
+    setNotice("Check your inbox for the password reset link.");
   };
 
   return (
@@ -53,15 +49,11 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_46%,rgb(166_58_26_/_0.05),transparent_36%)]" />
 
       <header className="relative z-10 flex items-center justify-between px-6 py-6 sm:px-8">
-        <Link
-          href="/"
-          className="text-3xl italic tracking-[-0.04em] text-[#a33818] transition-opacity hover:opacity-80"
-          style={{ fontFamily: '"Newsreader", "Playfair Display", serif' }}
-        >
+        <Link href="/" className="text-3xl italic tracking-[-0.04em] text-[#a33818] transition-opacity hover:opacity-80" style={{ fontFamily: '"Newsreader", "Playfair Display", serif' }}>
           Agy
         </Link>
-        <Link href="/" className="rounded-full p-2 text-[#756d66] transition-colors hover:text-[#a33818]" aria-label="Back home">
-          ?
+        <Link href="/login" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500 transition-colors hover:text-[#a33818]">
+          Back to login
         </Link>
       </header>
 
@@ -69,13 +61,10 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="overflow-hidden rounded-[0.9rem] bg-white px-10 py-10 shadow-[0_10px_40px_rgba(28,28,25,0.04)] ring-1 ring-white/40 backdrop-blur-sm sm:px-12 sm:py-12">
             <div className="mb-10 text-center">
-              <h1
-                className="text-5xl italic text-[#1c1c19]"
-                style={{ fontFamily: '"Newsreader", "Playfair Display", serif', fontWeight: 500 }}
-              >
-                Agy
+              <h1 className="text-4xl italic text-[#1c1c19]" style={{ fontFamily: '"Newsreader", "Playfair Display", serif', fontWeight: 500 }}>
+                Reset your password
               </h1>
-              <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8d837b]">The Digital Atelier for Thought</p>
+              <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8d837b]">Send a recovery link to your inbox</p>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-8">
@@ -95,74 +84,29 @@ export default function LoginPage() {
                 />
               </div>
 
-              <div>
-                <div className="mb-1 flex items-end justify-between gap-4">
-                  <label htmlFor="password" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6f6259]">
-                    Password
-                  </label>
-                  <Link href="/forgot-password" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#a33818] transition-colors hover:text-[#862303]">
-                    Forgot password?
-                  </Link>
-                </div>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="••••••••"
-                  className="w-full border-0 border-b border-[#dfc0b8]/30 bg-transparent px-0 py-3 text-lg text-[#1c1c19] outline-none transition-colors placeholder:text-stone-300 focus:border-[#a33818]"
-                />
-              </div>
-
               {error && <p className="text-sm text-[#a33818]">{error}</p>}
+              {notice && <p className="text-sm text-[#4d6356]">{notice}</p>}
 
               <button
                 type="submit"
                 disabled={busy}
                 className="mt-2 flex w-full items-center justify-center rounded-full bg-[#a33818] px-6 py-4 text-base font-semibold text-white shadow-[0_12px_30px_rgba(163,56,24,0.14)] transition-all hover:bg-[#862303] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {busy ? "Entering..." : "Enter the Wall"}
+                {busy ? "Sending..." : "Send reset link"}
               </button>
             </form>
 
             <div className="mt-12 text-center">
               <p className="text-sm text-stone-500">
-                New to the atelier?
-                <Link href="/signup" className="ml-1 font-semibold text-[#755717] transition-colors hover:text-[#5d4201]">
-                  Sign up
+                Remembered it?
+                <Link href="/login" className="ml-1 font-semibold text-[#755717] transition-colors hover:text-[#5d4201]">
+                  Sign in
                 </Link>
               </p>
             </div>
           </div>
-
-          <div className="mt-8 space-y-4 text-center opacity-60">
-            <div className="flex justify-center gap-6 text-[9px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-              <Link href="/" className="transition-colors hover:text-[#a33818]">
-                Privacy Policy
-              </Link>
-              <Link href="/" className="transition-colors hover:text-[#a33818]">
-                Terms of Service
-              </Link>
-            </div>
-          </div>
         </div>
       </section>
-
-      <footer className="relative z-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 px-6 pb-12 text-[10px] uppercase tracking-[0.18em] text-stone-400 sm:px-8">
-        <Link href="/signup" className="transition-colors hover:text-[#a33818]">
-          Enter the Beta
-        </Link>
-        <Link href="/signup" className="transition-colors hover:text-[#a33818]">
-          Request Access
-        </Link>
-        <Link href="/" className="transition-colors hover:text-[#a33818]">
-          Privacy
-        </Link>
-        <span className="sm:ml-auto">© 2024 Agy Digital Atelier.</span>
-      </footer>
     </main>
   );
 }
