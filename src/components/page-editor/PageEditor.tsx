@@ -1355,7 +1355,7 @@ const SlashCommandIcon = ({ id }: { id: SlashCommandId }) => {
 };
 
 export function PageEditor() {
-  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace } = useConfidentialAccess();
+  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, configChecked: confidentialConfigChecked, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace } = useConfidentialAccess();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -4567,7 +4567,7 @@ export function PageEditor() {
   return (
     <>
       <ConfidentialAccessGate
-        open={!confidentialReady}
+        open={confidentialConfigChecked && !confidentialReady}
         hasConfig={confidentialHasConfig}
         scopeLabel="Page Editor"
         onCreate={createConfidentialPassphrase}

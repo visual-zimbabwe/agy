@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import {
   configureConfidentialWorkspace,
@@ -9,17 +9,29 @@ import {
   readConfidentialWorkspaceConfig,
   setActiveConfidentialPassphrase,
   subscribeToConfidentialPassphrase,
+  subscribeToConfidentialWorkspaceConfig,
   verifyConfidentialPassphrase,
 } from "@/lib/confidential-workspace";
 
 export const confidentialAutoLockMs = 5 * 60 * 1000;
 
 export const useConfidentialAccess = () => {
-  const [passphrase, setPassphrase] = useState<string | null>(() => getActiveConfidentialPassphrase());
-  const [hasConfig, setHasConfig] = useState(() => Boolean(readConfidentialWorkspaceConfig()));
+  const passphrase = useSyncExternalStore(
+    (listener) => subscribeToConfidentialPassphrase(() => listener()),
+    getActiveConfidentialPassphrase,
+    () => null,
+  );
+  const hasConfig = useSyncExternalStore(
+    subscribeToConfidentialWorkspaceConfig,
+    () => Boolean(readConfidentialWorkspaceConfig()),
+    () => false,
+  );
+  const configChecked = useSyncExternalStore(
+    subscribeToConfidentialWorkspaceConfig,
+    () => true,
+    () => false,
+  );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => subscribeToConfidentialPassphrase(setPassphrase), []);
 
   useEffect(() => {
     if (!passphrase || typeof window === "undefined") {
@@ -72,7 +84,6 @@ export const useConfidentialAccess = () => {
       }
     } else if (options?.persistConfig !== false) {
       await configureConfidentialWorkspace(trimmed);
-      setHasConfig(true);
     }
 
     setActiveConfidentialPassphrase(trimmed);
@@ -90,7 +101,6 @@ export const useConfidentialAccess = () => {
     }
 
     await configureConfidentialWorkspace(trimmed);
-    setHasConfig(true);
     setActiveConfidentialPassphrase(trimmed);
     return { ok: true } as const;
   };
@@ -98,10 +108,10 @@ export const useConfidentialAccess = () => {
   return {
     passphrase,
     hasConfig,
+    configChecked,
     ready: Boolean(passphrase),
     lock: lockConfidentialWorkspace,
     unlock,
     create,
   };
 };
-
