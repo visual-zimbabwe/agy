@@ -1,14 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { DecksWorkspace } from "@/components/decks/DecksWorkspace";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-export default async function DecksPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) {
-    redirect("/login");
-  }
-
-  return <DecksWorkspace />;
+export default function DecksIndexPage() {
+  redirect("/decks/decks");
 }

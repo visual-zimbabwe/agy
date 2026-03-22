@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { FieldLabel, SelectField, TextAreaField, TextField } from "@/components/ui/Field";
@@ -222,14 +222,17 @@ const parseImportText = (raw: string): ParsedImportFile => {
   return { columns, rows };
 };
 
-export const DecksWorkspace = () => {
+type DecksWorkspaceProps = { initialView?: View };
+
+export const DecksWorkspace = ({ initialView = "decks" }: DecksWorkspaceProps) => {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [view, setView] = useState<View>("decks");
+  const [view, setView] = useState<View>(initialView);
   const [toolbarModal, setToolbarModal] = useState<ToolbarModal>("none");
   const [decks, setDecks] = useState<Deck[]>([]);
   const [noteTypes, setNoteTypes] = useState<NoteType[]>([]);
   const [studyDeckId, setStudyDeckId] = useState("");
-  const [studyStage, setStudyStage] = useState<"overview" | "session">("overview");
+  const [studyStage, setStudyStage] = useState<"overview" | "session">(initialView === "study" ? "session" : "overview");
   const [includeChildren, setIncludeChildren] = useState(true);
   const [excludedDeckIds, setExcludedDeckIds] = useState<string[]>([]);
   const [studyCard, setStudyCard] = useState<StudyCard | null>(null);
@@ -287,6 +290,10 @@ export const DecksWorkspace = () => {
   const routeDeckId = searchParams.get("deckId") ?? "";
   const appliedRouteDeckIdRef = useRef<string>("");
   const isDesktop = typeof window !== "undefined" && Boolean(window.desktopMeta?.isDesktop || window.desktopApi);
+
+  useEffect(() => {
+    setView(initialView);
+  }, [initialView]);
 
   const safeRun = useCallback((run: () => Promise<void>) => {
     void run().catch((error) => {
@@ -408,7 +415,7 @@ export const DecksWorkspace = () => {
       setStudyStage("overview");
       safeRun(() => loadStudyCard(routeDeckId));
     }
-  }, [decks, loadStudyCard, resetCustomSessionState, routeDeckId, safeRun]);
+  }, [decks, initialView, loadStudyCard, resetCustomSessionState, routeDeckId, safeRun]);
 
   useEffect(() => {
     if (autoStudyInitRef.current || routeDeckId || decks.length === 0) {
@@ -426,7 +433,7 @@ export const DecksWorkspace = () => {
     setView("study");
     setStudyStage("overview");
     safeRun(() => loadStudyCard(selectedId));
-  }, [decks, loadStudyCard, resetCustomSessionState, routeDeckId, safeRun, studyDeckId]);
+  }, [decks, initialView, loadStudyCard, resetCustomSessionState, routeDeckId, safeRun, studyDeckId]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
@@ -576,7 +583,10 @@ export const DecksWorkspace = () => {
   const selectedRow = useMemo(() => browseRows.find((row) => row.id === selectedRowId) ?? null, [browseRows, selectedRowId]);
   const selectedStudyDeck = useMemo(() => decks.find((deck) => deck.id === studyDeckId) ?? null, [decks, studyDeckId]);
   const childDecks = useMemo(() => decks.filter((deck) => deck.parent_id === studyDeckId), [decks, studyDeckId]);
+  const rootDeckCount = useMemo(() => decks.filter((deck) => deck.parent_id === null).length, [decks]);
   const isCustomSessionActive = customSession !== null;
+  const deckStudyTotal = studyCounts.newCount + studyCounts.learningCount + studyCounts.reviewCount;
+  const addNoteFields = useMemo(() => toStringArray(selectedNoteType?.fields), [selectedNoteType]);
   const statsViewModel = useMemo(() => {
     const forecast = (stats?.forecast ?? []).slice(0, 16);
     const forecastMax = Math.max(1, ...forecast.map((item) => item.due));
@@ -1089,6 +1099,9 @@ export const DecksWorkspace = () => {
 
   const switchView = (nextView: View) => {
     setView(nextView);
+    const params = new URLSearchParams(searchParams.toString());
+    const query = params.toString();
+    router.push(query ? `/decks/${nextView}?${query}` : `/decks/${nextView}`);
     if (nextView === "study") {
       resetCustomSessionState();
       setStudyStage("overview");
@@ -1454,167 +1467,233 @@ export const DecksWorkspace = () => {
   };
 
   return (
-    <main className="route-shell decks-workspace-shell text-[var(--color-text)]">
-      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 pb-10 pt-6 sm:px-6">
-        <header className="decks-entrance pb-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-3">
-              <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                Deck workspace
+    <main className="route-shell decks-workspace-shell overflow-x-hidden bg-[#f8f2e8] text-[#2c221d]">
+      <section className="mx-auto flex min-h-screen w-full max-w-[1500px] flex-col gap-6 px-4 pb-12 pt-6 sm:px-6">
+        <header className="decks-entrance sticky top-4 z-20 pb-2">
+          <div className="rounded-[30px] border border-[#dfc0b8]/70 bg-[rgba(252,249,244,0.88)] px-5 py-4 shadow-[0_24px_60px_rgba(89,54,35,0.08)] backdrop-blur-xl lg:px-8">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
+                <div>
+                  <p className="font-['Newsreader'] text-3xl italic text-[#a33818]">Agy Decks</p>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-[#8c6c5d]">The Digital Atelier for Study</p>
+                </div>
+                <nav className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[#7a6257]">
+                  <button
+                    type="button"
+                    onClick={() => switchView("decks")}
+                    className={`rounded-full px-4 py-2 transition-colors ${view === "decks" ? "bg-[#efe3d8] text-[#a33818]" : "hover:bg-[#f4e9dd]"}`}
+                  >
+                    Decks
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setView("study");
+                      setStudyStage("overview");
+                    }}
+                    className={`rounded-full px-4 py-2 transition-colors ${view === "study" ? "bg-[#efe3d8] text-[#a33818]" : "hover:bg-[#f4e9dd]"}`}
+                  >
+                    Study
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchView("browse")}
+                    className={`rounded-full px-4 py-2 transition-colors ${view === "browse" ? "bg-[#efe3d8] text-[#a33818]" : "hover:bg-[#f4e9dd]"}`}
+                  >
+                    Browse
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchView("stats")}
+                    className={`rounded-full px-4 py-2 transition-colors ${view === "stats" ? "bg-[#efe3d8] text-[#a33818]" : "hover:bg-[#f4e9dd]"}`}
+                  >
+                    Stats
+                  </button>
+                </nav>
               </div>
-              <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-[-0.03em] sm:text-[2.25rem]">Study, browse, and tune your decks.</h1>
-                <p className="max-w-2xl text-sm text-[var(--color-text-muted)]">
-                  The current deck content stays the same. This view is just organized into clearer panels and cards for faster scanning.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button onClick={() => switchView("decks")}>Decks</Button>
-                <Button onClick={() => setToolbarModal("add")}>Add</Button>
-                <Button onClick={() => setToolbarModal("import")}>Import File</Button>
-                <Button onClick={() => switchView("browse")}>Browse</Button>
-                <Button onClick={() => switchView("stats")}>Stats</Button>
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                <Button onClick={() => setToolbarModal("add")}>Add Note</Button>
+                <Button variant="secondary" onClick={() => setToolbarModal("import")}>Import</Button>
+                {isDesktop && (
+                  <Button size="sm" variant="secondary" onClick={openWallWindow}>
+                    Open Wall Window
+                  </Button>
+                )}
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#e0cabd] bg-[rgba(255,252,247,0.92)] px-3 py-2 text-[11px] uppercase tracking-[0.16em] text-[#7a6257]">
+                  <span className={`h-2 w-2 rounded-full ${wallOnline ? "bg-emerald-400" : "bg-[#9f8d82]"}`} aria-hidden="true" />
+                  Wall {wallOnline ? "Online" : "Offline"}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleBackToWall}
+                  className="decks-action decks-focus-ring rounded-full border border-[#dcb9a8] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e5143]"
+                >
+                  Back to Wall
+                </button>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-            {isDesktop && (
-              <Button size="sm" variant="secondary" onClick={openWallWindow}>
-                Open Wall Window
-              </Button>
-            )}
-            <span className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text-muted)]">
-              <span className={`h-2 w-2 rounded-full ${wallOnline ? "bg-emerald-400" : "bg-[var(--color-text-muted)]"}`} aria-hidden="true" />
-              Wall {wallOnline ? "Online" : "Offline"}
-            </span>
-            <button
-              type="button"
-              onClick={handleBackToWall}
-              className="decks-action decks-focus-ring rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold"
-            >
-              Back to Wall
-            </button>
-          </div>
           </div>
         </header>
 
-        <div className="grid gap-8 border-t border-[var(--color-border-muted)] pt-6 lg:grid-cols-[19rem_minmax(0,1fr)]">
-          <aside className="decks-entrance decks-entrance-delay-1 border-b border-[var(--color-border-muted)] pb-6 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Library</p>
-                <h2 className="mt-1 text-lg font-semibold">Decks</h2>
-              </div>
-              <span className="rounded-full bg-[var(--color-surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-text-muted)]">
-                {decks.length} total
-              </span>
-            </div>
-            <div className="mt-4 space-y-2.5">
-              {decks.map((deck) => (
-                <button
-                  key={deck.id}
-                  type="button"
-                  onClick={() => {
-                    resetCustomSessionState();
-                    setStudyDeckId(deck.id);
-                    if (view === "study" || view === "decks") {
-                      setView("study");
-                      setStudyStage("overview");
-                      safeRun(() => loadStudyCard(deck.id));
-                      return;
-                    }
-                    if (view === "stats") {
-                      safeRun(() => loadStats(deck.id));
-                      return;
-                    }
-                    if (view === "browse") {
-                      safeRun(() => loadBrowse(deck.id));
-                    }
-                  }}
-                  className={`decks-action decks-panel decks-focus-ring w-full rounded-[var(--radius-lg)] border px-3 py-3 text-left text-sm transition-[border-color,background-color] ${
-                    studyDeckId === deck.id
-                      ? "decks-selected border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
-                      : "border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-muted)]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-semibold">{deck.name}</p>
-                    {studyDeckId === deck.id && (
-                      <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text)]">
-                        Active
-                      </span>
-                    )}
+        <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+          <aside className="decks-entrance decks-entrance-delay-1 lg:sticky lg:top-[7.75rem] lg:h-[calc(100vh-9rem)]">
+            <div className="flex h-full flex-col gap-4">
+              <section className="rounded-[30px] border border-[#ead6c9] bg-[rgba(255,252,246,0.86)] p-6 shadow-[0_22px_50px_rgba(94,56,37,0.07)]">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#e9ddd1] font-['Newsreader'] text-2xl italic text-[#a33818]">
+                    A
                   </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-muted)] px-2 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">New</p>
-                      <p className="mt-1 text-sm font-semibold">{deck.counts.newCount}</p>
-                    </div>
-                    <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-muted)] px-2 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Learn</p>
-                      <p className="mt-1 text-sm font-semibold">{deck.counts.learningCount}</p>
-                    </div>
-                    <div className="rounded-[var(--radius-md)] bg-[var(--color-surface-muted)] px-2 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Review</p>
-                      <p className="mt-1 text-sm font-semibold">{deck.counts.reviewCount}</p>
-                    </div>
+                  <div>
+                    <p className="font-['Newsreader'] text-2xl text-[#231813]">The Curator</p>
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#8b6f63]">{rootDeckCount} root decks · {decks.length} total collections</p>
                   </div>
-                </button>
-              ))}
-            </div>
-            <div className="mt-5 space-y-2.5 border-t border-[var(--color-border)] pt-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Manage</p>
-              <FieldLabel htmlFor="deck-name">Create deck</FieldLabel>
-              <TextField id="deck-name" value={deckName} onChange={(event) => setDeckName(event.target.value)} placeholder="Deck name" />
-              <SelectField value={newDeckParentId} onChange={(event) => setNewDeckParentId(event.target.value)}>
-                <option value="">No parent</option>
-                {decks.map((deck) => (
-                  <option key={deck.id} value={deck.id}>
-                    {deck.name}
-                  </option>
-                ))}
-              </SelectField>
-              <Button onClick={() => safeRun(handleCreateDeck)} disabled={!deckName.trim()}>
-                Create Deck
-              </Button>
-              <FieldLabel htmlFor="rename-deck-name">Rename selected deck</FieldLabel>
-              <TextField
-                id="rename-deck-name"
-                value={renameDeckName}
-                onChange={(event) => setRenameDeckName(event.target.value)}
-                placeholder="New deck name"
-                disabled={!studyDeckId}
-              />
-              <Button onClick={() => safeRun(handleRenameDeck)} disabled={!studyDeckId || !renameDeckName.trim()}>
-                Rename Deck
-              </Button>
-              <Button variant="danger" onClick={() => safeRun(handleClearDeck)} disabled={!studyDeckId}>
-                Clear Selected Deck
-              </Button>
+                </div>
+                <div className="mt-6 grid grid-cols-2 gap-3 text-left">
+                  <article className="rounded-[22px] border border-[#e5d2c5] bg-[rgba(255,251,245,0.94)] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#9b6c55]">Selected</p>
+                    <p className="mt-2 text-lg font-semibold text-[#2b1d16]">{selectedStudyDeck?.name ?? "None"}</p>
+                  </article>
+                  <article className="rounded-[22px] border border-[#e5d2c5] bg-[rgba(255,251,245,0.94)] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#9b6c55]">Due Queue</p>
+                    <p className="mt-2 text-2xl font-semibold text-[#2b1d16]">{deckStudyTotal}</p>
+                  </article>
+                </div>
+              </section>
+
+              <section className="min-h-0 flex-1 rounded-[30px] border border-[#ead6c9] bg-[rgba(255,250,242,0.9)] p-3 shadow-[0_18px_35px_rgba(94,56,37,0.05)]">
+                <div className="mb-3 flex items-end justify-between gap-3 px-2">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b6f63]">Library</p>
+                    <h2 className="mt-1 font-['Newsreader'] text-2xl text-[#231813]">Decks</h2>
+                  </div>
+                  <span className="rounded-full bg-[#f2e8de] px-2.5 py-1 text-[11px] font-medium text-[#7b6154]">
+                    {rootDeckCount} roots / {decks.length} total
+                  </span>
+                </div>
+                <div className="space-y-3 overflow-auto pr-1 lg:max-h-[calc(100vh-28rem)]">
+                  {decks.map((deck) => (
+                    <button
+                      key={deck.id}
+                      type="button"
+                      onClick={() => {
+                        resetCustomSessionState();
+                        setStudyDeckId(deck.id);
+                        if (view === "decks") {
+                          safeRun(() => loadStudyCard(deck.id));
+                          return;
+                        }
+                        if (view === "study") {
+                          setStudyStage("overview");
+                          safeRun(() => loadStudyCard(deck.id));
+                          return;
+                        }
+                        if (view === "stats") {
+                          safeRun(() => loadStats(deck.id));
+                          return;
+                        }
+                        if (view === "browse") {
+                          safeRun(() => loadBrowse(deck.id));
+                        }
+                      }}
+                      className={`decks-action decks-panel decks-focus-ring w-full rounded-[26px] border px-4 py-4 text-left text-sm shadow-[0_14px_26px_rgba(107,72,48,0.05)] transition-[border-color,background-color,box-shadow] ${
+                        studyDeckId === deck.id
+                          ? "decks-selected border-[#c78369] bg-[linear-gradient(180deg,#fffefb_0%,#f7ecdf_100%)] text-[#281b15]"
+                          : "border-[#ead7cc] bg-[rgba(255,252,247,0.92)] text-[#3c2f29] hover:bg-[#fff9f1]"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">{deck.name}</p>
+                          {deck.parent_id && <p className="mt-1 text-xs text-[#8a7268]">Child collection</p>}
+                        </div>
+                        {studyDeckId === deck.id && (
+                          <span className="rounded-full border border-[#dcb9a8] bg-[#fbf0e6] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8c4f35]">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                        <div className="rounded-[18px] bg-[#f7efe6] px-2 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-[#8b6f63]">New</p>
+                          <p className="mt-1 text-sm font-semibold">{deck.counts.newCount}</p>
+                        </div>
+                        <div className="rounded-[18px] bg-[#f2ece1] px-2 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-[#8b6f63]">Learn</p>
+                          <p className="mt-1 text-sm font-semibold">{deck.counts.learningCount}</p>
+                        </div>
+                        <div className="rounded-[18px] bg-[#efe6da] px-2 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-[#8b6f63]">Review</p>
+                          <p className="mt-1 text-sm font-semibold">{deck.counts.reviewCount}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-[30px] border border-[#ead6c9] bg-[rgba(245,236,226,0.78)] p-5 shadow-[0_18px_35px_rgba(94,56,37,0.05)]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8b6f63]">Manage</p>
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <FieldLabel htmlFor="deck-name">Create deck</FieldLabel>
+                    <TextField id="deck-name" value={deckName} onChange={(event) => setDeckName(event.target.value)} placeholder="Deck name" />
+                  </div>
+                  <SelectField value={newDeckParentId} onChange={(event) => setNewDeckParentId(event.target.value)}>
+                    <option value="">No parent</option>
+                    {decks.map((deck) => (
+                      <option key={deck.id} value={deck.id}>
+                        {deck.name}
+                      </option>
+                    ))}
+                  </SelectField>
+                  <Button onClick={() => safeRun(handleCreateDeck)} disabled={!deckName.trim()}>
+                    Create Deck
+                  </Button>
+                  <div>
+                    <FieldLabel htmlFor="rename-deck-name">Rename selected deck</FieldLabel>
+                    <TextField
+                      id="rename-deck-name"
+                      value={renameDeckName}
+                      onChange={(event) => setRenameDeckName(event.target.value)}
+                      placeholder="New deck name"
+                      disabled={!studyDeckId}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => safeRun(handleRenameDeck)} disabled={!studyDeckId || !renameDeckName.trim()}>
+                      Rename Deck
+                    </Button>
+                    <Button variant="danger" onClick={() => safeRun(handleClearDeck)} disabled={!studyDeckId}>
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </section>
             </div>
           </aside>
 
-          <section className="decks-entrance decks-entrance-delay-2 min-w-0">
+          <section className="decks-entrance decks-entrance-delay-2 min-w-0 space-y-5">
             {view === "study" && (
               <div className="space-y-4">
                 {studyStage === "overview" && (
                   <div className="space-y-4">
                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
-                      <article className="decks-panel overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] p-5 lg:p-6">
+                      <article className="decks-panel overflow-hidden rounded-[34px] border border-[#e2c9ba] bg-[linear-gradient(180deg,rgba(255,252,246,0.96)_0%,rgba(245,231,218,0.92)_100%)] p-6 shadow-[0_28px_70px_rgba(102,62,42,0.08)] lg:p-8">
                         <div className="space-y-4">
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Study Deck</p>
-                            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[2.1rem]">{selectedStudyDeck?.name ?? "Select a deck"}</h2>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#9b6c55]">Selected Deck</p>
+                            <h2 className="mt-3 font-['Newsreader'] text-[2.8rem] italic leading-[0.95] tracking-[-0.04em] text-[#241915] sm:text-[4rem]">{selectedStudyDeck?.name ?? "Select a deck"}</h2>
                           </div>
-                          <div className="grid gap-0 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] sm:grid-cols-3">
-                            <article className="p-4 sm:border-r sm:border-[var(--color-border-muted)]">
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            <article className="rounded-[26px] border border-[#e8d7ca] bg-[rgba(255,252,247,0.95)] p-5">
                               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">New</p>
                               <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.newCount}</p>
                             </article>
-                            <article className="border-t border-[var(--color-border-muted)] p-4 sm:border-r sm:border-t-0 sm:border-[var(--color-border-muted)]">
+                            <article className="rounded-[26px] border border-[#e8d7ca] bg-[rgba(246,241,231,0.95)] p-5">
                               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Learning</p>
                               <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.learningCount}</p>
                             </article>
-                            <article className="border-t border-[var(--color-border-muted)] p-4 sm:border-t-0">
+                            <article className="rounded-[26px] border border-[#e8d7ca] bg-[rgba(242,235,222,0.96)] p-5">
                               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">To Review</p>
                               <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{studyCounts.reviewCount}</p>
                             </article>
@@ -1638,7 +1717,7 @@ export const DecksWorkspace = () => {
                         </div>
                       </article>
 
-                      <div className="decks-panel grid gap-0 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-glass)] sm:grid-cols-3 xl:grid-cols-1">
+                      <div className="decks-panel grid gap-3 rounded-[34px] border border-[#e2c9ba] bg-[rgba(255,250,243,0.86)] p-4 shadow-[0_24px_55px_rgba(102,62,42,0.06)] sm:grid-cols-3 xl:grid-cols-1">
                         <article className="p-4 sm:border-r sm:border-[var(--color-border)] xl:border-b xl:border-r-0">
                           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Mode</p>
                           <p className="mt-2 text-lg font-semibold">Study overview</p>
@@ -1703,8 +1782,8 @@ export const DecksWorkspace = () => {
                       </Button>
                     )}
                   </div>
-                    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-muted)] bg-[var(--color-surface-glass)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
-                      Queue: New {studyCounts.newCount} | Learning {studyCounts.learningCount} | Review {studyCounts.reviewCount}
+                    <div className="rounded-full border border-[#e0cabd] bg-[rgba(255,250,242,0.9)] px-5 py-3 text-sm text-[#775f54] shadow-[0_12px_24px_rgba(90,54,35,0.05)]">
+                      Queue: {deckStudyTotal} cards live across New {studyCounts.newCount}, Learning {studyCounts.learningCount}, Review {studyCounts.reviewCount}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -1733,7 +1812,7 @@ export const DecksWorkspace = () => {
                       </Button>
                     </div>
                     {studyCard ? (
-                      <article className="decks-panel rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] p-5">
+                      <article className="decks-panel mx-auto w-full max-w-4xl rounded-[38px] border border-[#e2c9ba] bg-[linear-gradient(180deg,rgba(255,253,249,0.98)_0%,rgba(246,235,222,0.96)_100%)] p-6 shadow-[0_34px_80px_rgba(107,67,48,0.12)] sm:p-8">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Front</p>
                         <p className="mt-3 text-xl leading-relaxed sm:text-2xl">{studyCard.prompt}</p>
                         {showAnswer && (
@@ -1750,9 +1829,9 @@ export const DecksWorkspace = () => {
                         {isCustomSessionActive ? "No cards remaining in this Custom Study Session." : "No due cards in this deck selection."}
                       </p>
                     )}
-                    {studyCard && !showAnswer && <Button onClick={() => setShowAnswer(true)}>Show Answer</Button>}
+                    {studyCard && !showAnswer && <div className="flex justify-center"><Button onClick={() => setShowAnswer(true)}>Reveal Answer</Button></div>}
                     {studyCard && showAnswer && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="mx-auto flex w-full max-w-3xl flex-wrap justify-center gap-3 rounded-full border border-[#e0cabd] bg-[rgba(255,248,239,0.92)] px-4 py-3 shadow-[0_18px_36px_rgba(90,54,35,0.08)]">
                         <Button onClick={() => safeRun(() => handleRateCard("again"))}>Again</Button>
                         <Button onClick={() => safeRun(() => handleRateCard("hard"))}>Hard</Button>
                         <Button onClick={() => safeRun(() => handleRateCard("good"))}>Good</Button>
@@ -1783,10 +1862,10 @@ export const DecksWorkspace = () => {
                     Delete
                   </Button>
                 </div>
-                <div className="grid gap-3 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-                  <div className="max-h-[30rem] overflow-auto rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-glass)]">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.9fr)]">
+                  <div className="max-h-[34rem] overflow-auto rounded-[34px] border border-[#e0cabd] bg-[rgba(255,251,245,0.92)] shadow-[0_24px_55px_rgba(97,60,41,0.06)]">
                     <table className="min-w-full text-left text-sm">
-                      <thead className="bg-[var(--color-surface-muted)]">
+                      <thead className="bg-[#efe3d8] text-[#7d5a48]">
                         <tr>
                           <th className="px-2 py-2"></th>
                           <th className="px-2 py-2">Prompt</th>
@@ -1820,7 +1899,7 @@ export const DecksWorkspace = () => {
                       </tbody>
                     </table>
                   </div>
-                  <div className="rounded-[var(--radius-xl)] border border-[var(--color-border-muted)] bg-[var(--color-surface-glass)] p-4">
+                  <div className="rounded-[34px] border border-[#e0cabd] bg-[rgba(249,242,232,0.95)] p-5 shadow-[0_24px_55px_rgba(97,60,41,0.06)]">
                     {selectedRow ? (
                       <div className="space-y-2">
                         <p className="text-sm font-semibold">{selectedRow.noteTypeName}</p>
@@ -1865,7 +1944,7 @@ export const DecksWorkspace = () => {
                 </div>
                 {stats ? (
                   <>
-                    <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
+                    <article className="rounded-[28px] border border-[#e0cabd] bg-[rgba(255,251,245,0.96)] p-5 shadow-[0_18px_40px_rgba(97,60,41,0.05)]">
                       <p className="text-sm font-semibold">Today</p>
                       <p className="text-xs text-[var(--color-text-muted)]">
                         Studied <span className="font-semibold text-[var(--color-text)]">{statsViewModel.today.studied}</span> cards in{" "}
@@ -1932,7 +2011,7 @@ export const DecksWorkspace = () => {
                       </p>
                     </article>
 
-                    <div className="grid gap-3 sm:grid-cols-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                       <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3"><p className="text-xs text-[var(--color-text-muted)]">Total Cards</p><p className="text-xl font-semibold">{stats.summary.totalCards}</p></article>
                       <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3"><p className="text-xs text-[var(--color-text-muted)]">Reviews</p><p className="text-xl font-semibold">{stats.summary.totalReviews}</p></article>
                       <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3"><p className="text-xs text-[var(--color-text-muted)]">Retention</p><p className="text-xl font-semibold">{stats.summary.retentionRate}%</p></article>
@@ -2154,7 +2233,30 @@ export const DecksWorkspace = () => {
               </div>
             )}
 
-            {view === "decks" && <p className="text-sm text-[var(--color-text-muted)]">Choose a deck on the left to start Study Now.</p>}
+            {view === "decks" && (
+              <article className="rounded-[36px] border border-[#e2c9ba] bg-[linear-gradient(180deg,rgba(255,253,249,0.98)_0%,rgba(244,232,221,0.94)_100%)] p-8 shadow-[0_28px_70px_rgba(102,62,42,0.08)]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#9b6c55]">Decks Overview</p>
+                <h2 className="mt-3 font-['Newsreader'] text-[2.7rem] italic leading-[0.95] tracking-[-0.04em] text-[#241915]">Choose a deck to begin.</h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-[#6f5a52]">Select a collection in the library to open its study overview, inspect due counts, run a custom session, browse generated cards, or review analytics. The hierarchy and scheduling behavior remain unchanged.</p>
+                <div className="mt-8 grid gap-4 md:grid-cols-3">
+                  <article className="rounded-[24px] border border-[#e7d6c9] bg-[rgba(255,251,245,0.95)] p-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#9b6c55]">Collections</p>
+                    <p className="mt-3 text-3xl font-semibold text-[#241915]">{decks.length}</p>
+                    <p className="mt-2 text-sm text-[#705950]">Nested decks stay visible from one library column.</p>
+                  </article>
+                  <article className="rounded-[24px] border border-[#e7d6c9] bg-[rgba(255,251,245,0.95)] p-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#9b6c55]">Due Queue</p>
+                    <p className="mt-3 text-3xl font-semibold text-[#241915]">{deckStudyTotal}</p>
+                    <p className="mt-2 text-sm text-[#705950]">Live totals update as you change the active deck.</p>
+                  </article>
+                  <article className="rounded-[24px] border border-[#e7d6c9] bg-[rgba(255,251,245,0.95)] p-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#9b6c55]">Modes</p>
+                    <p className="mt-3 text-3xl font-semibold text-[#241915]">4</p>
+                    <p className="mt-2 text-sm text-[#705950]">Decks, Study, Browse, and Stats in one studio.</p>
+                  </article>
+                </div>
+              </article>
+            )}
           </section>
         </div>
 
@@ -2563,47 +2665,92 @@ export const DecksWorkspace = () => {
         open={toolbarModal === "add"}
         onClose={() => setToolbarModal("none")}
         title="Add Note"
-        description="Create one note and choose deck + note type."
-        maxWidthClassName="max-w-2xl"
+        description="Compose a note, choose its deck, and preview the generated study object."
+        maxWidthClassName="max-w-5xl"
+        panelClassName="border-[#dfc0b8] bg-[linear-gradient(180deg,rgba(252,249,244,0.98)_0%,rgba(243,232,221,0.96)_100%)] shadow-[0_30px_90px_rgba(87,52,34,0.16)]"
       >
-        <div className="grid gap-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_24rem]">
+          <div className="space-y-4 rounded-[28px] border border-[#e5d2c5] bg-[rgba(255,251,245,0.9)] p-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <FieldLabel>Deck</FieldLabel>
+                <SelectField value={addDeckId} onChange={(event) => setAddDeckId(event.target.value)}>
+                  {decks.map((deck) => (
+                    <option key={deck.id} value={deck.id}>
+                      {deck.name}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+              <div>
+                <FieldLabel>Note Type</FieldLabel>
+                <SelectField value={addNoteTypeId} onChange={(event) => setAddNoteTypeId(event.target.value)}>
+                  {noteTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+            </div>
+            {addNoteFields.map((field) => (
+              <div key={field}>
+                <FieldLabel>{field}</FieldLabel>
+                <TextAreaField
+                  value={addFields[field] ?? ""}
+                  onChange={(event) => setAddFields((previous) => ({ ...previous, [field]: event.target.value }))}
+                  rows={field.length > 16 ? 4 : 3}
+                />
+              </div>
+            ))}
             <div>
-              <FieldLabel>Deck</FieldLabel>
-              <SelectField value={addDeckId} onChange={(event) => setAddDeckId(event.target.value)}>
-                {decks.map((deck) => (
-                  <option key={deck.id} value={deck.id}>
-                    {deck.name}
-                  </option>
-                ))}
-              </SelectField>
+              <FieldLabel>Tags (comma-separated)</FieldLabel>
+              <TextField value={addTags} onChange={(event) => setAddTags(event.target.value)} placeholder="biology, exam1" />
             </div>
-            <div>
-              <FieldLabel>Note Type</FieldLabel>
-              <SelectField value={addNoteTypeId} onChange={(event) => setAddNoteTypeId(event.target.value)}>
-                {noteTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-              </SelectField>
+            <div className="flex justify-end">
+              <Button onClick={() => safeRun(handleCreateNote)} disabled={!addDeckId || !addNoteTypeId}>
+                Create Note
+              </Button>
             </div>
           </div>
-          {toStringArray(selectedNoteType?.fields).map((field) => (
-            <div key={field}>
-              <FieldLabel>{field}</FieldLabel>
-              <TextAreaField value={addFields[field] ?? ""} onChange={(event) => setAddFields((previous) => ({ ...previous, [field]: event.target.value }))} rows={field.length > 16 ? 4 : 3} />
+
+          <aside className="rounded-[32px] border border-[#e1c6b7] bg-[linear-gradient(180deg,rgba(248,239,228,0.92)_0%,rgba(243,229,216,0.98)_100%)] p-6 shadow-[0_24px_60px_rgba(94,56,37,0.1)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#9b6c55]">Live Preview</p>
+            <h3 className="mt-3 font-['Newsreader'] text-[2rem] italic leading-none text-[#2b1c16]">
+              {selectedNoteType?.name ?? "Study note"}
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-[#6f5a52]">
+              {decks.find((deck) => deck.id === addDeckId)?.name ?? "Select a deck to place this note into your collection."}
+            </p>
+            <div className="mt-6 space-y-3">
+              {addNoteFields.length === 0 && (
+                <div className="rounded-[22px] border border-dashed border-[#cfaf9d] bg-[rgba(255,250,244,0.82)] px-4 py-5 text-sm text-[#7a6257]">
+                  Choose a note type to see its fields.
+                </div>
+              )}
+              {addNoteFields.map((field) => (
+                <article key={field} className="rounded-[22px] border border-[#e6d5c7] bg-[rgba(255,252,247,0.92)] px-4 py-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9b6c55]">{field}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#322621]">{addFields[field]?.trim() || "Empty field"}</p>
+                </article>
+              ))}
             </div>
-          ))}
-          <div>
-            <FieldLabel>Tags (comma-separated)</FieldLabel>
-            <TextField value={addTags} onChange={(event) => setAddTags(event.target.value)} placeholder="biology, exam1" />
-          </div>
-          <div className="flex justify-end">
-            <Button onClick={() => safeRun(handleCreateNote)} disabled={!addDeckId || !addNoteTypeId}>
-              Create Note
-            </Button>
-          </div>
+            <div className="mt-6 rounded-[24px] border border-[#e6d5c7] bg-[rgba(255,252,247,0.86)] px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9b6c55]">Tags</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {addTags
+                  .split(",")
+                  .map((entry) => entry.trim())
+                  .filter((entry) => entry.length > 0)
+                  .map((tag) => (
+                    <span key={tag} className="rounded-full border border-[#d8b7a8] bg-[#f7ede4] px-2.5 py-1 text-[11px] font-medium text-[#7d5948]">
+                      {tag}
+                    </span>
+                  ))}
+                {addTags.trim().length === 0 && <p className="text-sm text-[#7a6257]">No tags yet.</p>}
+              </div>
+            </div>
+          </aside>
         </div>
       </ModalShell>
 
@@ -2755,4 +2902,12 @@ export const DecksWorkspace = () => {
     </main>
   );
 };
+
+
+
+
+
+
+
+
 
