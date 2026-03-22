@@ -1355,7 +1355,7 @@ const SlashCommandIcon = ({ id }: { id: SlashCommandId }) => {
 };
 
 export function PageEditor() {
-  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, configChecked: confidentialConfigChecked, recoveryMessage: confidentialRecoveryMessage, clearRecoveryMessage: clearConfidentialRecoveryMessage, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace } = useConfidentialAccess();
+  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, configChecked: confidentialConfigChecked, recoveryMessage: confidentialRecoveryMessage, clearRecoveryMessage: clearConfidentialRecoveryMessage, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace, runRecoveryDiagnostic: runConfidentialRecoveryDiagnostic } = useConfidentialAccess();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -4570,6 +4570,7 @@ export function PageEditor() {
         scopeLabel="Page Editor"
         recoveryMessage={confidentialRecoveryMessage}
         onClearRecoveryMessage={clearConfidentialRecoveryMessage}
+        onRunRecoveryDiagnostic={runConfidentialRecoveryDiagnostic}
         onCreate={createConfidentialPassphrase}
         onUnlock={unlockConfidentialWorkspace}
       />

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { Button } from "@/components/ui/Button";
 import { FieldLabel, TextField } from "@/components/ui/Field";
+import type { ConfidentialRecoveryDiagnostic } from "@/components/security/useConfidentialAccess";
 
 type ConfidentialAccessGateProps = {
   open: boolean;
@@ -12,6 +13,7 @@ type ConfidentialAccessGateProps = {
   scopeLabel: string;
   recoveryMessage?: string | null;
   onClearRecoveryMessage?: () => void;
+  onRunRecoveryDiagnostic?: () => Promise<ConfidentialRecoveryDiagnostic>;
   onCreate: (passphrase: string) => Promise<{ ok: boolean; error?: string }>;
   onUnlock: (passphrase: string) => Promise<{ ok: boolean; error?: string }>;
 };
@@ -22,6 +24,7 @@ export const ConfidentialAccessGate = ({
   scopeLabel,
   recoveryMessage,
   onClearRecoveryMessage,
+  onRunRecoveryDiagnostic,
   onCreate,
   onUnlock,
 }: ConfidentialAccessGateProps) => {
@@ -31,12 +34,15 @@ export const ConfidentialAccessGate = ({
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [diagnostic, setDiagnostic] = useState<ConfidentialRecoveryDiagnostic | null>(null);
+  const [diagnosticPending, setDiagnosticPending] = useState(false);
 
   const title = useMemo(() => (mode === "create" ? `Protect ${scopeLabel}` : `Unlock ${scopeLabel}`), [mode, scopeLabel]);
 
   useEffect(() => {
     setMode(hasConfig ? "unlock" : "create");
     setShowPassphrase(false);
+    setDiagnostic(null);
   }, [hasConfig]);
 
   if (!open) {
@@ -89,7 +95,36 @@ export const ConfidentialAccessGate = ({
               <Button type="button" variant="secondary" onClick={() => onClearRecoveryMessage?.()}>
                 Dismiss notice
               </Button>
+              {onRunRecoveryDiagnostic ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={diagnosticPending}
+                  onClick={async () => {
+                    setDiagnosticPending(true);
+                    try {
+                      setDiagnostic(await onRunRecoveryDiagnostic());
+                    } finally {
+                      setDiagnosticPending(false);
+                    }
+                  }}
+                >
+                  {diagnosticPending ? "Checking local data..." : "Run local recovery diagnostic"}
+                </Button>
+              ) : null}
             </div>
+          </div>
+        ) : null}
+
+        {mode === "unlock" && diagnostic ? (
+          <div className="space-y-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-sm text-[var(--color-text)]">
+            <p className="font-medium">Local recovery diagnostic</p>
+            <p>Encrypted wall snapshot on this device: {diagnostic.localSecureWallSnapshot ? "yes" : "no"}</p>
+            <p>Encrypted page snapshot on this device: {diagnostic.localSecurePageSnapshot ? "yes" : "no"}</p>
+            <p>Local workspace config present: {diagnostic.configPresent ? "yes" : "no"}</p>
+            <p className="text-[var(--color-text-muted)]">
+              If encrypted local snapshots exist, the correct passphrase should unlock before any cloud sync runs. If both are `no`, recovery depends on another unlocked session or a cloud path not yet exposed here.
+            </p>
           </div>
         ) : null}
 
@@ -144,6 +179,7 @@ export const ConfidentialAccessGate = ({
                 setPassphrase("");
                 setConfirmPassphrase("");
                 setShowPassphrase(false);
+                setDiagnostic(null);
                 setMode((previous) => (previous === "create" ? "unlock" : "create"));
               }}
             >

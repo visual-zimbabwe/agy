@@ -20,6 +20,12 @@ import {
 
 export const confidentialAutoLockMs = 5 * 60 * 1000;
 
+export type ConfidentialRecoveryDiagnostic = {
+  localSecureWallSnapshot: boolean;
+  localSecurePageSnapshot: boolean;
+  configPresent: boolean;
+};
+
 export const useConfidentialAccess = () => {
   const passphrase = useSyncExternalStore(
     (listener) => subscribeToConfidentialPassphrase(() => listener()),
@@ -136,6 +142,19 @@ export const useConfidentialAccess = () => {
     return { ok: true } as const;
   };
 
+  const runRecoveryDiagnostic = async (): Promise<ConfidentialRecoveryDiagnostic> => {
+    const [localSecureWallSnapshot, localSecurePageSnapshot] = await Promise.all([
+      hasLocalSecureWallSnapshot(),
+      hasAnyLocalSecurePageSnapshot(),
+    ]);
+
+    return {
+      localSecureWallSnapshot,
+      localSecurePageSnapshot,
+      configPresent: Boolean(readConfidentialWorkspaceConfig()),
+    };
+  };
+
   return {
     passphrase,
     hasConfig,
@@ -146,5 +165,6 @@ export const useConfidentialAccess = () => {
     lock: lockConfidentialWorkspace,
     unlock,
     create,
+    runRecoveryDiagnostic,
   };
 };
