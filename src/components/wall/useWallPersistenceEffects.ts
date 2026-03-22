@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
-import { decryptConfidentialPayload, ensureConfidentialWorkspaceConfigMatchesPassphrase, isConfidentialDecryptError, lockConfidentialWorkspace } from "@/lib/confidential-workspace";
+import { decryptConfidentialPayload, ensureConfidentialWorkspaceConfigMatchesPassphrase, isConfidentialDecryptError, lockConfidentialWorkspace, setConfidentialRecoveryMessage } from "@/lib/confidential-workspace";
 import { createJokerNote, refreshJokerNote } from "@/features/wall/commands";
 import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { hasJokerCardBeenActivated, jokerErrorText, jokerLoadingText, markJokerCardActivated } from "@/features/wall/joker";
@@ -95,6 +95,7 @@ export const useWallPersistenceEffects = ({
         if (!cancelled) {
           onLocalSaveStateChange("error");
           if (isConfidentialDecryptError(error)) {
+            setConfidentialRecoveryMessage("This workspace was encrypted with a different passphrase than the current local config. Try the passphrase that originally unlocked this workspace.");
             lockConfidentialWorkspace();
             setSyncError(error instanceof Error ? error.message : "Unable to decrypt confidential workspace data.");
           } else {

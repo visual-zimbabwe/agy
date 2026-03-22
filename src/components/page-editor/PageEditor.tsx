@@ -23,7 +23,7 @@ import { UnsplashPicker } from "@/components/media/UnsplashPicker";
 import { ConfidentialAccessGate } from "@/components/security/ConfidentialAccessGate";
 import { useConfidentialAccess } from "@/components/security/useConfidentialAccess";
 import { cn } from "@/lib/cn";
-import { decryptConfidentialFile, encryptConfidentialFile, ensureConfidentialWorkspaceConfigMatchesPassphrase, isConfidentialDecryptError, lockConfidentialWorkspace } from "@/lib/confidential-workspace";
+import { decryptConfidentialFile, encryptConfidentialFile, ensureConfidentialWorkspaceConfigMatchesPassphrase, isConfidentialDecryptError, lockConfidentialWorkspace, setConfidentialRecoveryMessage } from "@/lib/confidential-workspace";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { trackUnsplashDownload } from "@/lib/unsplash-client";
@@ -1355,7 +1355,7 @@ const SlashCommandIcon = ({ id }: { id: SlashCommandId }) => {
 };
 
 export function PageEditor() {
-  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, configChecked: confidentialConfigChecked, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace } = useConfidentialAccess();
+  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, configChecked: confidentialConfigChecked, recoveryMessage: confidentialRecoveryMessage, clearRecoveryMessage: clearConfidentialRecoveryMessage, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace } = useConfidentialAccess();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -2013,10 +2013,8 @@ export function PageEditor() {
       } catch (error) {
         hasLoadedRef.current = true;
         if (isConfidentialDecryptError(error)) {
+          setConfidentialRecoveryMessage("This workspace was encrypted with a different passphrase than the current local config. Try the passphrase that originally unlocked this workspace.");
           lockConfidentialWorkspace();
-          if (typeof window !== "undefined") {
-            window.alert(error instanceof Error ? error.message : "Unable to decrypt confidential workspace data.");
-          }
         }
       }
     })();
@@ -4570,6 +4568,8 @@ export function PageEditor() {
         open={confidentialConfigChecked && !confidentialReady}
         hasConfig={confidentialHasConfig}
         scopeLabel="Page Editor"
+        recoveryMessage={confidentialRecoveryMessage}
+        onClearRecoveryMessage={clearConfidentialRecoveryMessage}
         onCreate={createConfidentialPassphrase}
         onUnlock={unlockConfidentialWorkspace}
       />

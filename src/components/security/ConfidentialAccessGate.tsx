@@ -10,11 +10,21 @@ type ConfidentialAccessGateProps = {
   open: boolean;
   hasConfig: boolean;
   scopeLabel: string;
+  recoveryMessage?: string | null;
+  onClearRecoveryMessage?: () => void;
   onCreate: (passphrase: string) => Promise<{ ok: boolean; error?: string }>;
   onUnlock: (passphrase: string) => Promise<{ ok: boolean; error?: string }>;
 };
 
-export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, onUnlock }: ConfidentialAccessGateProps) => {
+export const ConfidentialAccessGate = ({
+  open,
+  hasConfig,
+  scopeLabel,
+  recoveryMessage,
+  onClearRecoveryMessage,
+  onCreate,
+  onUnlock,
+}: ConfidentialAccessGateProps) => {
   const [mode, setMode] = useState<"create" | "unlock">(hasConfig ? "unlock" : "create");
   const [passphrase, setPassphrase] = useState("");
   const [confirmPassphrase, setConfirmPassphrase] = useState("");
@@ -70,6 +80,19 @@ export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, 
           }
         }}
       >
+        {mode === "unlock" && recoveryMessage ? (
+          <div className="space-y-2 rounded-2xl border border-[var(--color-danger)]/35 bg-[var(--color-danger)]/8 p-3 text-sm text-[var(--color-text)]">
+            <p className="font-medium text-[var(--color-danger)]">Passphrase recovery needed</p>
+            <p>{recoveryMessage}</p>
+            <p className="text-[var(--color-text-muted)]">Trying a candidate passphrase here does not overwrite encrypted content. It only attempts to unlock and, if correct, repairs the local config.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" onClick={() => onClearRecoveryMessage?.()}>
+                Dismiss notice
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         <div>
           <FieldLabel htmlFor="confidential-passphrase">Passphrase</FieldLabel>
           <TextField
@@ -139,4 +162,3 @@ export const ConfidentialAccessGate = ({ open, hasConfig, scopeLabel, onCreate, 
     </ModalShell>
   );
 };
-

@@ -35,6 +35,8 @@ export const confidentialDecryptErrorMessage = "Unable to decrypt confidential w
 let activePassphrase: string | null = null;
 const listeners = new Set<(passphrase: string | null) => void>();
 const configListeners = new Set<() => void>();
+const recoveryListeners = new Set<() => void>();
+let recoveryMessage: string | null = null;
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -228,12 +230,32 @@ export const subscribeToConfidentialWorkspaceConfig = (listener: () => void) => 
   };
 };
 
+export const getConfidentialRecoveryMessage = () => recoveryMessage;
+
+export const setConfidentialRecoveryMessage = (message: string | null) => {
+  recoveryMessage = message;
+  recoveryListeners.forEach((listener) => listener());
+};
+
+export const clearConfidentialRecoveryMessage = () => {
+  setConfidentialRecoveryMessage(null);
+};
+
+export const subscribeToConfidentialRecoveryMessage = (listener: () => void) => {
+  recoveryListeners.add(listener);
+  return () => {
+    recoveryListeners.delete(listener);
+  };
+};
+
 export const lockConfidentialWorkspace = () => {
   setActiveConfidentialPassphrase(null);
 };
 
 export const resetConfidentialWorkspace = () => {
   removeStorageKeys([workspaceConfigKey, legacyWorkspaceConfigKey]);
+  clearConfidentialRecoveryMessage();
   configListeners.forEach((listener) => listener());
   lockConfidentialWorkspace();
 };
+

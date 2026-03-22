@@ -219,7 +219,7 @@ type WallCanvasProps = {
 };
 
 export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
-  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, configChecked: confidentialConfigChecked, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace } = useConfidentialAccess();
+  const { passphrase: confidentialPassphrase, ready: confidentialReady, hasConfig: confidentialHasConfig, configChecked: confidentialConfigChecked, recoveryMessage: confidentialRecoveryMessage, clearRecoveryMessage: clearConfidentialRecoveryMessage, create: createConfidentialPassphrase, unlock: unlockConfidentialWorkspace } = useConfidentialAccess();
   const notesMap = useWallStore((state) => state.notes);
   const zonesMap = useWallStore((state) => state.zones);
   const zoneGroupsMap = useWallStore((state) => state.zoneGroups);
@@ -2766,6 +2766,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         open={!publishedReadOnly && confidentialConfigChecked && !confidentialReady}
         hasConfig={confidentialHasConfig}
         scopeLabel="Wall"
+        recoveryMessage={confidentialRecoveryMessage}
+        onClearRecoveryMessage={clearConfidentialRecoveryMessage}
         onCreate={createConfidentialPassphrase}
         onUnlock={unlockConfidentialWorkspace}
       />

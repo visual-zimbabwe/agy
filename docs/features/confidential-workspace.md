@@ -18,6 +18,7 @@ This covers workspace unlock, local persistence, cloud snapshot sync, encrypted 
 - The client creates or unlocks a confidential workspace passphrase and keeps it only in memory for the active session.
 - Passphrase creation includes a local show or hide control so users can verify what they typed before locking the workspace.
 - Existing confidential workspaces must be unlocked with their current passphrase; passphrase rotation is not yet supported.
+- When a decrypt mismatch is detected, the workspace relocks and the access gate shows a recovery notice instead of surfacing a raw crypto error.
 - Local wall snapshots, wall timeline history, and page snapshots are written as encrypted payloads after unlock.
 - Cloud wall sync stores an encrypted snapshot on the `walls` row when the latest migration is present.
 - Cloud page sync stores an encrypted snapshot on the `page_docs` row when the latest migration is present.

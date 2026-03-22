@@ -1222,8 +1222,10 @@ Expected:
 7. Import the encrypted backup and verify the wall restores without errors.
 8. Attempt `Public Sharing Disabled` and verify the app blocks URL sharing.
 9. Export PNG, PDF, and Markdown and verify each action warns that it creates a readable copy.
-10. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
-11. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
+10. Enter a wrong replacement passphrase for an already-encrypted workspace and verify the app relocks into a recovery notice instead of crashing with a crypto error.
+11. Retry with the original passphrase and verify unlock succeeds and the recovery notice clears.
+12. Open `/page`, unlock with the same passphrase, create or edit blocks, refresh, unlock again, and verify page content restores.
+13. If cloud sync is configured with the latest migration, verify wall and page continue to load after a second refresh.
 
 Expected results:
 

@@ -3,12 +3,15 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import {
+  clearConfidentialRecoveryMessage,
   configureConfidentialWorkspace,
   getActiveConfidentialPassphrase,
+  getConfidentialRecoveryMessage,
   lockConfidentialWorkspace,
   readConfidentialWorkspaceConfig,
   setActiveConfidentialPassphrase,
   subscribeToConfidentialPassphrase,
+  subscribeToConfidentialRecoveryMessage,
   subscribeToConfidentialWorkspaceConfig,
   verifyConfidentialPassphrase,
 } from "@/lib/confidential-workspace";
@@ -30,6 +33,11 @@ export const useConfidentialAccess = () => {
     subscribeToConfidentialWorkspaceConfig,
     () => true,
     () => false,
+  );
+  const recoveryMessage = useSyncExternalStore(
+    subscribeToConfidentialRecoveryMessage,
+    getConfidentialRecoveryMessage,
+    () => null,
   );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -75,6 +83,7 @@ export const useConfidentialAccess = () => {
       return { ok: false, error: "Enter a passphrase." } as const;
     }
 
+    clearConfidentialRecoveryMessage();
     const config = readConfidentialWorkspaceConfig();
     if (config) {
       const valid = await verifyConfidentialPassphrase(trimmed, config);
@@ -100,6 +109,7 @@ export const useConfidentialAccess = () => {
       return { ok: false, error: "This workspace already has a passphrase. Unlock with the existing passphrase instead." } as const;
     }
 
+    clearConfidentialRecoveryMessage();
     await configureConfidentialWorkspace(trimmed);
     setActiveConfidentialPassphrase(trimmed);
     return { ok: true } as const;
@@ -109,6 +119,8 @@ export const useConfidentialAccess = () => {
     passphrase,
     hasConfig,
     configChecked,
+    recoveryMessage,
+    clearRecoveryMessage: clearConfidentialRecoveryMessage,
     ready: Boolean(passphrase),
     lock: lockConfidentialWorkspace,
     unlock,
