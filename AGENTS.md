@@ -2,8 +2,6 @@
 
 ## Required Pre-Read
 - Read the repository root `SKILL.md` before making any meaningful code changes.
-- Read `GITHUB.md` before doing any repository work.
-- `GITHUB.md` is binding repository policy, not optional background documentation.
 - Treat `SKILL.md` as the documentation gate for implementation work: identify doc impact before coding and update canonical docs in the same change whenever possible.
 
 ## Project Structure & Module Organization
@@ -44,32 +42,17 @@
   2. Overlays must not be hidden behind existing UI or obscure critical controls/content.
   3. Leave enough breathing room around floating UI so interactions remain clear and unobstructed in default desktop and mobile wall layouts.
 
-## Commit & Pull Request Guidelines
+## Commit Guidelines
 - Follow Conventional Commit style used in history, e.g.:
   - `feat: ...`
   - `fix: ...`
   - `docs: ...`
 - Keep commits focused and atomic (one feature/fix per commit).
 - Always create a local git commit after making repository changes so work is recoverable and easy to roll back.
-- A local commit alone is insufficient. Repository work is not complete until the branch/push/PR workflow in `GITHUB.md` is completed, unless the user explicitly says not to push or not to open a PR.
-- Never treat “commit created” as the end of the task when `GITHUB.md` requires a branch push and pull request.
-- PRs should include:
-  - clear summary of user-visible changes
-  - affected paths (e.g., `src/components/WallCanvas.tsx`)
-  - validation evidence (`lint`, `build`, and QA steps)
-  - screenshots/GIFs for UI changes when relevant.
-
-## GitHub Completion Gate
-- For any repository change, completion requires all of the following unless the user explicitly says otherwise:
-  1. work is on a feature branch, not `main`
-  2. the branch is pushed to `origin`
-  3. a pull request targets `main`
-- If push or PR creation cannot be completed, stop treating the task as done and report the blocker explicitly.
+- Repository work is complete when the requested changes are committed locally, unless the user explicitly asks for additional git workflow steps.
 - Final handoff for repository work must state:
   - current branch name
   - commit hash
-  - whether the branch was pushed
-  - whether a PR was opened
 
 ## Security & Configuration Tips
 - App is local-first; persistence uses IndexedDB via Dexie.
