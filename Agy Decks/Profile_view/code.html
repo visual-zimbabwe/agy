@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agy Decks - The Curator Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "inverse-on-surface": "#f3f0eb",
+                        "error": "#ba1a1a",
+                        "primary-container": "#c44f2e",
+                        "on-tertiary-fixed-variant": "#5d4201",
+                        "surface-container-highest": "#e5e2dd",
+                        "on-surface-variant": "#58423c",
+                        "surface-dim": "#dcdad5",
+                        "on-background": "#1c1c19",
+                        "background": "#fcf9f4",
+                        "surface-variant": "#e5e2dd",
+                        "tertiary-fixed-dim": "#e9c176",
+                        "on-secondary-fixed": "#0b1f15",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#a63a1a",
+                        "surface": "#fcf9f4",
+                        "tertiary-fixed": "#ffdea5",
+                        "secondary-container": "#cde6d5",
+                        "on-surface": "#1c1c19",
+                        "tertiary-container": "#90702e",
+                        "on-primary-container": "#fffbff",
+                        "surface-container": "#f0ede8",
+                        "secondary": "#4d6356",
+                        "on-tertiary-fixed": "#261900",
+                        "primary-fixed-dim": "#ffb5a0",
+                        "inverse-surface": "#31302d",
+                        "on-tertiary-container": "#fffbff",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed-variant": "#364b3f",
+                        "on-primary": "#ffffff",
+                        "outline-variant": "#dfc0b8",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-low": "#f6f3ee",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#ebe8e3",
+                        "outline": "#8b716a",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#fcf9f4",
+                        "tertiary": "#755717",
+                        "on-primary-fixed": "#3b0900",
+                        "primary": "#a33818",
+                        "primary-fixed": "#ffdbd1",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#b4ccbc",
+                        "on-primary-fixed-variant": "#862303",
+                        "on-secondary-container": "#52685a",
+                        "inverse-primary": "#ffb5a0",
+                        "secondary-fixed": "#d0e8d7"
+                    },
+                    fontFamily: {
+                        "headline": ["Newsreader"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-image: radial-gradient(#dfc0b8 0.5px, transparent 0.5px);
+            background-size: 24px 24px;
+            background-color: #fcf9f4;
+        }
+        .grain-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.02;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="font-body text-on-surface selection:bg-primary-fixed-dim selection:text-on-primary-fixed">
+<div class="grain-overlay"></div>
+<!-- Top Navigation Shell -->
+<header class="fixed top-0 w-full z-50 bg-[#fcf9f4]/80 backdrop-blur-xl shadow-[0_10px_30px_rgba(28,28,25,0.03)]">
+<div class="flex justify-between items-center px-8 py-4 max-w-screen-2xl mx-auto">
+<div class="font-['Newsreader'] italic text-2xl text-[#a33818]">Agy Decks</div>
+<nav class="hidden md:flex items-center gap-12">
+<a class="text-stone-600 font-['Manrope'] hover:text-[#a33818] transition-colors duration-300" href="#">Decks</a>
+<a class="text-stone-600 font-['Manrope'] hover:text-[#a33818] transition-colors duration-300" href="#">Studio</a>
+<a class="text-stone-600 font-['Manrope'] hover:text-[#a33818] transition-colors duration-300" href="#">Archive</a>
+</nav>
+<div class="flex items-center gap-6 text-[#a33818]">
+<button class="material-symbols-outlined hover:opacity-80 transition-opacity">settings</button>
+<button class="material-symbols-outlined hover:opacity-80 transition-opacity" data-weight="fill" style="font-variation-settings: 'FILL' 1;">account_circle</button>
+</div>
+</div>
+</header>
+<!-- Side Navigation Shell -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-[#fcf9f4] border-r border-stone-200/10 flex flex-col py-8 z-40 hidden xl:flex">
+<div class="px-8 mb-12 mt-16">
+<div class="w-12 h-12 rounded-full bg-stone-200 flex items-center justify-center mb-4 overflow-hidden">
+<img alt="The Curator" class="w-full h-full object-cover" data-alt="Portrait of a sophisticated person with a creative look" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaWtyDGZuYxIQUQpKihYNpl7DoUKIm_oOI774zCoRUfzcvOQptVl01AfTFPjNYkaT7d8vmy6ac9NwoloJpsDGLGBoj6D_6um1LoiCpKT5-XppTuFl6wjOa8C7BLUKlr8Jlkv80wa5heZEuePTbfZIMUEX051EXu23mR_QLC7nc1364H4XRy4q70C_WXHifrJMcIJz4brr_0R0jxn8BNFPn-YAb5ua8zUFVEIZaflRkf4FTClesL73TOzZEmehq6bGtzKAFNxjNJQKv"/>
+</div>
+<h2 class="font-headline text-xl text-on-surface">The Curator</h2>
+<p class="font-label text-[0.65rem] uppercase tracking-[0.05rem] text-stone-500">Studio Member since 2024</p>
+</div>
+<nav class="flex-1">
+<ul class="space-y-1">
+<li>
+<a class="text-[#a33818] font-bold bg-stone-100/50 rounded-r-full flex items-center gap-4 px-8 py-3 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">person</span>
+<span class="font-label text-xs uppercase tracking-[0.05rem]">Profile</span>
+</a>
+</li>
+<li>
+<a class="text-stone-500 font-medium px-8 py-3 flex items-center gap-4 hover:bg-stone-100 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">tune</span>
+<span class="font-label text-xs uppercase tracking-[0.05rem]">Preferences</span>
+</a>
+</li>
+<li>
+<a class="text-stone-500 font-medium px-8 py-3 flex items-center gap-4 hover:bg-stone-100 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">analytics</span>
+<span class="font-label text-xs uppercase tracking-[0.05rem]">Study Tuning</span>
+</a>
+</li>
+<li>
+<a class="text-stone-500 font-medium px-8 py-3 flex items-center gap-4 hover:bg-stone-100 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">manage_accounts</span>
+<span class="font-label text-xs uppercase tracking-[0.05rem]">Account</span>
+</a>
+</li>
+<li>
+<a class="text-stone-500 font-medium px-8 py-3 flex items-center gap-4 hover:bg-stone-100 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">help_center</span>
+<span class="font-label text-xs uppercase tracking-[0.05rem]">Support</span>
+</a>
+</li>
+</ul>
+</nav>
+<div class="px-8 mt-auto">
+<button class="w-full bg-primary text-on-primary py-3 rounded-full font-label text-xs uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                New Collection
+            </button>
+<div class="mt-8 space-y-4 pt-6 border-t border-stone-200/20">
+<div class="flex items-center gap-3 text-stone-400 text-xs font-label uppercase">
+<span class="material-symbols-outlined text-sm">cloud_done</span>
+                    Sync Status
+                </div>
+<div class="flex items-center gap-3 text-stone-400 text-xs font-label uppercase cursor-pointer hover:text-error transition-colors">
+<span class="material-symbols-outlined text-sm">logout</span>
+                    Logout
+                </div>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="xl:pl-64 pt-24 min-h-screen">
+<div class="max-w-6xl mx-auto px-8 py-12">
+<!-- Hero Section -->
+<section class="mb-20 flex flex-col md:flex-row items-end justify-between gap-12">
+<div class="max-w-2xl">
+<div class="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label text-[0.6rem] uppercase tracking-widest mb-6">
+                        Curator Profile
+                    </div>
+<h1 class="font-headline text-7xl md:text-8xl text-on-surface mb-6 leading-tight">The Curator</h1>
+<p class="font-headline italic text-2xl text-stone-500 leading-relaxed">
+                        An architect of abstract concepts, archiving the infinite since 2024.
+                    </p>
+</div>
+<div class="relative group">
+<div class="w-48 h-64 bg-surface-container-high rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,25,0.08)] transform -rotate-3 transition-transform group-hover:rotate-0 duration-500">
+<img alt="Avatar" class="w-full h-full object-cover grayscale mix-blend-multiply opacity-90" data-alt="A minimalist portrait of a stylish individual in soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFKH2pVbRZ9eL5-hAnCXvgTSgtKHk0f39GmM57UxjrHKm3Xz0C_Jra_0y9xUqCV57iofgCkqQyB0cUy8HwPPHfSfCV-ahXl_XrPsUR_7HAB3T5C_klHcB4YQhKMrVYncgPFM3rXqEVEbS4aFlXaaWi7krOKx8aTzmqxHvhBlySpgYN0lxd_staQYLr-KjB6_amV91VGB5eZXZI4Md8ks1d62mn-LvKFl8Lb0tLRjsxSucQj97KOhgZFOaO303mNx_dsZB6V9lWYsw0"/>
+</div>
+<div class="absolute -bottom-4 -right-4 w-32 h-32 bg-primary-fixed rounded-xl -z-10 transform rotate-12"></div>
+</div>
+</section>
+<!-- Knowledge Inventory -->
+<section class="mb-24">
+<div class="flex items-center justify-between mb-12">
+<h3 class="font-headline text-3xl">Knowledge Inventory</h3>
+<div class="h-px flex-1 bg-stone-200/40 mx-8"></div>
+<span class="font-label text-xs uppercase tracking-widest text-stone-400">Activity Metadata</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="bg-surface-container-lowest p-10 rounded-xl shadow-[0_10px_30px_rgba(28,28,25,0.03)] border border-white/40">
+<span class="font-label text-[0.65rem] uppercase tracking-widest text-primary mb-4 block">Total Objects</span>
+<div class="font-headline text-6xl text-on-surface">12,482</div>
+<p class="font-body text-sm text-stone-500 mt-4 leading-relaxed">Unique data nodes across 42 active decks.</p>
+</div>
+<div class="bg-surface-container-lowest p-10 rounded-xl shadow-[0_10px_30px_rgba(28,28,25,0.03)] border border-white/40">
+<span class="font-label text-[0.65rem] uppercase tracking-widest text-tertiary mb-4 block">Nodes Learned</span>
+<div class="font-headline text-6xl text-on-surface">8,914</div>
+<p class="font-body text-sm text-stone-500 mt-4 leading-relaxed">Consolidated knowledge in long-term storage.</p>
+</div>
+<div class="bg-surface-container-lowest p-10 rounded-xl shadow-[0_10px_30px_rgba(28,28,25,0.03)] border border-white/40">
+<span class="font-label text-[0.65rem] uppercase tracking-widest text-secondary mb-4 block">Total Review Time</span>
+<div class="font-headline text-6xl text-on-surface">412<span class="text-2xl ml-2 text-stone-400">hrs</span></div>
+<p class="font-body text-sm text-stone-500 mt-4 leading-relaxed">Temporal investment in memory curation.</p>
+</div>
+</div>
+</section>
+<!-- Current Focus -->
+<section class="mb-20">
+<div class="flex items-center justify-between mb-12">
+<h3 class="font-headline text-3xl">Current Focus</h3>
+<div class="h-px flex-1 bg-stone-200/40 mx-8"></div>
+<button class="font-label text-xs uppercase tracking-widest text-primary hover:tracking-[0.2rem] transition-all">Expand Studio</button>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+<!-- Deck Card 1 -->
+<div class="group relative bg-surface-container-low p-8 rounded-xl flex flex-col md:flex-row gap-8 items-start hover:bg-surface-container transition-colors duration-500">
+<div class="w-full md:w-40 h-56 bg-white rounded shadow-[0_4px_12px_rgba(0,0,0,0.05)] overflow-hidden flex-shrink-0 border border-stone-100">
+<img alt="Abstract Art" class="w-full h-full object-cover" data-alt="Warm abstract fluid textures in earthy tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQAPoAm2AC9H2xPlYZn2vh164dMKzE3-LBH0lZyEE2no0Yh5ozj1TdP2uPyGhIfgC5Yr0x7d9hSx9T_G8yJyxVZNgUBb6_BTJd0a5--NBMU0XBb_XN47t5Mobhj97LzC4VDvPDFmxSmNEk5ZoYgHTDlovN70Ns3tGiZRYPE_lWbPPV9bBTef-5xklkgZv5PYDU9oSnC8E6SiU1BIIYSu1RTgzMtBbpw6o2CsgoOh9nIkj904rPgI54OFurVQUywBRToFE4bOFZrpzK"/>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary text-sm">history_edu</span>
+<span class="font-label text-[0.6rem] uppercase tracking-widest text-stone-500">Advanced Epistemology</span>
+</div>
+<h4 class="font-headline text-2xl mb-4 text-on-surface group-hover:text-primary transition-colors">Origins of Modern Thought</h4>
+<p class="font-body text-sm text-stone-500 mb-8 leading-relaxed">Exploring the intersection of classical philosophy and early digital logic systems.</p>
+<div class="space-y-2">
+<div class="flex justify-between font-label text-[0.6rem] uppercase tracking-widest mb-1">
+<span>Retention</span>
+<span>84%</span>
+</div>
+<div class="h-1 w-full bg-stone-200 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[84%] rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Deck Card 2 -->
+<div class="group relative bg-surface-container-low p-8 rounded-xl flex flex-col md:flex-row gap-8 items-start hover:bg-surface-container transition-colors duration-500">
+<div class="w-full md:w-40 h-56 bg-white rounded shadow-[0_4px_12px_rgba(0,0,0,0.05)] overflow-hidden flex-shrink-0 border border-stone-100">
+<img alt="Mathematical Pattern" class="w-full h-full object-cover grayscale" data-alt="Complex geometric architectural patterns with high contrast" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBciLVuQyFqdbxAc6YtpUiWNN8Xi-S4JzcxAscV_Pd4DNDJ761jhDsnlTMQNsKclWHQma6m1RVsHzn_ZVjjFlmP3A32i2JNQ0LYDFOKF_Zpt3lhIWMWi9S_439SCEByAL95yCfSiF9g4Vgi3z6CvfMPOpSfRka-ATAs1QgnvMedXFgBOmDE1OMFyeVr1TvCytKsYaj97CcSjcq_mIqHtljgHexKJmuTJ4iFTmyfv8xxtiOYVdc2uU-zhyiGEwcuLjOrkElfhN0w1QF3"/>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-secondary text-sm">architecture</span>
+<span class="font-label text-[0.6rem] uppercase tracking-widest text-stone-500">Spatial Systems</span>
+</div>
+<h4 class="font-headline text-2xl mb-4 text-on-surface group-hover:text-secondary transition-colors">Constructivist Geometry</h4>
+<p class="font-body text-sm text-stone-500 mb-8 leading-relaxed">A visual study of structural integrity and aesthetic balance in physical spaces.</p>
+<div class="space-y-2">
+<div class="flex justify-between font-label text-[0.6rem] uppercase tracking-widest mb-1">
+<span>Retention</span>
+<span>62%</span>
+</div>
+<div class="h-1 w-full bg-stone-200 rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[62%] rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Floating Action -->
+<div class="fixed bottom-8 right-8 z-50">
+<button class="bg-primary text-on-primary w-14 h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all group">
+<span class="material-symbols-outlined text-2xl group-hover:rotate-90 transition-transform duration-300">add</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Footer Meta -->
+<footer class="xl:pl-64 border-t border-stone-200/10 py-12">
+<div class="max-w-6xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="font-headline italic text-stone-400">Agy Decks © 2024</div>
+<div class="flex gap-8">
+<a class="font-label text-[0.65rem] uppercase tracking-widest text-stone-500 hover:text-primary transition-colors" href="#">Manifesto</a>
+<a class="font-label text-[0.65rem] uppercase tracking-widest text-stone-500 hover:text-primary transition-colors" href="#">Journal</a>
+<a class="font-label text-[0.65rem] uppercase tracking-widest text-stone-500 hover:text-primary transition-colors" href="#">Privacy</a>
+</div>
+</div>
+</footer>
+</body></html>

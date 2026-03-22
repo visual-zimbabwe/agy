@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agy Decks - Browse Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "on-surface-variant": "#58423c",
+                "on-surface": "#1c1c19",
+                "surface-variant": "#e5e2dd",
+                "on-secondary": "#ffffff",
+                "surface-dim": "#dcdad5",
+                "primary-fixed-dim": "#ffb5a0",
+                "surface-container-lowest": "#ffffff",
+                "primary-fixed": "#ffdbd1",
+                "primary-container": "#c44f2e",
+                "on-secondary-fixed": "#0b1f15",
+                "tertiary-fixed": "#ffdea5",
+                "outline": "#8b716a",
+                "surface-tint": "#a63a1a",
+                "secondary-fixed-dim": "#b4ccbc",
+                "inverse-primary": "#ffb5a0",
+                "secondary": "#4d6356",
+                "primary": "#a33818",
+                "on-tertiary-fixed": "#261900",
+                "surface-bright": "#fcf9f4",
+                "outline-variant": "#dfc0b8",
+                "on-secondary-fixed-variant": "#364b3f",
+                "inverse-on-surface": "#f3f0eb",
+                "on-primary-fixed-variant": "#862303",
+                "secondary-fixed": "#d0e8d7",
+                "surface-container-high": "#ebe8e3",
+                "on-primary-container": "#fffbff",
+                "on-error-container": "#93000a",
+                "on-tertiary": "#ffffff",
+                "error": "#ba1a1a",
+                "on-background": "#1c1c19",
+                "background": "#fcf9f4",
+                "tertiary-container": "#90702e",
+                "secondary-container": "#cde6d5",
+                "on-tertiary-fixed-variant": "#5d4201",
+                "on-primary-fixed": "#3b0900",
+                "tertiary": "#755717",
+                "surface-container": "#f0ede8",
+                "on-secondary-container": "#52685a",
+                "tertiary-fixed-dim": "#e9c176",
+                "surface-container-highest": "#e5e2dd",
+                "on-error": "#ffffff",
+                "surface-container-low": "#f6f3ee",
+                "surface": "#fcf9f4",
+                "on-tertiary-container": "#fffbff",
+                "inverse-surface": "#31302d",
+                "error-container": "#ffdad6",
+                "on-primary": "#ffffff"
+              },
+              fontFamily: {
+                "headline": ["Newsreader"],
+                "body": ["Manrope"],
+                "label": ["Manrope"]
+              },
+              borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .vellum-overlay {
+            background: linear-gradient(180deg, rgba(252, 249, 244, 0) 0%, rgba(252, 249, 244, 0.8) 100%);
+            backdrop-filter: blur(8px);
+        }
+        .paper-texture {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.02;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed overflow-hidden">
+<div class="fixed inset-0 paper-texture z-[-1]"></div>
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full flex justify-between items-center px-8 h-16 bg-[#fcf9f4]/80 dark:bg-[#1c1c19]/80 backdrop-blur-xl border-b border-[#1c1c19]/10 z-50">
+<div class="font-['Newsreader'] font-bold text-[#a33818] dark:text-[#cc5533] text-2xl tracking-tight">Agy Decks</div>
+<nav class="hidden md:flex items-center space-x-8">
+<a class="text-[#1c1c19]/60 font-['Manrope'] hover:text-[#a33818] transition-colors" href="#">Decks</a>
+<a class="text-[#a33818] border-b-2 border-[#a33818] pb-1 font-['Manrope'] font-bold" href="#">Browse</a>
+<a class="text-[#1c1c19]/60 font-['Manrope'] hover:text-[#a33818] transition-colors" href="#">Stats</a>
+<a class="text-[#1c1c19]/60 font-['Manrope'] hover:text-[#a33818] transition-colors" href="#">Study</a>
+</nav>
+<div class="flex items-center space-x-4">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40">search</span>
+<input class="bg-surface-container-low border-none rounded-full py-1.5 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary w-64 transition-all" placeholder="Search the library..." type="text"/>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors" data-icon="settings">settings</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors" data-icon="account_circle">account_circle</span>
+</div>
+</header>
+<div class="flex h-screen pt-16">
+<!-- SideNavBar (Suppressed for focused Browse view but implied in structure) -->
+<aside class="hidden lg:flex flex-col w-64 border-r border-[#1c1c19]/5 bg-surface-container-low/30 py-8 px-6">
+<div class="mb-8">
+<h2 class="font-['Manrope'] uppercase tracking-widest text-[10px] font-bold text-secondary mb-2">Library</h2>
+<p class="font-['Newsreader'] text-xl text-on-surface">The Workspace</p>
+</div>
+<nav class="space-y-1 flex-1">
+<div class="flex items-center gap-3 bg-[#4d6356]/10 text-[#4d6356] rounded-lg px-4 py-2 font-bold transition-all duration-300">
+<span class="material-symbols-outlined text-lg" data-icon="folder">folder</span>
+<span class="text-sm">My Decks</span>
+</div>
+<div class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 hover:bg-[#1c1c19]/5 rounded-lg transition-all duration-300 cursor-pointer">
+<span class="material-symbols-outlined text-lg" data-icon="group">group</span>
+<span class="text-sm">Shared Decks</span>
+</div>
+<div class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 hover:bg-[#1c1c19]/5 rounded-lg transition-all duration-300 cursor-pointer">
+<span class="material-symbols-outlined text-lg" data-icon="inventory_2">inventory_2</span>
+<span class="text-sm">Archive</span>
+</div>
+<div class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 hover:bg-[#1c1c19]/5 rounded-lg transition-all duration-300 cursor-pointer">
+<span class="material-symbols-outlined text-lg" data-icon="delete">delete</span>
+<span class="text-sm">Trash</span>
+</div>
+</nav>
+<button class="mt-auto mb-6 bg-primary text-on-primary py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-shadow">
+<span class="material-symbols-outlined text-lg" data-icon="add">add</span>
+                Create New Deck
+            </button>
+<div class="space-y-1 pt-6 border-t border-outline-variant/20">
+<div class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 text-sm hover:bg-[#1c1c19]/5 rounded-lg transition-all cursor-pointer">
+<span class="material-symbols-outlined text-lg" data-icon="settings">settings</span>
+                    Settings
+                </div>
+<div class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 text-sm hover:bg-[#1c1c19]/5 rounded-lg transition-all cursor-pointer">
+<span class="material-symbols-outlined text-lg" data-icon="help_outline">help_outline</span>
+                    Help
+                </div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex overflow-hidden">
+<!-- Table Section -->
+<div class="flex-1 flex flex-col min-w-0 bg-surface">
+<!-- Filter Bar -->
+<div class="p-6 flex flex-wrap items-center gap-4 bg-surface-container-low/20">
+<div class="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant/30 text-xs font-bold text-secondary uppercase tracking-wider bg-surface-container-lowest">
+<span>Deck:</span>
+<select class="bg-transparent border-none p-0 text-xs focus:ring-0 cursor-pointer">
+<option>All Decks</option>
+<option>Philosophy 101</option>
+<option>Advanced Logic</option>
+<option>Neuroscience</option>
+</select>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant/30 text-xs font-bold text-secondary uppercase tracking-wider bg-surface-container-lowest">
+<span>Type:</span>
+<select class="bg-transparent border-none p-0 text-xs focus:ring-0 cursor-pointer">
+<option>All Types</option>
+<option>Basic</option>
+<option>Reversed</option>
+<option>Cloze Deletion</option>
+</select>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant/30 text-xs font-bold text-secondary uppercase tracking-wider bg-surface-container-lowest">
+<span>Status:</span>
+<select class="bg-transparent border-none p-0 text-xs focus:ring-0 cursor-pointer">
+<option>Any Status</option>
+<option>Due</option>
+<option>New</option>
+<option>Suspended</option>
+</select>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant/30 text-xs font-bold text-secondary uppercase tracking-wider bg-surface-container-lowest">
+<span class="material-symbols-outlined text-[14px]" data-icon="sell">sell</span>
+<span>Tags</span>
+</div>
+<div class="ml-auto flex gap-2">
+<button class="p-2 rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="filter_list">filter_list</span>
+</button>
+</div>
+</div>
+<!-- High-End Data Table -->
+<div class="flex-1 overflow-y-auto px-6 pb-20">
+<table class="w-full text-left border-separate border-spacing-y-2">
+<thead class="sticky top-0 bg-surface z-10">
+<tr class="text-on-surface-variant">
+<th class="pb-4 font-label uppercase text-[10px] tracking-[0.1em] px-4 font-bold">Note Title</th>
+<th class="pb-4 font-label uppercase text-[10px] tracking-[0.1em] px-4 font-bold">Deck</th>
+<th class="pb-4 font-label uppercase text-[10px] tracking-[0.1em] px-4 font-bold">Last Review</th>
+<th class="pb-4 font-label uppercase text-[10px] tracking-[0.1em] px-4 font-bold">Interval</th>
+<th class="pb-4 font-label uppercase text-[10px] tracking-[0.1em] px-4 font-bold">Status</th>
+</tr>
+</thead>
+<tbody>
+<!-- Row 1 -->
+<tr class="group cursor-pointer hover:bg-surface-container-low transition-all duration-200">
+<td class="py-5 px-4 bg-surface-container-lowest rounded-l-xl group-hover:shadow-sm">
+<div class="font-headline text-lg leading-tight text-on-surface">The Cartesian Meditations (First Med.)</div>
+<div class="text-[11px] text-on-surface-variant/60 font-label mt-1">BASIC • 12 TAGS</div>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest group-hover:shadow-sm">
+<span class="text-sm font-medium text-secondary">Philosophy 101</span>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest group-hover:shadow-sm">
+<span class="text-sm text-on-surface-variant">2 days ago</span>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest group-hover:shadow-sm">
+<span class="text-sm text-on-surface-variant">4.2 months</span>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest rounded-r-xl group-hover:shadow-sm">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-tertiary-container/10 text-tertiary-container uppercase tracking-wider">Due Soon</span>
+</td>
+</tr>
+<!-- Row 2 (Selected) -->
+<tr class="group cursor-pointer bg-primary/5 ring-1 ring-primary/20 rounded-xl relative z-10">
+<td class="py-5 px-4 rounded-l-xl">
+<div class="font-headline text-lg leading-tight text-primary">Neural Plasticity and LTP Mechanisms</div>
+<div class="text-[11px] text-primary/60 font-label mt-1">CLOZE • 4 TAGS</div>
+</td>
+<td class="py-5 px-4">
+<span class="text-sm font-medium text-secondary">Neuroscience</span>
+</td>
+<td class="py-5 px-4">
+<span class="text-sm text-on-surface-variant">Today</span>
+</td>
+<td class="py-5 px-4">
+<span class="text-sm text-on-surface-variant">15 days</span>
+</td>
+<td class="py-5 px-4 rounded-r-xl">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-secondary-container text-on-secondary-container uppercase tracking-wider">Learning</span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="group cursor-pointer hover:bg-surface-container-low transition-all duration-200">
+<td class="py-5 px-4 bg-surface-container-lowest rounded-l-xl group-hover:shadow-sm">
+<div class="font-headline text-lg leading-tight text-on-surface">Spinoza's Concept of Substance</div>
+<div class="text-[11px] text-on-surface-variant/60 font-label mt-1">BASIC • 8 TAGS</div>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest group-hover:shadow-sm">
+<span class="text-sm font-medium text-secondary">Advanced Logic</span>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest group-hover:shadow-sm">
+<span class="text-sm text-on-surface-variant">May 12, 2023</span>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest group-hover:shadow-sm">
+<span class="text-sm text-on-surface-variant">--</span>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest rounded-r-xl group-hover:shadow-sm">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-surface-variant text-on-surface-variant uppercase tracking-wider">New</span>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="group cursor-pointer hover:bg-surface-container-low transition-all duration-200">
+<td class="py-5 px-4 bg-surface-container-lowest rounded-l-xl group-hover:shadow-sm">
+<div class="font-headline text-lg leading-tight text-on-surface/50 italic">Hegelian Dialectic Triad (Obsolete)</div>
+<div class="text-[11px] text-on-surface-variant/40 font-label mt-1">REVERSED • 0 TAGS</div>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest group-hover:shadow-sm">
+<span class="text-sm font-medium text-secondary/50">Philosophy 101</span>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest group-hover:shadow-sm">
+<span class="text-sm text-on-surface-variant/50">Never</span>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest group-hover:shadow-sm">
+<span class="text-sm text-on-surface-variant/50">--</span>
+</td>
+<td class="py-5 px-4 bg-surface-container-lowest rounded-r-xl group-hover:shadow-sm">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-error/10 text-error/50 uppercase tracking-wider">Suspended</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Inspector Panel (Right) -->
+<aside class="w-96 border-l border-[#1c1c19]/5 bg-surface-container-lowest flex flex-col relative">
+<div class="p-6 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low/20">
+<h3 class="font-headline font-bold text-lg">Note Inspector</h3>
+<div class="flex gap-2">
+<button class="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+<button class="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant">
+<span class="material-symbols-outlined text-lg" data-icon="close">close</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-6 space-y-8">
+<!-- Preview Section -->
+<div class="space-y-4">
+<div class="font-label uppercase text-[10px] font-bold text-secondary tracking-widest">Preview</div>
+<div class="bg-surface p-5 rounded-xl border border-outline-variant/20 shadow-sm space-y-4">
+<div class="space-y-1">
+<div class="text-[10px] font-bold text-on-surface-variant/40 uppercase">Front</div>
+<div class="font-headline text-on-surface leading-relaxed">
+                                    What is the biological mechanism primarily responsible for <span class="text-primary font-bold">[...]</span> in long-term potentiation?
+                                </div>
+</div>
+<div class="pt-4 border-t border-dashed border-outline-variant/30 space-y-1">
+<div class="text-[10px] font-bold text-on-surface-variant/40 uppercase">Back</div>
+<div class="font-body text-secondary">
+                                    Increased sensitivity and density of <strong class="text-on-surface">AMPA receptors</strong> in the postsynaptic membrane.
+                                </div>
+</div>
+</div>
+</div>
+<!-- Metadata -->
+<div class="space-y-4">
+<div class="font-label uppercase text-[10px] font-bold text-secondary tracking-widest">Metadata &amp; Stats</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="p-3 bg-surface-container-low rounded-lg">
+<div class="text-[9px] font-bold text-on-surface-variant/50 uppercase">Created</div>
+<div class="text-sm font-medium">Oct 14, 2023</div>
+</div>
+<div class="p-3 bg-surface-container-low rounded-lg">
+<div class="text-[9px] font-bold text-on-surface-variant/50 uppercase">Ease</div>
+<div class="text-sm font-medium">250%</div>
+</div>
+<div class="p-3 bg-surface-container-low rounded-lg">
+<div class="text-[9px] font-bold text-on-surface-variant/50 uppercase">Interval</div>
+<div class="text-sm font-medium">15 days</div>
+</div>
+<div class="p-3 bg-surface-container-low rounded-lg">
+<div class="text-[9px] font-bold text-on-surface-variant/50 uppercase">Lapses</div>
+<div class="text-sm font-medium">0</div>
+</div>
+</div>
+</div>
+<!-- Tags -->
+<div class="space-y-4">
+<div class="font-label uppercase text-[10px] font-bold text-secondary tracking-widest">Tags</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-2.5 py-1 bg-secondary-container/30 text-on-secondary-container rounded-full text-[11px] font-medium">#neuroscience</span>
+<span class="px-2.5 py-1 bg-secondary-container/30 text-on-secondary-container rounded-full text-[11px] font-medium">#cellular-bio</span>
+<span class="px-2.5 py-1 bg-secondary-container/30 text-on-secondary-container rounded-full text-[11px] font-medium">#synapse</span>
+<span class="px-2.5 py-1 bg-outline-variant/20 text-on-surface-variant rounded-full text-[11px] font-medium">+ Add Tag</span>
+</div>
+</div>
+</div>
+<!-- Bulk Actions -->
+<div class="p-6 bg-surface-container-low border-t border-outline-variant/10">
+<div class="grid grid-cols-2 gap-3">
+<button class="flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary-container text-on-secondary-container rounded-full text-xs font-bold hover:brightness-95 transition-all">
+<span class="material-symbols-outlined text-[16px]" data-icon="swap_horiz">swap_horiz</span>
+                            Change Deck
+                        </button>
+<button class="flex items-center justify-center gap-2 px-4 py-2.5 bg-on-surface text-surface rounded-full text-xs font-bold hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-[16px]" data-icon="block">block</span>
+                            Suspend
+                        </button>
+<button class="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 border border-error/30 text-error rounded-full text-xs font-bold hover:bg-error/5 transition-all">
+<span class="material-symbols-outlined text-[16px]" data-icon="delete">delete</span>
+                            Delete Note
+                        </button>
+</div>
+</div>
+</aside>
+</main>
+</div>
+<!-- BottomNavBar (Study Context Only) -->
+<!-- Suppressed for Browser view per Relevance Check, but used for study sessions -->
+<!-- Floating UI Grain Layer -->
+<div class="fixed inset-0 pointer-events-none opacity-20 contrast-125 brightness-110 z-[100] paper-texture"></div>
+</body></html>

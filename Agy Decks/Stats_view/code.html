@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agy Decks Stats - The Digital Atelier</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,700;1,400;1,700&amp;family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface-variant": "#58423c",
+                        "on-surface": "#1c1c19",
+                        "surface-variant": "#e5e2dd",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#dcdad5",
+                        "primary-fixed-dim": "#ffb5a0",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#ffdbd1",
+                        "primary-container": "#c44f2e",
+                        "on-secondary-fixed": "#0b1f15",
+                        "tertiary-fixed": "#ffdea5",
+                        "outline": "#8b716a",
+                        "surface-tint": "#a63a1a",
+                        "secondary-fixed-dim": "#b4ccbc",
+                        "inverse-primary": "#ffb5a0",
+                        "secondary": "#4d6356",
+                        "primary": "#a33818",
+                        "on-tertiary-fixed": "#261900",
+                        "surface-bright": "#fcf9f4",
+                        "outline-variant": "#dfc0b8",
+                        "on-secondary-fixed-variant": "#364b3f",
+                        "inverse-on-surface": "#f3f0eb",
+                        "on-primary-fixed-variant": "#862303",
+                        "secondary-fixed": "#d0e8d7",
+                        "surface-container-high": "#ebe8e3",
+                        "on-primary-container": "#fffbff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-background": "#1c1c19",
+                        "background": "#fcf9f4",
+                        "tertiary-container": "#90702e",
+                        "secondary-container": "#cde6d5",
+                        "on-tertiary-fixed-variant": "#5d4201",
+                        "on-primary-fixed": "#3b0900",
+                        "tertiary": "#755717",
+                        "surface-container": "#f0ede8",
+                        "on-secondary-container": "#52685a",
+                        "tertiary-fixed-dim": "#e9c176",
+                        "surface-container-highest": "#e5e2dd",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#f6f3ee",
+                        "surface": "#fcf9f4",
+                        "on-tertiary-container": "#fffbff",
+                        "inverse-surface": "#31302d",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff"
+                    },
+                    fontFamily: {
+                        "headline": ["Newsreader"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
+    }
+.grain-overlay {
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCdPmUKzI42xiDn7UWZ_G5pHX5wZW0gzpk85y_esMZc9lxGsgw3XqdhhDE8Y_li3LCEGmrS9RnqLfmcFpZdPv-F1CMdt4Whl4uUraF_VI6vAcOEiBCSZUzWtYbPVLHQKU1IlqzI0j9z_EybW0fNaBo8QaTtkVMy9kFS-8CnmbmbuzcI71Q_ZDPinSOeFpvbmgXVUbMmGgcMjyaSokjvXP2q98ygo-zWWg4VvyZr1XOPyeQ_CW95-QpdF9BCKr2REG708fKsumCPA3To);
+    opacity: 0.03;
+    pointer-events: none
+    }</style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<div class="grain-overlay fixed inset-0 z-[100]"></div>
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full flex justify-between items-center px-8 h-16 bg-[#fcf9f4]/80 dark:bg-[#1c1c19]/80 backdrop-blur-xl border-b border-[#1c1c19]/10 z-50">
+<div class="flex items-center gap-8">
+<span class="font-['Newsreader'] font-bold text-[#a33818] dark:text-[#cc5533] text-2xl tracking-tight">Agy Decks</span>
+<nav class="hidden md:flex gap-6 items-baseline">
+<a class="text-[#1c1c19]/60 font-['Manrope'] hover:text-[#a33818] transition-colors scale-98 transition-transform duration-200" href="#">Decks</a>
+<a class="text-[#1c1c19]/60 font-['Manrope'] hover:text-[#a33818] transition-colors scale-98 transition-transform duration-200" href="#">Browse</a>
+<a class="text-[#a33818] border-b-2 border-[#a33818] pb-1 font-['Manrope'] font-bold scale-98 transition-transform duration-200" href="#">Stats</a>
+<a class="text-[#1c1c19]/60 font-['Manrope'] hover:text-[#a33818] transition-colors scale-98 transition-transform duration-200" href="#">Study</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="settings">settings</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="account_circle">account_circle</button>
+</div>
+</header>
+<!-- SideNavBar (Hidden on Mobile) -->
+<aside class="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col py-8 bg-[#fcf9f4] border-r border-[#1c1c19]/5 z-40 mt-16">
+<div class="px-6 mb-8">
+<h2 class="font-['Manrope'] uppercase tracking-widest text-[10px] font-bold text-[#4d6356]">Library</h2>
+<p class="font-['Newsreader'] text-xl text-[#1c1c19]">The Workspace</p>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 hover:bg-[#1c1c19]/5 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="folder">folder</span>
+<span class="text-sm font-medium">My Decks</span>
+</a>
+<a class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 hover:bg-[#1c1c19]/5 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="text-sm font-medium">Shared Decks</span>
+</a>
+<a class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 hover:bg-[#1c1c19]/5 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="text-sm font-medium">Archive</span>
+</a>
+<a class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 hover:bg-[#1c1c19]/5 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+<span class="text-sm font-medium">Trash</span>
+</a>
+</nav>
+<div class="px-4 mt-auto space-y-1">
+<button class="w-full bg-[#a33818] text-white rounded-full py-3 mb-6 font-bold text-sm hover:opacity-90 transition-opacity">
+                Create New Deck
+            </button>
+<a class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 hover:bg-[#1c1c19]/5" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-[#1c1c19]/70 px-4 py-2 hover:bg-[#1c1c19]/5" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span class="text-sm font-medium">Help</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="lg:ml-64 mt-16 p-8 pb-32 min-h-screen">
+<div class="max-w-6xl mx-auto">
+<!-- Header Section -->
+<div class="mb-12">
+<h1 class="font-headline text-5xl italic text-on-surface mb-2">Knowledge Velocity</h1>
+<p class="font-body text-on-surface-variant max-w-xl">Deep analytics and workload forecasting for your intellectual inventory.</p>
+</div>
+<!-- Bento Grid Summary -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+<div class="bg-surface-container-lowest p-7 rounded-xl shadow-[0_10px_30px_rgba(28,28,25,0.06)] flex flex-col justify-between h-40">
+<span class="font-label uppercase tracking-widest text-[10px] font-bold text-secondary">Total Cards</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline text-5xl font-bold">12,482</span>
+<span class="text-secondary font-bold text-xs">+140 this week</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-7 rounded-xl shadow-[0_10px_30px_rgba(28,28,25,0.06)] flex flex-col justify-between h-40">
+<span class="font-label uppercase tracking-widest text-[10px] font-bold text-secondary">Retention Rate</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline text-5xl font-bold text-primary">92%</span>
+<span class="text-primary font-bold text-xs">Peak Mastery</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-7 rounded-xl shadow-[0_10px_30px_rgba(28,28,25,0.06)] flex flex-col justify-between h-40">
+<span class="font-label uppercase tracking-widest text-[10px] font-bold text-secondary">Total Reviews</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline text-5xl font-bold">48.2k</span>
+<span class="text-secondary font-bold text-xs">Lifetime</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+<!-- Forecast Chart (Asymmetric Span) -->
+<div class="lg:col-span-2 bg-surface-container-low p-8 rounded-xl">
+<div class="flex justify-between items-center mb-8">
+<div>
+<h3 class="font-headline text-2xl mb-1">Workload Forecast</h3>
+<p class="font-label text-xs uppercase tracking-widest text-secondary font-bold">Projected Reviews - Next 30 Days</p>
+</div>
+<div class="flex gap-4">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<span class="text-[10px] font-bold font-label uppercase">Stable</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<span class="text-[10px] font-bold font-label uppercase">New</span>
+</div>
+</div>
+</div>
+<!-- SVG Chart Mockup -->
+<div class="relative h-64 w-full">
+<svg class="w-full h-full preserve-3d" viewbox="0 0 1000 300">
+<!-- Background Grid -->
+<line stroke="#1c1c19" stroke-opacity="0.05" x1="0" x2="1000" y1="250" y2="250"></line>
+<line stroke="#1c1c19" stroke-opacity="0.05" x1="0" x2="1000" y1="150" y2="150"></line>
+<line stroke="#1c1c19" stroke-opacity="0.05" x1="0" x2="1000" y1="50" y2="50"></line>
+<!-- Area Path -->
+<path d="M0,250 L50,230 L100,240 L150,180 L200,190 L250,140 L300,160 L350,120 L400,100 L450,110 L500,80 L550,95 L600,60 L650,75 L700,50 L750,65 L800,40 L850,55 L900,30 L950,45 L1000,20 L1000,300 L0,300 Z" fill="url(#gradient-forest)" opacity="0.1"></path>
+<path d="M0,250 L50,230 L100,240 L150,180 L200,190 L250,140 L300,160 L350,120 L400,100 L450,110 L500,80 L550,95 L600,60 L650,75 L700,50 L750,65 L800,40 L850,55 L900,30 L950,45 L1000,20" fill="none" stroke="#4d6356" stroke-linecap="round" stroke-width="3"></path>
+<!-- Muted Gold Accent Path -->
+<path d="M0,260 L100,255 L200,245 L300,248 L400,230 L500,235 L600,220 L700,225 L800,210 L900,215 L1000,200" fill="none" opacity="0.6" stroke="#755717" stroke-dasharray="8 4" stroke-width="2"></path>
+<defs>
+<lineargradient id="gradient-forest" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#4d6356"></stop>
+<stop offset="100%" stop-color="#4d6356" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+</svg>
+<div class="absolute bottom-0 w-full flex justify-between px-2 pt-4">
+<span class="text-[9px] font-bold font-label text-on-surface-variant">OCT 1</span>
+<span class="text-[9px] font-bold font-label text-on-surface-variant">OCT 15</span>
+<span class="text-[9px] font-bold font-label text-on-surface-variant">OCT 30</span>
+</div>
+</div>
+</div>
+<!-- Interval Distribution -->
+<div class="bg-surface-container-low p-8 rounded-xl">
+<h3 class="font-headline text-2xl mb-1">Maturity</h3>
+<p class="font-label text-xs uppercase tracking-widest text-secondary font-bold mb-8">Interval Distribution</p>
+<div class="space-y-6">
+<div class="space-y-2">
+<div class="flex justify-between text-[10px] font-bold font-label uppercase">
+<span>Learning (0-2d)</span>
+<span>1,204</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-full w-[25%] rounded-full"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[10px] font-bold font-label uppercase">
+<span>Young (2d-21d)</span>
+<span>4,832</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-1.5 overflow-hidden">
+<div class="bg-secondary h-full w-[45%] rounded-full"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[10px] font-bold font-label uppercase">
+<span>Mature (&gt;21d)</span>
+<span>6,446</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-1.5 overflow-hidden">
+<div class="bg-tertiary h-full w-[60%] rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="mt-12 p-5 bg-surface-container-lowest rounded-lg">
+<p class="font-body text-xs italic text-on-surface-variant">"Your long-term memory stability has increased by 4% since last month."</p>
+</div>
+</div>
+</div>
+<!-- Heatmap Section -->
+<section class="bg-surface-container p-8 rounded-xl mb-12">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h3 class="font-headline text-2xl mb-1">Consistency Lattice</h3>
+<p class="font-label text-xs uppercase tracking-widest text-secondary font-bold">Activity over the last 6 months</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-label font-bold text-on-surface-variant">LESS</span>
+<div class="flex gap-1">
+<div class="w-3 h-3 bg-surface-variant rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary/30 rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary/60 rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary rounded-sm"></div>
+</div>
+<span class="text-[10px] font-label font-bold text-on-surface-variant">MORE</span>
+</div>
+</div>
+<div class="grid grid-flow-col grid-rows-7 gap-1 overflow-x-auto pb-4">
+<!-- Generating a visual heatmap pattern with divs -->
+<!-- Week headers/rows simulation -->
+<div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/20 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div>
+<!-- Column 2 -->
+<div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/80 rounded-sm"></div><div class="w-3 h-3 bg-secondary/20 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div>
+<!-- Column 3 -->
+<div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/20 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/80 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div>
+<!-- Repeats to fill space visually -->
+<div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/20 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary/80 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/20 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary/80 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/20 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary/80 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/20 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary/80 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/20 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary/80 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/20 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary rounded-sm"></div>
+<div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div><div class="w-3 h-3 bg-secondary/80 rounded-sm"></div><div class="w-3 h-3 bg-secondary/60 rounded-sm"></div><div class="w-3 h-3 bg-secondary/40 rounded-sm"></div><div class="w-3 h-3 bg-secondary/10 rounded-sm"></div>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only Logic) -->
+<nav class="md:hidden fixed bottom-0 w-full max-w-2xl left-1/2 -translate-x-1/2 mb-6 px-12 py-4 flex justify-around items-center bg-[#fcf9f4]/90 dark:bg-[#1c1c19]/90 backdrop-blur-md rounded-t-xl border-t border-[#1c1c19]/10 shadow-[0_-10px_30px_rgba(28,28,25,0.06)] z-50">
+<a class="flex flex-col items-center text-[#1c1c19]/50 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="replay">replay</span>
+<span class="font-['Manrope'] font-medium text-xs">Again</span>
+</a>
+<a class="flex flex-col items-center text-[#1c1c19]/50 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="priority_high">priority_high</span>
+<span class="font-['Manrope'] font-medium text-xs">Hard</span>
+</a>
+<a class="flex flex-col items-center text-[#a33818] active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="sentiment_satisfied">sentiment_satisfied</span>
+<span class="font-['Manrope'] font-medium text-xs">Good</span>
+</a>
+<a class="flex flex-col items-center text-[#1c1c19]/50 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="star">star</span>
+<span class="font-['Manrope'] font-medium text-xs">Easy</span>
+</a>
+</nav>
+</body></html>

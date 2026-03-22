@@ -36,11 +36,17 @@ const privacyFacts = ["Local-first storage", "Password-protected notes", "Privat
 
 export default function Home() {
   return (
-    <main className="route-shell overflow-x-hidden text-[var(--landing-ink)] [--landing-bg:#fcf9f4] [--landing-surface:#ffffff] [--landing-surface-soft:#f6f3ee] [--landing-surface-glass:rgb(252_249_244_/_0.76)] [--landing-ink:#1c1c19] [--landing-muted:#5d544d] [--landing-primary:#a33818] [--landing-secondary:#4d6356] [--landing-tertiary:#755717]">
-      <div className="pointer-events-none absolute inset-0 opacity-80">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_10%,rgb(255_214_146_/_0.7),transparent_28%),radial-gradient(circle_at_78%_14%,rgb(255_228_181_/_0.55),transparent_24%),linear-gradient(180deg,transparent,transparent)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgb(163_56_24_/_0.05)_1px,transparent_1px),linear-gradient(90deg,rgb(163_56_24_/_0.05)_1px,transparent_1px)] bg-[size:168px_168px] [mask-image:linear-gradient(to_bottom,rgb(0_0_0_/_0.6),transparent_92%)]" />
-      </div>
+    <main
+      className="route-shell [&::before]:hidden overflow-x-hidden text-[var(--landing-ink)] [--landing-bg:#fcf9f4] [--landing-surface:#ffffff] [--landing-surface-soft:#f6f3ee] [--landing-surface-glass:rgb(252_249_244_/_0.76)] [--landing-ink:#1c1c19] [--landing-muted:#5d544d] [--landing-primary:#a33818] [--landing-secondary:#4d6356] [--landing-tertiary:#755717]"
+      style={{
+        backgroundColor: "#fcf9f4",
+        backgroundImage:
+          "url(https://lh3.googleusercontent.com/aida-public/AB6AXuCTvKZ2Iqru3PlK_0JgyWz4htF8eeN-htqotHuZdOniffmtWRu0hlDzTF74A9jURRdXvfzf77CELSchNm9s-0NcEgq6bDi-E0Q6gKa1zFsQVVQVXiP7JVr8k4rCXM-G-sLjQlDQwbq-Z9S0_4atyWu934v8MOFBzKA2O6hgbcx--MCfMcZ4znca1mLT9bkPls3nyFUOpSh8COLtHkOVvs0X1eP3_JcKW4h97WtiHRkoRYyl1RnP8MWo1-UMhXv6ZOQhsAQ-t8DTUvLy)",
+        backgroundSize: "cover",
+        backgroundPosition: "center top",
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_14%,rgb(166_58_26_/_0.05),transparent_34%),linear-gradient(180deg,rgb(255_255_255_/_0.1),rgb(255_255_255_/_0.02))]" />
 
       <section className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-20 pt-4 sm:px-6 lg:px-8">
         <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 rounded-full bg-[var(--landing-surface-glass)] px-4 py-2 shadow-[0_10px_30px_rgba(28,28,25,0.06)] ring-1 ring-black/5 backdrop-blur-[20px] sm:px-6">
@@ -80,7 +86,7 @@ export default function Home() {
         </header>
 
         <div id="hero" className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center py-12 sm:py-16 lg:py-20">
-          <div className="mx-auto max-w-4xl text-center motion-fade-in">
+          <div className="mx-auto max-w-4xl space-y-8 bg-[radial-gradient(circle_at_50%_50%,rgb(163_56_24_/_0.03)_0%,rgb(252_249_244_/_0)_70%)] py-20 text-center motion-fade-in">
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--landing-secondary)]">The Digital Atelier for Thought</p>
             <h1
               className="mt-6 text-5xl leading-none tracking-[-0.04em] text-[var(--landing-ink)] sm:text-7xl lg:text-[6.4rem]"
@@ -117,7 +123,6 @@ export default function Home() {
           </div>
 
           <div className="relative mt-16 h-[34rem] overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,rgb(255_219_166_/_0.42),rgb(250_236_208_/_0.75)_44%,rgb(250_243_232_/_0.92))] shadow-[0_32px_60px_rgba(76,56,26,0.12)] sm:h-[40rem]">
-            <div className="absolute inset-0 bg-[linear-gradient(rgb(255_255_255_/_0.18)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255_/_0.18)_1px,transparent_1px)] bg-[size:124px_124px]" />
             <div className="absolute left-[8%] top-[16%] w-52 rotate-[-7deg] rounded-[0.9rem] bg-[var(--landing-surface)] p-5 shadow-[0_20px_40px_rgba(28,28,25,0.08)] sm:w-60">
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--landing-primary)]">Journal</p>
               <h2 className="mt-3 text-xl italic text-[var(--landing-ink)]" style={{ fontFamily: '"Newsreader", "Playfair Display", serif' }}>

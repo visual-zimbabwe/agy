@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-on-surface": "#f3f0eb",
+              "error": "#ba1a1a",
+              "primary-container": "#c44f2e",
+              "on-tertiary-fixed-variant": "#5d4201",
+              "surface-container-highest": "#e5e2dd",
+              "on-surface-variant": "#58423c",
+              "surface-dim": "#dcdad5",
+              "on-background": "#1c1c19",
+              "background": "#fcf9f4",
+              "surface-variant": "#e5e2dd",
+              "tertiary-fixed-dim": "#e9c176",
+              "on-secondary-fixed": "#0b1f15",
+              "on-secondary": "#ffffff",
+              "surface-tint": "#a63a1a",
+              "surface": "#fcf9f4",
+              "tertiary-fixed": "#ffdea5",
+              "secondary-container": "#cde6d5",
+              "on-surface": "#1c1c19",
+              "tertiary-container": "#90702e",
+              "on-primary-container": "#fffbff",
+              "surface-container": "#f0ede8",
+              "secondary": "#4d6356",
+              "on-tertiary-fixed": "#261900",
+              "primary-fixed-dim": "#ffb5a0",
+              "inverse-surface": "#31302d",
+              "on-tertiary-container": "#fffbff",
+              "on-error": "#ffffff",
+              "on-secondary-fixed-variant": "#364b3f",
+              "on-primary": "#ffffff",
+              "outline-variant": "#dfc0b8",
+              "on-tertiary": "#ffffff",
+              "surface-container-low": "#f6f3ee",
+              "error-container": "#ffdad6",
+              "surface-container-high": "#ebe8e3",
+              "outline": "#8b716a",
+              "on-error-container": "#93000a",
+              "surface-bright": "#fcf9f4",
+              "tertiary": "#755717",
+              "on-primary-fixed": "#3b0900",
+              "primary": "#a33818",
+              "primary-fixed": "#ffdbd1",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed-dim": "#b4ccbc",
+              "on-primary-fixed-variant": "#862303",
+              "on-secondary-container": "#52685a",
+              "inverse-primary": "#ffb5a0",
+              "secondary-fixed": "#d0e8d7"
+            },
+            fontFamily: {
+              "headline": ["Newsreader"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .grain-overlay {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.02;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<div class="grain-overlay fixed inset-0 z-[100]"></div>
+<!-- Navigation suppressed for Settings sub-page per "The Destination Rule" / "Task-Focused" exclusion. 
+         However, the SideNavBar from JSON is explicitly requested as the layout engine. -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-[#fcf9f4] dark:bg-stone-950 flex flex-col h-full py-8 border-r border-stone-200/10 z-40">
+<div class="px-8 mb-12">
+<h2 class="font-headline italic text-2xl text-primary">Agy Decks</h2>
+<div class="mt-8 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User profile avatar of a curator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBK4ucTytmGzMebvpWhYTUD6FrEH3iBpBQDnZUxVPQBPZdYzKnGghpQ0NJ9GxDMY1fYRLrvZyBSM914RXGM64X6fpEQvvclipYm50ZYW-MUUecuYGpF14z9Uf7w7KbNazNMuWGIymM_azoQwvQB7JtPYBxn6zwrKUNCXxI5QHZTftXM3t6rjuy2Kn2qIzT04RLdX7Pz9OgxX40h0WRiihLk8JZG4kQGsndCWF4_1x4g3Bb1E-V7Txw89PvA9B0FuBLXiaIe3VGHglk6"/>
+</div>
+<div>
+<p class="font-headline text-on-surface text-sm">The Curator</p>
+<p class="font-label text-[10px] tracking-[0.05rem] text-on-surface-variant uppercase">Studio Member</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-stone-500 dark:text-stone-400 font-medium px-8 py-3 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">person</span>
+<span class="font-label text-xs tracking-[0.05rem] uppercase">Profile</span>
+</a>
+<a class="flex items-center gap-3 text-stone-500 dark:text-stone-400 font-medium px-8 py-3 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">tune</span>
+<span class="font-label text-xs tracking-[0.05rem] uppercase">Preferences</span>
+</a>
+<a class="flex items-center gap-3 text-primary dark:text-orange-500 font-bold bg-stone-100/50 dark:bg-stone-800/50 rounded-r-full mr-4 px-8 py-3 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">analytics</span>
+<span class="font-label text-xs tracking-[0.05rem] uppercase">Study Tuning</span>
+</a>
+<a class="flex items-center gap-3 text-stone-500 dark:text-stone-400 font-medium px-8 py-3 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">manage_accounts</span>
+<span class="font-label text-xs tracking-[0.05rem] uppercase">Account</span>
+</a>
+<a class="flex items-center gap-3 text-stone-500 dark:text-stone-400 font-medium px-8 py-3 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">help_center</span>
+<span class="font-label text-xs tracking-[0.05rem] uppercase">Support</span>
+</a>
+</nav>
+<div class="px-8 mt-auto pt-8 border-t border-surface-container">
+<a class="flex items-center gap-3 text-stone-500 dark:text-stone-400 font-medium py-3 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">cloud_done</span>
+<span class="font-label text-xs tracking-[0.05rem] uppercase">Sync Status</span>
+</a>
+<a class="flex items-center gap-3 text-stone-500 dark:text-stone-400 font-medium py-3 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">logout</span>
+<span class="font-label text-xs tracking-[0.05rem] uppercase">Logout</span>
+</a>
+</div>
+</aside>
+<main class="ml-64 min-h-screen p-12 max-w-5xl">
+<header class="mb-12">
+<div class="flex items-center justify-between">
+<div>
+<nav class="flex items-center gap-2 mb-2">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Settings</span>
+<span class="material-symbols-outlined text-xs text-outline">chevron_right</span>
+<span class="font-label text-[10px] uppercase tracking-widest text-primary">Study Tuning</span>
+</nav>
+<h1 class="font-headline text-5xl font-light text-on-surface tracking-tight">Study Tuning</h1>
+<p class="mt-4 text-on-surface-variant font-body leading-relaxed max-w-2xl">
+                        Adjust the metabolic rhythm of your learning. Our Spaced Repetition engine adapts to your retention rates using the FSRS algorithm.
+                    </p>
+</div>
+<button class="bg-primary text-on-primary px-8 py-3 rounded-full font-label text-xs tracking-[0.05rem] uppercase hover:opacity-90 transition-opacity">
+                    Save Changes
+                </button>
+</div>
+</header>
+<div class="grid grid-cols-12 gap-8">
+<!-- FSRS Parameters Card -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container-lowest p-10 rounded-xl shadow-[0_10px_30px_rgba(28,28,25,0.03)] border border-outline-variant/10">
+<div class="flex items-center justify-between mb-8">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">psychology</span>
+<h3 class="font-headline text-2xl">FSRS Parameters</h3>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="space-y-12">
+<div>
+<div class="flex justify-between items-end mb-4">
+<label class="font-label text-xs uppercase tracking-widest text-on-surface-variant">Retention Goal</label>
+<span class="font-headline text-xl text-primary">92%</span>
+</div>
+<input class="w-full h-1 bg-surface-container rounded-lg appearance-none cursor-pointer accent-primary" max="99" min="70" type="range" value="92"/>
+<p class="mt-3 text-[11px] text-outline font-body italic leading-snug">Higher retention requires more daily reviews but ensures deeper mastery.</p>
+</div>
+<div class="grid grid-cols-2 gap-8">
+<div>
+<label class="block font-label text-xs uppercase tracking-widest text-on-surface-variant mb-3">Maximum Interval</label>
+<div class="relative">
+<input class="w-full bg-transparent border-b border-outline-variant/30 focus:border-primary focus:ring-0 px-0 py-2 font-headline text-lg text-on-surface transition-colors" type="text" value="36,500"/>
+<span class="absolute right-0 bottom-2 text-[10px] text-outline uppercase font-label">Days</span>
+</div>
+</div>
+<div>
+<label class="block font-label text-xs uppercase tracking-widest text-on-surface-variant mb-3">Stability Weights</label>
+<div class="relative">
+<input class="w-full bg-transparent border-b border-outline-variant/30 focus:border-primary focus:ring-0 px-0 py-2 font-headline text-lg text-on-surface transition-colors" type="text" value="0.4, 0.6, 2.4, 5.8"/>
+<span class="absolute right-0 bottom-2 material-symbols-outlined text-outline text-sm">info</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Learning Steps Card -->
+<div class="col-span-12 lg:col-span-4 bg-surface-container-low p-8 rounded-xl flex flex-col">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-secondary">pace</span>
+<h3 class="font-headline text-xl">Learning Steps</h3>
+</div>
+<div class="space-y-6 flex-1">
+<div class="p-5 bg-surface-container-lowest rounded-lg border border-outline-variant/20">
+<label class="block font-label text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">New Card Steps</label>
+<div class="flex items-center gap-2">
+<span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded text-xs font-label">1m</span>
+<span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded text-xs font-label">10m</span>
+<span class="material-symbols-outlined text-outline text-sm">add_circle</span>
+</div>
+</div>
+<div class="p-5 bg-surface-container-lowest rounded-lg border border-outline-variant/20">
+<label class="block font-label text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Lapse Steps</label>
+<div class="flex items-center gap-2">
+<span class="px-2 py-1 bg-error-container text-on-error-container rounded text-xs font-label">20m</span>
+<span class="material-symbols-outlined text-outline text-sm">add_circle</span>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-6 border-t border-outline-variant/10">
+<p class="text-[11px] text-on-surface-variant font-body italic leading-relaxed">
+                        Steps define the sequence of intervals for cards in the learning or relearning state.
+                    </p>
+</div>
+</div>
+<!-- Limits & Daily Flow -->
+<div class="col-span-12 bg-surface-container-low p-10 rounded-xl">
+<h3 class="font-headline text-2xl mb-8">Daily Flow Control</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+<div class="space-y-2">
+<label class="block font-label text-xs uppercase tracking-widest text-on-surface-variant">Max Reviews / Day</label>
+<div class="flex items-center gap-4">
+<input class="bg-transparent border-b border-outline-variant/30 focus:border-primary focus:ring-0 px-0 py-2 font-headline text-3xl text-on-surface w-24" type="number" value="200"/>
+<div class="flex flex-col gap-1">
+<button class="material-symbols-outlined text-sm text-outline hover:text-primary transition-colors">expand_less</button>
+<button class="material-symbols-outlined text-sm text-outline hover:text-primary transition-colors">expand_more</button>
+</div>
+</div>
+<p class="text-[10px] text-outline font-label uppercase mt-2">Recommended: Infinite</p>
+</div>
+<div class="space-y-2">
+<label class="block font-label text-xs uppercase tracking-widest text-on-surface-variant">New Cards / Day</label>
+<div class="flex items-center gap-4">
+<input class="bg-transparent border-b border-outline-variant/30 focus:border-primary focus:ring-0 px-0 py-2 font-headline text-3xl text-on-surface w-24" type="number" value="20"/>
+<div class="flex flex-col gap-1">
+<button class="material-symbols-outlined text-sm text-outline hover:text-primary transition-colors">expand_less</button>
+<button class="material-symbols-outlined text-sm text-outline hover:text-primary transition-colors">expand_more</button>
+</div>
+</div>
+<p class="text-[10px] text-outline font-label uppercase mt-2">Adjusted based on load</p>
+</div>
+<div class="space-y-6">
+<div class="flex items-center justify-between">
+<span class="font-label text-xs uppercase tracking-widest text-on-surface-variant">Bury Siblings</span>
+<label class="relative inline-flex items-center cursor-pointer scale-75 origin-right">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-secondary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label text-xs uppercase tracking-widest text-on-surface-variant">New Card Priority</span>
+<label class="relative inline-flex items-center cursor-pointer scale-75 origin-right">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-secondary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+<!-- Statistics / Info Bento -->
+<div class="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="p-8 bg-tertiary-fixed text-on-tertiary-fixed rounded-xl flex items-start gap-6">
+<span class="material-symbols-outlined text-4xl mt-1 opacity-40">auto_awesome</span>
+<div>
+<h4 class="font-headline text-xl mb-2">Dynamic Weights</h4>
+<p class="text-sm font-body leading-relaxed opacity-80">
+                            Your retention model was last optimized 2 days ago. The system has analyzed 4,200 of your reviews to calibrate these parameters.
+                        </p>
+<button class="mt-4 font-label text-[10px] uppercase tracking-[0.1rem] border-b border-on-tertiary-fixed/30 pb-1">Retrain Model Now</button>
+</div>
+</div>
+<div class="p-8 bg-secondary-fixed text-on-secondary-fixed rounded-xl flex items-start gap-6">
+<span class="material-symbols-outlined text-4xl mt-1 opacity-40">timeline</span>
+<div>
+<h4 class="font-headline text-xl mb-2">Load Prediction</h4>
+<p class="text-sm font-body leading-relaxed opacity-80">
+                            Based on your current settings, you should expect roughly 45 minutes of focused study daily for the next two weeks.
+                        </p>
+<button class="mt-4 font-label text-[10px] uppercase tracking-[0.1rem] border-b border-on-secondary-fixed/30 pb-1">View Schedule Forecast</button>
+</div>
+</div>
+</div>
+</div>
+<footer class="mt-24 mb-12 flex items-center justify-between border-t border-outline-variant/10 pt-8">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-outline">history</span>
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Last saved Oct 24, 14:02</span>
+</div>
+<div class="flex gap-8">
+<a class="font-label text-[10px] uppercase tracking-widest text-outline hover:text-primary transition-colors" href="#">Documentation</a>
+<a class="font-label text-[10px] uppercase tracking-widest text-outline hover:text-primary transition-colors" href="#">Restore Defaults</a>
+</div>
+</footer>
+</main>
+</body></html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agy | Digital Atelier</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-high": "#ebe8e3",
+              "background": "#fcf9f4",
+              "on-primary-container": "#fffbff",
+              "on-primary-fixed": "#3b0900",
+              "tertiary": "#755717",
+              "outline-variant": "#dfc0b8",
+              "on-tertiary-container": "#fffbff",
+              "surface-container": "#f0ede8",
+              "surface-container-lowest": "#ffffff",
+              "on-surface": "#1c1c19",
+              "inverse-surface": "#31302d",
+              "on-tertiary-fixed": "#261900",
+              "on-secondary": "#ffffff",
+              "surface-dim": "#dcdad5",
+              "primary-fixed-dim": "#ffb5a0",
+              "on-error-container": "#93000a",
+              "primary": "#a33818",
+              "primary-container": "#c44f2e",
+              "on-tertiary": "#ffffff",
+              "secondary-container": "#cde6d5",
+              "error-container": "#ffdad6",
+              "on-tertiary-fixed-variant": "#5d4201",
+              "tertiary-fixed-dim": "#e9c176",
+              "primary-fixed": "#ffdbd1",
+              "on-secondary-fixed": "#0b1f15",
+              "on-primary-fixed-variant": "#862303",
+              "tertiary-fixed": "#ffdea5",
+              "tertiary-container": "#90702e",
+              "surface-container-low": "#f6f3ee",
+              "on-background": "#1c1c19",
+              "on-surface-variant": "#58423c",
+              "on-error": "#ffffff",
+              "on-secondary-fixed-variant": "#364b3f",
+              "error": "#ba1a1a",
+              "secondary-fixed-dim": "#b4ccbc",
+              "secondary": "#4d6356",
+              "outline": "#8b716a",
+              "inverse-primary": "#ffb5a0",
+              "surface": "#fcf9f4",
+              "on-primary": "#ffffff",
+              "surface-variant": "#e5e2dd",
+              "inverse-on-surface": "#f3f0eb",
+              "secondary-fixed": "#d0e8d7",
+              "on-secondary-container": "#52685a",
+              "surface-bright": "#fcf9f4",
+              "surface-container-highest": "#e5e2dd",
+              "surface-tint": "#a63a1a"
+            },
+            fontFamily: {
+              "headline": ["Newsreader", "serif"],
+              "body": ["Manrope", "sans-serif"],
+              "label": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>body {
+    background-color: #fcf9f4;
+    background-image: radial-gradient(at 0% 0%, rgba(163, 56, 24, 0.03) 0, transparent 50%), radial-gradient(at 100% 100%, rgba(117, 87, 23, 0.03) 0, transparent 50%)
+    }
+.grain-overlay {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    opacity: 0.02;
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuA4Z4xK8cBr8ZepnFuE5kv8RUhxzjvKW29bJRKUay6zoAjZPuMDmRD4jYs7fS9zwhlhp1XuTJ-p-4K8oHXfD40vxSisHgJOv7LtXWjgYsMzC9H-1t576W5ccBYWqi9VM7rSGOzrPLx7XgvO5ONQoNREN-qkkwAIHe6FC7xX58vXuTL9lHUY-PyYK6hll7ye0Yc98Ik_uNKL7lZLwhTDZ0v5op_hQOGg-mT1KbKP_lrCW0Mhj6sU_b2A_rn4grgSioOWS9SVZK7cZlS_)
+    }
+.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24
+    }</style>
+</head>
+<body class="font-body text-on-surface min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed">
+<div class="grain-overlay"></div>
+<header class="flex justify-between items-center w-full px-8 py-6 bg-transparent fixed top-0 z-40">
+<div class="text-2xl font-headline italic tracking-tighter text-orange-900">Agy</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-stone-500 hover:text-orange-800 transition-colors cursor-pointer">help_outline</span>
+</div>
+</header>
+<main class="flex-grow flex items-center justify-center px-6 relative z-10">
+<div class="w-full max-w-md">
+<!-- The Collectible Note / Login Card -->
+<div class="bg-surface-container-lowest rounded-xl p-10 md:p-12 shadow-[0_10px_40px_rgba(28,28,25,0.04)] border border-white/40 backdrop-blur-sm relative overflow-hidden">
+<!-- Top Brand Anchor -->
+<div class="text-center mb-10">
+<h1 class="font-headline italic text-4xl text-on-surface mb-2">Agy</h1>
+<p class="font-label text-[10px] uppercase tracking-[0.2em] text-stone-500">The Digital Atelier for Thought</p>
+</div>
+<form class="space-y-8">
+<!-- Input: Email -->
+<div class="group">
+<label class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block mb-1">Email</label>
+<input class="w-full bg-transparent border-0 border-b border-outline-variant/30 py-3 px-0 focus:ring-0 focus:border-primary text-on-surface placeholder:text-stone-300 font-body transition-colors text-lg" placeholder="curator@atelier.agy" type="email"/>
+</div>
+<!-- Input: Password -->
+<div class="group">
+<div class="flex justify-between items-end mb-1">
+<label class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant block">Password</label>
+<a class="font-label text-[10px] uppercase tracking-widest text-primary hover:text-on-primary-fixed-variant transition-colors" href="#">Forgot Password?</a>
+</div>
+<input class="w-full bg-transparent border-0 border-b border-outline-variant/30 py-3 px-0 focus:ring-0 focus:border-primary text-on-surface placeholder:text-stone-300 font-body transition-colors text-lg" placeholder="••••••••" type="password"/>
+</div>
+<!-- Action: Primary -->
+<button class="w-full bg-primary text-on-primary font-body font-semibold py-4 rounded-full shadow-lg shadow-primary/10 hover:bg-on-primary-fixed-variant transition-all active:scale-[0.98] mt-4 flex items-center justify-center gap-2" type="submit">
+                        Enter the Wall
+                    </button>
+<!-- Divider -->
+<!-- Action: Secondary Google -->
+</form>
+<!-- Request Access -->
+<div class="mt-12 text-center">
+<p class="font-body text-stone-500 text-sm">New to the atelier? <a class="text-tertiary font-semibold hover:underline ml-1" href="#">Sign up</a></p>
+</div>
+</div>
+<!-- Footer Meta -->
+<div class="mt-8 text-center space-y-4 opacity-60">
+<div class="flex justify-center gap-6 font-label text-[9px] uppercase tracking-[0.2em] text-stone-500">
+<a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+</div>
+</div>
+</div>
+</main>
+<footer class="flex justify-center items-center w-full gap-8 p-12 bg-transparent fixed bottom-0 z-40">
+<div class="flex gap-8 items-center">
+<span class="font-label text-[10px] uppercase tracking-widest text-stone-400 hover:text-orange-900 transition-opacity duration-500 cursor-pointer">Enter the Beta</span>
+<span class="font-label text-[10px] uppercase tracking-widest text-stone-400 hover:text-orange-900 transition-opacity duration-500 cursor-pointer">Request Access</span>
+<span class="font-label text-[10px] uppercase tracking-widest text-stone-400 hover:text-orange-900 transition-opacity duration-500 cursor-pointer">Privacy</span>
+</div>
+<div class="absolute right-12 font-label text-[10px] text-stone-400 uppercase tracking-widest">
+            © 2024 Agy Digital Atelier.
+        </div>
+</footer>
+<!-- Subtle Background Visuals -->
+<div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+<div class="absolute top-[10%] left-[5%] w-96 h-96 bg-primary/5 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-[10%] right-[5%] w-96 h-96 bg-tertiary/5 rounded-full blur-[120px]"></div>
+</div>
+</body></html>
