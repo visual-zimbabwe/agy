@@ -52,6 +52,16 @@ const applyEconomistPayload = (noteId: string, payload: EconomistCoverPayload) =
     quoteSource: payload.displayDate || payload.displayLabel,
     imageUrl: payload.imageUrl,
     tags: [payload.sourceId, "cover", "magazine"],
+    economist: {
+      status: "ready",
+      year: payload.year,
+      sourceId: payload.sourceId,
+      sourceUrl: payload.sourceUrl,
+      coverUrl: payload.imageUrl,
+      issueDate: payload.displayDate,
+      fetchedAt: payload.fetchedAt,
+      lastSuccessAt: Date.now(),
+    },
   });
 };
 
@@ -59,14 +69,14 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
   const notesMap = useWallStore((state) => state.notes);
   const inFlightRef = useRef<Partial<Record<EconomistSourceId, Promise<EconomistCoverPayload>>>>({});
 
-  const fetchEconomistCover = useCallback(async ({ sourceId = "economist", force = false }: { sourceId?: EconomistSourceId; force?: boolean } = {}) => {
+  const fetchEconomistCover = useCallback(async ({ sourceId = "economist", force = false, year }: { sourceId?: EconomistSourceId; force?: boolean; year?: string } = {}) => {
     const cached = readEconomistCache(sourceId);
-    if (cached && !force) {
+    if (cached && !force && !year) {
       return cached;
     }
 
     const inFlight = inFlightRef.current[sourceId];
-    if (inFlight) {
+    if (inFlight && !year) {
       return inFlight;
     }
 
@@ -74,6 +84,9 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
       const params = new URLSearchParams({ source: sourceId });
       if (force) {
         params.set("refresh", "true");
+      }
+      if (year) {
+        params.set("year", year);
       }
       const response = await fetch(`/api/economist-cover?${params.toString()}`, { cache: "no-store" });
       const payload = (await response.json()) as Partial<EconomistCoverPayload> & { error?: string };
@@ -89,19 +102,24 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
         imageUrl: payload.imageUrl,
         sourceUrl: payload.sourceUrl,
         fetchedAt: Date.now(),
+        year: payload.year,
       });
-      writeEconomistCache(nextPayload);
+      if (!year) {
+        writeEconomistCache(nextPayload);
+      }
       return nextPayload;
     })().finally(() => {
       delete inFlightRef.current[sourceId];
     });
 
-    inFlightRef.current[sourceId] = task;
+    if (!year) {
+      inFlightRef.current[sourceId] = task;
+    }
     return task;
   }, []);
 
   const refreshEconomistNote = useCallback(
-    async (noteId: string, options?: { force?: boolean }) => {
+    async (noteId: string, options?: { force?: boolean; year?: string }) => {
       if (publishedReadOnly) {
         return;
       }
@@ -110,7 +128,7 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
         return;
       }
       const sourceId = getEconomistNoteSourceId(note) ?? "economist";
-      const payload = await fetchEconomistCover({ sourceId, force: options?.force });
+      const payload = await fetchEconomistCover({ sourceId, force: options?.force, year: options?.year });
       applyEconomistPayload(noteId, payload);
     },
     [fetchEconomistCover, publishedReadOnly],

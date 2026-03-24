@@ -161,6 +161,18 @@ export type PoetryNote = {
   error?: string;
 };
 
+export type EconomistNote = {
+  status: "idle" | "loading" | "ready" | "error";
+  year?: string;
+  sourceId?: string;
+  sourceUrl?: string;
+  coverUrl?: string;
+  issueDate?: string;
+  fetchedAt?: number;
+  lastSuccessAt?: number;
+  error?: string;
+};
+
 export type PrivateNoteData = {
   version: 1;
   salt: string;
@@ -183,6 +195,7 @@ export type Note = {
   bookmark?: WebBookmarkNote;
   apod?: ApodNote;
   poetry?: PoetryNote;
+  economist?: EconomistNote;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";

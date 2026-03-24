@@ -6,6 +6,7 @@ import { getEconomistMagazineSource, isEconomistSourceId } from "@/features/wall
 const querySchema = z.object({
   refresh: z.enum(["true", "false"]).optional(),
   source: z.string().trim().optional(),
+  year: z.string().trim().optional(),
 });
 
 type EconomistApiResponse = {
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
   const parsed = querySchema.safeParse({
     refresh: new URL(request.url).searchParams.get("refresh") ?? undefined,
     source: new URL(request.url).searchParams.get("source") ?? undefined,
+    year: new URL(request.url).searchParams.get("year") ?? undefined,
   });
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid magazine cover query" }, { status: 400 });
@@ -30,10 +32,13 @@ export async function GET(request: Request) {
 
   const sourceId = isEconomistSourceId(parsed.data.source) ? parsed.data.source : "economist";
   const fallbackSource = getEconomistMagazineSource(sourceId);
-  const upstreamUrl = new URL("http://localhost:8000/latest-cover");
+  const upstreamUrl = new URL("https://gregorio-unindulged-stephine.ngrok-free.dev/latest-cover");
   upstreamUrl.searchParams.set("source", sourceId);
   if (parsed.data.refresh === "true") {
     upstreamUrl.searchParams.set("refresh", "true");
+  }
+  if (parsed.data.year) {
+    upstreamUrl.searchParams.set("year", parsed.data.year);
   }
 
   try {

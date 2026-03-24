@@ -14,13 +14,15 @@ export const EconomistCoverEditor = ({
   onClose,
   onRefresh,
   onOpenSource,
+  onUpdateNote,
 }: {
   note: Note & { noteKind: "economist" };
   camera: { x: number; y: number; zoom: number };
   toScreenPoint: (worldX: number, worldY: number, camera: { x: number; y: number; zoom: number }) => { x: number; y: number };
   onClose: () => void;
-  onRefresh: () => void;
+  onRefresh: (year?: string) => void;
   onOpenSource: () => void;
+  onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
 }) => {
   const screen = toScreenPoint(note.x + note.w / 2, note.y + note.h + 18, camera);
   const [title, dateLabel] = note.text.split("\n");
@@ -47,10 +49,30 @@ export const EconomistCoverEditor = ({
         )}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" onClick={onRefresh} className={buttonClass} data-note-edit-tags="true">
+      <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+        <input
+          type="text"
+          value={note.economist?.year ?? ""}
+          onChange={(event) =>
+            onUpdateNote(note.id, {
+              economist: {
+                status: note.economist?.status ?? "ready",
+                ...note.economist,
+                year: event.target.value.trim() || undefined,
+              },
+            })
+          }
+          placeholder="Year (e.g. 2024)"
+          className="min-w-0 rounded-full border border-[color:rgb(138_88_46_/_0.18)] bg-[color:rgb(255_255_255_/_0.76)] px-3 py-1.5 text-xs text-[var(--color-text)] outline-none focus:border-[color:rgb(138_88_46_/_0.4)]"
+          disabled={!note.tags.includes("economist")}
+          aria-label="Magazine cover year"
+        />
+        <button type="button" onClick={() => onRefresh(note.economist?.year)} className={buttonClass} data-note-edit-tags="true">
           Refresh Cover
         </button>
+      </div>
+
+      <div className="mt-2 text-right">
         <button type="button" onClick={onOpenSource} className={buttonClass} data-note-edit-tags="true">
           Open Source
         </button>

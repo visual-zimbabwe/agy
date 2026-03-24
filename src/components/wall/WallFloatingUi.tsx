@@ -94,7 +94,7 @@ type WallFloatingUiProps = {
   onRefreshPoetryNote: (noteId: string) => void;
   onDownloadPoetryImage: (noteId: string) => void;
   onDownloadPoetryPdf: (noteId: string) => void;
-  onRefreshEconomistNote: (noteId: string) => void;
+  onRefreshEconomistNote: (noteId: string, year?: string) => void;
   onOpenEconomistSource: (noteId: string) => void;
 };
 
@@ -243,8 +243,9 @@ export const WallFloatingUi = ({
               camera={camera}
               toScreenPoint={toScreenPoint}
               onClose={() => setEditing(null)}
-              onRefresh={() => onRefreshEconomistNote(editing.id)}
+              onRefresh={(year) => onRefreshEconomistNote(editing.id, year)}
               onOpenSource={() => onOpenEconomistSource(editing.id)}
+              onUpdateNote={updateNote}
             />
           )}
           {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "apod" && editingNote.noteKind !== "poetry" && editingNote.noteKind !== "economist" && (

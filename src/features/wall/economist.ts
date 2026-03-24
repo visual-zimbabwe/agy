@@ -75,6 +75,7 @@ export type EconomistCoverPayload = {
   imageUrl: string;
   sourceUrl: string;
   fetchedAt: number;
+  year?: string;
 };
 
 export const defaultEconomistCoverPayload = (payload?: Partial<EconomistCoverPayload>): EconomistCoverPayload => ({
@@ -85,6 +86,7 @@ export const defaultEconomistCoverPayload = (payload?: Partial<EconomistCoverPay
   imageUrl: payload?.imageUrl?.trim() || "",
   sourceUrl: payload?.sourceUrl?.trim() || getEconomistMagazineSource(payload?.sourceId).sourceUrl,
   fetchedAt: typeof payload?.fetchedAt === "number" ? payload.fetchedAt : 0,
+  year: payload?.year?.trim() || undefined,
 });
 
 export const formatEconomistNoteText = (payload: Pick<EconomistCoverPayload, "sourceName" | "displayLabel" | "displayDate">) => {

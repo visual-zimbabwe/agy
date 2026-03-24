@@ -59,7 +59,7 @@ type NoteInspectorSectionProps = {
   onToggleOrRefreshJoker: (noteId: string) => void;
   onToggleOrRefreshThrone: (noteId: string) => void;
   onRefreshPoetry: (noteId: string, options?: PoetryRefreshOptions) => void;
-  onRefreshEconomist: (noteId: string) => void;
+  onRefreshEconomist: (noteId: string, year?: string) => void;
   onStartLink: (noteId: string) => void;
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -499,9 +499,33 @@ export const NoteInspectorSection = ({
                 ))}
               </select>
               <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => onRefreshEconomist(selectedNote.id)} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>Refresh Cover</button>
-                <button type="button" onClick={() => onOpenBookmarkUrl(selectedNote.quoteAuthor ?? getEconomistMagazineSource(selectedMagazineSourceId).sourceUrl)} className={detailButton}>Open Source</button>
+                <input
+                  type="text"
+                  value={selectedNote.economist?.year ?? ""}
+                  onChange={(event) =>
+                    onUpdateNote(selectedNote.id, {
+                      economist: {
+                        status: selectedNote.economist?.status ?? "ready",
+                        ...selectedNote.economist,
+                        year: event.target.value.trim() || undefined,
+                      },
+                    })
+                  }
+                  className={detailField}
+                  placeholder="Year (e.g. 2024)"
+                  disabled={isTimeLocked || isPrivateEnabled || selectedMagazineSourceId !== "economist"}
+                  aria-label="Magazine cover year"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRefreshEconomist(selectedNote.id, selectedNote.economist?.year)}
+                  className={detailButton}
+                  disabled={isTimeLocked || isPrivateEnabled}
+                >
+                  Refresh Cover
+                </button>
               </div>
+              <button type="button" onClick={() => onOpenBookmarkUrl(selectedNote.quoteAuthor ?? getEconomistMagazineSource(selectedMagazineSourceId).sourceUrl)} className={detailButton}>Open Source</button>
             </div>
           </div>
         )}

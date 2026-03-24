@@ -3210,7 +3210,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onRefreshPoetryNote={(noteId) => { void refreshPoetryNote(noteId, { force: true }); }}
           onDownloadPoetryImage={downloadPoetryAsImage}
           onDownloadPoetryPdf={downloadPoetryAsPdf}
-          onRefreshEconomistNote={(noteId) => { void refreshEconomistNote(noteId, { force: true }); }}
+          onRefreshEconomistNote={(noteId: string, year?: string) => { void refreshEconomistNote(noteId, { force: true, year }); }}
           onOpenEconomistSource={(noteId) => {
             const economistUrl = renderSnapshot.notes[noteId]?.quoteAuthor || "https://www.economist.com/printedition/covers";
             openBookmarkUrl(economistUrl);
@@ -3301,8 +3301,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onRefreshPoetrySelectedNote={(noteId, options) => {
             void refreshPoetryNote(noteId, options ?? { force: true });
           }}
-          onRefreshEconomistSelectedNote={(noteId) => {
-            void refreshEconomistNote(noteId, { force: true });
+          onRefreshEconomistSelectedNote={(noteId: string, year?: string) => {
+            void refreshEconomistNote(noteId, { force: true, year });
           }}
           onStartLinkFromSelectedNote={setLinkingFromNote}
           onUpdateSelectedNote={updateNote}
