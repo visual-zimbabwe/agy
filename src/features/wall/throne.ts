@@ -60,3 +60,14 @@ export const buildThronePlaceholderNote = (id: string, x: number, y: number, now
   createdAt: now,
   updatedAt: now,
 });
+
+export const shouldRefreshThroneNote = (note: Note) => {
+  if (!isThroneNote(note)) {
+    return false;
+  }
+  if (note.text === throneLoadingText || note.text === throneErrorText) {
+    return true;
+  }
+  const lastUpdated = typeof note.updatedAt === "number" ? note.updatedAt : 0;
+  return Date.now() - lastUpdated > 24 * 60 * 60 * 1000;
+};

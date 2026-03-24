@@ -61,6 +61,8 @@ import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceE
 import { useApodNotes } from "@/components/wall/useApodNotes";
 import { useEconomistNotes } from "@/components/wall/useEconomistNotes";
 import { usePoetryNotes } from "@/components/wall/usePoetryNotes";
+import { useJokerNotes } from "@/components/wall/useJokerNotes";
+import { useThroneNotes } from "@/components/wall/useThroneNotes";
 import { useCurrencySystemNote } from "@/components/wall/useCurrencySystemNote";
 import { useWallBackupActions } from "@/components/wall/useWallBackupActions";
 import { useAnimatedCamera } from "@/components/wall/useAnimatedCamera";
@@ -1056,6 +1058,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const { refreshApodNote, downloadApodImage } = useApodNotes({ hydrated, publishedReadOnly });
   const { refreshEconomistNote } = useEconomistNotes({ hydrated, publishedReadOnly, loginKey: userEmail });
   const { refreshPoetryNote, downloadPoetryAsImage, downloadPoetryAsPdf } = usePoetryNotes({ hydrated, publishedReadOnly });
+  useJokerNotes({ hydrated, publishedReadOnly, loginKey: userEmail });
+  useThroneNotes({ hydrated, publishedReadOnly, loginKey: userEmail });
 
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {

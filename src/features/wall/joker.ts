@@ -93,3 +93,14 @@ export const buildJokerPlaceholderNote = (id: string, x: number, y: number, now:
   updatedAt: now,
 });
 
+export const shouldRefreshJokerNote = (note: Note) => {
+  if (!isJokerNote(note)) {
+    return false;
+  }
+  if (note.text === jokerLoadingText || note.text === jokerErrorText) {
+    return true;
+  }
+  const lastUpdated = typeof note.updatedAt === "number" ? note.updatedAt : 0;
+  return Date.now() - lastUpdated > 24 * 60 * 60 * 1000;
+};
+

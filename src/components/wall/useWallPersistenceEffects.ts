@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
-import { createJokerNote, refreshJokerNote } from "@/features/wall/commands";
+import { createJokerNote } from "@/features/wall/commands";
 import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
-import { hasJokerCardBeenActivated, jokerErrorText, jokerLoadingText, markJokerCardActivated } from "@/features/wall/joker";
+import { hasJokerCardBeenActivated, markJokerCardActivated } from "@/features/wall/joker";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
@@ -58,11 +58,6 @@ export const useWallPersistenceEffects = ({
       const jokerNotes = Object.values(snapshot.notes).filter((note) => note.noteKind === "joker");
       if (jokerNotes.length > 0) {
         markJokerCardActivated();
-        jokerNotes.forEach((note) => {
-          if (note.text === jokerLoadingText || note.text === jokerErrorText) {
-            refreshJokerNote(note.id);
-          }
-        });
         return;
       }
 
