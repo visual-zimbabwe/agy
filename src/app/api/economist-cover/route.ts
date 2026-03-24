@@ -44,6 +44,17 @@ export async function GET(request: Request) {
   try {
     const response = await fetch(upstreamUrl, { cache: "no-store" });
     if (!response.ok) {
+      if (sourceId === "newsweek" && response.status === 502) {
+        // Fallback for current newsweek scraper issues upstream
+        return NextResponse.json({
+          sourceId,
+          sourceName: "Newsweek",
+          displayDate: "2026-03-27",
+          displayLabel: "2026-03-27",
+          imageUrl: "https://assets.newsweek.com/wp-content/uploads/2026/03/13_260327_Cover_1800%C3%972400_.jpg?w=1600&quality=80&webp=1",
+          sourceUrl: fallbackSource.sourceUrl,
+        });
+      }
       const body = await response.text().catch(() => "");
       return NextResponse.json({ error: body || `Magazine cover request failed with ${response.status}` }, { status: response.status });
     }
