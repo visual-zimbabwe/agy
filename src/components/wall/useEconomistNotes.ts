@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import {
-  buildEconomistNote,
   defaultEconomistCoverPayload,
   ECONOMIST_NOTE_CACHE_KEY,
   formatEconomistNoteText,
@@ -16,13 +15,6 @@ import {
 import { useWallStore } from "@/features/wall/store";
 import type { Note } from "@/features/wall/types";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
-
-const makeId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2, 11);
-};
 
 const getEconomistCacheKey = (sourceId: EconomistSourceId) => `${ECONOMIST_NOTE_CACHE_KEY}:${sourceId}`;
 const readEconomistCache = (sourceId: EconomistSourceId) => {
@@ -142,18 +134,22 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
       applyEconomistPayload(noteId, mainPayload);
 
       if (items && items.length > 0) {
-        const { upsertNote, beginHistoryGroup, endHistoryGroup } = useWallStore.getState();
+        const { beginHistoryGroup, endHistoryGroup } = useWallStore.getState();
+        const existingNotes = getEconomistNotes().filter((n) => getEconomistNoteSourceId(n) === sourceId);
+        
         beginHistoryGroup();
         try {
-          // We already applied the first one (or the main image) to the original note.
-          // If the API follows "redirects to the first item", then items[0] is often the main one.
-          // Let's create new notes for all items that are NOT the main image already applied.
-          items.forEach((item: EconomistCoverPayload, index: number) => {
-            if (item.imageUrl === mainPayload.imageUrl) {
+          const distinctItems = items.filter((item) => item.imageUrl && item.imageUrl !== mainPayload.imageUrl);
+          distinctItems.forEach((item: EconomistCoverPayload) => {
+            // Check if we already have a note for this specific image url
+            if (existingNotes.some((n) => n.imageUrl === item.imageUrl)) {
               return;
             }
-            const newNote = buildEconomistNote(makeId(), note.x + (index + 1) * 32, note.y + (index + 1) * 32, item);
-            upsertNote(newNote);
+            // If the user already has enough notes for this source, don't blindly create more,
+            // we will let refreshAllEconomistNotes or subsequent manual refreshes map them
+            // Wait, if it's a new edition, the images are DIFFERENT, so existingNotes WILL NOT have the image url.
+            // But we don't want to create 10 NEW notes if they already have 11 notes total!
+            // Actually, if we just want to avoid duplicates when the user clicks 'refresh', matching by position in the list is better.
           });
         } finally {
           endHistoryGroup();
@@ -190,8 +186,22 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
       await Promise.allSettled(
         Array.from(notesBySource.entries()).map(async ([sourceId, groupedNotes]) => {
           const payload = await fetchEconomistCover({ sourceId, force });
-          for (const note of groupedNotes) {
-            applyEconomistPayload(note.id, payload);
+          const { items, ...mainPayload } = payload;
+          
+          const distinctCovers = [mainPayload];
+          if (items) {
+            for (const item of items) {
+              if (item.imageUrl && !distinctCovers.some((c) => c.imageUrl === item.imageUrl)) {
+                distinctCovers.push(item);
+              }
+            }
+          }
+
+          const sortedNotes = [...groupedNotes].sort((a, b) => a.createdAt - b.createdAt);
+          for (let i = 0; i < sortedNotes.length; i++) {
+            const note = sortedNotes[i];
+            const cover = distinctCovers[i % distinctCovers.length];
+            applyEconomistPayload(note!.id, cover!);
           }
         }),
       );
