@@ -118,7 +118,7 @@ import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, cr
 import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
 import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { isCurrencyNote } from "@/features/wall/currency";
-import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, type EconomistMagazineSource } from "@/features/wall/economist";
+import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, getEconomistNoteSourceId, isEconomistNote, type EconomistMagazineSource, type EconomistSourceId } from "@/features/wall/economist";
 import { getPoetryNoteDimensions } from "@/features/wall/poetry";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
@@ -1440,9 +1440,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       // Fall back to the local supported-source list if the docs endpoint is unavailable.
     }
 
+    const existingSourceIds = new Set(
+      Object.values(useWallStore.getState().notes)
+        .filter(isEconomistNote)
+        .map(getEconomistNoteSourceId)
+        .filter((id): id is EconomistSourceId => Boolean(id)),
+    );
+
+    const sourcesToCreate = sources.filter((s) => !existingSourceIds.has(s.sourceId));
+
+    if (sourcesToCreate.length === 0) {
+      return;
+    }
+
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const columns = Math.min(3, Math.max(1, sources.length));
-    const rows = Math.ceil(sources.length / columns);
+    const columns = Math.min(3, Math.max(1, sourcesToCreate.length));
+    const rows = Math.ceil(sourcesToCreate.length / columns);
     const gapX = 40;
     const gapY = 40;
     const totalWidth = columns * ECONOMIST_NOTE_DEFAULTS.width + Math.max(0, columns - 1) * gapX;
@@ -1451,7 +1464,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const occupiedRects = [...occupiedNoteRects];
 
     runHistoryGroup(() => {
-      sources.forEach((source, index) => {
+      sourcesToCreate.forEach((source, index) => {
         const column = index % columns;
         const row = Math.floor(index / columns);
         const preferredCenter = {
