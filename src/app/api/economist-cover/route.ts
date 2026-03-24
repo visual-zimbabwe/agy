@@ -16,6 +16,7 @@ type EconomistApiResponse = {
   display_label?: string;
   image_url?: string;
   source_url?: string;
+  items?: EconomistApiResponse[];
 };
 
 const clean = (value?: string | null) => value?.trim() || undefined;
@@ -70,6 +71,14 @@ export async function GET(request: Request) {
       displayLabel: clean(payload.display_label) || clean(payload.display_date) || "Latest cover",
       imageUrl,
       sourceUrl: clean(payload.source_url) || fallbackSource.sourceUrl,
+      items: payload.items?.map((item) => ({
+        sourceId: clean(item.source_id) || sourceId,
+        sourceName: clean(item.source_name) || clean(payload.source_name) || fallbackSource.sourceName,
+        displayDate: clean(item.display_date) || "",
+        displayLabel: clean(item.display_label) || clean(item.display_date) || "Latest cover",
+        imageUrl: clean(item.image_url),
+        sourceUrl: clean(item.source_url) || clean(payload.source_url) || fallbackSource.sourceUrl,
+      })),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Magazine cover request failed";

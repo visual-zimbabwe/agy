@@ -12,7 +12,7 @@ export const ECONOMIST_NOTE_DEFAULTS = {
 export const ECONOMIST_NOTE_CACHE_KEY = "agy-economist-cover-cache-v2";
 export const ECONOMIST_NOTE_SOURCE_URL = "https://www.economist.com/printedition/covers";
 
-export type EconomistSourceId = "economist" | "barrons" | "newyorker" | "newsweek" | "forbes";
+export type EconomistSourceId = "economist" | "barrons" | "newyorker" | "newsweek" | "forbes" | "theweek";
 
 export type EconomistMagazineSource = {
   sourceId: EconomistSourceId;
@@ -46,12 +46,22 @@ export const ECONOMIST_MAGAZINE_SOURCES: EconomistMagazineSource[] = [
     sourceName: "Forbes",
     sourceUrl: "https://www.forbesmagazine.com/back-issues",
   },
+  {
+    sourceId: "theweek",
+    sourceName: "The Week",
+    sourceUrl: "https://theweek.com/cartoons",
+  },
 ];
 
 const defaultMagazineSource: EconomistMagazineSource = ECONOMIST_MAGAZINE_SOURCES[0]!;
 
 export const isEconomistSourceId = (value?: string | null): value is EconomistSourceId =>
-  value === "economist" || value === "barrons" || value === "newyorker" || value === "newsweek" || value === "forbes";
+  value === "economist" ||
+  value === "barrons" ||
+  value === "newyorker" ||
+  value === "newsweek" ||
+  value === "forbes" ||
+  value === "theweek";
 
 export const findEconomistMagazineSourceById = (sourceId?: string | null) =>
   ECONOMIST_MAGAZINE_SOURCES.find((entry) => entry.sourceId === sourceId);
@@ -76,6 +86,7 @@ export type EconomistCoverPayload = {
   sourceUrl: string;
   fetchedAt: number;
   year?: string;
+  items?: EconomistCoverPayload[];
 };
 
 export const defaultEconomistCoverPayload = (payload?: Partial<EconomistCoverPayload>): EconomistCoverPayload => ({
@@ -87,6 +98,7 @@ export const defaultEconomistCoverPayload = (payload?: Partial<EconomistCoverPay
   sourceUrl: payload?.sourceUrl?.trim() || getEconomistMagazineSource(payload?.sourceId).sourceUrl,
   fetchedAt: typeof payload?.fetchedAt === "number" ? payload.fetchedAt : 0,
   year: payload?.year?.trim() || undefined,
+  items: Array.isArray(payload?.items) ? payload.items.map((item) => defaultEconomistCoverPayload(item)) : undefined,
 });
 
 export const formatEconomistNoteText = (payload: Pick<EconomistCoverPayload, "sourceName" | "displayLabel" | "displayDate">) => {

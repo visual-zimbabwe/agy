@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import {
+  buildEconomistNote,
   defaultEconomistCoverPayload,
   ECONOMIST_NOTE_CACHE_KEY,
   formatEconomistNoteText,
@@ -13,10 +14,17 @@ import {
   shouldRefreshEconomistNote,
 } from "@/features/wall/economist";
 import { useWallStore } from "@/features/wall/store";
+import type { Note } from "@/features/wall/types";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
-const getEconomistCacheKey = (sourceId: EconomistSourceId) => `${ECONOMIST_NOTE_CACHE_KEY}:${sourceId}`;
+const makeId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2, 11);
+};
 
+const getEconomistCacheKey = (sourceId: EconomistSourceId) => `${ECONOMIST_NOTE_CACHE_KEY}:${sourceId}`;
 const readEconomistCache = (sourceId: EconomistSourceId) => {
   if (typeof window === "undefined") {
     return null;
@@ -44,7 +52,6 @@ const writeEconomistCache = (payload: EconomistCoverPayload) => {
 };
 
 const getEconomistNotes = () => Object.values(useWallStore.getState().notes).filter(isEconomistNote);
-
 const applyEconomistPayload = (noteId: string, payload: EconomistCoverPayload) => {
   useWallStore.getState().patchNote(noteId, {
     text: formatEconomistNoteText(payload),
@@ -103,6 +110,7 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
         sourceUrl: payload.sourceUrl,
         fetchedAt: Date.now(),
         year: payload.year,
+        items: payload.items,
       });
       if (!year) {
         writeEconomistCache(nextPayload);
@@ -129,7 +137,28 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
       }
       const sourceId = getEconomistNoteSourceId(note) ?? "economist";
       const payload = await fetchEconomistCover({ sourceId, force: options?.force, year: options?.year });
-      applyEconomistPayload(noteId, payload);
+      
+      const { items, ...mainPayload } = payload;
+      applyEconomistPayload(noteId, mainPayload);
+
+      if (items && items.length > 0) {
+        const { upsertNote, beginHistoryGroup, endHistoryGroup } = useWallStore.getState();
+        beginHistoryGroup();
+        try {
+          // We already applied the first one (or the main image) to the original note.
+          // If the API follows "redirects to the first item", then items[0] is often the main one.
+          // Let's create new notes for all items that are NOT the main image already applied.
+          items.forEach((item: EconomistCoverPayload, index: number) => {
+            if (item.imageUrl === mainPayload.imageUrl) {
+              return;
+            }
+            const newNote = buildEconomistNote(makeId(), note.x + (index + 1) * 32, note.y + (index + 1) * 32, item);
+            upsertNote(newNote);
+          });
+        } finally {
+          endHistoryGroup();
+        }
+      }
     },
     [fetchEconomistCover, publishedReadOnly],
   );
@@ -145,7 +174,7 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
         return;
       }
 
-      const targetNotes = force ? notes : notes.filter((note) => shouldRefreshEconomistNote(note));
+      const targetNotes = force ? notes : notes.filter((note: Note) => shouldRefreshEconomistNote(note));
       if (targetNotes.length === 0) {
         return;
       }
