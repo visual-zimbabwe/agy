@@ -32,6 +32,13 @@ const IMAGE_NOTE_CAPTION_FONT_SIZE = 12;
 const IMAGE_NOTE_CAPTION_LINE_HEIGHT = 1.28;
 const IMAGE_NOTE_CAPTION_MAX_LINES = 3;
 
+const THRONE_NOTE_BACKGROUND = "#35322f";
+const THRONE_NOTE_TEXT = "#f5f0e8";
+const THRONE_NOTE_MUTED = "rgba(245,240,232,0.42)";
+const THRONE_NOTE_RULE = "rgba(245,240,232,0.18)";
+const THRONE_NOTE_ACCENT = "#a67a10";
+const THRONE_SHIELD_POINTS = [7, 0, 14, 3, 14, 14, 7, 24, 0, 14, 0, 3];
+
 const estimateImageCaptionHeight = (noteWidth: number, caption: string) => {
   const trimmed = caption.trim();
   if (!trimmed) {
@@ -471,13 +478,12 @@ export const WallNotesLayer = ({
         const poetryAuthor = isPoetry ? noteView.poetry?.author?.trim() || noteView.quoteAuthor?.trim() || "Unknown Poet" : "";
         const quoteAttribution = noteView.quoteAuthor?.trim() ?? "";
         const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
-        const throneSpeakerHeight = isThrone && quoteAttribution ? 18 : 0;
         const quoteMarkInset = isQuote ? 13 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
         const poetryHeaderInset = isPoetry ? getPoetryHeaderHeight(noteView.w, noteView.poetry) : 0;
         const journalWritingX = 56;
         const isApiQuoteNote = isJoker || isThrone;
-        const textX = isApiQuoteNote ? 14 : isQuote ? 18 : isJournal ? journalWritingX : 12;
+        const textX = isJoker ? 14 : isQuote ? 18 : isJournal ? journalWritingX : 12;
         const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalWritingX + 18 : 24));
         const currencyState = noteView.currency;
         const currencyTrendGlyph = currencyState?.trend === "up" ? "↑" : currencyState?.trend === "down" ? "↓" : "•";
@@ -493,7 +499,7 @@ export const WallNotesLayer = ({
         const isImageNote = Boolean(imageUrl);
         const noteCornerRadius = getNoteCornerRadius(noteView);
         const isPaperShellNote = !isCurrency && !isJoker && !isThrone;
-        const baseShellFill = isThrone ? "#2E2A28" : isJoker ? "#F0CB88" : isCurrency ? CURRENCY_NOTE_DEFAULTS.color : atelierPalette.paper;
+        const baseShellFill = isThrone ? THRONE_NOTE_BACKGROUND : isJoker ? "#F0CB88" : isCurrency ? CURRENCY_NOTE_DEFAULTS.color : atelierPalette.paper;
         const defaultTextColor =
           isQuote || isJournal || isBookmark || isApod || isImageNote || isPrivate || isPoetry || isEconomist ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
         const resolvedTextColor = noteView.textColor ?? defaultTextColor;
@@ -523,8 +529,8 @@ export const WallNotesLayer = ({
           ? imageCaption || noteView.apod?.error || noteView.apod?.title || "NASA APOD"
           : isImageNote
           ? imageCaption
-          : isApiQuoteNote
-            ? truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - 86 - throneSpeakerHeight, 40) }) || (isJoker ? jokerLoadingText : throneLoadingText)
+          : isJoker
+            ? truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - 86, 40) }) || jokerLoadingText
           : isVocabulary
             ? isVocabularyBack
               ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
@@ -547,10 +553,20 @@ export const WallNotesLayer = ({
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
         const tagPalette = noteTagChipPalette(resolvedNoteColor);
-        const textY = isApodMediaCard || isImageNote ? 0 : isApiQuoteNote ? 52 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 43 : 0);
+        const textY = isApodMediaCard || isImageNote ? 0 : isJoker ? 52 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 43 : 0);
         const textHeight = isApodMediaCard || isImageNote
           ? 0
-          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - throneSpeakerHeight - quoteMarkInset - canonTitleInset - poetryHeaderInset - (isJournal ? 43 : 0) - wikiFooterHeight);
+          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - poetryHeaderInset - (isJournal ? 43 : 0) - wikiFooterHeight);
+        const throneQuoteText = isThrone
+          ? strippedNoteText === throneLoadingText
+            ? strippedNoteText
+            : `“${strippedNoteText || "A mind needs books as a sword needs a whetstone, if it is to keep its edge."}”`
+          : "";
+        const throneAuthorLabel = isThrone ? quoteAttribution || "Tyrion Lannister" : "";
+        const throneAuthorWidth = isThrone ? Math.max(88, Math.min(noteView.w - 96, 144)) : 0;
+        const throneAuthorX = isThrone ? (noteView.w - throneAuthorWidth) / 2 : 0;
+        const throneRuleY = isThrone ? Math.max(124, noteView.h - 30) : 0;
+        const throneQuoteHeight = isThrone ? Math.max(34, throneRuleY - 62) : 0;
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
         const journalDateWidth = Math.max(0, noteView.w - journalWritingX - 18);
         const journalDateX = journalWritingX;
@@ -1343,7 +1359,16 @@ export const WallNotesLayer = ({
                   <Text x={Math.max(18, noteView.w - 70)} y={10} width={52} align="center" fontSize={44} fill={colorWithAlpha(atelierPalette.gold, 0.16)} text=":)" listening={false} />
                 )}
                 {isThrone && (
-                  <Text x={Math.max(18, noteView.w - 40)} y={10} width={22} align="center" fontSize={18} fill={colorWithAlpha(atelierPalette.gold, 0.88)} text="♜" listening={false} />
+                  <Line
+                    x={Math.max(18, noteView.w - 32)}
+                    y={14}
+                    points={THRONE_SHIELD_POINTS}
+                    closed
+                    fill={THRONE_NOTE_ACCENT}
+                    stroke={colorWithAlpha("#000000", 0.08)}
+                    strokeWidth={0.8}
+                    listening={false}
+                  />
                 )}
                 <Text
                   x={16}
@@ -1351,7 +1376,7 @@ export const WallNotesLayer = ({
                   width={Math.max(0, noteView.w - 32)}
                   fontSize={9}
                   fontStyle="bold"
-                  fill={isJoker ? colorWithAlpha("#5D4201", 0.72) : colorWithAlpha("#F3F0EB", 0.35)}
+                  fill={isJoker ? colorWithAlpha("#5D4201", 0.72) : THRONE_NOTE_MUTED}
                   text={isJoker ? "SOURCE: JOKES API" : "SOURCE: GOT API"}
                   listening={false}
                 />
@@ -1399,7 +1424,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && !isJournal && !isQuote && !looksLikeCode && !looksLikeFile && (
+            {!isPrivate && !isThrone && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && !isJournal && !isQuote && !looksLikeCode && !looksLikeFile && (
               <Text
                 x={textX}
                 y={textY}
@@ -1426,6 +1451,49 @@ export const WallNotesLayer = ({
                   }
                 }}
               />
+            )}
+            {isThrone && (
+              <>
+                <Text
+                  x={18}
+                  y={48}
+                  width={Math.max(0, noteView.w - 36)}
+                  height={throneQuoteHeight}
+                  fontSize={Math.max(19, Math.min(24, noteView.w / 10))}
+                  fontFamily="Cormorant Garamond"
+                  fontStyle={strippedNoteText === throneLoadingText ? "normal" : "italic"}
+                  fill={THRONE_NOTE_TEXT}
+                  lineHeight={1.28}
+                  text={throneQuoteText}
+                  ellipsis
+                  listening={false}
+                />
+                <Line
+                  points={[18, throneRuleY + 8, Math.max(18, throneAuthorX - 8), throneRuleY + 8]}
+                  stroke={THRONE_NOTE_RULE}
+                  strokeWidth={1}
+                  listening={false}
+                />
+                <Text
+                  x={throneAuthorX}
+                  y={throneRuleY}
+                  width={throneAuthorWidth}
+                  align="center"
+                  fontSize={14}
+                  fontFamily="Cormorant Garamond"
+                  fill="rgba(245,240,232,0.74)"
+                  text={throneAuthorLabel}
+                  wrap="none"
+                  ellipsis
+                  listening={false}
+                />
+                <Line
+                  points={[Math.min(noteView.w - 18, throneAuthorX + throneAuthorWidth + 8), throneRuleY + 8, Math.max(18, noteView.w - 18), throneRuleY + 8]}
+                  stroke={THRONE_NOTE_RULE}
+                  strokeWidth={1}
+                  listening={false}
+                />
+              </>
             )}
             {isJournal && (
               <>
@@ -1621,20 +1689,6 @@ export const WallNotesLayer = ({
               </>
             )}
 
-            {isThrone && quoteAttribution && (
-              <Text
-                x={14}
-                y={Math.max(12, noteView.h - 38)}
-                width={Math.max(0, noteView.w - 28)}
-                fontSize={10}
-                fontStyle="bold"
-                fill="#FFF5E6"
-                text={`— ${quoteAttribution}`}
-                wrap="none"
-                ellipsis
-                listening={false}
-              />
-            )}
 
             {isVocabulary && (
               <Text
@@ -1697,5 +1751,4 @@ export const WallNotesLayer = ({
     </>
   );
 };
-
 

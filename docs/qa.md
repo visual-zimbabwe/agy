@@ -209,7 +209,7 @@ Expected:
 ## Throne Note (`/wall`) (2026-03-19)
 1. Open `/wall` and verify no Throne note is created automatically on a fresh wall.
 2. Click `New Throne` in the `Tools` panel and verify a dedicated Throne note appears at viewport center.
-3. Confirm it uses the reserved red color `#FF2400` and shows a Game of Thrones quote.
+3. Confirm it renders as the dark Throne card with the gold shield accent and shows a Game of Thrones quote.
 4. Verify the note shows the speaking character and a house or source label.
 5. Delete the Throne note.
 6. Create one standard note, select it, click `Throne` in `Details > Note Type`, and verify that selected note becomes the Throne note when no Throne note exists.
@@ -1229,5 +1229,4 @@ Expected:
 - The bottom search dock remains the main search entry point, while `Ctrl/Cmd + K` still opens the same combined note-and-command palette.
 - Floating chrome stays inside the viewport and preserves access to tools, details, search, sync status, and zoom actions.
 - Existing wall interactions such as selection, drag, edit, panel toggles, and camera control continue to work behind the new frontend.
-
 

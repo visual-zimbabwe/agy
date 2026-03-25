@@ -58,6 +58,12 @@ const atelier = {
   shadowDetail: "0 24px 56px rgba(28,28,25,0.16)",
 };
 
+const THRONE_CARD_BACKGROUND = "#35322f";
+const THRONE_CARD_TEXT = "#f5f0e8";
+const THRONE_CARD_MUTED = "rgba(245,240,232,0.42)";
+const THRONE_CARD_RULE = "rgba(245,240,232,0.18)";
+const THRONE_CARD_ACCENT = "#a67a10";
+
 const lineClampStyle = (lines: number): CSSProperties => ({
   display: "-webkit-box",
   WebkitLineClamp: lines,
@@ -392,20 +398,39 @@ const JokerRenderer = ({ note, width, height, tone }: RendererProps) => {
   );
 };
 
-const ThroneRenderer = ({ note, width, height, tone }: RendererProps) => (
-  <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-    <div className="relative h-full p-5 text-[#f3f0eb]" style={{ background: "#31302d" }}>
-      <p className="absolute right-5 top-4 text-lg" style={{ color: atelier.gold }}>♜</p>
-      <MetaLabel color="rgba(243,240,235,0.42)">Source: GoT API</MetaLabel>
-      <p className="mt-5 font-[Newsreader] text-[24px] italic leading-[1.25]">{stripWikiLinkMarkup(note.text) || "A mind needs books as a sword needs a whetstone."}</p>
-      <div className="mt-6 flex items-center gap-3 text-sm" style={{ color: "rgba(243,240,235,0.78)" }}>
-        <div className="h-px flex-1" style={{ background: "rgba(243,240,235,0.18)" }} />
-        <span>{note.quoteAuthor?.trim() || "Tyrion Lannister"}</span>
-        <div className="h-px flex-1" style={{ background: "rgba(243,240,235,0.18)" }} />
+const ThroneRenderer = ({ note, width, height, tone }: RendererProps) => {
+  const throneText = stripWikiLinkMarkup(note.text);
+  const throneDisplayText = throneText === "Summoning a line from Westeros..."
+    ? throneText
+    : `“${throneText || "A mind needs books as a sword needs a whetstone, if it is to keep its edge."}”`;
+
+  return (
+    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
+      <div className="relative h-full px-5 pb-5 pt-6" style={{ background: THRONE_CARD_BACKGROUND, color: THRONE_CARD_TEXT }}>
+        <div
+          className="absolute right-5 top-4 h-6 w-[18px]"
+          style={{
+            background: THRONE_CARD_ACCENT,
+            clipPath: "polygon(50% 0%, 100% 16%, 100% 62%, 50% 100%, 0% 62%, 0% 16%)",
+            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.18))",
+          }}
+        />
+        <MetaLabel color={THRONE_CARD_MUTED}>Source: GoT API</MetaLabel>
+        <p
+          className="mt-7 whitespace-pre-wrap font-[Cormorant_Garamond] text-[31px] italic leading-[1.3] [overflow-wrap:anywhere]"
+          style={{ ...lineClampStyle(tone === "detail" ? 999 : 5), color: THRONE_CARD_TEXT }}
+        >
+          {throneDisplayText}
+        </p>
+        <div className="absolute bottom-8 left-5 right-5 flex items-center gap-3 text-center text-[13px]" style={{ color: "rgba(245,240,232,0.74)" }}>
+          <div className="h-px flex-1" style={{ background: THRONE_CARD_RULE }} />
+          <span className="font-[Cormorant_Garamond] text-[21px] leading-none">{note.quoteAuthor?.trim() || "Tyrion Lannister"}</span>
+          <div className="h-px flex-1" style={{ background: THRONE_CARD_RULE }} />
+        </div>
       </div>
-    </div>
-  </NoteShell>
-);
+    </NoteShell>
+  );
+};
 
 const EconomistRenderer = ({ note, width, height, tone }: RendererProps) => {
   const lines = splitNoteText(note.text);
@@ -573,3 +598,4 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
     </div>
   );
 });
+
