@@ -8,7 +8,7 @@ import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { getApodCaption, isApodNote } from "@/features/wall/apod";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
-import { CURRENCY_NOTE_DEFAULTS, CURRENCY_NOTE_TITLE, isCurrencyNote, parseCurrencyAmountInput } from "@/features/wall/currency";
+import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { getPoetryHeaderHeight, getPoetryTitle } from "@/features/wall/poetry";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
@@ -24,9 +24,6 @@ type GuideLineState = {
 
 type ResizeDraft = { x: number; y: number; w: number; h: number };
 
-const buildJournalPagePoints = (width: number, height: number) => [10, 0, width - 18, 0, width, 14, width - 5, height - 16, width - 24, height, 20, height, 0, height - 12, 0, 10];
-
-const estimateJournalDateWidth = (label: string, fontSize: number) => Math.max(92, label.length * fontSize * 0.52);
 
 const IMAGE_NOTE_PADDING = 6;
 const IMAGE_NOTE_RADIUS = 16;
@@ -479,13 +476,10 @@ export const WallNotesLayer = ({
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
         const poetryHeaderInset = isPoetry ? getPoetryHeaderHeight(noteView.w, noteView.poetry) : 0;
         const journalWritingX = 56;
-        const journalFirstLineY = 30;
-        const journalLineGap = 31;
         const isApiQuoteNote = isJoker || isThrone;
         const textX = isApiQuoteNote ? 14 : isQuote ? 18 : isJournal ? journalWritingX : 12;
         const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalWritingX + 18 : 24));
         const currencyState = noteView.currency;
-        const currencyAmountUsd = parseCurrencyAmountInput(currencyState?.amountInput) * (currencyState?.usdRate ?? 1);
         const currencyTrendGlyph = currencyState?.trend === "up" ? "↑" : currencyState?.trend === "down" ? "↓" : "•";
         const imageUrl = noteView.imageUrl?.trim();
         const bookmarkState = noteView.bookmark;
@@ -558,14 +552,10 @@ export const WallNotesLayer = ({
           ? 0
           : Math.max(0, noteView.h - 56 - quoteAttributionHeight - throneSpeakerHeight - quoteMarkInset - canonTitleInset - poetryHeaderInset - (isJournal ? 43 : 0) - wikiFooterHeight);
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
-        const journalDateFontSize = Math.max(13, noteTextStyle.fontSize - 2);
-        const journalDateUnderlineWidth = Math.min(estimateJournalDateWidth(journalDateLabel, journalDateFontSize), Math.max(0, noteView.w - journalWritingX - 18));
         const journalDateWidth = Math.max(0, noteView.w - journalWritingX - 18);
         const journalDateX = journalWritingX;
 
-        const journalLineStartY = journalFirstLineY;
-        const journalLineCount = isJournal ? Math.max(0, Math.floor((noteView.h - journalLineStartY - 18) / journalLineGap) + 1) : 0;
-        const journalLineYs = Array.from({ length: journalLineCount }, (_, index) => journalLineStartY + index * journalLineGap);
+
         const economistLines = isEconomist ? noteView.text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : [];
         const economistMasthead = economistLines[0] || "Magazine";
         const economistIssueLabel = noteView.quoteSource?.trim() || economistLines[1] || "Latest cover";
@@ -797,18 +787,17 @@ export const WallNotesLayer = ({
             }}
           >
             {isJournal ? (
-              <Line
-                points={buildJournalPagePoints(noteView.w, noteView.h)}
-                closed
-                fill="#FFFFFF"
+              <Rect
+                width={noteView.w}
+                height={noteView.h}
+                cornerRadius={noteCornerRadius}
+                fill={atelierPalette.paper}
                 stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.terracotta })}
                 strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
                 shadowColor={atelierPalette.paperShadow}
-                shadowBlur={isFlashing ? 26 : isDragging ? 22 : 12}
-                shadowOpacity={isFlashing ? 0.16 : isDragging ? 0.12 : 0.07}
+                shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
+                shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
                 shadowOffsetY={isDragging ? 7 : 3}
-                lineJoin="round"
-                tension={0.12}
               />
             ) : isBookmark ? (
               <>
@@ -966,19 +955,19 @@ export const WallNotesLayer = ({
                       width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
                       height={Math.max(1, noteView.h - IMAGE_NOTE_PADDING * 2 - imageNoteLayout.captionHeight - (imageNoteLayout.captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0))}
                       cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
-                      fill="#F4F6FB"
-                      stroke="#CBD5E1"
+                      fill={colorWithAlpha(atelierPalette.text, 0.06)}
+                      stroke={colorWithAlpha(atelierPalette.paperStrokeStrong, 0.16)}
                       strokeWidth={1}
                       dash={[6, 4]}
                       listening={false}
                     />
                     <Text
-                      x={14}
+                      x={18}
                       y={Math.max(18, noteView.h / 2 - 8)}
-                      width={Math.max(0, noteView.w - 28)}
+                      width={Math.max(0, noteView.w - 36)}
                       align="center"
                       fontSize={11}
-                      fill="#64748B"
+                      fill={colorWithAlpha(atelierPalette.mutedText, 0.88)}
                       text={noteView.apod?.error || (imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image...")}
                       listening={false}
                     />
@@ -991,42 +980,44 @@ export const WallNotesLayer = ({
                       width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
                       height={Math.max(1, noteView.h - 74)}
                       cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
-                      fill="#EAF1FB"
+                      fill="#31302D"
                       listening={false}
                     />
-                    <Rect x={18} y={18} width={58} height={22} cornerRadius={11} fill="rgba(15,23,42,0.75)" listening={false} />
-                    <Text x={18} y={24} width={58} align="center" fontSize={10} fontStyle="bold" fill="#FFFFFF" text="VIDEO" listening={false} />
+                    <Rect x={18} y={18} width={Math.max(1, noteView.w - 36)} height={Math.max(1, noteView.h - 120)} cornerRadius={14} fill="rgba(255,255,255,0.04)" listening={false} />
+                    <Rect x={noteView.w / 2 - 32} y={Math.max(28, (noteView.h - 150) / 2)} width={64} height={64} cornerRadius={32} fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.26)" strokeWidth={1} listening={false} />
+                    <Text x={noteView.w / 2 - 8} y={Math.max(48, (noteView.h - 150) / 2 + 13)} width={16} align="center" fontSize={24} fontStyle="bold" fill="#FFFCF8" text="▶" listening={false} />
+                    <Rect x={18} y={Math.max(28, noteView.h - 92)} width={Math.max(1, noteView.w - 36)} height={6} cornerRadius={3} fill="rgba(255,255,255,0.18)" listening={false} />
+                    <Rect x={18} y={Math.max(28, noteView.h - 92)} width={Math.max(48, Math.min(noteView.w - 36, (noteView.w - 36) * 0.34))} height={6} cornerRadius={3} fill={atelierPalette.terracotta} listening={false} />
                     <Text
                       x={18}
-                      y={58}
-                      width={Math.max(0, noteView.w - 36)}
-                      fontSize={18}
+                      y={Math.max(18, noteView.h - 76)}
+                      width={Math.max(0, noteView.w - 92)}
+                      fontSize={14}
                       fontStyle="bold"
-                      fill="#0F172A"
+                      fill="#FFFCF8"
                       text={noteView.apod?.title?.trim() || "NASA APOD"}
                       ellipsis
                       listening={false}
                     />
                     <Text
-                      x={18}
-                      y={84}
-                      width={Math.max(0, noteView.w - 36)}
-                      fontSize={11}
-                      fill="#475569"
-                      text={noteView.apod?.date?.trim() || "Loading latest APOD"}
+                      x={Math.max(18, noteView.w - 70)}
+                      y={Math.max(18, noteView.h - 74)}
+                      width={52}
+                      align="right"
+                      fontSize={9}
+                      fill="rgba(255,252,248,0.58)"
+                      text={noteView.apod?.date?.trim() || "MEDIA"}
                       ellipsis
                       listening={false}
                     />
                     <Text
                       x={18}
-                      y={108}
+                      y={Math.max(18, noteView.h - 52)}
                       width={Math.max(0, noteView.w - 36)}
-                      height={Math.max(0, noteView.h - 160)}
-                      fontSize={12}
-                      lineHeight={1.4}
-                      fill="#334155"
-                      text={noteView.apod?.explanation?.trim() || noteView.apod?.error || "Open the APOD note to play the video."}
-                      ellipsis
+                      fontSize={9}
+                      fontStyle="bold"
+                      fill={colorWithAlpha("#FFFCF8", 0.68)}
+                      text="SOURCE: MULTIMEDIA API"
                       listening={false}
                     />
                   </>
@@ -1215,19 +1206,19 @@ export const WallNotesLayer = ({
                       width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
                       height={Math.max(1, noteView.h - IMAGE_NOTE_PADDING * 2 - imageNoteLayout.captionHeight - (imageNoteLayout.captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0))}
                       cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
-                      fill="#F4F6FB"
-                      stroke="#CBD5E1"
+                      fill={colorWithAlpha(atelierPalette.text, 0.06)}
+                      stroke={colorWithAlpha(atelierPalette.paperStrokeStrong, 0.16)}
                       strokeWidth={1}
                       dash={[6, 4]}
                       listening={false}
                     />
                     <Text
-                      x={14}
+                      x={18}
                       y={Math.max(18, noteView.h / 2 - 8)}
-                      width={Math.max(0, noteView.w - 28)}
+                      width={Math.max(0, noteView.w - 36)}
                       align="center"
                       fontSize={11}
-                      fill="#64748B"
+                      fill={colorWithAlpha(atelierPalette.mutedText, 0.88)}
                       text={imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image..."}
                       listening={false}
                     />
@@ -1298,11 +1289,11 @@ export const WallNotesLayer = ({
                 />
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={colorWithAlpha(atelierPalette.forest, 0.06)} listening={false} />
                 <Rect x={16} y={16} width={Math.max(1, noteView.w - 32)} height={28} cornerRadius={14} fill="rgba(77,99,86,0.12)" listening={false} />
-                <Text x={16} y={24} width={Math.max(0, noteView.w - 32)} align="center" fontSize={10} fontStyle="bold" fill={atelierPalette.forest} text="PROTECTED" listening={false} />
+                <Text x={16} y={24} width={Math.max(0, noteView.w - 32)} align="center" fontSize={10} fontStyle="bold" fill={atelierPalette.forest} text="PRIVATE NOTE" listening={false} />
                 <Text x={20} y={64} width={Math.max(0, noteView.w - 40)} fontSize={20} fontFamily="Newsreader" fontStyle="italic" fill={atelierPalette.text} text={privateNoteTitle(noteView)} listening={false} />
-                <Text x={20} y={104} width={Math.max(0, noteView.w - 40)} height={Math.max(0, noteView.h - 160)} fontSize={12} lineHeight={1.55} fill={atelierPalette.mutedText} text="Content stays hidden on the wall and only reveals after you unlock this note in the current session." listening={false} />
-                <Rect x={20} y={Math.max(20, noteView.h - 40)} width={Math.min(156, Math.max(104, noteView.w - 40))} height={22} cornerRadius={11} fill="rgba(28,28,25,0.07)" listening={false} />
-                <Text x={30} y={Math.max(26, noteView.h - 34)} width={Math.min(136, Math.max(84, noteView.w - 60))} fontSize={10} fontStyle="bold" fill={atelierPalette.text} text="Passphrase required" listening={false} />
+                <Text x={20} y={104} width={Math.max(0, noteView.w - 40)} height={Math.max(0, noteView.h - 166)} fontSize={12} lineHeight={1.55} fill={atelierPalette.mutedText} text="This note stays veiled on the wall and opens only after you unlock it in the current session." listening={false} />
+                <Rect x={20} y={Math.max(20, noteView.h - 44)} width={Math.min(170, Math.max(112, noteView.w - 40))} height={24} cornerRadius={12} fill="rgba(77,99,86,0.10)" stroke="rgba(77,99,86,0.14)" strokeWidth={1} listening={false} />
+                <Text x={32} y={Math.max(27, noteView.h - 37)} width={Math.min(146, Math.max(88, noteView.w - 64))} fontSize={10} fontStyle="bold" fill={atelierPalette.forest} text="Unlock with passphrase" listening={false} />
               </>
             ) : (
               <>
@@ -1349,39 +1340,19 @@ export const WallNotesLayer = ({
             {isApiQuoteNote && (
               <>
                 {isJoker && (
-                  <Text x={Math.max(18, noteView.w - 74)} y={8} width={56} align="center" fontSize={40} fill={colorWithAlpha(atelierPalette.gold, 0.18)} text=":)" listening={false} />
+                  <Text x={Math.max(18, noteView.w - 70)} y={10} width={52} align="center" fontSize={44} fill={colorWithAlpha(atelierPalette.gold, 0.16)} text=":)" listening={false} />
                 )}
                 {isThrone && (
-                  <Text x={Math.max(18, noteView.w - 42)} y={10} width={24} align="center" fontSize={18} fill={colorWithAlpha(atelierPalette.gold, 0.9)} text="♜" listening={false} />
+                  <Text x={Math.max(18, noteView.w - 40)} y={10} width={22} align="center" fontSize={18} fill={colorWithAlpha(atelierPalette.gold, 0.88)} text="♜" listening={false} />
                 )}
-                <Rect
-                  x={10}
-                  y={10}
-                  width={Math.max(1, noteView.w - 20)}
-                  height={30}
-                  cornerRadius={10}
-                  fill={isJoker ? "rgba(46,16,101,0.12)" : "rgba(127,29,29,0.22)"}
-                  listening={false}
-                />
                 <Text
-                  x={18}
-                  y={17}
-                  width={Math.max(0, noteView.w - 120)}
-                  fontSize={11}
+                  x={16}
+                  y={16}
+                  width={Math.max(0, noteView.w - 32)}
+                  fontSize={9}
                   fontStyle="bold"
-                  fill={isJoker ? "#3F1277" : "#FFF5E6"}
-                  text={isJoker ? "JOKER CARD" : "THRONE NOTE"}
-                  listening={false}
-                />
-                <Text
-                  x={Math.max(18, noteView.w - 108)}
-                  y={17}
-                  width={90}
-                  align="right"
-                  fontSize={10}
-                  fontStyle="bold"
-                  fill={isJoker ? "#4C1D95" : "#FFE4D6"}
-                  text={noteView.quoteSource?.trim() || (isJoker ? "Fresh joke" : "Westeros")}
+                  fill={isJoker ? colorWithAlpha("#5D4201", 0.72) : colorWithAlpha("#F3F0EB", 0.35)}
+                  text={isJoker ? "SOURCE: JOKES API" : "SOURCE: GOT API"}
                   listening={false}
                 />
               </>
@@ -1418,40 +1389,7 @@ export const WallNotesLayer = ({
                 opacity={0.08 + recencyIntensity(noteView.updatedAt, heatmapReferenceTs) * 0.35}
               />
             )}
-            {isJournal && (
-              <>
-                <Line points={[44, 12, 44, Math.max(22, noteView.h - 14)]} stroke="#e28d8d" strokeWidth={1} opacity={0.6} listening={false} />
-                {journalLineYs.map((lineY, index) => (
-                  <Line
-                    key={`${note.id}-journal-line-${index}`}
-                    points={[12, lineY, Math.max(18, noteView.w - 12), lineY]}
-                    stroke="#e9e9e9"
-                    strokeWidth={1}
-                    opacity={1}
-                    listening={false}
-                  />
-                ))}
-                <Text
-                  x={journalDateX}
-                  y={13}
-                  width={journalDateWidth}
-                  align="left"
-                  fontSize={journalDateFontSize}
-                  fontFamily={isQuote || isPoetry ? "Newsreader" : noteTextFontFamily}
-                  fill={resolvedTextColor}
-                  text={journalDateLabel}
-                  wrap="none"
-                  listening={false}
-                />
-                <Line
-                  points={[journalDateX, journalFirstLineY - 1, journalDateX + journalDateUnderlineWidth, journalFirstLineY - 1]}
-                  stroke={resolvedTextColor}
-                  strokeWidth={1.35}
-                  opacity={0.82}
-                  listening={false}
-                />
-              </>
-            )}
+
             {colorWashOpacity > 0 && (
               <Rect
                 width={noteView.w}
@@ -1529,18 +1467,10 @@ export const WallNotesLayer = ({
               </>
             )}
             {isQuote && !isEisenhower && (
-              <Text
-                x={14}
-                y={11}
-                width={24}
-                align="left"
-                fontSize={18}
-                fontStyle="bold"
-                fill={resolvedTextColor}
-                opacity={0.75}
-                text='"'
-                listening={false}
-              />
+              <>
+                <Rect x={0} y={0} width={4} height={noteView.h} cornerRadius={[noteCornerRadius, 0, 0, noteCornerRadius]} fill={atelierPalette.terracotta} listening={false} />
+                <Text x={Math.max(18, noteView.w - 44)} y={14} width={26} align="right" fontSize={34} fontStyle="bold" fill={colorWithAlpha(atelierPalette.terracotta, 0.2)} text='"' listening={false} />
+              </>
             )}
             {isCanon && canonTitle && !isEisenhower && (
               <Text
@@ -1588,14 +1518,17 @@ export const WallNotesLayer = ({
             {looksLikeCode && (
               <>
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={14} fill="#1E1E1E" listening={false} />
-                <Rect x={0} y={0} width={noteView.w} height={36} cornerRadius={[14, 14, 0, 0]} fill="#252526" listening={false} />
-                <Text x={16} y={14} width={72} fontSize={9} fill="#D4D4D4" text="code note" listening={false} />
-                <Text x={Math.max(18, noteView.w - 104)} y={14} width={88} align="right" fontSize={9} fill="#858585" text="main.py" listening={false} />
+                <Rect x={0} y={0} width={noteView.w} height={40} cornerRadius={[14, 14, 0, 0]} fill="#252526" listening={false} />
+                <Rect x={16} y={15} width={10} height={10} cornerRadius={5} fill="#FF5F56" listening={false} />
+                <Rect x={31} y={15} width={10} height={10} cornerRadius={5} fill="#FFBD2E" listening={false} />
+                <Rect x={46} y={15} width={10} height={10} cornerRadius={5} fill="#27C93F" listening={false} />
+                <Text x={Math.max(72, noteView.w - 132)} y={16} width={76} align="right" fontSize={9} fill="rgba(255,255,255,0.4)" text={fileNameMatch?.[1] ?? "main.py"} ellipsis listening={false} />
+                <Text x={Math.max(18, noteView.w - 48)} y={16} width={30} align="right" fontSize={9} fill="rgba(255,255,255,0.28)" text="COPY" listening={false} />
                 <Text
                   x={16}
-                  y={52}
+                  y={56}
                   width={Math.max(0, noteView.w - 32)}
-                  height={Math.max(0, noteView.h - 68)}
+                  height={Math.max(0, noteView.h - 72)}
                   fontSize={12}
                   fontFamily="JetBrains Mono"
                   lineHeight={1.45}
@@ -1608,11 +1541,12 @@ export const WallNotesLayer = ({
             )}
             {looksLikeFile && (
               <>
-                <Rect x={16} y={Math.max(20, noteView.h / 2 - 26)} width={Math.max(1, noteView.w - 32)} height={52} cornerRadius={12} fill="#FFFFFF" opacity={0.96} listening={false} />
-                <Rect x={28} y={Math.max(28, noteView.h / 2 - 18)} width={28} height={28} cornerRadius={8} fill={colorWithAlpha(atelierPalette.terracotta, 0.12)} listening={false} />
-                <Text x={34} y={Math.max(34, noteView.h / 2 - 12)} width={16} align="center" fontSize={14} fontStyle="bold" fill={atelierPalette.terracotta} text="D" listening={false} />
-                <Text x={68} y={Math.max(28, noteView.h / 2 - 18)} width={Math.max(0, noteView.w - 132)} fontSize={12} fontStyle="bold" fill={atelierPalette.text} text={fileLabel} ellipsis listening={false} />
-                <Text x={68} y={Math.max(43, noteView.h / 2 - 3)} width={Math.max(0, noteView.w - 132)} fontSize={10} fill={atelierPalette.quietText} text={fileMeta.toUpperCase()} ellipsis listening={false} />
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={14} fill={atelierPalette.paper} stroke={colorWithAlpha(atelierPalette.quietText, 0.16)} strokeWidth={1} listening={false} />
+                <Rect x={18} y={Math.max(16, noteView.h / 2 - 30)} width={46} height={46} cornerRadius={12} fill={colorWithAlpha(atelierPalette.terracotta, 0.10)} listening={false} />
+                <Text x={18} y={Math.max(25, noteView.h / 2 - 21)} width={46} align="center" fontSize={22} fill={atelierPalette.terracotta} text="▤" listening={false} />
+                <Text x={78} y={Math.max(18, noteView.h / 2 - 24)} width={Math.max(0, noteView.w - 120)} fontSize={13} fontStyle="bold" fill={atelierPalette.text} text={fileLabel} ellipsis listening={false} />
+                <Text x={78} y={Math.max(38, noteView.h / 2 - 4)} width={Math.max(0, noteView.w - 120)} fontSize={10} fill={colorWithAlpha(atelierPalette.quietText, 0.8)} text={fileMeta.toUpperCase()} ellipsis listening={false} />
+                <Text x={Math.max(18, noteView.w - 42)} y={Math.max(26, noteView.h / 2 - 16)} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.58)} text="↓" listening={false} />
               </>
             )}
             {standardTitle && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone && (
@@ -1686,19 +1620,7 @@ export const WallNotesLayer = ({
                 })}
               </>
             )}
-            {isCurrency && (
-              <>
-                <Rect x={10} y={10} width={Math.max(1, noteView.w - 20)} height={32} cornerRadius={12} fill="rgba(255,255,255,0.08)" listening={false} />
-                <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={11} fontStyle="bold" fill="#E6E0FF" text={CURRENCY_NOTE_TITLE} listening={false} />
-                <Text x={16} y={56} width={Math.max(0, noteView.w - 32)} fontSize={22} fontStyle="bold" fill="#FFFFFF" text={`1 ${currencyState?.baseCurrency ?? "USD"} = ${(currencyState?.usdRate ?? 1).toFixed((currencyState?.usdRate ?? 1) >= 1 ? 2 : 4)} USD`} listening={false} />
-                <Text x={16} y={94} width={Math.max(0, noteView.w - 32)} fontSize={15} fill="#DDD6FE" text={`1000 ${(currencyState?.baseCurrency ?? "USD")} = ${(currencyState?.thousandValueUsd ?? 1000).toFixed(2)} USD`} listening={false} />
-                <Text x={16} y={124} width={Math.max(0, noteView.w - 32)} fontSize={13} fill="#DDD6FE" text={`${currencyState?.amountInput || "0"} ${(currencyState?.baseCurrency ?? "USD")} -> ${currencyAmountUsd.toFixed(2)} USD`} listening={false} />
-                <Text x={16} y={Math.max(148, noteView.h - 46)} width={Math.max(0, noteView.w - 32)} fontSize={11} fill="#C4B5FD" text={`${currencyTrendGlyph} ${(currencyState?.rateSource ?? "default").toUpperCase()} • ${(currencyState?.detectedCountryName ?? "USD fallback").slice(0, 30)}`} listening={false} />
-                {currencyState?.error && (
-                  <Text x={16} y={Math.max(168, noteView.h - 24)} width={Math.max(0, noteView.w - 32)} fontSize={10} fill="#FECACA" text={currencyState.error} ellipsis listening={false} />
-                )}
-              </>
-            )}
+
             {isThrone && quoteAttribution && (
               <Text
                 x={14}
@@ -1713,18 +1635,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {isApiQuoteNote && (
-              <Text
-                x={14}
-                y={Math.max(12, noteView.h - 22)}
-                width={Math.max(0, noteView.w - 28)}
-                fontSize={10}
-                fontStyle="bold"
-                fill={isJoker ? "#4C1D95" : "#FFE4D6"}
-                text={isJoker ? "jokeapi.dev" : "gameofthronesquotes.xyz"}
-                listening={false}
-              />
-            )}
+
             {isVocabulary && (
               <Text
                 x={12}
@@ -1786,21 +1697,5 @@ export const WallNotesLayer = ({
     </>
   );
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
