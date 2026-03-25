@@ -191,7 +191,6 @@ const QuoteRenderer = ({ note, width, height, readableText, mutedText, bodyClamp
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="h-full px-7 pb-7 pt-6" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.98))" }}>
-        <div className="absolute bottom-3 left-[2px] top-3 w-[3px] rounded-full" style={{ background: atelier.terracotta, boxShadow: "0 0 0 1px rgba(163,56,24,0.08)" }} />
         <p
           className="absolute right-6 top-4 text-[44px] leading-none tracking-[-0.12em]"
           style={{ color: "rgba(163,56,24,0.18)", fontFamily: "\"Newsreader\", serif" }}
@@ -661,4 +660,5 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
     </div>
   );
 });
+
 

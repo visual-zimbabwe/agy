@@ -1616,7 +1616,6 @@ export const WallNotesLayer = ({
             )}
             {isQuote && !isEisenhower && (
               <>
-                <Rect x={2} y={10} width={3} height={Math.max(24, noteView.h - 20)} cornerRadius={2} fill={atelierPalette.terracotta} listening={false} />
                 <Text
                   x={Math.max(24, noteView.w - 54)}
                   y={14}
@@ -1875,4 +1874,5 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
