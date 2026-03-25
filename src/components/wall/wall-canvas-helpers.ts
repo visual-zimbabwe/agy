@@ -373,9 +373,9 @@ export const recencyIntensity = (updatedAt: number, referenceTs: number, windowM
 
 export const formatJournalDateLabel = (timestamp: number) =>
   new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
     month: "long",
     day: "numeric",
+    year: "numeric",
   }).format(timestamp);
 
 export const makeDownloadId = () => new Date().toISOString().replace(/[:.]/g, "-");
@@ -477,7 +477,4 @@ export const noteTagChipPalette = (noteColor?: string) => {
     text: rgbToCss(text),
   };
 };
-
-
-
 

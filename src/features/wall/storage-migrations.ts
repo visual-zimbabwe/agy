@@ -199,6 +199,7 @@ const normalizeApod = (value: unknown): ApodNote | undefined => {
 
 const normalizeNoteFont = (value: unknown) => {
   if (
+    value === "newsreader" ||
     value === "roboto" ||
     value === "open_sans" ||
     value === "lato" ||
@@ -458,8 +459,4 @@ export const parseTimelinePayload = (payload: string): PersistedWallState | null
     return null;
   }
 };
-
-
-
-
 

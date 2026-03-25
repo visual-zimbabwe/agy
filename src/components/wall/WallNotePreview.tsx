@@ -205,11 +205,13 @@ const JournalRenderer = ({ note, width, height, readableText, bodyClamp, tone }:
   const body = lines.slice(1).join("\n") || stripWikiLinkMarkup(note.text) || "Start writing";
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="h-full p-5" style={{ background: "linear-gradient(180deg, rgba(246,243,238,0.78), rgba(255,255,255,0.98))" }}>
-        <MetaLabel>{formatJournalDateLabel(note.createdAt)}</MetaLabel>
-        <p className="mt-3 font-[Newsreader] text-[28px] italic leading-tight" style={{ color: atelier.ink }}>{title}</p>
+      <div className="h-full p-6" style={{ background: "linear-gradient(180deg, rgba(246,243,238,0.82), rgba(255,255,255,0.98))" }}>
+        <p className="text-[10px] uppercase italic tracking-[0.18em]" style={{ color: "rgba(88,66,60,0.62)", fontFamily: "\"Newsreader\", serif" }}>
+          {formatJournalDateLabel(note.createdAt)}
+        </p>
+        <p className="mt-4 font-[Newsreader] text-[27px] italic leading-[1.02]" style={{ color: atelier.ink }}>{title}</p>
         <p
-          className="mt-4 whitespace-pre-wrap font-[Newsreader] text-[19px] leading-[1.45] [overflow-wrap:anywhere]"
+          className="mt-5 whitespace-pre-wrap font-[Newsreader] text-[18px] leading-[1.58] [overflow-wrap:anywhere]"
           style={{ ...lineClampStyle(tone === "detail" ? 999 : bodyClamp + 1), color: readableText }}
         >
           {body}

@@ -1,4 +1,5 @@
 export type NoteTextFont =
+  | "newsreader"
   | "roboto"
   | "open_sans"
   | "lato"
@@ -321,14 +322,4 @@ export type WallState = {
 export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links" | "camera"> & {
   lastColor?: string;
 };
-
-
-
-
-
-
-
-
-
-
 

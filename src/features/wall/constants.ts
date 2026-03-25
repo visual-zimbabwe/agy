@@ -24,8 +24,8 @@ export const JOURNAL_NOTE_DEFAULTS = {
   color: "#FFFFFF",
   width: 250,
   height: 208,
-  textColor: "#2F3B4F",
-  textFont: "patrick_hand" as const,
+  textColor: "#1C1C19",
+  textFont: "newsreader" as const,
   textSizePx: 18,
 };
 
@@ -81,6 +81,7 @@ export const NOTE_TEXT_SIZES = [
 ] as const;
 
 export const NOTE_TEXT_FONTS = [
+  { value: "newsreader", label: "Newsreader", family: "\"Newsreader\", \"Playfair Display\", \"Times New Roman\", serif" },
   { value: "roboto", label: "Roboto", family: "\"Roboto\", \"Segoe UI\", sans-serif" },
   { value: "open_sans", label: "Open Sans", family: "\"Open Sans\", \"Segoe UI\", sans-serif" },
   { value: "lato", label: "Lato", family: "\"Lato\", \"Segoe UI\", sans-serif" },
@@ -145,9 +146,4 @@ export const TEMPLATE_TYPES = [
 ] as const;
 
 export const GROUP_COLORS = ["#FB7185", "#22C55E", "#3B82F6", "#F59E0B", "#A855F7"] as const;
-
-
-
-
-
 

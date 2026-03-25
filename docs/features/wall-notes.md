@@ -51,7 +51,7 @@ Economist notes create a dedicated magazine-cover card powered by the local Rave
 
 Current wall note kinds include:
 
-The current note frontend gives every supported note kind its own dedicated wall and timeline/detail presentation. Quote, journal, poetry, joker, throne, currency, bookmark, APOD, economist, image, code, and file-style notes intentionally avoid sharing one generic card layout.
+The current note frontend gives every supported note kind its own dedicated wall and timeline/detail presentation. Quote, journal, poetry, joker, throne, currency, bookmark, APOD, economist, image, code, and file-style notes intentionally avoid sharing one generic card layout. Journal notes specifically follow the new editorial frontend in `notes/`: warm white paper, a small uppercase italic date label, and `Newsreader`-led serif headline/body copy rather than the older lined notebook treatment.
 
 - `standard`
 - `quote`

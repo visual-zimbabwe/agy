@@ -490,10 +490,10 @@ export const WallNotesLayer = ({
         const quoteMarkInset = isQuote ? 13 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
         const poetryHeaderInset = isPoetry ? getPoetryHeaderHeight(noteView.w, noteView.poetry) : 0;
-        const journalWritingX = 56;
+        const journalHorizontalInset = 20;
         const isApiQuoteNote = isJoker || isThrone;
-        const textX = isQuote ? 18 : isJournal ? journalWritingX : 12;
-        const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalWritingX + 18 : 24));
+        const textX = isQuote ? 18 : isJournal ? journalHorizontalInset : 12;
+        const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalHorizontalInset * 2 : 24));
         const currencyState = noteView.currency;
         const currencyTrendGlyph = currencyState?.trend === "up" ? "↑" : currencyState?.trend === "down" ? "↓" : "•";
         const imageUrl = noteView.imageUrl?.trim();
@@ -566,10 +566,10 @@ export const WallNotesLayer = ({
         const jokerQuestionY = 50;
         const jokerRuleY = Math.max(90, Math.min(noteView.h - 54, Math.round(noteView.h * 0.56)));
         const jokerPunchlineY = jokerRuleY + 12;
-        const textY = isApodMediaCard || isImageNote ? 0 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 43 : 0);
+        const textY = isApodMediaCard || isImageNote ? 0 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 56 : 0);
         const textHeight = isApodMediaCard || isImageNote
           ? 0
-          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - poetryHeaderInset - (isJournal ? 43 : 0) - wikiFooterHeight);
+          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - poetryHeaderInset - (isJournal ? 56 : 0) - wikiFooterHeight);
         const throneQuoteText = isThrone
           ? strippedNoteText === throneLoadingText
             ? strippedNoteText
@@ -581,8 +581,8 @@ export const WallNotesLayer = ({
         const throneRuleY = isThrone ? Math.max(124, noteView.h - 30) : 0;
         const throneQuoteHeight = isThrone ? Math.max(34, throneRuleY - 62) : 0;
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
-        const journalDateWidth = Math.max(0, noteView.w - journalWritingX - 18);
-        const journalDateX = journalWritingX;
+        const journalDateWidth = Math.max(0, noteView.w - journalHorizontalInset * 2);
+        const journalDateX = journalHorizontalInset;
 
 
         const economistLines = isEconomist ? noteView.text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : [];
@@ -1575,19 +1575,21 @@ export const WallNotesLayer = ({
               <>
                 <Text
                   x={journalDateX}
-                  y={18}
+                  y={20}
                   width={journalDateWidth}
                   fontSize={10}
-                  fontStyle="bold"
-                  fill={colorWithAlpha(atelierPalette.quietText, 0.7)}
+                  fontFamily="Newsreader"
+                  fontStyle="italic"
+                  fill={colorWithAlpha(atelierPalette.mutedText, 0.62)}
+                  letterSpacing={1.8}
                   text={journalDateLabel.toUpperCase()}
                   listening={false}
                 />
                 <Text
-                  x={18}
-                  y={46}
-                  width={Math.max(0, noteView.w - 36)}
-                  fontSize={22}
+                  x={journalHorizontalInset}
+                  y={52}
+                  width={Math.max(0, noteView.w - journalHorizontalInset * 2)}
+                  fontSize={23}
                   fontFamily="Newsreader"
                   fontStyle="italic"
                   fill={atelierPalette.text}
@@ -1596,13 +1598,13 @@ export const WallNotesLayer = ({
                   listening={false}
                 />
                 <Text
-                  x={18}
-                  y={84}
-                  width={Math.max(0, noteView.w - 36)}
-                  height={Math.max(0, noteView.h - 104)}
-                  fontSize={16}
+                  x={journalHorizontalInset}
+                  y={92}
+                  width={Math.max(0, noteView.w - journalHorizontalInset * 2)}
+                  height={Math.max(0, noteView.h - 114)}
+                  fontSize={18}
                   fontFamily="Newsreader"
-                  lineHeight={1.45}
+                  lineHeight={1.58}
                   fill={colorWithAlpha(atelierPalette.text, 0.82)}
                   text={journalBody}
                   ellipsis

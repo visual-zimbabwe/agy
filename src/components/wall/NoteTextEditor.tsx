@@ -85,14 +85,11 @@ const slashCommands: SlashCommand[] = [
   { id: "code", label: "Code", description: "Insert a fenced code block.", glyph: "</>", keywords: ["snippet", "pre", "monospace"] },
 ];
 
-const journalEditorBackground = {
-  backgroundColor: "#FFFFFF",
-  backgroundImage: [
-    "linear-gradient(to right, transparent 0, transparent 42px, rgb(232 119 119 / 0.34) 42px, rgb(232 119 119 / 0.34) 43px, transparent 43px)",
-    "repeating-linear-gradient(to bottom, transparent, transparent 30px, #e9e9e9 31px)",
-  ].join(", "),
-  backgroundPosition: "0 0, 0 0",
-  backgroundSize: "100% 100%, 100% 31px",
+const JOURNAL_FONT_FAMILY = "\"Newsreader\", \"Playfair Display\", serif";
+const journalEditorSurface = {
+  background: "linear-gradient(180deg, rgba(246,243,238,0.82), rgba(255,255,255,0.98))",
+  border: "1px solid rgba(223,192,184,0.38)",
+  boxShadow: "0 18px 42px rgba(28,28,25,0.14)",
 };
 
 const LIST_INDENT_SPACES = 2;
@@ -622,23 +619,18 @@ ${nextPrefix}${afterContent}${normalizedValue.slice(context.lineEnd)}`;
             aria-hidden="true"
             className="pointer-events-none absolute z-[1] text-left"
             style={{
-              color: safeNoteTextColor,
-              fontFamily: getNoteTextFontFamily(editingNote.textFont),
-              fontSize: `${Math.max(13, editingTextStyle.fontSize - 2)}px`,
+              color: "rgba(88,66,60,0.62)",
+              fontFamily: JOURNAL_FONT_FAMILY,
+              fontSize: "10px",
+              fontStyle: "italic",
+              letterSpacing: "0.18em",
               lineHeight: "1.1",
-              left: "56px",
-              top: "12px",
+              textTransform: "uppercase",
+              left: "22px",
+              top: "20px",
             }}
           >
-            <span
-              style={{
-                borderBottom: `2px solid ${safeNoteTextColor}`,
-                paddingBottom: "1px",
-                display: "inline-block",
-              }}
-            >
-              {editingJournalDate}
-            </span>
+            <span>{editingJournalDate}</span>
           </div>
         ) : null}
         <textarea
@@ -679,12 +671,15 @@ ${nextPrefix}${afterContent}${normalizedValue.slice(context.lineEnd)}`;
             if (isEditingJournal) {
               return {
                 ...baseStyle,
-                ...journalEditorBackground,
-                borderRadius: "18px",
-                paddingTop: "45px",
-                paddingLeft: "56px",
-                paddingRight: "18px",
-                paddingBottom: "18px",
+                ...journalEditorSurface,
+                fontFamily: JOURNAL_FONT_FAMILY,
+                color: "#1c1c19",
+                lineHeight: "1.62",
+                borderRadius: "14px",
+                paddingTop: "48px",
+                paddingLeft: "22px",
+                paddingRight: "22px",
+                paddingBottom: "22px",
               };
             }
 

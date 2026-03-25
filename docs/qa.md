@@ -458,15 +458,15 @@ Expected:
 
 ## Journal Notes
 1. In `/wall`, click `New Journal` from the Tools panel, use `Shift + J`, or run `Create journal note` from the command palette.
-2. Verify the new note appears with a warm paper tone, subtle notebook lines, and a handwritten date in the top-right.
-3. Double-click the `Journal` note, confirm the editor keeps the lined-paper surface, and enter a multi-line entry.
-4. Resize the `Journal` note taller and shorter; verify the writing lines and text spacing remain readable.
+2. Verify the new note appears as a warm white editorial card with a small serif date label and generous interior margins.
+3. Double-click the `Journal` note, confirm the editor keeps the white editorial card surface with the small serif date label, and enter a multi-line entry.
+4. Resize the `Journal` note taller and shorter; verify the serif title/body spacing remains readable and the date/title block keeps its margins.
 5. Drag the note, zoom in/out, blur the editor, then refresh the page.
-6. Select a standard note, use `More > Convert to Journal`, and verify the notebook styling and handwritten defaults apply without breaking note text.
+6. Select a standard note, use `More > Convert to Journal`, and verify the editorial Journal styling and serif defaults apply without breaking note text.
 
 Expected:
-- Journal notes render like a lightly torn exercise-book page with subtle lines and minimal shadow.
-- The top-right date is underlined and persists after refresh.
+- Journal notes render like the editorial Journal card from the new notes frontend: white paper stock, subtle warm shadow, a small italic date label, and `Newsreader`-style serif title/body treatment.
+- The date label stays visible and aligned after refresh.
 - Editing, dragging, resizing, selection, and zoom readability behave the same as other notes.
 - Standard-to-Journal conversion preserves content while applying Journal styling defaults.
 
@@ -1008,7 +1008,7 @@ Expected:
 ## Horizontal Timeline View
 1. Open `/wall` and create or load several notes with different creation times, including at least one journal note, one quote note, one image note, and one Eisenhower Matrix note.
 2. Click `Timeline View` in the top toolbar or press `V`.
-3. Verify notes render as faithful note cards instead of generic text blocks, and confirm journal notes keep their lined-paper structure while Eisenhower Matrix notes keep a visible four-quadrant layout.
+3. Verify notes render as faithful note cards instead of generic text blocks, and confirm journal notes keep the white editorial Journal card structure while Eisenhower Matrix notes keep a visible four-quadrant layout.
 4. Switch `Sort` between `Created Date` and `Last Edited` and verify card order/date chips change accordingly.
 5. Switch `Card Size` among `Small`, `Medium`, and `Large` and verify preview depth changes without breaking note identity or clipping important content.
 6. Switch `Zoom` among `Overview`, `Standard`, and `Detail`, then use `Ctrl/Cmd + 0` for `Fit All` and `Ctrl/Cmd + +/-` to zoom; verify spacing updates smoothly.

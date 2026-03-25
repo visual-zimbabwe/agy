@@ -287,9 +287,9 @@ export const createCanonNote = (x: number, y: number, color?: string) => {
 
 const defaultJournalText = () =>
   [
-    "Today felt like one of those weirdly good days.",
-    "I finished the Journal card design idea and it finally started looking like a real notebook page.",
-    "Need to keep the lines subtle and leave enough space so the handwriting still feels easy to read.",
+    "Dear Wall,",
+    "Today the light hit the studio at exactly 4 PM. I realized that agency isn't about control, it's about curation.",
+    "The artifacts we keep define the space we inhabit.",
   ].join("\n");
 
 export const createJournalNote = (x: number, y: number) => {
@@ -1028,21 +1028,4 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
     state.selectGroup(groupId);
   });
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

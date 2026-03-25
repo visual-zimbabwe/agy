@@ -45,6 +45,7 @@ type NoteRow = {
 
 const normalizeNoteFont = (value: string | null | undefined) => {
   if (
+    value === "newsreader" ||
     value === "roboto" ||
     value === "open_sans" ||
     value === "lato" ||
@@ -538,3 +539,4 @@ export const rowsToSnapshot = (rows: {
   },
   lastColor: rows.wall.last_color ?? undefined,
 });
+
