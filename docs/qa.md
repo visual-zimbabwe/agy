@@ -1167,8 +1167,8 @@ Expected:
 2. Refresh the page and verify the note still exists.
 3. Drag the currency note to a new position, refresh, and verify the new position persists.
 4. Try delete flows: keyboard `Delete`, quick actions, duplicate shortcuts, and note merge flows; verify the currency note is not removed, duplicated, or merged away.
-5. Verify the note shows the detected or fallback base currency and a `1 <base> -> USD` rate.
-6. Verify the note also shows the USD value for `1000` units of the base currency.
+5. Verify the note shows the detected or fallback base currency as a `USD / <base>` pair and displays the inverse `<base> per 1 USD` rate.
+6. Verify the note footer shows the currency source and a relative update timestamp, and verify the green change badge renders without clipping.
 7. Open the currency editor, enter a converter amount, and verify the USD output updates instantly.
 8. Change the base currency manually to another ISO code such as `CAD`, `EUR`, or `GBP`; verify the note refreshes against USD.
 9. Click `Use detected` and verify the note returns to the detected/fallback currency.

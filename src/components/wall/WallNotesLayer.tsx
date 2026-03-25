@@ -191,6 +191,53 @@ const getNoteCornerRadius = (note: Note) => {
   return 14;
 };
 
+const formatCurrencyDisplayRate = (value: number) => value.toFixed(value >= 1 ? 2 : 4);
+
+const getCurrencyDisplayState = (baseCurrency?: string, usdRate?: number, previousUsdRate?: number) => {
+  const safeBaseCurrency = baseCurrency ?? "USD";
+  const safeUsdRate = typeof usdRate === "number" && Number.isFinite(usdRate) && usdRate > 0 ? usdRate : 1;
+  const displayRate = 1 / safeUsdRate;
+  const previousDisplayRate =
+    typeof previousUsdRate === "number" && Number.isFinite(previousUsdRate) && previousUsdRate > 0 ? 1 / previousUsdRate : undefined;
+  const changePercent = previousDisplayRate
+    ? ((displayRate - previousDisplayRate) / previousDisplayRate) * 100
+    : 0;
+
+  return {
+    pairLabel: `USD / ${safeBaseCurrency}`,
+    quoteLabel: `${safeBaseCurrency} per 1 USD`,
+    displayRate,
+    changePercent,
+  };
+};
+
+const formatCurrencyChangeBadge = (value: number) => {
+  const rounded = Math.round(value * 10) / 10;
+  const prefix = rounded > 0 ? "+" : "";
+  return `${prefix}${rounded.toFixed(1)}%`;
+};
+
+const formatCurrencyUpdatedAgo = (value?: number) => {
+  if (!value) {
+    return "Updated just now";
+  }
+
+  const elapsedMs = Date.now() - value;
+  if (elapsedMs < 60_000) {
+    return "Updated just now";
+  }
+  const elapsedMinutes = Math.round(elapsedMs / 60_000);
+  if (elapsedMinutes < 60) {
+    return `Updated ${elapsedMinutes}m ago`;
+  }
+  const elapsedHours = Math.round(elapsedMinutes / 60);
+  if (elapsedHours < 24) {
+    return `Updated ${elapsedHours}h ago`;
+  }
+  const elapsedDays = Math.round(elapsedHours / 24);
+  return `Updated ${elapsedDays}d ago`;
+};
+
 type WallNotesLayerProps = {
   visibleNotes: Note[];
   activeSelectedNoteIds: string[];
@@ -497,7 +544,7 @@ export const WallNotesLayer = ({
         const textX = isQuote ? 24 : isJournal ? journalHorizontalInset : 12;
         const textWidth = Math.max(0, noteView.w - (isQuote ? 50 : isJournal ? journalHorizontalInset * 2 : 24));
         const currencyState = noteView.currency;
-        const currencyTrendGlyph = currencyState?.trend === "up" ? "↑" : currencyState?.trend === "down" ? "↓" : "•";
+        const currencyDisplay = getCurrencyDisplayState(currencyState?.baseCurrency, currencyState?.usdRate, currencyState?.previousUsdRate);
         const imageUrl = noteView.imageUrl?.trim();
         const bookmarkState = noteView.bookmark;
         const bookmarkMetadata = bookmarkState?.metadata;
@@ -1358,14 +1405,72 @@ export const WallNotesLayer = ({
               <>
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={atelierPalette.paper} listening={false} />
                 <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={9} fontStyle="bold" fill={colorWithAlpha(atelierPalette.quietText, 0.75)} text="CURRENCY PAIR" listening={false} />
-                <Text x={18} y={36} width={Math.max(0, noteView.w - 64)} fontSize={20} fontStyle="bold" fill={atelierPalette.text} text={`${currencyState?.baseCurrency ?? "USD"} / USD`} listening={false} />
-                <Rect x={Math.max(18, noteView.w - 58)} y={34} width={40} height={16} cornerRadius={8} fill={colorWithAlpha(atelierPalette.forest, 0.14)} listening={false} />
-                <Text x={Math.max(18, noteView.w - 58)} y={39} width={40} align="center" fontSize={8} fontStyle="bold" fill={atelierPalette.forest} text={`${currencyTrendGlyph} ${(currencyState?.trend ?? "flat").toUpperCase()}`} listening={false} />
-                <Text x={18} y={72} width={84} fontSize={32} fontStyle="bold" fill={atelierPalette.text} text={(currencyState?.usdRate ?? 1).toFixed((currencyState?.usdRate ?? 1) >= 1 ? 2 : 4)} listening={false} />
-                <Text x={104} y={85} width={Math.max(0, noteView.w - 122)} fontSize={11} fill={atelierPalette.quietText} text={`USD per 1 ${currencyState?.baseCurrency ?? "USD"}`} listening={false} />
-                <Line points={[18, 122, 52, 114, 86, 126, 120, 106, 154, 118, 188, 96, 222, 110, Math.max(240, noteView.w - 18), 102]} stroke={colorWithAlpha(atelierPalette.forest, 0.32)} strokeWidth={2} bezier listening={false} />
-                <Text x={18} y={Math.max(18, noteView.h - 28)} width={Math.max(0, noteView.w - 98)} fontSize={9} fill={colorWithAlpha(atelierPalette.quietText, 0.72)} text={`SOURCE: ${(currencyState?.rateSource ?? "default").toUpperCase()}`} listening={false} />
-                <Text x={Math.max(100, noteView.w - 88)} y={Math.max(18, noteView.h - 28)} width={70} align="right" fontSize={9} fill={colorWithAlpha(atelierPalette.quietText, 0.72)} text="updated now" listening={false} />
+                <Text x={18} y={36} width={Math.max(0, noteView.w - 128)} fontSize={20} fontStyle="bold" fill={atelierPalette.text} text={currencyDisplay.pairLabel} listening={false} />
+                <Rect x={Math.max(112, noteView.w - 88)} y={34} width={52} height={18} cornerRadius={6} fill="#DCEEDD" listening={false} />
+                <Text x={Math.max(112, noteView.w - 88)} y={39} width={52} align="center" fontSize={10} fontStyle="bold" fill={atelierPalette.forest} text={formatCurrencyChangeBadge(currencyDisplay.changePercent)} listening={false} />
+                <Line
+                  points={[Math.max(18, noteView.w - 38), 42, Math.max(18, noteView.w - 31), 35, Math.max(18, noteView.w - 24), 41, Math.max(18, noteView.w - 12), 28]}
+                  stroke={atelierPalette.forest}
+                  strokeWidth={2.2}
+                  lineCap="round"
+                  lineJoin="round"
+                  listening={false}
+                />
+                <Line
+                  points={[Math.max(18, noteView.w - 18), 28, Math.max(18, noteView.w - 12), 28, Math.max(18, noteView.w - 12), 34]}
+                  stroke={atelierPalette.forest}
+                  strokeWidth={2.2}
+                  lineCap="round"
+                  lineJoin="round"
+                  listening={false}
+                />
+                <Text x={18} y={72} width={Math.max(92, noteView.w - 132)} fontSize={32} fontStyle="bold" fill={atelierPalette.text} text={formatCurrencyDisplayRate(currencyDisplay.displayRate)} listening={false} />
+                <Text x={Math.min(noteView.w - 132, 112)} y={85} width={Math.max(0, noteView.w - 130)} fontSize={11} fill={atelierPalette.mutedText} text={currencyDisplay.quoteLabel} listening={false} />
+                <Line
+                  points={[
+                    18,
+                    136,
+                    Math.max(34, noteView.w * 0.18),
+                    132,
+                    Math.max(54, noteView.w * 0.3),
+                    142,
+                    Math.max(84, noteView.w * 0.42),
+                    122,
+                    Math.max(112, noteView.w * 0.56),
+                    144,
+                    Math.max(146, noteView.w * 0.72),
+                    102,
+                    Math.max(184, noteView.w * 0.86),
+                    112,
+                    Math.max(208, noteView.w - 18),
+                    132,
+                  ]}
+                  stroke="#D5DBD7"
+                  strokeWidth={2.8}
+                  bezier
+                  lineCap="round"
+                  lineJoin="round"
+                  listening={false}
+                />
+                <Text
+                  x={18}
+                  y={Math.max(18, noteView.h - 28)}
+                  width={Math.max(0, noteView.w - 142)}
+                  fontSize={9}
+                  fill={colorWithAlpha(atelierPalette.quietText, 0.72)}
+                  text={currencyState?.rateSource === "default" ? "SOURCE: DEFAULT RATE" : "SOURCE: CURRENCY API"}
+                  listening={false}
+                />
+                <Text
+                  x={Math.max(112, noteView.w - 116)}
+                  y={Math.max(18, noteView.h - 28)}
+                  width={98}
+                  align="right"
+                  fontSize={9}
+                  fill={colorWithAlpha(atelierPalette.quietText, 0.72)}
+                  text={formatCurrencyUpdatedAgo(currencyState?.rateUpdatedAt)}
+                  listening={false}
+                />
               </>
             )}
             {isApiQuoteNote && (

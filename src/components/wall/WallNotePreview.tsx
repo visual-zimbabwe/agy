@@ -7,7 +7,6 @@ import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { getApodCaption } from "@/features/wall/apod";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
-import { parseCurrencyAmountInput } from "@/features/wall/currency";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { getPoetryTitle } from "@/features/wall/poetry";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
@@ -140,6 +139,53 @@ const NoteShell = ({ children, note, width, height, selected, tone }: WallNotePr
 const MetaLabel = ({ children, color = atelier.quiet }: { children: ReactNode; color?: string }) => (
   <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color }}>{children}</p>
 );
+
+const formatCurrencyDisplayRate = (value: number) => value.toFixed(value >= 1 ? 2 : 4);
+
+const getCurrencyDisplayState = (baseCurrency?: string, usdRate?: number, previousUsdRate?: number) => {
+  const safeBaseCurrency = baseCurrency ?? "USD";
+  const safeUsdRate = typeof usdRate === "number" && Number.isFinite(usdRate) && usdRate > 0 ? usdRate : 1;
+  const displayRate = 1 / safeUsdRate;
+  const previousDisplayRate =
+    typeof previousUsdRate === "number" && Number.isFinite(previousUsdRate) && previousUsdRate > 0 ? 1 / previousUsdRate : undefined;
+  const changePercent = previousDisplayRate
+    ? ((displayRate - previousDisplayRate) / previousDisplayRate) * 100
+    : 0;
+
+  return {
+    pairLabel: `USD / ${safeBaseCurrency}`,
+    displayRate,
+    quoteLabel: `${safeBaseCurrency} per 1 USD`,
+    changePercent,
+  };
+};
+
+const formatCurrencyChangeBadge = (value: number) => {
+  const rounded = Math.round(value * 10) / 10;
+  const prefix = rounded > 0 ? "+" : "";
+  return `${prefix}${rounded.toFixed(1)}%`;
+};
+
+const formatCurrencyUpdatedAgo = (value?: number) => {
+  if (!value) {
+    return "Updated just now";
+  }
+
+  const elapsedMs = Date.now() - value;
+  if (elapsedMs < 60_000) {
+    return "Updated just now";
+  }
+  const elapsedMinutes = Math.round(elapsedMs / 60_000);
+  if (elapsedMinutes < 60) {
+    return `Updated ${elapsedMinutes}m ago`;
+  }
+  const elapsedHours = Math.round(elapsedMinutes / 60);
+  if (elapsedHours < 24) {
+    return `Updated ${elapsedHours}h ago`;
+  }
+  const elapsedDays = Math.round(elapsedHours / 24);
+  return `Updated ${elapsedDays}d ago`;
+};
 
 const PrivateRenderer = ({ note, width, height, activeBackground, activeText, mutedText, tone }: RendererProps) => (
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
@@ -280,30 +326,36 @@ const VocabularyRenderer = ({ note, width, height, readableText, activeBackgroun
 
 const CurrencyRenderer = ({ note, width, height, tone }: Pick<RendererProps, "note" | "width" | "height" | "tone">) => {
   const state = note.currency;
-  const converted = parseCurrencyAmountInput(state?.amountInput) * (state?.usdRate ?? 1);
-  const trend = state?.trend === "up" ? "+" : state?.trend === "down" ? "-" : "=";
+  const display = getCurrencyDisplayState(state?.baseCurrency, state?.usdRate, state?.previousUsdRate);
+  const sourceLabel = state?.rateSource === "default" ? "SOURCE: DEFAULT RATE" : "SOURCE: CURRENCY API";
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="h-full p-5" style={{ background: "linear-gradient(180deg, rgba(246,243,238,0.84), rgba(255,255,255,0.98))" }}>
-        <div className="flex items-start justify-between gap-3">
+      <div className="h-full p-6" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,243,238,0.82))" }}>
+        <div className="flex items-start justify-between gap-4">
           <div>
             <MetaLabel>Currency Pair</MetaLabel>
-            <p className="mt-2 text-[24px] font-bold leading-none" style={{ color: atelier.ink }}>{state?.baseCurrency ?? "USD"} / USD</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <p className="text-[24px] font-bold leading-none" style={{ color: atelier.ink }}>{display.pairLabel}</p>
+              <span className="rounded-[6px] px-2.5 py-1 text-[12px] font-semibold" style={{ background: "#dceedd", color: atelier.forest }}>
+                {formatCurrencyChangeBadge(display.changePercent)}
+              </span>
+            </div>
           </div>
-          <span className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ background: "rgba(77,99,86,0.12)", color: atelier.forest }}>{trend} {state?.trend ?? "flat"}</span>
+          <svg viewBox="0 0 24 24" className="mt-1 h-6 w-6 shrink-0" aria-hidden>
+            <path d="M4 16l5-5 4 4 7-8" fill="none" stroke={atelier.forest} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M15 7h5v5" fill="none" stroke={atelier.forest} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </div>
-        <div className="mt-5 flex items-end gap-2">
-          <span className="text-[34px] font-black leading-none" style={{ color: atelier.ink }}>{(state?.usdRate ?? 1).toFixed((state?.usdRate ?? 1) >= 1 ? 2 : 4)}</span>
-          <span className="pb-1 text-sm" style={{ color: atelier.quiet }}>USD per 1 {state?.baseCurrency ?? "USD"}</span>
+        <div className="mt-9 flex items-end gap-2">
+          <span className="text-[42px] font-black leading-none tracking-[-0.04em]" style={{ color: atelier.ink }}>{formatCurrencyDisplayRate(display.displayRate)}</span>
+          <span className="pb-1 text-[14px]" style={{ color: atelier.muted }}>{display.quoteLabel}</span>
         </div>
-        <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="mt-4 h-12 w-full" aria-hidden>
-          <path d="M0,15 Q10,12 20,16 T40,10 T60,14 T80,8 T100,12" fill="none" stroke="#4d6356" strokeWidth="2" opacity="0.55" />
-          <path d="M0,15 Q10,12 20,16 T40,10 T60,14 T80,8 T100,12 L100,20 L0,20 Z" fill="#4d6356" opacity="0.12" />
+        <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="mt-6 h-16 w-full" aria-hidden>
+          <path d="M0 18 C9 16 18 19 28 15 C38 10 48 8 58 18 C68 24 79 3 89 7 C94 9 97 13 100 16" fill="none" stroke="#d5dbd7" strokeWidth="2.6" strokeLinecap="round" />
         </svg>
-        <p className="mt-3 text-xs" style={{ color: atelier.muted }}>{state?.amountInput ?? "0"} {state?.baseCurrency ?? "USD"} {"->"} {converted.toFixed(2)} USD</p>
-        <div className="mt-4 flex items-center justify-between text-[10px] uppercase tracking-[0.16em]" style={{ color: atelier.quiet }}>
-          <span>Source: {state?.rateSource ?? "default"}</span>
-          <span>{state?.detectedCountryName ?? "Fallback"}</span>
+        <div className="mt-auto flex items-center justify-between gap-3 border-t pt-4 text-[10px] uppercase tracking-[0.16em]" style={{ borderColor: "rgba(223,192,184,0.42)", color: atelier.quiet }}>
+          <span>{sourceLabel}</span>
+          <span className="normal-case tracking-normal">{formatCurrencyUpdatedAgo(state?.rateUpdatedAt)}</span>
         </div>
       </div>
     </NoteShell>
