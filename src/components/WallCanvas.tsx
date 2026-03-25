@@ -13,6 +13,8 @@ import { PrivateNoteModal } from "@/components/wall/PrivateNoteModal";
 import { WallFloatingUi } from "@/components/wall/WallFloatingUi";
 import { WallGlobalModals } from "@/components/wall/WallGlobalModals";
 import { WallHeaderBar } from "@/components/wall/WallHeaderBar";
+import { WallSearchDock } from "@/components/wall/WallSearchDock";
+import { WallStatusFooter } from "@/components/wall/WallStatusFooter";
 import { WallTimelineView } from "@/components/wall/WallTimelineView";
 import {
   backupReminderCadenceStorageKey,
@@ -2800,7 +2802,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     ],
   );
   return (
-    <div className="route-shell flex h-screen flex-col text-[var(--color-text)]">
+    <div className="wall-atelier-shell flex h-screen flex-col text-[var(--color-text)]">
       {!readingMode && !timelineViewActive && (
         <WallHeaderBar
         presentationMode={presentationMode}
@@ -3235,6 +3237,25 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         />
         )}
 
+        {!readingMode && !timelineViewActive && (
+          <WallSearchDock
+            onOpenSearch={() => setSearchOpenTracked(true)}
+            onToggleTools={toggleLeftPanel}
+            onToggleDetails={toggleRightPanel}
+            toolsOpen={leftPanelOpen}
+            detailsOpen={rightPanelOpen}
+            hidden={isChromeHidden}
+          />
+        )}
+
+        <WallStatusFooter
+          publishedReadOnly={publishedReadOnly}
+          hasCloudWall={Boolean(cloudWallId)}
+          isSyncing={isSyncing}
+          hasPendingSync={hasPendingSync}
+          syncError={syncError}
+        />
+
         {!timelineViewActive && (
         <WallDetailsSidebar
           presentationMode={isChromeHidden}
@@ -3471,6 +3492,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
 
 
 

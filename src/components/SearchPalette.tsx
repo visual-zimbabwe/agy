@@ -3,8 +3,6 @@
 import Fuse from "fuse.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ModalShell } from "@/components/ui/ModalShell";
-import { TextField } from "@/components/ui/Field";
 import { getEisenhowerPreview } from "@/features/wall/eisenhower";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import type { Note } from "@/features/wall/types";
@@ -124,180 +122,199 @@ export const SearchPalette = ({ open, notes, commands, onClose, onSelect }: Sear
     return () => window.clearTimeout(timer);
   }, [open]);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, open]);
+
   if (!open) {
     return null;
   }
 
   return (
-    <ModalShell
-      open={open}
-      onClose={onClose}
-      title="Search + Commands"
-      description="Search notes and run actions."
-      maxWidthClassName="max-w-2xl"
-      position="top"
-    >
-      <TextField
-        ref={inputRef}
-        autoFocus
-        type="text"
-        value={query}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          if (activeIndex !== 0) {
-            setActiveIndex(0);
-          }
-        }}
-        onKeyDown={(event) => {
-          if (results.length === 0) {
-            return;
-          }
-          if (event.key === "ArrowDown") {
-            event.preventDefault();
-            setActiveIndex((previous) => Math.min(previous + 1, results.length - 1));
-            return;
-          }
-          if (event.key === "ArrowUp") {
-            event.preventDefault();
-            setActiveIndex((previous) => Math.max(previous - 1, 0));
-            return;
-          }
-          if (event.key === "Enter") {
-            event.preventDefault();
-            const selected = results[safeActiveIndex];
-            if (!selected) {
-              return;
-            }
-            if (selected.kind === "command") {
-              if (!selected.command.disabled) {
-                selected.command.onSelect();
-                onClose();
+    <div className="fixed inset-0 z-[120]" role="dialog" aria-modal="true" aria-label="Search notes and commands">
+      <button type="button" onClick={onClose} className="absolute inset-0 bg-[rgba(28,28,25,0.18)] backdrop-blur-[2px]" aria-label="Close search" />
+      <div className="pointer-events-none absolute inset-x-0 top-[10vh] flex justify-center px-4">
+        <div className="pointer-events-auto w-full max-w-[52rem] overflow-hidden rounded-[32px] border border-[#ede3d8] bg-[rgba(252,249,244,0.96)] shadow-[0_30px_80px_rgba(28,28,25,0.12)] backdrop-blur-2xl">
+          <div className="border-b border-[#efe5da] px-5 pb-4 pt-5 sm:px-6">
+            <div className="flex items-center gap-3 rounded-[22px] bg-white/78 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(223,192,184,0.4)]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 text-[#7b7067]">
+                <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
+                <path d="M16 16L21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+              <input
+                ref={inputRef}
+                autoFocus
+                type="text"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  if (activeIndex !== 0) {
+                    setActiveIndex(0);
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (results.length === 0) {
+                    return;
+                  }
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setActiveIndex((previous) => Math.min(previous + 1, results.length - 1));
+                    return;
+                  }
+                  if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setActiveIndex((previous) => Math.max(previous - 1, 0));
+                    return;
+                  }
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    const selected = results[safeActiveIndex];
+                    if (!selected) {
+                      return;
+                    }
+                    if (selected.kind === "command") {
+                      if (!selected.command.disabled) {
+                        selected.command.onSelect();
+                        onClose();
+                      }
+                      return;
+                    }
+                    onSelect(selected.note.id);
+                    onClose();
+                  }
+                }}
+                placeholder='Search notes, tags, metadata, or type "/" for commands'
+                className="min-w-0 flex-1 border-none bg-transparent text-[15px] text-[#1c1c19] outline-none placeholder:text-[#8d8278]"
+              />
+              <span className="hidden rounded-full bg-[#f4ede4] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8e8174] md:inline-flex">Esc</span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-[#887c70]">
+              <span className="rounded-full bg-[#f4ede4] px-2.5 py-1 font-semibold">Search notes + actions</span>
+              <span>`Ctrl/Cmd + K` opens this palette.</span>
+              <span>Use `/` to filter commands only.</span>
+            </div>
+          </div>
+
+          <div className="max-h-[min(65vh,44rem)] overflow-y-auto px-3 pb-3 pt-2 sm:px-4">
+            {results.length === 0 ? <p className="px-3 py-8 text-center text-sm text-[#8d8278]">No matches.</p> : null}
+            {commandResults.length > 0 ? <SectionLabel label="Commands" /> : null}
+            {results.map((result, index) => {
+              if (index === commandResults.length && noteResults.length > 0) {
+                return (
+                  <div key="notes-group-start">
+                    <SectionLabel label="Notes" />
+                    {renderResult(result, index)}
+                  </div>
+                );
               }
-              return;
-            }
-            onSelect(selected.note.id);
-            onClose();
-          }
-        }}
-        placeholder='Search notes or type "/" for commands'
-        className="px-4 py-3"
-      />
-      <p className="mt-2 px-1 text-[11px] text-[var(--color-text-muted)]">
-        `Ctrl/Cmd + K` opens this palette. `?` shows all shortcuts.
-      </p>
-      <div className="mt-3 max-h-96 overflow-auto rounded-[var(--radius-lg)] border border-[var(--color-border-muted)]">
-        {results.length === 0 && <p className="px-4 py-3 text-sm text-[var(--color-text-muted)]">No matches.</p>}
-        {commandResults.length > 0 && (
-          <p className="border-b border-[var(--color-border-muted)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-            Commands
-          </p>
-        )}
-        {results.map((result, index) => {
-          if (index === commandResults.length && noteResults.length > 0) {
-            return (
-              <div key="notes-group-start">
-                <p className="border-b border-[var(--color-border-muted)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                  Notes
-                </p>
-                {renderResult(result, index)}
-              </div>
-            );
-          }
-          return renderResult(result, index);
-        })}
+              return renderResult(result, index);
+            })}
+          </div>
+        </div>
       </div>
-    </ModalShell>
+    </div>
   );
 
   function renderResult(result: PaletteResult, index: number) {
-          if (result.kind === "command") {
-            const command = result.command;
-            return (
-              <button
-                type="button"
-                key={result.id}
-                disabled={command.disabled}
-                onClick={() => {
-                  if (command.disabled) {
-                    return;
-                  }
-                  command.onSelect();
-                  onClose();
-                }}
-                onMouseEnter={() => setActiveIndex(index)}
-                className={`block w-full border-b border-[var(--color-border-muted)] px-4 py-3 text-left transition-colors ${
-                  index === safeActiveIndex ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]"
-                } last:border-b-0 disabled:cursor-not-allowed disabled:opacity-45`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="line-clamp-1 text-sm font-medium text-[var(--color-text)]">{command.label}</p>
-                  {command.shortcut && (
-                    <span className="rounded border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--color-text-muted)]">
-                      {command.shortcut}
-                    </span>
-                  )}
-                </div>
-                {command.description && <p className="line-clamp-1 text-xs text-[var(--color-text-muted)]">{command.description}</p>}
-              </button>
-            );
-          }
+    if (result.kind === "command") {
+      const command = result.command;
+      return (
+        <button
+          type="button"
+          key={result.id}
+          disabled={command.disabled}
+          onClick={() => {
+            if (command.disabled) {
+              return;
+            }
+            command.onSelect();
+            onClose();
+          }}
+          onMouseEnter={() => setActiveIndex(index)}
+          className={`mb-1 block w-full rounded-[22px] px-4 py-3 text-left transition ${
+            index === safeActiveIndex ? "bg-[#f4ede4] shadow-[inset_0_0_0_1px_rgba(163,56,24,0.08)]" : "hover:bg-white/86"
+          } disabled:cursor-not-allowed disabled:opacity-45`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="line-clamp-1 text-sm font-semibold text-[#1c1c19]">{command.label}</p>
+            {command.shortcut ? (
+              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a7f73] shadow-[inset_0_0_0_1px_rgba(223,192,184,0.4)]">
+                {command.shortcut}
+              </span>
+            ) : null}
+          </div>
+          {command.description ? <p className="mt-1 line-clamp-2 text-xs text-[#766b61]">{command.description}</p> : null}
+        </button>
+      );
+    }
 
-          const note = result.note;
-          const noteTitle = isPrivateNote(note)
-            ? privateNoteTitle(note)
-            : note.noteKind === "canon"
-              ? note.canon?.title?.trim() || note.text.trim().split("\n")[0]
-              : note.text.trim().split("\n")[0];
-          const notePreview =
-            note.noteKind === "canon"
-              ? note.canon?.mode === "list"
-                ? note.canon.items
-                    .filter((item) => item.title.trim() || item.text.trim())
-                    .slice(0, 2)
-                    .map((item, index) => `${index + 1}. ${item.title.trim() || item.text.trim() || "Item"}`)
-                    .join(" ")
-                : [note.canon?.statement, note.canon?.interpretation].filter(Boolean).join(" ")
-              : note.noteKind === "eisenhower"
-                ? getEisenhowerPreview(note)
-                : isPrivateNote(note)
-                  ? "Protected content is hidden from search results."
-                  : note.text;
-          return (
-            <button
-              type="button"
-              key={result.id}
-              onClick={() => {
-                onSelect(note.id);
-                onClose();
-              }}
-              onMouseEnter={() => setActiveIndex(index)}
-              className={`block w-full border-b border-[var(--color-border-muted)] px-4 py-3 text-left transition-colors last:border-b-0 ${
-                index === safeActiveIndex ? "bg-[var(--color-surface-muted)]" : "hover:bg-[var(--color-surface-muted)]"
-              }`}
-            >
-              <div className="mb-0.5 flex items-center justify-between gap-3">
-                <p className="line-clamp-1 text-sm font-medium text-[var(--color-text)]">
-                  {noteTitle || "Untitled note"}
-                </p>
-                <span className="rounded border border-[var(--color-border-muted)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px] text-[var(--color-text-muted)]">
-                  {note.noteKind === "quote" ? "Quote" : note.noteKind === "canon" ? "Canon" : note.noteKind === "eisenhower" ? "Matrix" : "Note"}
-                </span>
-              </div>
-              <p className="line-clamp-2 text-xs text-[var(--color-text-muted)]">{notePreview || "(empty note)"}</p>
-              {note.noteKind === "eisenhower" && note.eisenhower?.displayDate && (
-                <p className="mt-1 line-clamp-1 text-[11px] text-[var(--color-text-muted)]">{note.eisenhower.displayDate}</p>
-              )}
-              {(note.quoteAuthor || note.quoteSource) && (
-                <p className="mt-1 line-clamp-1 text-[11px] italic text-[var(--color-text-muted)]">
-                  {[note.quoteAuthor, note.quoteSource].filter(Boolean).join(" - ")}
-                </p>
-              )}
-              {note.tags.length > 0 && (
-                <p className="mt-1 line-clamp-1 text-[11px] text-[var(--color-text-muted)]">#{note.tags.join(" #")}</p>
-              )}
-            </button>
-          );
+    const note = result.note;
+    const noteTitle = isPrivateNote(note)
+      ? privateNoteTitle(note)
+      : note.noteKind === "canon"
+        ? note.canon?.title?.trim() || note.text.trim().split("\n")[0]
+        : note.text.trim().split("\n")[0];
+    const notePreview =
+      note.noteKind === "canon"
+        ? note.canon?.mode === "list"
+          ? note.canon.items
+              .filter((item) => item.title.trim() || item.text.trim())
+              .slice(0, 2)
+              .map((item, entryIndex) => `${entryIndex + 1}. ${item.title.trim() || item.text.trim() || "Item"}`)
+              .join(" ")
+          : [note.canon?.statement, note.canon?.interpretation].filter(Boolean).join(" ")
+        : note.noteKind === "eisenhower"
+          ? getEisenhowerPreview(note)
+          : isPrivateNote(note)
+            ? "Protected content is hidden from search results."
+            : note.text;
+
+    return (
+      <button
+        type="button"
+        key={result.id}
+        onClick={() => {
+          onSelect(note.id);
+          onClose();
+        }}
+        onMouseEnter={() => setActiveIndex(index)}
+        className={`mb-1 block w-full rounded-[22px] px-4 py-3 text-left transition ${
+          index === safeActiveIndex ? "bg-[#f4ede4] shadow-[inset_0_0_0_1px_rgba(77,99,86,0.1)]" : "hover:bg-white/86"
+        }`}
+      >
+        <div className="mb-1 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="line-clamp-1 font-[Newsreader] text-[1.35rem] italic leading-[1.05] text-[#1c1c19]">{noteTitle || "Untitled note"}</p>
+            {(note.quoteAuthor || note.quoteSource) ? (
+              <p className="mt-1 line-clamp-1 text-[11px] uppercase tracking-[0.12em] text-[#8d8278]">{[note.quoteAuthor, note.quoteSource].filter(Boolean).join(" • ")}</p>
+            ) : null}
+          </div>
+          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7c7065] shadow-[inset_0_0_0_1px_rgba(223,192,184,0.36)]">
+            {note.noteKind === "quote" ? "Quote" : note.noteKind === "canon" ? "Canon" : note.noteKind === "eisenhower" ? "Matrix" : note.noteKind === "web-bookmark" ? "Bookmark" : "Note"}
+          </span>
+        </div>
+        <p className="line-clamp-2 text-sm leading-6 text-[#5d554e]">{notePreview || "(empty note)"}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-[#8b7e72]">
+          {note.noteKind === "eisenhower" && note.eisenhower?.displayDate ? <span>{note.eisenhower.displayDate}</span> : null}
+          {note.tags.length > 0 ? <span>#{note.tags.join(" #")}</span> : null}
+        </div>
+      </button>
+    );
   }
 };
 
-
+const SectionLabel = ({ label }: { label: string }) => (
+  <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8f8478]">{label}</p>
+);

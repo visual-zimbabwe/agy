@@ -106,6 +106,68 @@ const resolveNoteFillColor = (note: Note) => {
   return sanitizeStandardNoteColor(note.color, DEFAULT_STANDARD_NOTE_COLOR);
 };
 
+const atelierPalette = {
+  paper: "#FFFCF8",
+  paperShadow: "#1C1C19",
+  paperStroke: "rgba(223,192,184,0.58)",
+  paperStrokeStrong: "#A33818",
+  text: "#1C1C19",
+  mutedText: "#5A4B43",
+  quietText: "#8C7C72",
+  terracotta: "#A33818",
+  forest: "#4D6356",
+  gold: "#755717",
+  glass: "rgba(252,249,244,0.72)",
+};
+
+const hexToRgb = (hex: string) => {
+  const normalized = hex.replace("#", "").trim();
+  if (![3, 6].includes(normalized.length)) {
+    return { r: 28, g: 28, b: 25 };
+  }
+  const expanded = normalized.length === 3 ? normalized.split("").map((value) => `${value}${value}`).join("") : normalized;
+  const intValue = Number.parseInt(expanded, 16);
+  return {
+    r: (intValue >> 16) & 255,
+    g: (intValue >> 8) & 255,
+    b: intValue & 255,
+  };
+};
+
+const colorWithAlpha = (hex: string, alpha: number) => {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
+const getContrastTextColor = (hex: string) => {
+  const { r, g, b } = hexToRgb(hex);
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.56 ? atelierPalette.text : "#FFFCF8";
+};
+
+const getNoteStrokeColor = ({
+  isSelected,
+  isHovered,
+  isHighlighted,
+  accent,
+}: {
+  isSelected: boolean;
+  isHovered: boolean;
+  isHighlighted: boolean;
+  accent: string;
+}) => {
+  if (isHighlighted) {
+    return "#F59E0B";
+  }
+  if (isSelected) {
+    return atelierPalette.paperStrokeStrong;
+  }
+  if (isHovered) {
+    return colorWithAlpha(accent, 0.48);
+  }
+  return atelierPalette.paperStroke;
+};
+
 type WallNotesLayerProps = {
   visibleNotes: Note[];
   activeSelectedNoteIds: string[];
@@ -372,7 +434,7 @@ export const WallNotesLayer = ({
         const colorWashOpacity = colorWashOpacityByNote[note.id] ?? 0;
         const noteTextStyle = getNoteTextStyle(noteView.textSize, noteView.textSizePx);
         const noteTextFontFamily = getNoteTextFontFamily(noteView.textFont);
-        const resolvedTextColor = noteView.textColor ?? NOTE_DEFAULTS.textColor;
+        const resolvedNoteColor = resolveNoteFillColor(noteView);
         const vocabulary = noteView.vocabulary;
         const isVocabulary = Boolean(vocabulary);
         const isQuote = noteView.noteKind === "quote";
@@ -424,6 +486,9 @@ export const WallNotesLayer = ({
         const bookmarkFavicon = bookmarkFaviconUrl ? loadedImagesByUrl[bookmarkFaviconUrl] : undefined;
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
         const isImageNote = Boolean(imageUrl);
+        const defaultTextColor =
+          isQuote || isJournal || isBookmark || isApod || isImageNote || isPrivate || isPoetry ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
+        const resolvedTextColor = noteView.textColor ?? defaultTextColor;
         const isApodMediaCard = isApod;
         const imageCaption = isApod ? getApodCaption(noteView) : noteView.text.trim();
         const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, imageCaption, noteImage) : null;
@@ -462,7 +527,6 @@ export const WallNotesLayer = ({
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
-        const resolvedNoteColor = resolveNoteFillColor(noteView);
         const tagPalette = noteTagChipPalette(resolvedNoteColor);
         const textY = isApodMediaCard || isImageNote ? 0 : isApiQuoteNote ? 52 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 43 : 0);
         const textHeight = isApodMediaCard || isImageNote
@@ -708,12 +772,12 @@ export const WallNotesLayer = ({
                 points={buildJournalPagePoints(noteView.w, noteView.h)}
                 closed
                 fill="#FFFFFF"
-                stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
-                strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
-                shadowColor="#101010"
-                shadowBlur={isFlashing ? 18 : isDragging ? 14 : 4}
-                shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.04}
-                shadowOffsetY={isDragging ? 3 : 1}
+                stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.terracotta })}
+                strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
+                shadowColor={atelierPalette.paperShadow}
+                shadowBlur={isFlashing ? 26 : isDragging ? 22 : 12}
+                shadowOpacity={isFlashing ? 0.16 : isDragging ? 0.12 : 0.07}
+                shadowOffsetY={isDragging ? 7 : 3}
                 lineJoin="round"
                 tension={0.12}
               />
@@ -723,13 +787,13 @@ export const WallNotesLayer = ({
                   width={noteView.w}
                   height={noteView.h}
                   cornerRadius={18}
-                  fill="#FFFDFC"
-                  stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#2b5560" : "rgba(0,71,83,0.18)"}
-                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2.2 : isHovered ? 1.4 : 1}
-                  shadowColor="#062b32"
-                  shadowBlur={isFlashing ? 24 : isDragging ? 20 : 10}
-                  shadowOpacity={isFlashing ? 0.24 : isDragging ? 0.18 : 0.1}
-                  shadowOffsetY={isDragging ? 6 : 2}
+                  fill={atelierPalette.paper}
+                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.forest })}
+                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
+                  shadowColor={atelierPalette.paperShadow}
+                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
+                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
+                  shadowOffsetY={isDragging ? 7 : 3}
                 />
                 {(() => {
                   const hasThumb = Boolean(bookmarkImage) && bookmarkDisplaySize !== "compact";
@@ -846,12 +910,12 @@ export const WallNotesLayer = ({
                   width={noteView.w}
                   height={noteView.h}
                   cornerRadius={IMAGE_NOTE_RADIUS}
-                  fill="#FFFFFF"
-                  stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
-                  strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
-                  shadowColor="#101010"
-                  shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
-                  shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
+                  fill={atelierPalette.paper}
+                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: resolvedNoteColor })}
+                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
+                  shadowColor={atelierPalette.paperShadow}
+                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
+                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={resolvedNoteColor} opacity={0.08} listening={false} />
@@ -956,7 +1020,7 @@ export const WallNotesLayer = ({
                       width={Math.max(0, noteView.w - 28)}
                       height={36}
                       fontSize={IMAGE_NOTE_CAPTION_FONT_SIZE}
-                      fontFamily={noteTextFontFamily}
+                      fontFamily={isQuote || isPoetry ? "Newsreader" : noteTextFontFamily}
                       lineHeight={IMAGE_NOTE_CAPTION_LINE_HEIGHT}
                       fill="#475569"
                       text={imageCaption}
@@ -979,12 +1043,12 @@ export const WallNotesLayer = ({
                   width={noteView.w}
                   height={noteView.h}
                   cornerRadius={IMAGE_NOTE_RADIUS}
-                  fill="#FFFFFF"
-                  stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
-                  strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
-                  shadowColor="#101010"
-                  shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
-                  shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
+                  fill={atelierPalette.paper}
+                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: resolvedNoteColor })}
+                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
+                  shadowColor={atelierPalette.paperShadow}
+                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
+                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={resolvedNoteColor} opacity={0.08} listening={false} />
@@ -1042,7 +1106,7 @@ export const WallNotesLayer = ({
                       width={Math.max(0, noteView.w - 28)}
                       height={Math.max(0, imageNoteLayout.captionHeight - 10)}
                       fontSize={IMAGE_NOTE_CAPTION_FONT_SIZE}
-                      fontFamily={noteTextFontFamily}
+                      fontFamily={isQuote || isPoetry ? "Newsreader" : noteTextFontFamily}
                       lineHeight={IMAGE_NOTE_CAPTION_LINE_HEIGHT}
                       fill="#475569"
                       text={imageCaption}
@@ -1206,7 +1270,7 @@ export const WallNotesLayer = ({
                   width={journalDateWidth}
                   align="left"
                   fontSize={journalDateFontSize}
-                  fontFamily={noteTextFontFamily}
+                  fontFamily={isQuote || isPoetry ? "Newsreader" : noteTextFontFamily}
                   fill={resolvedTextColor}
                   text={journalDateLabel}
                   wrap="none"
@@ -1237,8 +1301,8 @@ export const WallNotesLayer = ({
                 width={textWidth}
                 height={textHeight}
                 fontSize={(isJournal ? Math.max(17, noteTextStyle.fontSize) : noteTextStyle.fontSize) * textSpringFactor}
-                fontFamily={noteTextFontFamily}
-                fontStyle={isQuote ? "italic" : "normal"}
+                fontFamily={isQuote || isPoetry ? "Newsreader" : noteTextFontFamily}
+                fontStyle={isQuote ? "italic" : isCanon ? "bold" : "normal"}
                 fill={resolvedTextColor}
                 lineHeight={isJournal ? 1.72 : noteTextStyle.lineHeight}
                 align={isVocabulary ? "center" : (noteView.textAlign ?? "left")}
@@ -1292,9 +1356,9 @@ export const WallNotesLayer = ({
                   x={12}
                   y={12}
                   width={Math.max(0, noteView.w - 24)}
-                  fontSize={14}
+                  fontSize={16}
                   fontStyle="bold"
-                  fontFamily="Georgia"
+                  fontFamily="Newsreader"
                   fill={resolvedTextColor}
                   text={poetryTitle}
                   ellipsis
@@ -1480,4 +1544,12 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
+
+
+
+
+
+
+
 

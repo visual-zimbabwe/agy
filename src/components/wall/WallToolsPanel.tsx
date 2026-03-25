@@ -1,7 +1,6 @@
 "use client";
 
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
-import { panelCloseBtn, wallPanelSurface } from "@/components/wall/wallChromeClasses";
 import type { LinkType, ZoneKind } from "@/features/wall/types";
 
 type LinkTypeOption = {
@@ -52,6 +51,14 @@ type WallToolsPanelProps = {
   onOpenFileConversion: (mode: "pdf_to_word" | "word_to_pdf") => void;
 };
 
+const sectionLabelClassName = "text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8d8277]";
+const toolButtonClassName =
+  "flex w-full items-center gap-2 rounded-[16px] px-3 py-2.5 text-left text-[13px] text-[#3d433d] transition hover:bg-[#ffffff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30 disabled:cursor-not-allowed disabled:opacity-45";
+const activeToolButtonClassName = `${toolButtonClassName} bg-[#f6ede4] text-[#a33818] shadow-[inset_0_0_0_1px_rgba(163,56,24,0.1)]`;
+const primaryToolButtonClassName = `${toolButtonClassName} bg-[#a33818] text-white shadow-[0_10px_24px_rgba(163,56,24,0.18)] hover:bg-[#8d2f13]`;
+const selectClassName =
+  "w-full rounded-[14px] border border-[#eadfd2] bg-white/90 px-3 py-2 text-sm text-[#3d433d] outline-none focus:border-[#a33818]/40 focus-visible:ring-2 focus-visible:ring-[#a33818]/20";
+
 export const WallToolsPanel = ({
   leftPanelOpen,
   isTimeLocked,
@@ -62,10 +69,6 @@ export const WallToolsPanel = ({
   linkType,
   linkTypeOptions,
   showClusters,
-  toolbarBtn,
-  toolbarBtnPrimary,
-  toolbarBtnActive,
-  toolbarSelect,
   onClose,
   onCreateNote,
   onCreateCanonNote,
@@ -98,240 +101,72 @@ export const WallToolsPanel = ({
 
   return (
     <aside
-      className={`${wallPanelSurface} left-4 top-10 w-48 p-3 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none"}`}
+      className={`pointer-events-auto absolute left-5 top-24 z-[33] w-[19rem] rounded-[28px] border border-[#efe4d8] bg-[rgba(252,249,244,0.9)] p-4 shadow-[0_24px_60px_rgba(28,28,25,0.08)] backdrop-blur-2xl transition-all duration-300 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"}`}
     >
-      <div className="mb-3 flex items-center justify-between px-1">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Tools</p>
-        <button type="button" onClick={onClose} className={panelCloseBtn}>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className={sectionLabelClassName}>Tools</p>
+          <p className="mt-1 font-[Newsreader] text-[1.55rem] italic leading-none text-[#1c1c19]">The Atelier</p>
+        </div>
+        <button type="button" onClick={onClose} className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7f7468] transition hover:bg-[#1c1c19]/[0.05] hover:text-[#1c1c19]">
           Close
         </button>
       </div>
-      <div className="space-y-1.5">
-        <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd + N" className="relative block" side="right">
-          <button type="button" onClick={onCreateNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtnPrimary}`} title="Create note (N or Ctrl/Cmd + N)">
-            <Icon name="note" />
-            <span>New Note</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip
-          label={hasJokerNote ? "Refresh the Joker note with a new joke" : "Create the Joker note at viewport center"}
-          className="relative block"
-          side="right"
-        >
-          <button
-            type="button"
-            onClick={onCreateOrRefreshJokerNote}
-            disabled={isTimeLocked}
-            className={`w-full justify-start ${toolbarBtn}`}
-            title={hasJokerNote ? "Refresh Joker note" : "Create Joker note"}
-          >
-            <Icon name="note" />
-            <span>{hasJokerNote ? "Refresh Joker" : "New Joker"}</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip
-          label={hasThroneNote ? "Refresh the Throne note with a new quote" : "Create the Throne note at viewport center"}
-          className="relative block"
-          side="right"
-        >
-          <button
-            type="button"
-            onClick={onCreateOrRefreshThroneNote}
-            disabled={isTimeLocked}
-            className={`w-full justify-start ${toolbarBtn}`}
-            title={hasThroneNote ? "Refresh Throne note" : "Create Throne note"}
-          >
-            <Icon name="note" />
-            <span>{hasThroneNote ? "Refresh Throne" : "New Throne"}</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create vocabulary word note" className="relative block" side="right">
-          <button type="button" onClick={onCreateWordNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create vocabulary word note">
-            <Icon name="note" />
-            <span>New Word</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create journal note with notebook styling" className="relative block" side="right">
-          <button type="button" onClick={onCreateJournalNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create journal note">
-            <Icon name="note" />
-            <span>New Journal</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create quote note with attribution fields" className="relative block" side="right">
-          <button type="button" onClick={onCreateQuoteNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create quote note">
-            <Icon name="note" />
-            <span>New Quote</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create web bookmark note from a URL" className="relative block" side="right">
-          <button type="button" onClick={onCreateWebBookmarkNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create web bookmark note">
-            <Icon name="link" />
-            <span>New Bookmark</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create a NASA Astronomy Picture of the Day note" className="relative block" side="right">
-          <button type="button" onClick={onCreateApodNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create APOD note">
-            <Icon name="note" />
-            <span>New APOD</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create a Poetry note that refreshes daily from PoetryDB" className="relative block" side="right">
-          <button type="button" onClick={onCreatePoetryNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create Poetry note">
-            <Icon name="note" />
-            <span>New Poetry</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create one magazine-cover note for each source exposed by the local API" className="relative block" side="right">
-          <button type="button" onClick={onCreateEconomistNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create magazine cover notes">
-            <Icon name="note" />
-            <span>Magazine Covers</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create an Eisenhower Matrix note" className="relative block" side="right">
-          <button type="button" onClick={onCreateEisenhowerNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create Eisenhower Matrix note">
-            <Icon name="layout" />
-            <span>Eisenhower Matrix</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create canon note for laws/rules/theorems" className="relative block" side="right">
-          <button type="button" onClick={onCreateCanonNote} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create canon note">
-            <Icon name="note" />
-            <span>New Canon</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Create zone at viewport center" className="relative block" side="right">
-          <button type="button" onClick={() => onCreateZone("frame")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create frame at viewport center">
-            <Icon name="zone" />
-            <span>New Frame</span>
-          </button>
-        </ControlTooltip>
-        {advancedMode && (
-          <ControlTooltip label="Create suggested column area" className="relative block" side="right">
-            <button type="button" onClick={() => onCreateZone("column")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create column at viewport center">
-              <Icon name="zone" />
-              <span>New Column</span>
-            </button>
-          </ControlTooltip>
-        )}
-        {advancedMode && (
-          <ControlTooltip label="Create suggested swimlane area" className="relative block" side="right">
-            <button type="button" onClick={() => onCreateZone("swimlane")} disabled={isTimeLocked} className={`w-full justify-start ${toolbarBtn}`} title="Create swimlane at viewport center">
-              <Icon name="zone" />
-              <span>New Swimlane</span>
-            </button>
-          </ControlTooltip>
-        )}
-        <ControlTooltip label="Toggle box selection mode" className="relative block" side="right">
-          <button
-            type="button"
-            onClick={onToggleBoxSelect}
-            className={`w-full justify-start ${boxSelectMode ? toolbarBtnActive : toolbarBtn}`}
-            title="Toggle box selection mode"
-          >
-            <Icon name="box" />
-            <span>Box Select</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Start linking from selected note" shortcut="Ctrl/Cmd + L" className="relative block" side="right">
-          <button
-            type="button"
-            onClick={onStartLinking}
-            disabled={!selectedNoteId || isTimeLocked}
-            className={`w-full justify-start ${linkingFromNoteId ? toolbarBtnActive : toolbarBtn}`}
-            title="Start linking (Ctrl/Cmd + L)"
-          >
-            <Icon name="link" />
-            <span>{linkingFromNoteId ? "Pick Link Target" : "Start Link"}</span>
-          </button>
-        </ControlTooltip>
-        {advancedMode && (
-          <ControlTooltip label="Pick link type" className="relative block" side="right">
-            <select value={linkType} onChange={(event) => onLinkTypeChange(event.target.value as LinkType)} className={`w-full ${toolbarSelect}`} title="Pick link type">
-              {linkTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </ControlTooltip>
-        )}
-        {advancedMode && (
-          <ControlTooltip label="Toggle automatic cluster outlines" className="relative block" side="right">
-            <button
-              type="button"
-              onClick={onToggleClusters}
-              className={`w-full justify-start ${showClusters ? toolbarBtnActive : toolbarBtn}`}
-              title="Toggle cluster outlines"
-            >
-              <Icon name="cluster" />
-              <span>Detect Clusters</span>
-            </button>
-          </ControlTooltip>
-        )}
-        <div className="my-2 border-t border-[var(--color-border)]/70" />
-        <ControlTooltip label="Convert PDF files to Word documents" className="relative block" side="right">
-          <button
-            type="button"
-            onClick={() => onOpenFileConversion("pdf_to_word")}
-            className={`w-full justify-start ${toolbarBtn}`}
-            title="Open PDF to Word converter"
-          >
-            <Icon name="export" />
-            <span>PDF to Word</span>
-          </button>
-        </ControlTooltip>
-        <ControlTooltip label="Convert Word documents to PDF files" className="relative block" side="right">
-          <button
-            type="button"
-            onClick={() => onOpenFileConversion("word_to_pdf")}
-            className={`w-full justify-start ${toolbarBtn}`}
-            title="Open Word to PDF converter"
-          >
-            <Icon name="export" />
-            <span>Word to PDF</span>
-          </button>
-        </ControlTooltip>
-        {advancedMode && (
-          <ControlTooltip label="Toggle subtle dot matrix helper" className="relative block" side="right">
-            <button
-              type="button"
-              onClick={onToggleDotMatrix}
-              className={`w-full justify-start ${showDotMatrix ? toolbarBtnActive : toolbarBtn}`}
-              title="Toggle subtle dot matrix helper"
-            >
-              <Icon name="layout" />
-              <span>Dot Matrix</span>
-            </button>
-          </ControlTooltip>
-        )}
-        {advancedMode && (
-          <ControlTooltip label="Toggle drag-time guide snapping" className="relative block" side="right">
-            <button
-              type="button"
-              onClick={onToggleSnapToGuides}
-              className={`w-full justify-start ${snapToGuides ? toolbarBtnActive : toolbarBtn}`}
-              title="Toggle drag-time guide snapping"
-            >
-              <Icon name="layout" />
-              <span>Snap Guides</span>
-            </button>
-          </ControlTooltip>
-        )}
-        {advancedMode && (
-          <ControlTooltip label="Toggle drag-time grid snapping" className="relative block" side="right">
-            <button
-              type="button"
-              onClick={onToggleSnapToGrid}
-              className={`w-full justify-start ${snapToGrid ? toolbarBtnActive : toolbarBtn}`}
-              title="Toggle drag-time grid snapping"
-            >
-              <Icon name="layout" />
-              <span>Snap Grid</span>
-            </button>
-          </ControlTooltip>
-        )}
+
+      <div className="space-y-5 overflow-y-auto pr-1 max-h-[calc(100vh-10rem)]">
+        <section>
+          <p className={sectionLabelClassName}>Create</p>
+          <div className="mt-2 grid gap-1.5">
+            <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd + N" className="relative block" side="right">
+              <button type="button" onClick={onCreateNote} disabled={isTimeLocked} className={primaryToolButtonClassName}>
+                <Icon name="note" />
+                <span>New Note</span>
+              </button>
+            </ControlTooltip>
+            <button type="button" onClick={onCreateJournalNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Journal</span></button>
+            <button type="button" onClick={onCreateQuoteNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Quote</span></button>
+            <button type="button" onClick={onCreateCanonNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Canon</span></button>
+            <button type="button" onClick={onCreateWordNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Word</span></button>
+            <button type="button" onClick={onCreateWebBookmarkNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="link" /><span>New Bookmark</span></button>
+            <button type="button" onClick={onCreateApodNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New APOD</span></button>
+            <button type="button" onClick={onCreatePoetryNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Poetry</span></button>
+            <button type="button" onClick={onCreateEconomistNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>Magazine Covers</span></button>
+            <button type="button" onClick={onCreateEisenhowerNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="layout" /><span>Eisenhower Matrix</span></button>
+            <button type="button" onClick={() => onCreateZone("frame")} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="zone" /><span>New Frame</span></button>
+            {advancedMode ? <button type="button" onClick={() => onCreateZone("column")} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="zone" /><span>New Column</span></button> : null}
+            {advancedMode ? <button type="button" onClick={() => onCreateZone("swimlane")} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="zone" /><span>New Swimlane</span></button> : null}
+            <button type="button" onClick={onCreateOrRefreshJokerNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>{hasJokerNote ? "Refresh Joker" : "New Joker"}</span></button>
+            <button type="button" onClick={onCreateOrRefreshThroneNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>{hasThroneNote ? "Refresh Throne" : "New Throne"}</span></button>
+          </div>
+        </section>
+
+        <section>
+          <p className={sectionLabelClassName}>Organize</p>
+          <div className="mt-2 grid gap-1.5">
+            <button type="button" onClick={onToggleBoxSelect} className={boxSelectMode ? activeToolButtonClassName : toolButtonClassName}><Icon name="box" /><span>Box Select</span></button>
+            <button type="button" onClick={onStartLinking} disabled={!selectedNoteId || isTimeLocked} className={linkingFromNoteId ? activeToolButtonClassName : toolButtonClassName}><Icon name="link" /><span>{linkingFromNoteId ? "Pick Link Target" : "Start Link"}</span></button>
+            {advancedMode ? (
+              <select value={linkType} onChange={(event) => onLinkTypeChange(event.target.value as LinkType)} className={selectClassName}>
+                {linkTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            ) : null}
+            {advancedMode ? <button type="button" onClick={onToggleClusters} className={showClusters ? activeToolButtonClassName : toolButtonClassName}><Icon name="cluster" /><span>Detect Clusters</span></button> : null}
+          </div>
+        </section>
+
+        <section>
+          <p className={sectionLabelClassName}>Utilities</p>
+          <div className="mt-2 grid gap-1.5">
+            <button type="button" onClick={() => onOpenFileConversion("pdf_to_word")} className={toolButtonClassName}><Icon name="export" /><span>PDF to Word</span></button>
+            <button type="button" onClick={() => onOpenFileConversion("word_to_pdf")} className={toolButtonClassName}><Icon name="export" /><span>Word to PDF</span></button>
+            {advancedMode ? <button type="button" onClick={onToggleDotMatrix} className={showDotMatrix ? activeToolButtonClassName : toolButtonClassName}><Icon name="layout" /><span>Dot Matrix</span></button> : null}
+            {advancedMode ? <button type="button" onClick={onToggleSnapToGuides} className={snapToGuides ? activeToolButtonClassName : toolButtonClassName}><Icon name="layout" /><span>Snap Guides</span></button> : null}
+            {advancedMode ? <button type="button" onClick={onToggleSnapToGrid} className={snapToGrid ? activeToolButtonClassName : toolButtonClassName}><Icon name="layout" /><span>Snap Grid</span></button> : null}
+          </div>
+        </section>
       </div>
     </aside>
   );
 };
-
