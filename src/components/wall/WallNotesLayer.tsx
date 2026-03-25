@@ -486,14 +486,16 @@ export const WallNotesLayer = ({
         const poetryTitle = isPoetry ? getPoetryTitle(noteView) : "";
         const poetryAuthor = isPoetry ? noteView.poetry?.author?.trim() || noteView.quoteAuthor?.trim() || "Unknown Poet" : "";
         const quoteAttribution = noteView.quoteAuthor?.trim() ?? "";
-        const quoteAttributionHeight = isQuote && quoteAttribution ? 18 : 0;
-        const quoteMarkInset = isQuote ? 13 : 0;
+        const quoteSource = noteView.quoteSource?.trim() ?? "";
+        const quoteFooterLines = isQuote ? (quoteAttribution ? (quoteSource ? 2 : 1) : quoteSource ? 1 : 0) : 0;
+        const quoteFooterHeight = isQuote ? (quoteFooterLines > 1 ? 40 : quoteFooterLines === 1 ? 24 : 0) : 0;
+        const quoteBodyTopInset = isQuote ? 44 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
         const poetryHeaderInset = isPoetry ? getPoetryHeaderHeight(noteView.w, noteView.poetry) : 0;
         const journalHorizontalInset = 20;
         const isApiQuoteNote = isJoker || isThrone;
-        const textX = isQuote ? 18 : isJournal ? journalHorizontalInset : 12;
-        const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalHorizontalInset * 2 : 24));
+        const textX = isQuote ? 24 : isJournal ? journalHorizontalInset : 12;
+        const textWidth = Math.max(0, noteView.w - (isQuote ? 50 : isJournal ? journalHorizontalInset * 2 : 24));
         const currencyState = noteView.currency;
         const currencyTrendGlyph = currencyState?.trend === "up" ? "↑" : currencyState?.trend === "down" ? "↓" : "•";
         const imageUrl = noteView.imageUrl?.trim();
@@ -554,8 +556,8 @@ export const WallNotesLayer = ({
               ? truncateNoteText(strippedNoteText, {
                   ...noteView,
                   text: strippedNoteText,
-                  w: textWidth + 24,
-                  h: Math.max(40, noteView.h - quoteAttributionHeight - quoteMarkInset - 8 - wikiFooterHeight),
+                  w: textWidth + 16,
+                  h: Math.max(40, noteView.h - quoteFooterHeight - quoteBodyTopInset - 18 - wikiFooterHeight),
                 }) || "Add quote text"
               : truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - wikiFooterHeight, 40) }) || "Double-click or press Enter to edit";
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
@@ -566,10 +568,10 @@ export const WallNotesLayer = ({
         const jokerQuestionY = 50;
         const jokerRuleY = Math.max(90, Math.min(noteView.h - 54, Math.round(noteView.h * 0.56)));
         const jokerPunchlineY = jokerRuleY + 12;
-        const textY = isApodMediaCard || isImageNote ? 0 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 56 : 0);
+        const textY = isApodMediaCard || isImageNote ? 0 : 12 + quoteBodyTopInset + canonTitleInset + poetryHeaderInset + (isJournal ? 56 : 0);
         const textHeight = isApodMediaCard || isImageNote
           ? 0
-          : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - poetryHeaderInset - (isJournal ? 56 : 0) - wikiFooterHeight);
+          : Math.max(0, noteView.h - 56 - quoteFooterHeight - quoteBodyTopInset - canonTitleInset - poetryHeaderInset - (isJournal ? 56 : 0) - wikiFooterHeight);
         const throneQuoteText = isThrone
           ? strippedNoteText === throneLoadingText
             ? strippedNoteText
@@ -1614,8 +1616,32 @@ export const WallNotesLayer = ({
             )}
             {isQuote && !isEisenhower && (
               <>
-                <Rect x={0} y={0} width={4} height={noteView.h} cornerRadius={[noteCornerRadius, 0, 0, noteCornerRadius]} fill={atelierPalette.terracotta} listening={false} />
-                <Text x={Math.max(18, noteView.w - 44)} y={14} width={26} align="right" fontSize={34} fontStyle="bold" fill={colorWithAlpha(atelierPalette.terracotta, 0.2)} text='"' listening={false} />
+                <Rect x={2} y={10} width={3} height={Math.max(24, noteView.h - 20)} cornerRadius={2} fill={atelierPalette.terracotta} listening={false} />
+                <Text
+                  x={Math.max(24, noteView.w - 54)}
+                  y={14}
+                  width={34}
+                  align="right"
+                  fontSize={38}
+                  fontFamily="Newsreader"
+                  fill={colorWithAlpha(atelierPalette.terracotta, 0.18)}
+                  text="””"
+                  listening={false}
+                />
+                <Text
+                  x={24}
+                  y={34}
+                  width={Math.max(0, noteView.w - 50)}
+                  height={Math.max(24, noteView.h - quoteFooterHeight - 64)}
+                  fontSize={Math.max(20, Math.min(30, Math.min(noteView.w / 6.6, noteView.h / 4.6)))}
+                  fontFamily="Newsreader"
+                  fontStyle="italic"
+                  fill={resolvedTextColor}
+                  lineHeight={1.18}
+                  text={noteTextContent}
+                  ellipsis
+                  listening={false}
+                />
               </>
             )}
             {isCanon && canonTitle && !isEisenhower && (
@@ -1701,18 +1727,38 @@ export const WallNotesLayer = ({
                 <Text x={16} y={46} width={Math.max(0, noteView.w - 32)} height={Math.max(0, noteView.h - 62 - wikiFooterHeight)} fontSize={12} lineHeight={1.45} fill={atelierPalette.mutedText} text={standardBody} ellipsis listening={false} />
               </>
             )}
-            {isQuote && quoteAttribution && !isEisenhower && (
-              <Text
-                x={12}
-                y={Math.max(12, noteView.h - 25)}
-                width={Math.max(0, noteView.w - 24)}
-                align="right"
-                fontSize={10}
-                fontStyle="italic"
-                fill={resolvedTextColor}
-                text={quoteAttribution}
-                listening={false}
-              />
+            {isQuote && (quoteAttribution || quoteSource) && !isEisenhower && (
+              <>
+                {quoteAttribution && (
+                  <Text
+                    x={24}
+                    y={Math.max(12, noteView.h - (quoteFooterLines > 1 ? 38 : 24))}
+                    width={Math.max(0, noteView.w - 48)}
+                    fontSize={10}
+                    fontStyle="bold"
+                    fill={colorWithAlpha(atelierPalette.forest, 0.82)}
+                    letterSpacing={1.6}
+                    text={`- ${quoteAttribution.toUpperCase()}`}
+                    wrap="none"
+                    ellipsis
+                    listening={false}
+                  />
+                )}
+                {quoteSource && (
+                  <Text
+                    x={24}
+                    y={Math.max(12, noteView.h - 20)}
+                    width={Math.max(0, noteView.w - 48)}
+                    fontSize={9}
+                    fill={colorWithAlpha(atelierPalette.mutedText, 0.68)}
+                    letterSpacing={1.1}
+                    text={quoteSource.toUpperCase()}
+                    wrap="none"
+                    ellipsis
+                    listening={false}
+                  />
+                )}
+              </>
             )}
             {wikiLinks.length > 0 && !isApodMediaCard && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && !isPoetry && !isEconomist && (
               <>

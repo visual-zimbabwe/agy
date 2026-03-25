@@ -183,21 +183,43 @@ const StandardRenderer = ({ note, width, height, readableText, textFontFamily, b
   );
 };
 
-const QuoteRenderer = ({ note, width, height, readableText, mutedText, bodyClamp, tone }: RendererProps) => (
-  <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-    <div className="h-full p-5" style={{ background: "linear-gradient(180deg, rgba(163,56,24,0.04), rgba(255,255,255,0.96))" }}>
-      <div className="absolute inset-y-0 left-0 w-[4px]" style={{ background: atelier.terracotta }} />
-      <p className="absolute right-5 top-3 text-[42px] leading-none" style={{ color: "rgba(163,56,24,0.18)" }}>&rdquo;</p>
-      <blockquote
-        className="pt-5 font-[Newsreader] text-[28px] italic leading-[1.15]"
-        style={{ ...lineClampStyle(tone === "detail" ? 999 : bodyClamp + 1), color: readableText }}
-      >
-        {getBodyText(note)}
-      </blockquote>
-      {note.quoteAuthor?.trim() && <cite className="mt-5 block text-right text-[11px] uppercase tracking-[0.18em]" style={{ color: mutedText }}>- {note.quoteAuthor.trim()}</cite>}
-    </div>
-  </NoteShell>
-);
+const QuoteRenderer = ({ note, width, height, readableText, mutedText, bodyClamp, tone }: RendererProps) => {
+  const author = note.quoteAuthor?.trim();
+  const source = note.quoteSource?.trim();
+  const quoteFontSize = Math.max(26, Math.min(36, Math.min(width * 0.16, height * 0.19)));
+
+  return (
+    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
+      <div className="h-full px-7 pb-7 pt-6" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.98))" }}>
+        <div className="absolute bottom-3 left-[2px] top-3 w-[3px] rounded-full" style={{ background: atelier.terracotta, boxShadow: "0 0 0 1px rgba(163,56,24,0.08)" }} />
+        <p
+          className="absolute right-6 top-4 text-[44px] leading-none tracking-[-0.12em]"
+          style={{ color: "rgba(163,56,24,0.18)", fontFamily: "\"Newsreader\", serif" }}
+        >
+          &rdquo;&rdquo;
+        </p>
+        <blockquote
+          className="whitespace-pre-wrap font-[Newsreader] italic [overflow-wrap:anywhere]"
+          style={{
+            ...lineClampStyle(tone === "detail" ? 999 : bodyClamp + 2),
+            color: readableText,
+            fontSize: quoteFontSize,
+            lineHeight: 1.18,
+            paddingTop: 34,
+          }}
+        >
+          {getBodyText(note)}
+        </blockquote>
+        {(author || source) && (
+          <div className="mt-8">
+            {author && <cite className="block text-[11px] uppercase tracking-[0.18em] not-italic" style={{ color: mutedText }}>- {author}</cite>}
+            {source && <p className="mt-2 text-[10px] uppercase tracking-[0.16em]" style={{ color: "rgba(91,70,63,0.68)" }}>{source}</p>}
+          </div>
+        )}
+      </div>
+    </NoteShell>
+  );
+};
 
 const JournalRenderer = ({ note, width, height, readableText, bodyClamp, tone }: RendererProps) => {
   const lines = splitNoteText(note.text);
