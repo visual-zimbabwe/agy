@@ -3,7 +3,6 @@
 import Link from "next/link";
 
 import { ProfileMenu } from "@/components/ProfileMenu";
-import { SyncStatus } from "@/components/wall/SyncStatus";
 import type { Note } from "@/features/wall/types";
 
 type LayoutPrefs = {
@@ -53,56 +52,22 @@ type WallHeaderBarProps = {
 const navLinkClassName =
   "relative inline-flex items-center justify-center px-1 py-2 text-sm font-medium text-[#4d6356] transition hover:text-[#1c1c19] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30";
 const roundButtonClassName =
-  "inline-flex h-10 w-10 items-center justify-center rounded-full text-[#1c1c19] transition hover:bg-[#1c1c19]/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30";
+  "inline-flex h-12 w-12 items-center justify-center rounded-full text-[#1c1c19] transition hover:bg-[#1c1c19]/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30";
 
-const HeaderIcon = ({ kind }: { kind: "tools" | "details" | "settings" }) => {
-  if (kind === "tools") {
-    return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 7H20" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-        <path d="M4 12H20" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-        <path d="M4 17H20" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  if (kind === "details") {
-    return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="5" y="4.5" width="14" height="15" rx="3" stroke="currentColor" strokeWidth="1.7" />
-        <path d="M9 9H15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-        <path d="M9 13H15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 4.75L13.4 5.14L14.2 6.42L15.63 6.33L16.78 7.18L16.69 8.61L17.97 9.41L18.36 10.81L17.45 11.92L18.36 13.03L17.97 14.43L16.69 15.23L16.78 16.66L15.63 17.51L14.2 17.42L13.4 18.7L12 19.09L10.6 18.7L9.8 17.42L8.37 17.51L7.22 16.66L7.31 15.23L6.03 14.43L5.64 13.03L6.55 11.92L5.64 10.81L6.03 9.41L7.31 8.61L7.22 7.18L8.37 6.33L9.8 6.42L10.6 5.14L12 4.75Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      <circle cx="12" cy="11.92" r="2.6" stroke="currentColor" strokeWidth="1.3" />
-    </svg>
-  );
-};
+const HeaderIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 4.75L13.4 5.14L14.2 6.42L15.63 6.33L16.78 7.18L16.69 8.61L17.97 9.41L18.36 10.81L17.45 11.92L18.36 13.03L17.97 14.43L16.69 15.23L16.78 16.66L15.63 17.51L14.2 17.42L13.4 18.7L12 19.09L10.6 18.7L9.8 17.42L8.37 17.51L7.22 16.66L7.31 15.23L6.03 14.43L5.64 13.03L6.55 11.92L5.64 10.81L6.03 9.41L7.31 8.61L7.22 7.18L8.37 6.33L9.8 6.42L10.6 5.14L12 4.75Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    <circle cx="12" cy="11.92" r="2.6" stroke="currentColor" strokeWidth="1.3" />
+  </svg>
+);
 
 export const WallHeaderBar = ({
   presentationMode,
-  publishedReadOnly,
   timelineViewActive,
-  leftPanelOpen,
-  rightPanelOpen,
   userEmail,
-  cloudWallId,
-  isSyncing,
-  localSaveState,
-  hasPendingSync,
-  lastSyncedAt,
-  syncError,
-  onToggleLeftPanel,
-  onToggleRightPanel,
   onToggleTimelineView,
   onOpenShortcuts,
   onOpenSettings,
-  onSyncNow,
 }: WallHeaderBarProps) => {
   if (presentationMode) {
     return null;
@@ -110,47 +75,29 @@ export const WallHeaderBar = ({
 
   return (
     <header className="pointer-events-auto absolute inset-x-0 top-0 z-[40] px-4 pt-3 sm:px-6 sm:pt-4">
-      <div className="mx-auto flex max-w-[96rem] items-center justify-between rounded-[28px] border border-[#f0e7dc] bg-[rgba(252,249,244,0.78)] px-5 py-3 shadow-[0_12px_38px_rgba(28,28,25,0.04)] backdrop-blur-xl sm:px-6">
-        <div className="flex items-center gap-6 lg:gap-10">
+      <div className="mx-auto grid max-w-[96rem] grid-cols-[1fr_auto_1fr] items-center rounded-[28px] border border-[#f0e7dc] bg-[rgba(252,249,244,0.78)] px-5 py-3 shadow-[0_12px_38px_rgba(28,28,25,0.04)] backdrop-blur-xl sm:px-6">
+        <div className="flex items-center justify-start">
           <Link href="/wall" className="font-[Newsreader] text-[2rem] italic leading-none text-[#1c1c19] no-underline">
             Agy
           </Link>
-          <nav className="hidden items-center gap-6 md:flex">
-            <Link href="/wall" className={`${navLinkClassName} ${!timelineViewActive ? "text-[#a33818]" : ""}`}>
-              Wall
-              {!timelineViewActive ? <span className="absolute inset-x-1 -bottom-0.5 h-[2px] rounded-full bg-[#a33818]" /> : null}
-            </Link>
-            <Link href="/decks" className={navLinkClassName}>Decks</Link>
-            <Link href="/page" className={navLinkClassName}>Page</Link>
-            <button type="button" onClick={onToggleTimelineView} className={`${navLinkClassName} ${timelineViewActive ? "text-[#a33818]" : ""}`}>
-              Timeline
-              {timelineViewActive ? <span className="absolute inset-x-1 -bottom-0.5 h-[2px] rounded-full bg-[#a33818]" /> : null}
-            </button>
-          </nav>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-2">
-          {!publishedReadOnly && userEmail ? (
-            <div className="hidden lg:block">
-              <SyncStatus
-                hasCloudWall={Boolean(cloudWallId)}
-                isSyncing={isSyncing}
-                localSaveState={localSaveState}
-                hasPendingSync={hasPendingSync}
-                lastSyncedAt={lastSyncedAt}
-                syncError={syncError}
-                onSyncNow={onSyncNow}
-              />
-            </div>
-          ) : null}
-          <button type="button" onClick={onToggleLeftPanel} className={`${roundButtonClassName} ${leftPanelOpen ? "bg-[#a33818] text-white hover:bg-[#8d2f13]" : ""}`} aria-label="Toggle tools panel">
-            <HeaderIcon kind="tools" />
+        <nav className="hidden items-center justify-center gap-6 md:flex">
+          <Link href="/wall" className={`${navLinkClassName} ${!timelineViewActive ? "text-[#a33818]" : ""}`}>
+            Wall
+            {!timelineViewActive ? <span className="absolute inset-x-1 -bottom-0.5 h-[2px] rounded-full bg-[#a33818]" /> : null}
+          </Link>
+          <Link href="/decks" className={navLinkClassName}>Decks</Link>
+          <Link href="/page" className={navLinkClassName}>Page</Link>
+          <button type="button" onClick={onToggleTimelineView} className={`${navLinkClassName} ${timelineViewActive ? "text-[#a33818]" : ""}`}>
+            Timeline
+            {timelineViewActive ? <span className="absolute inset-x-1 -bottom-0.5 h-[2px] rounded-full bg-[#a33818]" /> : null}
           </button>
-          <button type="button" onClick={onToggleRightPanel} className={`${roundButtonClassName} ${rightPanelOpen ? "bg-[#4d6356] text-white hover:bg-[#425649]" : ""}`} aria-label="Toggle details panel">
-            <HeaderIcon kind="details" />
-          </button>
+        </nav>
+
+        <div className="flex items-center justify-end gap-1 sm:gap-2">
           <button type="button" onClick={onOpenSettings} className={roundButtonClassName} aria-label="Open settings">
-            <HeaderIcon kind="settings" />
+            <HeaderIcon />
           </button>
           {userEmail ? <ProfileMenu email={userEmail} onOpenShortcuts={onOpenShortcuts} onOpenSettings={onOpenSettings} /> : null}
         </div>
