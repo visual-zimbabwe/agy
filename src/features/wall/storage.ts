@@ -73,6 +73,17 @@ let migrationPromise: Promise<void> | null = null;
 
 const defaultCamera: Camera = { x: 0, y: 0, zoom: 1 };
 
+const isQuotaExceededError = (error: unknown) => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const name = error.name.toLowerCase();
+  const message = error.message.toLowerCase();
+  return name.includes("quota") || name.includes("abort") || message.includes("quotaexceeded") || message.includes("quota exceeded");
+};
+
+
 const databaseHasData = async (database: WallDatabase) => {
   const counts = await Promise.all([
     database.notes.count(),
@@ -170,8 +181,7 @@ export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
   return normalized ?? { notes: {}, zones: {}, zoneGroups: {}, noteGroups: {}, links: {}, camera: defaultCamera };
 };
 
-export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
-  await migrateLegacyWallDatabaseIfNeeded();
+const writeWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
   await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta], async () => {
     const notes = Object.values(snapshot.notes);
     const zones = Object.values(snapshot.zones);
@@ -212,6 +222,21 @@ export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<vo
   });
 };
 
+export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
+  await migrateLegacyWallDatabaseIfNeeded();
+
+  try {
+    await writeWallSnapshot(snapshot);
+  } catch (error) {
+    if (!isQuotaExceededError(error)) {
+      throw error;
+    }
+
+    await db.timelineSnapshots.clear();
+    await writeWallSnapshot(snapshot);
+  }
+};
+
 export const createSnapshotSaver = (
   delayMs = 350,
   callbacks?: {
@@ -242,7 +267,6 @@ export const createSnapshotSaver = (
     } catch (error) {
       pendingWrites = Math.max(0, pendingWrites - 1);
       callbacks?.onError?.(error);
-      throw error;
     }
   };
 
@@ -255,7 +279,7 @@ export const createSnapshotSaver = (
     }
 
     timer = setTimeout(() => {
-      void flush();
+      void flush().catch(() => undefined);
     }, delayMs);
   };
 
@@ -282,21 +306,37 @@ export const loadTimelineEntries = async (limit = 500): Promise<TimelineEntry[]>
     .filter((entry): entry is TimelineEntry => Boolean(entry));
 };
 
+const trimTimelineSnapshots = async (keepCount: number) => {
+  const total = await db.timelineSnapshots.count();
+  const overflow = Math.max(0, total - keepCount);
+  if (overflow <= 0) {
+    return;
+  }
+
+  const keys = await db.timelineSnapshots.orderBy("ts").limit(overflow).primaryKeys();
+  if (keys.length > 0) {
+    await db.timelineSnapshots.bulkDelete(keys);
+  }
+};
+
 const persistTimelineSnapshot = async (snapshot: PersistedWallState, maxEntries: number) => {
   await migrateLegacyWallDatabaseIfNeeded();
-  await db.timelineSnapshots.add({
-    ts: Date.now(),
-    payload: JSON.stringify(snapshot),
-  });
 
-  const count = await db.timelineSnapshots.count();
-  if (count > maxEntries) {
-    const overflow = count - maxEntries;
-    const keys = await db.timelineSnapshots.orderBy("ts").limit(overflow).primaryKeys();
-    if (keys.length > 0) {
-      await db.timelineSnapshots.bulkDelete(keys);
+  try {
+    await db.timelineSnapshots.add({
+      ts: Date.now(),
+      payload: JSON.stringify(snapshot),
+    });
+  } catch (error) {
+    if (!isQuotaExceededError(error)) {
+      throw error;
     }
+
+    await trimTimelineSnapshots(Math.max(25, Math.floor(maxEntries * 0.25)));
+    return;
   }
+
+  await trimTimelineSnapshots(maxEntries);
 };
 
 export const createTimelineRecorder = (options?: { delayMs?: number; minIntervalMs?: number; maxEntries?: number }) => {
@@ -321,9 +361,14 @@ export const createTimelineRecorder = (options?: { delayMs?: number; minInterval
 
     const snapshot = latest;
     latest = undefined;
-    await persistTimelineSnapshot(snapshot, maxEntries);
-    lastSerialized = serialized;
-    lastWrittenAt = now;
+
+    try {
+      await persistTimelineSnapshot(snapshot, maxEntries);
+      lastSerialized = serialized;
+      lastWrittenAt = now;
+    } catch {
+      latest = snapshot;
+    }
   };
 
   const schedule = (snapshot: PersistedWallState) => {
@@ -333,7 +378,7 @@ export const createTimelineRecorder = (options?: { delayMs?: number; minInterval
     }
 
     timer = setTimeout(() => {
-      void flush();
+      void flush().catch(() => undefined);
     }, delayMs);
   };
 

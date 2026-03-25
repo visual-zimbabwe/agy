@@ -6,12 +6,15 @@ import { parseCurrencyAmountInput } from "@/features/wall/currency";
 import type { Note } from "@/features/wall/types";
 
 const panelClass =
-  "pointer-events-auto absolute z-[70] w-[min(24rem,calc(100vw-1.5rem))] rounded-[1.4rem] border border-[color:rgb(147_132_255_/_0.42)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-surface-elevated)_64%,#4B3F72_36%)_0%,color-mix(in_srgb,var(--color-surface)_74%,#140F24_26%)_100%)] p-4 text-[var(--color-text)] shadow-[0_28px_80px_rgba(20,16,38,0.32)] backdrop-blur-[18px]";
-const labelClass = "text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:rgb(220_214_255_/_0.72)]";
+  "pointer-events-auto absolute z-[70] w-[min(24rem,calc(100vw-1.5rem))] rounded-[1.6rem] border border-[rgba(186,174,227,0.95)] bg-[linear-gradient(180deg,rgba(253,251,247,0.98)_0%,rgba(244,239,248,0.96)_100%)] p-4 text-[#221f2c] shadow-[0_28px_80px_rgba(37,30,56,0.18)] backdrop-blur-[18px]";
+const labelClass = "text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgba(122,113,145,0.88)]";
 const inputClass =
-  "w-full rounded-2xl border border-[color:rgb(147_132_255_/_0.28)] bg-[color:rgb(255_255_255_/_0.08)] px-3 py-2 text-sm text-[var(--color-text)] outline-none placeholder:text-[color:rgb(220_214_255_/_0.56)] focus:border-[color:rgb(147_132_255_/_0.72)]";
+  "w-full rounded-2xl border border-[rgba(184,174,214,0.96)] bg-white px-3 py-2 text-sm font-medium text-[#221f2c] outline-none placeholder:text-[rgba(122,113,145,0.7)] focus:border-[#6f8d76] focus:ring-2 focus:ring-[rgba(111,141,118,0.15)]";
 const subtleButtonClass =
-  "rounded-full border border-[color:rgb(147_132_255_/_0.24)] bg-[color:rgb(255_255_255_/_0.08)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-text)] transition hover:bg-[color:rgb(255_255_255_/_0.14)] disabled:cursor-not-allowed disabled:opacity-50";
+  "rounded-full border border-[rgba(184,174,214,0.96)] bg-[rgba(247,244,251,0.98)] px-3 py-1.5 text-[11px] font-medium text-[#2d2939] transition hover:border-[#6f8d76] hover:bg-white disabled:cursor-not-allowed disabled:opacity-50";
+const statCardClass = "rounded-[1.25rem] border border-[rgba(186,174,227,0.95)] bg-white/88 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]";
+const pillClass = "rounded-full border border-[rgba(186,174,227,0.9)] bg-[rgba(247,244,251,0.95)] px-2.5 py-1 text-[11px] text-[rgba(88,79,112,0.9)]";
+const valueChipClass = "min-w-[7.5rem] rounded-2xl border border-[rgba(186,174,227,0.95)] bg-white px-3 py-2 text-right text-sm font-semibold text-[#2d2939]";
 
 const formatUsd = (value: number) => {
   try {
@@ -89,8 +92,8 @@ export const CurrencyNoteEditor = ({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={labelClass}>Currency Widget</p>
-          <h3 className="mt-1 text-lg font-semibold text-white">{currency?.baseCurrency ?? "USD"} to USD</h3>
-          <p className="mt-1 text-xs text-[color:rgb(233_230_255_/_0.72)]">
+          <h3 className="mt-1 text-lg font-semibold text-[#221f2c]">{currency?.baseCurrency ?? "USD"} to USD</h3>
+          <p className="mt-1 text-xs text-[rgba(109,100,133,0.88)]">
             {currency?.detectedCountryName ?? "Default region"}
             {currency?.detectedCurrency ? ` • detected ${currency.detectedCurrency}` : ""}
           </p>
@@ -101,17 +104,17 @@ export const CurrencyNoteEditor = ({
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-[1.2rem] border border-[color:rgb(147_132_255_/_0.2)] bg-[color:rgb(255_255_255_/_0.08)] p-3">
+        <div className={statCardClass}>
           <p className={labelClass}>1 {currency?.baseCurrency ?? "USD"}</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{formatUsd(currency?.usdRate ?? 1)}</p>
-          <p className="mt-1 text-xs text-[color:rgb(220_214_255_/_0.72)]">
+          <p className="mt-2 text-2xl font-semibold text-[#221f2c]">{formatUsd(currency?.usdRate ?? 1)}</p>
+          <p className="mt-1 text-xs text-[rgba(109,100,133,0.82)]">
             {trendGlyph} {statusLabel}
           </p>
         </div>
-        <div className="rounded-[1.2rem] border border-[color:rgb(147_132_255_/_0.2)] bg-[color:rgb(255_255_255_/_0.08)] p-3">
+        <div className={statCardClass}>
           <p className={labelClass}>1000 {currency?.baseCurrency ?? "USD"}</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{formatUsd(currency?.thousandValueUsd ?? 1000)}</p>
-          <p className="mt-1 text-xs text-[color:rgb(220_214_255_/_0.72)]">Updated {formatTimestamp(currency?.rateUpdatedAt)}</p>
+          <p className="mt-2 text-2xl font-semibold text-[#221f2c]">{formatUsd(currency?.thousandValueUsd ?? 1000)}</p>
+          <p className="mt-1 text-xs text-[rgba(109,100,133,0.82)]">Updated {formatTimestamp(currency?.rateUpdatedAt)}</p>
         </div>
       </div>
 
@@ -127,7 +130,7 @@ export const CurrencyNoteEditor = ({
               placeholder="Enter amount"
               className={inputClass}
             />
-            <div className="min-w-[7.5rem] rounded-2xl border border-[color:rgb(147_132_255_/_0.2)] bg-[color:rgb(255_255_255_/_0.08)] px-3 py-2 text-right text-sm font-semibold text-white">
+            <div className={valueChipClass}>
               {formatUsd(convertedAmount)}
             </div>
           </div>
@@ -163,14 +166,14 @@ export const CurrencyNoteEditor = ({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-[color:rgb(220_214_255_/_0.76)]">
-        <span className="rounded-full border border-[color:rgb(147_132_255_/_0.24)] bg-[color:rgb(255_255_255_/_0.08)] px-2.5 py-1">
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-[rgba(88,79,112,0.92)]">
+        <span className={pillClass}>
           Source: {currency?.rateSource ?? "default"}
         </span>
-        <span className="rounded-full border border-[color:rgb(147_132_255_/_0.24)] bg-[color:rgb(255_255_255_/_0.08)] px-2.5 py-1">
+        <span className={pillClass}>
           Base mode: {currency?.baseCurrencyMode ?? "auto"}
         </span>
-        {currency?.error && <span className="text-[rgb(255_206_206)]">{currency.error}</span>}
+        {currency?.error && <span className="rounded-full bg-[rgba(170,53,68,0.10)] px-2.5 py-1 text-[#8f2f3f]">{currency.error}</span>}
       </div>
     </div>
   );
