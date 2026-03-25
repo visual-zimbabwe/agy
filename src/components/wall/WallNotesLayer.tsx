@@ -1130,7 +1130,7 @@ export const WallNotesLayer = ({
                   fontSize={10}
                   fontStyle="bold"
                   fill={atelierPalette.terracotta}
-                  text={economistIssueLabel.toUpperCase()}
+                  text={(economistIssueLabel || "Latest issue").toUpperCase()}
                   wrap="none"
                   ellipsis
                   listening={false}
