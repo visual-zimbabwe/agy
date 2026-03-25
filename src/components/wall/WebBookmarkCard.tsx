@@ -22,9 +22,9 @@ type WebBookmarkCardProps = {
 };
 
 const shellClassByTone: Record<NonNullable<WebBookmarkCardProps["tone"]>, string> = {
-  wall: "shadow-[0_18px_42px_rgba(0,0,0,0.18)]",
-  card: "shadow-[0_16px_34px_rgba(0,0,0,0.12)]",
-  detail: "shadow-[0_24px_56px_rgba(0,0,0,0.18)]",
+  wall: "shadow-[0_20px_42px_rgba(28,28,25,0.16)]",
+  card: "shadow-[0_16px_34px_rgba(28,28,25,0.12)]",
+  detail: "shadow-[0_24px_56px_rgba(28,28,25,0.16)]",
 };
 
 const actionLabelByStatus = {
@@ -64,56 +64,55 @@ export const WebBookmarkCard = ({ note, tone = "card", interactive = false, onOp
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-[24px] border border-[color:rgba(0,71,83,0.16)] bg-[var(--color-surface-elevated)] text-[var(--color-text)] ${shellClassByTone[tone]} ${interactive ? "cursor-pointer transition-transform duration-150 hover:-translate-y-0.5" : ""} ${className}`}
+      className={`group relative overflow-hidden rounded-[22px] border border-[rgba(223,192,184,0.6)] bg-[#fffdfa] text-[#1c1c19] ${shellClassByTone[tone]} ${interactive ? "cursor-pointer transition-transform duration-150 hover:-translate-y-0.5" : ""} ${className}`}
       style={{
-        background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(244,250,249,0.98) 100%)",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,243,238,0.98) 100%)",
         ...style,
       }}
       {...buttonProps}
     >
-
       {showExpandedImage ? (
-        <div className="relative h-32 overflow-hidden border-b border-[color:rgba(0,71,83,0.10)] bg-[color:rgba(0,71,83,0.08)]">
+        <div className="relative h-32 overflow-hidden bg-[#f0ede8]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.00),rgba(0,0,0,0.18))]" />
+          <img src={imageUrl} alt="" className="h-full w-full object-cover grayscale-[0.15]" loading="lazy" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(28,28,25,0.00),rgba(28,28,25,0.16))]" />
         </div>
       ) : null}
 
-      <div className="flex h-full flex-col p-4 pt-4">
+      <div className="flex h-full flex-col p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[color:rgba(0,71,83,0.78)]">
-              <span className="rounded-full border border-[color:rgba(0,71,83,0.14)] bg-[color:rgba(0,71,83,0.08)] px-2 py-1">{badge}</span>
+            <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgba(91,70,63,0.82)]">
+              <span className="rounded-full bg-[rgba(163,56,24,0.08)] px-2 py-1 text-[#a33818]">{badge}</span>
               <span>{hasRichMetadata ? siteName : domain || "Bookmark"}</span>
             </div>
           </div>
-          <span className="rounded-full border border-[color:rgba(0,71,83,0.14)] bg-[color:rgba(0,71,83,0.06)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:rgba(0,71,83,0.72)]">
+          <span className="rounded-full bg-[rgba(77,99,86,0.12)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#4d6356]">
             {contentActionLabel}
           </span>
         </div>
 
         <div className={`mt-3 ${showComfortableThumb ? "grid grid-cols-[1fr_92px] gap-3" : ""}`}>
           <div className="min-w-0">
-            <p className={`font-semibold leading-tight text-[color:rgba(5,44,51,0.96)] ${displaySize === "compact" ? "line-clamp-2 text-[15px]" : displaySize === "expanded" ? "line-clamp-3 text-[18px]" : "line-clamp-3 text-[17px]"}`}>
+            <p className={`font-[Newsreader] font-bold leading-tight text-[#1c1c19] ${displaySize === "compact" ? "line-clamp-2 text-[18px]" : displaySize === "expanded" ? "line-clamp-3 text-[22px]" : "line-clamp-3 text-[20px]"}`}>
               {title}
             </p>
             {displaySize !== "compact" ? (
-              <p className={`mt-2 text-[color:rgba(5,44,51,0.70)] ${displaySize === "expanded" ? "line-clamp-4 text-[13px] leading-6" : "line-clamp-3 text-[12px] leading-5"}`}>
+              <p className={`mt-2 text-[rgba(91,70,63,0.84)] ${displaySize === "expanded" ? "line-clamp-4 text-[13px] leading-6" : "line-clamp-3 text-[12px] leading-5"}`}>
                 {description}
               </p>
             ) : null}
           </div>
 
           {showComfortableThumb ? (
-            <div className="overflow-hidden rounded-[16px] border border-[color:rgba(0,71,83,0.10)] bg-[color:rgba(0,71,83,0.08)]">
+            <div className="overflow-hidden rounded-[16px] bg-[#ebe8e3]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+              <img src={imageUrl} alt="" className="h-full w-full object-cover grayscale-[0.1]" loading="lazy" />
             </div>
           ) : null}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-[color:rgba(0,71,83,0.10)] pt-3 text-[11px] text-[color:rgba(5,44,51,0.68)]">
+        <div className="mt-4 flex items-center justify-between gap-3 pt-3 text-[11px] text-[rgba(91,70,63,0.72)]">
           <div className="flex min-w-0 items-center gap-2">
             {faviconUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -124,24 +123,20 @@ export const WebBookmarkCard = ({ note, tone = "card", interactive = false, onOp
               </span>
             )}
             <div className="min-w-0">
-              <p className="truncate font-medium text-[color:rgba(5,44,51,0.84)]">{siteName}</p>
-              <p className="truncate text-[10px] uppercase tracking-[0.12em] text-[color:rgba(5,44,51,0.52)]">{domain}</p>
+              <p className="truncate font-medium text-[#1c1c19]">{siteName}</p>
+              <p className="truncate text-[10px] uppercase tracking-[0.12em] text-[rgba(91,70,63,0.56)]">{domain}</p>
             </div>
           </div>
           <div className="shrink-0 text-right">
-            <p className="font-medium text-[color:rgba(5,44,51,0.74)]">{updatedLabel}</p>
-            <p className="text-[10px] uppercase tracking-[0.12em] text-[color:rgba(5,44,51,0.48)]">
+            <p className="font-medium text-[rgba(91,70,63,0.78)]">{updatedLabel}</p>
+            <p className="text-[10px] uppercase tracking-[0.12em] text-[rgba(91,70,63,0.52)]">
               {bookmark?.status === "ready" ? "cached" : bookmark?.status === "error" ? "fallback" : "preview"}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-0 rounded-[24px] ring-1 ring-inset ring-[color:rgba(255,255,255,0.42)]" />
+      <div className="pointer-events-none absolute inset-0 rounded-[22px] ring-1 ring-inset ring-[rgba(255,255,255,0.42)]" />
     </div>
   );
 };
-
-
-
-

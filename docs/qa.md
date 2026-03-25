@@ -1230,3 +1230,4 @@ Expected:
 - Floating chrome stays inside the viewport and preserves access to tools, details, search, sync status, and zoom actions.
 - Existing wall interactions such as selection, drag, edit, panel toggles, and camera control continue to work behind the new frontend.
 
+
