@@ -168,6 +168,7 @@ export type EconomistNote = {
   sourceUrl?: string;
   coverUrl?: string;
   issueDate?: string;
+  mainStory?: string;
   fetchedAt?: number;
   lastSuccessAt?: number;
   error?: string;

@@ -82,6 +82,7 @@ export type EconomistCoverPayload = {
   sourceName: string;
   displayDate: string;
   displayLabel: string;
+  mainStory?: string;
   imageUrl: string;
   sourceUrl: string;
   fetchedAt: number;
@@ -94,6 +95,7 @@ export const defaultEconomistCoverPayload = (payload?: Partial<EconomistCoverPay
   sourceName: payload?.sourceName?.trim() || getEconomistMagazineSource(payload?.sourceId).sourceName,
   displayDate: payload?.displayDate?.trim() || "",
   displayLabel: payload?.displayLabel?.trim() || payload?.displayDate?.trim() || "Latest cover",
+  mainStory: payload?.mainStory?.trim() || payload?.displayLabel?.trim() || undefined,
   imageUrl: payload?.imageUrl?.trim() || "",
   sourceUrl: payload?.sourceUrl?.trim() || getEconomistMagazineSource(payload?.sourceId).sourceUrl,
   fetchedAt: typeof payload?.fetchedAt === "number" ? payload.fetchedAt : 0,
@@ -102,9 +104,7 @@ export const defaultEconomistCoverPayload = (payload?: Partial<EconomistCoverPay
 });
 
 export const formatEconomistNoteText = (payload: Pick<EconomistCoverPayload, "sourceName" | "displayLabel" | "displayDate">) => {
-  const title = payload.sourceName?.trim() || "The Economist";
-  const label = payload.displayLabel?.trim() || payload.displayDate?.trim();
-  return label ? `${title}\n${label}` : title;
+  return payload.sourceName?.trim() || "The Economist";
 };
 
 export const buildEconomistNote = (id: string, x: number, y: number, payload?: Partial<EconomistCoverPayload>): Note => {
@@ -115,7 +115,17 @@ export const buildEconomistNote = (id: string, x: number, y: number, payload?: P
     noteKind: "economist",
     text: formatEconomistNoteText(cover),
     quoteAuthor: cover.sourceUrl,
-    quoteSource: cover.displayDate || cover.displayLabel,
+    quoteSource: cover.displayDate || undefined,
+    economist: {
+      status: "ready",
+      year: cover.year,
+      sourceId: cover.sourceId,
+      sourceUrl: cover.sourceUrl,
+      coverUrl: cover.imageUrl || undefined,
+      issueDate: cover.displayDate || undefined,
+      mainStory: cover.mainStory,
+      fetchedAt: cover.fetchedAt,
+    },
     imageUrl: cover.imageUrl || undefined,
     textAlign: "left",
     textVAlign: "top",
@@ -169,4 +179,3 @@ export const shouldRefreshEconomistNote = (note: Note) => {
   const lastUpdated = typeof note.updatedAt === "number" ? note.updatedAt : 0;
   return Date.now() - lastUpdated > 15 * 60 * 1000;
 };
-

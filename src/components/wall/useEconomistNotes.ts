@@ -48,7 +48,7 @@ const applyEconomistPayload = (noteId: string, payload: EconomistCoverPayload) =
   useWallStore.getState().patchNote(noteId, {
     text: formatEconomistNoteText(payload),
     quoteAuthor: payload.sourceUrl,
-    quoteSource: payload.displayDate || payload.displayLabel,
+    quoteSource: payload.displayDate || undefined,
     imageUrl: payload.imageUrl,
     tags: [payload.sourceId, "cover", "magazine"],
     economist: {
@@ -58,6 +58,7 @@ const applyEconomistPayload = (noteId: string, payload: EconomistCoverPayload) =
       sourceUrl: payload.sourceUrl,
       coverUrl: payload.imageUrl,
       issueDate: payload.displayDate,
+      mainStory: payload.mainStory,
       fetchedAt: payload.fetchedAt,
       lastSuccessAt: Date.now(),
     },
@@ -98,6 +99,7 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
         sourceName: payload.sourceName,
         displayDate: payload.displayDate,
         displayLabel: payload.displayLabel,
+        mainStory: payload.mainStory,
         imageUrl: payload.imageUrl,
         sourceUrl: payload.sourceUrl,
         fetchedAt: Date.now(),
@@ -129,27 +131,21 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
       }
       const sourceId = getEconomistNoteSourceId(note) ?? "economist";
       const payload = await fetchEconomistCover({ sourceId, force: options?.force, year: options?.year });
-      
+
       const { items, ...mainPayload } = payload;
       applyEconomistPayload(noteId, mainPayload);
 
       if (items && items.length > 0) {
         const { beginHistoryGroup, endHistoryGroup } = useWallStore.getState();
         const existingNotes = getEconomistNotes().filter((n) => getEconomistNoteSourceId(n) === sourceId);
-        
+
         beginHistoryGroup();
         try {
           const distinctItems = items.filter((item) => item.imageUrl && item.imageUrl !== mainPayload.imageUrl);
           distinctItems.forEach((item: EconomistCoverPayload) => {
-            // Check if we already have a note for this specific image url
             if (existingNotes.some((n) => n.imageUrl === item.imageUrl)) {
               return;
             }
-            // If the user already has enough notes for this source, don't blindly create more,
-            // we will let refreshAllEconomistNotes or subsequent manual refreshes map them
-            // Wait, if it's a new edition, the images are DIFFERENT, so existingNotes WILL NOT have the image url.
-            // But we don't want to create 10 NEW notes if they already have 11 notes total!
-            // Actually, if we just want to avoid duplicates when the user clicks 'refresh', matching by position in the list is better.
           });
         } finally {
           endHistoryGroup();
@@ -187,7 +183,7 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
         Array.from(notesBySource.entries()).map(async ([sourceId, groupedNotes]) => {
           const payload = await fetchEconomistCover({ sourceId, force });
           const { items, ...mainPayload } = payload;
-          
+
           const distinctCovers = [mainPayload];
           if (items) {
             for (const item of items) {

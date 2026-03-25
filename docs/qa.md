@@ -1144,7 +1144,7 @@ Expected:
 ## Economist Cover Note (`/wall`) (2026-03-20)
 1. Open `/wall`, open `Tools`, and click `Magazine Covers`.
 2. Verify five warm-paper magazine-cover notes appear near viewport center, one each for `The Economist`, `Barron's`, `The New Yorker`, `Newsweek`, and `Forbes`.
-3. Verify each note loads a cover image and shows the correct magazine title plus issue label instead of all notes collapsing to `The Economist`.
+3. Verify each note loads a cover image, does not repeat the masthead at the top of the cover, shows the main story above the magazine name at bottom left, and shows the issue date only once instead of all notes collapsing to `The Economist`.
 4. Open the command palette, run `Create magazine cover notes`, and verify another full set of magazine-cover notes is created near viewport center.
 5. Press `Shift + M` and verify the keyboard shortcut creates another full set of magazine-cover notes.
 6. Delete one source from the multi-cover set, then convert an existing standard note through `Details > Note Type > Magazine Cover` and verify it recreates the first missing magazine source instead of defaulting back to Economist.

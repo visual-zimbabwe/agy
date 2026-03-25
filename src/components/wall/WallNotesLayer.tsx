@@ -558,8 +558,8 @@ export const WallNotesLayer = ({
 
         const economistLines = isEconomist ? noteView.text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : [];
         const economistMasthead = economistLines[0] || "Magazine";
-        const economistIssueLabel = noteView.quoteSource?.trim() || economistLines[1] || "Latest cover";
-        const economistSubhead = economistLines.slice(1).join("\n") || "Curated issue";
+        const economistIssueLabel = noteView.economist?.issueDate?.trim() || noteView.quoteSource?.trim() || "Latest issue";
+        const economistSubhead = noteView.economist?.mainStory?.trim() || "Curated issue";
 
         return (
           <Group
@@ -1114,20 +1114,6 @@ export const WallNotesLayer = ({
                     listening={false}
                   />
                 )}
-                <Rect x={0} y={0} width={noteView.w} height={56} fill="rgba(28,28,25,0.08)" cornerRadius={[noteCornerRadius, noteCornerRadius, 0, 0]} listening={false} />
-                <Text
-                  x={16}
-                  y={14}
-                  width={Math.max(0, noteView.w - 32)}
-                  fontSize={26}
-                  fontFamily="Newsreader"
-                  fontStyle="bold"
-                  fill="#FFFCF8"
-                  text={economistMasthead.toUpperCase()}
-                  wrap="none"
-                  ellipsis
-                  listening={false}
-                />
                 <Rect
                   x={0}
                   y={Math.max(0, noteView.h - 136)}
@@ -1152,7 +1138,7 @@ export const WallNotesLayer = ({
                   x={16}
                   y={Math.max(0, noteView.h - 94)}
                   width={Math.max(0, noteView.w - 32)}
-                  height={56}
+                  height={48}
                   fontSize={18}
                   fontStyle="bold"
                   fill={atelierPalette.text}
@@ -1163,11 +1149,24 @@ export const WallNotesLayer = ({
                 />
                 <Text
                   x={16}
-                  y={Math.max(0, noteView.h - 28)}
+                  y={Math.max(0, noteView.h - 42)}
+                  width={Math.max(0, noteView.w - 32)}
+                  fontSize={18}
+                  fontFamily="Newsreader"
+                  fontStyle="bold"
+                  fill={atelierPalette.text}
+                  text={economistMasthead.toUpperCase()}
+                  wrap="none"
+                  ellipsis
+                  listening={false}
+                />
+                <Text
+                  x={16}
+                  y={Math.max(0, noteView.h - 22)}
                   width={Math.max(0, noteView.w - 32)}
                   fontSize={9}
                   fill={atelierPalette.quietText}
-                  text={economistMasthead || "Magazine Archive"}
+                  text="SOURCE: MAGAZINE API"
                   wrap="none"
                   ellipsis
                   listening={false}

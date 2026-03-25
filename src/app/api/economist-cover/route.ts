@@ -14,6 +14,7 @@ type EconomistApiResponse = {
   source_name?: string;
   display_date?: string;
   display_label?: string;
+  main_story?: string;
   image_url?: string;
   source_url?: string;
   items?: EconomistApiResponse[];
@@ -46,12 +47,12 @@ export async function GET(request: Request) {
     const response = await fetch(upstreamUrl, { cache: "no-store" });
     if (!response.ok) {
       if (sourceId === "newsweek" && response.status === 502) {
-        // Fallback for current newsweek scraper issues upstream
         return NextResponse.json({
           sourceId,
           sourceName: "Newsweek",
           displayDate: "2026-03-27",
           displayLabel: "2026-03-27",
+          mainStory: undefined,
           imageUrl: "https://assets.newsweek.com/wp-content/uploads/2026/03/13_260327_Cover_1800%C3%972400_.jpg?w=1600&quality=80&webp=1",
           sourceUrl: fallbackSource.sourceUrl,
         });
@@ -69,6 +70,7 @@ export async function GET(request: Request) {
       sourceName: clean(payload.source_name) || fallbackSource.sourceName,
       displayDate: clean(payload.display_date) || "",
       displayLabel: clean(payload.display_label) || clean(payload.display_date) || "Latest cover",
+      mainStory: clean(payload.main_story) || clean(payload.display_label) || undefined,
       imageUrl,
       sourceUrl: clean(payload.source_url) || fallbackSource.sourceUrl,
       items: payload.items?.map((item) => ({
@@ -76,6 +78,7 @@ export async function GET(request: Request) {
         sourceName: clean(item.source_name) || clean(payload.source_name) || fallbackSource.sourceName,
         displayDate: clean(item.display_date) || "",
         displayLabel: clean(item.display_label) || clean(item.display_date) || "Latest cover",
+        mainStory: clean(item.main_story) || clean(item.display_label) || undefined,
         imageUrl: clean(item.image_url),
         sourceUrl: clean(item.source_url) || clean(payload.source_url) || fallbackSource.sourceUrl,
       })),

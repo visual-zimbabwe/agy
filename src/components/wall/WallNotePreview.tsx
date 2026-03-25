@@ -409,8 +409,9 @@ const ThroneRenderer = ({ note, width, height, tone }: RendererProps) => (
 
 const EconomistRenderer = ({ note, width, height, tone }: RendererProps) => {
   const lines = splitNoteText(note.text);
-  const masthead = (lines[0] || "Magazine").toUpperCase();
-  const subhead = lines.slice(1).join(" ") || "The Infinite Canvas: A New Era of Spatial Thinking";
+  const masthead = lines[0] || "Magazine";
+  const dateLabel = note.economist?.issueDate?.trim() || note.quoteSource?.trim() || "Latest issue";
+  const subhead = note.economist?.mainStory?.trim() || "The Infinite Canvas: A New Era of Spatial Thinking";
   return (
     <div className="relative" style={{ width, height }}>
       <div className="absolute inset-0 translate-x-3 rotate-[6deg] rounded-[16px] bg-[#ebe8e3] shadow-[0_12px_28px_rgba(28,28,25,0.12)]" />
@@ -422,21 +423,22 @@ const EconomistRenderer = ({ note, width, height, tone }: RendererProps) => {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={note.imageUrl} alt={masthead} className="h-full w-full object-cover" loading="lazy" />
             ) : null}
-            <div className="absolute left-4 top-4 font-[Newsreader] text-[28px] font-black text-white drop-shadow-md">{masthead}</div>
           </div>
           <div className="flex flex-1 flex-col justify-between p-4" style={{ background: atelier.paper }}>
             <div>
-              <MetaLabel color={atelier.terracotta}>{note.quoteSource?.trim() || "Latest cover"}</MetaLabel>
+              <MetaLabel color={atelier.terracotta}>{dateLabel}</MetaLabel>
               <p className="mt-2 text-[15px] font-bold leading-tight" style={{ color: atelier.ink }}>{subhead}</p>
             </div>
-            <p className="text-[10px] uppercase tracking-[0.16em]" style={{ color: atelier.quiet }}>Source: Magazine API</p>
+            <div>
+              <p className="font-[Newsreader] text-[20px] font-black uppercase leading-none" style={{ color: atelier.ink }}>{masthead}</p>
+              <p className="mt-1 text-[10px] uppercase tracking-[0.16em]" style={{ color: atelier.quiet }}>Source: Magazine API</p>
+            </div>
           </div>
         </div>
       </NoteShell>
     </div>
   );
 };
-
 const CodeRenderer = ({ note, width, height, tone }: RendererProps) => {
   const text = stripWikiLinkMarkup(note.text);
   const match = fileNameMatch(text);
