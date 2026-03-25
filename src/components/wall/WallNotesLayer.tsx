@@ -508,6 +508,16 @@ export const WallNotesLayer = ({
         const imageCaption = isApod ? getApodCaption(noteView) : noteView.text.trim();
         const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, imageCaption, noteImage) : null;
         const strippedNoteText = stripWikiLinkMarkup(noteView.text);
+        const noteLines = strippedNoteText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        const standardTitle = noteLines.length > 1 ? noteLines[0] ?? "" : "";
+        const standardBody = noteLines.length > 1 ? noteLines.slice(1).join("\n") : strippedNoteText;
+        const looksLikeCode = /(^|\n)\s*(def |const |let |function |class |import |from |<\w)|=>|\{\s*$|console\.|return\s+/m.test(strippedNoteText);
+        const fileNameMatch = strippedNoteText.match(/([\w-]+\.(pdf|docx?|txt|png|jpe?g|zip|csv|md))/i);
+        const looksLikeFile = Boolean(fileNameMatch);
+        const fileLabel = fileNameMatch?.[1] ?? "Document";
+        const fileMeta = strippedNoteText.replace(fileLabel, "").trim() || "File note";
+        const journalTitle = noteLines[0] ?? "Dear Wall,";
+        const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
@@ -1324,19 +1334,26 @@ export const WallNotesLayer = ({
             )}
             {isCurrency && (
               <>
-                <Rect x={10} y={10} width={Math.max(1, noteView.w - 20)} height={32} cornerRadius={12} fill="rgba(255,255,255,0.08)" listening={false} />
-                <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={11} fontStyle="bold" fill="#E6E0FF" text={CURRENCY_NOTE_TITLE} listening={false} />
-                <Text x={16} y={56} width={Math.max(0, noteView.w - 32)} fontSize={22} fontStyle="bold" fill="#FFFFFF" text={`1 ${currencyState?.baseCurrency ?? "USD"} = ${(currencyState?.usdRate ?? 1).toFixed((currencyState?.usdRate ?? 1) >= 1 ? 2 : 4)} USD`} listening={false} />
-                <Text x={16} y={94} width={Math.max(0, noteView.w - 32)} fontSize={15} fill="#DDD6FE" text={`1000 ${(currencyState?.baseCurrency ?? "USD")} = ${(currencyState?.thousandValueUsd ?? 1000).toFixed(2)} USD`} listening={false} />
-                <Text x={16} y={124} width={Math.max(0, noteView.w - 32)} fontSize={13} fill="#DDD6FE" text={`${currencyState?.amountInput || "0"} ${(currencyState?.baseCurrency ?? "USD")} -> ${currencyAmountUsd.toFixed(2)} USD`} listening={false} />
-                <Text x={16} y={Math.max(148, noteView.h - 46)} width={Math.max(0, noteView.w - 32)} fontSize={11} fill="#C4B5FD" text={`${currencyTrendGlyph} ${(currencyState?.rateSource ?? "default").toUpperCase()} • ${(currencyState?.detectedCountryName ?? "USD fallback").slice(0, 30)}`} listening={false} />
-                {currencyState?.error && (
-                  <Text x={16} y={Math.max(168, noteView.h - 24)} width={Math.max(0, noteView.w - 32)} fontSize={10} fill="#FECACA" text={currencyState.error} ellipsis listening={false} />
-                )}
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={atelierPalette.paper} listening={false} />
+                <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={9} fontStyle="bold" fill={colorWithAlpha(atelierPalette.quietText, 0.75)} text="CURRENCY PAIR" listening={false} />
+                <Text x={18} y={36} width={Math.max(0, noteView.w - 64)} fontSize={20} fontStyle="bold" fill={atelierPalette.text} text={`${currencyState?.baseCurrency ?? "USD"} / USD`} listening={false} />
+                <Rect x={Math.max(18, noteView.w - 58)} y={34} width={40} height={16} cornerRadius={8} fill={colorWithAlpha(atelierPalette.forest, 0.14)} listening={false} />
+                <Text x={Math.max(18, noteView.w - 58)} y={39} width={40} align="center" fontSize={8} fontStyle="bold" fill={atelierPalette.forest} text={`${currencyTrendGlyph} ${(currencyState?.trend ?? "flat").toUpperCase()}`} listening={false} />
+                <Text x={18} y={72} width={84} fontSize={32} fontStyle="bold" fill={atelierPalette.text} text={(currencyState?.usdRate ?? 1).toFixed((currencyState?.usdRate ?? 1) >= 1 ? 2 : 4)} listening={false} />
+                <Text x={104} y={85} width={Math.max(0, noteView.w - 122)} fontSize={11} fill={atelierPalette.quietText} text={`USD per 1 ${currencyState?.baseCurrency ?? "USD"}`} listening={false} />
+                <Line points={[18, 122, 52, 114, 86, 126, 120, 106, 154, 118, 188, 96, 222, 110, Math.max(240, noteView.w - 18), 102]} stroke={colorWithAlpha(atelierPalette.forest, 0.32)} strokeWidth={2} bezier listening={false} />
+                <Text x={18} y={Math.max(18, noteView.h - 28)} width={Math.max(0, noteView.w - 98)} fontSize={9} fill={colorWithAlpha(atelierPalette.quietText, 0.72)} text={`SOURCE: ${(currencyState?.rateSource ?? "default").toUpperCase()}`} listening={false} />
+                <Text x={Math.max(100, noteView.w - 88)} y={Math.max(18, noteView.h - 28)} width={70} align="right" fontSize={9} fill={colorWithAlpha(atelierPalette.quietText, 0.72)} text="updated now" listening={false} />
               </>
             )}
             {isApiQuoteNote && (
               <>
+                {isJoker && (
+                  <Text x={Math.max(18, noteView.w - 74)} y={8} width={56} align="center" fontSize={40} fill={colorWithAlpha(atelierPalette.gold, 0.18)} text=":)" listening={false} />
+                )}
+                {isThrone && (
+                  <Text x={Math.max(18, noteView.w - 42)} y={10} width={24} align="center" fontSize={18} fill={colorWithAlpha(atelierPalette.gold, 0.9)} text="♜" listening={false} />
+                )}
                 <Rect
                   x={10}
                   y={10}
@@ -1444,7 +1461,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && (
+            {!isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && !isJournal && !isQuote && !looksLikeCode && !looksLikeFile && (
               <Text
                 x={textX}
                 y={textY}
@@ -1471,6 +1488,45 @@ export const WallNotesLayer = ({
                   }
                 }}
               />
+            )}
+            {isJournal && (
+              <>
+                <Text
+                  x={journalDateX}
+                  y={18}
+                  width={journalDateWidth}
+                  fontSize={10}
+                  fontStyle="bold"
+                  fill={colorWithAlpha(atelierPalette.quietText, 0.7)}
+                  text={journalDateLabel.toUpperCase()}
+                  listening={false}
+                />
+                <Text
+                  x={18}
+                  y={46}
+                  width={Math.max(0, noteView.w - 36)}
+                  fontSize={22}
+                  fontFamily="Newsreader"
+                  fontStyle="italic"
+                  fill={atelierPalette.text}
+                  text={journalTitle}
+                  ellipsis
+                  listening={false}
+                />
+                <Text
+                  x={18}
+                  y={84}
+                  width={Math.max(0, noteView.w - 36)}
+                  height={Math.max(0, noteView.h - 104)}
+                  fontSize={16}
+                  fontFamily="Newsreader"
+                  lineHeight={1.45}
+                  fill={colorWithAlpha(atelierPalette.text, 0.82)}
+                  text={journalBody}
+                  ellipsis
+                  listening={false}
+                />
+              </>
             )}
             {isQuote && !isEisenhower && (
               <Text
@@ -1527,6 +1583,42 @@ export const WallNotesLayer = ({
                   ellipsis
                   listening={false}
                 />
+              </>
+            )}
+            {looksLikeCode && (
+              <>
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={14} fill="#1E1E1E" listening={false} />
+                <Rect x={0} y={0} width={noteView.w} height={36} cornerRadius={[14, 14, 0, 0]} fill="#252526" listening={false} />
+                <Text x={16} y={14} width={72} fontSize={9} fill="#D4D4D4" text="code note" listening={false} />
+                <Text x={Math.max(18, noteView.w - 104)} y={14} width={88} align="right" fontSize={9} fill="#858585" text="main.py" listening={false} />
+                <Text
+                  x={16}
+                  y={52}
+                  width={Math.max(0, noteView.w - 32)}
+                  height={Math.max(0, noteView.h - 68)}
+                  fontSize={12}
+                  fontFamily="JetBrains Mono"
+                  lineHeight={1.45}
+                  fill="#D4D4D4"
+                  text={strippedNoteText}
+                  ellipsis
+                  listening={false}
+                />
+              </>
+            )}
+            {looksLikeFile && (
+              <>
+                <Rect x={16} y={Math.max(20, noteView.h / 2 - 26)} width={Math.max(1, noteView.w - 32)} height={52} cornerRadius={12} fill="#FFFFFF" opacity={0.96} listening={false} />
+                <Rect x={28} y={Math.max(28, noteView.h / 2 - 18)} width={28} height={28} cornerRadius={8} fill={colorWithAlpha(atelierPalette.terracotta, 0.12)} listening={false} />
+                <Text x={34} y={Math.max(34, noteView.h / 2 - 12)} width={16} align="center" fontSize={14} fontStyle="bold" fill={atelierPalette.terracotta} text="D" listening={false} />
+                <Text x={68} y={Math.max(28, noteView.h / 2 - 18)} width={Math.max(0, noteView.w - 132)} fontSize={12} fontStyle="bold" fill={atelierPalette.text} text={fileLabel} ellipsis listening={false} />
+                <Text x={68} y={Math.max(43, noteView.h / 2 - 3)} width={Math.max(0, noteView.w - 132)} fontSize={10} fill={atelierPalette.quietText} text={fileMeta.toUpperCase()} ellipsis listening={false} />
+              </>
+            )}
+            {standardTitle && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone && (
+              <>
+                <Text x={16} y={18} width={Math.max(0, noteView.w - 32)} fontSize={16} fontStyle="bold" fill={atelierPalette.text} text={standardTitle} ellipsis listening={false} />
+                <Text x={16} y={46} width={Math.max(0, noteView.w - 32)} height={Math.max(0, noteView.h - 62 - wikiFooterHeight)} fontSize={12} lineHeight={1.45} fill={atelierPalette.mutedText} text={standardBody} ellipsis listening={false} />
               </>
             )}
             {isQuote && quoteAttribution && !isEisenhower && (
@@ -1694,6 +1786,7 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 
 
 
