@@ -168,6 +168,16 @@ const getNoteStrokeColor = ({
   return atelierPalette.paperStroke;
 };
 
+const getNoteCornerRadius = (note: Note) => {
+  if (note.noteKind === "economist") {
+    return 12;
+  }
+  if (note.noteKind === "quote" || note.noteKind === "journal") {
+    return 16;
+  }
+  return 14;
+};
+
 type WallNotesLayerProps = {
   visibleNotes: Note[];
   activeSelectedNoteIds: string[];
@@ -448,6 +458,7 @@ export const WallNotesLayer = ({
         const isCurrency = isCurrencyNote(noteView);
         const isBookmark = noteView.noteKind === "web-bookmark";
         const isApod = isApodNote(noteView);
+        const isEconomist = noteView.noteKind === "economist";
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
@@ -486,9 +497,13 @@ export const WallNotesLayer = ({
         const bookmarkFavicon = bookmarkFaviconUrl ? loadedImagesByUrl[bookmarkFaviconUrl] : undefined;
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
         const isImageNote = Boolean(imageUrl);
+        const noteCornerRadius = getNoteCornerRadius(noteView);
+        const isPaperShellNote = !isCurrency && !isJoker && !isThrone;
+        const baseShellFill = isThrone ? "#2E2A28" : isJoker ? "#F0CB88" : isCurrency ? CURRENCY_NOTE_DEFAULTS.color : atelierPalette.paper;
         const defaultTextColor =
-          isQuote || isJournal || isBookmark || isApod || isImageNote || isPrivate || isPoetry ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
+          isQuote || isJournal || isBookmark || isApod || isImageNote || isPrivate || isPoetry || isEconomist ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
         const resolvedTextColor = noteView.textColor ?? defaultTextColor;
+        const paperTintOpacity = isPaperShellNote ? (isPoetry ? 0.04 : isQuote ? 0.06 : isVocabulary ? 0.14 : 0.1) : 0;
         const isApodMediaCard = isApod;
         const imageCaption = isApod ? getApodCaption(noteView) : noteView.text.trim();
         const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, imageCaption, noteImage) : null;
@@ -541,6 +556,10 @@ export const WallNotesLayer = ({
         const journalLineStartY = journalFirstLineY;
         const journalLineCount = isJournal ? Math.max(0, Math.floor((noteView.h - journalLineStartY - 18) / journalLineGap) + 1) : 0;
         const journalLineYs = Array.from({ length: journalLineCount }, (_, index) => journalLineStartY + index * journalLineGap);
+        const economistLines = isEconomist ? noteView.text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : [];
+        const economistMasthead = economistLines[0] || "Magazine";
+        const economistIssueLabel = noteView.quoteSource?.trim() || economistLines[1] || "Latest cover";
+        const economistSubhead = economistLines.slice(1).join("\n") || "Curated issue";
 
         return (
           <Group
@@ -1037,6 +1056,122 @@ export const WallNotesLayer = ({
                   </>
                 )}
               </>
+            ) : isEconomist && imageNoteLayout ? (
+              <>
+                <Rect
+                  x={16}
+                  y={18}
+                  width={Math.max(1, noteView.w - 16)}
+                  height={Math.max(1, noteView.h - 10)}
+                  cornerRadius={10}
+                  fill="rgba(28,28,25,0.08)"
+                  rotation={5}
+                  listening={false}
+                />
+                <Rect
+                  x={6}
+                  y={8}
+                  width={Math.max(1, noteView.w - 8)}
+                  height={Math.max(1, noteView.h - 2)}
+                  cornerRadius={10}
+                  fill="rgba(255,255,255,0.76)"
+                  stroke="rgba(223,192,184,0.42)"
+                  strokeWidth={0.9}
+                  rotation={-2.5}
+                  listening={false}
+                />
+                <Rect
+                  width={noteView.w}
+                  height={noteView.h}
+                  cornerRadius={noteCornerRadius}
+                  fill={atelierPalette.paper}
+                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.terracotta })}
+                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
+                  shadowColor={atelierPalette.paperShadow}
+                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
+                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
+                  shadowOffsetY={isDragging ? 7 : 3}
+                />
+                {noteImage ? (
+                  <KonvaImage
+                    x={0}
+                    y={0}
+                    width={noteView.w}
+                    height={Math.max(1, noteView.h * 0.72)}
+                    image={noteImage}
+                    cornerRadius={[noteCornerRadius, noteCornerRadius, 0, 0]}
+                    listening={false}
+                  />
+                ) : (
+                  <Rect
+                    x={0}
+                    y={0}
+                    width={noteView.w}
+                    height={Math.max(1, noteView.h * 0.72)}
+                    cornerRadius={[noteCornerRadius, noteCornerRadius, 0, 0]}
+                    fill="#DDD6CE"
+                    listening={false}
+                  />
+                )}
+                <Rect x={0} y={0} width={noteView.w} height={56} fill="rgba(28,28,25,0.08)" cornerRadius={[noteCornerRadius, noteCornerRadius, 0, 0]} listening={false} />
+                <Text
+                  x={16}
+                  y={14}
+                  width={Math.max(0, noteView.w - 32)}
+                  fontSize={26}
+                  fontFamily="Newsreader"
+                  fontStyle="bold"
+                  fill="#FFFCF8"
+                  text={economistMasthead.toUpperCase()}
+                  wrap="none"
+                  ellipsis
+                  listening={false}
+                />
+                <Rect
+                  x={0}
+                  y={Math.max(0, noteView.h - 136)}
+                  width={noteView.w}
+                  height={136}
+                  fill="rgba(255,252,248,0.97)"
+                  listening={false}
+                />
+                <Text
+                  x={16}
+                  y={Math.max(0, noteView.h - 118)}
+                  width={Math.max(0, noteView.w - 32)}
+                  fontSize={10}
+                  fontStyle="bold"
+                  fill={atelierPalette.terracotta}
+                  text={economistIssueLabel.toUpperCase()}
+                  wrap="none"
+                  ellipsis
+                  listening={false}
+                />
+                <Text
+                  x={16}
+                  y={Math.max(0, noteView.h - 94)}
+                  width={Math.max(0, noteView.w - 32)}
+                  height={56}
+                  fontSize={18}
+                  fontStyle="bold"
+                  fill={atelierPalette.text}
+                  text={economistSubhead}
+                  lineHeight={1.15}
+                  ellipsis
+                  listening={false}
+                />
+                <Text
+                  x={16}
+                  y={Math.max(0, noteView.h - 28)}
+                  width={Math.max(0, noteView.w - 32)}
+                  fontSize={9}
+                  fill={atelierPalette.quietText}
+                  text={economistMasthead || "Magazine Archive"}
+                  wrap="none"
+                  ellipsis
+                  listening={false}
+                />
+              </>
             ) : isImageNote && imageNoteLayout ? (
               <>
                 <Rect
@@ -1142,35 +1277,50 @@ export const WallNotesLayer = ({
                 <Rect
                   width={noteView.w}
                   height={noteView.h}
-                  cornerRadius={14}
-                  fill={resolvedNoteColor}
-                  stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
-                  strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
-                  shadowColor="#101010"
-                  shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
-                  shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
+                  cornerRadius={noteCornerRadius}
+                  fill={atelierPalette.paper}
+                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.forest })}
+                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
+                  shadowColor={atelierPalette.paperShadow}
+                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
+                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
-                <Rect x={12} y={12} width={Math.max(1, noteView.w - 24)} height={34} cornerRadius={12} fill="rgba(255,255,255,0.65)" listening={false} />
-                <Text x={20} y={22} width={Math.max(0, noteView.w - 40)} fontSize={11} fontStyle="bold" fill="#475569" text="PROTECTED" listening={false} />
-                <Text x={16} y={62} width={Math.max(0, noteView.w - 32)} fontSize={18} fontStyle="bold" fill={resolvedTextColor} text={privateNoteTitle(noteView)} listening={false} />
-                <Text x={16} y={92} width={Math.max(0, noteView.w - 32)} height={Math.max(0, noteView.h - 138)} fontSize={12} lineHeight={1.45} fill="#475569" text="Content stays hidden on the wall and requires the note password to unlock it." listening={false} />
-                <Rect x={16} y={Math.max(16, noteView.h - 38)} width={Math.min(150, Math.max(90, noteView.w - 32))} height={20} cornerRadius={10} fill="rgba(15,23,42,0.08)" listening={false} />
-                <Text x={24} y={Math.max(20, noteView.h - 33)} width={Math.min(142, Math.max(82, noteView.w - 40))} fontSize={10} fontStyle="bold" fill="#334155" text="Password required" listening={false} />
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={colorWithAlpha(atelierPalette.forest, 0.06)} listening={false} />
+                <Rect x={16} y={16} width={Math.max(1, noteView.w - 32)} height={28} cornerRadius={14} fill="rgba(77,99,86,0.12)" listening={false} />
+                <Text x={16} y={24} width={Math.max(0, noteView.w - 32)} align="center" fontSize={10} fontStyle="bold" fill={atelierPalette.forest} text="PROTECTED" listening={false} />
+                <Text x={20} y={64} width={Math.max(0, noteView.w - 40)} fontSize={20} fontFamily="Newsreader" fontStyle="italic" fill={atelierPalette.text} text={privateNoteTitle(noteView)} listening={false} />
+                <Text x={20} y={104} width={Math.max(0, noteView.w - 40)} height={Math.max(0, noteView.h - 160)} fontSize={12} lineHeight={1.55} fill={atelierPalette.mutedText} text="Content stays hidden on the wall and only reveals after you unlock this note in the current session." listening={false} />
+                <Rect x={20} y={Math.max(20, noteView.h - 40)} width={Math.min(156, Math.max(104, noteView.w - 40))} height={22} cornerRadius={11} fill="rgba(28,28,25,0.07)" listening={false} />
+                <Text x={30} y={Math.max(26, noteView.h - 34)} width={Math.min(136, Math.max(84, noteView.w - 60))} fontSize={10} fontStyle="bold" fill={atelierPalette.text} text="Passphrase required" listening={false} />
               </>
             ) : (
-              <Rect
-                width={noteView.w}
-                height={noteView.h}
-                cornerRadius={14}
-                fill={resolvedNoteColor}
-                stroke={isHighlighted ? "#f59e0b" : isSelected ? "#0f172a" : isHovered ? "#52525b" : "#d4d4d8"}
-                strokeWidth={isHighlighted ? 2.6 : isSelected ? 2.4 : isHovered ? 1.4 : 1}
-                shadowColor="#101010"
-                shadowBlur={isFlashing ? 30 : isDragging ? 26 : 12}
-                shadowOpacity={isFlashing ? 0.36 : isDragging ? 0.28 : 0.14}
-                shadowOffsetY={isDragging ? 7 : 3}
-              />
+              <>
+                <Rect
+                  width={noteView.w}
+                  height={noteView.h}
+                  cornerRadius={noteCornerRadius}
+                  fill={baseShellFill}
+                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: isThrone ? atelierPalette.gold : isJoker ? atelierPalette.terracotta : resolvedNoteColor })}
+                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
+                  shadowColor={atelierPalette.paperShadow}
+                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
+                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
+                  shadowOffsetY={isDragging ? 7 : 3}
+                />
+                {isPaperShellNote && (
+                  <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={resolvedNoteColor} opacity={paperTintOpacity} listening={false} />
+                )}
+                {isQuote && (
+                  <Rect x={0} y={0} width={4} height={noteView.h} cornerRadius={[noteCornerRadius, 0, 0, noteCornerRadius]} fill={atelierPalette.terracotta} listening={false} />
+                )}
+                {isPoetry && (
+                  <>
+                    <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} align="center" fontSize={9} fontStyle="bold" fill={colorWithAlpha(atelierPalette.gold, 0.72)} text="SOURCE: POETRY API" listening={false} />
+                    <Line points={[Math.max(24, noteView.w * 0.24), Math.max(24, noteView.h - 28), Math.min(noteView.w - 24, noteView.w * 0.76), Math.max(24, noteView.h - 28)]} stroke={colorWithAlpha(atelierPalette.paperStrokeStrong, 0.18)} strokeWidth={1} listening={false} />
+                  </>
+                )}
+              </>
             )}
             {isCurrency && (
               <>
@@ -1223,7 +1373,7 @@ export const WallNotesLayer = ({
               <Rect
                 width={noteView.w}
                 height={noteView.h}
-                cornerRadius={14}
+                cornerRadius={noteCornerRadius}
                 stroke="#fbbf24"
                 strokeWidth={1.2}
                 opacity={0.8}
@@ -1246,7 +1396,7 @@ export const WallNotesLayer = ({
               <Rect
                 width={noteView.w}
                 height={noteView.h}
-                cornerRadius={14}
+                cornerRadius={noteCornerRadius}
                 fill="#ef4444"
                 opacity={0.08 + recencyIntensity(noteView.updatedAt, heatmapReferenceTs) * 0.35}
               />
@@ -1289,12 +1439,12 @@ export const WallNotesLayer = ({
               <Rect
                 width={noteView.w}
                 height={noteView.h}
-                cornerRadius={14}
+                cornerRadius={noteCornerRadius}
                 fill="#ffffff"
                 opacity={colorWashOpacity}
               />
             )}
-            {!isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && (
+            {!isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && (
               <Text
                 x={textX}
                 y={textY}
@@ -1304,8 +1454,8 @@ export const WallNotesLayer = ({
                 fontFamily={isQuote || isPoetry ? "Newsreader" : noteTextFontFamily}
                 fontStyle={isQuote ? "italic" : isCanon ? "bold" : "normal"}
                 fill={resolvedTextColor}
-                lineHeight={isJournal ? 1.72 : noteTextStyle.lineHeight}
-                align={isVocabulary ? "center" : (noteView.textAlign ?? "left")}
+                lineHeight={isJournal ? 1.72 : isPoetry ? 1.6 : noteTextStyle.lineHeight}
+                align={isVocabulary || isPoetry ? "center" : (noteView.textAlign ?? "left")}
                 verticalAlign={noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign}
                 text={noteTextContent}
                 onClick={(event) => {
@@ -1392,7 +1542,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {wikiLinks.length > 0 && !isApodMediaCard && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && !isPoetry && (
+            {wikiLinks.length > 0 && !isApodMediaCard && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && !isPoetry && !isEconomist && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;
@@ -1502,7 +1652,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry &&
+            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isEconomist &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -1527,7 +1677,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && overflowTags > 0 && (
+            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isEconomist && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}
@@ -1544,6 +1694,14 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
+
+
+
+
+
+
+
 
 
 
