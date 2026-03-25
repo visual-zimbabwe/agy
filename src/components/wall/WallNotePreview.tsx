@@ -410,7 +410,6 @@ const ThroneRenderer = ({ note, width, height, tone }: RendererProps) => (
 const EconomistRenderer = ({ note, width, height, tone }: RendererProps) => {
   const lines = splitNoteText(note.text);
   const masthead = lines[0] || "Magazine";
-  const dateLabel = note.economist?.issueDate?.trim() || note.quoteSource?.trim() || "Latest issue";
   const subhead = note.economist?.mainStory?.trim() || "The Infinite Canvas: A New Era of Spatial Thinking";
   return (
     <div className="relative" style={{ width, height }}>
@@ -426,8 +425,7 @@ const EconomistRenderer = ({ note, width, height, tone }: RendererProps) => {
           </div>
           <div className="flex flex-1 flex-col justify-between p-4" style={{ background: atelier.paper }}>
             <div>
-              <MetaLabel color={atelier.terracotta}>{dateLabel}</MetaLabel>
-              <p className="mt-2 text-[15px] font-bold leading-tight" style={{ color: atelier.ink }}>{subhead}</p>
+              <p className="text-[15px] font-bold leading-tight" style={{ color: atelier.ink }}>{subhead}</p>
             </div>
             <div>
               <p className="font-[Newsreader] text-[20px] font-black uppercase leading-none" style={{ color: atelier.ink }}>{masthead}</p>

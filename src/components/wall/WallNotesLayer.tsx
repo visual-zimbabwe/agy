@@ -558,7 +558,6 @@ export const WallNotesLayer = ({
 
         const economistLines = isEconomist ? noteView.text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : [];
         const economistMasthead = economistLines[0] || "Magazine";
-        const economistIssueLabel = noteView.economist?.issueDate?.trim() || noteView.quoteSource?.trim() || "Latest issue";
         const economistSubhead = noteView.economist?.mainStory?.trim() || "Curated issue";
 
         return (
@@ -1122,18 +1121,7 @@ export const WallNotesLayer = ({
                   fill="rgba(255,252,248,0.97)"
                   listening={false}
                 />
-                <Text
-                  x={16}
-                  y={Math.max(0, noteView.h - 118)}
-                  width={Math.max(0, noteView.w - 32)}
-                  fontSize={10}
-                  fontStyle="bold"
-                  fill={atelierPalette.terracotta}
-                  text={economistIssueLabel.toUpperCase()}
-                  wrap="none"
-                  ellipsis
-                  listening={false}
-                />
+
                 <Text
                   x={16}
                   y={Math.max(0, noteView.h - 94)}
