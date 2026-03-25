@@ -558,6 +558,7 @@ export const WallNotesLayer = ({
 
         const economistLines = isEconomist ? noteView.text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : [];
         const economistMasthead = economistLines[0] || "Magazine";
+        const economistIssueLabel = noteView.economist?.issueDate?.trim() || noteView.quoteSource?.trim() || "Latest issue";
         const economistSubhead = noteView.economist?.mainStory?.trim() || "Curated issue";
 
         return (
