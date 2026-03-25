@@ -1124,6 +1124,18 @@ export const WallNotesLayer = ({
 
                 <Text
                   x={16}
+                  y={Math.max(0, noteView.h - 118)}
+                  width={Math.max(0, noteView.w - 32)}
+                  fontSize={10}
+                  fontStyle="bold"
+                  fill={atelierPalette.terracotta}
+                  text={economistIssueLabel.toUpperCase()}
+                  wrap="none"
+                  ellipsis
+                  listening={false}
+                />
+                <Text
+                  x={16}
                   y={Math.max(0, noteView.h - 94)}
                   width={Math.max(0, noteView.w - 32)}
                   height={48}
