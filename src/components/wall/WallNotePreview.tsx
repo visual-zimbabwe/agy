@@ -75,6 +75,14 @@ const stripWikiLinkMarkup = (text: string) => text.replace(/\[\[([^\]\n]+?)\]\]/
 
 const splitNoteText = (text: string) => stripWikiLinkMarkup(text).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 
+const splitJokerText = (text: string) => {
+  const lines = splitNoteText(text);
+  return {
+    setup: lines[0] || text.trim() || "Why don't scientists trust atoms?",
+    punchline: lines.slice(1).join(" ") || "Because they make up everything!",
+  };
+};
+
 const getBodyText = (note: Note) => {
   const cleaned = stripWikiLinkMarkup(note.text);
   if (note.vocabulary) {
@@ -385,14 +393,45 @@ const EisenhowerRenderer = ({ note, width, height, readableText, mutedText, soft
 };
 
 const JokerRenderer = ({ note, width, height, tone }: RendererProps) => {
-  const lines = splitNoteText(note.text);
+  const { setup, punchline } = splitJokerText(note.text);
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="relative h-full overflow-hidden p-5" style={{ background: "#ffdea5" }}>
-        <p className="absolute -right-2 -top-3 text-[88px] leading-none" style={{ color: "rgba(93,66,1,0.1)" }}>:)</p>
+      <div className="relative h-full overflow-hidden px-5 pb-5 pt-4" style={{ background: "#ffdea5" }}>
+        <svg
+          className="pointer-events-none absolute right-2 top-1 h-[54px] w-[54px] opacity-[0.22]"
+          viewBox="0 0 64 64"
+          aria-hidden
+        >
+          <path d="M14 18l8-8 8 8" fill="none" stroke="rgba(117,87,23,0.55)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M42 18l8-8 8 8" fill="none" stroke="rgba(117,87,23,0.55)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M12 34c5 12 15 18 20 18s15-6 20-18" fill="rgba(117,87,23,0.42)" />
+        </svg>
         <MetaLabel color="rgba(93,66,1,0.72)">Source: Jokes API</MetaLabel>
-        <p className="mt-4 text-base leading-7" style={{ color: "#261900" }}>{lines[0] || note.text || "Why don't scientists trust atoms?"}</p>
-        <p className="mt-4 border-t pt-4 text-lg font-extrabold" style={{ borderColor: "rgba(38,25,0,0.10)", color: "rgba(38,25,0,0.92)" }}>{lines.slice(1).join(" ") || "Because they make up everything!"}</p>
+        <p
+          className="relative z-10 mt-5"
+          style={{
+            ...lineClampStyle(tone === "detail" ? 999 : 3),
+            color: "#261900",
+            fontSize: 16,
+            lineHeight: 1.65,
+            fontWeight: 500,
+          }}
+        >
+          {setup}
+        </p>
+        <p
+          className="relative z-10 mt-4 border-t pt-4"
+          style={{
+            ...lineClampStyle(tone === "detail" ? 999 : 3),
+            borderColor: "rgba(38,25,0,0.10)",
+            color: "rgba(38,25,0,0.92)",
+            fontSize: 18,
+            lineHeight: 1.55,
+            fontWeight: 800,
+          }}
+        >
+          {punchline}
+        </p>
       </div>
     </NoteShell>
   );

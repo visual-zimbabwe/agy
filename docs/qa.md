@@ -1230,3 +1230,12 @@ Expected:
 - Floating chrome stays inside the viewport and preserves access to tools, details, search, sync status, and zoom actions.
 - Existing wall interactions such as selection, drag, edit, panel toggles, and camera control continue to work behind the new frontend.
 
+## Joker Note (`/wall`) (2026-03-25)
+1. Open `/wall` and locate the Joker note or create one from `Tools`.
+2. Verify the note uses the warm amber card, compact `SOURCE: JOKES API` label, top-right smile mark, lighter question copy, and bold punchline separated by a thin divider.
+3. Resize the Joker note smaller and larger, then zoom out and back in; verify the question and punchline remain legible, stay inside the card bounds, and preserve the same visual hierarchy in both the wall canvas and detail/preview surfaces.
+
+Expected:
+- Joker notes match the new note frontend reference instead of the older placeholder look.
+- The live Konva wall rendering and the React preview use the same Joker hierarchy and ornamentation.
+

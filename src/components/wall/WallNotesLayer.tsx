@@ -97,6 +97,15 @@ const getContainedImageLayout = (note: Pick<Note, "w" | "h">, caption: string, i
 
 const stripWikiLinkMarkup = (text: string) => text.replace(/\[\[([^\]\n]+?)\]\]/g, "$1");
 
+const splitJokerText = (text: string) => {
+  const stripped = stripWikiLinkMarkup(text);
+  const lines = stripped.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  return {
+    setup: lines[0] || stripped.trim() || "Why don't scientists trust atoms?",
+    punchline: lines.slice(1).join(" ") || "Because they make up everything!",
+  };
+};
+
 const resolveNoteFillColor = (note: Note) => {
   if (note.noteKind === "joker") {
     return "#D6FF57";
@@ -483,7 +492,7 @@ export const WallNotesLayer = ({
         const poetryHeaderInset = isPoetry ? getPoetryHeaderHeight(noteView.w, noteView.poetry) : 0;
         const journalWritingX = 56;
         const isApiQuoteNote = isJoker || isThrone;
-        const textX = isJoker ? 14 : isQuote ? 18 : isJournal ? journalWritingX : 12;
+        const textX = isQuote ? 18 : isJournal ? journalWritingX : 12;
         const textWidth = Math.max(0, noteView.w - (isQuote ? 36 : isJournal ? journalWritingX + 18 : 24));
         const currencyState = noteView.currency;
         const currencyTrendGlyph = currencyState?.trend === "up" ? "↑" : currencyState?.trend === "down" ? "↓" : "•";
@@ -530,7 +539,7 @@ export const WallNotesLayer = ({
           : isImageNote
           ? imageCaption
           : isJoker
-            ? truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - 86, 40) }) || jokerLoadingText
+            ? strippedNoteText || jokerLoadingText
           : isVocabulary
             ? isVocabularyBack
               ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
@@ -553,7 +562,11 @@ export const WallNotesLayer = ({
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
         const tagPalette = noteTagChipPalette(resolvedNoteColor);
-        const textY = isApodMediaCard || isImageNote ? 0 : isJoker ? 52 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 43 : 0);
+        const jokerText = isJoker ? splitJokerText(strippedNoteText || jokerLoadingText) : null;
+        const jokerQuestionY = 50;
+        const jokerRuleY = Math.max(90, Math.min(noteView.h - 54, Math.round(noteView.h * 0.56)));
+        const jokerPunchlineY = jokerRuleY + 12;
+        const textY = isApodMediaCard || isImageNote ? 0 : 12 + quoteMarkInset + canonTitleInset + poetryHeaderInset + (isJournal ? 43 : 0);
         const textHeight = isApodMediaCard || isImageNote
           ? 0
           : Math.max(0, noteView.h - 56 - quoteAttributionHeight - quoteMarkInset - canonTitleInset - poetryHeaderInset - (isJournal ? 43 : 0) - wikiFooterHeight);
@@ -1356,9 +1369,72 @@ export const WallNotesLayer = ({
             {isApiQuoteNote && (
               <>
                 {isJoker && (
-                  <Text x={Math.max(18, noteView.w - 70)} y={10} width={52} align="center" fontSize={44} fill={colorWithAlpha(atelierPalette.gold, 0.16)} text=":)" listening={false} />
+                  <>
+                    <Line
+                      points={[Math.max(18, noteView.w - 74), 18, Math.max(24, noteView.w - 68), 12, Math.max(30, noteView.w - 62), 18]}
+                      stroke={colorWithAlpha(atelierPalette.gold, 0.5)}
+                      strokeWidth={3.4}
+                      lineCap="round"
+                      lineJoin="round"
+                      listening={false}
+                    />
+                    <Line
+                      points={[Math.max(18, noteView.w - 46), 18, Math.max(24, noteView.w - 40), 12, Math.max(30, noteView.w - 34), 18]}
+                      stroke={colorWithAlpha(atelierPalette.gold, 0.5)}
+                      strokeWidth={3.4}
+                      lineCap="round"
+                      lineJoin="round"
+                      listening={false}
+                    />
+                    <Line
+                      points={[Math.max(18, noteView.w - 74), 34, Math.max(24, noteView.w - 64), 43, Math.max(30, noteView.w - 54), 46, Math.max(36, noteView.w - 44), 43, Math.max(42, noteView.w - 34), 34]}
+                      stroke={colorWithAlpha(atelierPalette.gold, 0.36)}
+                      strokeWidth={8}
+                      bezier
+                      lineCap="round"
+                      lineJoin="round"
+                      listening={false}
+                    />
+                  </>
                 )}
-                {isThrone && (
+                {isJoker && jokerText && (
+              <>
+                <Text
+                  x={16}
+                  y={jokerQuestionY}
+                  width={Math.max(0, noteView.w - 32)}
+                  height={Math.max(18, jokerRuleY - jokerQuestionY - 8)}
+                  fontSize={16}
+                  fontFamily={noteTextFontFamily}
+                  fill="#261900"
+                  lineHeight={1.65}
+                  text={truncateNoteText(jokerText.setup, { ...noteView, text: jokerText.setup, h: Math.max(jokerRuleY - jokerQuestionY, 36) }) || jokerText.setup}
+                  ellipsis
+                  listening={false}
+                />
+                <Line
+                  points={[16, jokerRuleY, Math.max(16, noteView.w - 16), jokerRuleY]}
+                  stroke="rgba(38,25,0,0.10)"
+                  strokeWidth={1}
+                  listening={false}
+                />
+                <Text
+                  x={16}
+                  y={jokerPunchlineY}
+                  width={Math.max(0, noteView.w - 32)}
+                  height={Math.max(18, noteView.h - jokerPunchlineY - 16)}
+                  fontSize={18}
+                  fontFamily={noteTextFontFamily}
+                  fontStyle="bold"
+                  fill="rgba(38,25,0,0.92)"
+                  lineHeight={1.55}
+                  text={truncateNoteText(jokerText.punchline, { ...noteView, text: jokerText.punchline, h: Math.max(noteView.h - jokerPunchlineY - 12, 36) }) || jokerText.punchline}
+                  ellipsis
+                  listening={false}
+                />
+              </>
+            )}
+            {isThrone && (
                   <Line
                     x={Math.max(18, noteView.w - 32)}
                     y={14}
@@ -1424,7 +1500,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isPrivate && !isThrone && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && !isJournal && !isQuote && !looksLikeCode && !looksLikeFile && (
+            {!isPrivate && !isThrone && !isJoker && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && !isJournal && !isQuote && !looksLikeCode && !looksLikeFile && (
               <Text
                 x={textX}
                 y={textY}
