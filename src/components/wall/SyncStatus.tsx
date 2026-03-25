@@ -18,8 +18,10 @@ type SyncStatusProps = {
 type SyncPillState = {
   label: "Saving..." | "Synced" | "Offline" | "Error";
   description: string;
-  dotClass: string;
-  pillClass: string;
+  cloudColor: string;
+  cloudBg: string;
+  cloudRing: string;
+  icon: "check" | "sync" | "offline" | "error";
 };
 
 const subscribeToOnlineStatus = (callback: () => void) => {
@@ -33,6 +35,42 @@ const subscribeToOnlineStatus = (callback: () => void) => {
 
 const getOnlineSnapshot = () => navigator.onLine;
 const getServerOnlineSnapshot = () => true;
+
+const CloudShape = ({ color }: { color: string }) => (
+  <path
+    d="M7.25 18.25H16.25C18.8734 18.25 21 16.1234 21 13.5C21 11.0408 19.1296 9.01847 16.7339 8.77804C16.1251 6.45548 14.0165 4.75 11.5 4.75C8.50743 4.75 6.06367 7.15908 5.99986 10.1364C4.24268 10.6809 3 12.3186 3 14.25C3 16.6292 4.87077 18.25 7.25 18.25Z"
+    fill={color}
+  />
+);
+
+const CloudIcon = ({ kind, color }: { kind: SyncPillState["icon"]; color: string }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={kind === "sync" ? "animate-spin" : undefined}>
+    <CloudShape color={color} />
+    {kind === "check" ? (
+      <path d="M9.2 12.4L11.2 14.4L14.8 10.8" stroke="#fffaf5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    ) : null}
+    {kind === "sync" ? (
+      <>
+        <path d="M9.1 10.1A3.7 3.7 0 0 1 15 9.4" stroke="#fffaf5" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M14.9 9.4H16.1V8.2" stroke="#fffaf5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M14.9 13.9A3.7 3.7 0 0 1 9 14.6" stroke="#fffaf5" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M9.1 14.6H7.9V15.8" stroke="#fffaf5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    ) : null}
+    {kind === "offline" ? (
+      <>
+        <path d="M8.4 11.3C9.1 10.2 10.4 9.5 11.9 9.5C13.3 9.5 14.6 10.1 15.4 11.1" stroke="#fffaf5" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M8 15.8L16 8.2" stroke="#fffaf5" strokeWidth="1.7" strokeLinecap="round" />
+      </>
+    ) : null}
+    {kind === "error" ? (
+      <>
+        <path d="M12 9V12.8" stroke="#fffaf5" strokeWidth="1.9" strokeLinecap="round" />
+        <circle cx="12" cy="15.7" r="1" fill="#fffaf5" />
+      </>
+    ) : null}
+  </svg>
+);
 
 export const SyncStatus = ({
   hasCloudWall,
@@ -78,8 +116,10 @@ export const SyncStatus = ({
       return {
         label: "Error",
         description: syncError ?? "A save or sync request failed.",
-        dotClass: "bg-[var(--color-danger)]",
-        pillClass: "border-[color:rgb(220_38_38_/_0.24)] bg-[color:rgb(254_242_242_/_0.92)] text-[var(--color-danger-strong)]",
+        cloudColor: "#b74b2d",
+        cloudBg: "rgba(183,75,45,0.12)",
+        cloudRing: "rgba(183,75,45,0.18)",
+        icon: "error",
       };
     }
 
@@ -87,8 +127,10 @@ export const SyncStatus = ({
       return {
         label: "Offline",
         description: hasPendingSync ? "Changes are saved locally and waiting to sync." : "Cloud sync pauses until your connection returns.",
-        dotClass: "bg-[color:rgb(148_163_184_/_0.95)]",
-        pillClass: "border-[color:rgb(148_163_184_/_0.26)] bg-[color:rgb(248_250_252_/_0.92)] text-[var(--color-text-muted)]",
+        cloudColor: "#8d8277",
+        cloudBg: "rgba(141,130,119,0.12)",
+        cloudRing: "rgba(141,130,119,0.18)",
+        icon: "offline",
       };
     }
 
@@ -96,16 +138,20 @@ export const SyncStatus = ({
       return {
         label: "Saving...",
         description: hasPendingSync || isSyncing ? "Local changes are queued and cloud sync is in progress." : "Recent edits are being written locally.",
-        dotClass: "bg-[var(--color-accent-strong)]",
-        pillClass: "border-[color:rgb(2_132_199_/_0.24)] bg-[color:rgb(240_249_255_/_0.96)] text-[var(--color-accent-strong)]",
+        cloudColor: "#a33818",
+        cloudBg: "rgba(163,56,24,0.12)",
+        cloudRing: "rgba(163,56,24,0.18)",
+        icon: "sync",
       };
     }
 
     return {
       label: "Synced",
       description: lastSyncedAt ? "All recent changes are saved locally and synced." : "Your wall is ready and in sync.",
-      dotClass: "bg-[color:rgb(22_163_74_/_0.92)]",
-      pillClass: "border-[color:rgb(22_163_74_/_0.22)] bg-[color:rgb(240_253_244_/_0.94)] text-[color:rgb(21_128_61_/_1)]",
+      cloudColor: "#a33818",
+      cloudBg: "rgba(163,56,24,0.12)",
+      cloudRing: "rgba(163,56,24,0.18)",
+      icon: "check",
     };
   }, [hasCloudWall, hasPendingSync, isOnline, isSyncing, lastSyncedAt, localSaveState, syncError]);
 
@@ -133,10 +179,10 @@ export const SyncStatus = ({
           aria-expanded={open}
           aria-haspopup="dialog"
           title={tooltipLabel}
-          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)] transition-colors ${state.pillClass}`}
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30"
+          style={{ backgroundColor: state.cloudBg, boxShadow: `inset 0 0 0 1px ${state.cloudRing}` }}
         >
-          <span className={`h-2 w-2 rounded-full ${state.dotClass}`} aria-hidden="true" />
-          <span>{state.label}</span>
+          <CloudIcon kind={state.icon} color={state.cloudColor} />
         </button>
       </ControlTooltip>
 
