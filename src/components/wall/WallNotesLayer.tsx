@@ -638,6 +638,9 @@ export const WallNotesLayer = ({
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
         const journalDateWidth = Math.max(0, noteView.w - journalHorizontalInset * 2);
         const journalDateX = journalHorizontalInset;
+        const decryptButtonWidth = Math.min(184, Math.max(128, noteView.w * 0.56));
+        const decryptButtonX = Math.max(26, noteView.w / 2 - decryptButtonWidth / 2);
+        const decryptButtonY = Math.max(noteView.h - 74, noteView.h * 0.72);
 
 
         const economistLines = isEconomist ? noteView.text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : [];
@@ -1451,20 +1454,35 @@ export const WallNotesLayer = ({
                   listening={false}
                 />
                 <Rect
-                  x={Math.max(26, noteView.w / 2 - Math.min(92, noteView.w * 0.28))}
-                  y={Math.max(noteView.h - 74, noteView.h * 0.72)}
-                  width={Math.min(184, Math.max(128, noteView.w * 0.56))}
+                  x={decryptButtonX}
+                  y={decryptButtonY}
+                  width={decryptButtonWidth}
                   height={40}
                   cornerRadius={20}
                   fill={colorWithAlpha("#FFFFFF", 0.74)}
                   stroke={colorWithAlpha(atelierPalette.quietText, 0.34)}
                   strokeWidth={1.6}
-                  listening={false}
+                  onClick={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    event.cancelBubble = true;
+                    selectSingleNote(note.id);
+                    openEditor(note.id, note.text);
+                  }}
+                  onTap={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    event.cancelBubble = true;
+                    selectSingleNote(note.id);
+                    openEditor(note.id, note.text);
+                  }}
                 />
                 <Text
-                  x={Math.max(26, noteView.w / 2 - Math.min(92, noteView.w * 0.28))}
-                  y={Math.max(noteView.h - 62, noteView.h * 0.72 + 12)}
-                  width={Math.min(184, Math.max(128, noteView.w * 0.56))}
+                  x={decryptButtonX}
+                  y={decryptButtonY + 12}
+                  width={decryptButtonWidth}
                   align="center"
                   fontSize={Math.max(11, Math.min(16, noteView.w * 0.07))}
                   letterSpacing={2.4}
