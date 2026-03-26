@@ -6,6 +6,7 @@ import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, trunca
 import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { getApodCaption } from "@/features/wall/apod";
+import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
@@ -924,6 +925,54 @@ const FileRenderer = ({ note, width, height, tone }: RendererProps) => {
   );
 };
 
+const AudioRenderer = ({ note, width, height, tone }: RendererProps) => {
+  const audio = note.audio;
+  const title = getAudioNoteTitle(audio);
+  const meta = getAudioNoteMeta(audio);
+  const duration = formatAudioDuration(audio?.durationSeconds);
+  const progress = audio?.durationSeconds ? formatAudioDuration(Math.max(0, Math.min(audio.durationSeconds, Math.round(audio.durationSeconds * 0.35)))) : "00:00";
+  return (
+    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
+      <div className="flex h-full flex-col px-7 pb-7 pt-6" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(252,249,244,0.98))" }}>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-[16px]" style={{ background: "rgba(77,99,86,0.10)", color: atelier.forest }}>♪</div>
+          <div className="flex items-center gap-2 text-[18px]" style={{ color: "rgba(139,113,106,0.84)" }}>
+            <span>↓</span>
+            <span>↗</span>
+          </div>
+        </div>
+        <div className="mt-7">
+          <p className="font-[Newsreader] text-[clamp(26px,5vw,34px)] italic leading-[1.08]" style={{ color: atelier.ink }}>{title}</p>
+          {meta ? <p className="mt-2 text-[11px] uppercase tracking-[0.16em]" style={{ color: atelier.quiet }}>{meta}</p> : null}
+        </div>
+        <div className="mt-auto pt-8">
+          <div className="flex h-[72px] items-center gap-2">
+            {AUDIO_WAVEFORM_BARS.map((value, index) => {
+              const active = index >= 2 && index <= 6;
+              return (
+                <div
+                  key={`${note.id}-audio-bar-${index}`}
+                  className="flex-1 rounded-full"
+                  style={{
+                    height: `${Math.max(18, Math.round(58 * value))}px`,
+                    background: active ? atelier.terracotta : "rgba(223,192,184,0.34)",
+                    opacity: active ? 1 : index < 2 ? 0.42 : 0.54,
+                  }}
+                />
+              );
+            })}
+          </div>
+          <div className="mt-4 flex items-center justify-between text-[13px] uppercase tracking-[0.2em]" style={{ color: atelier.quiet }}>
+            <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{progress}</span>
+            <span style={{ color: 'rgba(163,56,24,0.68)', fontWeight: 700 }}>Playing</span>
+            <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{duration}</span>
+          </div>
+        </div>
+      </div>
+    </NoteShell>
+  );
+};
+
 const FallbackRenderer = ({ note, width, height, readableText, mutedText, textFontFamily, bodyClamp, tone }: RendererProps) => (
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
     <div className="flex h-full flex-col p-4">
@@ -953,6 +1002,7 @@ const noteRenderers: Record<string, NoteRenderer> = {
   economist: EconomistRenderer,
   code: CodeRenderer,
   file: FileRenderer,
+  audio: AudioRenderer,
   fallback: FallbackRenderer,
 };
 
@@ -987,6 +1037,9 @@ const resolveRendererKey = (note: Note) => {
   }
   if (note.noteKind === "file") {
     return "file";
+  }
+  if (note.noteKind === "audio") {
+    return "audio";
   }
   if (!note.noteKind && fileNameMatch(cleaned)) {
     return "file";

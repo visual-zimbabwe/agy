@@ -84,6 +84,15 @@ export const FILE_NOTE_DEFAULTS = {
   textSizePx: 14,
 };
 
+export const AUDIO_NOTE_DEFAULTS = {
+  color: "#FFFFFF",
+  width: 428,
+  height: 248,
+  textColor: "#1C1C19",
+  textFont: "newsreader" as const,
+  textSizePx: 16,
+};
+
 export const NOTE_TEXT_SIZES = [
   { value: "sm", label: "S", fontSize: 14, lineHeight: 1.32 },
   { value: "md", label: "M", fontSize: 17, lineHeight: 1.35 },

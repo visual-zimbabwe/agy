@@ -182,6 +182,27 @@ Expected:
 - File notes support local-device upload and link-backed file creation without breaking other note kinds.
 - The non-edit shell matches the new document-card frontend: filename-first layout, muted uppercase metadata, and a visible download or open affordance.
 - File-note overlays remain visible and unclipped on desktop and mobile wall layouts.
+## Audio Note (`/wall`) (2026-03-26)
+1. Open `/wall`, open `Tools`, and click `New Audio`.
+2. Verify an audio card appears using the new `notes_v3` audio frontend: icon tile, serif title, terracotta waveform, and top-right download/open actions.
+3. Double-click the audio note and verify the floating editor opens with `Upload` and `Paste URL` tabs plus the same audio-card preview.
+4. In the floating editor `Upload` tab, choose a local audio file and verify the note updates with the audio title, metadata, and duration-aware footer when available.
+5. Click the in-note download action and verify the uploaded audio downloads with a readable filename.
+6. In the floating editor `Paste URL` tab, paste a direct audio URL, save it, and verify the note keeps the audio-card layout with link-backed metadata.
+7. Click the in-note open action for the link-backed audio note and verify it opens in a new tab.
+8. Select a standard note, go to `Details > Note Type`, click `Audio`, and verify the current note converts into the audio-note shell without creating a duplicate note.
+9. In `Details > Audio`, upload a local audio file and verify the converted note updates immediately.
+10. In `Details > Audio`, paste an audio URL, click `Save Link`, and verify the note keeps the linked audio state after blur.
+11. Use `Open Audio` and `Download Audio` from `Details` and verify both actions work for the current source mode.
+12. Refresh `/wall` and verify uploaded and link-backed audio notes restore correctly.
+13. If cloud sync is enabled, sync, reload, and verify the audio note payload still renders after hydration.
+
+Expected:
+- Audio notes are available from both `Tools` and `Details > Note Type`.
+- Audio notes use the dedicated `notes_v3` audio frontend in both the Konva wall renderer and the React preview/editor surfaces.
+- Audio note uploads and link-backed notes both persist through local storage and cloud sync.
+- Open/download actions remain visible and usable without clipping on the wall or in floating/details editors.
+
 ## NASA APOD Note (`/wall`) (2026-03-20)
 1. Open `/wall`, open `Tools`, and click `New APOD`.
 2. Verify a new APOD note appears and loads the current Astronomy Picture of the Day instead of a blank image card.

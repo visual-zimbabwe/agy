@@ -1,6 +1,7 @@
-import { EISENHOWER_NOTE_DEFAULTS, FILE_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, POETRY_NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
+import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, FILE_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, POETRY_NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
 import { buildEconomistNote, ECONOMIST_NOTE_DEFAULTS, isEconomistNote } from "@/features/wall/economist";
+import { createAudioNoteState, isAudioNote, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, isFileNote, toFileNotePatch } from "@/features/wall/file-notes";
 import type { EconomistCoverPayload } from "@/features/wall/economist";
 import { buildApodNote, isApodNote } from "@/features/wall/apod";
@@ -393,6 +394,12 @@ export const createFileNote = (x: number, y: number, payload?: Partial<Note["fil
   return noteId;
 };
 
+export const createAudioNote = (x: number, y: number, payload?: Partial<Note["audio"]>) => {
+  const noteId = createNote(x, y, AUDIO_NOTE_DEFAULTS.color);
+  useWallStore.getState().patchNote(noteId, toAudioNotePatch(createAudioNoteState(payload)));
+  return noteId;
+};
+
 export const updateNote = (noteId: string, patch: Partial<Note>) => {
   const current = useWallStore.getState().notes[noteId];
   if (!current) {
@@ -517,12 +524,22 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       bookmark: undefined,
       apod: undefined,
       poetry: undefined,
+      audio: undefined,
       color: ECONOMIST_NOTE_DEFAULTS.color,
       textColor: patch.textColor ?? current.textColor ?? ECONOMIST_NOTE_DEFAULTS.textColor,
       textFont: patch.textFont ?? current.textFont ?? ECONOMIST_NOTE_DEFAULTS.textFont,
       textSizePx: patch.textSizePx ?? current.textSizePx ?? ECONOMIST_NOTE_DEFAULTS.textSizePx,
       tags: patch.tags ?? current.tags,
       imageUrl: patch.imageUrl ?? current.imageUrl,
+    });
+    return;
+  }
+
+  if (isAudioNote(current)) {
+    useWallStore.getState().patchNote(noteId, {
+      ...patch,
+      ...toAudioNotePatch(patch.audio ?? current.audio),
+      tags: patch.tags ?? current.tags,
     });
     return;
   }

@@ -147,9 +147,13 @@ const fileSchema = z.object({
   uploadedAt: z.number().optional(),
 });
 
+const audioSchema = fileSchema.extend({
+  durationSeconds: z.number().optional(),
+});
+
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark", "apod", "poetry", "economist", "file"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark", "apod", "poetry", "economist", "file", "audio"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -179,6 +183,7 @@ const noteSchema = z.object({
   apod: apodSchema.optional(),
   poetry: poetrySchema.optional(),
   file: fileSchema.optional(),
+  audio: audioSchema.optional(),
 });
 
 const zoneSchema = z.object({
@@ -347,7 +352,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               bookmark: note.bookmark ?? null,
               apod: note.apod ?? null,
               poetry: note.poetry ?? null,
-              file: note.file ?? null,
+              file: note.file ?? note.audio ?? null,
               image_url: note.imageUrl?.trim() || null,
               text_align: note.textAlign ?? null,
               text_v_align: note.textVAlign ?? null,

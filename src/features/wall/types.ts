@@ -188,6 +188,10 @@ export type FileNote = {
   uploadedAt?: number;
 };
 
+export type AudioNote = FileNote & {
+  durationSeconds?: number;
+};
+
 export type PrivateNoteData = {
   version: 1;
   salt: string;
@@ -199,7 +203,7 @@ export type PrivateNoteData = {
 
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod" | "poetry" | "economist" | "file";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod" | "poetry" | "economist" | "file" | "audio";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
@@ -212,6 +216,7 @@ export type Note = {
   poetry?: PoetryNote;
   economist?: EconomistNote;
   file?: FileNote;
+  audio?: AudioNote;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";

@@ -14,6 +14,7 @@ import { getPoetryFooterHeight, getPoetryHeaderHeight } from "@/features/wall/po
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
+import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
 import { throneLoadingText } from "@/features/wall/throne";
 import type { LinkType, Note } from "@/features/wall/types";
@@ -289,6 +290,8 @@ type WallNotesLayerProps = {
   editingId?: string;
   openExternalUrl: (url: string) => void;
   onDownloadFileNote: (noteId: string) => void;
+  onOpenAudioNote: (noteId: string) => void;
+  onDownloadAudioNote: (noteId: string) => void;
 };
 
 export const WallNotesLayer = ({
@@ -338,6 +341,8 @@ export const WallNotesLayer = ({
   editingId,
   openExternalUrl,
   onDownloadFileNote,
+  onOpenAudioNote,
+  onDownloadAudioNote,
 }: WallNotesLayerProps) => {
   const previousColorRef = useRef<Record<string, string>>({});
   const previousTextSizeRef = useRef<Record<string, string>>({});
@@ -525,6 +530,7 @@ export const WallNotesLayer = ({
         const isBookmark = noteView.noteKind === "web-bookmark";
         const isApod = isApodNote(noteView);
         const isEconomist = noteView.noteKind === "economist";
+        const isAudio = noteView.noteKind === "audio";
         const isStandardNote = !noteView.noteKind || noteView.noteKind === "standard";
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
@@ -566,7 +572,7 @@ export const WallNotesLayer = ({
         const isPaperShellNote = !isCurrency && !isJoker && !isThrone;
         const baseShellFill = isThrone ? THRONE_NOTE_BACKGROUND : isJoker ? "#F0CB88" : isCurrency ? CURRENCY_NOTE_DEFAULTS.color : isStandardNote ? "#FFFFFF" : atelierPalette.paper;
         const defaultTextColor =
-          isQuote || isJournal || isBookmark || isApod || isImageNote || isPrivate || isPoetry || isEconomist ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
+          isQuote || isJournal || isBookmark || isApod || isImageNote || isPrivate || isPoetry || isEconomist || isAudio ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
         const resolvedTextColor = noteView.textColor ?? defaultTextColor;
         const paperTintOpacity = isPaperShellNote ? (isStandardNote ? 0.02 : isPoetry ? 0.04 : isQuote ? 0.06 : isVocabulary ? 0.14 : 0.1) : 0;
         const isApodMediaCard = isApod;
@@ -590,12 +596,16 @@ export const WallNotesLayer = ({
           : strippedNoteText;
         const looksLikeCode = /(^|\n)\s*(def |const |let |function |class |import |from |<\w)|=>|\{\s*$|console\.|return\s+/m.test(strippedNoteText);
         const fileNameMatch = strippedNoteText.match(/([\w-]+\.(pdf|docx?|txt|png|jpe?g|zip|csv|md))/i);
-        const looksLikeFile = noteView.noteKind === "file" || Boolean(fileNameMatch);
+        const looksLikeFile = !isAudio && (noteView.noteKind === "file" || Boolean(fileNameMatch));
         const fileLabel = noteView.noteKind === "file" ? getFileNoteTitle(noteView.file) : fileNameMatch?.[1] ?? "Document";
         const fileMeta = noteView.noteKind === "file" ? getFileNoteMetaCaps(noteView.file) : strippedNoteText.replace(fileLabel, "").trim() || "File note";
+        const audioTitle = getAudioNoteTitle(noteView.audio);
+        const audioMeta = getAudioNoteMeta(noteView.audio).toUpperCase();
+        const audioCurrentTime = noteView.audio?.durationSeconds ? formatAudioDuration(Math.max(0, Math.round(noteView.audio.durationSeconds * 0.35))) : "00:00";
+        const audioDuration = formatAudioDuration(noteView.audio?.durationSeconds);
         const journalTitle = noteLines[0] ?? "Dear Wall,";
         const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
-        const showStandardTextCard = !isPrivate && isStandardNote && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !isCurrency && !isEconomist && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
+        const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !isCurrency && !isEconomist && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
@@ -609,6 +619,8 @@ export const WallNotesLayer = ({
           ? imageCaption
           : isJoker
             ? strippedNoteText || jokerLoadingText
+          : isAudio
+            ? ""
           : isVocabulary
             ? isVocabularyBack
               ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
@@ -1933,6 +1945,33 @@ export const WallNotesLayer = ({
                   ellipsis
                   listening={false}
                 />
+              </>
+            )}
+            {isAudio && (
+              <>
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={18} fill={atelierPalette.paper} stroke={colorWithAlpha(atelierPalette.quietText, 0.16)} strokeWidth={1} listening={false} />
+                <Rect x={24} y={24} width={58} height={58} cornerRadius={16} fill={colorWithAlpha(atelierPalette.forest, 0.1)} listening={false} />
+                <Text x={24} y={38} width={58} align="center" fontSize={26} fill={atelierPalette.forest} text="♪" listening={false} />
+                <Group x={Math.max(20, noteView.w - 86)} y={26} onClick={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadAudioNote(note.id); }} onTap={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadAudioNote(note.id); }}>
+                  <Text x={0} y={0} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.8)} text="↓" listening={false} />
+                </Group>
+                <Group x={Math.max(44, noteView.w - 48)} y={26} onClick={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onOpenAudioNote(note.id); }} onTap={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onOpenAudioNote(note.id); }}>
+                  <Text x={0} y={0} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.8)} text="↗" listening={false} />
+                </Group>
+                <Text x={24} y={96} width={Math.max(0, noteView.w - 48)} fontSize={Math.max(24, Math.min(34, noteView.w / 11))} fontFamily="Newsreader" fontStyle="italic" fill={atelierPalette.text} text={audioTitle} ellipsis listening={false} />
+                {audioMeta ? <Text x={24} y={132} width={Math.max(0, noteView.w - 48)} fontSize={10} letterSpacing={1.2} fill={colorWithAlpha(atelierPalette.quietText, 0.78)} text={audioMeta} ellipsis listening={false} /> : null}
+                {AUDIO_WAVEFORM_BARS.map((value, index) => {
+                  const barWidth = Math.max(10, Math.floor((noteView.w - 72) / AUDIO_WAVEFORM_BARS.length));
+                  const x = 24 + index * (barWidth + 2);
+                  const barHeight = Math.max(14, Math.round(54 * value));
+                  const active = index >= 2 && index <= 6;
+                  return (
+                    <Rect key={`${note.id}-audio-wave-${index}`} x={x} y={Math.max(154, noteView.h - 86 - barHeight)} width={barWidth} height={barHeight} cornerRadius={barWidth / 2} fill={active ? atelierPalette.terracotta : colorWithAlpha('#DFC0B8', 0.48)} listening={false} />
+                  );
+                })}
+                <Text x={24} y={Math.max(180, noteView.h - 28)} width={72} fontSize={12} fontFamily="JetBrains Mono" fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text={audioCurrentTime} listening={false} />
+                <Text x={Math.max(0, noteView.w / 2 - 46)} y={Math.max(180, noteView.h - 30)} width={92} align="center" fontSize={12} fontStyle="bold" letterSpacing={1.5} fill={colorWithAlpha(atelierPalette.terracotta, 0.7)} text="PLAYING" listening={false} />
+                <Text x={Math.max(24, noteView.w - 96)} y={Math.max(180, noteView.h - 28)} width={72} align="right" fontSize={12} fontFamily="JetBrains Mono" fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text={audioDuration} listening={false} />
               </>
             )}
             {looksLikeFile && (

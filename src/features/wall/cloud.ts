@@ -2,6 +2,7 @@ import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
+import { normalizeAudioNote } from "@/features/wall/audio-notes";
 import { normalizeFileNote } from "@/features/wall/file-notes";
 import type { ApodNote, CanonNote, CurrencyNote, PersistedWallState, PoetryNote, PrivateNoteData, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
 
@@ -432,7 +433,8 @@ export const rowsToSnapshot = (rows: {
         note.note_kind === "apod" ||
         note.note_kind === "poetry" ||
         note.note_kind === "economist" ||
-        note.note_kind === "file"
+        note.note_kind === "file" ||
+        note.note_kind === "audio"
           ? note.note_kind
           : "standard";
 
@@ -460,6 +462,7 @@ export const rowsToSnapshot = (rows: {
           bookmark: noteKind === "web-bookmark" ? parseBookmark(note.bookmark) : undefined,
           apod: noteKind === "apod" ? parseApod(note.apod) : undefined,
           file: noteKind === "file" ? normalizeFileNote(note.file) : undefined,
+          audio: noteKind === "audio" ? normalizeAudioNote(note.file) : undefined,
           poetry: noteKind === "poetry" ? parsePoetry(note.poetry) : undefined,
           tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
           x: note.x,

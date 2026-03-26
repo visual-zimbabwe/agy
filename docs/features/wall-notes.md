@@ -29,6 +29,7 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 - canon note creation
 - web bookmark note creation
 - file note creation
+- audio note creation
 - NASA APOD note creation
 - Poetry note creation
 - Code note creation
@@ -39,6 +40,8 @@ These actions are available from the wall tools panel, and some note transformat
 Web bookmark notes create a rich preview card from a URL using a server-side metadata fetch route. The parser prioritizes Open Graph tags, then Twitter card tags, then document title and meta description, and resolves preview images plus favicons into safe absolute URLs. Provider-aware enrichment now upgrades common video links such as YouTube when raw page scraping is weak, so the wall can still show a real title and thumbnail. The default non-edit bookmark note now renders as a compact horizontal link card instead of a tall note shell. The card stores the original URL, normalized URL, sanitized metadata, fetch timestamps, and status so the wall can render cached previews without re-requesting metadata on every render. v2 cache entries skip earlier domain-only fallback results so upgraded walls refetch richer previews instead of reusing weak metadata.
 
 File notes are now first-class wall notes instead of a filename-shaped standard note fallback. They follow the new `notes_v2/` file frontend: a compact white document card with a file tile, strong filename row, muted uppercase metadata line, and a right-edge download affordance. Users can create them directly from `Tools > New File` or convert the current note through `Details > Note Type > File`. File notes support two source modes: local-device upload, which stores a data URL plus name, MIME type, extension, size, and upload timestamp for local-first persistence, and link-backed files, which normalize the URL and derive a readable title or extension when possible. Both flows are editable again from the floating file editor and from the details sidebar.
+
+Audio notes are now dedicated wall notes with their own `notes_v3/` shell instead of borrowing the file card. They render as an editorial audio card with a compact icon tile, large `Newsreader` title, terracotta waveform, and top-right open/download actions. Users can create them directly from `Tools > New Audio` or convert the current note through `Details > Note Type > Audio`. Audio notes support local-device uploads and link-backed audio URLs, store the same core file metadata plus optional duration seconds, and expose upload, link-save, open, and download actions in both the floating editor and the details sidebar.
 
 Image note creation now supports three insert sources from the wall image modal:
 
@@ -72,6 +75,7 @@ The current note frontend gives every supported note kind its own dedicated wall
 - `poetry`
 - `economist`
 - `file`
+- `audio`
 In addition to explicit `noteKind`, notes can also carry vocabulary review payloads, which makes vocabulary notes a meaningful note workflow even when not represented as a separate `noteKind` enum value.
 
 ## Note Fields
@@ -95,6 +99,7 @@ Important fields include:
 - Poetry payload for date key, title, author, wrapped poem lines, line count, source URL, saved search field/query/match type, fetch timestamps, and refresh error state
 - Economist cover metadata stored through image URL plus source/date quote fields
 - file payload for source mode, file name, URL or data URL, MIME type, extension, size, and upload timestamp
+- audio payload for source mode, title metadata, URL or data URL, MIME type, extension, size, upload timestamp, and optional duration
 - vocabulary payload
 - image URL
 - Unsplash-sourced image URLs
@@ -125,6 +130,7 @@ This makes notes the core unit of wall content, but not the only structural elem
 - Richer note payloads depend on newer schema support; compatibility paths exist in wall APIs for some missing columns.
 - Published wall snapshots are read-only even though they display wall note content.
 - Link-backed file notes depend on the target URL remaining reachable, while uploaded file notes persist locally and through cloud sync as stored note payload.
+- Link-backed audio notes depend on the target URL remaining reachable, while uploaded audio notes persist locally and through cloud sync using the same serialized note payload path as file-backed media.
 
 ## Limitations
 

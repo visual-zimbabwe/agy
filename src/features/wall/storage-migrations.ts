@@ -1,5 +1,6 @@
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/wall/bookmarks";
+import { normalizeAudioNote } from "@/features/wall/audio-notes";
 import { normalizeFileNote } from "@/features/wall/file-notes";
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
@@ -297,7 +298,8 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     entry.noteKind === "apod" ||
     entry.noteKind === "poetry" ||
     entry.noteKind === "economist" ||
-    entry.noteKind === "file"
+    entry.noteKind === "file" ||
+    entry.noteKind === "audio"
       ? entry.noteKind
       : "standard";
   return {
@@ -313,6 +315,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     bookmark: noteKind === "web-bookmark" ? normalizeBookmark(entry.bookmark) : undefined,
     apod: noteKind === "apod" ? normalizeApod(entry.apod) : undefined,
     file: noteKind === "file" ? normalizeFileNote(entry.file) : undefined,
+    audio: noteKind === "audio" ? normalizeAudioNote(entry.audio ?? entry.file) : undefined,
     poetry:
       noteKind === "poetry" && isRecord(entry.poetry)
         ? {
