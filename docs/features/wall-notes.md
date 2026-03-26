@@ -28,6 +28,7 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 - Eisenhower Matrix note creation
 - canon note creation
 - web bookmark note creation
+- file note creation
 - NASA APOD note creation
 - Poetry note creation
 - Code note creation
@@ -36,6 +37,8 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands. Code notes are available from both the Tools panel and `Details > Note Type`, so users can either create a fresh code card at the viewport center or convert the current selection into the snippet shell without introducing a separate persisted note-kind enum. When a new wall note is created from viewport-centered creation flows, the wall now places it in the nearest collision-free space that still fits inside the user's current frame instead of stacking it on top of an existing note.
 
 Web bookmark notes create a rich preview card from a URL using a server-side metadata fetch route. The parser prioritizes Open Graph tags, then Twitter card tags, then document title and meta description, and resolves preview images plus favicons into safe absolute URLs. Provider-aware enrichment now upgrades common video links such as YouTube when raw page scraping is weak, so the wall can still show a real title and thumbnail. The default non-edit bookmark note now renders as a compact horizontal link card instead of a tall note shell. The card stores the original URL, normalized URL, sanitized metadata, fetch timestamps, and status so the wall can render cached previews without re-requesting metadata on every render. v2 cache entries skip earlier domain-only fallback results so upgraded walls refetch richer previews instead of reusing weak metadata.
+
+File notes are now first-class wall notes instead of a filename-shaped standard note fallback. They follow the new `notes_v2/` file frontend: a compact white document card with a file tile, strong filename row, muted uppercase metadata line, and a right-edge download affordance. Users can create them directly from `Tools > New File` or convert the current note through `Details > Note Type > File`. File notes support two source modes: local-device upload, which stores a data URL plus name, MIME type, extension, size, and upload timestamp for local-first persistence, and link-backed files, which normalize the URL and derive a readable title or extension when possible. Both flows are editable again from the floating file editor and from the details sidebar.
 
 Image note creation now supports three insert sources from the wall image modal:
 
@@ -54,7 +57,7 @@ Economist notes create a dedicated magazine-cover card powered by the local Rave
 
 Current wall note kinds include:
 
-The current note frontend gives every supported note kind its own dedicated wall and timeline/detail presentation. Quote, journal, poetry, joker, throne, currency, bookmark, APOD, economist, image, code, and file-style notes intentionally avoid sharing one generic card layout. Quote and journal notes specifically follow the new editorial frontend in `notes/`: quote cards use a warm white paper shell with a terracotta left spine, pale double-quote mark, oversized `Newsreader` italic body copy, and a muted uppercase attribution footer, while journal notes keep the uppercase italic date label and `Newsreader`-led serif headline/body copy rather than the older lined notebook treatment. Poetry notes now follow the new `notes_v2/` direction as well: a faint `Source: Poetry API` eyebrow at the top, centered `Newsreader` italic poem body as the dominant element, and a separated footer row with the poet name plus the small terracotta icon tile instead of a title-led header. Code notes now follow the dark `notes_v2/` editor-card direction: a matte charcoal shell with macOS traffic-light controls, a compact language pill plus filename label, and lightweight syntax tinting that works for fenced snippets, file-backed snippets, Bash, and PowerShell command examples. Currency cards now use the white market-ticker shell shown in the new note frontend direction: uppercase `Currency Pair` meta copy, a `USD / <base>` heading, a compact green change badge derived from the last cached comparison rate, an inverse `<base> per 1 USD` display rate, a pale trend line, and a footer with the Currency API/default source plus relative update time. Locked private notes now use the refined encrypted shell from the current frontend direction: a soft off-white card, centered lock tile, `Newsreader` italic title, muted uppercase `SECURED NODE` label, and an outlined `DECRYPT` action pill instead of the older explanatory protected-note banner.
+The current note frontend gives every supported note kind its own dedicated wall and timeline/detail presentation. Quote, journal, poetry, joker, throne, currency, bookmark, APOD, economist, image, code, and file-style notes intentionally avoid sharing one generic card layout. Quote and journal notes specifically follow the new editorial frontend in `notes/`: quote cards use a warm white paper shell with a terracotta left spine, pale double-quote mark, oversized `Newsreader` italic body copy, and a muted uppercase attribution footer, while journal notes keep the uppercase italic date label and `Newsreader`-led serif headline/body copy rather than the older lined notebook treatment. Poetry notes now follow the new `notes_v2/` direction as well: a faint `Source: Poetry API` eyebrow at the top, centered `Newsreader` italic poem body as the dominant element, and a separated footer row with the poet name plus the small terracotta icon tile instead of a title-led header. Code notes now follow the dark `notes_v2/` editor-card direction: a matte charcoal shell with macOS traffic-light controls, a compact language pill plus filename label, and lightweight syntax tinting that works for fenced snippets, file-backed snippets, Bash, and PowerShell command examples. File notes now use the dedicated `notes_v2/` document card shell: filename-first layout, compact uppercase type-and-size metadata, and explicit open or download actions. Currency cards now use the white market-ticker shell shown in the new note frontend direction: uppercase `Currency Pair` meta copy, a `USD / <base>` heading, a compact green change badge derived from the last cached comparison rate, an inverse `<base> per 1 USD` display rate, a pale trend line, and a footer with the Currency API/default source plus relative update time. Locked private notes now use the refined encrypted shell from the current frontend direction: a soft off-white card, centered lock tile, `Newsreader` italic title, muted uppercase `SECURED NODE` label, and an outlined `DECRYPT` action pill instead of the older explanatory protected-note banner.
 
 - `standard`
 - `quote`
@@ -68,6 +71,7 @@ The current note frontend gives every supported note kind its own dedicated wall
 - `apod`
 - `poetry`
 - `economist`
+- `file`
 In addition to explicit `noteKind`, notes can also carry vocabulary review payloads, which makes vocabulary notes a meaningful note workflow even when not represented as a separate `noteKind` enum value.
 
 ## Note Fields
@@ -90,6 +94,7 @@ Important fields include:
 - APOD payload for NASA media type, title, explanation, copyright, source URLs, fetch timestamps, and refresh error state
 - Poetry payload for date key, title, author, wrapped poem lines, line count, source URL, saved search field/query/match type, fetch timestamps, and refresh error state
 - Economist cover metadata stored through image URL plus source/date quote fields
+- file payload for source mode, file name, URL or data URL, MIME type, extension, size, and upload timestamp
 - vocabulary payload
 - image URL
 - Unsplash-sourced image URLs
@@ -119,6 +124,7 @@ This makes notes the core unit of wall content, but not the only structural elem
 - Note data must survive both local persistence and cloud sync.
 - Richer note payloads depend on newer schema support; compatibility paths exist in wall APIs for some missing columns.
 - Published wall snapshots are read-only even though they display wall note content.
+- Link-backed file notes depend on the target URL remaining reachable, while uploaded file notes persist locally and through cloud sync as stored note payload.
 
 ## Limitations
 
@@ -131,4 +137,6 @@ This makes notes the core unit of wall content, but not the only structural elem
 - `docs/architecture/state-and-storage.md`
 - `docs/features/search-and-retrieval.md`
 - `docs/features/timeline-view.md`
+
+
 

@@ -75,6 +75,15 @@ export const POETRY_NOTE_DEFAULTS = {
   textSizePx: 14,
 };
 
+export const FILE_NOTE_DEFAULTS = {
+  color: "#FFFFFF",
+  width: 320,
+  height: 112,
+  textColor: "#1C1C19",
+  textFont: "manrope" as const,
+  textSizePx: 14,
+};
+
 export const NOTE_TEXT_SIZES = [
   { value: "sm", label: "S", fontSize: 14, lineHeight: 1.32 },
   { value: "md", label: "M", fontSize: 17, lineHeight: 1.35 },
@@ -148,4 +157,5 @@ export const TEMPLATE_TYPES = [
 ] as const;
 
 export const GROUP_COLORS = ["#FB7185", "#22C55E", "#3B82F6", "#F59E0B", "#A855F7"] as const;
+
 

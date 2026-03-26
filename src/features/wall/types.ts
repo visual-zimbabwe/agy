@@ -176,6 +176,18 @@ export type EconomistNote = {
   error?: string;
 };
 
+export type FileNoteSource = "upload" | "link";
+
+export type FileNote = {
+  source: FileNoteSource;
+  name: string;
+  url: string;
+  mimeType?: string;
+  extension?: string;
+  sizeBytes?: number;
+  uploadedAt?: number;
+};
+
 export type PrivateNoteData = {
   version: 1;
   salt: string;
@@ -187,7 +199,7 @@ export type PrivateNoteData = {
 
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod" | "poetry" | "economist";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod" | "poetry" | "economist" | "file";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
@@ -199,6 +211,7 @@ export type Note = {
   apod?: ApodNote;
   poetry?: PoetryNote;
   economist?: EconomistNote;
+  file?: FileNote;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";
@@ -323,4 +336,5 @@ export type WallState = {
 export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links" | "camera"> & {
   lastColor?: string;
 };
+
 

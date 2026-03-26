@@ -112,6 +112,8 @@ export type Database = {
           currency: unknown;
           bookmark: unknown;
           apod: unknown;
+          poetry: unknown;
+          file: unknown;
           image_url: string | null;
           text_align: string | null;
           text_v_align: string | null;
@@ -144,6 +146,8 @@ export type Database = {
           currency?: unknown;
           bookmark?: unknown;
           apod?: unknown;
+          poetry?: unknown;
+          file?: unknown;
           image_url?: string | null;
           text_align?: string | null;
           text_v_align?: string | null;
@@ -173,6 +177,8 @@ export type Database = {
           currency?: unknown;
           bookmark?: unknown;
           apod?: unknown;
+          poetry?: unknown;
+          file?: unknown;
           image_url?: string | null;
           text_align?: string | null;
           text_v_align?: string | null;
@@ -611,6 +617,7 @@ export type Database = {
     CompositeTypes: Record<string, never>;
   };
 };
+
 
 
 

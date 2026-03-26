@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   detailButton,
@@ -25,6 +25,7 @@ import {
 } from "@/features/wall/poetry";
 import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS, POETRY_NOTE_DEFAULTS } from "@/features/wall/constants";
 import { createBookmarkNoteState, normalizeBookmarkUrl, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
+import { createFileNoteState, getFileNoteMeta, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
 import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, formatEconomistNoteText, getEconomistMagazineSource, getEconomistNoteSourceId } from "@/features/wall/economist";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import { sanitizeStandardNoteColor } from "@/features/wall/special-notes";
@@ -65,6 +66,10 @@ type NoteInspectorSectionProps = {
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
   onOpenBookmarkUrl: (url: string) => void;
+  onSelectFileNoteFile: (noteId: string, file: File) => Promise<void>;
+  onSubmitFileNoteUrl: (noteId: string, url: string) => void;
+  onOpenFileNote: (noteId: string) => void;
+  onDownloadFileNote: (noteId: string) => void;
   privateNoteSupported: boolean;
   isPrivateEnabled: boolean;
   isPrivateUnlocked: boolean;
@@ -147,6 +152,10 @@ export const NoteInspectorSection = ({
   onUpdateNote,
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
+  onSelectFileNoteFile,
+  onSubmitFileNoteUrl,
+  onOpenFileNote,
+  onDownloadFileNote,
   privateNoteSupported,
   isPrivateEnabled,
   isPrivateUnlocked,
@@ -164,6 +173,7 @@ export const NoteInspectorSection = ({
   const [poetryMatchType, setPoetryMatchType] = useState<PoetrySearchMatchType>(
     selectedNote?.noteKind === "poetry" ? normalizePoetryMatchType(selectedNote.poetry?.matchType) : DEFAULT_POETRY_MATCH_TYPE,
   );
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   if (!selectedNote) {
     return null;
   }
@@ -215,18 +225,25 @@ export const NoteInspectorSection = ({
     const toApod = nextKind === "apod" && selectedNote.noteKind !== "apod";
     const toPoetry = nextKind === "poetry" && selectedNote.noteKind !== "poetry";
     const toEconomist = nextKind === "economist" && selectedNote.noteKind !== "economist";
+    const toFile = nextKind === "file" && selectedNote.noteKind !== "file";
     const fromCodeNote = selectedNote.noteKind === "standard" && isCodeNoteText(selectedNote.text);
     const economistSource = getEconomistMagazineSource(toEconomist ? preferredMagazineSourceId : selectedMagazineSourceId);
+    const filePatch = toFile ? toFileNotePatch(createFileNoteState(selectedNote.file)) : undefined;
 
     onUpdateNote(selectedNote.id, {
+      ...(filePatch ?? {}),
       noteKind: nextKind,
-      text: toBookmark
+      text: toFile
+        ? filePatch?.text ?? selectedNote.text
+        : toBookmark
         ? ""
         : toEconomist
           ? formatEconomistNoteText({ sourceName: economistSource.sourceName, displayLabel: "Latest cover", displayDate: "" })
           : toStandard && fromCodeNote
             ? fromCodeNoteText(selectedNote.text)
-            : selectedNote.text,
+            : toStandard && selectedNote.noteKind === "file"
+              ? selectedNote.file?.name ?? selectedNote.text
+              : selectedNote.text,
       quoteAuthor: toStandard ? undefined : toQuote ? "" : toEconomist ? economistSource.sourceUrl : undefined,
       quoteSource: toStandard ? undefined : toQuote ? "" : toEconomist ? "Latest cover" : undefined,
       canon: toCanon
@@ -244,16 +261,19 @@ export const NoteInspectorSection = ({
       bookmark: toStandard ? undefined : toBookmark ? createBookmarkNoteState(selectedNote.bookmark?.url ?? "") : undefined,
       apod: toStandard ? undefined : toApod ? defaultApodNoteState(selectedNote.apod) : undefined,
       poetry: toStandard ? undefined : toPoetry ? defaultPoetryNoteState(selectedNote.poetry) : undefined,
-      economist: toStandard ? undefined : selectedNote.economist,
-      imageUrl: toStandard || toBookmark || toApod || toPoetry || toEconomist ? undefined : selectedNote.imageUrl,
-      vocabulary: toStandard || toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry || toEconomist ? undefined : selectedNote.vocabulary,
+      economist: toStandard || toFile ? undefined : selectedNote.economist,
+      file: toStandard ? undefined : filePatch?.file,
+      imageUrl: toStandard || toBookmark || toApod || toPoetry || toEconomist || toFile ? undefined : selectedNote.imageUrl,
+      vocabulary: toStandard || toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry || toEconomist || toFile ? undefined : selectedNote.vocabulary,
       color: toStandard
         ? sanitizeStandardNoteColor(fromCodeNote ? NOTE_COLORS[0] ?? "#FEEA89" : selectedNote.color, NOTE_COLORS[0] ?? "#FEEA89")
         : toBookmark
           ? WEB_BOOKMARK_DEFAULTS.color
           : toApod
             ? APOD_NOTE_DEFAULTS.color
-            : toPoetry
+            : toFile
+              ? filePatch?.color ?? selectedNote.color
+              : toPoetry
               ? POETRY_NOTE_DEFAULTS.color
               : toEconomist
                 ? ECONOMIST_NOTE_DEFAULTS.color
@@ -268,7 +288,9 @@ export const NoteInspectorSection = ({
           ? WEB_BOOKMARK_DEFAULTS.textFont
           : toApod
             ? APOD_NOTE_DEFAULTS.textFont
-            : toPoetry
+            : toFile
+              ? filePatch?.textFont ?? selectedNote.textFont
+              : toPoetry
               ? POETRY_NOTE_DEFAULTS.textFont
               : toEconomist
                 ? ECONOMIST_NOTE_DEFAULTS.textFont
@@ -283,7 +305,9 @@ export const NoteInspectorSection = ({
           ? WEB_BOOKMARK_DEFAULTS.textColor
           : toApod
             ? APOD_NOTE_DEFAULTS.textColor
-            : toPoetry
+            : toFile
+              ? filePatch?.textColor ?? selectedNote.textColor
+              : toPoetry
               ? POETRY_NOTE_DEFAULTS.textColor
               : toEconomist
                 ? ECONOMIST_NOTE_DEFAULTS.textColor
@@ -298,7 +322,9 @@ export const NoteInspectorSection = ({
           ? WEB_BOOKMARK_DEFAULTS.textSizePx
           : toApod
             ? APOD_NOTE_DEFAULTS.textSizePx
-            : toPoetry
+            : toFile
+              ? filePatch?.textSizePx ?? selectedNote.textSizePx
+              : toPoetry
               ? POETRY_NOTE_DEFAULTS.textSizePx
               : toEconomist
                 ? ECONOMIST_NOTE_DEFAULTS.textSizePx
@@ -313,7 +339,9 @@ export const NoteInspectorSection = ({
           ? WEB_BOOKMARK_DEFAULTS.width
           : toApod
             ? APOD_NOTE_DEFAULTS.width
-            : toPoetry
+            : toFile
+              ? filePatch?.w ?? selectedNote.w
+              : toPoetry
               ? POETRY_NOTE_DEFAULTS.width
               : toEconomist
                 ? ECONOMIST_NOTE_DEFAULTS.width
@@ -326,7 +354,9 @@ export const NoteInspectorSection = ({
           ? WEB_BOOKMARK_DEFAULTS.height
           : toApod
             ? APOD_NOTE_DEFAULTS.height
-            : toPoetry
+            : toFile
+              ? filePatch?.h ?? selectedNote.h
+              : toPoetry
               ? POETRY_NOTE_DEFAULTS.height
               : toEconomist
                 ? ECONOMIST_NOTE_DEFAULTS.height
@@ -341,7 +371,9 @@ export const NoteInspectorSection = ({
             ? [...new Set([...selectedNote.tags, "bookmark", "link"])]
             : toApod
               ? [...new Set([...selectedNote.tags, "space", "nasa", "apod"])]
-              : toPoetry
+              : toFile
+                ? ["file"]
+                : toPoetry
                 ? [...new Set([...selectedNote.tags, "poetry", "poem"])]
                 : toEconomist
                   ? [economistSource.sourceId, "cover", "magazine"]
@@ -525,6 +557,60 @@ export const NoteInspectorSection = ({
                   Open
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {selectedNote.noteKind === "file" && (
+          <div className={sectionBlockClass}>
+            <p className={sectionLabelClass}>File</p>
+            <div className="grid gap-2">
+              <input
+                type="text"
+                value={selectedNote.file?.source === "link" ? selectedNote.file.url : ""}
+                onChange={(event) =>
+                  onUpdateNote(selectedNote.id, {
+                    ...toFileNotePatch(
+                      createFileNoteState({
+                        ...(selectedNote.file ?? createFileNoteState()),
+                        source: "link",
+                        url: event.target.value,
+                      }),
+                    ),
+                  })
+                }
+                onBlur={(event) => {
+                  const normalized = normalizeFileUrl(event.target.value);
+                  if (normalized) {
+                    onSubmitFileNoteUrl(selectedNote.id, normalized);
+                  }
+                }}
+                className={detailField}
+                placeholder="https://example.com/document.pdf"
+                disabled={isTimeLocked || isPrivateEnabled}
+                aria-label="File URL"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>Upload File</button>
+                <button type="button" onClick={() => onSubmitFileNoteUrl(selectedNote.id, selectedNote.file?.source === "link" ? selectedNote.file.url : "")} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>Save Link</button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void onSelectFileNoteFile(selectedNote.id, file);
+                  }
+                  event.currentTarget.value = "";
+                }}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => onOpenFileNote(selectedNote.id)} className={detailButton} disabled={!selectedNote.file?.url}>Open</button>
+                <button type="button" onClick={() => onDownloadFileNote(selectedNote.id)} className={detailButton} disabled={!selectedNote.file?.url}>Download</button>
+              </div>
+              <div className={detailMutedPanel}>{`${getFileNoteTitle(selectedNote.file)}${selectedNote.file ? ` • ${getFileNoteMeta(selectedNote.file)}` : ""}`}</div>
             </div>
           </div>
         )}
@@ -765,6 +851,7 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked || isPrivateEnabled}>Journal</button>
             <button type="button" onClick={() => setNoteKind("eisenhower")} className={typeButtonClass(selectedNote.noteKind === "eisenhower")} disabled={isTimeLocked || isPrivateEnabled}>Eisenhower</button>
             <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked || isPrivateEnabled}>Bookmark</button>
+            <button type="button" onClick={() => setNoteKind("file")} className={typeButtonClass(selectedNote.noteKind === "file")} disabled={isTimeLocked || isPrivateEnabled}>File</button>
             <button type="button" onClick={() => setNoteKind("apod")} className={typeButtonClass(selectedNote.noteKind === "apod")} disabled={isTimeLocked || isPrivateEnabled}>APOD</button>
             <button type="button" onClick={() => selectedNote.noteKind === "poetry" ? onRefreshPoetry(selectedNote.id) : setNoteKind("poetry")} className={typeButtonClass(selectedNote.noteKind === "poetry")} disabled={isTimeLocked || isPrivateEnabled}>{selectedNote.noteKind === "poetry" ? "Refresh Poetry" : "Poetry"}</button>
             <button type="button" onClick={() => selectedNote.noteKind === "economist" ? onRefreshEconomist(selectedNote.id) : setNoteKind("economist")} className={typeButtonClass(selectedNote.noteKind === "economist")} disabled={isTimeLocked || isPrivateEnabled}>{selectedNote.noteKind === "economist" ? "Refresh Cover" : "Magazine Cover"}</button>
@@ -791,4 +878,8 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
+
+
+
+
 

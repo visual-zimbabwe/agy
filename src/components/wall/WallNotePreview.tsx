@@ -6,6 +6,7 @@ import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, trunca
 import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { getApodCaption } from "@/features/wall/apod";
+import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
@@ -907,8 +908,8 @@ const CodeRenderer = ({ note, width, height, tone }: RendererProps) => {
 const FileRenderer = ({ note, width, height, tone }: RendererProps) => {
   const text = stripWikiLinkMarkup(note.text);
   const match = fileNameMatch(text);
-  const file = match?.[1] ?? "Document";
-  const meta = text.replace(file, "").trim() || "File note";
+  const file = note.noteKind === "file" ? getFileNoteTitle(note.file) : match?.[1] ?? "Document";
+  const meta = note.noteKind === "file" ? getFileNoteMeta(note.file) : text.replace(file, "").trim() || "File note";
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="flex h-full items-center gap-4 p-5">
@@ -984,6 +985,9 @@ const resolveRendererKey = (note: Note) => {
   if ((!note.noteKind || note.noteKind === "standard") && (/^\`\`\`[\w-]*\n[\s\S]*\n\`\`\`$/.test(cleaned.trim()) || looksLikeCode(cleaned) || Boolean(codeFileNameMatch(cleaned)))) {
     return "code";
   }
+  if (note.noteKind === "file") {
+    return "file";
+  }
   if (!note.noteKind && fileNameMatch(cleaned)) {
     return "file";
   }
@@ -1024,4 +1028,5 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
     </div>
   );
 });
+
 

@@ -163,6 +163,25 @@ Expected:
 - Compact, comfortable, and expanded card states remain polished on the wall and in preview surfaces.
 - Invalid, missing, or partial metadata degrades gracefully without clipping or unsafe HTML rendering.
 
+## File Note (`/wall`) (2026-03-26)
+1. Open `/wall`, open `Tools`, and click `New File`.
+2. Verify a compact file card appears using the new `notes_v2` document frontend rather than a generic sticky note.
+3. Double-click the file note and verify the floating editor opens with `Upload` and `Paste URL` tabs plus the same file-card preview.
+4. In the floating editor `Upload` tab, choose a local PDF or document and verify the note updates with the file name, inferred document metadata, and download action.
+5. Click the download affordance on the card and verify the uploaded file downloads with a readable filename.
+6. In the floating editor `Paste URL` tab, paste a direct file URL or share link, save it, and verify the note keeps the filename-style title plus uppercase metadata row.
+7. Click `Open` for the link-backed file note and verify it opens in a new tab.
+8. Select a standard note, go to `Details > Note Type`, click `File`, and verify the current note converts into the file-note shell without creating a duplicate note.
+9. In `Details > File`, upload a local file and verify the converted note updates immediately.
+10. In `Details > File`, paste a URL, click `Save Link`, and verify the note keeps the linked file state after blur.
+11. Refresh `/wall` and verify uploaded and link-backed file notes restore correctly.
+12. If cloud sync is enabled, sync, reload, and verify the file note payload still renders after hydration.
+
+Expected:
+- File notes are available from both `Tools` and `Details > Note Type`.
+- File notes support local-device upload and link-backed file creation without breaking other note kinds.
+- The non-edit shell matches the new document-card frontend: filename-first layout, muted uppercase metadata, and a visible download or open affordance.
+- File-note overlays remain visible and unclipped on desktop and mobile wall layouts.
 ## NASA APOD Note (`/wall`) (2026-03-20)
 1. Open `/wall`, open `Tools`, and click `New APOD`.
 2. Verify a new APOD note appears and loads the current Astronomy Picture of the Day instead of a blank image card.
@@ -1240,4 +1259,7 @@ Expected:
 Expected:
 - Joker notes match the new note frontend reference instead of the older placeholder look.
 - The live Konva wall rendering and the React preview use the same Joker hierarchy and ornamentation.
+
+
+
 

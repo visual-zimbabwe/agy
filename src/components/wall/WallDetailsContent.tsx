@@ -59,6 +59,10 @@ type WallDetailsContentProps = {
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
   onOpenBookmarkUrl: (url: string) => void;
+  onSelectFileNoteFile: (noteId: string, file: File) => Promise<void>;
+  onSubmitFileNoteUrl: (noteId: string, url: string) => void;
+  onOpenFileNote: (noteId: string) => void;
+  onDownloadFileNote: (noteId: string) => void;
   privateNoteSupported: boolean;
   isPrivateEnabled: boolean;
   isPrivateUnlocked: boolean;
@@ -183,6 +187,10 @@ export const WallDetailsContent = ({
   onUpdateSelectedNote,
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
+  onSelectFileNoteFile,
+  onSubmitFileNoteUrl,
+  onOpenFileNote,
+  onDownloadFileNote,
   privateNoteSupported,
   isPrivateEnabled,
   isPrivateUnlocked,
@@ -319,6 +327,10 @@ export const WallDetailsContent = ({
             onUpdateNote={onUpdateSelectedNote}
             onSubmitBookmarkUrl={onSubmitBookmarkUrl}
             onOpenBookmarkUrl={onOpenBookmarkUrl}
+            onSelectFileNoteFile={onSelectFileNoteFile}
+            onSubmitFileNoteUrl={onSubmitFileNoteUrl}
+            onOpenFileNote={onOpenFileNote}
+            onDownloadFileNote={onDownloadFileNote}
             privateNoteSupported={privateNoteSupported}
             isPrivateEnabled={isPrivateEnabled}
             isPrivateUnlocked={isPrivateUnlocked}
@@ -476,5 +488,6 @@ export const WallDetailsContent = ({
     </div>
   );
 };
+
 
 

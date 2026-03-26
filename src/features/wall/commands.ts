@@ -1,6 +1,7 @@
-import { EISENHOWER_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, POETRY_NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
+import { EISENHOWER_NOTE_DEFAULTS, FILE_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, POETRY_NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
 import { buildEconomistNote, ECONOMIST_NOTE_DEFAULTS, isEconomistNote } from "@/features/wall/economist";
+import { createFileNoteState, isFileNote, toFileNotePatch } from "@/features/wall/file-notes";
 import type { EconomistCoverPayload } from "@/features/wall/economist";
 import { buildApodNote, isApodNote } from "@/features/wall/apod";
 import { buildPoetryNote, isPoetryNote } from "@/features/wall/poetry";
@@ -386,6 +387,12 @@ export const createWebBookmarkNote = (x: number, y: number, url = "") => {
   return noteId;
 };
 
+export const createFileNote = (x: number, y: number, payload?: Partial<Note["file"]>) => {
+  const noteId = createNote(x, y, FILE_NOTE_DEFAULTS.color);
+  useWallStore.getState().patchNote(noteId, toFileNotePatch(createFileNoteState(payload)));
+  return noteId;
+};
+
 export const updateNote = (noteId: string, patch: Partial<Note>) => {
   const current = useWallStore.getState().notes[noteId];
   if (!current) {
@@ -516,6 +523,15 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       textSizePx: patch.textSizePx ?? current.textSizePx ?? ECONOMIST_NOTE_DEFAULTS.textSizePx,
       tags: patch.tags ?? current.tags,
       imageUrl: patch.imageUrl ?? current.imageUrl,
+    });
+    return;
+  }
+
+  if (isFileNote(current)) {
+    useWallStore.getState().patchNote(noteId, {
+      ...patch,
+      ...toFileNotePatch(patch.file ?? current.file),
+      tags: patch.tags ?? current.tags,
     });
     return;
   }
@@ -1028,4 +1044,5 @@ export const applyTemplate = (templateType: TemplateType, centerX: number, cente
     state.selectGroup(groupId);
   });
 };
+
 

@@ -91,6 +91,7 @@ import {
   createCanonNote,
   createApodNote,
   createEconomistNote,
+  createFileNote,
   createPoetryNote,
   createOrRefreshJokerNote,
   createOrRefreshThroneNote,
@@ -118,6 +119,7 @@ import {
   updateZone,
 } from "@/features/wall/commands";
 import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
+import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
 import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
 import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
 import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
@@ -1281,6 +1283,94 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     window.open(target, "_blank", "noopener,noreferrer");
   }, []);
 
+  const readFileAsDataUrl = useCallback(
+    (file: File) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ""));
+        reader.onerror = () => reject(new Error(`Failed to read ${file.name}.`));
+        reader.readAsDataURL(file);
+      }),
+    [],
+  );
+
+  const submitFileNoteUrl = useCallback(
+    (noteId: string, rawUrl: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const normalizedUrl = normalizeFileUrl(rawUrl);
+      if (!normalizedUrl) {
+        return;
+      }
+      updateNote(noteId, toFileNotePatch(createFileNoteState({ ...(renderSnapshot.notes[noteId]?.file ?? {}), source: "link", url: normalizedUrl })));
+    },
+    [isTimeLocked, renderSnapshot.notes],
+  );
+
+  const selectFileNoteFile = useCallback(
+    async (noteId: string, file: File) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const dataUrl = await readFileAsDataUrl(file);
+      updateNote(
+        noteId,
+        toFileNotePatch(
+          createFileNoteState({
+            source: "upload",
+            name: file.name,
+            url: dataUrl,
+            mimeType: file.type,
+            sizeBytes: file.size,
+            uploadedAt: Date.now(),
+          }),
+        ),
+      );
+    },
+    [isTimeLocked, readFileAsDataUrl],
+  );
+
+  const openFileNote = useCallback(
+    (noteId: string) => {
+      const fileNote = renderSnapshot.notes[noteId]?.file;
+      const target = fileNote?.url?.trim();
+      if (!target || typeof window === "undefined") {
+        return;
+      }
+      if (fileNote?.source === "link") {
+        openBookmarkUrl(target);
+        return;
+      }
+      window.open(target, "_blank", "noopener,noreferrer");
+    },
+    [openBookmarkUrl, renderSnapshot.notes],
+  );
+
+  const downloadFileNote = useCallback(
+    (noteId: string) => {
+      const fileNote = renderSnapshot.notes[noteId]?.file;
+      const target = fileNote?.url?.trim();
+      if (!target || typeof document === "undefined") {
+        return;
+      }
+      const filename = getFileNoteTitle(fileNote);
+      if (fileNote?.source === "upload") {
+        downloadDataUrl(filename, target);
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = target;
+      link.download = filename;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    [renderSnapshot.notes],
+  );
+
   const fetchBookmarkPreview = useCallback(
     async (noteId: string, rawUrl: string, options?: { force?: boolean }) => {
       if (isTimeLocked) {
@@ -1412,6 +1502,18 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
+
+  const makeFileNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const position = placeNewNote(world, { w: 320, h: 112 });
+    const id = createFileNote(position.x, position.y);
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
   }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeApodNoteAtViewportCenter = useCallback(() => {
@@ -3000,6 +3102,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
             onCreateCodeNote={makeCodeNoteAtViewportCenter}
             onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
+            onCreateFileNote={makeFileNoteAtViewportCenter}
             onCreateApodNote={makeApodNoteAtViewportCenter}
             onCreatePoetryNote={makePoetryNoteAtViewportCenter}
             onCreateEconomistNote={makeEconomistNoteAtViewportCenter}
@@ -3165,6 +3268,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               onNavigateWikiLink={focusNote}
               editingId={editing?.id}
               openExternalUrl={openBookmarkUrl}
+              onDownloadFileNote={downloadFileNote}
             />
 
             <WallOverlaysLayer
@@ -3252,6 +3356,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onResetToDetectedCurrency={() => { void resetToDetectedCurrency(); }}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
           onOpenBookmarkUrl={openBookmarkUrl}
+          onSelectFileNoteFile={selectFileNoteFile}
+          onSubmitFileNoteUrl={submitFileNoteUrl}
+          onOpenFileNote={openFileNote}
+          onDownloadFileNote={downloadFileNote}
           onRefreshApodNote={(noteId) => { void refreshApodNote(noteId, { force: true }); }}
           onDownloadApodImage={downloadApodImage}
           onOpenApodSource={(noteId) => {
@@ -3380,6 +3488,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onUpdateSelectedNote={updateNote}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
           onOpenBookmarkUrl={openBookmarkUrl}
+          onSelectFileNoteFile={selectFileNoteFile}
+          onSubmitFileNoteUrl={submitFileNoteUrl}
+          onOpenFileNote={openFileNote}
+          onDownloadFileNote={downloadFileNote}
           privateNoteSupported={selectedPrivateNoteSupported}
           isPrivateEnabled={Boolean(selectedPrivateNote)}
           isPrivateUnlocked={isSelectedPrivateUnlocked}
@@ -3526,24 +3638,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

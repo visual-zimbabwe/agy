@@ -14,6 +14,7 @@ import { getPoetryFooterHeight, getPoetryHeaderHeight } from "@/features/wall/po
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
+import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
 import { throneLoadingText } from "@/features/wall/throne";
 import type { LinkType, Note } from "@/features/wall/types";
 
@@ -287,6 +288,7 @@ type WallNotesLayerProps = {
   onNavigateWikiLink: (noteId: string) => void;
   editingId?: string;
   openExternalUrl: (url: string) => void;
+  onDownloadFileNote: (noteId: string) => void;
 };
 
 export const WallNotesLayer = ({
@@ -335,6 +337,7 @@ export const WallNotesLayer = ({
   onNavigateWikiLink,
   editingId,
   openExternalUrl,
+  onDownloadFileNote,
 }: WallNotesLayerProps) => {
   const previousColorRef = useRef<Record<string, string>>({});
   const previousTextSizeRef = useRef<Record<string, string>>({});
@@ -587,9 +590,9 @@ export const WallNotesLayer = ({
           : strippedNoteText;
         const looksLikeCode = /(^|\n)\s*(def |const |let |function |class |import |from |<\w)|=>|\{\s*$|console\.|return\s+/m.test(strippedNoteText);
         const fileNameMatch = strippedNoteText.match(/([\w-]+\.(pdf|docx?|txt|png|jpe?g|zip|csv|md))/i);
-        const looksLikeFile = Boolean(fileNameMatch);
-        const fileLabel = fileNameMatch?.[1] ?? "Document";
-        const fileMeta = strippedNoteText.replace(fileLabel, "").trim() || "File note";
+        const looksLikeFile = noteView.noteKind === "file" || Boolean(fileNameMatch);
+        const fileLabel = noteView.noteKind === "file" ? getFileNoteTitle(noteView.file) : fileNameMatch?.[1] ?? "Document";
+        const fileMeta = noteView.noteKind === "file" ? getFileNoteMetaCaps(noteView.file) : strippedNoteText.replace(fileLabel, "").trim() || "File note";
         const journalTitle = noteLines[0] ?? "Dear Wall,";
         const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
         const showStandardTextCard = !isPrivate && isStandardNote && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !isCurrency && !isEconomist && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
@@ -716,7 +719,7 @@ export const WallNotesLayer = ({
                 toggleVocabularyFlip(note.id);
                 return;
               }
-              if (isApod || isPoetry) {
+              if (isApod || isPoetry || noteView.noteKind === "file") {
                 openEditor(note.id, noteView.text);
                 return;
               }
@@ -1939,7 +1942,26 @@ export const WallNotesLayer = ({
                 <Text x={18} y={Math.max(25, noteView.h / 2 - 21)} width={46} align="center" fontSize={22} fill={atelierPalette.terracotta} text="▤" listening={false} />
                 <Text x={78} y={Math.max(18, noteView.h / 2 - 24)} width={Math.max(0, noteView.w - 120)} fontSize={13} fontStyle="bold" fill={atelierPalette.text} text={fileLabel} ellipsis listening={false} />
                 <Text x={78} y={Math.max(38, noteView.h / 2 - 4)} width={Math.max(0, noteView.w - 120)} fontSize={10} fill={colorWithAlpha(atelierPalette.quietText, 0.8)} text={fileMeta.toUpperCase()} ellipsis listening={false} />
-                <Text x={Math.max(18, noteView.w - 42)} y={Math.max(26, noteView.h / 2 - 16)} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.58)} text="↓" listening={false} />
+                <Group
+                  x={Math.max(18, noteView.w - 42)}
+                  y={Math.max(26, noteView.h / 2 - 18)}
+                  onClick={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    event.cancelBubble = true;
+                    onDownloadFileNote(note.id);
+                  }}
+                  onTap={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    event.cancelBubble = true;
+                    onDownloadFileNote(note.id);
+                  }}
+                >
+                  <Text x={0} y={0} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.58)} text="↓" listening={false} />
+                </Group>
               </>
             )}
             {showStandardTextCard && (
@@ -2121,4 +2143,5 @@ export const WallNotesLayer = ({
     </>
   );
 };
+
 

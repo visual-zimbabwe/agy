@@ -115,7 +115,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   const notesWithFormattingResult = await auth.supabase
     .from("notes")
     .select(
-      "id,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,poetry,tags,text_size,x,y,w,h,color,created_at,updated_at",
+      "id,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at",
     )
     .eq("wall_id", wallId)
     .eq("owner_id", auth.user.id)
@@ -126,7 +126,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     const notesWithoutVocabularyResult = await auth.supabase
       .from("notes")
       .select(
-        "id,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,bookmark,apod,poetry,tags,text_size,x,y,w,h,color,created_at,updated_at",
+        "id,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at",
       )
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
@@ -163,6 +163,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
           bookmark: null,
           apod: null,
           poetry: null,
+          file: null,
         })) as SnapshotArgs["notes"]) ?? [];
     } else if (notesWithoutVocabularyResult.error) {
       return NextResponse.json({ error: notesWithoutVocabularyResult.error.message }, { status: 500 });
@@ -322,5 +323,6 @@ export async function DELETE(_: Request, context: { params: Promise<{ wallId: st
 
   return NextResponse.json({ ok: true });
 }
+
 
 

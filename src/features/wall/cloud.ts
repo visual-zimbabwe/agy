@@ -2,6 +2,7 @@ import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
+import { normalizeFileNote } from "@/features/wall/file-notes";
 import type { ApodNote, CanonNote, CurrencyNote, PersistedWallState, PoetryNote, PrivateNoteData, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
 
 type WallRow = {
@@ -32,6 +33,7 @@ type NoteRow = {
   bookmark?: unknown;
   apod?: unknown;
   poetry?: unknown;
+  file?: unknown;
   tags: unknown;
   text_size: string | null;
   x: number;
@@ -429,7 +431,8 @@ export const rowsToSnapshot = (rows: {
         note.note_kind === "web-bookmark" ||
         note.note_kind === "apod" ||
         note.note_kind === "poetry" ||
-        note.note_kind === "economist"
+        note.note_kind === "economist" ||
+        note.note_kind === "file"
           ? note.note_kind
           : "standard";
 
@@ -456,6 +459,7 @@ export const rowsToSnapshot = (rows: {
           currency: noteKind === "currency" ? parseCurrency(note.currency) : undefined,
           bookmark: noteKind === "web-bookmark" ? parseBookmark(note.bookmark) : undefined,
           apod: noteKind === "apod" ? parseApod(note.apod) : undefined,
+          file: noteKind === "file" ? normalizeFileNote(note.file) : undefined,
           poetry: noteKind === "poetry" ? parsePoetry(note.poetry) : undefined,
           tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
           x: note.x,
@@ -539,4 +543,5 @@ export const rowsToSnapshot = (rows: {
   },
   lastColor: rows.wall.last_color ?? undefined,
 });
+
 

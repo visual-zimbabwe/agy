@@ -5,6 +5,7 @@ import type { Dispatch, FocusEvent, SetStateAction } from "react";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { ApodNoteEditor } from "@/components/wall/ApodNoteEditor";
 import { EconomistCoverEditor } from "@/components/wall/EconomistCoverEditor";
+import { FileNoteEditor } from "@/components/wall/FileNoteEditor";
 import { PoetryNoteEditor } from "@/components/wall/PoetryNoteEditor";
 import { CurrencyNoteEditor } from "@/components/wall/CurrencyNoteEditor";
 import { EisenhowerMatrixEditor } from "@/components/wall/EisenhowerMatrixEditor";
@@ -88,6 +89,10 @@ type WallFloatingUiProps = {
   onResetToDetectedCurrency: () => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
   onOpenBookmarkUrl: (url: string) => void;
+  onSelectFileNoteFile: (noteId: string, file: File) => Promise<void>;
+  onSubmitFileNoteUrl: (noteId: string, url: string) => void;
+  onOpenFileNote: (noteId: string) => void;
+  onDownloadFileNote: (noteId: string) => void;
   onRefreshApodNote: (noteId: string) => void;
   onDownloadApodImage: (noteId: string) => void;
   onOpenApodSource: (noteId: string) => void;
@@ -172,6 +177,10 @@ export const WallFloatingUi = ({
   onResetToDetectedCurrency,
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
+  onSelectFileNoteFile,
+  onSubmitFileNoteUrl,
+  onOpenFileNote,
+  onDownloadFileNote,
   onRefreshApodNote,
   onDownloadApodImage,
   onOpenApodSource,
@@ -215,6 +224,19 @@ export const WallFloatingUi = ({
               onOpenUrl={onOpenBookmarkUrl}
             />
           )}
+          {editingNote.noteKind === "file" && (
+            <FileNoteEditor
+              editing={editing}
+              editingNote={editingNote}
+              camera={camera}
+              toScreenPoint={toScreenPoint}
+              onClose={() => setEditing(null)}
+              onSelectFile={onSelectFileNoteFile}
+              onSubmitUrl={onSubmitFileNoteUrl}
+              onOpenFile={onOpenFileNote}
+              onDownloadFile={onDownloadFileNote}
+            />
+          )}
           {editingNote.noteKind === "apod" && (
             <ApodNoteEditor
               editingNote={editingNote as Note & { noteKind: "poetry" }}
@@ -248,7 +270,7 @@ export const WallFloatingUi = ({
               onUpdateNote={updateNote}
             />
           )}
-          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "apod" && editingNote.noteKind !== "poetry" && editingNote.noteKind !== "economist" && (
+          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "file" && editingNote.noteKind !== "apod" && editingNote.noteKind !== "poetry" && editingNote.noteKind !== "economist" && (
             <NoteTextEditor
               editing={editing}
               editingNote={editingNote as Note & { noteKind: "poetry" }}
@@ -636,5 +658,6 @@ export const WallFloatingUi = ({
     </>
   );
 };
+
 
 

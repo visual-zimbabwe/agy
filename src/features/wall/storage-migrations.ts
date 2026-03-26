@@ -1,5 +1,6 @@
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/wall/bookmarks";
+import { normalizeFileNote } from "@/features/wall/file-notes";
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import type { ApodNote, CanonNote, CurrencyNote, Link, Note, NoteGroup, PersistedWallState, PrivateNoteData, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
@@ -295,7 +296,8 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     entry.noteKind === "web-bookmark" ||
     entry.noteKind === "apod" ||
     entry.noteKind === "poetry" ||
-    entry.noteKind === "economist"
+    entry.noteKind === "economist" ||
+    entry.noteKind === "file"
       ? entry.noteKind
       : "standard";
   return {
@@ -310,6 +312,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     currency: noteKind === "currency" ? normalizeCurrency(entry.currency) : undefined,
     bookmark: noteKind === "web-bookmark" ? normalizeBookmark(entry.bookmark) : undefined,
     apod: noteKind === "apod" ? normalizeApod(entry.apod) : undefined,
+    file: noteKind === "file" ? normalizeFileNote(entry.file) : undefined,
     poetry:
       noteKind === "poetry" && isRecord(entry.poetry)
         ? {
@@ -459,4 +462,5 @@ export const parseTimelinePayload = (payload: string): PersistedWallState | null
     return null;
   }
 };
+
 

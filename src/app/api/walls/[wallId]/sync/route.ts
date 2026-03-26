@@ -137,9 +137,19 @@ const poetrySchema = z.object({
   error: z.string().optional(),
 });
 
+const fileSchema = z.object({
+  source: z.enum(["upload", "link"]),
+  name: z.string(),
+  url: z.string(),
+  mimeType: z.string().optional(),
+  extension: z.string().optional(),
+  sizeBytes: z.number().optional(),
+  uploadedAt: z.number().optional(),
+});
+
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark", "apod", "poetry", "economist"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark", "apod", "poetry", "economist", "file"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -168,6 +178,7 @@ const noteSchema = z.object({
   bookmark: bookmarkSchema.optional(),
   apod: apodSchema.optional(),
   poetry: poetrySchema.optional(),
+  file: fileSchema.optional(),
 });
 
 const zoneSchema = z.object({
@@ -336,6 +347,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
               bookmark: note.bookmark ?? null,
               apod: note.apod ?? null,
               poetry: note.poetry ?? null,
+              file: note.file ?? null,
               image_url: note.imageUrl?.trim() || null,
               text_align: note.textAlign ?? null,
               text_v_align: note.textVAlign ?? null,
@@ -544,3 +556,7 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     serverTime: Date.now(),
   });
 }
+
+
+
+
