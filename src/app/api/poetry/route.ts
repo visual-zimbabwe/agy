@@ -36,12 +36,13 @@ const buildPoetryDbUrl = ({
 
 const toSearchMeta = (searchParams: URLSearchParams) => {
   const field = normalizePoetrySearchField(searchParams.get("field"));
-  const query = normalizePoetrySearchQuery(searchParams.get("query"));
+  const rawQuery = normalizePoetrySearchQuery(searchParams.get("query"));
   const matchType = normalizePoetryMatchType(searchParams.get("match"));
+  const query = field === "linecount" ? rawQuery.replace(/[^\d]/g, "") : rawQuery;
   return {
     field,
     query,
-    matchType: field === "random" ? DEFAULT_POETRY_MATCH_TYPE : matchType,
+    matchType: field === "random" ? DEFAULT_POETRY_MATCH_TYPE : field === "linecount" ? "exact" : matchType,
   };
 };
 
@@ -96,3 +97,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }
+

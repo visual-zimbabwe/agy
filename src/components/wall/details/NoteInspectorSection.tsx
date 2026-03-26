@@ -219,6 +219,7 @@ export const NoteInspectorSection = ({
   };
 
   const normalizedPoetryQuery = normalizePoetrySearchQuery(poetrySearchQuery);
+  const effectivePoetryMatchType = poetrySearchField === "linecount" ? "exact" : poetryMatchType;
   const poetryFieldMeta = POETRY_SEARCH_FIELD_OPTIONS.find((option) => option.value === poetrySearchField) ?? POETRY_SEARCH_FIELD_OPTIONS[0];
   const canSearchPoetry = poetrySearchField === "random" || Boolean(normalizedPoetryQuery);
   const poetrySearchSummary =
@@ -398,7 +399,13 @@ export const NoteInspectorSection = ({
               <div className="grid grid-cols-2 gap-2">
                 <select
                   value={poetrySearchField}
-                  onChange={(event) => setPoetrySearchField(normalizePoetrySearchField(event.target.value))}
+                  onChange={(event) => {
+                    const nextField = normalizePoetrySearchField(event.target.value);
+                    setPoetrySearchField(nextField);
+                    if (nextField === "linecount") {
+                      setPoetryMatchType("exact");
+                    }
+                  }}
                   className={detailField}
                   disabled={isTimeLocked || isPrivateEnabled}
                   aria-label="Poetry search field"
@@ -413,7 +420,7 @@ export const NoteInspectorSection = ({
                   value={poetryMatchType}
                   onChange={(event) => setPoetryMatchType(normalizePoetryMatchType(event.target.value))}
                   className={detailField}
-                  disabled={isTimeLocked || isPrivateEnabled || poetrySearchField === "random"}
+                  disabled={isTimeLocked || isPrivateEnabled || poetrySearchField === "random" || poetrySearchField === "linecount"}
                   aria-label="Poetry search match"
                 >
                   <option value="partial">Partial match</option>
@@ -431,7 +438,7 @@ export const NoteInspectorSection = ({
                         force: true,
                         field: poetrySearchField,
                         query: normalizedPoetryQuery,
-                        matchType: poetryMatchType,
+                        matchType: effectivePoetryMatchType,
                       });
                     }
                   }}
@@ -449,7 +456,7 @@ export const NoteInspectorSection = ({
                       force: true,
                       field: poetrySearchField,
                       query: normalizedPoetryQuery,
-                      matchType: poetryMatchType,
+                      matchType: effectivePoetryMatchType,
                     })
                   }
                   className={detailButton}

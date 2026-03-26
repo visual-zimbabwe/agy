@@ -8,7 +8,6 @@ import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { getApodCaption } from "@/features/wall/apod";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import { getPoetryTitle } from "@/features/wall/poetry";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import type { Note } from "@/features/wall/types";
 import { getApodPlayback } from "@/lib/apod";
@@ -426,14 +425,33 @@ const ApodRenderer = ({ note, width, height, readableText, mutedText, bodyClamp,
   );
 };
 
-const PoetryRenderer = ({ note, width, height, readableText, mutedText, bodyClamp, tone }: RendererProps) => (
+const PoetryRenderer = ({ note, width, height, readableText, bodyClamp, tone }: RendererProps) => (
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-    <div className="flex h-full flex-col items-center p-5 text-center" style={{ background: "linear-gradient(180deg, rgba(246,243,238,0.58), rgba(255,255,255,0.98))" }}>
-      <MetaLabel color={atelier.quiet}>Source: Poetry API</MetaLabel>
-      <p className="mt-5 font-[Newsreader] text-[22px] font-semibold italic leading-tight" style={{ color: atelier.ink }}>{getPoetryTitle(note)}</p>
-      <p className="mt-2 text-[11px] italic" style={{ color: mutedText }}>{note.poetry?.author?.trim() || note.quoteAuthor?.trim() || "Unknown Poet"}</p>
-      <p className="mt-5 whitespace-pre-wrap font-[Newsreader] text-[18px] italic leading-[1.5] [overflow-wrap:anywhere]" style={{ ...lineClampStyle(tone === "detail" ? 999 : bodyClamp + 2), color: readableText }}>{note.text.trim() || note.poetry?.error || "Loading poem..."}</p>
-      <div className="mt-auto w-20 border-t pt-4 text-[10px] uppercase tracking-[0.18em]" style={{ borderColor: "rgba(163,56,24,0.12)", color: "rgba(163,56,24,0.68)" }}>{note.poetry?.author?.trim() || "PoetryDB"}</div>
+    <div className="flex h-full flex-col px-6 pb-5 pt-5" style={{ background: "linear-gradient(180deg, rgba(246,243,238,0.62), rgba(255,255,255,0.98))" }}>
+      <div className="text-center">
+        <MetaLabel color="rgba(139,113,106,0.46)">Source: Poetry API</MetaLabel>
+      </div>
+      <div className="flex flex-1 items-center justify-center px-1">
+        <p
+          className="w-full whitespace-pre-wrap font-[Newsreader] text-[18px] italic leading-[1.58] [overflow-wrap:anywhere]"
+          style={{ ...lineClampStyle(tone === "detail" ? 999 : bodyClamp + 6), color: readableText, textAlign: "center" }}
+        >
+          {note.text.trim() || note.poetry?.error || "Loading poem..."}
+        </p>
+      </div>
+      <div className="mt-3 border-t pt-4" style={{ borderColor: "rgba(223,192,184,0.3)" }}>
+        <div className="grid grid-cols-[3.6rem_1fr] items-center gap-4">
+          <div
+            className="grid h-14 w-14 place-items-center rounded-[1.15rem] text-[22px]"
+            style={{ background: "rgba(252,249,244,0.98)", color: atelier.terracotta, boxShadow: "0 10px 24px rgba(28,28,25,0.08)" }}
+          >
+            ☁
+          </div>
+          <p className="text-center text-[18px] font-medium" style={{ color: "rgba(196,118,95,0.92)", fontFamily: "\"Manrope\", sans-serif" }}>
+            {note.poetry?.author?.trim() || note.quoteAuthor?.trim() || "Unknown Poet"}
+          </p>
+        </div>
+      </div>
     </div>
   </NoteShell>
 );
@@ -712,5 +730,4 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
     </div>
   );
 });
-
 

@@ -9,7 +9,6 @@ import {
   getPoetryDateKey,
   getPoetryExportBaseName,
   getPoetryNoteDimensions,
-  getPoetryTitle,
   isPoetryNote,
   normalizePoetryMatchType,
   normalizePoetrySearchField,
@@ -109,11 +108,33 @@ const wrapCanvasText = (context: CanvasRenderingContext2D, text: string, maxWidt
   return wrapped;
 };
 
+const drawRoundedRect = (
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) => {
+  context.beginPath();
+  if (typeof context.roundRect === "function") {
+    context.roundRect(x, y, width, height, radius);
+  } else {
+    const safeRadius = Math.min(radius, width / 2, height / 2);
+    context.moveTo(x + safeRadius, y);
+    context.arcTo(x + width, y, x + width, y + height, safeRadius);
+    context.arcTo(x + width, y + height, x, y + height, safeRadius);
+    context.arcTo(x, y + height, x, y, safeRadius);
+    context.arcTo(x, y, x + width, y, safeRadius);
+  }
+  context.closePath();
+};
+
 const renderPoetryCanvas = (note: Note & { noteKind: "poetry" }) => {
   const poetry = note.poetry;
   const width = Math.max(640, Math.round(note.w * 2));
   const height = Math.max(720, Math.round(note.h * 2));
-  const padding = 48;
+  const padding = 28;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -122,44 +143,72 @@ const renderPoetryCanvas = (note: Note & { noteKind: "poetry" }) => {
     return null;
   }
 
-  context.fillStyle = note.color;
+  context.fillStyle = "#FCF9F4";
   context.fillRect(0, 0, width, height);
 
-  context.fillStyle = "rgba(255,248,238,0.12)";
-  context.fillRect(padding, padding, width - padding * 2, height - padding * 2);
+  drawRoundedRect(context, padding, padding, width - padding * 2, height - padding * 2, 32);
+  context.fillStyle = "#FFFDF9";
+  context.fill();
+  context.strokeStyle = "rgba(223,192,184,0.38)";
+  context.lineWidth = 2;
+  context.stroke();
 
-  let cursorY = padding + 52;
-  const innerWidth = width - padding * 2 - 36;
+  const innerX = padding + 36;
+  const innerWidth = width - padding * 2 - 72;
+  let cursorY = padding + 66;
 
-  context.fillStyle = note.textColor ?? "#FFF8EE";
-  context.font = "600 42px Georgia";
-  for (const line of wrapCanvasText(context, poetry?.title?.trim() || getPoetryTitle(note), innerWidth)) {
-    context.fillText(line, padding + 18, cursorY);
-    cursorY += 50;
-  }
+  context.textAlign = "center";
+  context.fillStyle = "rgba(139,113,106,0.5)";
+  context.font = "600 17px Manrope";
+  context.fillText("SOURCE: POETRY API", width / 2, cursorY);
 
-  cursorY += 8;
-  context.font = "600 24px Georgia";
-  context.fillStyle = "rgba(255,248,238,0.9)";
   const authorLine = poetry?.author?.trim() || note.quoteAuthor?.trim() || "Unknown Poet";
-  context.fillText(`by ${authorLine}`, padding + 18, cursorY);
-  cursorY += 36;
-
-  context.font = "500 18px Georgia";
-  context.fillStyle = "rgba(255,248,238,0.76)";
-  context.fillText(`Source: ${POETRY_NOTE_SOURCE}`, padding + 18, cursorY);
-  cursorY += 42;
-
-  context.font = "400 25px Georgia";
-  context.fillStyle = note.textColor ?? "#FFF8EE";
+  const footerTop = height - padding - 112;
+  const bodyTop = cursorY + 36;
+  const bodyBottom = footerTop - 28;
+  const bodyHeight = Math.max(120, bodyBottom - bodyTop);
+  const bodyLinesWrapped: string[] = [];
   const lines = poetry?.lines?.length ? poetry.lines : note.text.split("\n");
   for (const line of lines) {
-    for (const wrapped of wrapCanvasText(context, line, innerWidth)) {
-      context.fillText(wrapped || " ", padding + 18, cursorY);
-      cursorY += 34;
-    }
-    cursorY += 10;
+    bodyLinesWrapped.push(...wrapCanvasText(context, line, innerWidth));
+    bodyLinesWrapped.push("");
   }
+  if (bodyLinesWrapped.at(-1) === "") {
+    bodyLinesWrapped.pop();
+  }
+
+  const lineHeight = 38;
+  const startY = bodyTop + Math.max(12, (bodyHeight - bodyLinesWrapped.length * lineHeight) / 2);
+  context.fillStyle = note.textColor ?? "#1C1C19";
+  context.font = "italic 32px Newsreader";
+  cursorY = startY;
+  for (const wrapped of bodyLinesWrapped) {
+    context.fillText(wrapped || " ", width / 2, cursorY);
+    cursorY += lineHeight;
+  }
+
+  context.strokeStyle = "rgba(223,192,184,0.34)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(innerX, footerTop);
+  context.lineTo(width - innerX, footerTop);
+  context.stroke();
+
+  drawRoundedRect(context, innerX, footerTop + 24, 90, 90, 24);
+  context.fillStyle = "#FCF9F4";
+  context.shadowColor = "rgba(28,28,25,0.08)";
+  context.shadowBlur = 20;
+  context.shadowOffsetY = 10;
+  context.fill();
+  context.shadowColor = "transparent";
+
+  context.fillStyle = "#A33818";
+  context.font = "600 38px Georgia";
+  context.fillText("☁", innerX + 45, footerTop + 82);
+
+  context.fillStyle = "rgba(196,118,95,0.92)";
+  context.font = "500 28px Manrope";
+  context.fillText(authorLine, innerX + 180, footerTop + 72);
 
   return canvas;
 };
@@ -391,3 +440,4 @@ export const usePoetryNotes = ({ hydrated, publishedReadOnly }: { hydrated: bool
     downloadPoetryAsPdf,
   };
 };
+

@@ -10,7 +10,7 @@ import { getApodCaption, isApodNote } from "@/features/wall/apod";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
-import { getPoetryHeaderHeight, getPoetryTitle } from "@/features/wall/poetry";
+import { getPoetryFooterHeight, getPoetryHeaderHeight } from "@/features/wall/poetry";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
@@ -530,7 +530,6 @@ export const WallNotesLayer = ({
           .filter(Boolean)
           .join("\n\n");
         const canonTitle = canon?.title?.trim();
-        const poetryTitle = isPoetry ? getPoetryTitle(noteView) : "";
         const poetryAuthor = isPoetry ? noteView.poetry?.author?.trim() || noteView.quoteAuthor?.trim() || "Unknown Poet" : "";
         const quoteAttribution = noteView.quoteAuthor?.trim() ?? "";
         const quoteSource = noteView.quoteSource?.trim() ?? "";
@@ -538,11 +537,12 @@ export const WallNotesLayer = ({
         const quoteFooterHeight = isQuote ? (quoteFooterLines > 1 ? 40 : quoteFooterLines === 1 ? 24 : 0) : 0;
         const quoteBodyTopInset = isQuote ? 44 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
-        const poetryHeaderInset = isPoetry ? getPoetryHeaderHeight(noteView.w, noteView.poetry) : 0;
+        const poetryHeaderInset = isPoetry ? getPoetryHeaderHeight() : 0;
+        const poetryFooterInset = isPoetry ? getPoetryFooterHeight(noteView.w, noteView.poetry) : 0;
         const journalHorizontalInset = 20;
         const isApiQuoteNote = isJoker || isThrone;
-        const textX = isQuote ? 24 : isJournal ? journalHorizontalInset : 12;
-        const textWidth = Math.max(0, noteView.w - (isQuote ? 50 : isJournal ? journalHorizontalInset * 2 : 24));
+        const textX = isQuote ? 24 : isJournal ? journalHorizontalInset : isPoetry ? 26 : 12;
+        const textWidth = Math.max(0, noteView.w - (isQuote ? 50 : isJournal ? journalHorizontalInset * 2 : isPoetry ? 52 : 24));
         const currencyState = noteView.currency;
         const currencyDisplay = getCurrencyDisplayState(currencyState?.baseCurrency, currencyState?.usdRate, currencyState?.previousUsdRate);
         const imageUrl = noteView.imageUrl?.trim();
@@ -618,7 +618,7 @@ export const WallNotesLayer = ({
         const textY = isApodMediaCard || isImageNote ? 0 : 12 + quoteBodyTopInset + canonTitleInset + poetryHeaderInset + (isJournal ? 56 : 0);
         const textHeight = isApodMediaCard || isImageNote
           ? 0
-          : Math.max(0, noteView.h - 56 - quoteFooterHeight - quoteBodyTopInset - canonTitleInset - poetryHeaderInset - (isJournal ? 56 : 0) - wikiFooterHeight);
+          : Math.max(0, noteView.h - 56 - quoteFooterHeight - quoteBodyTopInset - canonTitleInset - poetryHeaderInset - poetryFooterInset - (isJournal ? 56 : 0) - wikiFooterHeight);
         const throneQuoteText = isThrone
           ? strippedNoteText === throneLoadingText
             ? strippedNoteText
@@ -1395,8 +1395,8 @@ export const WallNotesLayer = ({
                 )}
                 {isPoetry && (
                   <>
-                    <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} align="center" fontSize={9} fontStyle="bold" fill={colorWithAlpha(atelierPalette.gold, 0.72)} text="SOURCE: POETRY API" listening={false} />
-                    <Line points={[Math.max(24, noteView.w * 0.24), Math.max(24, noteView.h - 28), Math.min(noteView.w - 24, noteView.w * 0.76), Math.max(24, noteView.h - 28)]} stroke={colorWithAlpha(atelierPalette.paperStrokeStrong, 0.18)} strokeWidth={1} listening={false} />
+                    <Text x={18} y={20} width={Math.max(0, noteView.w - 36)} align="center" fontSize={9} fontStyle="bold" fill={colorWithAlpha(atelierPalette.quietText, 0.54)} text="SOURCE: POETRY API" listening={false} />
+                    <Line points={[24, Math.max(24, noteView.h - poetryFooterInset), Math.max(24, noteView.w - 24), Math.max(24, noteView.h - poetryFooterInset)]} stroke={colorWithAlpha(atelierPalette.paperStrokeStrong, 0.16)} strokeWidth={1} listening={false} />
                   </>
                 )}
               </>
@@ -1615,11 +1615,11 @@ export const WallNotesLayer = ({
                 height={textHeight}
                 fontSize={(isJournal ? Math.max(17, noteTextStyle.fontSize) : noteTextStyle.fontSize) * textSpringFactor}
                 fontFamily={isQuote || isPoetry ? "Newsreader" : noteTextFontFamily}
-                fontStyle={isQuote ? "italic" : isCanon ? "bold" : "normal"}
+                fontStyle={isQuote || isPoetry ? "italic" : isCanon ? "bold" : "normal"}
                 fill={resolvedTextColor}
-                lineHeight={isJournal ? 1.72 : isPoetry ? 1.6 : noteTextStyle.lineHeight}
+                lineHeight={isJournal ? 1.72 : isPoetry ? 1.68 : noteTextStyle.lineHeight}
                 align={isVocabulary || isPoetry ? "center" : (noteView.textAlign ?? "left")}
-                verticalAlign={noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign}
+                verticalAlign={isPoetry ? "middle" : (noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign)}
                 text={noteTextContent}
                 onClick={(event) => {
                   if (isTimeLocked) {
@@ -1765,28 +1765,37 @@ export const WallNotesLayer = ({
             {isPoetry && (
               <>
                 <Text
-                  x={12}
-                  y={12}
-                  width={Math.max(0, noteView.w - 24)}
-                  fontSize={16}
-                  fontStyle="bold"
-                  fontFamily="Newsreader"
-                  fill={resolvedTextColor}
-                  text={poetryTitle}
+                  x={90}
+                  y={Math.max(18, noteView.h - poetryFooterInset + 22)}
+                  width={Math.max(0, noteView.w - 108)}
+                  align="center"
+                  fontSize={14}
+                  fontStyle="normal"
+                  fontFamily="Manrope"
+                  fill={colorWithAlpha(atelierPalette.terracotta, 0.78)}
+                  text={poetryAuthor}
                   ellipsis
                   listening={false}
                 />
+                <Rect
+                  x={18}
+                  y={Math.max(18, noteView.h - poetryFooterInset + 14)}
+                  width={52}
+                  height={52}
+                  cornerRadius={16}
+                  fill={atelierPalette.paper}
+                  stroke={colorWithAlpha(atelierPalette.paperStroke, 0.8)}
+                  strokeWidth={1}
+                  listening={false}
+                />
                 <Text
-                  x={12}
-                  y={12 + Math.max(18, poetryHeaderInset - 22)}
-                  width={Math.max(0, noteView.w - 24)}
-                  fontSize={10}
-                  fontStyle="italic"
-                  fill={resolvedTextColor}
-                  opacity={0.82}
-                  text={poetryAuthor}
-                  wrap="none"
-                  ellipsis
+                  x={18}
+                  y={Math.max(18, noteView.h - poetryFooterInset + 27)}
+                  width={52}
+                  align="center"
+                  fontSize={20}
+                  fill={atelierPalette.terracotta}
+                  text="☁"
                   listening={false}
                 />
               </>
@@ -1979,5 +1988,4 @@ export const WallNotesLayer = ({
     </>
   );
 };
-
 

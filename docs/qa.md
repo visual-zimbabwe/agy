@@ -1136,6 +1136,7 @@ Expected:
 Expected:
 - Poetry notes are creatable from `Tools`, the command palette, and note-type conversion in `Details`.
 - Poetry text wraps cleanly inside the note and the default note size grows to fit the poem on first load.
+- Poetry cards follow the `notes_v2` Poetry shell with the faint source eyebrow, centered poem body, and separated poet footer row.
 - The details sidebar exposes Poetry-only search controls for random, author, title, line text, and line count lookups.
 - Poetry notes auto-refresh on local day changes and manual refresh reuses the note's saved search method without creating duplicate notes.
 - Poetry notes can be exported directly as PNG or PDF from the floating editor.

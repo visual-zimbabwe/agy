@@ -129,17 +129,19 @@ const measureWrappedLinesWithCanvas = (text: string, maxWidth: number, font: str
   return Math.max(1, lines);
 };
 
-export const getPoetryHeaderHeight = (width: number, poetry?: Pick<PoetryNote, "title" | "author"> | null) => {
-  const innerWidth = Math.max(24, width - 36);
-  const titleLines = measureWrappedLinesWithCanvas(poetry?.title?.trim() || "Poetry", innerWidth, "600 20px Georgia", 11);
-  const authorLines = measureWrappedLinesWithCanvas(poetry?.author?.trim() || POETRY_NOTE_SOURCE, innerWidth, "italic 13px Georgia", 7.2);
-  return Math.round(18 + titleLines * 20 + 6 + authorLines * 14 + 10);
+export const getPoetryHeaderHeight = () => 34;
+
+export const getPoetryFooterHeight = (width: number, poetry?: Pick<PoetryNote, "author"> | null) => {
+  const innerWidth = Math.max(96, width - 124);
+  const authorLines = measureWrappedLinesWithCanvas(poetry?.author?.trim() || POETRY_NOTE_SOURCE, innerWidth, "500 15px Georgia", 8.4);
+  return Math.round(Math.max(72, 50 + authorLines * 18));
 };
 
 export const getPoetryNoteDimensions = (poetry?: Pick<PoetryNote, "title" | "author" | "lines"> | null) => {
   const width = POETRY_NOTE_DEFAULTS.width;
-  const innerWidth = width - 36;
-  const poetryHeaderHeight = getPoetryHeaderHeight(width, poetry);
+  const innerWidth = width - 56;
+  const poetryHeaderHeight = getPoetryHeaderHeight();
+  const poetryFooterHeight = getPoetryFooterHeight(width, poetry);
   const bodyLines = Math.max(
     3,
     (poetry?.lines?.length ?? 0) > 0
@@ -153,7 +155,7 @@ export const getPoetryNoteDimensions = (poetry?: Pick<PoetryNote, "title" | "aut
 
   const height = Math.max(
     NOTE_DEFAULTS.minHeight,
-    Math.round(poetryHeaderHeight + bodyLines * 24 + stanzaBreaks * 10 + 64),
+    Math.round(poetryHeaderHeight + bodyLines * 28 + stanzaBreaks * 12 + poetryFooterHeight + 28),
   );
 
   return { width, height };
@@ -223,3 +225,4 @@ export const getPoetryExportBaseName = (poetry?: Pick<PoetryNote, "dateKey" | "t
   const author = slugify(poetry?.author?.trim() || "poetrydb");
   return `poetry-${date}-${author}-${title}`;
 };
+
