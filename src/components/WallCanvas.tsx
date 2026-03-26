@@ -123,7 +123,7 @@ import {
 import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
 import { createAudioNoteState, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
-import { createVideoNoteState, getVideoNoteTitle, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
+import { createVideoNoteState, getVideoNoteTitle, getVideoPlayback, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
 import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
 import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
@@ -394,8 +394,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       return null;
     }
 
-    const videoUrl = inlinePlayingVideoNote.video?.url?.trim();
-    if (!videoUrl) {
+    const playback = getVideoPlayback(inlinePlayingVideoNote.video);
+    if (!playback) {
       return null;
     }
 
@@ -412,7 +412,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       width: mediaWidth * camera.zoom,
       height: mediaHeight * camera.zoom,
       title: getVideoNoteTitle(inlinePlayingVideoNote.video),
-      url: videoUrl,
+      playback,
       posterUrl: inlinePlayingVideoNote.video?.posterDataUrl?.trim(),
     };
   }, [camera, inlinePlayingVideoNote]);
@@ -3769,17 +3769,28 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
                 height: inlinePlayingVideoScreenRect.height,
               }}
             >
-              <video
-                ref={wallInlineVideoRef}
-                key={`${inlinePlayingVideoNoteId ?? "video"}:${inlinePlayingVideoScreenRect.url}`}
-                className="h-full w-full bg-black object-contain"
-                src={inlinePlayingVideoScreenRect.url}
-                poster={inlinePlayingVideoScreenRect.posterUrl}
-                controls
-                autoPlay
-                playsInline
-                preload="metadata"
-              />
+              {inlinePlayingVideoScreenRect.playback.kind === "direct" ? (
+                <video
+                  ref={wallInlineVideoRef}
+                  key={`${inlinePlayingVideoNoteId ?? "video"}:${inlinePlayingVideoScreenRect.playback.url}`}
+                  className="h-full w-full bg-black object-contain"
+                  src={inlinePlayingVideoScreenRect.playback.url}
+                  poster={inlinePlayingVideoScreenRect.posterUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  preload="metadata"
+                />
+              ) : (
+                <iframe
+                  key={`${inlinePlayingVideoNoteId ?? "video"}:${inlinePlayingVideoScreenRect.playback.url}`}
+                  src={inlinePlayingVideoScreenRect.playback.url}
+                  title={inlinePlayingVideoScreenRect.title}
+                  className="h-full w-full border-0 bg-black"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              )}
               <button
                 type="button"
                 onClick={() => setInlinePlayingVideoNoteId(undefined)}

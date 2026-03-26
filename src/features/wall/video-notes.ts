@@ -16,8 +16,95 @@ export const VIDEO_NOTE_DEFAULTS = {
   textSizePx: 16,
 };
 
+export type VideoPlayback =
+  | { kind: "embed"; url: string }
+  | { kind: "direct"; url: string };
+
 const asNumber = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
+const clean = (value?: string | null) => value?.trim() || undefined;
+const directVideoExtensions = [".mp4", ".webm", ".ogg", ".mov"];
+
+const parseUrl = (value?: string | null) => {
+  const cleaned = clean(value);
+  if (!cleaned) {
+    return undefined;
+  }
+
+  try {
+    return new URL(cleaned);
+  } catch {
+    return undefined;
+  }
+};
+
+const getYouTubeEmbedUrl = (target: URL) => {
+  const host = target.hostname.toLowerCase();
+  const parts = target.pathname.split("/").filter(Boolean);
+  let videoId: string | undefined;
+
+  if (host.includes("youtu.be")) {
+    videoId = parts.at(-1);
+  } else if (host.includes("youtube.com")) {
+    if (parts[0] === "watch") {
+      videoId = target.searchParams.get("v") ?? undefined;
+    } else if (parts[0] === "embed" || parts[0] === "shorts" || parts[0] === "live") {
+      videoId = parts[1];
+    }
+  }
+
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : undefined;
+};
+
+const getVimeoEmbedUrl = (target: URL) => {
+  const host = target.hostname.toLowerCase();
+  const parts = target.pathname.split("/").filter(Boolean);
+  if (host.includes("player.vimeo.com") && parts[0] === "video" && parts[1]) {
+    return `https://player.vimeo.com/video/${parts[1]}`;
+  }
+  if (host.includes("vimeo.com") && parts[0]) {
+    return `https://player.vimeo.com/video/${parts[0]}`;
+  }
+  return undefined;
+};
+
+const isDirectVideoUrl = (value?: string | null) => {
+  const target = parseUrl(value);
+  if (!target) {
+    return false;
+  }
+  const pathname = target.pathname.toLowerCase();
+  return directVideoExtensions.some((extension) => pathname.endsWith(extension));
+};
+
+export const getVideoPlayback = (video?: Partial<VideoNote> | null): VideoPlayback | undefined => {
+  const source = clean(video?.url);
+  if (!source) {
+    return undefined;
+  }
+
+  if (isDirectVideoUrl(source) || video?.source === "upload") {
+    return { kind: "direct", url: source };
+  }
+
+  const parsed = parseUrl(source);
+  if (!parsed) {
+    return undefined;
+  }
+
+  const youtubeEmbedUrl = getYouTubeEmbedUrl(parsed);
+  if (youtubeEmbedUrl) {
+    return { kind: "embed", url: youtubeEmbedUrl };
+  }
+
+  const vimeoEmbedUrl = getVimeoEmbedUrl(parsed);
+  if (vimeoEmbedUrl) {
+    return { kind: "embed", url: vimeoEmbedUrl };
+  }
+
+  return undefined;
+};
 
 export const formatVideoDuration = (seconds?: number) => {
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {

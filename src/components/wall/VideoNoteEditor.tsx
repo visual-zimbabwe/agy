@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-import { createVideoNoteState } from "@/features/wall/video-notes";
+import { createVideoNoteState, getVideoPlayback } from "@/features/wall/video-notes";
 import { normalizeFileUrl } from "@/features/wall/file-notes";
 import type { Note } from "@/features/wall/types";
 
@@ -56,6 +56,7 @@ export const VideoNoteEditor = ({
     mode === "link" && normalizedUrl
       ? createVideoNoteState({ ...editingNote.video, source: "link", url: normalizedUrl, name })
       : createVideoNoteState({ ...editingNote.video, name });
+  const playback = getVideoPlayback(previewVideo);
 
   const handleFile = async (file?: File | null) => {
     if (!file) {
@@ -183,15 +184,23 @@ export const VideoNoteEditor = ({
       </div>
 
       <div className="mt-4 overflow-hidden rounded-[1.6rem] border border-[rgba(140,124,114,0.16)] bg-[#11120f] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-        {previewVideo.url ? (
+        {playback?.kind === "direct" ? (
           <video
-            src={previewVideo.url}
+            src={playback.url}
             poster={previewVideo.posterDataUrl}
             className="aspect-video w-full bg-[#11120f] object-cover"
             controls
             autoPlay
             playsInline
             preload="metadata"
+          />
+        ) : playback?.kind === "embed" ? (
+          <iframe
+            src={playback.url}
+            title={previewVideo.name || "Video preview"}
+            className="aspect-video w-full border-0 bg-[#11120f]"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
           />
         ) : (
           <div className="flex aspect-video items-center justify-center bg-[linear-gradient(145deg,#2a201d_0%,#684a40_38%,#a33818_100%)] text-[13px] font-semibold uppercase tracking-[0.28em] text-white/78">

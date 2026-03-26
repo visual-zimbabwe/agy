@@ -211,7 +211,7 @@ Expected:
 5. Rename the video in the floating editor and verify the filename footer updates without breaking playback or download.
 6. Click the play affordance on the wall card and verify the poster swaps into an inline playable video on the note without opening the editor.
 7. Click the in-note download action and verify the uploaded video downloads with the renamed filename.
-8. In the floating editor `Paste URL` tab, paste a direct video URL, save it, and verify the note keeps the video-card layout with link-backed metadata.
+8. In the floating editor `Paste URL` tab, paste a direct video URL or embeddable provider URL such as YouTube, save it, and verify the note keeps the video-card layout with link-backed metadata and playable preview.
 9. Click `Open Video` for the link-backed video note and verify it opens the target video URL in a new tab.
 10. Select a standard note, go to `Details > Note Type`, click `Video`, and verify the current note converts into the dedicated video-note shell without creating a duplicate note.
 11. In `Details > Video`, upload a local video, then rename it, and verify the converted note updates immediately.
@@ -223,7 +223,7 @@ Expected:
 Expected:
 - Video notes are available from both `Tools` and `Details > Note Type`.
 - Video notes use the dedicated editorial video frontend in both the Konva wall renderer and the React preview/editor surfaces.
-- Video note uploads and direct video links both persist through local storage and cloud sync.
+- Video note uploads, direct video links, and embeddable provider links all persist through local storage and cloud sync.
 - Clicking the wall-card play affordance plays the video inline on the note without opening the editor.
 - Video-note overlays remain visible and unclipped on desktop and mobile wall layouts.
 

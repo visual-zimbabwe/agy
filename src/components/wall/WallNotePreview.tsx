@@ -8,7 +8,7 @@ import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { getApodCaption } from "@/features/wall/apod";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
-import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
+import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle, getVideoPlayback } from "@/features/wall/video-notes";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
@@ -980,12 +980,23 @@ const VideoRenderer = ({ note, width, height, tone }: RendererProps) => {
   const meta = getVideoNoteMeta(video);
   const duration = formatVideoDuration(video?.durationSeconds);
   const progress = formatVideoDuration(video?.durationSeconds ? Math.max(0, Math.round(video.durationSeconds * 0.35)) : 0);
+  const playback = getVideoPlayback(video);
 
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="flex h-full flex-col overflow-hidden" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(252,249,244,0.98))" }}>
         <div className="relative aspect-[16/9] overflow-hidden rounded-b-[8px]" style={{ background: "linear-gradient(140deg, rgba(56,37,33,1) 0%, rgba(124,68,52,0.94) 42%, rgba(29,26,24,1) 100%)" }}>
-          {video?.posterDataUrl ? (
+          {playback?.kind === "direct" ? (
+            <video src={playback.url} poster={video?.posterDataUrl} className="h-full w-full object-cover" controls muted playsInline preload="metadata" />
+          ) : playback?.kind === "embed" ? (
+            <iframe
+              src={playback.url}
+              title={title}
+              className="h-full w-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          ) : video?.posterDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={video.posterDataUrl} alt={title} className="h-full w-full object-cover" loading="lazy" />
           ) : null}
