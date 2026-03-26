@@ -15,6 +15,7 @@ type AudioNoteEditorProps = {
   onClose: () => void;
   onSelectFile: (noteId: string, file: File) => Promise<void>;
   onSubmitUrl: (noteId: string, url: string) => void;
+  onRenameAudio: (noteId: string, name: string) => void;
   onOpenAudio: (noteId: string) => void;
   onDownloadAudio: (noteId: string) => void;
 };
@@ -30,8 +31,20 @@ const tabClass = (active: boolean) =>
     ? "rounded-full border border-[#a33818]/20 bg-[#f4e8dc] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a33818]"
     : "rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]";
 
-export const AudioNoteEditor = ({ editing, editingNote, camera, toScreenPoint, onClose, onSelectFile, onSubmitUrl, onOpenAudio, onDownloadAudio }: AudioNoteEditorProps) => {
+export const AudioNoteEditor = ({
+  editing,
+  editingNote,
+  camera,
+  toScreenPoint,
+  onClose,
+  onSelectFile,
+  onSubmitUrl,
+  onRenameAudio,
+  onOpenAudio,
+  onDownloadAudio,
+}: AudioNoteEditorProps) => {
   const [mode, setMode] = useState<"upload" | "link">(editingNote.audio?.source === "link" ? "link" : "upload");
+  const [name, setName] = useState(editingNote.audio?.name ?? "");
   const [url, setUrl] = useState(editingNote.audio?.source === "link" ? editingNote.audio.url : "");
   const [busy, setBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -42,8 +55,16 @@ export const AudioNoteEditor = ({ editing, editingNote, camera, toScreenPoint, o
   const normalizedUrl = normalizeFileUrl(url);
   const previewNote =
     mode === "link" && normalizedUrl
-      ? { ...editingNote, noteKind: "audio" as const, audio: createAudioNoteState({ source: "link", url: normalizedUrl }) }
-      : editingNote;
+      ? {
+          ...editingNote,
+          noteKind: "audio" as const,
+          audio: createAudioNoteState({ ...editingNote.audio, source: "link", url: normalizedUrl, name }),
+        }
+      : {
+          ...editingNote,
+          noteKind: "audio" as const,
+          audio: createAudioNoteState({ ...editingNote.audio, name }),
+        };
 
   const handleFile = async (file?: File | null) => {
     if (!file) {
@@ -55,6 +76,10 @@ export const AudioNoteEditor = ({ editing, editingNote, camera, toScreenPoint, o
     } finally {
       setBusy(false);
     }
+  };
+
+  const commitName = () => {
+    onRenameAudio(editing.id, name);
   };
 
   return (
@@ -74,6 +99,24 @@ export const AudioNoteEditor = ({ editing, editingNote, camera, toScreenPoint, o
         <button type="button" onClick={onClose} className={buttonClass} data-note-edit-tags="true">
           Close
         </button>
+      </div>
+
+      <div className="mt-4 grid gap-3">
+        <input
+          data-note-edit-tags="true"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          onBlur={commitName}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commitName();
+            }
+          }}
+          className={fieldClass}
+          placeholder="Audio title"
+          autoFocus={mode !== "link"}
+        />
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -117,7 +160,6 @@ export const AudioNoteEditor = ({ editing, editingNote, camera, toScreenPoint, o
               }}
               className={fieldClass}
               placeholder="https://example.com/audio.mp3"
-              autoFocus
             />
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => onSubmitUrl(editing.id, normalizedUrl)} className={primaryButtonClass} disabled={!normalizedUrl} data-note-edit-tags="true">

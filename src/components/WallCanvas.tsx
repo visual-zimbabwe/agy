@@ -342,9 +342,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [playingAudioNoteId, setPlayingAudioNoteId] = useState<string | undefined>(undefined);
+  const [playingAudioCurrentTimeSeconds, setPlayingAudioCurrentTimeSeconds] = useState(0);
+  const [playingAudioDurationSeconds, setPlayingAudioDurationSeconds] = useState<number | undefined>(undefined);
   const [clientPrefsLoaded, setClientPrefsLoaded] = useState(false);
   const previousSelectedNoteIdRef = useRef<string | undefined>(undefined);
   const detailsPanelAutoOpenedRef = useRef(false);
+  const wallAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playingAudioNoteIdRef = useRef<string | undefined>(undefined);
   const [publishedSnapshot] = useState<PersistedWallState | null>(() => {
     const encoded = readSnapshotParamFromLocation();
     if (!encoded) {
@@ -1392,6 +1397,94 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     },
     [isTimeLocked, readAudioDurationFromDataUrl, readFileAsDataUrl],
   );
+
+  const renameAudioNote = useCallback(
+    (noteId: string, name: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const current = renderSnapshot.notes[noteId]?.audio;
+      updateNote(noteId, toAudioNotePatch(createAudioNoteState({ ...(current ?? {}), name })));
+    },
+    [isTimeLocked, renderSnapshot.notes],
+  );
+
+  const toggleAudioNotePlayback = useCallback(
+    async (noteId: string) => {
+      const audioNote = renderSnapshot.notes[noteId]?.audio;
+      const target = audioNote?.url?.trim();
+      if (!target || typeof window === "undefined") {
+        return;
+      }
+
+      let player = wallAudioRef.current;
+      if (!player) {
+        const nextPlayer = new Audio();
+        nextPlayer.preload = "metadata";
+        nextPlayer.addEventListener("timeupdate", () => {
+          setPlayingAudioCurrentTimeSeconds(nextPlayer.currentTime ?? 0);
+        });
+        nextPlayer.addEventListener("loadedmetadata", () => {
+          setPlayingAudioDurationSeconds(Number.isFinite(nextPlayer.duration) ? nextPlayer.duration : undefined);
+        });
+        nextPlayer.addEventListener("ended", () => {
+          setPlayingAudioNoteId(undefined);
+          playingAudioNoteIdRef.current = undefined;
+          setPlayingAudioCurrentTimeSeconds(0);
+          setPlayingAudioDurationSeconds(undefined);
+        });
+        wallAudioRef.current = nextPlayer;
+        player = nextPlayer;
+      }
+
+      if (playingAudioNoteIdRef.current === noteId && !player.paused) {
+        player.pause();
+        setPlayingAudioNoteId(undefined);
+        playingAudioNoteIdRef.current = undefined;
+        return;
+      }
+
+      if (player.src !== target) {
+        player.src = target;
+      }
+
+      try {
+        await player.play();
+        setPlayingAudioNoteId(noteId);
+        playingAudioNoteIdRef.current = noteId;
+        setPlayingAudioCurrentTimeSeconds(player.currentTime || 0);
+        setPlayingAudioDurationSeconds(Number.isFinite(player.duration) ? player.duration : audioNote?.durationSeconds);
+      } catch {
+        setPlayingAudioNoteId(undefined);
+        playingAudioNoteIdRef.current = undefined;
+      }
+    },
+    [renderSnapshot.notes],
+  );
+
+  useEffect(() => {
+    const playingId = playingAudioNoteIdRef.current;
+    if (!playingId) {
+      return;
+    }
+    const currentAudio = renderSnapshot.notes[playingId]?.audio;
+    if (!currentAudio?.url && wallAudioRef.current) {
+      wallAudioRef.current.pause();
+      wallAudioRef.current.removeAttribute("src");
+      setPlayingAudioNoteId(undefined);
+      playingAudioNoteIdRef.current = undefined;
+      setPlayingAudioCurrentTimeSeconds(0);
+      setPlayingAudioDurationSeconds(undefined);
+    }
+  }, [renderSnapshot.notes]);
+
+  useEffect(() => () => {
+    if (wallAudioRef.current) {
+      wallAudioRef.current.pause();
+      wallAudioRef.current.removeAttribute("src");
+      wallAudioRef.current.load();
+    }
+  }, []);
 
   const openFileNote = useCallback(
     (noteId: string) => {
@@ -3384,6 +3477,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               editingId={editing?.id}
               openExternalUrl={openBookmarkUrl}
               onDownloadFileNote={downloadFileNote}
+              onToggleAudioPlayback={toggleAudioNotePlayback}
+              playingAudioNoteId={playingAudioNoteId}
+              playingAudioCurrentTimeSeconds={playingAudioCurrentTimeSeconds}
+              playingAudioDurationSeconds={playingAudioDurationSeconds}
               onOpenAudioNote={openAudioNote}
               onDownloadAudioNote={downloadAudioNote}
             />
@@ -3479,6 +3576,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onDownloadFileNote={downloadFileNote}
           onSelectAudioNoteFile={selectAudioNoteFile}
           onSubmitAudioNoteUrl={submitAudioNoteUrl}
+          onRenameAudioNote={renameAudioNote}
           onOpenAudioNote={openAudioNote}
           onDownloadAudioNote={downloadAudioNote}
           onRefreshApodNote={(noteId) => { void refreshApodNote(noteId, { force: true }); }}

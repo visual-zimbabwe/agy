@@ -290,6 +290,10 @@ type WallNotesLayerProps = {
   editingId?: string;
   openExternalUrl: (url: string) => void;
   onDownloadFileNote: (noteId: string) => void;
+  onToggleAudioPlayback: (noteId: string) => void;
+  playingAudioNoteId?: string;
+  playingAudioCurrentTimeSeconds?: number;
+  playingAudioDurationSeconds?: number;
   onOpenAudioNote: (noteId: string) => void;
   onDownloadAudioNote: (noteId: string) => void;
 };
@@ -341,6 +345,10 @@ export const WallNotesLayer = ({
   editingId,
   openExternalUrl,
   onDownloadFileNote,
+  onToggleAudioPlayback,
+  playingAudioNoteId,
+  playingAudioCurrentTimeSeconds,
+  playingAudioDurationSeconds,
   onOpenAudioNote,
   onDownloadAudioNote,
 }: WallNotesLayerProps) => {
@@ -601,8 +609,10 @@ export const WallNotesLayer = ({
         const fileMeta = noteView.noteKind === "file" ? getFileNoteMetaCaps(noteView.file) : strippedNoteText.replace(fileLabel, "").trim() || "File note";
         const audioTitle = getAudioNoteTitle(noteView.audio);
         const audioMeta = getAudioNoteMeta(noteView.audio).toUpperCase();
-        const audioCurrentTime = noteView.audio?.durationSeconds ? formatAudioDuration(Math.max(0, Math.round(noteView.audio.durationSeconds * 0.35))) : "00:00";
-        const audioDuration = formatAudioDuration(noteView.audio?.durationSeconds);
+        const isAudioPlaying = isAudio && playingAudioNoteId === note.id;
+        const audioDurationSeconds = isAudioPlaying ? playingAudioDurationSeconds ?? noteView.audio?.durationSeconds : noteView.audio?.durationSeconds;
+        const audioCurrentTime = formatAudioDuration(isAudioPlaying ? playingAudioCurrentTimeSeconds : 0);
+        const audioDuration = formatAudioDuration(audioDurationSeconds);
         const journalTitle = noteLines[0] ?? "Dear Wall,";
         const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
         const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !isCurrency && !isEconomist && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
@@ -1952,6 +1962,26 @@ export const WallNotesLayer = ({
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={18} fill={atelierPalette.paper} stroke={colorWithAlpha(atelierPalette.quietText, 0.16)} strokeWidth={1} listening={false} />
                 <Rect x={24} y={24} width={58} height={58} cornerRadius={16} fill={colorWithAlpha(atelierPalette.forest, 0.1)} listening={false} />
                 <Text x={24} y={38} width={58} align="center" fontSize={26} fill={atelierPalette.forest} text="♪" listening={false} />
+                <Group
+                  x={Math.max(24, noteView.w / 2 - 18)}
+                  y={30}
+                  onClick={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    event.cancelBubble = true;
+                    onToggleAudioPlayback(note.id);
+                  }}
+                  onTap={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    event.cancelBubble = true;
+                    onToggleAudioPlayback(note.id);
+                  }}
+                >
+                  <Text x={0} y={0} width={36} align="center" fontSize={13} fontStyle="bold" fill={colorWithAlpha(atelierPalette.terracotta, 0.82)} text={isAudioPlaying ? "PAUSE" : "PLAY"} listening={false} />
+                </Group>
                 <Group x={Math.max(20, noteView.w - 86)} y={26} onClick={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadAudioNote(note.id); }} onTap={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadAudioNote(note.id); }}>
                   <Text x={0} y={0} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.8)} text="↓" listening={false} />
                 </Group>
@@ -1961,16 +1991,17 @@ export const WallNotesLayer = ({
                 <Text x={24} y={96} width={Math.max(0, noteView.w - 48)} fontSize={Math.max(24, Math.min(34, noteView.w / 11))} fontFamily="Newsreader" fontStyle="italic" fill={atelierPalette.text} text={audioTitle} ellipsis listening={false} />
                 {audioMeta ? <Text x={24} y={132} width={Math.max(0, noteView.w - 48)} fontSize={10} letterSpacing={1.2} fill={colorWithAlpha(atelierPalette.quietText, 0.78)} text={audioMeta} ellipsis listening={false} /> : null}
                 {AUDIO_WAVEFORM_BARS.map((value, index) => {
-                  const barWidth = Math.max(10, Math.floor((noteView.w - 72) / AUDIO_WAVEFORM_BARS.length));
+                  const barWidth = Math.max(8, Math.floor((noteView.w - 76) / AUDIO_WAVEFORM_BARS.length));
                   const x = 24 + index * (barWidth + 2);
-                  const barHeight = Math.max(14, Math.round(54 * value));
-                  const active = index >= 2 && index <= 6;
+                  const pulseOffset = isAudioPlaying ? ((index + Math.floor((playingAudioCurrentTimeSeconds ?? 0) * 8)) % 3) * 2 : 0;
+                  const barHeight = Math.max(10, Math.round(40 * value) - pulseOffset);
+                  const active = isAudioPlaying ? index >= 3 && index <= 5 : index >= 4 && index <= 5;
                   return (
-                    <Rect key={`${note.id}-audio-wave-${index}`} x={x} y={Math.max(154, noteView.h - 86 - barHeight)} width={barWidth} height={barHeight} cornerRadius={barWidth / 2} fill={active ? atelierPalette.terracotta : colorWithAlpha('#DFC0B8', 0.48)} listening={false} />
+                    <Rect key={`${note.id}-audio-wave-${index}`} x={x} y={Math.max(160, noteView.h - 80 - barHeight)} width={barWidth} height={barHeight} cornerRadius={barWidth / 2} fill={active ? atelierPalette.terracotta : colorWithAlpha('#DFC0B8', 0.44)} listening={false} />
                   );
                 })}
                 <Text x={24} y={Math.max(180, noteView.h - 28)} width={72} fontSize={12} fontFamily="JetBrains Mono" fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text={audioCurrentTime} listening={false} />
-                <Text x={Math.max(0, noteView.w / 2 - 46)} y={Math.max(180, noteView.h - 30)} width={92} align="center" fontSize={12} fontStyle="bold" letterSpacing={1.5} fill={colorWithAlpha(atelierPalette.terracotta, 0.7)} text="PLAYING" listening={false} />
+                <Text x={Math.max(0, noteView.w / 2 - 40)} y={Math.max(180, noteView.h - 29)} width={80} align="center" fontSize={10} fontStyle="bold" letterSpacing={1.3} fill={colorWithAlpha(atelierPalette.terracotta, 0.66)} text={isAudioPlaying ? "PLAYING" : "READY"} listening={false} />
                 <Text x={Math.max(24, noteView.w - 96)} y={Math.max(180, noteView.h - 28)} width={72} align="right" fontSize={12} fontFamily="JetBrains Mono" fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text={audioDuration} listening={false} />
               </>
             )}

@@ -96,6 +96,7 @@ type WallFloatingUiProps = {
   onDownloadFileNote: (noteId: string) => void;
   onSelectAudioNoteFile: (noteId: string, file: File) => Promise<void>;
   onSubmitAudioNoteUrl: (noteId: string, url: string) => void;
+  onRenameAudioNote: (noteId: string, name: string) => void;
   onOpenAudioNote: (noteId: string) => void;
   onDownloadAudioNote: (noteId: string) => void;
   onRefreshApodNote: (noteId: string) => void;
@@ -188,6 +189,7 @@ export const WallFloatingUi = ({
   onDownloadFileNote,
   onSelectAudioNoteFile,
   onSubmitAudioNoteUrl,
+  onRenameAudioNote,
   onOpenAudioNote,
   onDownloadAudioNote,
   onRefreshApodNote,
@@ -255,6 +257,7 @@ export const WallFloatingUi = ({
               onClose={() => setEditing(null)}
               onSelectFile={onSelectAudioNoteFile}
               onSubmitUrl={onSubmitAudioNoteUrl}
+              onRenameAudio={onRenameAudioNote}
               onOpenAudio={onOpenAudioNote}
               onDownloadAudio={onDownloadAudioNote}
             />
