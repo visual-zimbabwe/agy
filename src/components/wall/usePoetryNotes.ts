@@ -194,21 +194,10 @@ const renderPoetryCanvas = (note: Note & { noteKind: "poetry" }) => {
   context.lineTo(width - innerX, footerTop);
   context.stroke();
 
-  drawRoundedRect(context, innerX, footerTop + 24, 90, 90, 24);
-  context.fillStyle = "#FCF9F4";
-  context.shadowColor = "rgba(28,28,25,0.08)";
-  context.shadowBlur = 20;
-  context.shadowOffsetY = 10;
-  context.fill();
-  context.shadowColor = "transparent";
-
-  context.fillStyle = "#A33818";
-  context.font = "600 38px Georgia";
-  context.fillText("☁", innerX + 45, footerTop + 82);
-
   context.fillStyle = "rgba(196,118,95,0.92)";
   context.font = "500 28px Manrope";
-  context.fillText(authorLine, innerX + 180, footerTop + 72);
+  context.fillText(authorLine, width / 2, footerTop + 72);
+  
 
   return canvas;
 };

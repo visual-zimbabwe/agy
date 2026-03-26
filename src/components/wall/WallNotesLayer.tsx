@@ -1765,9 +1765,9 @@ export const WallNotesLayer = ({
             {isPoetry && (
               <>
                 <Text
-                  x={90}
-                  y={Math.max(18, noteView.h - poetryFooterInset + 22)}
-                  width={Math.max(0, noteView.w - 108)}
+                  x={18}
+                  y={Math.max(18, noteView.h - poetryFooterInset + 28)}
+                  width={Math.max(0, noteView.w - 36)}
                   align="center"
                   fontSize={14}
                   fontStyle="normal"
@@ -1775,27 +1775,6 @@ export const WallNotesLayer = ({
                   fill={colorWithAlpha(atelierPalette.terracotta, 0.78)}
                   text={poetryAuthor}
                   ellipsis
-                  listening={false}
-                />
-                <Rect
-                  x={18}
-                  y={Math.max(18, noteView.h - poetryFooterInset + 14)}
-                  width={52}
-                  height={52}
-                  cornerRadius={16}
-                  fill={atelierPalette.paper}
-                  stroke={colorWithAlpha(atelierPalette.paperStroke, 0.8)}
-                  strokeWidth={1}
-                  listening={false}
-                />
-                <Text
-                  x={18}
-                  y={Math.max(18, noteView.h - poetryFooterInset + 27)}
-                  width={52}
-                  align="center"
-                  fontSize={20}
-                  fill={atelierPalette.terracotta}
-                  text="☁"
                   listening={false}
                 />
               </>

@@ -440,17 +440,9 @@ const PoetryRenderer = ({ note, width, height, readableText, bodyClamp, tone }: 
         </p>
       </div>
       <div className="mt-3 border-t pt-4" style={{ borderColor: "rgba(223,192,184,0.3)" }}>
-        <div className="grid grid-cols-[3.6rem_1fr] items-center gap-4">
-          <div
-            className="grid h-14 w-14 place-items-center rounded-[1.15rem] text-[22px]"
-            style={{ background: "rgba(252,249,244,0.98)", color: atelier.terracotta, boxShadow: "0 10px 24px rgba(28,28,25,0.08)" }}
-          >
-            ☁
-          </div>
-          <p className="text-center text-[18px] font-medium" style={{ color: "rgba(196,118,95,0.92)", fontFamily: "\"Manrope\", sans-serif" }}>
-            {note.poetry?.author?.trim() || note.quoteAuthor?.trim() || "Unknown Poet"}
-          </p>
-        </div>
+        <p className="text-center text-[18px] font-medium" style={{ color: "rgba(196,118,95,0.92)", fontFamily: "\"Manrope\", sans-serif" }}>
+          {note.poetry?.author?.trim() || note.quoteAuthor?.trim() || "Unknown Poet"}
+        </p>
       </div>
     </div>
   </NoteShell>
