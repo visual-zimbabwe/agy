@@ -545,27 +545,33 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
 
   if (isAudioNote(current)) {
     useWallStore.getState().patchNote(noteId, {
-      ...patch,
       ...toAudioNotePatch(patch.audio ?? current.audio),
+      ...patch,
       tags: patch.tags ?? current.tags,
+      w: patch.w ?? current.w,
+      h: patch.h ?? current.h,
     });
     return;
   }
 
   if (isVideoNote(current)) {
     useWallStore.getState().patchNote(noteId, {
-      ...patch,
       ...toVideoNotePatch(patch.video ?? current.video),
+      ...patch,
       tags: patch.tags ?? current.tags,
+      w: patch.w ?? current.w,
+      h: patch.h ?? current.h,
     });
     return;
   }
 
   if (isFileNote(current)) {
     useWallStore.getState().patchNote(noteId, {
-      ...patch,
       ...toFileNotePatch(patch.file ?? current.file),
+      ...patch,
       tags: patch.tags ?? current.tags,
+      w: patch.w ?? current.w,
+      h: patch.h ?? current.h,
     });
     return;
   }
