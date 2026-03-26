@@ -2035,6 +2035,12 @@ export const WallNotesLayer = ({
                 <Group
                   x={18}
                   y={18}
+                  onMouseDown={(event) => {
+                    event.cancelBubble = true;
+                  }}
+                  onTouchStart={(event) => {
+                    event.cancelBubble = true;
+                  }}
                   onClick={(event) => {
                     if (isTimeLocked) {
                       return;
