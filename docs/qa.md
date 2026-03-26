@@ -238,6 +238,7 @@ Expected:
 12. With the caret on a list line, press `Tab` and `Shift + Tab`; verify list indentation and outdent behave predictably without leaving edit mode.
 13. Open the slash menu and selection toolbar near viewport edges on desktop and mobile widths; verify they remain visible and are not clipped by surrounding wall UI.
 14. Double-click a standard note with a custom background color, edit text, then blur the editor; verify the note keeps its background color while editing and after exiting edit mode. Repeat with a legacy note that has no stored color and verify it falls back to the default sticky-note yellow instead of rendering transparent.
+15. Create a new standard note and verify it uses the white `Quick Thought` shell by default. Then open `Details > Note Type`, confirm `Default` is the first option, convert the note to another type and back to `Default`, and verify the note returns to the standard shell without leftover specialized UI.
 
 Expected:
 - Wall note editing feels contextual: no heavy always-on toolbar, only a compact selection toolbar when text is highlighted.

@@ -113,9 +113,15 @@ const fileNameMatch = (text: string) => text.match(/([\w-]+\.(pdf|docx?|txt|png|
 const shellStyle = ({ note, selected, tone }: Pick<WallNotePreviewProps, "note" | "selected" | "tone">): CSSProperties => ({
   width: "100%",
   height: "100%",
-  borderRadius: note.noteKind === "economist" ? 18 : 16,
-  background: note.noteKind === "throne" ? "#31302d" : note.noteKind === "joker" ? "#ffdea5" : atelier.paper,
-  boxShadow: tone === "detail" ? atelier.shadowDetail : atelier.shadow,
+  borderRadius: note.noteKind === "economist" ? 18 : note.noteKind === "standard" ? 18 : 16,
+  background: note.noteKind === "throne" ? "#31302d" : note.noteKind === "joker" ? "#ffdea5" : note.noteKind === "standard" ? "#ffffff" : atelier.paper,
+  boxShadow: note.noteKind === "standard"
+    ? tone === "detail"
+      ? "0 18px 42px rgba(28,28,25,0.10)"
+      : "0 10px 30px rgba(28,28,25,0.06)"
+    : tone === "detail"
+      ? atelier.shadowDetail
+      : atelier.shadow,
   border: selected ? `1.5px solid ${atelier.terracotta}` : `1px solid ${atelier.line}`,
   overflow: "hidden",
   position: "relative",
@@ -202,23 +208,33 @@ const PrivateRenderer = ({ note, width, height, activeBackground, activeText, mu
   </NoteShell>
 );
 
-const StandardRenderer = ({ note, width, height, readableText, textFontFamily, baseFontSize, baseLineHeight, bodyClamp, tone }: RendererProps) => {
+const StandardRenderer = ({ note, width, height, readableText, textFontFamily, baseFontSize, bodyClamp, tone }: RendererProps) => {
   const lines = splitNoteText(note.text);
   const title = lines.length > 1 ? lines[0] : "Quick Thought";
   const bodyText = lines.length > 1 ? lines.slice(1).join("\n") : stripWikiLinkMarkup(note.text) || "Double-click or press Enter to edit";
   const body = tone === "detail" ? bodyText : truncateNoteText(bodyText, { ...note, w: width, h: height - 52 }) || bodyText;
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="flex h-full flex-col p-4" style={{ background: "linear-gradient(180deg, rgba(246,243,238,0.62), rgba(255,255,255,0.94))" }}>
-        <p className="text-base font-bold" style={{ color: atelier.ink }}>{title}</p>
+      <div className="flex h-full flex-col px-[22px] py-[20px]" style={{ background: "#ffffff" }}>
         <p
-          className="mt-3 whitespace-pre-wrap [overflow-wrap:anywhere]"
+          style={{
+            color: atelier.ink,
+            fontFamily: textFontFamily,
+            fontSize: 16,
+            lineHeight: 1.25,
+            fontWeight: 700,
+          }}
+        >
+          {title}
+        </p>
+        <p
+          className="mt-4 whitespace-pre-wrap [overflow-wrap:anywhere]"
           style={{
             ...lineClampStyle(tone === "detail" ? 999 : bodyClamp + 1),
             color: readableText,
             fontFamily: textFontFamily,
-            fontSize: baseFontSize,
-            lineHeight: baseLineHeight,
+            fontSize: Math.max(15, baseFontSize),
+            lineHeight: 1.58,
           }}
         >
           {body}

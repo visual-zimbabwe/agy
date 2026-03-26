@@ -185,6 +185,9 @@ const getNoteCornerRadius = (note: Note) => {
   if (note.noteKind === "economist") {
     return 12;
   }
+  if (note.noteKind === "standard") {
+    return 18;
+  }
   if (note.noteKind === "quote" || note.noteKind === "journal") {
     return 16;
   }
@@ -519,6 +522,7 @@ export const WallNotesLayer = ({
         const isBookmark = noteView.noteKind === "web-bookmark";
         const isApod = isApodNote(noteView);
         const isEconomist = noteView.noteKind === "economist";
+        const isStandardNote = !noteView.noteKind || noteView.noteKind === "standard";
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
         const canonListPreview = canon?.items
@@ -557,18 +561,20 @@ export const WallNotesLayer = ({
         const isImageNote = Boolean(imageUrl);
         const noteCornerRadius = getNoteCornerRadius(noteView);
         const isPaperShellNote = !isCurrency && !isJoker && !isThrone;
-        const baseShellFill = isThrone ? THRONE_NOTE_BACKGROUND : isJoker ? "#F0CB88" : isCurrency ? CURRENCY_NOTE_DEFAULTS.color : atelierPalette.paper;
+        const baseShellFill = isThrone ? THRONE_NOTE_BACKGROUND : isJoker ? "#F0CB88" : isCurrency ? CURRENCY_NOTE_DEFAULTS.color : isStandardNote ? "#FFFFFF" : atelierPalette.paper;
         const defaultTextColor =
           isQuote || isJournal || isBookmark || isApod || isImageNote || isPrivate || isPoetry || isEconomist ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
         const resolvedTextColor = noteView.textColor ?? defaultTextColor;
-        const paperTintOpacity = isPaperShellNote ? (isPoetry ? 0.04 : isQuote ? 0.06 : isVocabulary ? 0.14 : 0.1) : 0;
+        const paperTintOpacity = isPaperShellNote ? (isStandardNote ? 0.02 : isPoetry ? 0.04 : isQuote ? 0.06 : isVocabulary ? 0.14 : 0.1) : 0;
         const isApodMediaCard = isApod;
         const imageCaption = isApod ? getApodCaption(noteView) : noteView.text.trim();
         const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, imageCaption, noteImage) : null;
         const strippedNoteText = stripWikiLinkMarkup(noteView.text);
         const noteLines = strippedNoteText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-        const standardTitle = noteLines.length > 1 ? noteLines[0] ?? "" : "";
-        const standardBody = noteLines.length > 1 ? noteLines.slice(1).join("\n") : strippedNoteText;
+        const standardTitle = isStandardNote ? (noteLines.length > 1 ? noteLines[0] ?? "Quick Thought" : "Quick Thought") : "";
+        const standardBody = isStandardNote
+          ? (noteLines.length > 1 ? noteLines.slice(1).join("\n") : strippedNoteText || "Double-click or press Enter to edit")
+          : strippedNoteText;
         const looksLikeCode = /(^|\n)\s*(def |const |let |function |class |import |from |<\w)|=>|\{\s*$|console\.|return\s+/m.test(strippedNoteText);
         const fileNameMatch = strippedNoteText.match(/([\w-]+\.(pdf|docx?|txt|png|jpe?g|zip|csv|md))/i);
         const looksLikeFile = Boolean(fileNameMatch);
@@ -887,8 +893,8 @@ export const WallNotesLayer = ({
                   stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.forest })}
                   strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
                   shadowColor={atelierPalette.paperShadow}
-                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
-                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
+                  shadowBlur={isStandardNote ? (isFlashing ? 34 : isDragging ? 28 : 20) : isFlashing ? 28 : isDragging ? 24 : 16}
+                  shadowOpacity={isStandardNote ? (isFlashing ? 0.12 : isDragging ? 0.1 : 0.06) : isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
                 {(() => {
@@ -1010,8 +1016,8 @@ export const WallNotesLayer = ({
                   stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: resolvedNoteColor })}
                   strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
                   shadowColor={atelierPalette.paperShadow}
-                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
-                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
+                  shadowBlur={isStandardNote ? (isFlashing ? 34 : isDragging ? 28 : 20) : isFlashing ? 28 : isDragging ? 24 : 16}
+                  shadowOpacity={isStandardNote ? (isFlashing ? 0.12 : isDragging ? 0.1 : 0.06) : isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={resolvedNoteColor} opacity={0.08} listening={false} />
@@ -1607,7 +1613,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isPrivate && !isThrone && !isJoker && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && !isJournal && !isQuote && !looksLikeCode && !looksLikeFile && (
+            {!isPrivate && !isThrone && !isJoker && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && !isJournal && !isQuote && !looksLikeCode && !looksLikeFile && !isStandardNote && (
               <Text
                 x={textX}
                 y={textY}
@@ -1813,10 +1819,33 @@ export const WallNotesLayer = ({
                 <Text x={Math.max(18, noteView.w - 42)} y={Math.max(26, noteView.h / 2 - 16)} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.58)} text="↓" listening={false} />
               </>
             )}
-            {standardTitle && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone && (
+            {isStandardNote && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone && (
               <>
-                <Text x={16} y={18} width={Math.max(0, noteView.w - 32)} fontSize={16} fontStyle="bold" fill={atelierPalette.text} text={standardTitle} ellipsis listening={false} />
-                <Text x={16} y={46} width={Math.max(0, noteView.w - 32)} height={Math.max(0, noteView.h - 62 - wikiFooterHeight)} fontSize={12} lineHeight={1.45} fill={atelierPalette.mutedText} text={standardBody} ellipsis listening={false} />
+                <Text
+                  x={20}
+                  y={20}
+                  width={Math.max(0, noteView.w - 40)}
+                  fontSize={16}
+                  fontFamily={noteTextFontFamily}
+                  fontStyle="bold"
+                  fill={atelierPalette.text}
+                  text={standardTitle}
+                  ellipsis
+                  listening={false}
+                />
+                <Text
+                  x={20}
+                  y={50}
+                  width={Math.max(0, noteView.w - 40)}
+                  height={Math.max(0, noteView.h - 70 - wikiFooterHeight)}
+                  fontSize={15}
+                  fontFamily={noteTextFontFamily}
+                  lineHeight={1.58}
+                  fill={atelierPalette.mutedText}
+                  text={standardBody}
+                  ellipsis
+                  listening={false}
+                />
               </>
             )}
             {isQuote && (quoteAttribution || quoteSource) && !isEisenhower && (

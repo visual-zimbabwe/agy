@@ -15,6 +15,7 @@ export const NOTE_DEFAULTS = {
   minWidth: 140,
   minHeight: 110,
   textColor: "#1F2937",
+  textFont: "manrope" as const,
   textVAlign: "top" as const,
   textSizePx: 16,
   textSize: "md" as const,
@@ -82,6 +83,7 @@ export const NOTE_TEXT_SIZES = [
 
 export const NOTE_TEXT_FONTS = [
   { value: "newsreader", label: "Newsreader", family: "\"Newsreader\", \"Playfair Display\", \"Times New Roman\", serif" },
+  { value: "manrope", label: "Manrope", family: "\"Manrope\", \"Segoe UI\", sans-serif" },
   { value: "roboto", label: "Roboto", family: "\"Roboto\", \"Segoe UI\", sans-serif" },
   { value: "open_sans", label: "Open Sans", family: "\"Open Sans\", \"Segoe UI\", sans-serif" },
   { value: "lato", label: "Lato", family: "\"Lato\", \"Segoe UI\", sans-serif" },

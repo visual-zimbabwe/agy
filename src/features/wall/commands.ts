@@ -45,7 +45,7 @@ const createStandardNote = (x: number, y: number, color?: string) => {
     imageUrl: undefined,
     textAlign: "left",
     textVAlign: NOTE_DEFAULTS.textVAlign,
-    textFont: "nunito",
+    textFont: NOTE_DEFAULTS.textFont,
     textColor: NOTE_DEFAULTS.textColor,
     textSizePx: NOTE_DEFAULTS.textSizePx,
     tags: [],

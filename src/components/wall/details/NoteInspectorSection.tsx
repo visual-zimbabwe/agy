@@ -27,6 +27,7 @@ import { EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFA
 import { createBookmarkNoteState, normalizeBookmarkUrl, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
 import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, formatEconomistNoteText, getEconomistMagazineSource, getEconomistNoteSourceId } from "@/features/wall/economist";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
+import { sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import type { Note, NoteTextFont, PoetrySearchField, PoetrySearchMatchType } from "@/features/wall/types";
 
 type PoetryRefreshOptions = {
@@ -148,25 +149,27 @@ export const NoteInspectorSection = ({
     ECONOMIST_MAGAZINE_SOURCES.find((source) => !usedMagazineSourceIds.has(source.sourceId))?.sourceId ?? selectedMagazineSourceId;
 
   const setNoteKind = (kind: Note["noteKind"]) => {
-    const toQuote = kind === "quote" && selectedNote.noteKind !== "quote";
-    const toCanon = kind === "canon" && selectedNote.noteKind !== "canon";
-    const toJournal = kind === "journal" && selectedNote.noteKind !== "journal";
-    const toEisenhower = kind === "eisenhower" && selectedNote.noteKind !== "eisenhower";
-    const toBookmark = kind === "web-bookmark" && selectedNote.noteKind !== "web-bookmark";
-    const toApod = kind === "apod" && selectedNote.noteKind !== "apod";
-    const toPoetry = kind === "poetry" && selectedNote.noteKind !== "poetry";
-    const toEconomist = kind === "economist" && selectedNote.noteKind !== "economist";
+    const nextKind = selectedNote.noteKind === kind ? "standard" : kind;
+    const toStandard = nextKind === "standard" && selectedNote.noteKind !== "standard";
+    const toQuote = nextKind === "quote" && selectedNote.noteKind !== "quote";
+    const toCanon = nextKind === "canon" && selectedNote.noteKind !== "canon";
+    const toJournal = nextKind === "journal" && selectedNote.noteKind !== "journal";
+    const toEisenhower = nextKind === "eisenhower" && selectedNote.noteKind !== "eisenhower";
+    const toBookmark = nextKind === "web-bookmark" && selectedNote.noteKind !== "web-bookmark";
+    const toApod = nextKind === "apod" && selectedNote.noteKind !== "apod";
+    const toPoetry = nextKind === "poetry" && selectedNote.noteKind !== "poetry";
+    const toEconomist = nextKind === "economist" && selectedNote.noteKind !== "economist";
     const economistSource = getEconomistMagazineSource(toEconomist ? preferredMagazineSourceId : selectedMagazineSourceId);
 
     onUpdateNote(selectedNote.id, {
-      noteKind: selectedNote.noteKind === kind ? "standard" : kind,
+      noteKind: nextKind,
       text: toBookmark
         ? ""
         : toEconomist
           ? formatEconomistNoteText({ sourceName: economistSource.sourceName, displayLabel: "Latest cover", displayDate: "" })
           : selectedNote.text,
-      quoteAuthor: toQuote ? "" : toEconomist ? economistSource.sourceUrl : undefined,
-      quoteSource: toQuote ? "" : toEconomist ? "Latest cover" : undefined,
+      quoteAuthor: toStandard ? undefined : toQuote ? "" : toEconomist ? economistSource.sourceUrl : undefined,
+      quoteSource: toStandard ? undefined : toQuote ? "" : toEconomist ? "Latest cover" : undefined,
       canon: toCanon
         ? {
             mode: "single",
@@ -178,18 +181,99 @@ export const NoteInspectorSection = ({
             items: [{ id: `canon-item-${Date.now()}`, title: "", text: "", interpretation: "" }],
           }
         : undefined,
-      eisenhower: toEisenhower ? createEisenhowerNotePayload(selectedNote.createdAt) : undefined,
-      bookmark: toBookmark ? createBookmarkNoteState(selectedNote.bookmark?.url ?? "") : undefined,
-      apod: toApod ? defaultApodNoteState(selectedNote.apod) : undefined,
-      poetry: toPoetry ? defaultPoetryNoteState(selectedNote.poetry) : undefined,
-      imageUrl: toBookmark || toApod || toPoetry || toEconomist ? undefined : selectedNote.imageUrl,
-      vocabulary: toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry || toEconomist ? undefined : selectedNote.vocabulary,
-      color: toBookmark ? WEB_BOOKMARK_DEFAULTS.color : toApod ? APOD_NOTE_DEFAULTS.color : toPoetry ? POETRY_NOTE_DEFAULTS.color : toEconomist ? ECONOMIST_NOTE_DEFAULTS.color : toJournal ? JOURNAL_NOTE_DEFAULTS.color : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.color : selectedNote.color,
-      textFont: toBookmark ? WEB_BOOKMARK_DEFAULTS.textFont : toApod ? APOD_NOTE_DEFAULTS.textFont : toPoetry ? POETRY_NOTE_DEFAULTS.textFont : toEconomist ? ECONOMIST_NOTE_DEFAULTS.textFont : toJournal ? JOURNAL_NOTE_DEFAULTS.textFont : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textFont : selectedNote.textFont,
-      textColor: toBookmark ? WEB_BOOKMARK_DEFAULTS.textColor : toApod ? APOD_NOTE_DEFAULTS.textColor : toPoetry ? POETRY_NOTE_DEFAULTS.textColor : toEconomist ? ECONOMIST_NOTE_DEFAULTS.textColor : toJournal ? JOURNAL_NOTE_DEFAULTS.textColor : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textColor : selectedNote.textColor,
-      textSizePx: toBookmark ? WEB_BOOKMARK_DEFAULTS.textSizePx : toApod ? APOD_NOTE_DEFAULTS.textSizePx : toPoetry ? POETRY_NOTE_DEFAULTS.textSizePx : toEconomist ? ECONOMIST_NOTE_DEFAULTS.textSizePx : toJournal ? JOURNAL_NOTE_DEFAULTS.textSizePx : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.textSizePx : selectedNote.textSizePx,
-      w: toBookmark ? WEB_BOOKMARK_DEFAULTS.width : toApod ? APOD_NOTE_DEFAULTS.width : toPoetry ? POETRY_NOTE_DEFAULTS.width : toEconomist ? ECONOMIST_NOTE_DEFAULTS.width : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.width : selectedNote.w,
-      h: toBookmark ? WEB_BOOKMARK_DEFAULTS.height : toApod ? APOD_NOTE_DEFAULTS.height : toPoetry ? POETRY_NOTE_DEFAULTS.height : toEconomist ? ECONOMIST_NOTE_DEFAULTS.height : toEisenhower ? EISENHOWER_NOTE_DEFAULTS.height : selectedNote.h,
+      eisenhower: toStandard ? undefined : toEisenhower ? createEisenhowerNotePayload(selectedNote.createdAt) : undefined,
+      bookmark: toStandard ? undefined : toBookmark ? createBookmarkNoteState(selectedNote.bookmark?.url ?? "") : undefined,
+      apod: toStandard ? undefined : toApod ? defaultApodNoteState(selectedNote.apod) : undefined,
+      poetry: toStandard ? undefined : toPoetry ? defaultPoetryNoteState(selectedNote.poetry) : undefined,
+      economist: toStandard ? undefined : selectedNote.economist,
+      imageUrl: toStandard || toBookmark || toApod || toPoetry || toEconomist ? undefined : selectedNote.imageUrl,
+      vocabulary: toStandard || toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry || toEconomist ? undefined : selectedNote.vocabulary,
+      color: toStandard
+        ? sanitizeStandardNoteColor(selectedNote.color, NOTE_COLORS[0] ?? "#FEEA89")
+        : toBookmark
+          ? WEB_BOOKMARK_DEFAULTS.color
+          : toApod
+            ? APOD_NOTE_DEFAULTS.color
+            : toPoetry
+              ? POETRY_NOTE_DEFAULTS.color
+              : toEconomist
+                ? ECONOMIST_NOTE_DEFAULTS.color
+                : toJournal
+                  ? JOURNAL_NOTE_DEFAULTS.color
+                  : toEisenhower
+                    ? EISENHOWER_NOTE_DEFAULTS.color
+                    : selectedNote.color,
+      textFont: toStandard
+        ? NOTE_DEFAULTS.textFont
+        : toBookmark
+          ? WEB_BOOKMARK_DEFAULTS.textFont
+          : toApod
+            ? APOD_NOTE_DEFAULTS.textFont
+            : toPoetry
+              ? POETRY_NOTE_DEFAULTS.textFont
+              : toEconomist
+                ? ECONOMIST_NOTE_DEFAULTS.textFont
+                : toJournal
+                  ? JOURNAL_NOTE_DEFAULTS.textFont
+                  : toEisenhower
+                    ? EISENHOWER_NOTE_DEFAULTS.textFont
+                    : selectedNote.textFont,
+      textColor: toStandard
+        ? NOTE_DEFAULTS.textColor
+        : toBookmark
+          ? WEB_BOOKMARK_DEFAULTS.textColor
+          : toApod
+            ? APOD_NOTE_DEFAULTS.textColor
+            : toPoetry
+              ? POETRY_NOTE_DEFAULTS.textColor
+              : toEconomist
+                ? ECONOMIST_NOTE_DEFAULTS.textColor
+                : toJournal
+                  ? JOURNAL_NOTE_DEFAULTS.textColor
+                  : toEisenhower
+                    ? EISENHOWER_NOTE_DEFAULTS.textColor
+                    : selectedNote.textColor,
+      textSizePx: toStandard
+        ? NOTE_DEFAULTS.textSizePx
+        : toBookmark
+          ? WEB_BOOKMARK_DEFAULTS.textSizePx
+          : toApod
+            ? APOD_NOTE_DEFAULTS.textSizePx
+            : toPoetry
+              ? POETRY_NOTE_DEFAULTS.textSizePx
+              : toEconomist
+                ? ECONOMIST_NOTE_DEFAULTS.textSizePx
+                : toJournal
+                  ? JOURNAL_NOTE_DEFAULTS.textSizePx
+                  : toEisenhower
+                    ? EISENHOWER_NOTE_DEFAULTS.textSizePx
+                    : selectedNote.textSizePx,
+      w: toStandard
+        ? NOTE_DEFAULTS.width
+        : toBookmark
+          ? WEB_BOOKMARK_DEFAULTS.width
+          : toApod
+            ? APOD_NOTE_DEFAULTS.width
+            : toPoetry
+              ? POETRY_NOTE_DEFAULTS.width
+              : toEconomist
+                ? ECONOMIST_NOTE_DEFAULTS.width
+                : toEisenhower
+                  ? EISENHOWER_NOTE_DEFAULTS.width
+                  : selectedNote.w,
+      h: toStandard
+        ? NOTE_DEFAULTS.height
+        : toBookmark
+          ? WEB_BOOKMARK_DEFAULTS.height
+          : toApod
+            ? APOD_NOTE_DEFAULTS.height
+            : toPoetry
+              ? POETRY_NOTE_DEFAULTS.height
+              : toEconomist
+                ? ECONOMIST_NOTE_DEFAULTS.height
+                : toEisenhower
+                  ? EISENHOWER_NOTE_DEFAULTS.height
+                  : selectedNote.h,
       tags: toJournal
         ? [...new Set([...selectedNote.tags, "journal"])]
         : toEisenhower
@@ -234,7 +318,7 @@ export const NoteInspectorSection = ({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={detailSectionTitle}>Note Inspector</p>
-          <h4 className={detailSectionHeading}>{selectedNote.noteKind === "standard" ? "Standard note" : `${selectedNote.noteKind} note`}</h4>
+          <h4 className={detailSectionHeading}>{selectedNote.noteKind === "standard" ? "Default note" : `${selectedNote.noteKind} note`}</h4>
           <p className={detailSectionDescription}>Typography, backlinks, styling, and note properties for the current selection.</p>
         </div>
         <div className={detailInsetCard}>
@@ -615,6 +699,7 @@ export const NoteInspectorSection = ({
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Note Type</p>
           <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setNoteKind("standard")} className={typeButtonClass(selectedNote.noteKind === "standard")} disabled={isTimeLocked || isPrivateEnabled}>Default</button>
             <button type="button" onClick={() => setNoteKind("quote")} className={typeButtonClass(selectedNote.noteKind === "quote")} disabled={isTimeLocked || isPrivateEnabled}>Quote</button>
             <button type="button" onClick={() => setNoteKind("canon")} className={typeButtonClass(selectedNote.noteKind === "canon")} disabled={isTimeLocked || isPrivateEnabled}>Canon</button>
             <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked || isPrivateEnabled}>Journal</button>

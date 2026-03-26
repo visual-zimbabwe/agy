@@ -1,5 +1,6 @@
 export type NoteTextFont =
   | "newsreader"
+  | "manrope"
   | "roboto"
   | "open_sans"
   | "lato"
