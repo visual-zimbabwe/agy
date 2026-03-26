@@ -2032,30 +2032,33 @@ export const WallNotesLayer = ({
             {isVideo && (
               <>
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={22} fill={atelierPalette.paper} stroke={colorWithAlpha(atelierPalette.quietText, 0.14)} strokeWidth={1} listening={false} />
-                <Group
-                  x={18}
-                  y={18}
-                  onMouseDown={(event) => {
-                    event.cancelBubble = true;
-                  }}
-                  onTouchStart={(event) => {
-                    event.cancelBubble = true;
-                  }}
-                  onClick={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    event.cancelBubble = true;
-                    onToggleInlineVideoPlayback(note.id);
-                  }}
-                  onTap={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    event.cancelBubble = true;
-                    onToggleInlineVideoPlayback(note.id);
-                  }}
-                >
+                <Group x={18} y={18}>
+                  <Rect
+                    width={Math.max(0, noteView.w - 36)}
+                    height={Math.max(0, noteView.h - 124)}
+                    cornerRadius={18}
+                    fill="rgba(0,0,0,0.001)"
+                    onMouseDown={(event) => {
+                      event.cancelBubble = true;
+                    }}
+                    onTouchStart={(event) => {
+                      event.cancelBubble = true;
+                    }}
+                    onClick={(event) => {
+                      if (isTimeLocked) {
+                        return;
+                      }
+                      event.cancelBubble = true;
+                      onToggleInlineVideoPlayback(note.id);
+                    }}
+                    onTap={(event) => {
+                      if (isTimeLocked) {
+                        return;
+                      }
+                      event.cancelBubble = true;
+                      onToggleInlineVideoPlayback(note.id);
+                    }}
+                  />
                   <Rect width={Math.max(0, noteView.w - 36)} height={Math.max(0, noteView.h - 124)} cornerRadius={18} fill="#11120f" listening={false} />
                   {loadedVideoPoster ? (
                     <KonvaImage
