@@ -93,6 +93,7 @@ import {
   createAudioNote,
   createEconomistNote,
   createFileNote,
+  createVideoNote,
   createPoetryNote,
   createOrRefreshJokerNote,
   createOrRefreshThroneNote,
@@ -122,6 +123,7 @@ import {
 import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
 import { createAudioNoteState, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
+import { createVideoNoteState, getVideoNoteTitle, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
 import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
 import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
@@ -1322,6 +1324,57 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     [],
   );
 
+  const readVideoMediaFromUrl = useCallback(
+    (url: string) =>
+      new Promise<{ durationSeconds?: number; posterDataUrl?: string }>((resolve) => {
+        if (typeof window === "undefined") {
+          resolve({});
+          return;
+        }
+
+        const video = document.createElement("video");
+        let settled = false;
+        const settle = (value: { durationSeconds?: number; posterDataUrl?: string }) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          video.pause();
+          video.removeAttribute("src");
+          video.load();
+          resolve(value);
+        };
+
+        video.preload = "metadata";
+        video.muted = true;
+        video.playsInline = true;
+        if (!url.startsWith("data:")) {
+          video.crossOrigin = "anonymous";
+        }
+
+        video.onloadeddata = () => {
+          const durationSeconds = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : undefined;
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth || 960;
+            canvas.height = video.videoHeight || 540;
+            const context = canvas.getContext("2d");
+            if (!context) {
+              settle({ durationSeconds });
+              return;
+            }
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            settle({ durationSeconds, posterDataUrl: canvas.toDataURL("image/jpeg", 0.84) });
+          } catch {
+            settle({ durationSeconds });
+          }
+        };
+        video.onerror = () => settle({});
+        video.src = url;
+      }),
+    [],
+  );
+
   const submitFileNoteUrl = useCallback(
     (noteId: string, rawUrl: string) => {
       if (isTimeLocked) {
@@ -1348,6 +1401,32 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       updateNote(noteId, toAudioNotePatch(createAudioNoteState({ ...(renderSnapshot.notes[noteId]?.audio ?? {}), source: "link", url: normalizedUrl })));
     },
     [isTimeLocked, renderSnapshot.notes],
+  );
+
+  const submitVideoNoteUrl = useCallback(
+    async (noteId: string, rawUrl: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const normalizedUrl = normalizeFileUrl(rawUrl);
+      if (!normalizedUrl) {
+        return;
+      }
+      const media = await readVideoMediaFromUrl(normalizedUrl);
+      updateNote(
+        noteId,
+        toVideoNotePatch(
+          createVideoNoteState({
+            ...(renderSnapshot.notes[noteId]?.video ?? {}),
+            source: "link",
+            url: normalizedUrl,
+            durationSeconds: media.durationSeconds,
+            posterDataUrl: media.posterDataUrl,
+          }),
+        ),
+      );
+    },
+    [isTimeLocked, readVideoMediaFromUrl, renderSnapshot.notes],
   );
 
   const selectFileNoteFile = useCallback(
@@ -1398,6 +1477,32 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     [isTimeLocked, readAudioDurationFromDataUrl, readFileAsDataUrl],
   );
 
+  const selectVideoNoteFile = useCallback(
+    async (noteId: string, file: File) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const dataUrl = await readFileAsDataUrl(file);
+      const media = await readVideoMediaFromUrl(dataUrl);
+      updateNote(
+        noteId,
+        toVideoNotePatch(
+          createVideoNoteState({
+            source: "upload",
+            name: file.name,
+            url: dataUrl,
+            mimeType: file.type,
+            sizeBytes: file.size,
+            uploadedAt: Date.now(),
+            durationSeconds: media.durationSeconds,
+            posterDataUrl: media.posterDataUrl,
+          }),
+        ),
+      );
+    },
+    [isTimeLocked, readFileAsDataUrl, readVideoMediaFromUrl],
+  );
+
   const renameAudioNote = useCallback(
     (noteId: string, name: string) => {
       if (isTimeLocked) {
@@ -1405,6 +1510,17 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       }
       const current = renderSnapshot.notes[noteId]?.audio;
       updateNote(noteId, toAudioNotePatch(createAudioNoteState({ ...(current ?? {}), name })));
+    },
+    [isTimeLocked, renderSnapshot.notes],
+  );
+
+  const renameVideoNote = useCallback(
+    (noteId: string, name: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const current = renderSnapshot.notes[noteId]?.video;
+      updateNote(noteId, toVideoNotePatch(createVideoNoteState({ ...(current ?? {}), name })));
     },
     [isTimeLocked, renderSnapshot.notes],
   );
@@ -1518,6 +1634,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     [openBookmarkUrl, renderSnapshot.notes],
   );
 
+  const openVideoNote = useCallback(
+    (noteId: string) => {
+      const videoNote = renderSnapshot.notes[noteId]?.video;
+      const target = videoNote?.url?.trim();
+      if (!target || typeof window === "undefined") {
+        return;
+      }
+      if (videoNote?.source === "link") {
+        openBookmarkUrl(target);
+        return;
+      }
+      window.open(target, "_blank", "noopener,noreferrer");
+    },
+    [openBookmarkUrl, renderSnapshot.notes],
+  );
+
   const downloadFileNote = useCallback(
     (noteId: string) => {
       const fileNote = renderSnapshot.notes[noteId]?.file;
@@ -1551,6 +1683,30 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       }
       const filename = audioNote?.name?.trim() || "audio-note";
       if (audioNote?.source === "upload") {
+        downloadDataUrl(filename, target);
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = target;
+      link.download = filename;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    [renderSnapshot.notes],
+  );
+
+  const downloadVideoNote = useCallback(
+    (noteId: string) => {
+      const videoNote = renderSnapshot.notes[noteId]?.video;
+      const target = videoNote?.url?.trim();
+      if (!target || typeof document === "undefined") {
+        return;
+      }
+      const filename = getVideoNoteTitle(videoNote);
+      if (videoNote?.source === "upload") {
         downloadDataUrl(filename, target);
         return;
       }
@@ -1718,6 +1874,18 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
     const position = placeNewNote(world, { w: AUDIO_NOTE_DEFAULTS.width, h: AUDIO_NOTE_DEFAULTS.height });
     const id = createAudioNote(position.x, position.y);
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
+
+  const makeVideoNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const position = placeNewNote(world, { w: VIDEO_NOTE_DEFAULTS.width, h: VIDEO_NOTE_DEFAULTS.height });
+    const id = createVideoNote(position.x, position.y);
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
@@ -3311,6 +3479,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
             onCreateFileNote={makeFileNoteAtViewportCenter}
             onCreateAudioNote={makeAudioNoteAtViewportCenter}
+            onCreateVideoNote={makeVideoNoteAtViewportCenter}
             onCreateApodNote={makeApodNoteAtViewportCenter}
             onCreatePoetryNote={makePoetryNoteAtViewportCenter}
             onCreateEconomistNote={makeEconomistNoteAtViewportCenter}
@@ -3483,6 +3652,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               playingAudioDurationSeconds={playingAudioDurationSeconds}
               onOpenAudioNote={openAudioNote}
               onDownloadAudioNote={downloadAudioNote}
+              onOpenVideoNote={(noteId) => {
+                const note = renderSnapshot.notes[noteId];
+                if (!note) {
+                  return;
+                }
+                openEditor(noteId, note.text);
+              }}
+              onDownloadVideoNote={downloadVideoNote}
             />
 
             <WallOverlaysLayer
@@ -3579,6 +3756,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onRenameAudioNote={renameAudioNote}
           onOpenAudioNote={openAudioNote}
           onDownloadAudioNote={downloadAudioNote}
+          onSelectVideoNoteFile={selectVideoNoteFile}
+          onSubmitVideoNoteUrl={submitVideoNoteUrl}
+          onRenameVideoNote={renameVideoNote}
+          onOpenVideoNote={openVideoNote}
+          onDownloadVideoNote={downloadVideoNote}
           onRefreshApodNote={(noteId) => { void refreshApodNote(noteId, { force: true }); }}
           onDownloadApodImage={downloadApodImage}
           onOpenApodSource={(noteId) => {
@@ -3715,6 +3897,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onSubmitAudioNoteUrl={submitAudioNoteUrl}
           onOpenAudioNote={openAudioNote}
           onDownloadAudioNote={downloadAudioNote}
+          onSelectVideoNoteFile={selectVideoNoteFile}
+          onSubmitVideoNoteUrl={submitVideoNoteUrl}
+          onRenameVideoNote={renameVideoNote}
+          onOpenVideoNote={openVideoNote}
+          onDownloadVideoNote={downloadVideoNote}
           privateNoteSupported={selectedPrivateNoteSupported}
           isPrivateEnabled={Boolean(selectedPrivateNote)}
           isPrivateUnlocked={isSelectedPrivateUnlocked}

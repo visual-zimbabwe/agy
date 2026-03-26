@@ -8,6 +8,7 @@ import {
   createPoetryNote,
   createEconomistNote,
   createCanonNote,
+  createVideoNote,
   createOrRefreshJokerNote,
   createOrRefreshThroneNote,
   createJournalNote,
@@ -151,6 +152,20 @@ describe("wall commands", () => {
     expect(economist?.tags).toEqual(["economist", "cover", "magazine"]);
   });
 
+  it("creates video notes with dedicated video metadata", () => {
+    const videoId = createVideoNote(64, 96, {
+      name: "demo.mp4",
+      url: "https://example.com/demo.mp4",
+      source: "link",
+      durationSeconds: 94,
+    });
+    const video = useWallStore.getState().notes[videoId];
+    expect(video?.noteKind).toBe("video");
+    expect(video?.video?.name).toBe("demo.mp4");
+    expect(video?.video?.url).toBe("https://example.com/demo.mp4");
+    expect(video?.video?.durationSeconds).toBe(94);
+    expect(video?.tags).toEqual(["video"]);
+  });
 
   it("creates links and rejects duplicate/self links", () => {
     const fromId = createNote(0, 0);

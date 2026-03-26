@@ -56,6 +56,11 @@ type WallDetailsSidebarProps = {
   onSubmitAudioNoteUrl: (noteId: string, url: string) => void;
   onOpenAudioNote: (noteId: string) => void;
   onDownloadAudioNote: (noteId: string) => void;
+  onSelectVideoNoteFile: (noteId: string, file: File) => Promise<void>;
+  onSubmitVideoNoteUrl: (noteId: string, url: string) => Promise<void> | void;
+  onRenameVideoNote: (noteId: string, name: string) => void;
+  onOpenVideoNote: (noteId: string) => void;
+  onDownloadVideoNote: (noteId: string) => void;
   privateNoteSupported: boolean;
   isPrivateEnabled: boolean;
   isPrivateUnlocked: boolean;
@@ -175,6 +180,11 @@ export const WallDetailsSidebar = ({
   onSubmitAudioNoteUrl,
   onOpenAudioNote,
   onDownloadAudioNote,
+  onSelectVideoNoteFile,
+  onSubmitVideoNoteUrl,
+  onRenameVideoNote,
+  onOpenVideoNote,
+  onDownloadVideoNote,
   privateNoteSupported,
   isPrivateEnabled,
   isPrivateUnlocked,
@@ -297,6 +307,11 @@ export const WallDetailsSidebar = ({
         onSubmitAudioNoteUrl={onSubmitAudioNoteUrl}
         onOpenAudioNote={onOpenAudioNote}
         onDownloadAudioNote={onDownloadAudioNote}
+        onSelectVideoNoteFile={onSelectVideoNoteFile}
+        onSubmitVideoNoteUrl={onSubmitVideoNoteUrl}
+        onRenameVideoNote={onRenameVideoNote}
+        onOpenVideoNote={onOpenVideoNote}
+        onDownloadVideoNote={onDownloadVideoNote}
         privateNoteSupported={privateNoteSupported}
         isPrivateEnabled={isPrivateEnabled}
         isPrivateUnlocked={isPrivateUnlocked}

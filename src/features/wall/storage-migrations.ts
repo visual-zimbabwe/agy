@@ -2,6 +2,7 @@ import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/wall/bookmarks";
 import { normalizeAudioNote } from "@/features/wall/audio-notes";
 import { normalizeFileNote } from "@/features/wall/file-notes";
+import { normalizeVideoNote } from "@/features/wall/video-notes";
 import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import type { ApodNote, CanonNote, CurrencyNote, Link, Note, NoteGroup, PersistedWallState, PrivateNoteData, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
@@ -299,7 +300,8 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     entry.noteKind === "poetry" ||
     entry.noteKind === "economist" ||
     entry.noteKind === "file" ||
-    entry.noteKind === "audio"
+    entry.noteKind === "audio" ||
+    entry.noteKind === "video"
       ? entry.noteKind
       : "standard";
   return {
@@ -316,6 +318,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     apod: noteKind === "apod" ? normalizeApod(entry.apod) : undefined,
     file: noteKind === "file" ? normalizeFileNote(entry.file) : undefined,
     audio: noteKind === "audio" ? normalizeAudioNote(entry.audio ?? entry.file) : undefined,
+    video: noteKind === "video" ? normalizeVideoNote(entry.video ?? entry.file) : undefined,
     poetry:
       noteKind === "poetry" && isRecord(entry.poetry)
         ? {

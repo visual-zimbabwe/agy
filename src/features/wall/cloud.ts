@@ -4,6 +4,7 @@ import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { normalizeAudioNote } from "@/features/wall/audio-notes";
 import { normalizeFileNote } from "@/features/wall/file-notes";
+import { normalizeVideoNote } from "@/features/wall/video-notes";
 import type { ApodNote, CanonNote, CurrencyNote, PersistedWallState, PoetryNote, PrivateNoteData, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
 
 type WallRow = {
@@ -434,7 +435,8 @@ export const rowsToSnapshot = (rows: {
         note.note_kind === "poetry" ||
         note.note_kind === "economist" ||
         note.note_kind === "file" ||
-        note.note_kind === "audio"
+        note.note_kind === "audio" ||
+        note.note_kind === "video"
           ? note.note_kind
           : "standard";
 
@@ -463,6 +465,7 @@ export const rowsToSnapshot = (rows: {
           apod: noteKind === "apod" ? parseApod(note.apod) : undefined,
           file: noteKind === "file" ? normalizeFileNote(note.file) : undefined,
           audio: noteKind === "audio" ? normalizeAudioNote(note.file) : undefined,
+          video: noteKind === "video" ? normalizeVideoNote(note.file) : undefined,
           poetry: noteKind === "poetry" ? parsePoetry(note.poetry) : undefined,
           tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
           x: note.x,

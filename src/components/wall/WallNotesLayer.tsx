@@ -16,6 +16,7 @@ import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
+import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
 import { throneLoadingText } from "@/features/wall/throne";
 import type { LinkType, Note } from "@/features/wall/types";
 
@@ -296,6 +297,8 @@ type WallNotesLayerProps = {
   playingAudioDurationSeconds?: number;
   onOpenAudioNote: (noteId: string) => void;
   onDownloadAudioNote: (noteId: string) => void;
+  onOpenVideoNote: (noteId: string) => void;
+  onDownloadVideoNote: (noteId: string) => void;
 };
 
 export const WallNotesLayer = ({
@@ -351,6 +354,8 @@ export const WallNotesLayer = ({
   playingAudioDurationSeconds,
   onOpenAudioNote,
   onDownloadAudioNote,
+  onOpenVideoNote,
+  onDownloadVideoNote,
 }: WallNotesLayerProps) => {
   const previousColorRef = useRef<Record<string, string>>({});
   const previousTextSizeRef = useRef<Record<string, string>>({});
@@ -432,7 +437,7 @@ export const WallNotesLayer = ({
     const urls = [
       ...new Set(
         visibleNotes
-          .flatMap((note) => [note.imageUrl?.trim(), note.bookmark?.metadata?.imageUrl?.trim(), note.bookmark?.metadata?.faviconUrl?.trim()])
+          .flatMap((note) => [note.imageUrl?.trim(), note.bookmark?.metadata?.imageUrl?.trim(), note.bookmark?.metadata?.faviconUrl?.trim(), note.video?.posterDataUrl?.trim()])
           .filter((url): url is string => Boolean(url)),
       ),
     ];
@@ -539,6 +544,7 @@ export const WallNotesLayer = ({
         const isApod = isApodNote(noteView);
         const isEconomist = noteView.noteKind === "economist";
         const isAudio = noteView.noteKind === "audio";
+        const isVideo = noteView.noteKind === "video";
         const isStandardNote = !noteView.noteKind || noteView.noteKind === "standard";
         const canon = noteView.canon;
         const isVocabularyBack = Boolean(vocabulary?.flipped);
@@ -604,7 +610,7 @@ export const WallNotesLayer = ({
           : strippedNoteText;
         const looksLikeCode = /(^|\n)\s*(def |const |let |function |class |import |from |<\w)|=>|\{\s*$|console\.|return\s+/m.test(strippedNoteText);
         const fileNameMatch = strippedNoteText.match(/([\w-]+\.(pdf|docx?|txt|png|jpe?g|zip|csv|md))/i);
-        const looksLikeFile = !isAudio && (noteView.noteKind === "file" || Boolean(fileNameMatch));
+        const looksLikeFile = !isAudio && !isVideo && (noteView.noteKind === "file" || Boolean(fileNameMatch));
         const fileLabel = noteView.noteKind === "file" ? getFileNoteTitle(noteView.file) : fileNameMatch?.[1] ?? "Document";
         const fileMeta = noteView.noteKind === "file" ? getFileNoteMetaCaps(noteView.file) : strippedNoteText.replace(fileLabel, "").trim() || "File note";
         const audioTitle = getAudioNoteTitle(noteView.audio);
@@ -613,9 +619,15 @@ export const WallNotesLayer = ({
         const audioDurationSeconds = isAudioPlaying ? playingAudioDurationSeconds ?? noteView.audio?.durationSeconds : noteView.audio?.durationSeconds;
         const audioCurrentTime = formatAudioDuration(isAudioPlaying ? playingAudioCurrentTimeSeconds : 0);
         const audioDuration = formatAudioDuration(audioDurationSeconds);
+        const videoTitle = getVideoNoteTitle(noteView.video);
+        const videoMeta = getVideoNoteMeta(noteView.video).toUpperCase();
+        const videoDuration = formatVideoDuration(noteView.video?.durationSeconds);
+        const videoCurrentTime = formatVideoDuration(noteView.video?.durationSeconds ? Math.max(0, Math.round(noteView.video.durationSeconds * 0.35)) : 0);
+        const videoPoster = noteView.video?.posterDataUrl?.trim();
+        const loadedVideoPoster = videoPoster ? loadedImagesByUrl[videoPoster] : undefined;
         const journalTitle = noteLines[0] ?? "Dear Wall,";
         const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
-        const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !isCurrency && !isEconomist && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
+        const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isVideo && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !isCurrency && !isEconomist && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
@@ -1761,7 +1773,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isPrivate && !isThrone && !isJoker && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && !isJournal && !isQuote && !isAudio && !looksLikeCode && !looksLikeFile && !isStandardNote && (
+            {!isPrivate && !isThrone && !isJoker && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && !isJournal && !isQuote && !isAudio && !isVideo && !looksLikeCode && !looksLikeFile && !isStandardNote && (
               <Text
                 x={textX}
                 y={textY}
@@ -2012,6 +2024,57 @@ export const WallNotesLayer = ({
                 <Text x={Math.max(24, noteView.w - 96)} y={Math.max(180, noteView.h - 28)} width={72} align="right" fontSize={12} fontFamily="JetBrains Mono" fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text={audioDuration} listening={false} />
               </>
             )}
+            {isVideo && (
+              <>
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={22} fill={atelierPalette.paper} stroke={colorWithAlpha(atelierPalette.quietText, 0.14)} strokeWidth={1} listening={false} />
+                <Group
+                  x={18}
+                  y={18}
+                  onClick={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    event.cancelBubble = true;
+                    onOpenVideoNote(note.id);
+                  }}
+                  onTap={(event) => {
+                    if (isTimeLocked) {
+                      return;
+                    }
+                    event.cancelBubble = true;
+                    onOpenVideoNote(note.id);
+                  }}
+                >
+                  <Rect width={Math.max(0, noteView.w - 36)} height={Math.max(0, noteView.h - 124)} cornerRadius={18} fill="#11120f" listening={false} />
+                  {loadedVideoPoster ? (
+                    <KonvaImage
+                      image={loadedVideoPoster}
+                      x={0}
+                      y={0}
+                      width={Math.max(0, noteView.w - 36)}
+                      height={Math.max(0, noteView.h - 124)}
+                      cornerRadius={18}
+                      listening={false}
+                    />
+                  ) : null}
+                  <Rect width={Math.max(0, noteView.w - 36)} height={Math.max(0, noteView.h - 124)} cornerRadius={18} fill="rgba(17,18,15,0.16)" listening={false} />
+                  <Rect x={Math.max(18, (noteView.w - 102) / 2)} y={Math.max(18, (noteView.h - 124) / 2 - 26)} width={66} height={66} cornerRadius={20} fill={colorWithAlpha(atelierPalette.terracotta, 0.9)} shadowColor="rgba(0,0,0,0.24)" shadowBlur={14} shadowOffsetY={6} listening={false} />
+                  <Line points={[Math.max(43, (noteView.w - 102) / 2 + 26), Math.max(33, (noteView.h - 124) / 2 - 8), Math.max(43, (noteView.w - 102) / 2 + 26), Math.max(33, (noteView.h - 124) / 2 + 20), Math.max(67, (noteView.w - 102) / 2 + 48), Math.max(33, (noteView.h - 124) / 2 + 6)]} closed fill="#fffaf4" listening={false} />
+                  <Text x={20} y={Math.max(18, noteView.h - 120)} width={72} fontSize={12} fontFamily="JetBrains Mono" fill="rgba(255,250,244,0.88)" text={videoCurrentTime} listening={false} />
+                  <Rect x={Math.max(92, noteView.w * 0.22)} y={Math.max(18, noteView.h - 115)} width={Math.max(56, noteView.w - 184)} height={6} cornerRadius={3} fill="rgba(255,255,255,0.24)" listening={false} />
+                  <Rect x={Math.max(92, noteView.w * 0.22)} y={Math.max(18, noteView.h - 115)} width={Math.max(28, Math.max(56, noteView.w - 184) * 0.36)} height={6} cornerRadius={3} fill={atelierPalette.terracotta} listening={false} />
+                  <Text x={Math.max(0, noteView.w - 108)} y={Math.max(18, noteView.h - 120)} width={72} align="right" fontSize={12} fontFamily="JetBrains Mono" fill="rgba(255,250,244,0.88)" text={videoDuration} listening={false} />
+                </Group>
+                <Text x={22} y={Math.max(0, noteView.h - 84)} width={Math.max(0, noteView.w - 92)} fontSize={Math.max(18, Math.min(25, noteView.w / 11.5))} fontFamily="Newsreader" fontStyle="italic" fill={atelierPalette.text} text={videoTitle} ellipsis listening={false} />
+                {videoMeta ? <Text x={22} y={Math.max(0, noteView.h - 50)} width={Math.max(0, noteView.w - 96)} fontSize={10} letterSpacing={1.2} fill={colorWithAlpha(atelierPalette.quietText, 0.76)} text={videoMeta} ellipsis listening={false} /> : null}
+                <Group x={Math.max(18, noteView.w - 54)} y={Math.max(0, noteView.h - 56)} onClick={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadVideoNote(note.id); }} onTap={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadVideoNote(note.id); }}>
+                  <Text x={0} y={0} width={16} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text="↓" listening={false} />
+                </Group>
+                <Group x={Math.max(42, noteView.w - 30)} y={Math.max(0, noteView.h - 56)} onClick={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onOpenVideoNote(note.id); }} onTap={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onOpenVideoNote(note.id); }}>
+                  <Text x={0} y={0} width={16} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text="↗" listening={false} />
+                </Group>
+              </>
+            )}
             {looksLikeFile && (
               <>
                 <Rect width={noteView.w} height={noteView.h} cornerRadius={14} fill={atelierPalette.paper} stroke={colorWithAlpha(atelierPalette.quietText, 0.16)} strokeWidth={1} listening={false} />
@@ -2178,7 +2241,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isEconomist &&
+            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isEconomist && !isVideo &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -2203,7 +2266,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isEconomist && overflowTags > 0 && (
+            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isEconomist && !isVideo && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}

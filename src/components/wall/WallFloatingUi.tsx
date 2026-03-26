@@ -5,6 +5,7 @@ import type { Dispatch, FocusEvent, SetStateAction } from "react";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { ApodNoteEditor } from "@/components/wall/ApodNoteEditor";
 import { AudioNoteEditor } from "@/components/wall/AudioNoteEditor";
+import { VideoNoteEditor } from "@/components/wall/VideoNoteEditor";
 import { EconomistCoverEditor } from "@/components/wall/EconomistCoverEditor";
 import { FileNoteEditor } from "@/components/wall/FileNoteEditor";
 import { PoetryNoteEditor } from "@/components/wall/PoetryNoteEditor";
@@ -99,6 +100,11 @@ type WallFloatingUiProps = {
   onRenameAudioNote: (noteId: string, name: string) => void;
   onOpenAudioNote: (noteId: string) => void;
   onDownloadAudioNote: (noteId: string) => void;
+  onSelectVideoNoteFile: (noteId: string, file: File) => Promise<void>;
+  onSubmitVideoNoteUrl: (noteId: string, url: string) => Promise<void> | void;
+  onRenameVideoNote: (noteId: string, name: string) => void;
+  onOpenVideoNote: (noteId: string) => void;
+  onDownloadVideoNote: (noteId: string) => void;
   onRefreshApodNote: (noteId: string) => void;
   onDownloadApodImage: (noteId: string) => void;
   onOpenApodSource: (noteId: string) => void;
@@ -192,6 +198,11 @@ export const WallFloatingUi = ({
   onRenameAudioNote,
   onOpenAudioNote,
   onDownloadAudioNote,
+  onSelectVideoNoteFile,
+  onSubmitVideoNoteUrl,
+  onRenameVideoNote,
+  onOpenVideoNote,
+  onDownloadVideoNote,
   onRefreshApodNote,
   onDownloadApodImage,
   onOpenApodSource,
@@ -262,6 +273,20 @@ export const WallFloatingUi = ({
               onDownloadAudio={onDownloadAudioNote}
             />
           )}
+          {editingNote.noteKind === "video" && (
+            <VideoNoteEditor
+              editing={editing}
+              editingNote={editingNote}
+              camera={camera}
+              toScreenPoint={toScreenPoint}
+              onClose={() => setEditing(null)}
+              onSelectFile={onSelectVideoNoteFile}
+              onSubmitUrl={onSubmitVideoNoteUrl}
+              onRenameVideo={onRenameVideoNote}
+              onOpenVideo={onOpenVideoNote}
+              onDownloadVideo={onDownloadVideoNote}
+            />
+          )}
           {editingNote.noteKind === "apod" && (
             <ApodNoteEditor
               editingNote={editingNote as Note & { noteKind: "poetry" }}
@@ -295,7 +320,7 @@ export const WallFloatingUi = ({
               onUpdateNote={updateNote}
             />
           )}
-          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "file" && editingNote.noteKind !== "audio" && editingNote.noteKind !== "apod" && editingNote.noteKind !== "poetry" && editingNote.noteKind !== "economist" && (
+          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "file" && editingNote.noteKind !== "audio" && editingNote.noteKind !== "video" && editingNote.noteKind !== "apod" && editingNote.noteKind !== "poetry" && editingNote.noteKind !== "economist" && (
             <NoteTextEditor
               editing={editing}
               editingNote={editingNote as Note & { noteKind: "poetry" }}

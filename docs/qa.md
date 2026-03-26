@@ -203,6 +203,30 @@ Expected:
 - Audio note uploads and link-backed notes both persist through local storage and cloud sync.
 - Open/download actions remain visible and usable without clipping on the wall or in floating/details editors.
 
+## Video Note (`/wall`) (2026-03-26)
+1. Open `/wall`, open `Tools`, and click `New Video`.
+2. Verify a poster-led video card appears using the new editorial video frontend: large media preview, centered terracotta play button, duration rail, filename footer, and open/download affordances.
+3. Double-click the video note and verify the floating editor opens with `Upload` and `Paste URL` tabs plus an inline playable video preview.
+4. In the floating editor `Upload` tab, choose a local video file and verify the note updates with the video filename, metadata, generated poster, and duration when available.
+5. Rename the video in the floating editor and verify the filename footer updates without breaking playback or download.
+6. Click the play affordance on the wall card and verify the video editor opens on `/wall` with a playable inline video element.
+7. Click the in-note download action and verify the uploaded video downloads with the renamed filename.
+8. In the floating editor `Paste URL` tab, paste a direct video URL, save it, and verify the note keeps the video-card layout with link-backed metadata.
+9. Click `Open Video` for the link-backed video note and verify it opens the target video URL in a new tab.
+10. Select a standard note, go to `Details > Note Type`, click `Video`, and verify the current note converts into the dedicated video-note shell without creating a duplicate note.
+11. In `Details > Video`, upload a local video, then rename it, and verify the converted note updates immediately.
+12. In `Details > Video`, paste a direct video URL, click `Save Link`, and verify the note keeps the linked video state after blur.
+13. Use `Open Video` and `Download Video` from `Details` and verify both actions work for the current source mode.
+14. Refresh `/wall` and verify uploaded and link-backed video notes restore correctly, including poster and filename.
+15. If cloud sync is enabled, sync, reload, and verify the video note payload still renders after hydration.
+
+Expected:
+- Video notes are available from both `Tools` and `Details > Note Type`.
+- Video notes use the dedicated editorial video frontend in both the Konva wall renderer and the React preview/editor surfaces.
+- Video note uploads and direct video links both persist through local storage and cloud sync.
+- Clicking the wall-card play affordance opens an inline playable video editor on `/wall`.
+- Video-note overlays remain visible and unclipped on desktop and mobile wall layouts.
+
 ## NASA APOD Note (`/wall`) (2026-03-20)
 1. Open `/wall`, open `Tools`, and click `New APOD`.
 2. Verify a new APOD note appears and loads the current Astronomy Picture of the Day instead of a blank image card.

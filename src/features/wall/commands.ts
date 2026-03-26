@@ -3,6 +3,7 @@ import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency
 import { buildEconomistNote, ECONOMIST_NOTE_DEFAULTS, isEconomistNote } from "@/features/wall/economist";
 import { createAudioNoteState, isAudioNote, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, isFileNote, toFileNotePatch } from "@/features/wall/file-notes";
+import { createVideoNoteState, isVideoNote, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import type { EconomistCoverPayload } from "@/features/wall/economist";
 import { buildApodNote, isApodNote } from "@/features/wall/apod";
 import { buildPoetryNote, isPoetryNote } from "@/features/wall/poetry";
@@ -400,6 +401,12 @@ export const createAudioNote = (x: number, y: number, payload?: Partial<Note["au
   return noteId;
 };
 
+export const createVideoNote = (x: number, y: number, payload?: Partial<Note["video"]>) => {
+  const noteId = createNote(x, y, VIDEO_NOTE_DEFAULTS.color);
+  useWallStore.getState().patchNote(noteId, toVideoNotePatch(createVideoNoteState(payload)));
+  return noteId;
+};
+
 export const updateNote = (noteId: string, patch: Partial<Note>) => {
   const current = useWallStore.getState().notes[noteId];
   if (!current) {
@@ -525,6 +532,7 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       apod: undefined,
       poetry: undefined,
       audio: undefined,
+      video: undefined,
       color: ECONOMIST_NOTE_DEFAULTS.color,
       textColor: patch.textColor ?? current.textColor ?? ECONOMIST_NOTE_DEFAULTS.textColor,
       textFont: patch.textFont ?? current.textFont ?? ECONOMIST_NOTE_DEFAULTS.textFont,
@@ -539,6 +547,15 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
     useWallStore.getState().patchNote(noteId, {
       ...patch,
       ...toAudioNotePatch(patch.audio ?? current.audio),
+      tags: patch.tags ?? current.tags,
+    });
+    return;
+  }
+
+  if (isVideoNote(current)) {
+    useWallStore.getState().patchNote(noteId, {
+      ...patch,
+      ...toVideoNotePatch(patch.video ?? current.video),
       tags: patch.tags ?? current.tags,
     });
     return;

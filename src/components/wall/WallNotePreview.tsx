@@ -8,6 +8,7 @@ import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { getApodCaption } from "@/features/wall/apod";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
+import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
@@ -973,6 +974,46 @@ const AudioRenderer = ({ note, width, height, tone }: RendererProps) => {
   );
 };
 
+const VideoRenderer = ({ note, width, height, tone }: RendererProps) => {
+  const video = note.video;
+  const title = getVideoNoteTitle(video);
+  const meta = getVideoNoteMeta(video);
+  const duration = formatVideoDuration(video?.durationSeconds);
+  const progress = formatVideoDuration(video?.durationSeconds ? Math.max(0, Math.round(video.durationSeconds * 0.35)) : 0);
+
+  return (
+    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
+      <div className="flex h-full flex-col overflow-hidden" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(252,249,244,0.98))" }}>
+        <div className="relative aspect-[16/9] overflow-hidden rounded-b-[8px]" style={{ background: "linear-gradient(140deg, rgba(56,37,33,1) 0%, rgba(124,68,52,0.94) 42%, rgba(29,26,24,1) 100%)" }}>
+          {video?.posterDataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={video.posterDataUrl} alt={title} className="h-full w-full object-cover" loading="lazy" />
+          ) : null}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02),rgba(0,0,0,0.24))]" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-[#a33818] text-[34px] text-white shadow-[0_16px_30px_rgba(0,0,0,0.24)]">▶</div>
+          </div>
+          <div className="absolute inset-x-5 bottom-4 flex items-center gap-4 text-[13px] uppercase tracking-[0.18em] text-white/88">
+            <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{progress}</span>
+            <div className="h-1.5 flex-1 rounded-full bg-white/22"><div className="h-full w-[36%] rounded-full" style={{ background: atelier.terracotta }} /></div>
+            <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{duration}</span>
+          </div>
+        </div>
+        <div className="flex flex-1 items-start gap-3 px-5 pb-5 pt-4">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-[Newsreader] text-[clamp(24px,4.4vw,34px)] italic leading-[1.02]" style={{ color: atelier.ink }}>{title}</p>
+            {meta ? <p className="mt-2 truncate text-[11px] uppercase tracking-[0.18em]" style={{ color: atelier.quiet }}>{meta}</p> : null}
+          </div>
+          <div className="flex items-center gap-2 pt-2 text-[18px]" style={{ color: "rgba(91,70,63,0.8)" }}>
+            <span>↓</span>
+            <span>↗</span>
+          </div>
+        </div>
+      </div>
+    </NoteShell>
+  );
+};
+
 const FallbackRenderer = ({ note, width, height, readableText, mutedText, textFontFamily, bodyClamp, tone }: RendererProps) => (
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
     <div className="flex h-full flex-col p-4">
@@ -1003,6 +1044,7 @@ const noteRenderers: Record<string, NoteRenderer> = {
   code: CodeRenderer,
   file: FileRenderer,
   audio: AudioRenderer,
+  video: VideoRenderer,
   fallback: FallbackRenderer,
 };
 
@@ -1040,6 +1082,9 @@ const resolveRendererKey = (note: Note) => {
   }
   if (note.noteKind === "audio") {
     return "audio";
+  }
+  if (note.noteKind === "video") {
+    return "video";
   }
   if (!note.noteKind && fileNameMatch(cleaned)) {
     return "file";

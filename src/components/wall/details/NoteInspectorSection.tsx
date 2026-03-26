@@ -15,6 +15,7 @@ import {
 } from "@/components/wall/details/detailSectionStyles";
 import { APOD_NOTE_DEFAULTS, defaultApodNoteState } from "@/features/wall/apod";
 import { createAudioNoteState, getAudioNoteMeta, getAudioNoteTitle, toAudioNotePatch } from "@/features/wall/audio-notes";
+import { createVideoNoteState, getVideoNoteMeta, getVideoNoteTitle, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import {
   DEFAULT_POETRY_MATCH_TYPE,
   DEFAULT_POETRY_SEARCH_FIELD,
@@ -75,6 +76,11 @@ type NoteInspectorSectionProps = {
   onSubmitAudioNoteUrl: (noteId: string, url: string) => void;
   onOpenAudioNote: (noteId: string) => void;
   onDownloadAudioNote: (noteId: string) => void;
+  onSelectVideoNoteFile: (noteId: string, file: File) => Promise<void>;
+  onSubmitVideoNoteUrl: (noteId: string, url: string) => Promise<void> | void;
+  onRenameVideoNote: (noteId: string, name: string) => void;
+  onOpenVideoNote: (noteId: string) => void;
+  onDownloadVideoNote: (noteId: string) => void;
   privateNoteSupported: boolean;
   isPrivateEnabled: boolean;
   isPrivateUnlocked: boolean;
@@ -165,6 +171,11 @@ export const NoteInspectorSection = ({
   onSubmitAudioNoteUrl,
   onOpenAudioNote,
   onDownloadAudioNote,
+  onSelectVideoNoteFile,
+  onSubmitVideoNoteUrl,
+  onRenameVideoNote,
+  onOpenVideoNote,
+  onDownloadVideoNote,
   privateNoteSupported,
   isPrivateEnabled,
   isPrivateUnlocked,
@@ -184,6 +195,7 @@ export const NoteInspectorSection = ({
   );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const audioInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
   if (!selectedNote) {
     return null;
   }
@@ -237,19 +249,24 @@ export const NoteInspectorSection = ({
     const toEconomist = nextKind === "economist" && selectedNote.noteKind !== "economist";
     const toFile = nextKind === "file" && selectedNote.noteKind !== "file";
     const toAudio = nextKind === "audio" && selectedNote.noteKind !== "audio";
+    const toVideo = nextKind === "video" && selectedNote.noteKind !== "video";
     const fromCodeNote = selectedNote.noteKind === "standard" && isCodeNoteText(selectedNote.text);
     const economistSource = getEconomistMagazineSource(toEconomist ? preferredMagazineSourceId : selectedMagazineSourceId);
     const filePatch = toFile ? toFileNotePatch(createFileNoteState(selectedNote.file)) : undefined;
     const audioPatch = toAudio ? toAudioNotePatch(createAudioNoteState(selectedNote.audio)) : undefined;
+    const videoPatch = toVideo ? toVideoNotePatch(createVideoNoteState(selectedNote.video)) : undefined;
 
     onUpdateNote(selectedNote.id, {
       ...(filePatch ?? {}),
       ...(audioPatch ?? {}),
+      ...(videoPatch ?? {}),
       noteKind: nextKind,
       text: toFile
         ? filePatch?.text ?? selectedNote.text
         : toAudio
           ? audioPatch?.text ?? selectedNote.text
+          : toVideo
+            ? videoPatch?.text ?? selectedNote.text
           : toBookmark
             ? ""
             : toEconomist
@@ -260,7 +277,9 @@ export const NoteInspectorSection = ({
                   ? selectedNote.file?.name ?? selectedNote.text
                   : toStandard && selectedNote.noteKind === "audio"
                     ? selectedNote.audio?.name ?? selectedNote.text
-                    : selectedNote.text,
+                    : toStandard && selectedNote.noteKind === "video"
+                      ? selectedNote.video?.name ?? selectedNote.text
+                      : selectedNote.text,
       quoteAuthor: toStandard ? undefined : toQuote ? "" : toEconomist ? economistSource.sourceUrl : undefined,
       quoteSource: toStandard ? undefined : toQuote ? "" : toEconomist ? "Latest cover" : undefined,
       canon: toCanon
@@ -278,11 +297,12 @@ export const NoteInspectorSection = ({
       bookmark: toStandard ? undefined : toBookmark ? createBookmarkNoteState(selectedNote.bookmark?.url ?? "") : undefined,
       apod: toStandard ? undefined : toApod ? defaultApodNoteState(selectedNote.apod) : undefined,
       poetry: toStandard ? undefined : toPoetry ? defaultPoetryNoteState(selectedNote.poetry) : undefined,
-      economist: toStandard || toFile || toAudio ? undefined : selectedNote.economist,
-      file: toStandard || toAudio ? undefined : filePatch?.file,
-      audio: toStandard || toFile ? undefined : audioPatch?.audio,
-      imageUrl: toStandard || toBookmark || toApod || toPoetry || toEconomist || toFile || toAudio ? undefined : selectedNote.imageUrl,
-      vocabulary: toStandard || toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry || toEconomist || toFile || toAudio ? undefined : selectedNote.vocabulary,
+      economist: toStandard || toFile || toAudio || toVideo ? undefined : selectedNote.economist,
+      file: toStandard || toAudio || toVideo ? undefined : filePatch?.file,
+      audio: toStandard || toFile || toVideo ? undefined : audioPatch?.audio,
+      video: toStandard || toFile || toAudio ? undefined : videoPatch?.video,
+      imageUrl: toStandard || toBookmark || toApod || toPoetry || toEconomist || toFile || toAudio || toVideo ? undefined : selectedNote.imageUrl,
+      vocabulary: toStandard || toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry || toEconomist || toFile || toAudio || toVideo ? undefined : selectedNote.vocabulary,
       color: toStandard
         ? sanitizeStandardNoteColor(fromCodeNote ? NOTE_COLORS[0] ?? "#FEEA89" : selectedNote.color, NOTE_COLORS[0] ?? "#FEEA89")
         : toBookmark
@@ -293,6 +313,8 @@ export const NoteInspectorSection = ({
               ? filePatch?.color ?? selectedNote.color
               : toAudio
                 ? audioPatch?.color ?? AUDIO_NOTE_DEFAULTS.color
+                : toVideo
+                  ? videoPatch?.color ?? VIDEO_NOTE_DEFAULTS.color
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.color
                   : toEconomist
@@ -312,6 +334,8 @@ export const NoteInspectorSection = ({
               ? filePatch?.textFont ?? selectedNote.textFont
               : toAudio
                 ? audioPatch?.textFont ?? selectedNote.textFont
+                : toVideo
+                  ? videoPatch?.textFont ?? selectedNote.textFont
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.textFont
                   : toEconomist
@@ -331,6 +355,8 @@ export const NoteInspectorSection = ({
               ? filePatch?.textColor ?? selectedNote.textColor
               : toAudio
                 ? audioPatch?.textColor ?? selectedNote.textColor
+                : toVideo
+                  ? videoPatch?.textColor ?? selectedNote.textColor
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.textColor
                   : toEconomist
@@ -350,6 +376,8 @@ export const NoteInspectorSection = ({
               ? filePatch?.textSizePx ?? selectedNote.textSizePx
               : toAudio
                 ? audioPatch?.textSizePx ?? selectedNote.textSizePx
+                : toVideo
+                  ? videoPatch?.textSizePx ?? selectedNote.textSizePx
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.textSizePx
                   : toEconomist
@@ -369,6 +397,8 @@ export const NoteInspectorSection = ({
               ? filePatch?.w ?? selectedNote.w
               : toAudio
                 ? audioPatch?.w ?? selectedNote.w
+                : toVideo
+                  ? videoPatch?.w ?? selectedNote.w
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.width
                   : toEconomist
@@ -386,6 +416,8 @@ export const NoteInspectorSection = ({
               ? filePatch?.h ?? selectedNote.h
               : toAudio
                 ? audioPatch?.h ?? selectedNote.h
+                : toVideo
+                  ? videoPatch?.h ?? selectedNote.h
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.height
                   : toEconomist
@@ -405,6 +437,8 @@ export const NoteInspectorSection = ({
                 ? ["file"]
                 : toAudio
                   ? ["audio"]
+                  : toVideo
+                    ? ["video"]
                   : toPoetry
                     ? [...new Set([...selectedNote.tags, "poetry", "poem"])]
                     : toEconomist
@@ -702,6 +736,71 @@ export const NoteInspectorSection = ({
           </div>
         )}
 
+
+        {selectedNote.noteKind === "video" && (
+          <div className={sectionBlockClass}>
+            <p className={sectionLabelClass}>Video</p>
+            <div className="grid gap-2">
+              <input
+                type="text"
+                value={selectedNote.video?.name ?? ""}
+                onChange={(event) => onRenameVideoNote(selectedNote.id, event.target.value)}
+                className={detailField}
+                placeholder="Video file name"
+                disabled={isTimeLocked || isPrivateEnabled}
+                aria-label="Video file name"
+              />
+              <input
+                type="text"
+                value={selectedNote.video?.source === "link" ? selectedNote.video.url : ""}
+                onChange={(event) =>
+                  onUpdateNote(selectedNote.id, {
+                    ...toVideoNotePatch(
+                      createVideoNoteState({
+                        ...(selectedNote.video ?? createVideoNoteState()),
+                        source: "link",
+                        url: event.target.value,
+                      }),
+                    ),
+                  })
+                }
+                onBlur={(event) => {
+                  const normalized = normalizeFileUrl(event.target.value);
+                  if (normalized) {
+                    void onSubmitVideoNoteUrl(selectedNote.id, normalized);
+                  }
+                }}
+                className={detailField}
+                placeholder="https://example.com/video.mp4"
+                disabled={isTimeLocked || isPrivateEnabled}
+                aria-label="Video URL"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => videoInputRef.current?.click()} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>Upload Video</button>
+                <button type="button" onClick={() => void onSubmitVideoNoteUrl(selectedNote.id, selectedNote.video?.source === "link" ? selectedNote.video.url : "")} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>Save Link</button>
+              </div>
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void onSelectVideoNoteFile(selectedNote.id, file);
+                  }
+                  event.currentTarget.value = "";
+                }}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => onOpenVideoNote(selectedNote.id)} className={detailButton} disabled={!selectedNote.video?.url}>Open Video</button>
+                <button type="button" onClick={() => onDownloadVideoNote(selectedNote.id)} className={detailButton} disabled={!selectedNote.video?.url}>Download Video</button>
+              </div>
+              <div className={detailMutedPanel}>{`${getVideoNoteTitle(selectedNote.video)}${selectedNote.video ? ` • ${getVideoNoteMeta(selectedNote.video)}` : ""}`}</div>
+            </div>
+          </div>
+        )}
+
         {selectedNote.noteKind === "poetry" && (
           <div className={sectionBlockClass}>
             <div className="flex items-start justify-between gap-3">
@@ -940,6 +1039,7 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked || isPrivateEnabled}>Bookmark</button>
             <button type="button" onClick={() => setNoteKind("file")} className={typeButtonClass(selectedNote.noteKind === "file")} disabled={isTimeLocked || isPrivateEnabled}>File</button>
             <button type="button" onClick={() => setNoteKind("audio")} className={typeButtonClass(selectedNote.noteKind === "audio")} disabled={isTimeLocked || isPrivateEnabled}>Audio</button>
+            <button type="button" onClick={() => setNoteKind("video")} className={typeButtonClass(selectedNote.noteKind === "video")} disabled={isTimeLocked || isPrivateEnabled}>Video</button>
             <button type="button" onClick={() => setNoteKind("apod")} className={typeButtonClass(selectedNote.noteKind === "apod")} disabled={isTimeLocked || isPrivateEnabled}>APOD</button>
             <button type="button" onClick={() => selectedNote.noteKind === "poetry" ? onRefreshPoetry(selectedNote.id) : setNoteKind("poetry")} className={typeButtonClass(selectedNote.noteKind === "poetry")} disabled={isTimeLocked || isPrivateEnabled}>{selectedNote.noteKind === "poetry" ? "Refresh Poetry" : "Poetry"}</button>
             <button type="button" onClick={() => selectedNote.noteKind === "economist" ? onRefreshEconomist(selectedNote.id) : setNoteKind("economist")} className={typeButtonClass(selectedNote.noteKind === "economist")} disabled={isTimeLocked || isPrivateEnabled}>{selectedNote.noteKind === "economist" ? "Refresh Cover" : "Magazine Cover"}</button>

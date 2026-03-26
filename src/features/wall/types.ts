@@ -192,6 +192,11 @@ export type AudioNote = FileNote & {
   durationSeconds?: number;
 };
 
+export type VideoNote = FileNote & {
+  durationSeconds?: number;
+  posterDataUrl?: string;
+};
+
 export type PrivateNoteData = {
   version: 1;
   salt: string;
@@ -203,7 +208,7 @@ export type PrivateNoteData = {
 
 export type Note = {
   id: string;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod" | "poetry" | "economist" | "file" | "audio";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod" | "poetry" | "economist" | "file" | "audio" | "video";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
@@ -217,6 +222,7 @@ export type Note = {
   economist?: EconomistNote;
   file?: FileNote;
   audio?: AudioNote;
+  video?: VideoNote;
   imageUrl?: string;
   textAlign?: "left" | "center" | "right";
   textVAlign?: "top" | "middle" | "bottom";

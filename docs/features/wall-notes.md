@@ -30,6 +30,7 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 - web bookmark note creation
 - file note creation
 - audio note creation
+- video note creation
 - NASA APOD note creation
 - Poetry note creation
 - Code note creation
@@ -42,6 +43,8 @@ Web bookmark notes create a rich preview card from a URL using a server-side met
 File notes are now first-class wall notes instead of a filename-shaped standard note fallback. They follow the new `notes_v2/` file frontend: a compact white document card with a file tile, strong filename row, muted uppercase metadata line, and a right-edge download affordance. Users can create them directly from `Tools > New File` or convert the current note through `Details > Note Type > File`. File notes support two source modes: local-device upload, which stores a data URL plus name, MIME type, extension, size, and upload timestamp for local-first persistence, and link-backed files, which normalize the URL and derive a readable title or extension when possible. Both flows are editable again from the floating file editor and from the details sidebar.
 
 Audio notes are now dedicated wall notes with their own `notes_v3/` shell instead of borrowing the file card. They render as an editorial audio card with a compact icon tile, large `Newsreader` title, terracotta waveform, and top-right open/download actions. Users can create them directly from `Tools > New Audio` or convert the current note through `Details > Note Type > Audio`. Audio notes support local-device uploads and link-backed audio URLs, store the same core file metadata plus optional duration seconds, and expose upload, link-save, open, and download actions in both the floating editor and the details sidebar.
+
+Video notes are now dedicated wall notes with their own editorial media shell based on `note_v3/` instead of falling back to the file card. They render as a poster-led video card with a centered terracotta play button, duration rail, serif filename footer, and right-edge download/open actions that match the new frontend reference. Users can create them directly from `Tools > New Video` or convert the current note through `Details > Note Type > Video`. Video notes support local-device uploads and direct video links, preserve file metadata plus optional duration seconds and generated poster imagery, allow renaming from both the floating editor and details sidebar, and open as an inline playable video editor on `/wall` while still supporting open/download actions for the underlying asset.
 
 Image note creation now supports three insert sources from the wall image modal:
 
@@ -60,7 +63,7 @@ Economist notes create a dedicated magazine-cover card powered by the local Rave
 
 Current wall note kinds include:
 
-The current note frontend gives every supported note kind its own dedicated wall and timeline/detail presentation. Quote, journal, poetry, joker, throne, currency, bookmark, APOD, economist, image, code, and file-style notes intentionally avoid sharing one generic card layout. Quote and journal notes specifically follow the new editorial frontend in `notes/`: quote cards use a warm white paper shell with a terracotta left spine, pale double-quote mark, oversized `Newsreader` italic body copy, and a muted uppercase attribution footer, while journal notes keep the uppercase italic date label and `Newsreader`-led serif headline/body copy rather than the older lined notebook treatment. Poetry notes now follow the new `notes_v2/` direction as well: a faint `Source: Poetry API` eyebrow at the top, centered `Newsreader` italic poem body as the dominant element, and a separated footer row with the poet name plus the small terracotta icon tile instead of a title-led header. Code notes now follow the dark `notes_v2/` editor-card direction: a matte charcoal shell with macOS traffic-light controls, a compact language pill plus filename label, and lightweight syntax tinting that works for fenced snippets, file-backed snippets, Bash, and PowerShell command examples. File notes now use the dedicated `notes_v2/` document card shell: filename-first layout, compact uppercase type-and-size metadata, and explicit open or download actions. Currency cards now use the white market-ticker shell shown in the new note frontend direction: uppercase `Currency Pair` meta copy, a `USD / <base>` heading, a compact green change badge derived from the last cached comparison rate, an inverse `<base> per 1 USD` display rate, a pale trend line, and a footer with the Currency API/default source plus relative update time. Locked private notes now use the refined encrypted shell from the current frontend direction: a soft off-white card, centered lock tile, `Newsreader` italic title, muted uppercase `SECURED NODE` label, and an outlined `DECRYPT` action pill instead of the older explanatory protected-note banner.
+The current note frontend gives every supported note kind its own dedicated wall and timeline/detail presentation. Quote, journal, poetry, joker, throne, currency, bookmark, APOD, economist, image, code, and file-style notes intentionally avoid sharing one generic card layout. Video notes now join audio and file notes as dedicated media cards rather than generic text fallbacks. Quote and journal notes specifically follow the new editorial frontend in `notes/`: quote cards use a warm white paper shell with a terracotta left spine, pale double-quote mark, oversized `Newsreader` italic body copy, and a muted uppercase attribution footer, while journal notes keep the uppercase italic date label and `Newsreader`-led serif headline/body copy rather than the older lined notebook treatment. Poetry notes now follow the new `notes_v2/` direction as well: a faint `Source: Poetry API` eyebrow at the top, centered `Newsreader` italic poem body as the dominant element, and a separated footer row with the poet name plus the small terracotta icon tile instead of a title-led header. Code notes now follow the dark `notes_v2/` editor-card direction: a matte charcoal shell with macOS traffic-light controls, a compact language pill plus filename label, and lightweight syntax tinting that works for fenced snippets, file-backed snippets, Bash, and PowerShell command examples. File notes now use the dedicated `notes_v2/` document card shell: filename-first layout, compact uppercase type-and-size metadata, and explicit open or download actions. Currency cards now use the white market-ticker shell shown in the new note frontend direction: uppercase `Currency Pair` meta copy, a `USD / <base>` heading, a compact green change badge derived from the last cached comparison rate, an inverse `<base> per 1 USD` display rate, a pale trend line, and a footer with the Currency API/default source plus relative update time. Locked private notes now use the refined encrypted shell from the current frontend direction: a soft off-white card, centered lock tile, `Newsreader` italic title, muted uppercase `SECURED NODE` label, and an outlined `DECRYPT` action pill instead of the older explanatory protected-note banner.
 
 - `standard`
 - `quote`
@@ -76,6 +79,7 @@ The current note frontend gives every supported note kind its own dedicated wall
 - `economist`
 - `file`
 - `audio`
+- `video`
 In addition to explicit `noteKind`, notes can also carry vocabulary review payloads, which makes vocabulary notes a meaningful note workflow even when not represented as a separate `noteKind` enum value.
 
 ## Note Fields
@@ -100,6 +104,7 @@ Important fields include:
 - Economist cover metadata stored through image URL plus source/date quote fields
 - file payload for source mode, file name, URL or data URL, MIME type, extension, size, and upload timestamp
 - audio payload for source mode, title metadata, URL or data URL, MIME type, extension, size, upload timestamp, and optional duration
+- video payload for source mode, title metadata, URL or data URL, MIME type, extension, size, upload timestamp, optional duration, and optional generated poster image
 - vocabulary payload
 - image URL
 - Unsplash-sourced image URLs
@@ -131,6 +136,7 @@ This makes notes the core unit of wall content, but not the only structural elem
 - Published wall snapshots are read-only even though they display wall note content.
 - Link-backed file notes depend on the target URL remaining reachable, while uploaded file notes persist locally and through cloud sync as stored note payload.
 - Link-backed audio notes depend on the target URL remaining reachable, while uploaded audio notes persist locally and through cloud sync using the same serialized note payload path as file-backed media.
+- Link-backed video notes depend on the target URL remaining reachable, while uploaded video notes persist locally and through cloud sync with the serialized video payload, including poster data when available.
 
 ## Limitations
 
