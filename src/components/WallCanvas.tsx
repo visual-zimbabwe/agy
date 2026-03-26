@@ -347,10 +347,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [playingAudioNoteId, setPlayingAudioNoteId] = useState<string | undefined>(undefined);
   const [playingAudioCurrentTimeSeconds, setPlayingAudioCurrentTimeSeconds] = useState(0);
   const [playingAudioDurationSeconds, setPlayingAudioDurationSeconds] = useState<number | undefined>(undefined);
+  const [inlinePlayingVideoNoteId, setInlinePlayingVideoNoteId] = useState<string | undefined>(undefined);
   const [clientPrefsLoaded, setClientPrefsLoaded] = useState(false);
   const previousSelectedNoteIdRef = useRef<string | undefined>(undefined);
   const detailsPanelAutoOpenedRef = useRef(false);
   const wallAudioRef = useRef<HTMLAudioElement | null>(null);
+  const wallInlineVideoRef = useRef<HTMLVideoElement | null>(null);
   const playingAudioNoteIdRef = useRef<string | undefined>(undefined);
   const [publishedSnapshot] = useState<PersistedWallState | null>(() => {
     const encoded = readSnapshotParamFromLocation();
@@ -386,6 +388,34 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     camera,
     lastColor: ui.lastColor,
   };
+  const inlinePlayingVideoNote = inlinePlayingVideoNoteId ? renderSnapshot.notes[inlinePlayingVideoNoteId] : undefined;
+  const inlinePlayingVideoScreenRect = useMemo(() => {
+    if (inlinePlayingVideoNote?.noteKind !== "video") {
+      return null;
+    }
+
+    const videoUrl = inlinePlayingVideoNote.video?.url?.trim();
+    if (!videoUrl) {
+      return null;
+    }
+
+    const mediaWidth = Math.max(0, inlinePlayingVideoNote.w - 36);
+    const mediaHeight = Math.max(0, inlinePlayingVideoNote.h - 124);
+    if (mediaWidth <= 0 || mediaHeight <= 0) {
+      return null;
+    }
+
+    const topLeft = toScreenPoint(inlinePlayingVideoNote.x + 18, inlinePlayingVideoNote.y + 18, camera);
+    return {
+      left: topLeft.x,
+      top: topLeft.y,
+      width: mediaWidth * camera.zoom,
+      height: mediaHeight * camera.zoom,
+      title: getVideoNoteTitle(inlinePlayingVideoNote.video),
+      url: videoUrl,
+      posterUrl: inlinePlayingVideoNote.video?.posterDataUrl?.trim(),
+    };
+  }, [camera, inlinePlayingVideoNote]);
   const notes = useMemo(() => Object.values(renderSnapshot.notes), [renderSnapshot.notes]);
   const hasJokerNote = useMemo(() => notes.some((note) => note.noteKind === "joker"), [notes]);
   const hasThroneNote = useMemo(() => notes.some((note) => note.noteKind === "throne"), [notes]);
@@ -1601,6 +1631,49 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       wallAudioRef.current.load();
     }
   }, []);
+
+  useEffect(() => {
+    if (!inlinePlayingVideoNoteId) {
+      return;
+    }
+
+    const current = renderSnapshot.notes[inlinePlayingVideoNoteId];
+    if (current?.noteKind === "video" && current.video?.url?.trim()) {
+      return;
+    }
+
+    setInlinePlayingVideoNoteId(undefined);
+  }, [inlinePlayingVideoNoteId, renderSnapshot.notes]);
+
+  useEffect(() => () => {
+    if (wallInlineVideoRef.current) {
+      wallInlineVideoRef.current.pause();
+      wallInlineVideoRef.current.removeAttribute("src");
+      wallInlineVideoRef.current.load();
+    }
+  }, []);
+
+  const toggleInlineVideoPlayback = useCallback(
+    (noteId: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+
+      const target = renderSnapshot.notes[noteId]?.video?.url?.trim();
+      if (!target) {
+        return;
+      }
+
+      if (playingAudioNoteIdRef.current && wallAudioRef.current) {
+        wallAudioRef.current.pause();
+        setPlayingAudioNoteId(undefined);
+        playingAudioNoteIdRef.current = undefined;
+      }
+
+      setInlinePlayingVideoNoteId((current) => (current === noteId ? undefined : noteId));
+    },
+    [isTimeLocked, renderSnapshot.notes],
+  );
 
   const openFileNote = useCallback(
     (noteId: string) => {
@@ -3537,6 +3610,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             clearNoteSelection();
             setEditing(null);
             setFocusedNoteId(undefined);
+            setInlinePlayingVideoNoteId(undefined);
           }}
         >
           <Layer listening={false}>
@@ -3652,6 +3726,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               playingAudioDurationSeconds={playingAudioDurationSeconds}
               onOpenAudioNote={openAudioNote}
               onDownloadAudioNote={downloadAudioNote}
+              inlinePlayingVideoNoteId={inlinePlayingVideoNoteId}
+              onToggleInlineVideoPlayback={toggleInlineVideoPlayback}
               onOpenVideoNote={(noteId) => {
                 const note = renderSnapshot.notes[noteId];
                 if (!note) {
@@ -3681,6 +3757,40 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           </Layer>
         </WallStage>
         )}
+
+        {!timelineViewActive && inlinePlayingVideoScreenRect ? (
+          <div className="pointer-events-none absolute inset-0 z-[18]">
+            <div
+              className="pointer-events-auto absolute overflow-hidden rounded-[20px] border border-black/10 bg-black shadow-[0_18px_50px_rgba(15,23,42,0.22)]"
+              style={{
+                left: inlinePlayingVideoScreenRect.left,
+                top: inlinePlayingVideoScreenRect.top,
+                width: inlinePlayingVideoScreenRect.width,
+                height: inlinePlayingVideoScreenRect.height,
+              }}
+            >
+              <video
+                ref={wallInlineVideoRef}
+                key={`${inlinePlayingVideoNoteId ?? "video"}:${inlinePlayingVideoScreenRect.url}`}
+                className="h-full w-full bg-black object-contain"
+                src={inlinePlayingVideoScreenRect.url}
+                poster={inlinePlayingVideoScreenRect.posterUrl}
+                controls
+                autoPlay
+                playsInline
+                preload="metadata"
+              />
+              <button
+                type="button"
+                onClick={() => setInlinePlayingVideoNoteId(undefined)}
+                className="absolute right-3 top-3 rounded-full border border-white/18 bg-black/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-white/88 backdrop-blur"
+                aria-label={`Close ${inlinePlayingVideoScreenRect.title} playback`}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {!readingMode && !timelineViewActive && (
         <WallFloatingUi

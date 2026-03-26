@@ -297,6 +297,8 @@ type WallNotesLayerProps = {
   playingAudioDurationSeconds?: number;
   onOpenAudioNote: (noteId: string) => void;
   onDownloadAudioNote: (noteId: string) => void;
+  inlinePlayingVideoNoteId?: string;
+  onToggleInlineVideoPlayback: (noteId: string) => void;
   onOpenVideoNote: (noteId: string) => void;
   onDownloadVideoNote: (noteId: string) => void;
 };
@@ -354,6 +356,8 @@ export const WallNotesLayer = ({
   playingAudioDurationSeconds,
   onOpenAudioNote,
   onDownloadAudioNote,
+  inlinePlayingVideoNoteId,
+  onToggleInlineVideoPlayback,
   onOpenVideoNote,
   onDownloadVideoNote,
 }: WallNotesLayerProps) => {
@@ -619,6 +623,7 @@ export const WallNotesLayer = ({
         const audioDurationSeconds = isAudioPlaying ? playingAudioDurationSeconds ?? noteView.audio?.durationSeconds : noteView.audio?.durationSeconds;
         const audioCurrentTime = formatAudioDuration(isAudioPlaying ? playingAudioCurrentTimeSeconds : 0);
         const audioDuration = formatAudioDuration(audioDurationSeconds);
+        const isInlineVideoPlaying = isVideo && inlinePlayingVideoNoteId === note.id;
         const videoTitle = getVideoNoteTitle(noteView.video);
         const videoMeta = getVideoNoteMeta(noteView.video).toUpperCase();
         const videoDuration = formatVideoDuration(noteView.video?.durationSeconds);
@@ -2035,14 +2040,14 @@ export const WallNotesLayer = ({
                       return;
                     }
                     event.cancelBubble = true;
-                    onOpenVideoNote(note.id);
+                    onToggleInlineVideoPlayback(note.id);
                   }}
                   onTap={(event) => {
                     if (isTimeLocked) {
                       return;
                     }
                     event.cancelBubble = true;
-                    onOpenVideoNote(note.id);
+                    onToggleInlineVideoPlayback(note.id);
                   }}
                 >
                   <Rect width={Math.max(0, noteView.w - 36)} height={Math.max(0, noteView.h - 124)} cornerRadius={18} fill="#11120f" listening={false} />
@@ -2057,9 +2062,18 @@ export const WallNotesLayer = ({
                       listening={false}
                     />
                   ) : null}
-                  <Rect width={Math.max(0, noteView.w - 36)} height={Math.max(0, noteView.h - 124)} cornerRadius={18} fill="rgba(17,18,15,0.16)" listening={false} />
-                  <Rect x={Math.max(18, (noteView.w - 102) / 2)} y={Math.max(18, (noteView.h - 124) / 2 - 26)} width={66} height={66} cornerRadius={20} fill={colorWithAlpha(atelierPalette.terracotta, 0.9)} shadowColor="rgba(0,0,0,0.24)" shadowBlur={14} shadowOffsetY={6} listening={false} />
-                  <Line points={[Math.max(43, (noteView.w - 102) / 2 + 26), Math.max(33, (noteView.h - 124) / 2 - 8), Math.max(43, (noteView.w - 102) / 2 + 26), Math.max(33, (noteView.h - 124) / 2 + 20), Math.max(67, (noteView.w - 102) / 2 + 48), Math.max(33, (noteView.h - 124) / 2 + 6)]} closed fill="#fffaf4" listening={false} />
+                  <Rect width={Math.max(0, noteView.w - 36)} height={Math.max(0, noteView.h - 124)} cornerRadius={18} fill={isInlineVideoPlaying ? "rgba(17,18,15,0.08)" : "rgba(17,18,15,0.16)"} listening={false} />
+                  {!isInlineVideoPlaying ? (
+                    <>
+                      <Rect x={Math.max(18, (noteView.w - 102) / 2)} y={Math.max(18, (noteView.h - 124) / 2 - 26)} width={66} height={66} cornerRadius={20} fill={colorWithAlpha(atelierPalette.terracotta, 0.9)} shadowColor="rgba(0,0,0,0.24)" shadowBlur={14} shadowOffsetY={6} listening={false} />
+                      <Line points={[Math.max(43, (noteView.w - 102) / 2 + 26), Math.max(33, (noteView.h - 124) / 2 - 8), Math.max(43, (noteView.w - 102) / 2 + 26), Math.max(33, (noteView.h - 124) / 2 + 20), Math.max(67, (noteView.w - 102) / 2 + 48), Math.max(33, (noteView.h - 124) / 2 + 6)]} closed fill="#fffaf4" listening={false} />
+                    </>
+                  ) : (
+                    <>
+                      <Rect x={20} y={20} width={74} height={24} cornerRadius={12} fill="rgba(17,18,15,0.56)" listening={false} />
+                      <Text x={20} y={27} width={74} align="center" fontSize={10} fontStyle="bold" letterSpacing={1.4} fill="rgba(255,250,244,0.92)" text="PLAYING" listening={false} />
+                    </>
+                  )}
                   <Text x={20} y={Math.max(18, noteView.h - 120)} width={72} fontSize={12} fontFamily="JetBrains Mono" fill="rgba(255,250,244,0.88)" text={videoCurrentTime} listening={false} />
                   <Rect x={Math.max(92, noteView.w * 0.22)} y={Math.max(18, noteView.h - 115)} width={Math.max(56, noteView.w - 184)} height={6} cornerRadius={3} fill="rgba(255,255,255,0.24)" listening={false} />
                   <Rect x={Math.max(92, noteView.w * 0.22)} y={Math.max(18, noteView.h - 115)} width={Math.max(28, Math.max(56, noteView.w - 184) * 0.36)} height={6} cornerRadius={3} fill={atelierPalette.terracotta} listening={false} />
