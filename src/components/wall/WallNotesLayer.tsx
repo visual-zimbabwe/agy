@@ -1931,7 +1931,7 @@ export const WallNotesLayer = ({
                 <Text x={Math.max(18, noteView.w - 42)} y={Math.max(26, noteView.h / 2 - 16)} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.58)} text="↓" listening={false} />
               </>
             )}
-            {isStandardNote && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone && (
+            {!isPrivate && isStandardNote && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone && (
               <>
                 <Text
                   x={20}
