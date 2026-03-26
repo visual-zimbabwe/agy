@@ -1,5 +1,13 @@
 import { type AudioNote, type Note } from "@/features/wall/types";
-import { createFileNoteState, deriveFileNameFromUrl, formatFileSize, getFileKindLabel, inferMimeTypeFromFileName, normalizeFileUrl, readFileExtension } from "@/features/wall/file-notes";
+import {
+  createFileNoteState,
+  deriveFileNameFromUrl,
+  formatFileSize,
+  getFileKindLabel,
+  inferMimeTypeFromFileName,
+  normalizeFileUrl,
+  readFileExtension,
+} from "@/features/wall/file-notes";
 
 export const AUDIO_NOTE_DEFAULTS = {
   color: "#FFFFFF",
@@ -12,7 +20,8 @@ export const AUDIO_NOTE_DEFAULTS = {
 
 export const AUDIO_WAVEFORM_BARS = [0.2, 0.42, 0.84, 1, 0.56, 0.9, 0.78, 0.32, 0.46, 0.26, 0.78, 0.52, 0.24] as const;
 
-const asNumber = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : undefined);
+const asNumber = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) ? value : undefined;
 
 const trimAudioTitle = (name?: string) => {
   const trimmed = name?.trim() ?? "";
@@ -53,6 +62,7 @@ export const normalizeAudioNote = (value: unknown): AudioNote | undefined => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined;
   }
+
   const raw = value as Record<string, unknown>;
   const candidate = createAudioNoteState({
     source: raw.source === "link" ? "link" : "upload",
@@ -64,10 +74,12 @@ export const normalizeAudioNote = (value: unknown): AudioNote | undefined => {
     uploadedAt: asNumber(raw.uploadedAt),
     durationSeconds: asNumber(raw.durationSeconds),
   });
+
   return candidate.url || candidate.name ? candidate : undefined;
 };
 
-export const getAudioNoteTitle = (audio?: Partial<AudioNote> | null) => trimAudioTitle(audio?.name);
+export const getAudioNoteTitle = (audio?: Partial<AudioNote> | null) =>
+  trimAudioTitle(audio?.name);
 
 export const getAudioNoteMeta = (audio?: Partial<AudioNote> | null) => {
   const kind = getFileKindLabel(audio);
@@ -87,11 +99,16 @@ export const isAudioUrl = (value: string) => {
   if (!normalized) {
     return false;
   }
+
   const lower = normalized.toLowerCase();
-  return [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".oga", ".flac", ".webm"].some((extension) => lower.includes(extension));
+  return [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".oga", ".flac", ".webm"].some((extension) =>
+    lower.includes(extension),
+  );
 };
 
-export const isAudioNote = (note?: Pick<Note, "noteKind" | "audio"> | null): note is Pick<Note, "noteKind" | "audio"> & { noteKind: "audio"; audio: AudioNote } =>
+export const isAudioNote = (
+  note?: Pick<Note, "noteKind" | "audio"> | null,
+): note is Pick<Note, "noteKind" | "audio"> & { noteKind: "audio"; audio: AudioNote } =>
   Boolean(note && note.noteKind === "audio" && note.audio?.url);
 
 export const toAudioNotePatch = (audio: AudioNote): Partial<Note> => ({
