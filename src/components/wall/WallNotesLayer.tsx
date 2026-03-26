@@ -1963,8 +1963,14 @@ export const WallNotesLayer = ({
                 <Rect x={24} y={24} width={58} height={58} cornerRadius={16} fill={colorWithAlpha(atelierPalette.forest, 0.1)} listening={false} />
                 <Text x={24} y={38} width={58} align="center" fontSize={26} fill={atelierPalette.forest} text="♪" listening={false} />
                 <Group
-                  x={Math.max(24, noteView.w / 2 - 18)}
-                  y={30}
+                  x={Math.max(24, noteView.w / 2 - 28)}
+                  y={24}
+                  onMouseDown={(event) => {
+                    event.cancelBubble = true;
+                  }}
+                  onTouchStart={(event) => {
+                    event.cancelBubble = true;
+                  }}
                   onClick={(event) => {
                     if (isTimeLocked) {
                       return;
@@ -1980,7 +1986,8 @@ export const WallNotesLayer = ({
                     onToggleAudioPlayback(note.id);
                   }}
                 >
-                  <Text x={0} y={0} width={36} align="center" fontSize={13} fontStyle="bold" fill={colorWithAlpha(atelierPalette.terracotta, 0.82)} text={isAudioPlaying ? "PAUSE" : "PLAY"} listening={false} />
+                  <Rect width={56} height={22} cornerRadius={11} fill={colorWithAlpha(atelierPalette.terracotta, 0.1)} stroke={colorWithAlpha(atelierPalette.terracotta, 0.18)} strokeWidth={1} />
+                  <Text x={0} y={6} width={56} align="center" fontSize={11} fontStyle="bold" fill={colorWithAlpha(atelierPalette.terracotta, 0.82)} text={isAudioPlaying ? "PAUSE" : "PLAY"} listening={false} />
                 </Group>
                 <Group x={Math.max(20, noteView.w - 86)} y={26} onClick={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadAudioNote(note.id); }} onTap={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadAudioNote(note.id); }}>
                   <Text x={0} y={0} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.8)} text="↓" listening={false} />
