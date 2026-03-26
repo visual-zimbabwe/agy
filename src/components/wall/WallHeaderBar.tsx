@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { ProfileMenu } from "@/components/ProfileMenu";
+import { SyncStatus } from "@/components/wall/SyncStatus";
 import type { Note } from "@/features/wall/types";
 
 type LayoutPrefs = {
@@ -45,6 +46,7 @@ type WallHeaderBarProps = {
   onTogglePresentationMode: () => void;
   onOpenShortcuts: () => void;
   onOpenSettings: () => void;
+  onOpenTour: () => void;
   onApplyColorToSelection: (color: string) => void;
   onSyncNow: () => void;
 };
@@ -53,6 +55,8 @@ const navLinkClassName =
   "relative inline-flex items-center justify-center px-1 py-2 text-sm font-medium text-[#4d6356] transition hover:text-[#1c1c19] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30";
 const roundButtonClassName =
   "inline-flex h-12 w-12 items-center justify-center rounded-full text-[#1c1c19] transition hover:bg-[#1c1c19]/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30";
+const tourButtonClassName =
+  "hidden items-center gap-2 rounded-full border border-[#eadfd2] bg-white/60 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6f655b] transition hover:border-[#d9c7b4] hover:text-[#1c1c19] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/20 lg:inline-flex";
 
 const HeaderIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -61,13 +65,31 @@ const HeaderIcon = () => (
   </svg>
 );
 
+const TourIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M3.5 3.5H12.5V12.5H3.5V3.5Z" stroke="currentColor" strokeWidth="1.2" />
+    <path d="M5.5 10.5L10.5 5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    <circle cx="5.5" cy="5.5" r="0.9" fill="currentColor" />
+    <circle cx="10.5" cy="10.5" r="0.9" fill="currentColor" />
+  </svg>
+);
+
 export const WallHeaderBar = ({
   presentationMode,
+  publishedReadOnly,
   timelineViewActive,
   userEmail,
+  cloudWallId,
+  isSyncing,
+  localSaveState,
+  hasPendingSync,
+  lastSyncedAt,
+  syncError,
   onToggleTimelineView,
   onOpenShortcuts,
   onOpenSettings,
+  onOpenTour,
+  onSyncNow,
 }: WallHeaderBarProps) => {
   if (presentationMode) {
     return null;
@@ -96,6 +118,23 @@ export const WallHeaderBar = ({
         </nav>
 
         <div className="flex items-center justify-end gap-1 sm:gap-2">
+          {!publishedReadOnly && userEmail ? (
+            <div className="mr-1">
+              <SyncStatus
+                hasCloudWall={Boolean(cloudWallId)}
+                isSyncing={isSyncing}
+                localSaveState={localSaveState}
+                hasPendingSync={hasPendingSync}
+                lastSyncedAt={lastSyncedAt}
+                syncError={syncError}
+                onSyncNow={onSyncNow}
+              />
+            </div>
+          ) : null}
+          <button type="button" data-tour-anchor="tour-replay" onClick={onOpenTour} className={tourButtonClassName} aria-label="Replay product tour">
+            <TourIcon />
+            <span>Tour</span>
+          </button>
           <button type="button" onClick={onOpenSettings} className={roundButtonClassName} aria-label="Open settings">
             <HeaderIcon />
           </button>

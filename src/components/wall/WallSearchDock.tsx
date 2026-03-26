@@ -261,7 +261,7 @@ export const WallSearchDock = ({
   }
 
   return (
-    <div ref={containerRef} className="pointer-events-auto absolute bottom-5 left-1/2 z-[34] w-[min(92vw,52rem)] -translate-x-1/2">
+    <div ref={containerRef} data-tour-anchor="omnibar" className="pointer-events-auto absolute bottom-5 left-1/2 z-[34] w-[min(92vw,52rem)] -translate-x-1/2">
       {open ? (
         <div className="mb-3 overflow-hidden rounded-[28px] border border-[#efe6db] bg-[rgba(252,249,244,0.97)] shadow-[0_28px_80px_rgba(28,28,25,0.14)] backdrop-blur-xl">
           <div className="border-b border-[#efe6db] px-4 py-3">
@@ -323,6 +323,7 @@ export const WallSearchDock = ({
             </svg>
           </span>
           <input
+            data-tour-anchor="omnibar-input"
             ref={inputRef}
             type="text"
             value={query}

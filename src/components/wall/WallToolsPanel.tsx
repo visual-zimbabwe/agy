@@ -111,6 +111,7 @@ export const WallToolsPanel = ({
 
   return (
     <aside
+      data-tour-anchor="tools-panel"
       className={`pointer-events-auto absolute left-5 top-24 z-[33] w-[19rem] rounded-[28px] border border-[#efe4d8] bg-[rgba(252,249,244,0.9)] p-4 shadow-[0_24px_60px_rgba(28,28,25,0.08)] backdrop-blur-2xl transition-all duration-300 ${leftPanelOpen ? "translate-x-0 opacity-100" : "-translate-x-[120%] opacity-0 pointer-events-none"}`}
     >
       <div className="mb-4 flex items-center justify-between">
@@ -123,12 +124,12 @@ export const WallToolsPanel = ({
         </button>
       </div>
 
-      <div className="space-y-5 overflow-y-auto pr-1 max-h-[calc(100vh-10rem)]">
+      <div className="max-h-[calc(100vh-10rem)] space-y-5 overflow-y-auto pr-1">
         <section>
           <p className={sectionLabelClassName}>Create</p>
           <div className="mt-2 grid gap-1.5">
             <ControlTooltip label="Create note at viewport center" shortcut="N or Ctrl/Cmd + N" className="relative block" side="right">
-              <button type="button" onClick={onCreateNote} disabled={isTimeLocked} className={primaryToolButtonClassName}>
+              <button data-tour-anchor="tools-create-note" type="button" onClick={onCreateNote} disabled={isTimeLocked} className={primaryToolButtonClassName}>
                 <Icon name="note" />
                 <span>New Note</span>
               </button>
@@ -185,8 +186,3 @@ export const WallToolsPanel = ({
     </aside>
   );
 };
-
-
-
-
-

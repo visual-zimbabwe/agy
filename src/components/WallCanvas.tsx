@@ -13,6 +13,7 @@ import { PrivateNoteModal } from "@/components/wall/PrivateNoteModal";
 import { WallFloatingUi } from "@/components/wall/WallFloatingUi";
 import { WallGlobalModals } from "@/components/wall/WallGlobalModals";
 import { WallHeaderBar } from "@/components/wall/WallHeaderBar";
+import { WallProductTour } from "@/components/wall/WallProductTour";
 import { WallSearchDock } from "@/components/wall/WallSearchDock";
 import { WallStatusFooter } from "@/components/wall/WallStatusFooter";
 import { WallTimelineView } from "@/components/wall/WallTimelineView";
@@ -75,6 +76,7 @@ import { useWallViewState } from "@/components/wall/useWallViewState";
 import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
 import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
 import { useWallZoomControls } from "@/components/wall/useWallZoomControls";
+import { useWallProductTour } from "@/components/wall/useWallProductTour";
 import {
   toolbarBtn,
   toolbarBtnActive,
@@ -1282,6 +1284,16 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
     setRightPanelOpen(false);
   }, [rightPanelOpen]);
+
+  const tour = useWallProductTour({
+    enabled: !publishedReadOnly && !readingMode && !timelineViewActive && !presentationMode,
+    noteCount: notes.length,
+    leftPanelOpen,
+    rightPanelOpen,
+    searchOpen: ui.isSearchOpen,
+    selectedNoteId: ui.selectedNoteId,
+    openLeftPanel,
+  });
 
   useEffect(() => {
     if (isChromeHidden || !layoutPrefs.showDetailsPanel) {
@@ -2772,6 +2784,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
   const { stepZoom, resetZoom } = useWallZoomControls({ camera, viewport, animateCamera });
 
+  const zoomToFitTracked = useCallback(() => {
+    tour.markFitUsed();
+    zoomToFit();
+  }, [tour, zoomToFit]);
+
   const revealNoteFromTimeline = useCallback(
     (noteId: string) => {
       setTimelineViewActive(false);
@@ -3307,7 +3324,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         label: "Zoom to fit all content",
         description: "Frame all visible notes and zones with padding.",
         keywords: ["camera", "zoom", "fit", "frame", "board"],
-        onSelect: zoomToFit,
+        onSelect: zoomToFitTracked,
       },
       {
         id: "zoom-to-selection",
@@ -3316,6 +3333,13 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         keywords: ["camera", "zoom", "selection", "focus", "frame"],
         disabled: selectedNotes.length === 0,
         onSelect: zoomToSelection,
+      },
+      {
+        id: "replay-product-tour",
+        label: "Replay product tour",
+        description: "Start the hybrid wall tour again from the beginning.",
+        keywords: ["tour", "onboarding", "help", "guide"],
+        onSelect: tour.openTour,
       },
       {
         id: "toggle-timeline",
@@ -3469,7 +3493,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       quickCaptureOpen,
       redo,
       selectedNotes.length,
-      zoomToFit,
+      zoomToFitTracked,
       zoomToSelection,
       rightPanelOpen,
       setExportOpenTracked,
@@ -3500,6 +3524,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       focusNextDueWord,
       vocabularyDueNotes.length,
       zoneGroups,
+      tour.openTour,
     ],
   );
   return (
@@ -3538,6 +3563,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onTogglePresentationMode={togglePresentationMode}
         onOpenShortcuts={() => setShortcutsOpenTracked(true)}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenTour={tour.openTour}
         onApplyColorToSelection={applyColorToSelection}
         onSyncNow={syncNow}
       />
@@ -3545,6 +3571,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
       <div
         ref={containerRef}
+        data-tour-anchor="canvas"
         className={`relative flex-1 overflow-hidden ${
           timelineViewActive ? "cursor-default" : isSpaceDown || isMiddleDragging || isLeftCanvasDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
@@ -3631,6 +3658,14 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             </div>
           </div>
         )}
+
+        <WallProductTour
+          coachmark={tour.activeCoachmark}
+          onNext={tour.nextSpineStep}
+          onSkip={tour.skipTour}
+          onDismissTip={tour.dismissCurrentTip}
+          onDismissComplete={tour.dismissCompletion}
+        />
 
         {timelineViewActive ? (
           <WallTimelineView
@@ -3979,7 +4014,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onZoomIn={() => stepZoom("in")}
           onZoomOut={() => stepZoom("out")}
           onResetZoom={resetZoom}
-          onZoomToFit={zoomToFit}
+          onZoomToFit={zoomToFitTracked}
           onZoomToSelection={zoomToSelection}
           onRefreshCurrencyNote={() => { void refreshCurrencyNote({ force: true }); }}
           onCurrencyAmountChange={updateCurrencyAmountInput}
@@ -4301,6 +4336,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
 
 
 

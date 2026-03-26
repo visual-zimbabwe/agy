@@ -28,6 +28,7 @@ export const WallZoomControls = ({
 }: WallZoomControlsProps) => {
   return (
     <div
+      data-tour-anchor="zoom-rail"
       className="pointer-events-auto absolute z-[31] transition-[bottom,right] duration-[var(--motion-normal)]"
       style={{
         bottom: showHeatmap ? "14rem" : "1.25rem",
@@ -48,7 +49,7 @@ export const WallZoomControls = ({
           </svg>
         </button>
         <div className="h-px w-6 bg-[#ebe2d8]" />
-        <button type="button" onClick={onZoomToFit} className={railButtonClassName} aria-label="Zoom to fit" title="Zoom to fit">
+        <button data-tour-anchor="zoom-fit" type="button" onClick={onZoomToFit} className={railButtonClassName} aria-label="Zoom to fit" title="Zoom to fit">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M5 3H3V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M11 3H13V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -61,7 +62,7 @@ export const WallZoomControls = ({
           {zoomPercent}%
         </button>
         <div className="h-px w-6 bg-[#ebe2d8]" />
-        <button type="button" onClick={onZoomToSelection} disabled={!canZoomToSelection} className={railButtonClassName} aria-label="Zoom to selection" title={canZoomToSelection ? "Zoom to selection" : "Select a note first"}>
+        <button type="button" onClick={onZoomToSelection} disabled={!canZoomToSelection} className={railButtonClassName} aria-label={canZoomToSelection ? "Zoom to selection" : "Select a note first"} title={canZoomToSelection ? "Zoom to selection" : "Select a note first"}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <rect x="3" y="3" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
             <circle cx="8" cy="8" r="1.5" fill="currentColor" />

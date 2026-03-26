@@ -341,3 +341,19 @@ Use this as the initial script baseline:
 - [Wall Notes](../features/wall-notes.md)
 - [Frontend Architecture](../architecture/frontend-architecture.md)
 - [QA Checklist](../qa.md)
+## Implemented V1 (2026-03-26)
+
+The current `/wall` implementation ships the hybrid progressive tour with these behaviors:
+
+- first-run local tour persistence keyed by versioned browser storage
+- a 5-step guided spine covering wall orientation, canvas model, omnibar, first note creation, and fit-to-wall recovery
+- automatic anchoring to live wall chrome for the omnibar, tools panel, details sidebar, zoom rail, and canvas surface
+- contextual follow-up tips for selection-driven `Details` behavior and omnibar token discovery
+- replay entry points from the wall header and the omnibar command palette
+
+The implementation intentionally stays non-blocking:
+
+- the wall remains interactive during the tour
+- action-required steps wait for real user behavior instead of forcing a modal wizard
+- dismiss and completion state persist locally so repeat users are not interrupted on every visit
+
