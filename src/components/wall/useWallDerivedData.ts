@@ -4,11 +4,15 @@ import { useEffect, useMemo } from "react";
 import Fuse from "fuse.js";
 
 import type { RecallDateFilter } from "@/components/wall/details/DetailsSectionTypes";
-import { zoneContainsNote, noteInAnyZone, graphPathLinks } from "@/components/wall/wall-canvas-helpers";
-import { computeContentBounds, detectClusters, clamp } from "@/lib/wall-utils";
-import { findSmartMergeSuggestions, type SmartMergeSuggestion } from "@/lib/smart-merge";
+import { noteInAnyZone, graphPathLinks, zoneContainsNote } from "@/components/wall/wall-canvas-helpers";
 import { isPrivateNote } from "@/features/wall/private-notes";
+import {
+  matchesWallOmnibarNoteFilters,
+  parseWallOmnibarQuery,
+} from "@/features/wall/omnibar";
 import type { Link, Note, Zone, ZoneGroup } from "@/features/wall/types";
+import { findSmartMergeSuggestions, type SmartMergeSuggestion } from "@/lib/smart-merge";
+import { clamp, computeContentBounds, detectClusters } from "@/lib/wall-utils";
 
 type Bounds = { x: number; y: number; w: number; h: number };
 type TagGroup = { tag: string; noteIds: string[]; bounds: Bounds };
@@ -51,6 +55,7 @@ export const useWallDerivedData = ({
   viewport,
   setCamera,
 }: UseWallDerivedDataOptions) => {
+  const parsedOmnibarQuery = useMemo(() => parseWallOmnibarQuery(recallQuery), [recallQuery]);
   const collapsedGroupIds = useMemo(
     () => new Set(zoneGroups.filter((group) => group.collapsed).map((group) => group.id)),
     [zoneGroups],
@@ -64,7 +69,10 @@ export const useWallDerivedData = ({
     return new Set(notes.filter((note) => noteInAnyZone(note, collapsedZones)).map((note) => note.id));
   }, [collapsedGroupIds, notes, zones]);
   const baseVisibleNotes = useMemo(() => notes.filter((note) => !hiddenNotes.has(note.id)), [hiddenNotes, notes]);
-  const recallSearchableNotes = useMemo(() => baseVisibleNotes.filter((note) => !isPrivateNote(note)), [baseVisibleNotes]);
+  const recallSearchableNotes = useMemo(
+    () => baseVisibleNotes.filter((note) => !isPrivateNote(note) && matchesWallOmnibarNoteFilters(note, parsedOmnibarQuery)),
+    [baseVisibleNotes, parsedOmnibarQuery],
+  );
   const recallFuse = useMemo(
     () =>
       new Fuse(recallSearchableNotes, {
@@ -91,17 +99,19 @@ export const useWallDerivedData = ({
     [recallSearchableNotes],
   );
   const recallQueryIds = useMemo(() => {
-    const query = recallQuery.trim();
-    if (!query) {
-      return new Set(baseVisibleNotes.map((note) => note.id));
+    if (parsedOmnibarQuery.commandsOnly || !parsedOmnibarQuery.searchText) {
+      return new Set(recallSearchableNotes.map((note) => note.id));
     }
-    return new Set(recallFuse.search(query, { limit: 500 }).map((r) => r.item.id));
-  }, [baseVisibleNotes, recallFuse, recallQuery]);
+    return new Set(recallFuse.search(parsedOmnibarQuery.searchText, { limit: 500 }).map((result) => result.item.id));
+  }, [parsedOmnibarQuery.commandsOnly, parsedOmnibarQuery.searchText, recallFuse, recallSearchableNotes]);
   const visibleNotes = useMemo(() => {
     const now = wallClockTs;
     const selectedZone = recallZoneId ? zonesById[recallZoneId] : undefined;
     return baseVisibleNotes.filter((note) => {
-      if (!recallQueryIds.has(note.id)) {
+      if (!matchesWallOmnibarNoteFilters(note, parsedOmnibarQuery)) {
+        return false;
+      }
+      if (!parsedOmnibarQuery.commandsOnly && parsedOmnibarQuery.searchText && !recallQueryIds.has(note.id)) {
         return false;
       }
       if (selectedZone && !zoneContainsNote(selectedZone, note)) {
@@ -125,7 +135,7 @@ export const useWallDerivedData = ({
       }
       return true;
     });
-  }, [baseVisibleNotes, recallDateFilter, recallQueryIds, recallTag, recallZoneId, wallClockTs, zonesById]);
+  }, [baseVisibleNotes, parsedOmnibarQuery, recallDateFilter, recallQueryIds, recallTag, recallZoneId, wallClockTs, zonesById]);
   const visibleNoteIdSet = useMemo(() => new Set(visibleNotes.map((note) => note.id)), [visibleNotes]);
   const visibleLinks = useMemo(
     () => links.filter((link) => visibleNoteIdSet.has(link.fromNoteId) && visibleNoteIdSet.has(link.toNoteId)),
@@ -233,10 +243,7 @@ export const useWallDerivedData = ({
   }, [autoTagGroups]);
   const clusterBounds = useMemo(() => detectClusters(visibleNotes), [visibleNotes]);
   const pathLinkIds = useMemo(() => graphPathLinks(selectedNoteId, visibleLinks), [selectedNoteId, visibleLinks]);
-  const smartMergeSuggestions = useMemo<SmartMergeSuggestion[]>(
-    () => findSmartMergeSuggestions(visibleNotes),
-    [visibleNotes],
-  );
+  const smartMergeSuggestions = useMemo<SmartMergeSuggestion[]>(() => findSmartMergeSuggestions(visibleNotes), [visibleNotes]);
 
   return {
     visibleZones,

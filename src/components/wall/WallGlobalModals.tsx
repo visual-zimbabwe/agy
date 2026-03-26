@@ -3,12 +3,10 @@
 import { ExportModal } from "@/components/ExportModal";
 import { FileConversionModal } from "@/components/FileConversionModal";
 import { QuickCaptureBar } from "@/components/QuickCaptureBar";
-import { SearchPalette, type CommandPaletteCommand } from "@/components/SearchPalette";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { SettingsWorkspace } from "@/components/settings/SettingsWorkspace";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { ImageInsertModal } from "@/components/wall/ImageInsertModal";
-import type { Note } from "@/features/wall/types";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 
 type WallGlobalModalsProps = {
@@ -16,11 +14,6 @@ type WallGlobalModalsProps = {
   isTimeLocked: boolean;
   onCloseQuickCapture: () => void;
   onCapture: (items: Array<{ text: string; tags: string[] }>) => void;
-  isSearchOpen: boolean;
-  visibleNotes: Note[];
-  commandPaletteCommands: CommandPaletteCommand[];
-  onCloseSearch: () => void;
-  onSelectSearchNote: (noteId: string) => void;
   isExportOpen: boolean;
   onCloseExport: () => void;
   onExportPng: (scope: "view" | "whole" | "selection" | "zone", pixelRatio: number) => void;
@@ -54,11 +47,6 @@ export const WallGlobalModals = ({
   isTimeLocked,
   onCloseQuickCapture,
   onCapture,
-  isSearchOpen,
-  visibleNotes,
-  commandPaletteCommands,
-  onCloseSearch,
-  onSelectSearchNote,
   isExportOpen,
   onCloseExport,
   onExportPng,
@@ -89,13 +77,6 @@ export const WallGlobalModals = ({
   return (
     <>
       <QuickCaptureBar open={quickCaptureOpen} disabled={isTimeLocked} onClose={onCloseQuickCapture} onCapture={onCapture} />
-      <SearchPalette
-        open={isSearchOpen}
-        notes={visibleNotes}
-        commands={commandPaletteCommands}
-        onClose={onCloseSearch}
-        onSelect={onSelectSearchNote}
-      />
       <ExportModal
         open={isExportOpen}
         onClose={onCloseExport}
@@ -143,4 +124,3 @@ export const WallGlobalModals = ({
     </>
   );
 };
-

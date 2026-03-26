@@ -6,22 +6,38 @@ This document describes the current search and retrieval behavior in the wall wo
 
 ## Scope
 
-This covers the wall search palette, command palette behavior, searchable note content, and the current boundaries of retrieval workflows.
+This covers the wall omnibar, action search behavior, query-token filters, searchable note content, and current retrieval boundaries.
 
 ## Behavior
 
-The wall search palette combines:
+The wall now uses a dock-first omnibar instead of a separate modal palette.
 
-- note search
-- command execution
+The omnibar combines:
 
-It is opened with `Ctrl/Cmd + K` and can also switch into command-focused behavior when the query starts with `/`.
+- note retrieval
+- action search and execution
+- visible query-token filters for wall recall
+
+It is focused from the bottom dock directly and can also be opened with `Ctrl/Cmd + K`.
 
 Current retrieval behavior includes:
 
-- fuzzy search over note content and note metadata
-- command execution from the same palette
+- inline search from the dock itself instead of a fake trigger + second input
+- grouped omnibar sections for suggestions, actions, and notes
+- `/` command-only behavior for action-focused searching
+- token filters that remain visible as removable chips while searching
 - note selection and jump behavior after choosing a result
+
+## Query Tokens
+
+The omnibar currently recognizes these query-token families:
+
+- `tag:<value>`: require one or more note tags
+- `type:<value>`: filter by note kind such as `type:quote`, `type:poetry`, or `type:image`
+- `is:<value>`: filter by note state such as `is:pinned` or `is:highlighted`
+- `tool:<value>`: prioritize actions related to areas such as `tool:details`, `tool:tools`, `tool:export`, or `tool:timeline`
+
+As the user types a token prefix, the omnibar suggests matching tags, note types, states, and tool tokens.
 
 ## Searchable Content
 
@@ -36,32 +52,45 @@ Indexed content includes:
 - vocabulary word, meaning, and source context
 - Eisenhower display date and quadrant content
 
-This makes search a cross-note retrieval surface rather than a title-only filter.
+This keeps search a cross-note retrieval surface rather than a title-only filter.
 
-## Commands in the Palette
+## Actions in the Omnibar
 
-The palette can also search commands.
+The omnibar can also search and execute wall actions.
 
 Current behavior:
 
-- commands and notes can appear in the same results set
-- a query beginning with `/` limits behavior toward command-style use
-- commands may include labels, descriptions, keywords, and shortcuts
+- actions and notes appear in the same expanded omnibar, but in separate groups
+- action search respects free-text queries and optional `tool:` tokens
+- actions may include labels, descriptions, keywords, and shortcuts
+- `Tools` and `Details` panel toggles remain accessible both as dock buttons and omnibar actions
+
+## Wall Filter Effect
+
+The omnibar query is part of the wall recall pipeline.
+
+Current wall behavior:
+
+- token filters affect which notes remain visible on the wall
+- free-text search filters visible notes unless the query starts with `/`
+- private notes remain excluded from searchable note results
+- note results still navigate the camera to the chosen note
 
 ## Edge Cases
 
-- Empty queries fall back to a bounded default set of commands and notes.
-- Palette UI must remain keyboard navigable and visually stable.
-- Search quality depends on the current note payload shape, especially for richer note kinds.
+- Empty queries fall back to bounded omnibar suggestions plus a default action/note set.
+- Unknown token values are treated as normal text instead of breaking the query.
+- Omnibar UI must remain keyboard navigable and visually stable.
+- Search quality still depends on the current note payload shape, especially for richer note kinds.
 
 ## Limitations
 
-- Search behavior is currently wall-specific; there is no unified global search across wall, page, and decks.
-- The repo does not yet have a separate retrieval doc for saved searches, stale-note jumps, or higher-order recall workflows beyond the palette itself.
+- Search behavior is still wall-specific; there is no unified global search across wall, page, and decks.
+- Query tokens currently cover tags, note types, note states, and action/tool intent, but not full natural-language filter grammar.
+- Saved recall searches still rely on the existing recall sidebar flow for zone/date persistence.
 
 ## Related Docs
 
 - `docs/features/wall-notes.md`
 - `docs/product/overview.md`
 - `docs/qa.md`
-

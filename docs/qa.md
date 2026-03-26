@@ -1280,19 +1280,23 @@ Expected:
 - Refreshing, syncing, hiding the tab, or letting the unlock session expire does not lose encrypted note contents.
 
 
-## Wall Atelier Frontend (`/wall`) (2026-03-25)
-1. Open `/wall` on desktop and verify the new atelier chrome loads: floating top navigation, centered bottom search dock, right-side zoom rail, and lower-left sync footer.
+## Wall Atelier Frontend (`/wall`) (2026-03-26)
+1. Open `/wall` on desktop and verify the atelier chrome loads: floating top navigation, centered bottom omnibar dock, right-side zoom rail, and lower-left sync footer.
 2. Verify the top navigation shows `Wall`, `Decks`, `Page`, and `Timeline`, with `Wall` highlighted in the default wall view.
-3. Click the bottom search dock and verify the richer search palette opens with both commands and notes in the same results list.
-4. Press `Ctrl/Cmd + K`, type note text, tags, and `/` command queries, and verify the same palette remains keyboard navigable with `ArrowUp`, `ArrowDown`, `Enter`, and `Esc`.
-5. Use the `Tools` and `Details` buttons in the bottom dock and the corresponding round buttons in the header; verify each panel opens and closes without clipping against viewport edges.
-6. Use the right zoom rail for `+`, `-`, `Fit`, `100%`, and selection focus; verify actions still affect the existing wall camera correctly.
-7. Verify standard paper notes, quote notes, poetry notes, journal notes, bookmark cards, image/media cards, private-note shells, joker/throne cards, and magazine-cover notes all render with the new editorial styling while remaining draggable/selectable/editable.
-8. Check desktop and mobile-width layouts and confirm the floating header, search dock, details sidebar, tools panel, and zoom rail remain visible and usable without obscuring critical content.
+3. Click into the bottom dock and verify it is a real inline input that expands in place above the dock instead of opening a separate modal search palette.
+4. Type plain note text and verify the omnibar shows grouped `Suggestions`, `Actions`, and `Notes`, and that the visible wall notes filter in sync with the query.
+5. Enter query tokens such as `tag:<existing-tag>`, `type:quote`, `is:pinned`, and `tool:details`; verify matching chips appear, wall visibility respects the note filters, and the action group prioritizes matching panel/tool actions.
+6. Press `Ctrl/Cmd + K`, confirm the omnibar input receives focus, then use `ArrowUp`, `ArrowDown`, `Enter`, and `Esc` to navigate suggestions, actions, and note results.
+7. Type `/` plus an action query and verify note results are suppressed while action results remain keyboard navigable.
+8. Use the `Tools` and `Details` buttons in the bottom dock and the corresponding round buttons in the header; verify each panel opens and closes without clipping against viewport edges.
+9. Use the right zoom rail for `+`, `-`, `Fit`, `100%`, and selection focus; verify actions still affect the existing wall camera correctly.
+10. Verify standard paper notes, quote notes, poetry notes, journal notes, bookmark cards, image/media cards, private-note shells, joker/throne cards, and magazine-cover notes all render while remaining draggable/selectable/editable.
+11. Check desktop and mobile-width layouts and confirm the floating header, omnibar dock, details sidebar, tools panel, and zoom rail remain visible and usable without obscuring critical content.
 
 Expected:
-- `/wall` uses the new atelier presentation layer without breaking existing wall behaviors, including the redesigned note objects from the current note frontend reference.
-- The bottom search dock remains the main search entry point, while `Ctrl/Cmd + K` still opens the same combined note-and-command palette.
+- `/wall` uses the atelier presentation layer without breaking existing wall behaviors.
+- The bottom dock is the canonical omnibar surface; `Ctrl/Cmd + K` focuses that same inline omnibar instead of opening a second search UI.
+- Query tokens remain visible as removable chips and drive wall filtering for tags, note types, and note state.
 - Floating chrome stays inside the viewport and preserves access to tools, details, search, sync status, and zoom actions.
 - Existing wall interactions such as selection, drag, edit, panel toggles, and camera control continue to work behind the new frontend.
 
@@ -1328,3 +1332,4 @@ Expected:
 - Image notes are available from both `Tools` and `Details > Note Type`.
 - Image notes support local upload, direct image links, filename rename, caption editing, open, and download from both the floating editor and the details sidebar.
 - The new image note shell matches the editorial frontend direction and persists through refresh and sync.
+

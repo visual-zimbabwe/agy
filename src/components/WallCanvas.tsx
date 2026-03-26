@@ -4028,7 +4028,15 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
         {!readingMode && !timelineViewActive && (
           <WallSearchDock
+            open={ui.isSearchOpen}
+            query={recallQuery}
+            notes={visibleNotes}
+            commands={commandPaletteCommands}
+            availableTags={availableRecallTags}
             onOpenSearch={() => setSearchOpenTracked(true)}
+            onCloseSearch={() => setSearchOpenTracked(false)}
+            onQueryChange={setRecallQuery}
+            onSelectNote={focusNote}
             onToggleTools={toggleLeftPanel}
             onToggleDetails={toggleRightPanel}
             toolsOpen={leftPanelOpen}
@@ -4268,8 +4276,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
       <WallGlobalModals
         quickCaptureOpen={quickCaptureOpen} isTimeLocked={isTimeLocked} onCloseQuickCapture={() => setQuickCaptureOpen(false)} onCapture={captureNotes}
-        isSearchOpen={ui.isSearchOpen} visibleNotes={renderVisibleNotes} commandPaletteCommands={commandPaletteCommands}
-        onCloseSearch={() => setSearchOpenTracked(false)} onSelectSearchNote={focusNote}
         isExportOpen={ui.isExportOpen} onCloseExport={() => setExportOpenTracked(false)}
         onExportPng={(scope, pixelRatio) => { void exportPng(scope, pixelRatio); }}
         onExportPdf={(scope) => { void exportPdf(scope); }}
@@ -4299,6 +4305,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
+
 
 
 
