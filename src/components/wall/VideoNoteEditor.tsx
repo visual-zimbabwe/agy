@@ -44,7 +44,7 @@ export const VideoNoteEditor = ({
 }: VideoNoteEditorProps) => {
   const [mode, setMode] = useState<"upload" | "link">(editingNote.video?.source === "link" ? "link" : "upload");
   const [name, setName] = useState(editingNote.video?.name ?? "");
-  const [url, setUrl] = useState(editingNote.video?.source === "link" ? editingNote.video.url : "");
+  const [url, setUrl] = useState(editingNote.video?.source === "link" ? (editingNote.video.url ?? "") : "");
   const [busy, setBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -121,7 +121,7 @@ export const VideoNoteEditor = ({
 
       <div className="mt-4 grid gap-3">
         {mode === "upload" ? (
-          <>
+          <div key="video-upload-mode">
             <input
               ref={fileInputRef}
               type="file"
@@ -136,9 +136,9 @@ export const VideoNoteEditor = ({
               {busy ? "Uploading..." : "Choose Video File"}
             </button>
             <p className="text-[11px] leading-5 text-[var(--color-text-muted)]">MP4, WebM, MOV, and other browser-supported uploads stay local-first inside the wall snapshot.</p>
-          </>
+          </div>
         ) : (
-          <>
+          <div key="video-link-mode">
             <input
               data-note-edit-tags="true"
               value={url}
@@ -169,7 +169,7 @@ export const VideoNoteEditor = ({
               </button>
               {!normalizedUrl && <span className="text-[11px] text-[var(--color-text-muted)]">Enter a valid http(s) URL.</span>}
             </div>
-          </>
+          </div>
         )}
       </div>
 
