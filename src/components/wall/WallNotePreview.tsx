@@ -414,17 +414,31 @@ const formatCurrencyUpdatedAgo = (value?: number) => {
   return `Updated ${elapsedDays}d ago`;
 };
 
-const PrivateRenderer = ({ note, width, height, activeBackground, activeText, mutedText, tone }: RendererProps) => (
+const PrivateRenderer = ({ note, width, height, tone }: RendererProps) => (
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-    <div className="flex h-full flex-col justify-between p-5" style={{ background: "linear-gradient(180deg, rgba(77,99,86,0.06), rgba(252,249,244,0.94))" }}>
-      <div>
-        <MetaLabel color={atelier.forest}>Protected</MetaLabel>
-        <p className="mt-3 font-[Newsreader] text-[26px] italic leading-tight" style={{ color: atelier.ink }}>{privateNoteTitle(note)}</p>
-        <p className="mt-3 text-sm leading-6" style={{ color: mutedText }}>Content stays hidden on the wall, timeline previews, and standard exports.</p>
-      </div>
-      <div className="flex items-center justify-between gap-3">
-        <span className="rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: activeBackground, color: activeText }}>Passphrase required</span>
-        <span className="text-[11px]" style={{ color: mutedText }}>Locked shell</span>
+    <div
+      className="flex h-full flex-col items-center justify-between overflow-hidden rounded-[24px] px-6 py-7 text-center"
+      style={{
+        background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.96), rgba(248,244,236,0.94) 58%, rgba(241,235,225,0.98) 100%)",
+      }}
+    >
+      <div className="absolute inset-[7%] rounded-[28px] border border-[rgba(140,124,114,0.08)]" />
+      <div className="relative flex h-full w-full flex-col items-center justify-between">
+        <div className="mt-1 flex h-[76px] w-[76px] items-center justify-center rounded-[24px] border border-[rgba(140,124,114,0.12)] bg-[rgba(246,241,234,0.96)] shadow-[0_10px_26px_rgba(28,28,25,0.07)]">
+          <div className="relative h-9 w-8">
+            <div className="absolute left-1/2 top-0 h-4 w-4 -translate-x-1/2 rounded-t-full border-[5px] border-b-0 border-[rgba(91,70,63,0.92)]" />
+            <div className="absolute bottom-0 left-1/2 h-5 w-8 -translate-x-1/2 rounded-[7px] bg-[rgba(91,70,63,0.92)]">
+              <div className="absolute left-1/2 top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-[#f8f4ee]" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-6">
+          <p className="font-[Newsreader] text-[26px] italic leading-tight" style={{ color: atelier.ink }}>{privateNoteTitle(note)}</p>
+          <p className="mt-5 text-[12px] tracking-[0.28em]" style={{ color: "rgba(140,113,106,0.9)" }}>SECURED NODE</p>
+        </div>
+        <div className="mb-1 mt-7 inline-flex min-h-[42px] min-w-[164px] items-center justify-center rounded-full border border-[rgba(140,124,114,0.34)] bg-[rgba(255,255,255,0.72)] px-8 text-[13px] tracking-[0.26em]" style={{ color: atelier.ink }}>
+          DECRYPT
+        </div>
       </div>
     </div>
   </NoteShell>

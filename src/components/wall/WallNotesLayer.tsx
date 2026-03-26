@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
-import { Group, Image as KonvaImage, Line, Rect, Text } from "react-konva";
+import { Circle, Group, Image as KonvaImage, Line, Rect, Text } from "react-konva";
 import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
@@ -1364,6 +1364,9 @@ export const WallNotesLayer = ({
                   height={noteView.h}
                   cornerRadius={noteCornerRadius}
                   fill={atelierPalette.paper}
+                  fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                  fillLinearGradientEndPoint={{ x: noteView.w, y: noteView.h }}
+                  fillLinearGradientColorStops={[0, "#FFFDF9", 0.55, "#FBF8F2", 1, "#F5F1EA"]}
                   stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.forest })}
                   strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
                   shadowColor={atelierPalette.paperShadow}
@@ -1371,13 +1374,104 @@ export const WallNotesLayer = ({
                   shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
                   shadowOffsetY={isDragging ? 7 : 3}
                 />
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={colorWithAlpha(atelierPalette.forest, 0.06)} listening={false} />
-                <Rect x={16} y={16} width={Math.max(1, noteView.w - 32)} height={28} cornerRadius={14} fill="rgba(77,99,86,0.12)" listening={false} />
-                <Text x={16} y={24} width={Math.max(0, noteView.w - 32)} align="center" fontSize={10} fontStyle="bold" fill={atelierPalette.forest} text="PRIVATE NOTE" listening={false} />
-                <Text x={20} y={64} width={Math.max(0, noteView.w - 40)} fontSize={20} fontFamily="Newsreader" fontStyle="italic" fill={atelierPalette.text} text={privateNoteTitle(noteView)} listening={false} />
-                <Text x={20} y={104} width={Math.max(0, noteView.w - 40)} height={Math.max(0, noteView.h - 166)} fontSize={12} lineHeight={1.55} fill={atelierPalette.mutedText} text="This note stays veiled on the wall and opens only after you unlock it in the current session." listening={false} />
-                <Rect x={20} y={Math.max(20, noteView.h - 44)} width={Math.min(170, Math.max(112, noteView.w - 40))} height={24} cornerRadius={12} fill="rgba(77,99,86,0.10)" stroke="rgba(77,99,86,0.14)" strokeWidth={1} listening={false} />
-                <Text x={32} y={Math.max(27, noteView.h - 37)} width={Math.min(146, Math.max(88, noteView.w - 64))} fontSize={10} fontStyle="bold" fill={atelierPalette.forest} text="Unlock with passphrase" listening={false} />
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={colorWithAlpha("#FFFFFF", 0.68)} listening={false} />
+                <Rect
+                  x={noteView.w * 0.08}
+                  y={noteView.h * 0.06}
+                  width={noteView.w * 0.84}
+                  height={noteView.h * 0.88}
+                  cornerRadius={Math.min(30, noteCornerRadius + 8)}
+                  stroke={colorWithAlpha(atelierPalette.quietText, 0.08)}
+                  strokeWidth={1}
+                  listening={false}
+                />
+                <Rect
+                  x={Math.max(24, noteView.w / 2 - 38)}
+                  y={Math.max(18, noteView.h * 0.11)}
+                  width={76}
+                  height={76}
+                  cornerRadius={24}
+                  fill="rgba(246, 241, 234, 0.96)"
+                  stroke="rgba(140,124,114,0.12)"
+                  strokeWidth={1}
+                  shadowColor={atelierPalette.paperShadow}
+                  shadowBlur={12}
+                  shadowOpacity={0.06}
+                  shadowOffsetY={3}
+                  listening={false}
+                />
+                <Line
+                  points={[
+                    noteView.w / 2 - 12,
+                    Math.max(36, noteView.h * 0.11 + 23),
+                    noteView.w / 2 - 12,
+                    Math.max(28, noteView.h * 0.11 + 16),
+                    noteView.w / 2 + 12,
+                    Math.max(28, noteView.h * 0.11 + 16),
+                    noteView.w / 2 + 12,
+                    Math.max(36, noteView.h * 0.11 + 23),
+                  ]}
+                  stroke={atelierPalette.mutedText}
+                  strokeWidth={5}
+                  lineCap="round"
+                  lineJoin="round"
+                  listening={false}
+                />
+                <Rect
+                  x={noteView.w / 2 - 15}
+                  y={Math.max(36, noteView.h * 0.11 + 23)}
+                  width={30}
+                  height={28}
+                  cornerRadius={6}
+                  fill={atelierPalette.mutedText}
+                  listening={false}
+                />
+                <Circle x={noteView.w / 2} y={Math.max(48, noteView.h * 0.11 + 40)} radius={4.5} fill={atelierPalette.paper} listening={false} />
+                <Text
+                  x={22}
+                  y={Math.max(108, noteView.h * 0.11 + 88)}
+                  width={Math.max(0, noteView.w - 44)}
+                  align="center"
+                  fontSize={Math.max(18, Math.min(24, noteView.w * 0.11))}
+                  fontFamily="Newsreader"
+                  fontStyle="italic"
+                  fill={atelierPalette.text}
+                  text={privateNoteTitle(noteView)}
+                  listening={false}
+                />
+                <Text
+                  x={28}
+                  y={Math.max(150, noteView.h * 0.11 + 134)}
+                  width={Math.max(0, noteView.w - 56)}
+                  align="center"
+                  fontSize={Math.max(10, Math.min(12, noteView.w * 0.05))}
+                  letterSpacing={2.2}
+                  fill={colorWithAlpha(atelierPalette.quietText, 0.9)}
+                  text="SECURED NODE"
+                  listening={false}
+                />
+                <Rect
+                  x={Math.max(26, noteView.w / 2 - Math.min(92, noteView.w * 0.28))}
+                  y={Math.max(noteView.h - 74, noteView.h * 0.72)}
+                  width={Math.min(184, Math.max(128, noteView.w * 0.56))}
+                  height={40}
+                  cornerRadius={20}
+                  fill={colorWithAlpha("#FFFFFF", 0.74)}
+                  stroke={colorWithAlpha(atelierPalette.quietText, 0.34)}
+                  strokeWidth={1.6}
+                  listening={false}
+                />
+                <Text
+                  x={Math.max(26, noteView.w / 2 - Math.min(92, noteView.w * 0.28))}
+                  y={Math.max(noteView.h - 62, noteView.h * 0.72 + 12)}
+                  width={Math.min(184, Math.max(128, noteView.w * 0.56))}
+                  align="center"
+                  fontSize={Math.max(11, Math.min(16, noteView.w * 0.07))}
+                  letterSpacing={2.4}
+                  fill={atelierPalette.text}
+                  text="DECRYPT"
+                  listening={false}
+                />
               </>
             ) : (
               <>
