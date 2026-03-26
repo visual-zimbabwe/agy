@@ -27,6 +27,7 @@ type WallToolsPanelProps = {
   onCreateCanonNote: () => void;
   onCreateJournalNote: () => void;
   onCreateQuoteNote: () => void;
+  onCreateCodeNote: () => void;
   onCreateWebBookmarkNote: () => void;
   onCreateApodNote: () => void;
   onCreatePoetryNote: () => void;
@@ -74,6 +75,7 @@ export const WallToolsPanel = ({
   onCreateCanonNote,
   onCreateJournalNote,
   onCreateQuoteNote,
+  onCreateCodeNote,
   onCreateWebBookmarkNote,
   onCreateApodNote,
   onCreatePoetryNote,
@@ -125,6 +127,7 @@ export const WallToolsPanel = ({
             </ControlTooltip>
             <button type="button" onClick={onCreateJournalNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Journal</span></button>
             <button type="button" onClick={onCreateQuoteNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Quote</span></button>
+            <button type="button" onClick={onCreateCodeNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Code</span></button>
             <button type="button" onClick={onCreateCanonNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Canon</span></button>
             <button type="button" onClick={onCreateWordNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Word</span></button>
             <button type="button" onClick={onCreateWebBookmarkNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="link" /><span>New Bookmark</span></button>

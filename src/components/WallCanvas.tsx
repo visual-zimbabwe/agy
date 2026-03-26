@@ -219,6 +219,17 @@ type WallCanvasProps = {
   userEmail?: string;
 };
 
+const CODE_NOTE_DEFAULTS = {
+  width: 320,
+  height: 220,
+  color: "#1F1F21",
+  textColor: "#D4D4D4",
+  textSizePx: 14,
+};
+
+const DEFAULT_CODE_NOTE_TEXT = `\`\`\`ts
+const idea = "";
+\`\`\``;
 export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const notesMap = useWallStore((state) => state.notes);
   const zonesMap = useWallStore((state) => state.zones);
@@ -1562,6 +1573,28 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
+
+  const makeCodeNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const position = placeNewNote(world, { w: CODE_NOTE_DEFAULTS.width, h: CODE_NOTE_DEFAULTS.height });
+    const id = createNote(position.x, position.y, CODE_NOTE_DEFAULTS.color);
+    updateNote(id, {
+      noteKind: "standard",
+      text: DEFAULT_CODE_NOTE_TEXT,
+      color: CODE_NOTE_DEFAULTS.color,
+      textColor: CODE_NOTE_DEFAULTS.textColor,
+      textSizePx: CODE_NOTE_DEFAULTS.textSizePx,
+      w: CODE_NOTE_DEFAULTS.width,
+      h: CODE_NOTE_DEFAULTS.height,
+      tags: [...new Set([...(useWallStore.getState().notes[id]?.tags ?? []), "code"])],
+    });
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, DEFAULT_CODE_NOTE_TEXT);
   }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeCanonNoteAtViewportCenter = useCallback(() => {
@@ -2965,6 +2998,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateCanonNote={makeCanonNoteAtViewportCenter}
             onCreateJournalNote={makeJournalNoteAtViewportCenter}
             onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
+            onCreateCodeNote={makeCodeNoteAtViewportCenter}
             onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
             onCreateApodNote={makeApodNoteAtViewportCenter}
             onCreatePoetryNote={makePoetryNoteAtViewportCenter}
@@ -3492,7 +3526,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
-
 
 
 

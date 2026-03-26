@@ -30,9 +30,10 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 - web bookmark note creation
 - NASA APOD note creation
 - Poetry note creation
+- Code note creation
 - Magazine cover note creation through the Economist note shell
 
-These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands. When a new wall note is created from viewport-centered creation flows, the wall now places it in the nearest collision-free space that still fits inside the user's current frame instead of stacking it on top of an existing note.
+These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands. Code notes are available from both the Tools panel and `Details > Note Type`, so users can either create a fresh code card at the viewport center or convert the current selection into the snippet shell without introducing a separate persisted note-kind enum. When a new wall note is created from viewport-centered creation flows, the wall now places it in the nearest collision-free space that still fits inside the user's current frame instead of stacking it on top of an existing note.
 
 Web bookmark notes create a rich preview card from a URL using a server-side metadata fetch route. The parser prioritizes Open Graph tags, then Twitter card tags, then document title and meta description, and resolves preview images plus favicons into safe absolute URLs. Provider-aware enrichment now upgrades common video links such as YouTube when raw page scraping is weak, so the wall can still show a real title and thumbnail. The default non-edit bookmark note now renders as a compact horizontal link card instead of a tall note shell. The card stores the original URL, normalized URL, sanitized metadata, fetch timestamps, and status so the wall can render cached previews without re-requesting metadata on every render. v2 cache entries skip earlier domain-only fallback results so upgraded walls refetch richer previews instead of reusing weak metadata.
 
@@ -130,4 +131,5 @@ This makes notes the core unit of wall content, but not the only structural elem
 - `docs/architecture/state-and-storage.md`
 - `docs/features/search-and-retrieval.md`
 - `docs/features/timeline-view.md`
+
 

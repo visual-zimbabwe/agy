@@ -89,6 +89,36 @@ const typeButtonClass = (active: boolean) =>
 
 const colorSwatchClass = "h-7 w-8 cursor-pointer overflow-hidden rounded-md border border-[var(--color-border)] bg-transparent p-0";
 
+const CODE_NOTE_TEMPLATE = `\`\`\`ts
+const idea = "";
+\`\`\``;
+const CODE_NOTE_COLOR = "#1F1F21";
+const CODE_NOTE_TEXT_COLOR = "#D4D4D4";
+const CODE_NOTE_TEXT_SIZE = 14;
+
+const isCodeNoteText = (text: string) =>
+  /^```[\w-]*\n[\s\S]*\n```$/.test(text.trim()) ||
+  /(^|\n)\s*(def |const |let |function |class |import |from |<\w)|=>|\{\s*$|console\.|return\s+/m.test(text);
+
+const toCodeNoteText = (text: string) => {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return CODE_NOTE_TEMPLATE;
+  }
+  if (/^```[\w-]*\n[\s\S]*\n```$/.test(trimmed)) {
+    return trimmed;
+  }
+  return `\`\`\`
+${trimmed}
+\`\`\``;
+};
+
+const fromCodeNoteText = (text: string) => {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^```[^\n`]*\n([\s\S]*?)\n```$/);
+  return match?.[1] ?? text;
+};
+
 export const NoteInspectorSection = ({
   selectedNote,
   notes,
@@ -139,6 +169,7 @@ export const NoteInspectorSection = ({
   }
 
   const selectedMagazineSourceId = selectedNote.noteKind === "economist" ? getEconomistNoteSourceId(selectedNote) ?? "economist" : "economist";
+  const isCodeNote = selectedNote.noteKind === "standard" && isCodeNoteText(selectedNote.text);
   const usedMagazineSourceIds = new Set(
     notes
       .filter((note) => note.id !== selectedNote.id && note.noteKind === "economist")
@@ -147,6 +178,31 @@ export const NoteInspectorSection = ({
   );
   const preferredMagazineSourceId =
     ECONOMIST_MAGAZINE_SOURCES.find((source) => !usedMagazineSourceIds.has(source.sourceId))?.sourceId ?? selectedMagazineSourceId;
+
+  const applyCodeNote = () => {
+    onUpdateNote(selectedNote.id, {
+      noteKind: "standard",
+      text: toCodeNoteText(selectedNote.text),
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      canon: undefined,
+      eisenhower: undefined,
+      bookmark: undefined,
+      apod: undefined,
+      poetry: undefined,
+      economist: undefined,
+      imageUrl: undefined,
+      vocabulary: undefined,
+      color: CODE_NOTE_COLOR,
+      textColor: CODE_NOTE_TEXT_COLOR,
+      textSizePx: CODE_NOTE_TEXT_SIZE,
+      textAlign: "left",
+      textVAlign: "top",
+      w: Math.max(selectedNote.w, 320),
+      h: Math.max(selectedNote.h, 220),
+      tags: [...new Set([...selectedNote.tags, "code"])],
+    });
+  };
 
   const setNoteKind = (kind: Note["noteKind"]) => {
     const nextKind = selectedNote.noteKind === kind ? "standard" : kind;
@@ -159,6 +215,7 @@ export const NoteInspectorSection = ({
     const toApod = nextKind === "apod" && selectedNote.noteKind !== "apod";
     const toPoetry = nextKind === "poetry" && selectedNote.noteKind !== "poetry";
     const toEconomist = nextKind === "economist" && selectedNote.noteKind !== "economist";
+    const fromCodeNote = selectedNote.noteKind === "standard" && isCodeNoteText(selectedNote.text);
     const economistSource = getEconomistMagazineSource(toEconomist ? preferredMagazineSourceId : selectedMagazineSourceId);
 
     onUpdateNote(selectedNote.id, {
@@ -167,7 +224,9 @@ export const NoteInspectorSection = ({
         ? ""
         : toEconomist
           ? formatEconomistNoteText({ sourceName: economistSource.sourceName, displayLabel: "Latest cover", displayDate: "" })
-          : selectedNote.text,
+          : toStandard && fromCodeNote
+            ? fromCodeNoteText(selectedNote.text)
+            : selectedNote.text,
       quoteAuthor: toStandard ? undefined : toQuote ? "" : toEconomist ? economistSource.sourceUrl : undefined,
       quoteSource: toStandard ? undefined : toQuote ? "" : toEconomist ? "Latest cover" : undefined,
       canon: toCanon
@@ -189,7 +248,7 @@ export const NoteInspectorSection = ({
       imageUrl: toStandard || toBookmark || toApod || toPoetry || toEconomist ? undefined : selectedNote.imageUrl,
       vocabulary: toStandard || toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry || toEconomist ? undefined : selectedNote.vocabulary,
       color: toStandard
-        ? sanitizeStandardNoteColor(selectedNote.color, NOTE_COLORS[0] ?? "#FEEA89")
+        ? sanitizeStandardNoteColor(fromCodeNote ? NOTE_COLORS[0] ?? "#FEEA89" : selectedNote.color, NOTE_COLORS[0] ?? "#FEEA89")
         : toBookmark
           ? WEB_BOOKMARK_DEFAULTS.color
           : toApod
@@ -318,7 +377,7 @@ export const NoteInspectorSection = ({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={detailSectionTitle}>Note Inspector</p>
-          <h4 className={detailSectionHeading}>{selectedNote.noteKind === "standard" ? "Default note" : `${selectedNote.noteKind} note`}</h4>
+          <h4 className={detailSectionHeading}>{isCodeNote ? "Code note" : selectedNote.noteKind === "standard" ? "Default note" : `${selectedNote.noteKind} note`}</h4>
           <p className={detailSectionDescription}>Typography, backlinks, styling, and note properties for the current selection.</p>
         </div>
         <div className={detailInsetCard}>
@@ -699,7 +758,8 @@ export const NoteInspectorSection = ({
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Note Type</p>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => setNoteKind("standard")} className={typeButtonClass(selectedNote.noteKind === "standard")} disabled={isTimeLocked || isPrivateEnabled}>Default</button>
+            <button type="button" onClick={() => setNoteKind("standard")} className={typeButtonClass(selectedNote.noteKind === "standard" && !isCodeNote)} disabled={isTimeLocked || isPrivateEnabled}>Default</button>
+            <button type="button" onClick={applyCodeNote} className={typeButtonClass(isCodeNote)} disabled={isTimeLocked || isPrivateEnabled}>Code</button>
             <button type="button" onClick={() => setNoteKind("quote")} className={typeButtonClass(selectedNote.noteKind === "quote")} disabled={isTimeLocked || isPrivateEnabled}>Quote</button>
             <button type="button" onClick={() => setNoteKind("canon")} className={typeButtonClass(selectedNote.noteKind === "canon")} disabled={isTimeLocked || isPrivateEnabled}>Canon</button>
             <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked || isPrivateEnabled}>Journal</button>

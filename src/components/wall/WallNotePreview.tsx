@@ -967,7 +967,7 @@ const resolveRendererKey = (note: Note) => {
     return "vocabulary";
   }
   const cleaned = stripWikiLinkMarkup(note.text);
-  if (!note.noteKind && (/^\`\`\`[\w-]*\n[\s\S]*\n\`\`\`$/.test(cleaned.trim()) || looksLikeCode(cleaned) || Boolean(codeFileNameMatch(cleaned)))) {
+  if ((!note.noteKind || note.noteKind === "standard") && (/^\`\`\`[\w-]*\n[\s\S]*\n\`\`\`$/.test(cleaned.trim()) || looksLikeCode(cleaned) || Boolean(codeFileNameMatch(cleaned)))) {
     return "code";
   }
   if (!note.noteKind && fileNameMatch(cleaned)) {
