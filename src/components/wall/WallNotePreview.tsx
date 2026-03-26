@@ -446,9 +446,9 @@ const PrivateRenderer = ({ note, width, height, tone }: RendererProps) => (
 
 const StandardRenderer = ({ note, width, height, readableText, textFontFamily, baseFontSize, bodyClamp, tone }: RendererProps) => {
   const lines = splitNoteText(note.text);
-  const title = lines.length > 1 ? lines[0] : "Quick Thought";
-  const bodyText = lines.length > 1 ? lines.slice(1).join("\n") : stripWikiLinkMarkup(note.text) || "Double-click or press Enter to edit";
-  const body = tone === "detail" ? bodyText : truncateNoteText(bodyText, { ...note, w: width, h: height - 52 }) || bodyText;
+  const title = lines.length > 1 ? lines[0] : lines.length === 1 ? lines[0] : "Quick Thought";
+  const bodyText = lines.length > 1 ? lines.slice(1).join("\n") : lines.length === 1 ? "" : "Double-click or press Enter to edit";
+  const body = bodyText ? (tone === "detail" ? bodyText : truncateNoteText(bodyText, { ...note, w: width, h: height - 52 }) || bodyText) : "";
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="flex h-full flex-col px-[22px] py-[20px]" style={{ background: "#ffffff" }}>

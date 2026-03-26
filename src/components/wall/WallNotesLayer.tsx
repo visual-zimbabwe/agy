@@ -571,9 +571,19 @@ export const WallNotesLayer = ({
         const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, imageCaption, noteImage) : null;
         const strippedNoteText = stripWikiLinkMarkup(noteView.text);
         const noteLines = strippedNoteText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-        const standardTitle = isStandardNote ? (noteLines.length > 1 ? noteLines[0] ?? "Quick Thought" : "Quick Thought") : "";
+        const standardTitle = isStandardNote
+          ? noteLines.length > 1
+            ? noteLines[0] ?? "Quick Thought"
+            : noteLines.length === 1
+              ? noteLines[0] ?? ""
+              : "Quick Thought"
+          : "";
         const standardBody = isStandardNote
-          ? (noteLines.length > 1 ? noteLines.slice(1).join("\n") : strippedNoteText || "Double-click or press Enter to edit")
+          ? noteLines.length > 1
+            ? noteLines.slice(1).join("\n")
+            : noteLines.length === 1
+              ? ""
+              : "Double-click or press Enter to edit"
           : strippedNoteText;
         const looksLikeCode = /(^|\n)\s*(def |const |let |function |class |import |from |<\w)|=>|\{\s*$|console\.|return\s+/m.test(strippedNoteText);
         const fileNameMatch = strippedNoteText.match(/([\w-]+\.(pdf|docx?|txt|png|jpe?g|zip|csv|md))/i);
@@ -1945,19 +1955,21 @@ export const WallNotesLayer = ({
                   ellipsis
                   listening={false}
                 />
-                <Text
-                  x={20}
-                  y={50}
-                  width={Math.max(0, noteView.w - 40)}
-                  height={Math.max(0, noteView.h - 70 - wikiFooterHeight)}
-                  fontSize={15}
-                  fontFamily={noteTextFontFamily}
-                  lineHeight={1.58}
-                  fill={atelierPalette.mutedText}
-                  text={standardBody}
-                  ellipsis
-                  listening={false}
-                />
+                {standardBody && (
+                  <Text
+                    x={20}
+                    y={50}
+                    width={Math.max(0, noteView.w - 40)}
+                    height={Math.max(0, noteView.h - 70 - wikiFooterHeight)}
+                    fontSize={15}
+                    fontFamily={noteTextFontFamily}
+                    lineHeight={1.58}
+                    fill={atelierPalette.mutedText}
+                    text={standardBody}
+                    ellipsis
+                    listening={false}
+                  />
+                )}
               </>
             )}
             {isQuote && (quoteAttribution || quoteSource) && !isEisenhower && (
