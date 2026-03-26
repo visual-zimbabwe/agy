@@ -27,10 +27,6 @@ type WallSearchDockProps = {
   onCloseSearch: () => void;
   onQueryChange: (value: string) => void;
   onSelectNote: (noteId: string) => void;
-  onToggleTools: () => void;
-  onToggleDetails: () => void;
-  toolsOpen: boolean;
-  detailsOpen: boolean;
   hidden?: boolean;
 };
 
@@ -45,9 +41,6 @@ type OmnibarItem =
   | { id: string; kind: "suggestion"; suggestion: OmnibarSuggestion }
   | { id: string; kind: "command"; command: CommandPaletteCommand }
   | { id: string; kind: "note"; note: Note };
-
-const actionButtonClassName =
-  "inline-flex items-center justify-center rounded-full px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6f675f] transition hover:bg-[#1c1c19]/[0.06] hover:text-[#1c1c19] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30";
 
 const replaceTrailingFragment = (query: string, replacement: string) => {
   const next = query.endsWith(" ") || !query ? `${query}${replacement} ` : `${query.replace(/\S+$/, "")}${replacement} `;
@@ -73,10 +66,6 @@ export const WallSearchDock = ({
   onCloseSearch,
   onQueryChange,
   onSelectNote,
-  onToggleTools,
-  onToggleDetails,
-  toolsOpen,
-  detailsOpen,
   hidden = false,
 }: WallSearchDockProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -381,21 +370,6 @@ export const WallSearchDock = ({
             Ctrl/Cmd + K
           </span>
         </div>
-
-        <button
-          type="button"
-          onClick={onToggleTools}
-          className={`${actionButtonClassName} ${toolsOpen ? "bg-[#a33818] text-white hover:bg-[#8d2f13] hover:text-white" : ""}`}
-        >
-          Tools
-        </button>
-        <button
-          type="button"
-          onClick={onToggleDetails}
-          className={`${actionButtonClassName} ${detailsOpen ? "bg-[#4d6356] text-white hover:bg-[#425649] hover:text-white" : ""}`}
-        >
-          Details
-        </button>
       </div>
     </div>
   );
@@ -510,6 +484,3 @@ export const WallSearchDock = ({
 const SectionLabel = ({ label }: { label: string }) => (
   <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8f8478]">{label}</p>
 );
-
-
-

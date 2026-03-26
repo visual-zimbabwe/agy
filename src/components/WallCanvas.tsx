@@ -4037,10 +4037,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCloseSearch={() => setSearchOpenTracked(false)}
             onQueryChange={setRecallQuery}
             onSelectNote={focusNote}
-            onToggleTools={toggleLeftPanel}
-            onToggleDetails={toggleRightPanel}
-            toolsOpen={leftPanelOpen}
-            detailsOpen={rightPanelOpen}
             hidden={isChromeHidden}
           />
         )}
@@ -4305,6 +4301,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
 
 
 
