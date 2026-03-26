@@ -592,6 +592,7 @@ export const WallNotesLayer = ({
         const fileMeta = strippedNoteText.replace(fileLabel, "").trim() || "File note";
         const journalTitle = noteLines[0] ?? "Dear Wall,";
         const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
+        const showStandardTextCard = !isPrivate && isStandardNote && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !isCurrency && !isEconomist && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
@@ -1941,7 +1942,7 @@ export const WallNotesLayer = ({
                 <Text x={Math.max(18, noteView.w - 42)} y={Math.max(26, noteView.h / 2 - 16)} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.58)} text="↓" listening={false} />
               </>
             )}
-            {!isPrivate && isStandardNote && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone && (
+            {showStandardTextCard && (
               <>
                 <Text
                   x={20}
