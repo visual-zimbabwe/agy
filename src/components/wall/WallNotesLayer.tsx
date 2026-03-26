@@ -762,6 +762,10 @@ export const WallNotesLayer = ({
                 openEditor(note.id, noteView.text);
                 return;
               }
+              if (noteView.noteKind === "image") {
+                openEditor(note.id, noteView.text);
+                return;
+              }
               if (imageUrl) {
                 openImageInsert(note.id);
                 return;

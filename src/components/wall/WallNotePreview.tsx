@@ -8,6 +8,7 @@ import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { getApodCaption } from "@/features/wall/apod";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
+import { getImageNoteMeta, getImageNoteTitle } from "@/features/wall/image-notes";
 import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle, getVideoPlayback } from "@/features/wall/video-notes";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
@@ -622,21 +623,27 @@ const WebBookmarkRenderer = ({ note, width, height, tone }: Pick<RendererProps, 
   </div>
 );
 
-const ImageRenderer = ({ note, width, height, tone }: RendererProps) => (
-  <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-    <div className="flex h-full flex-col p-3">
-      <div className="min-h-0 flex-1 overflow-hidden rounded-[12px] bg-[#ebe8e3]">
-        {note.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={note.imageUrl} alt="" className="h-full w-full object-cover grayscale transition-all duration-700 hover:grayscale-0" loading="lazy" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-[11px]" style={{ color: atelier.quiet }}>No image</div>
-        )}
+const ImageRenderer = ({ note, width, height, tone }: RendererProps) => {
+  const title = getImageNoteTitle(note.file);
+  const meta = getImageNoteMeta(note.file);
+  const caption = note.text.trim();
+  return (
+    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
+      <div className="flex h-full flex-col bg-[linear-gradient(180deg,#fffdfa_0%,#fbf7f1_100%)] px-5 pb-6 pt-5">
+        {meta ? <MetaLabel>{meta}</MetaLabel> : null}
+        <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-[6px] bg-[#ece6df] shadow-[0_12px_28px_rgba(28,28,25,0.08)]">
+          {note.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={note.imageUrl} alt={caption || title} className="h-full w-full object-cover" loading="lazy" />
+          ) : (
+            <div className="flex h-full items-center justify-center text-[11px]" style={{ color: atelier.quiet }}>No image</div>
+          )}
+        </div>
+        {caption ? <p className="mt-5 text-center font-[Newsreader] text-[clamp(20px,3.2vw,28px)] italic leading-[1.18]" style={{ color: "rgba(70,63,58,0.82)" }}>{caption}</p> : null}
       </div>
-      {note.text.trim() && <p className="mt-4 text-center font-[Newsreader] text-lg italic" style={{ color: "rgba(28,28,25,0.72)" }}>{note.text.trim()}</p>}
-    </div>
-  </NoteShell>
-);
+    </NoteShell>
+  );
+};
 
 const ApodRenderer = ({ note, width, height, readableText, mutedText, bodyClamp, tone }: RendererProps) => {
   const caption = getApodCaption(note);

@@ -8,6 +8,7 @@ import {
   createPoetryNote,
   createEconomistNote,
   createCanonNote,
+  createImageNote,
   createVideoNote,
   createOrRefreshJokerNote,
   createOrRefreshThroneNote,
@@ -150,6 +151,20 @@ describe("wall commands", () => {
     expect(economist?.imageUrl).toBeUndefined();
     expect(economist?.quoteAuthor).toBe("https://www.economist.com/printedition/covers");
     expect(economist?.tags).toEqual(["economist", "cover", "magazine"]);
+  });
+
+  it("creates image notes with dedicated image metadata", () => {
+    const imageId = createImageNote(64, 96, {
+      name: "valley.jpg",
+      url: "https://example.com/valley.jpg",
+      source: "link",
+    }, "Golden hour in the valley.");
+    const image = useWallStore.getState().notes[imageId];
+    expect(image?.noteKind).toBe("image");
+    expect(image?.file?.name).toBe("valley.jpg");
+    expect(image?.imageUrl).toBe("https://example.com/valley.jpg");
+    expect(image?.text).toBe("Golden hour in the valley.");
+    expect(image?.tags).toEqual(["image"]);
   });
 
   it("creates video notes with dedicated video metadata", () => {

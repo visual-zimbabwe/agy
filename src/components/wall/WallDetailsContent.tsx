@@ -59,6 +59,11 @@ type WallDetailsContentProps = {
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
   onOpenBookmarkUrl: (url: string) => void;
+  onSelectImageNoteFile: (noteId: string, file: File) => Promise<void>;
+  onSubmitImageNoteUrl: (noteId: string, url: string) => Promise<void> | void;
+  onRenameImageNote: (noteId: string, name: string) => void;
+  onOpenImageNote: (noteId: string) => void;
+  onDownloadImageNote: (noteId: string) => void;
   onSelectFileNoteFile: (noteId: string, file: File) => Promise<void>;
   onSubmitFileNoteUrl: (noteId: string, url: string) => void;
   onOpenFileNote: (noteId: string) => void;
@@ -196,6 +201,11 @@ export const WallDetailsContent = ({
   onUpdateSelectedNote,
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
+  onSelectImageNoteFile,
+  onSubmitImageNoteUrl,
+  onRenameImageNote,
+  onOpenImageNote,
+  onDownloadImageNote,
   onSelectFileNoteFile,
   onSubmitFileNoteUrl,
   onOpenFileNote,
@@ -345,6 +355,11 @@ export const WallDetailsContent = ({
             onUpdateNote={onUpdateSelectedNote}
             onSubmitBookmarkUrl={onSubmitBookmarkUrl}
             onOpenBookmarkUrl={onOpenBookmarkUrl}
+            onSelectImageNoteFile={onSelectImageNoteFile}
+            onSubmitImageNoteUrl={onSubmitImageNoteUrl}
+            onRenameImageNote={onRenameImageNote}
+            onOpenImageNote={onOpenImageNote}
+            onDownloadImageNote={onDownloadImageNote}
             onSelectFileNoteFile={onSelectFileNoteFile}
             onSubmitFileNoteUrl={onSubmitFileNoteUrl}
             onOpenFileNote={onOpenFileNote}
@@ -515,6 +530,4 @@ export const WallDetailsContent = ({
     </div>
   );
 };
-
-
 

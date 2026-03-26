@@ -434,6 +434,7 @@ export const rowsToSnapshot = (rows: {
         note.note_kind === "apod" ||
         note.note_kind === "poetry" ||
         note.note_kind === "economist" ||
+        note.note_kind === "image" ||
         note.note_kind === "file" ||
         note.note_kind === "audio" ||
         note.note_kind === "video"
@@ -463,7 +464,7 @@ export const rowsToSnapshot = (rows: {
           currency: noteKind === "currency" ? parseCurrency(note.currency) : undefined,
           bookmark: noteKind === "web-bookmark" ? parseBookmark(note.bookmark) : undefined,
           apod: noteKind === "apod" ? parseApod(note.apod) : undefined,
-          file: noteKind === "file" ? normalizeFileNote(note.file) : undefined,
+          file: noteKind === "file" || noteKind === "image" ? normalizeFileNote(note.file) : undefined,
           audio: noteKind === "audio" ? normalizeAudioNote(note.file) : undefined,
           video: noteKind === "video" ? normalizeVideoNote(note.file) : undefined,
           poetry: noteKind === "poetry" ? parsePoetry(note.poetry) : undefined,

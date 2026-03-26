@@ -28,6 +28,7 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 - Eisenhower Matrix note creation
 - canon note creation
 - web bookmark note creation
+- image note creation
 - file note creation
 - audio note creation
 - video note creation
@@ -45,6 +46,8 @@ File notes are now first-class wall notes instead of a filename-shaped standard 
 Audio notes are now dedicated wall notes with their own `notes_v3/` shell instead of borrowing the file card. They render as an editorial audio card with a compact icon tile, large `Newsreader` title, terracotta waveform, and top-right open/download actions. Users can create them directly from `Tools > New Audio` or convert the current note through `Details > Note Type > Audio`. Audio notes support local-device uploads and link-backed audio URLs, store the same core file metadata plus optional duration seconds, and expose upload, link-save, open, and download actions in both the floating editor and the details sidebar.
 
 Video notes are now dedicated wall notes with their own editorial media shell based on `note_v3/` instead of falling back to the file card. They render as a poster-led video card with a centered terracotta play button, duration rail, serif filename footer, and right-edge download/open actions that match the new frontend reference. Users can create them directly from `Tools > New Video` or convert the current note through `Details > Note Type > Video`. Video notes support local-device uploads, direct video files, and embeddable provider links such as YouTube or Vimeo, preserve file metadata plus optional duration seconds and generated poster imagery, allow renaming from both the floating editor and details sidebar, and now play inline on the wall card while still supporting open/download actions for the underlying asset and editor playback when opened.
+
+Image notes are now first-class wall notes with their own editorial photo shell instead of relying on an implicit `imageUrl` fallback. They render as a bright gallery card with a large bordered photo area and a centered serif caption treatment that matches the new frontend reference. Users can create them directly from `Tools > New Image`, convert the current note through `Details > Note Type > Image`, or insert them through the existing wall image modal. Image notes keep file-style metadata in the shared media payload so local uploads and link-backed images can both be renamed, reopened, downloaded, and restored after refresh or sync.
 
 Image note creation now supports three insert sources from the wall image modal:
 
@@ -77,6 +80,7 @@ The current note frontend gives every supported note kind its own dedicated wall
 - `apod`
 - `poetry`
 - `economist`
+- `image`
 - `file`
 - `audio`
 - `video`

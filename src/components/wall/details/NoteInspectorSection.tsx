@@ -28,6 +28,7 @@ import {
 import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS, POETRY_NOTE_DEFAULTS } from "@/features/wall/constants";
 import { createBookmarkNoteState, normalizeBookmarkUrl, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
 import { createFileNoteState, getFileNoteMeta, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
+import { createImageNoteState, getImageNoteFilename, getImageNoteMeta, renameImageNoteFile, toImageNotePatch } from "@/features/wall/image-notes";
 import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, formatEconomistNoteText, getEconomistMagazineSource, getEconomistNoteSourceId } from "@/features/wall/economist";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import { sanitizeStandardNoteColor } from "@/features/wall/special-notes";
@@ -68,6 +69,11 @@ type NoteInspectorSectionProps = {
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
   onOpenBookmarkUrl: (url: string) => void;
+  onSelectImageNoteFile: (noteId: string, file: File) => Promise<void>;
+  onSubmitImageNoteUrl: (noteId: string, url: string) => Promise<void> | void;
+  onRenameImageNote: (noteId: string, name: string) => void;
+  onOpenImageNote: (noteId: string) => void;
+  onDownloadImageNote: (noteId: string) => void;
   onSelectFileNoteFile: (noteId: string, file: File) => Promise<void>;
   onSubmitFileNoteUrl: (noteId: string, url: string) => void;
   onOpenFileNote: (noteId: string) => void;
@@ -163,6 +169,11 @@ export const NoteInspectorSection = ({
   onUpdateNote,
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
+  onSelectImageNoteFile,
+  onSubmitImageNoteUrl,
+  onRenameImageNote,
+  onOpenImageNote,
+  onDownloadImageNote,
   onSelectFileNoteFile,
   onSubmitFileNoteUrl,
   onOpenFileNote,
@@ -193,6 +204,7 @@ export const NoteInspectorSection = ({
   const [poetryMatchType, setPoetryMatchType] = useState<PoetrySearchMatchType>(
     selectedNote?.noteKind === "poetry" ? normalizePoetryMatchType(selectedNote.poetry?.matchType) : DEFAULT_POETRY_MATCH_TYPE,
   );
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const audioInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
@@ -210,6 +222,18 @@ export const NoteInspectorSection = ({
   );
   const preferredMagazineSourceId =
     ECONOMIST_MAGAZINE_SOURCES.find((source) => !usedMagazineSourceIds.has(source.sourceId))?.sourceId ?? selectedMagazineSourceId;
+
+  const applyImageNote = () => {
+    const imagePatch = toImageNotePatch(createImageNoteState(selectedNote.file ?? { url: selectedNote.imageUrl ?? "" }), {
+      caption: selectedNote.text,
+      preserveSize: selectedNote.noteKind === "image",
+    });
+    onUpdateNote(selectedNote.id, {
+      ...imagePatch,
+      w: selectedNote.noteKind === "image" ? selectedNote.w : imagePatch.w,
+      h: selectedNote.noteKind === "image" ? selectedNote.h : imagePatch.h,
+    });
+  };
 
   const applyCodeNote = () => {
     onUpdateNote(selectedNote.id, {
@@ -627,6 +651,78 @@ export const NoteInspectorSection = ({
           </div>
         )}
 
+        {selectedNote.noteKind === "image" && (
+          <div className={sectionBlockClass}>
+            <p className={sectionLabelClass}>Image</p>
+            <div className="grid gap-2">
+              <input
+                type="text"
+                value={getImageNoteFilename(selectedNote.file)}
+                onChange={(event) => onRenameImageNote(selectedNote.id, event.target.value)}
+                className={detailField}
+                placeholder="Image file name"
+                disabled={isTimeLocked || isPrivateEnabled}
+                aria-label="Image file name"
+              />
+              <textarea
+                value={selectedNote.text}
+                onChange={(event) => onUpdateNote(selectedNote.id, { text: event.target.value })}
+                className={`${detailField} min-h-20 resize-y`}
+                placeholder="Caption"
+                disabled={isTimeLocked || isPrivateEnabled}
+                aria-label="Image caption"
+              />
+              <input
+                type="text"
+                value={selectedNote.file?.source === "link" ? selectedNote.file.url : selectedNote.imageUrl ?? ""}
+                onChange={(event) =>
+                  onUpdateNote(selectedNote.id, {
+                    ...renameImageNoteFile(selectedNote, getImageNoteFilename(selectedNote.file)),
+                    imageUrl: event.target.value,
+                    file: createImageNoteState({
+                      ...(selectedNote.file ?? createImageNoteState()),
+                      source: "link",
+                      url: event.target.value,
+                    }),
+                  })
+                }
+                onBlur={(event) => {
+                  const normalized = normalizeFileUrl(event.target.value);
+                  if (normalized) {
+                    void onSubmitImageNoteUrl(selectedNote.id, normalized);
+                  }
+                }}
+                className={detailField}
+                placeholder="https://example.com/image.jpg"
+                disabled={isTimeLocked || isPrivateEnabled}
+                aria-label="Image URL"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => imageInputRef.current?.click()} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>Upload Image</button>
+                <button type="button" onClick={() => void onSubmitImageNoteUrl(selectedNote.id, selectedNote.file?.source === "link" ? selectedNote.file.url : selectedNote.imageUrl ?? "")} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>Save Link</button>
+              </div>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void onSelectImageNoteFile(selectedNote.id, file);
+                  }
+                  event.currentTarget.value = "";
+                }}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => onOpenImageNote(selectedNote.id)} className={detailButton} disabled={!selectedNote.imageUrl}>Open Image</button>
+                <button type="button" onClick={() => onDownloadImageNote(selectedNote.id)} className={detailButton} disabled={!selectedNote.imageUrl}>Download Image</button>
+              </div>
+              <div className={detailMutedPanel}>{`${getImageNoteFilename(selectedNote.file)}${selectedNote.file ? ` • ${getImageNoteMeta(selectedNote.file)}` : ""}`}</div>
+            </div>
+          </div>
+        )}
+
         {selectedNote.noteKind === "file" && (
           <div className={sectionBlockClass}>
             <p className={sectionLabelClass}>File</p>
@@ -1037,6 +1133,7 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("journal")} className={typeButtonClass(selectedNote.noteKind === "journal")} disabled={isTimeLocked || isPrivateEnabled}>Journal</button>
             <button type="button" onClick={() => setNoteKind("eisenhower")} className={typeButtonClass(selectedNote.noteKind === "eisenhower")} disabled={isTimeLocked || isPrivateEnabled}>Eisenhower</button>
             <button type="button" onClick={() => setNoteKind("web-bookmark")} className={typeButtonClass(selectedNote.noteKind === "web-bookmark")} disabled={isTimeLocked || isPrivateEnabled}>Bookmark</button>
+            <button type="button" onClick={applyImageNote} className={typeButtonClass(selectedNote.noteKind === "image")} disabled={isTimeLocked || isPrivateEnabled}>Image</button>
             <button type="button" onClick={() => setNoteKind("file")} className={typeButtonClass(selectedNote.noteKind === "file")} disabled={isTimeLocked || isPrivateEnabled}>File</button>
             <button type="button" onClick={() => setNoteKind("audio")} className={typeButtonClass(selectedNote.noteKind === "audio")} disabled={isTimeLocked || isPrivateEnabled}>Audio</button>
             <button type="button" onClick={() => setNoteKind("video")} className={typeButtonClass(selectedNote.noteKind === "video")} disabled={isTimeLocked || isPrivateEnabled}>Video</button>

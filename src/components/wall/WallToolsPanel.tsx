@@ -29,6 +29,7 @@ type WallToolsPanelProps = {
   onCreateQuoteNote: () => void;
   onCreateCodeNote: () => void;
   onCreateWebBookmarkNote: () => void;
+  onCreateImageNote: () => void;
   onCreateFileNote: () => void;
   onCreateAudioNote: () => void;
   onCreateVideoNote: () => void;
@@ -80,6 +81,7 @@ export const WallToolsPanel = ({
   onCreateQuoteNote,
   onCreateCodeNote,
   onCreateWebBookmarkNote,
+  onCreateImageNote,
   onCreateFileNote,
   onCreateAudioNote,
   onCreateVideoNote,
@@ -137,6 +139,7 @@ export const WallToolsPanel = ({
             <button type="button" onClick={onCreateCanonNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Canon</span></button>
             <button type="button" onClick={onCreateWordNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Word</span></button>
             <button type="button" onClick={onCreateWebBookmarkNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="link" /><span>New Bookmark</span></button>
+            <button type="button" onClick={onCreateImageNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Image</span></button>
             <button type="button" onClick={onCreateFileNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New File</span></button>
             <button type="button" onClick={onCreateAudioNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Audio</span></button>
             <button type="button" onClick={onCreateVideoNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Video</span></button>

@@ -5,6 +5,7 @@ import type { Dispatch, FocusEvent, SetStateAction } from "react";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { ApodNoteEditor } from "@/components/wall/ApodNoteEditor";
 import { AudioNoteEditor } from "@/components/wall/AudioNoteEditor";
+import { ImageNoteEditor } from "@/components/wall/ImageNoteEditor";
 import { VideoNoteEditor } from "@/components/wall/VideoNoteEditor";
 import { EconomistCoverEditor } from "@/components/wall/EconomistCoverEditor";
 import { FileNoteEditor } from "@/components/wall/FileNoteEditor";
@@ -91,6 +92,12 @@ type WallFloatingUiProps = {
   onResetToDetectedCurrency: () => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
   onOpenBookmarkUrl: (url: string) => void;
+  onSelectImageNoteFile: (noteId: string, file: File) => Promise<void>;
+  onSubmitImageNoteUrl: (noteId: string, url: string) => Promise<void> | void;
+  onRenameImageNote: (noteId: string, name: string) => void;
+  onUpdateImageCaption: (noteId: string, caption: string) => void;
+  onOpenImageNote: (noteId: string) => void;
+  onDownloadImageNote: (noteId: string) => void;
   onSelectFileNoteFile: (noteId: string, file: File) => Promise<void>;
   onSubmitFileNoteUrl: (noteId: string, url: string) => void;
   onOpenFileNote: (noteId: string) => void;
@@ -189,6 +196,12 @@ export const WallFloatingUi = ({
   onResetToDetectedCurrency,
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
+  onSelectImageNoteFile,
+  onSubmitImageNoteUrl,
+  onRenameImageNote,
+  onUpdateImageCaption,
+  onOpenImageNote,
+  onDownloadImageNote,
   onSelectFileNoteFile,
   onSubmitFileNoteUrl,
   onOpenFileNote,
@@ -244,6 +257,21 @@ export const WallFloatingUi = ({
               onClose={() => setEditing(null)}
               onSubmit={onSubmitBookmarkUrl}
               onOpenUrl={onOpenBookmarkUrl}
+            />
+          )}
+          {editingNote.noteKind === "image" && (
+            <ImageNoteEditor
+              editing={editing}
+              editingNote={editingNote}
+              camera={camera}
+              toScreenPoint={toScreenPoint}
+              onClose={() => setEditing(null)}
+              onSelectFile={onSelectImageNoteFile}
+              onSubmitUrl={onSubmitImageNoteUrl}
+              onRenameImage={onRenameImageNote}
+              onUpdateCaption={onUpdateImageCaption}
+              onOpenImage={onOpenImageNote}
+              onDownloadImage={onDownloadImageNote}
             />
           )}
           {editingNote.noteKind === "file" && (
@@ -320,7 +348,7 @@ export const WallFloatingUi = ({
               onUpdateNote={updateNote}
             />
           )}
-          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "file" && editingNote.noteKind !== "audio" && editingNote.noteKind !== "video" && editingNote.noteKind !== "apod" && editingNote.noteKind !== "poetry" && editingNote.noteKind !== "economist" && (
+          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "image" && editingNote.noteKind !== "file" && editingNote.noteKind !== "audio" && editingNote.noteKind !== "video" && editingNote.noteKind !== "apod" && editingNote.noteKind !== "poetry" && editingNote.noteKind !== "economist" && (
             <NoteTextEditor
               editing={editing}
               editingNote={editingNote as Note & { noteKind: "poetry" }}

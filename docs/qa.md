@@ -1308,3 +1308,23 @@ Expected:
 
 
 
+
+
+## Image Note (`/wall`) (2026-03-26)
+1. Open `/wall`, open `Tools`, and click `New Image`.
+2. Verify a dedicated image note appears with the new editorial photo shell instead of the older grayscale fallback card.
+3. Double-click the image note and verify the floating editor opens with filename, caption, `Upload`, and `Paste URL` controls plus the same image-note preview.
+4. In the floating editor `Upload` tab, choose a local image and verify the note updates with the uploaded image plus the stored filename.
+5. Rename the image file name in the floating editor and verify the new name persists after blur.
+6. In the floating editor `Paste URL` tab, save a direct remote image URL and verify the note renders the linked image.
+7. Use `Open Image` and verify upload-backed notes open the local asset while link-backed notes open the remote image URL.
+8. Use `Download Image` and verify both upload-backed and link-backed images download with a readable filename.
+9. Select a standard note, go to `Details > Note Type`, click `Image`, and verify the note converts into the image note shell without creating a duplicate note.
+10. In `Details > Image`, upload an image, save a link, rename the image file name, edit the caption, and verify each change updates the selected image note in place.
+11. Refresh `/wall` and verify uploaded and link-backed image notes restore correctly.
+12. If cloud sync is enabled, sync, reload, and verify the image note still renders with its filename metadata and actions after hydration.
+
+Expected:
+- Image notes are available from both `Tools` and `Details > Note Type`.
+- Image notes support local upload, direct image links, filename rename, caption editing, open, and download from both the floating editor and the details sidebar.
+- The new image note shell matches the editorial frontend direction and persists through refresh and sync.

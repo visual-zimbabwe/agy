@@ -93,6 +93,7 @@ import {
   createAudioNote,
   createEconomistNote,
   createFileNote,
+  createImageNote,
   createVideoNote,
   createPoetryNote,
   createOrRefreshJokerNote,
@@ -123,6 +124,7 @@ import {
 import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
 import { createAudioNoteState, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
+import { createImageNoteState, getImageNoteFilename, toImageNotePatch, IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
 import { createVideoNoteState, getVideoNoteTitle, getVideoPlayback, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
 import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
@@ -1405,6 +1407,23 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     [],
   );
 
+  const submitImageNoteUrl = useCallback(
+    async (noteId: string, rawUrl: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const normalizedUrl = normalizeFileUrl(rawUrl);
+      if (!normalizedUrl) {
+        return;
+      }
+      updateNote(noteId, toImageNotePatch(createImageNoteState({ ...(renderSnapshot.notes[noteId]?.file ?? {}), source: "link", url: normalizedUrl }), {
+        caption: renderSnapshot.notes[noteId]?.text ?? "",
+        preserveSize: true,
+      }));
+    },
+    [isTimeLocked, renderSnapshot.notes],
+  );
+
   const submitFileNoteUrl = useCallback(
     (noteId: string, rawUrl: string) => {
       if (isTimeLocked) {
@@ -1457,6 +1476,33 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       );
     },
     [isTimeLocked, readVideoMediaFromUrl, renderSnapshot.notes],
+  );
+
+  const selectImageNoteFile = useCallback(
+    async (noteId: string, file: File) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const dataUrl = await readFileAsDataUrl(file);
+      updateNote(
+        noteId,
+        toImageNotePatch(
+          createImageNoteState({
+            source: "upload",
+            name: file.name,
+            url: dataUrl,
+            mimeType: file.type,
+            sizeBytes: file.size,
+            uploadedAt: Date.now(),
+          }),
+          {
+            caption: renderSnapshot.notes[noteId]?.text ?? "",
+            preserveSize: true,
+          },
+        ),
+      );
+    },
+    [isTimeLocked, readFileAsDataUrl, renderSnapshot.notes],
   );
 
   const selectFileNoteFile = useCallback(
@@ -1531,6 +1577,20 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       );
     },
     [isTimeLocked, readFileAsDataUrl, readVideoMediaFromUrl],
+  );
+
+  const renameImageNote = useCallback(
+    (noteId: string, name: string) => {
+      if (isTimeLocked) {
+        return;
+      }
+      const current = renderSnapshot.notes[noteId];
+      if (!current) {
+        return;
+      }
+      updateNote(noteId, { file: createImageNoteState({ ...(current.file ?? {}), name }) });
+    },
+    [isTimeLocked, renderSnapshot.notes],
   );
 
   const renameAudioNote = useCallback(
@@ -1675,6 +1735,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     [isTimeLocked, renderSnapshot.notes],
   );
 
+  const openImageNote = useCallback(
+    (noteId: string) => {
+      const imageNote = renderSnapshot.notes[noteId];
+      const target = imageNote?.imageUrl?.trim();
+      if (!target || typeof window === "undefined") {
+        return;
+      }
+      if (imageNote?.file?.source === "link") {
+        openBookmarkUrl(target);
+        return;
+      }
+      window.open(target, "_blank", "noopener,noreferrer");
+    },
+    [openBookmarkUrl, renderSnapshot.notes],
+  );
+
   const openFileNote = useCallback(
     (noteId: string) => {
       const fileNote = renderSnapshot.notes[noteId]?.file;
@@ -1721,6 +1797,30 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       window.open(target, "_blank", "noopener,noreferrer");
     },
     [openBookmarkUrl, renderSnapshot.notes],
+  );
+
+  const downloadImageNote = useCallback(
+    (noteId: string) => {
+      const imageNote = renderSnapshot.notes[noteId];
+      const target = imageNote?.imageUrl?.trim();
+      if (!target || typeof document === "undefined") {
+        return;
+      }
+      const filename = getImageNoteFilename(imageNote?.file);
+      if (imageNote?.file?.source === "upload") {
+        downloadDataUrl(filename, target);
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = target;
+      link.download = filename;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    [renderSnapshot.notes],
   );
 
   const downloadFileNote = useCallback(
@@ -1926,6 +2026,18 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setSelectedNoteIds([id]);
     selectNote(id);
     openEditor(id, "");
+  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
+
+  const makeImageNoteAtViewportCenter = useCallback(() => {
+    if (isTimeLocked) {
+      return;
+    }
+    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
+    const position = placeNewNote(world, { w: IMAGE_NOTE_DEFAULTS.width, h: IMAGE_NOTE_DEFAULTS.height });
+    const id = createImageNote(position.x, position.y);
+    setSelectedNoteIds([id]);
+    selectNote(id);
+    openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
   }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeFileNoteAtViewportCenter = useCallback(() => {
@@ -2433,8 +2545,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   }, [renderVisibleNotes]);
 
   const insertImageSource = useCallback((source: string, target?: { noteId?: string; x?: number; y?: number }) => {
+    const sourceMode = normalizeFileUrl(source) ? "link" : "upload";
     if (target?.noteId && renderSnapshot.notes[target.noteId]) {
-      updateNote(target.noteId, { imageUrl: source });
+      const existing = renderSnapshot.notes[target.noteId];
+      if (!existing) {
+        return undefined;
+      }
+      updateNote(
+        target.noteId,
+        toImageNotePatch(createImageNoteState({ ...(existing.file ?? {}), source: sourceMode, url: source }), {
+          caption: existing.text ?? "",
+          preserveSize: true,
+        }),
+      );
       syncPrimarySelection([target.noteId]);
       selectNote(target.noteId);
       return target.noteId;
@@ -2443,13 +2566,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const fallbackPoint = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
     const worldX = target?.x ?? fallbackPoint.x;
     const worldY = target?.y ?? fallbackPoint.y;
-    const position = placeNewNote({ x: worldX, y: worldY });
-    const noteId = createNote(position.x, position.y, ui.lastColor);
-    updateNote(noteId, { imageUrl: source });
+    const position = placeNewNote({ x: worldX, y: worldY }, { w: IMAGE_NOTE_DEFAULTS.width, h: IMAGE_NOTE_DEFAULTS.height });
+    const noteId = createImageNote(position.x, position.y, { source: sourceMode, url: source });
     syncPrimarySelection([noteId]);
     selectNote(noteId);
     return noteId;
-  }, [camera, placeNewNote, renderSnapshot.notes, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, placeNewNote, renderSnapshot.notes, selectNote, syncPrimarySelection, viewport.h, viewport.w]);
 
   const handleImageFileInsert = useCallback(async (file: File, target?: { noteId?: string; x?: number; y?: number }) => {
     const dataUrl = await readImageFileAsDataUrl(file);
@@ -2504,12 +2626,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         const offsetY = (row - (rows - 1) / 2) * (220 + gap) + (column % 2 === 0 ? 0 : 16);
         const finalHeight = Math.max(150, Math.min(320, height));
         const position = placeNewNote({ x: anchor.x + offsetX, y: anchor.y + offsetY }, { w: width, h: finalHeight }, occupiedRects);
-        const noteId = createNote(position.x, position.y, ui.lastColor);
-        updateNote(noteId, {
-          imageUrl: photo.urls.regular,
-          w: width,
-          h: finalHeight,
-        });
+        const noteId = createImageNote(position.x, position.y, { source: "link", url: photo.urls.regular });
+        updateNote(noteId, { w: width, h: finalHeight });
         occupiedRects.push({ x: position.x, y: position.y, w: width, h: finalHeight });
         createdIds.push(noteId);
       });
@@ -3550,6 +3668,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
             onCreateCodeNote={makeCodeNoteAtViewportCenter}
             onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
+            onCreateImageNote={makeImageNoteAtViewportCenter}
             onCreateFileNote={makeFileNoteAtViewportCenter}
             onCreateAudioNote={makeAudioNoteAtViewportCenter}
             onCreateVideoNote={makeVideoNoteAtViewportCenter}
@@ -3868,6 +3987,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onResetToDetectedCurrency={() => { void resetToDetectedCurrency(); }}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
           onOpenBookmarkUrl={openBookmarkUrl}
+          onSelectImageNoteFile={selectImageNoteFile}
+          onSubmitImageNoteUrl={submitImageNoteUrl}
+          onRenameImageNote={renameImageNote}
+          onUpdateImageCaption={(noteId, caption) => { updateNote(noteId, { text: caption }); }}
+          onOpenImageNote={openImageNote}
+          onDownloadImageNote={downloadImageNote}
           onSelectFileNoteFile={selectFileNoteFile}
           onSubmitFileNoteUrl={submitFileNoteUrl}
           onOpenFileNote={openFileNote}
@@ -4010,6 +4135,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onUpdateSelectedNote={updateNote}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
           onOpenBookmarkUrl={openBookmarkUrl}
+          onSelectImageNoteFile={selectImageNoteFile}
+          onSubmitImageNoteUrl={submitImageNoteUrl}
+          onRenameImageNote={renameImageNote}
+          onOpenImageNote={openImageNote}
+          onDownloadImageNote={downloadImageNote}
           onSelectFileNoteFile={selectFileNoteFile}
           onSubmitFileNoteUrl={submitFileNoteUrl}
           onOpenFileNote={openFileNote}

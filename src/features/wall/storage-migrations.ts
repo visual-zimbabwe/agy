@@ -299,6 +299,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     entry.noteKind === "apod" ||
     entry.noteKind === "poetry" ||
     entry.noteKind === "economist" ||
+    entry.noteKind === "image" ||
     entry.noteKind === "file" ||
     entry.noteKind === "audio" ||
     entry.noteKind === "video"
@@ -316,7 +317,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     currency: noteKind === "currency" ? normalizeCurrency(entry.currency) : undefined,
     bookmark: noteKind === "web-bookmark" ? normalizeBookmark(entry.bookmark) : undefined,
     apod: noteKind === "apod" ? normalizeApod(entry.apod) : undefined,
-    file: noteKind === "file" ? normalizeFileNote(entry.file) : undefined,
+    file: noteKind === "file" || noteKind === "image" ? normalizeFileNote(entry.file) : undefined,
     audio: noteKind === "audio" ? normalizeAudioNote(entry.audio ?? entry.file) : undefined,
     video: noteKind === "video" ? normalizeVideoNote(entry.video ?? entry.file) : undefined,
     poetry:

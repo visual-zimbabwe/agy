@@ -3,6 +3,7 @@ import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency
 import { buildEconomistNote, ECONOMIST_NOTE_DEFAULTS, isEconomistNote } from "@/features/wall/economist";
 import { createAudioNoteState, isAudioNote, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, isFileNote, toFileNotePatch } from "@/features/wall/file-notes";
+import { createImageNoteState, IMAGE_NOTE_DEFAULTS, isImageNote, toImageNotePatch } from "@/features/wall/image-notes";
 import { createVideoNoteState, isVideoNote, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import type { EconomistCoverPayload } from "@/features/wall/economist";
 import { buildApodNote, isApodNote } from "@/features/wall/apod";
@@ -389,6 +390,12 @@ export const createWebBookmarkNote = (x: number, y: number, url = "") => {
   return noteId;
 };
 
+export const createImageNote = (x: number, y: number, payload?: Partial<Note["file"]>, caption = "") => {
+  const noteId = createNote(x, y, IMAGE_NOTE_DEFAULTS.color);
+  useWallStore.getState().patchNote(noteId, toImageNotePatch(createImageNoteState(payload), { caption }));
+  return noteId;
+};
+
 export const createFileNote = (x: number, y: number, payload?: Partial<Note["file"]>) => {
   const noteId = createNote(x, y, FILE_NOTE_DEFAULTS.color);
   useWallStore.getState().patchNote(noteId, toFileNotePatch(createFileNoteState(payload)));
@@ -495,6 +502,23 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       textFont: patch.textFont ?? current.textFont ?? POETRY_NOTE_DEFAULTS.textFont,
       textSizePx: patch.textSizePx ?? current.textSizePx ?? POETRY_NOTE_DEFAULTS.textSizePx,
       tags: patch.tags ?? current.tags,
+    });
+    return;
+  }
+
+  if (isImageNote(current)) {
+    const nextImage = createImageNoteState(patch.file ?? current.file ?? { url: patch.imageUrl ?? current.imageUrl ?? "" });
+    useWallStore.getState().patchNote(noteId, {
+      ...toImageNotePatch(nextImage, {
+        caption: patch.text ?? current.text,
+        preserveSize: true,
+      }),
+      ...patch,
+      file: nextImage,
+      imageUrl: patch.imageUrl ?? current.imageUrl,
+      tags: patch.tags ?? current.tags,
+      w: patch.w ?? current.w,
+      h: patch.h ?? current.h,
     });
     return;
   }
