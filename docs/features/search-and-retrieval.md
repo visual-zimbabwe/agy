@@ -35,7 +35,7 @@ The omnibar currently recognizes these query-token families:
 - `tag:<value>`: require one or more note tags
 - `type:<value>`: filter by note kind such as `type:quote`, `type:poetry`, or `type:image`
 - `is:<value>`: filter by note state such as `is:pinned` or `is:highlighted`
-- `tool:<value>`: prioritize actions related to areas such as `tool:details`, `tool:tools`, `tool:export`, or `tool:timeline`
+- `tool:<value>`: prioritize actions related to areas such as `tool:details`, `tool:tools`, `tool:export`, `tool:timeline`, or `tool:help`
 
 As the user types a token prefix, the omnibar suggests matching tags, note types, states, and tool tokens.
 
@@ -63,7 +63,9 @@ Current behavior:
 - actions and notes appear in the same expanded omnibar, but in separate groups
 - action search respects free-text queries and optional `tool:` tokens
 - actions may include labels, descriptions, keywords, and shortcuts
-- `Tools` and `Details` panel toggles remain accessible both as dock buttons and omnibar actions
+- `Tools`, `Details`, and `Help center` entry points remain accessible both from visible chrome and omnibar actions
+
+The omnibar now includes help-focused actions for opening the in-wall help center and the full `/help` library.
 
 ## Wall Filter Effect
 
@@ -94,3 +96,4 @@ Current wall behavior:
 - `docs/features/wall-notes.md`
 - `docs/product/overview.md`
 - `docs/qa.md`
+- `docs/features/help-system.md`

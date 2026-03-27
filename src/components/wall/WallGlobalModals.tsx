@@ -1,5 +1,6 @@
 "use client";
 
+import { QuickHelpDialog } from "@/components/help/QuickHelpDialog";
 import { ExportModal } from "@/components/ExportModal";
 import { FileConversionModal } from "@/components/FileConversionModal";
 import { QuickCaptureBar } from "@/components/QuickCaptureBar";
@@ -26,6 +27,11 @@ type WallGlobalModalsProps = {
   onBackupReminderCadenceChange: (cadence: "off" | "daily" | "weekly") => void;
   isShortcutsOpen: boolean;
   onCloseShortcuts: () => void;
+  isHelpOpen: boolean;
+  onCloseHelp: () => void;
+  onOpenHelpShortcuts: () => void;
+  onOpenHelpSettings: () => void;
+  onReplayTour: () => void;
   isFileConversionOpen: boolean;
   onCloseFileConversion: () => void;
   onOpenFileConversion: () => void;
@@ -59,6 +65,11 @@ export const WallGlobalModals = ({
   onBackupReminderCadenceChange,
   isShortcutsOpen,
   onCloseShortcuts,
+  isHelpOpen,
+  onCloseHelp,
+  onOpenHelpShortcuts,
+  onOpenHelpSettings,
+  onReplayTour,
   isFileConversionOpen,
   onCloseFileConversion,
   onOpenFileConversion,
@@ -90,6 +101,22 @@ export const WallGlobalModals = ({
         onBackupReminderCadenceChange={onBackupReminderCadenceChange}
       />
       <ShortcutsHelp open={isShortcutsOpen} onClose={onCloseShortcuts} />
+      <QuickHelpDialog
+        open={isHelpOpen}
+        onClose={onCloseHelp}
+        onOpenShortcuts={() => {
+          onCloseHelp();
+          onOpenHelpShortcuts();
+        }}
+        onOpenSettings={() => {
+          onCloseHelp();
+          onOpenHelpSettings();
+        }}
+        onReplayTour={() => {
+          onCloseHelp();
+          onReplayTour();
+        }}
+      />
       <FileConversionModal
         open={isFileConversionOpen}
         onClose={onCloseFileConversion}

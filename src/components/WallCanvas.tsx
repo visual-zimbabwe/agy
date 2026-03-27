@@ -348,6 +348,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [playingAudioNoteId, setPlayingAudioNoteId] = useState<string | undefined>(undefined);
   const [playingAudioCurrentTimeSeconds, setPlayingAudioCurrentTimeSeconds] = useState(0);
   const [playingAudioDurationSeconds, setPlayingAudioDurationSeconds] = useState<number | undefined>(undefined);
@@ -1230,6 +1231,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     },
     [markOpenIntent, setShortcutsOpen],
   );
+
+  const openHelpCenter = useCallback(() => {
+    setHelpOpen(true);
+  }, []);
 
   const openFileConversion = useCallback((conversionMode?: "pdf_to_word" | "word_to_pdf") => {
     if (conversionMode) {
@@ -3463,6 +3468,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onSelect: () => setSpatialPrefs((previous) => ({ ...previous, snapToGrid: !previous.snapToGrid })),
       },
       {
+        id: "open-help-center",
+        label: "Open help center",
+        description: "Show task guidance, troubleshooting, and product help.",
+        keywords: ["help", "docs", "support", "guide", "troubleshooting"],
+        onSelect: openHelpCenter,
+      },
+      {
+        id: "open-help-library",
+        label: "Open full help library",
+        description: "Browse the route-based help center.",
+        keywords: ["help", "docs", "library", "articles"],
+        onSelect: () => {
+          window.location.href = "/help";
+        },
+      },
+      {
         id: "open-shortcuts",
         label: "Open shortcuts help",
         description: "Show keyboard shortcut reference.",
@@ -3498,6 +3519,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       rightPanelOpen,
       setExportOpenTracked,
       openFileConversion,
+      openHelpCenter,
       setShortcutsOpenTracked,
       showHeatmap,
       spatialPrefs.showDotMatrix,
@@ -3562,6 +3584,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onToggleTimelineView={toggleTimelineView}
         onTogglePresentationMode={togglePresentationMode}
         onOpenShortcuts={() => setShortcutsOpenTracked(true)}
+        onOpenHelp={openHelpCenter}
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenTour={tour.openTour}
         onApplyColorToSelection={applyColorToSelection}
@@ -4315,6 +4338,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onPublishSnapshot={() => { void publishReadOnlySnapshot(); }}
         backupReminderCadence={backupReminderCadence} onBackupReminderCadenceChange={setBackupReminderCadence}
         isShortcutsOpen={ui.isShortcutsOpen} onCloseShortcuts={() => setShortcutsOpenTracked(false)}
+        isHelpOpen={helpOpen}
+        onCloseHelp={() => setHelpOpen(false)}
+        onOpenHelpShortcuts={() => setShortcutsOpenTracked(true)}
+        onOpenHelpSettings={() => setSettingsOpen(true)}
+        onReplayTour={tour.openTour}
         isFileConversionOpen={ui.isFileConversionOpen}
         onCloseFileConversion={() => {
           setFileConversionOpen(false);
@@ -4336,6 +4364,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
+
+
+
 
 
 

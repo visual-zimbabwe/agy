@@ -20,7 +20,7 @@ export type OmnibarNoteKind =
   | "video";
 
 export type OmnibarStateToken = "pinned" | "highlighted";
-export type OmnibarToolToken = "tools" | "details" | "capture" | "export" | "timeline" | "view";
+export type OmnibarToolToken = "tools" | "details" | "capture" | "export" | "timeline" | "view" | "help";
 
 type OmnibarTokenBase<TKind extends string, TValue extends string> = {
   kind: TKind;
@@ -91,6 +91,7 @@ export const omnibarToolDefinitions: ToolDefinition[] = [
   { value: "export", label: "Export", aliases: ["export", "download", "share"] },
   { value: "timeline", label: "Timeline", aliases: ["timeline", "history", "time"] },
   { value: "view", label: "View Modes", aliases: ["view", "reading", "presentation", "zoom"] },
+  { value: "help", label: "Help Center", aliases: ["help", "docs", "support", "guide"] },
 ];
 
 export const omnibarStateDefinitions: StateDefinition[] = [
@@ -251,6 +252,7 @@ export const commandMatchesToolFilters = (
     (omnibarToolDefinitions.find((definition) => definition.value === tool)?.aliases ?? []).some((alias) => haystack.includes(alias)),
   );
 };
+
 
 
 

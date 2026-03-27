@@ -12,7 +12,7 @@ import {
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 import { applyPreferencesToDocument, preferenceStorageKeys, readStoredPreferences } from "@/lib/preferences";
 
-const allowedStartupPaths = new Set(["/wall", "/page", "/decks", "/settings"]);
+const allowedStartupPaths = new Set(["/wall", "/page", "/decks", "/settings", "/help"]);
 
 export const StartupRouteHandler = () => {
   const pathname = usePathname();
@@ -106,3 +106,4 @@ export const StartupRouteHandler = () => {
 
   return null;
 };
+

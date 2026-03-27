@@ -12,9 +12,10 @@ type ProfileMenuProps = {
   email: string;
   onOpenShortcuts: () => void;
   onOpenSettings: () => void;
+  onOpenHelp: () => void;
 };
 
-export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileMenuProps) => {
+export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings, onOpenHelp }: ProfileMenuProps) => {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
@@ -157,11 +158,11 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings }: ProfileM
               className="w-full justify-start"
               role="menuitem"
               onClick={() => {
-                onOpenShortcuts();
+                onOpenHelp();
                 setOpen(false);
               }}
             >
-              Help / Docs
+              Help center
             </Button>
             <Button
               className="w-full justify-start"

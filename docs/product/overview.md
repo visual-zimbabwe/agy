@@ -21,6 +21,8 @@ Agy currently has four primary surfaces:
 
 The landing page links directly into these surfaces.
 
+A support layer now spans the product through a wall quick-help modal and the route-based `/help` library.
+
 ## Wall
 
 The wall is the main spatial workspace.
@@ -34,6 +36,7 @@ Users can:
 - search, filter, and jump across content
 - review changes through timeline and heatmap-style views
 - export to PNG, PDF, Markdown, JSON, or published read-only snapshots
+- open quick help without leaving the canvas
 
 The wall supports both freeform brainstorming and more structured thinking workflows.
 
@@ -86,8 +89,9 @@ The current product is not just a sticky-note wall. It is a multi-surface worksp
 - a document canvas
 - a study system
 - account-backed preferences and sync
+- a shared self-serve help layer
 
-The unifying idea is that the user can move between capture, organization, reflection, and review without leaving the product.
+The unifying idea is that the user can move between capture, organization, reflection, review, and recovery without leaving the product.
 
 ## Known Boundaries
 
@@ -101,5 +105,5 @@ The unifying idea is that the user can move between capture, organization, refle
 - `docs/architecture/frontend-architecture.md`
 - `docs/features/timeline-view.md`
 - `docs/features/page-editor.md`
+- `docs/features/help-system.md`
 - `docs/features/decks.md`
-

@@ -1352,3 +1352,20 @@ Expected:
 - The guided spine teaches wall orientation, omnibar usage, first note creation, and fit-based recovery.
 - Contextual tips appear only after relevant behavior, then persist as seen locally.
 - Tour dismissal/completion survives refresh, and replay remains available from both visible chrome and the command palette.
+## Help Center (`/wall` and `/help`) (2026-03-27)
+1. Open `/wall`, open the profile menu, click `Help center`, and verify a quick-help modal opens instead of the keyboard shortcuts modal.
+2. Verify the quick-help modal shows category browse controls, a central help search field, quick actions, and an article preview area without clipping against the viewport.
+3. In the quick-help modal, search for `search`, `export`, and `sync`; verify relevant help articles appear and the preview panel updates when you select one.
+4. In the quick-help modal, click `Open shortcuts`; verify the help modal closes and the dedicated shortcuts modal opens.
+5. Reopen the help modal and click `Open settings`; verify the help modal closes and the embedded wall settings modal opens.
+6. Reopen the help modal and click `Replay tour`; verify the help modal closes and the wall product tour starts.
+7. Use `Ctrl/Cmd + K`, search `help`, run `Open help center`, and verify the same quick-help modal opens.
+8. Use `Ctrl/Cmd + K`, search `tool:help`, and verify help-related actions are prioritized.
+9. From the quick-help modal, click `Read full article` or `Open full library`; verify the app navigates to `/help` and shows the selected article or overview library.
+10. On `/help`, verify the page shows sidebar category navigation, searchable article cards, and article detail views with related reading links.
+
+Expected:
+- Wall help is now a hybrid system: quick in-context help on `/wall` plus a route-based `/help` library.
+- Keyboard shortcuts remain available, but they are a subsection of help rather than the entire help experience.
+- Help actions are discoverable from both the profile menu and the wall omnibar.
+- The quick-help modal and `/help` route share the same article inventory and stay visually within the viewport.

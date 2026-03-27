@@ -45,6 +45,7 @@ type WallHeaderBarProps = {
   onToggleTimelineView: () => void;
   onTogglePresentationMode: () => void;
   onOpenShortcuts: () => void;
+  onOpenHelp: () => void;
   onOpenSettings: () => void;
   onOpenTour: () => void;
   onApplyColorToSelection: (color: string) => void;
@@ -87,6 +88,7 @@ export const WallHeaderBar = ({
   syncError,
   onToggleTimelineView,
   onOpenShortcuts,
+  onOpenHelp,
   onOpenSettings,
   onOpenTour,
   onSyncNow,
@@ -138,7 +140,7 @@ export const WallHeaderBar = ({
           <button type="button" onClick={onOpenSettings} className={roundButtonClassName} aria-label="Open settings">
             <HeaderIcon />
           </button>
-          {userEmail ? <ProfileMenu email={userEmail} onOpenShortcuts={onOpenShortcuts} onOpenSettings={onOpenSettings} /> : null}
+          {userEmail ? <ProfileMenu email={userEmail} onOpenShortcuts={onOpenShortcuts} onOpenSettings={onOpenSettings} onOpenHelp={onOpenHelp} /> : null}
         </div>
       </div>
     </header>
