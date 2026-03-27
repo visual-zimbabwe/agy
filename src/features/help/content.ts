@@ -98,7 +98,7 @@ export const helpArticles: HelpArticle[] = [
       {
         title: "What is always on screen",
         bullets: [
-          "The header keeps route navigation, sync status, settings, tour replay, and profile actions close without covering the canvas.",
+          "The header keeps route navigation, sync status, settings, and profile actions close without covering the canvas.",
           "The bottom omnibar is the primary search and action surface.",
           "The right rail handles zoom and camera recovery.",
         ],
@@ -107,7 +107,7 @@ export const helpArticles: HelpArticle[] = [
         title: "Fastest recovery steps",
         bullets: [
           "Use Fit from the zoom rail when the canvas feels lost.",
-          "Use the tour replay action if you want a guided reset of the core wall flows.",
+          "Open Settings and use Replay tour if you want a guided reset of the core wall flows.",
           "Use the help center when you are blocked and need task guidance instead of memorizing shortcuts.",
         ],
       },

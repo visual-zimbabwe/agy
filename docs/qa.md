@@ -1343,7 +1343,7 @@ Expected:
 6. After completion, confirm a contextual tip can appear on the `Details` sidebar when a note is selected.
 7. Focus the omnibar after the tour and verify a follow-up tip can appear explaining `tag:`, `type:`, `is:`, and `tool:` tokens.
 8. Refresh `/wall` and verify the completed tour does not auto-start again.
-9. Use the `Tour` button in the wall header and verify the product tour restarts from step 1.
+9. Open wall `Settings`, use `Workspace > Replay tour`, and verify the product tour restarts from step 1.
 10. Open the omnibar command palette, run `Replay product tour`, and verify it also restarts the tour.
 11. Repeat on a narrow/mobile-width viewport and confirm coachmarks stay visible, do not clip against the tools panel, details panel, or zoom rail, and do not block core wall interactions.
 
@@ -1351,7 +1351,7 @@ Expected:
 - `/wall` ships a hybrid progressive product tour rather than a long blocking wizard.
 - The guided spine teaches wall orientation, omnibar usage, first note creation, and fit-based recovery.
 - Contextual tips appear only after relevant behavior, then persist as seen locally.
-- Tour dismissal/completion survives refresh, and replay remains available from both visible chrome and the command palette.
+- Tour dismissal/completion survives refresh, and replay remains available from settings and the command palette.
 ## Help Center (`/wall` and `/help`) (2026-03-27)
 1. Open `/wall`, open the profile menu, click `Help center`, and verify a quick-help modal opens instead of the keyboard shortcuts modal.
 2. Verify the quick-help modal shows category browse controls, a central help search field, quick actions, and an article preview area without clipping against the viewport.

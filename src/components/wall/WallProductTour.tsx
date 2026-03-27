@@ -130,7 +130,7 @@ const coachmarkById: Record<TourCoachmark, CoachmarkConfig> = {
     title: "You are ready",
     body: [
       "You have completed the first wall loop: orient, create, and recover.",
-      "You can replay the tour anytime from the header or the command palette.",
+      "You can replay the tour anytime from Settings or the command palette.",
     ],
     placement: "center",
     primaryLabel: "Close",

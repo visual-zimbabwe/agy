@@ -55,6 +55,7 @@ Current workspace settings include:
 
 - wall layout preferences
 - controls mode (`basic` or `advanced`)
+- wall tour replay action in the embedded wall settings modal
 
 These settings affect how much wall chrome and advanced tooling the user sees.
 

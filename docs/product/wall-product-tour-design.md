@@ -349,7 +349,7 @@ The current `/wall` implementation ships the hybrid progressive tour with these 
 - a 5-step guided spine covering wall orientation, canvas model, omnibar, first note creation, and fit-to-wall recovery
 - automatic anchoring to live wall chrome for the omnibar, tools panel, details sidebar, zoom rail, and canvas surface
 - contextual follow-up tips for selection-driven `Details` behavior and omnibar token discovery
-- replay entry points from the wall header and the omnibar command palette
+- replay entry points from wall settings and the omnibar command palette
 
 The implementation intentionally stays non-blocking:
 

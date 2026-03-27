@@ -15,6 +15,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 type SettingsWorkspaceProps = {
   userEmail: string;
   embedded?: boolean;
+  onReplayTour?: () => void;
 };
 
 type SettingsSectionId = "general" | "appearance" | "keyboard" | "advanced";
@@ -277,7 +278,7 @@ const AvatarCropModal = ({
   );
 };
 
-export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorkspaceProps) => {
+export const SettingsWorkspace = ({ userEmail, embedded = false, onReplayTour }: SettingsWorkspaceProps) => {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("general");
   const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
@@ -1061,6 +1062,17 @@ export const SettingsWorkspace = ({ userEmail, embedded = false }: SettingsWorks
                     />
                   }
                 />
+                {onReplayTour ? (
+                  <SettingRow
+                    title="Replay wall tour"
+                    description="Restart the guided wall walkthrough from step 1."
+                    control={
+                      <Button type="button" size="sm" variant="secondary" onClick={onReplayTour}>
+                        Replay tour
+                      </Button>
+                    }
+                  />
+                ) : null}
               </>
             )}
 

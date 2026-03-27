@@ -3586,7 +3586,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         onOpenShortcuts={() => setShortcutsOpenTracked(true)}
         onOpenHelp={openHelpCenter}
         onOpenSettings={() => setSettingsOpen(true)}
-        onOpenTour={tour.openTour}
         onApplyColorToSelection={applyColorToSelection}
         onSyncNow={syncNow}
       />

@@ -143,7 +143,7 @@ export const WallGlobalModals = ({
         contentClassName="mt-3"
       >
         {userEmail ? (
-          <SettingsWorkspace userEmail={userEmail} embedded />
+          <SettingsWorkspace userEmail={userEmail} embedded onReplayTour={onReplayTour} />
         ) : (
           <p className="text-sm text-[var(--color-text-muted)]">Sign in to manage settings.</p>
         )}
