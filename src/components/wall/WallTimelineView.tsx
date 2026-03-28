@@ -113,8 +113,8 @@ const buildTimelineGroups = (notes: Note[]) => {
       note,
       ts: timestamp,
       side,
-      desktop: resolveWallPreviewDimensions(note, { surface: "timeline-stream", maxWidth: desktopColumnWidth }),
-      mobile: resolveWallPreviewDimensions(note, { surface: "timeline-stream", maxWidth: mobileColumnWidth }),
+      desktop: resolveWallPreviewDimensions(note, { surface: "timeline-stream" }),
+      mobile: resolveWallPreviewDimensions(note, { surface: "timeline-stream" }),
     };
 
     if (current) {

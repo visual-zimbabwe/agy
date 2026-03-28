@@ -27,8 +27,6 @@ export const WallTimelineDetailPanel = ({ note, timestamp, onReveal, onClose }: 
 
   const previewDimensions = resolveWallPreviewDimensions(note, {
     surface: "timeline-detail",
-    maxWidth: 320,
-    maxHeight: 520,
   });
 
   return (

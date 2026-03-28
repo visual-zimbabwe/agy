@@ -37,34 +37,22 @@ export const resolveWallPreviewDimensions = (
   note: Pick<Note, "w" | "h">,
   options: ResolveWallPreviewDimensionsOptions,
 ): WallPreviewDimensions => {
-  const { surface, previewScale = "large", maxWidth, maxHeight } = options;
+  const { surface, previewScale = "large" } = options;
   const minimum = minimumDimensionsBySurface[surface];
   const intrinsicWidth = clampBaseDimension(note.w, minimum.width);
   const intrinsicHeight = clampBaseDimension(note.h, minimum.height);
-  const baseScale = surface === "timeline-canvas" ? timelineCanvasScaleByPreviewScale[previewScale] : 1;
-  const scaledWidth = Math.max(minimum.width, Math.round(intrinsicWidth * baseScale));
-  const scaledHeight = Math.max(minimum.height, Math.round(intrinsicHeight * baseScale));
-
-  let constrainedScale = 1;
-  if (typeof maxWidth === "number" && maxWidth > 0) {
-    constrainedScale = Math.min(constrainedScale, maxWidth / scaledWidth);
-  }
-  if (typeof maxHeight === "number" && maxHeight > 0) {
-    constrainedScale = Math.min(constrainedScale, maxHeight / scaledHeight);
-  }
-
-  const finalScale = Math.min(1, constrainedScale);
-  if (finalScale >= 1) {
+  if (surface === "timeline-canvas") {
+    const baseScale = timelineCanvasScaleByPreviewScale[previewScale];
     return {
-      width: scaledWidth,
-      height: scaledHeight,
+      width: Math.max(minimum.width, Math.round(intrinsicWidth * baseScale)),
+      height: Math.max(minimum.height, Math.round(intrinsicHeight * baseScale)),
       scale: baseScale,
     };
   }
 
   return {
-    width: Math.max(minimum.width, Math.round(scaledWidth * finalScale)),
-    height: Math.max(minimum.height, Math.round(scaledHeight * finalScale)),
-    scale: baseScale * finalScale,
+    width: intrinsicWidth,
+    height: intrinsicHeight,
+    scale: 1,
   };
 };
