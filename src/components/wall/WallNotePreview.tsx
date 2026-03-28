@@ -582,36 +582,130 @@ const VocabularyRenderer = ({ note, width, height, readableText, activeBackgroun
 const CurrencyRenderer = ({ note, width, height, tone }: Pick<RendererProps, "note" | "width" | "height" | "tone">) => {
   const state = note.currency;
   const display = getCurrencyDisplayState(state?.baseCurrency, state?.usdRate, state?.previousUsdRate);
-  const sourceLabel = state?.rateSource === "default" ? "SOURCE: DEFAULT RATE" : "SOURCE: CURRENCY API";
+  const badgeX = Math.max(112, width - 88);
+  const chartPath = [
+    `M 18 ${136}`,
+    `C ${Math.max(34, width * 0.18)} ${132}, ${Math.max(54, width * 0.3)} ${142}, ${Math.max(84, width * 0.42)} ${122}`,
+    `S ${Math.max(146, width * 0.72)} ${102}, ${Math.max(208, width - 18)} ${132}`,
+  ].join(" ");
+
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="h-full p-6" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,243,238,0.82))" }}>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <MetaLabel>Currency Pair</MetaLabel>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <p className="text-[24px] font-bold leading-none" style={{ color: atelier.ink }}>{display.pairLabel}</p>
-              <span className="rounded-[6px] px-2.5 py-1 text-[12px] font-semibold" style={{ background: "#dceedd", color: atelier.forest }}>
-                {formatCurrencyChangeBadge(display.changePercent)}
-              </span>
-            </div>
-          </div>
-          <svg viewBox="0 0 24 24" className="mt-1 h-6 w-6 shrink-0" aria-hidden>
-            <path d="M4 16l5-5 4 4 7-8" fill="none" stroke={atelier.forest} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M15 7h5v5" fill="none" stroke={atelier.forest} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+      <div className="relative h-full" style={{ background: atelier.paper }}>
+        <p
+          className="absolute"
+          style={{
+            left: 18,
+            top: 18,
+            width: Math.max(0, width - 36),
+            color: "rgba(140,124,114,0.75)",
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+          }}
+        >
+          CURRENCY PAIR
+        </p>
+
+        <p
+          className="absolute"
+          style={{
+            left: 18,
+            top: 36,
+            width: Math.max(0, width - 128),
+            color: atelier.ink,
+            fontSize: 20,
+            fontWeight: 700,
+            lineHeight: 1,
+          }}
+        >
+          {display.pairLabel}
+        </p>
+
+        <div
+          className="absolute flex items-center justify-center rounded-[6px]"
+          style={{
+            left: badgeX,
+            top: 34,
+            width: 52,
+            height: 18,
+            background: "#DCEEDD",
+          }}
+        >
+          <span style={{ color: atelier.forest, fontSize: 10, fontWeight: 700 }}>
+            {formatCurrencyChangeBadge(display.changePercent)}
+          </span>
         </div>
-        <div className="mt-9 flex items-end gap-2">
-          <span className="text-[42px] font-black leading-none tracking-[-0.04em]" style={{ color: atelier.ink }}>{formatCurrencyDisplayRate(display.displayRate)}</span>
-          <span className="pb-1 text-[14px]" style={{ color: atelier.muted }}>{display.quoteLabel}</span>
-        </div>
-        <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="mt-6 h-16 w-full" aria-hidden>
-          <path d="M0 18 C9 16 18 19 28 15 C38 10 48 8 58 18 C68 24 79 3 89 7 C94 9 97 13 100 16" fill="none" stroke="#d5dbd7" strokeWidth="2.6" strokeLinecap="round" />
+
+        <svg
+          aria-hidden
+          className="absolute"
+          viewBox="0 0 24 24"
+          style={{ left: Math.max(18, width - 38), top: 24, width: 26, height: 26 }}
+        >
+          <path d="M4 16l5-5 4 4 7-8" fill="none" stroke={atelier.forest} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M15 7h5v5" fill="none" stroke={atelier.forest} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <div className="mt-auto flex items-center justify-between gap-3 border-t pt-4 text-[10px] uppercase tracking-[0.16em]" style={{ borderColor: "rgba(223,192,184,0.42)", color: atelier.quiet }}>
-          <span>{sourceLabel}</span>
-          <span className="normal-case tracking-normal">{formatCurrencyUpdatedAgo(state?.rateUpdatedAt)}</span>
-        </div>
+
+        <p
+          className="absolute"
+          style={{
+            left: 18,
+            top: 72,
+            width: Math.max(92, width - 132),
+            color: atelier.ink,
+            fontSize: 32,
+            fontWeight: 700,
+            lineHeight: 1,
+          }}
+        >
+          {formatCurrencyDisplayRate(display.displayRate)}
+        </p>
+
+        <p
+          className="absolute"
+          style={{
+            left: Math.min(width - 132, 112),
+            top: 85,
+            width: Math.max(0, width - 130),
+            color: atelier.muted,
+            fontSize: 11,
+            lineHeight: 1.1,
+          }}
+        >
+          {display.quoteLabel}
+        </p>
+
+        <svg aria-hidden className="absolute inset-x-0" style={{ top: 96, height: 64, width: "100%" }}>
+          <path d={chartPath} fill="none" stroke="#D5DBD7" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+
+        <p
+          className="absolute"
+          style={{
+            left: 18,
+            top: Math.max(18, height - 28),
+            width: Math.max(0, width - 142),
+            color: "rgba(140,124,114,0.72)",
+            fontSize: 9,
+            letterSpacing: "0.03em",
+          }}
+        >
+          {state?.rateSource === "default" ? "SOURCE: DEFAULT RATE" : "SOURCE: CURRENCY API"}
+        </p>
+
+        <p
+          className="absolute text-right"
+          style={{
+            left: Math.max(112, width - 116),
+            top: Math.max(18, height - 28),
+            width: 98,
+            color: "rgba(140,124,114,0.72)",
+            fontSize: 9,
+          }}
+        >
+          {formatCurrencyUpdatedAgo(state?.rateUpdatedAt)}
+        </p>
       </div>
     </NoteShell>
   );
@@ -1144,5 +1238,4 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
     </div>
   );
 });
-
 
