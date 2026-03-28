@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 
-import { WallNotePreview } from "@/components/wall/WallNotePreview";
+import { WallRenderedNote } from "@/components/wall/WallRenderedNote";
 import { resolveWallPreviewDimensions } from "@/components/wall/wallNotePreviewSizing";
 import { formatTimelineDateTime } from "@/components/wall/wallTimelineViewHelpers";
 import type { Note } from "@/features/wall/types";
@@ -232,9 +232,7 @@ export const WallTimelineView = ({
                       return (
                         <div key={entry.id} className="flex justify-center px-4">
                           <div className="max-w-full text-center">
-                            <div className="rounded-[20px] p-1" style={{ boxShadow: shellStyles.shadow }}>
-                              <WallNotePreview note={entry.note} width={entry.mobile.width} height={entry.mobile.height} scale="large" tone="card" />
-                            </div>
+                            <WallRenderedNote note={entry.note} width={entry.mobile.width} height={entry.mobile.height} />
                             {commonTimeLabel}
                           </div>
                         </div>
@@ -245,11 +243,11 @@ export const WallTimelineView = ({
                       <div key={entry.id} className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] md:gap-10">
                         <div className={`flex ${entry.side === "left" ? "justify-end text-right" : "justify-start md:col-start-3"}`}>
                           <div className={`flex max-w-full flex-col ${entry.side === "left" ? "items-end text-right" : "items-start text-left"}`}>
-                            <div className="md:hidden rounded-[20px] p-1" style={{ boxShadow: shellStyles.shadow }}>
-                              <WallNotePreview note={entry.note} width={entry.mobile.width} height={entry.mobile.height} scale="large" tone="card" />
+                            <div className="md:hidden">
+                              <WallRenderedNote note={entry.note} width={entry.mobile.width} height={entry.mobile.height} />
                             </div>
-                            <div className="hidden md:block rounded-[20px] p-1" style={{ boxShadow: shellStyles.shadow }}>
-                              <WallNotePreview note={entry.note} width={entry.desktop.width} height={entry.desktop.height} scale="large" tone="card" />
+                            <div className="hidden md:block">
+                              <WallRenderedNote note={entry.note} width={entry.desktop.width} height={entry.desktop.height} />
                             </div>
                             {commonTimeLabel}
                           </div>
