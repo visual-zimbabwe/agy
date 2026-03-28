@@ -15,13 +15,18 @@ type WallTimelineViewProps = {
   onExit: () => void;
 };
 
+type TimelineDimensions = {
+  width: number;
+  height: number;
+};
+
 type TimelineEntry = {
   id: string;
   note: Note;
   ts: number;
   side: "left" | "right" | "center";
-  width: number;
-  height: number;
+  desktop: TimelineDimensions;
+  mobile: TimelineDimensions;
 };
 
 type TimelineGroup = {
@@ -43,8 +48,10 @@ const shellStyles = {
   shadow: "0 18px 42px rgba(28, 28, 25, 0.08)",
 };
 
-const desktopCardWidth = 360;
-const mobileCardWidth = 320;
+const desktopColumnWidth = 520;
+const mobileColumnWidth = 320;
+const minimumCardWidth = 220;
+const minimumCardHeight = 170;
 
 const dayKey = (timestamp: number) => {
   const date = new Date(timestamp);
@@ -78,62 +85,15 @@ const formatTimeLabel = (timestamp: number) =>
     minute: "2-digit",
   }).format(timestamp);
 
-const getCardWidth = (note: Note) => Math.max(240, Math.min(desktopCardWidth, Math.round(note.w * 0.92)));
+const fitNoteDimensions = (note: Note, maxWidth: number): TimelineDimensions => {
+  const safeWidth = Math.max(note.w, minimumCardWidth);
+  const safeHeight = Math.max(note.h, minimumCardHeight);
+  const scale = Math.min(1, maxWidth / safeWidth);
 
-const getMinimumCardHeight = (note: Note) => {
-  if (note.pinned) {
-    return 220;
-  }
-  if (note.noteKind === "quote") {
-    return 420;
-  }
-  if (note.noteKind === "poetry") {
-    return 440;
-  }
-  if (note.noteKind === "journal") {
-    return 380;
-  }
-  if (note.noteKind === "throne") {
-    return 380;
-  }
-  if (note.vocabulary) {
-    return 260;
-  }
-  if (note.noteKind === "image" || note.imageUrl?.trim()) {
-    return 300;
-  }
-  if (note.noteKind === "video") {
-    return 320;
-  }
-  if (note.noteKind === "audio") {
-    return 300;
-  }
-  return 210;
-};
-
-const getMaximumCardHeight = (note: Note) => {
-  if (note.noteKind === "quote" || note.noteKind === "poetry" || note.noteKind === "journal" || note.noteKind === "throne") {
-    return 820;
-  }
-  return 560;
-};
-
-const getTextDrivenHeightBoost = (note: Note) => {
-  const textLength = note.text.replace(/\s+/g, " ").trim().length;
-  if (textLength < 120) {
-    return 0;
-  }
-  if (note.noteKind === "quote" || note.noteKind === "poetry" || note.noteKind === "journal" || note.noteKind === "throne") {
-    return Math.min(360, Math.ceil((textLength - 120) / 45) * 34);
-  }
-  return Math.min(140, Math.ceil((textLength - 120) / 100) * 22);
-};
-
-const getCardHeight = (note: Note, width: number) => {
-  const scaledHeight = Math.round(note.h * (width / Math.max(note.w, 1)));
-  const minimumHeight = getMinimumCardHeight(note) + getTextDrivenHeightBoost(note);
-  const maximumHeight = getMaximumCardHeight(note);
-  return Math.min(maximumHeight, Math.max(minimumHeight, scaledHeight));
+  return {
+    width: Math.max(minimumCardWidth, Math.round(safeWidth * scale)),
+    height: Math.max(minimumCardHeight, Math.round(safeHeight * scale)),
+  };
 };
 
 const buildTimelineGroups = (notes: Note[]) => {
@@ -158,8 +118,6 @@ const buildTimelineGroups = (notes: Note[]) => {
   for (const note of sorted) {
     const timestamp = note.createdAt;
     const key = dayKey(timestamp);
-    const width = getCardWidth(note);
-    const height = getCardHeight(note, width);
     const side = note.pinned ? "center" : streamIndex % 2 === 0 ? "left" : "right";
 
     if (!note.pinned) {
@@ -167,7 +125,14 @@ const buildTimelineGroups = (notes: Note[]) => {
     }
 
     const current = groupMap.get(key);
-    const entry: TimelineEntry = { id: note.id, note, ts: timestamp, side, width, height };
+    const entry: TimelineEntry = {
+      id: note.id,
+      note,
+      ts: timestamp,
+      side,
+      desktop: fitNoteDimensions(note, desktopColumnWidth),
+      mobile: fitNoteDimensions(note, mobileColumnWidth),
+    };
 
     if (current) {
       current.entries.push(entry);
@@ -274,8 +239,6 @@ export const WallTimelineView = ({
 
                 <div className="space-y-12 md:space-y-16">
                   {group.entries.map((entry) => {
-                    const mobileWidth = Math.min(entry.width, mobileCardWidth);
-                    const mobileHeight = getCardHeight(entry.note, mobileWidth);
                     const commonTimeLabel = (
                       <p className="mt-4 text-[10px] uppercase tracking-[0.24em]" style={{ color: shellStyles.quiet }}>
                         {formatTimeLabel(entry.ts)}
@@ -287,7 +250,7 @@ export const WallTimelineView = ({
                         <div key={entry.id} className="flex justify-center px-4">
                           <div className="max-w-full text-center">
                             <div className="rounded-[20px] p-1" style={{ boxShadow: shellStyles.shadow }}>
-                              <WallNotePreview note={entry.note} width={mobileWidth} height={mobileHeight} scale="medium" tone="card" />
+                              <WallNotePreview note={entry.note} width={entry.mobile.width} height={entry.mobile.height} scale="large" tone="card" />
                             </div>
                             {commonTimeLabel}
                           </div>
@@ -300,10 +263,10 @@ export const WallTimelineView = ({
                         <div className={`flex ${entry.side === "left" ? "justify-end text-right" : "justify-start md:col-start-3"}`}>
                           <div className={`flex max-w-full flex-col ${entry.side === "left" ? "items-end text-right" : "items-start text-left"}`}>
                             <div className="md:hidden rounded-[20px] p-1" style={{ boxShadow: shellStyles.shadow }}>
-                              <WallNotePreview note={entry.note} width={mobileWidth} height={mobileHeight} scale="medium" tone="card" />
+                              <WallNotePreview note={entry.note} width={entry.mobile.width} height={entry.mobile.height} scale="large" tone="card" />
                             </div>
                             <div className="hidden md:block rounded-[20px] p-1" style={{ boxShadow: shellStyles.shadow }}>
-                              <WallNotePreview note={entry.note} width={entry.width} height={entry.height} scale="medium" tone="card" />
+                              <WallNotePreview note={entry.note} width={entry.desktop.width} height={entry.desktop.height} scale="large" tone="card" />
                             </div>
                             {commonTimeLabel}
                           </div>
@@ -330,5 +293,3 @@ export const WallTimelineView = ({
     </div>
   );
 };
-
-
