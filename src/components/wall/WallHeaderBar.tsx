@@ -104,6 +104,7 @@ export const WallHeaderBar = ({
             Timeline
             {timelineViewActive ? <span className="absolute inset-x-1 -bottom-0.5 h-[2px] rounded-full bg-[#a33818]" /> : null}
           </button>
+          <Link href="/media" className={navLinkClassName}>Media</Link>
         </nav>
 
         <div className="flex items-center justify-end gap-1 sm:gap-2">

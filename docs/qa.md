@@ -1288,7 +1288,7 @@ Expected:
 
 ## Wall Atelier Frontend (`/wall`) (2026-03-26)
 1. Open `/wall` on desktop and verify the atelier chrome loads: floating top navigation, centered bottom omnibar dock, right-side zoom rail, and lower-left sync footer.
-2. Verify the top navigation shows `Wall`, `Decks`, `Page`, and `Timeline`, with `Wall` highlighted in the default wall view.
+2. Verify the top navigation shows `Wall`, `Decks`, `Page`, `Timeline`, and `Media`, with `Wall` highlighted in the default wall view.
 3. Click into the bottom dock and verify it is a real inline input that expands in place above the dock instead of opening a separate modal search palette.
 4. Type plain note text and verify the omnibar shows grouped `Suggestions`, `Actions`, and `Notes`, and that the visible wall notes filter in sync with the query.
 5. Enter query tokens such as `tag:<existing-tag>`, `type:quote`, `is:pinned`, and `tool:details`; verify matching chips appear, wall visibility respects the note filters, and the action group prioritizes matching panel/tool actions.
