@@ -1306,6 +1306,24 @@ Expected:
 - Floating chrome stays inside the viewport and preserves access to tools, details, search, sync status, and zoom actions.
 - Existing wall interactions such as selection, drag, edit, panel toggles, and camera control continue to work behind the new frontend.
 
+## Media Player (`/media`) (2026-03-28)
+1. Open `/wall` and confirm there is at least one audio note and one video note on the wall. If needed, create them using the existing media-note flows.
+2. Open `/media` and verify the page loads without affecting wall state or mutating existing notes.
+3. Verify the right-side `Studio Library` is auto-populated from current wall media notes and groups entries into `Video fragments` and `Audio fragments`.
+4. Confirm the first available video note is selected by default; if there are no videos, verify the first audio note is selected instead.
+5. Select a direct-upload or direct-link video and verify it plays in the main stage with working play/pause, previous/next, seek, and volume controls.
+6. Select an audio note and verify the audio stage updates to the audio-specific visualization while playback controls still work.
+7. Select a YouTube/Vimeo-style linked video note, if present, and verify the embedded player renders in the stage or the page falls back to `Open Original` rather than breaking layout.
+8. While `/media` is open, add another audio or video note on `/wall` in a separate tab/window and verify the `Studio Library` updates automatically without a manual refresh.
+9. Remove or rename a media note on `/wall` and verify `/media` reflects the change automatically and keeps a valid active selection.
+10. Test desktop and mobile-width layouts and verify the player, controls, metadata panel, and library remain visible in viewport without clipped floating UI.
+
+Expected:
+- `/media` reads from the same persisted wall snapshot as `/wall` instead of maintaining a separate media collection.
+- Audio and video notes appear automatically and stay in sync as wall media changes.
+- The media player route does not break existing wall note creation, editing, persistence, or playback behaviors.
+- Direct media sources use the route-level playback controls, while embedded/link-only media degrade gracefully.
+
 ## Joker Note (`/wall`) (2026-03-25)
 1. Open `/wall` and locate the Joker note or create one from `Tools`.
 2. Verify the note uses the warm amber card, compact `SOURCE: JOKES API` label, top-right smile mark, lighter question copy, and bold punchline separated by a thin divider.
