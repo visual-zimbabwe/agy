@@ -2,48 +2,50 @@
 
 ## Purpose
 
-Timeline view gives wall users a time-oriented way to review how a wall has changed instead of only navigating it spatially.
+Timeline view gives wall users a time-oriented way to review notes as a calm chronological stream instead of navigating them spatially on the canvas.
 
 ## Scope
 
-This document covers the current wall timeline behavior, the user value it provides, and its important constraints. It does not document every UI detail of the surrounding wall chrome.
+This document covers the current wall timeline behavior, the read-only constraints of the mode, and the note presentation rules that keep the timeline aligned with the current wall frontend.
 
 ## Behavior
 
-Timeline view is a wall-specific mode that presents wall changes as a horizontal review surface.
+Timeline view is a wall-specific mode that presents existing wall notes on a vertical editorial timeline.
 
 Current capabilities include:
 
-- toggling into timeline mode from the wall workspace
-- reviewing wall changes over time
-- navigating through timeline-oriented cards and detail surfaces
-- pairing with related review affordances such as heatmap and playback-style workflows
+- toggling into timeline view from the wall workspace
+- rendering notes in chronological order using their created timestamps
+- grouping notes by day with centered date markers such as `Today`, `Yesterday`, or a full calendar date
+- alternating note placement across the central timeline rail while allowing pinned notes to sit centered in the stream
+- reusing the same note preview system as `/wall` so specialized note kinds keep their current dedicated shells in timeline view
 
-The wall toolbar exposes timeline access directly, which makes the timeline a first-class wall mode rather than a secondary export or debug feature.
+Timeline is now intentionally view-only. Notes in this mode do not open details, do not reveal themselves back on the wall when clicked, and do not enter editing flows from the timeline surface.
 
 ## Data and State
 
-Timeline behavior depends on persisted wall snapshots and derived review data rather than a separate document model.
+Timeline behavior depends on the current wall note set and note timestamps rather than a separate timeline document model.
 
 Relevant wall concepts:
 
-- persisted wall snapshot state
-- timestamps on notes and related entities
-- camera state
-- timeline entries loaded from wall persistence helpers
+- persisted wall notes
+- note creation timestamps
+- note pin state for centered presentation
+- note-kind-specific preview rendering shared with `/wall`
 
-Timeline view is downstream of wall persistence; it is not a separate storage domain.
+The current timeline layout is downstream of wall note state. It does not own a separate editor, details panel, or reveal workflow.
 
 ## Edge Cases
 
-- Published read-only wall snapshots still need clear read-only behavior around review actions.
-- Timeline state must stay coherent when the wall has sparse history or very recent changes.
-- Large walls and dense history can create UI and performance pressure if review surfaces become too heavy.
+- Empty walls should still render a clear read-only empty state.
+- Dense note histories must remain readable without clipping note shells or hiding the central date rail.
+- Mobile layouts collapse to a single-column chronology while preserving note identity and timestamp context.
 
 ## Limitations
 
-- Timeline is currently documented as part of the wall experience, not as an isolated route or subsystem.
-- The repo does not yet have a dedicated architecture doc for timeline storage and snapshot derivation.
+- Timeline ordering currently follows created time, not a user-selectable sort mode.
+- Timeline view is intentionally non-interactive beyond scrolling and exiting the mode.
+- The current implementation is part of the wall experience, not a standalone route or subsystem.
 
 ## Related Docs
 

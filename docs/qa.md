@@ -1071,31 +1071,22 @@ Expected:
 
 
 ## Horizontal Timeline View
-1. Open `/wall` and create or load several notes with different creation times, including at least one journal note, one quote note, one image note, and one Eisenhower Matrix note.
+1. Open `/wall` and create or load several notes with different creation times, including at least one journal note, one quote note, one image note, and one pinned note.
 2. Click `Timeline View` in the top toolbar or press `V`.
-3. Verify notes render as faithful note cards instead of generic text blocks, and confirm journal notes keep the white editorial Journal card structure while Eisenhower Matrix notes keep a visible four-quadrant layout.
-4. Switch `Sort` between `Created Date` and `Last Edited` and verify card order/date chips change accordingly.
-5. Switch `Card Size` among `Small`, `Medium`, and `Large` and verify preview depth changes without breaking note identity or clipping important content.
-6. Switch `Zoom` among `Overview`, `Standard`, and `Detail`, then use `Ctrl/Cmd + 0` for `Fit All` and `Ctrl/Cmd + +/-` to zoom; verify spacing updates smoothly.
-7. Toggle `View Mode` between `Stream` and `Buckets`, switch `Group By` among `Day`, `Week`, and `Month`, and verify section labels, bucket backgrounds, and counts remain readable.
-8. Change `Range` among `7D`, `30D`, `90D`, `1Y`, and `All`; verify the note set updates to the expected time window.
-9. Use `Earliest`, `Today`, `Latest`, `Selected`, and `Fit All`; verify each action scrolls to the correct point in time.
-10. Scroll with the mouse wheel, hold `Shift` while scrolling, and use trackpad pinch or `Ctrl/Cmd + +/-`; verify horizontal panning and zooming behave as labeled.
-11. Use `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Home`, and `End` to move between notes and buckets.
-12. Drag or click across the bottom scrubber and verify the density graph, selected marker, and note selection stay in sync.
-13. Select a note and verify the detail panel shows a fuller preview with readable timestamps, tags, and a prominent `Reveal on Wall` action.
-14. Double-click a timeline card or click `Reveal on Wall` and verify the app returns to the wall canvas focused on that note.
-15. Toggle the app between light and dark themes and verify the timeline background is pure white in light mode and pure black in dark mode, with controls, borders, and text remaining legible.
+3. Verify the timeline opens as a vertical editorial stream with a warm paper background, a centered timeline rail, and day markers such as `Today` or `Yesterday`.
+4. Verify notes render with the same specialized frontend shells used on `/wall` instead of generic cards, including readable journal, quote, image, and pinned-note treatments.
+5. Verify unpinned notes alternate to the left and right of the center rail on desktop-sized viewports.
+6. Verify pinned notes render centered in the timeline stream rather than joining the left-right alternation.
+7. Scroll through the timeline and verify each note shows a compact timestamp beneath the card without clipping or overlapping the surrounding layout.
+8. Verify clicking a note does not open details, does not reveal the note on the wall, and does not enter any editor flow.
+9. Press `Escape` or click `Close` and verify the app exits timeline view.
+10. Resize to a mobile-sized viewport and verify the timeline collapses into a readable single-column stream while keeping date markers and timestamps visible.
 
 Expected:
-- Timeline view provides a read-only horizontal chronology that preserves note-type identity.
-- Journal and Eisenhower Matrix notes remain recognizable in both cards and the detail panel.
-- `Sort`, `Card Size`, `Zoom`, `Group By`, `View Mode`, and `Range` are understandable without guesswork.
-- `Fit All`, quick jumps, keyboard navigation, and the density scrubber all move through time predictably.
-- Bucket sections, rhythm lines, and selection styling make chronology easy to read at a glance.
-- Dark mode uses `#000000` as the main timeline background and light mode uses `#FFFFFF`.
-- Timeline cards, scrubber, tooltips, and detail panel remain fully visible and usable on desktop and mobile-sized viewports.
-- `Reveal on Wall` exits timeline view and restores note focus in the canvas.
+- Timeline view provides a read-only chronological review surface rather than an interactive editor or detail browser.
+- Timeline notes preserve the same note-type identity and visual treatment used on `/wall`.
+- The centered date rail, day chips, and timestamp labels remain fully visible on desktop and mobile-sized viewports.
+- Notes cannot be opened, edited, or revealed from timeline view.
 ## Wiki Links and Backlinks (`/wall`) (2026-03-16)
 1. Open `/wall`, create at least three notes with distinct first-line titles.
 2. Edit one note and type `[[`; verify a suggestion menu appears at the caret with existing note titles.
@@ -1369,3 +1360,4 @@ Expected:
 - Keyboard shortcuts remain available, but they are a subsection of help rather than the entire help experience.
 - Help actions are discoverable from both the profile menu and the wall omnibar.
 - The quick-help modal and `/help` route share the same article inventory and stay visually within the viewport.
+
