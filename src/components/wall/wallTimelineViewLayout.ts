@@ -1,5 +1,6 @@
 "use client";
 
+import { resolveWallPreviewDimensions, type WallPreviewScale } from "@/components/wall/wallNotePreviewSizing";
 import { makeBucketKey, type TimelineBucketMode } from "@/components/wall/wallTimelineViewHelpers";
 import type { Note } from "@/features/wall/types";
 
@@ -90,8 +91,6 @@ const zoomSpreadMultiplier: Record<WallTimelineZoom, number> = {
 
 const readTimestamp = (note: Note, sort: WallTimelineSort) => (sort === "updated" ? note.updatedAt : note.createdAt);
 
-const clampDimension = (value: number, minimum: number) => Math.max(minimum, Math.round(value));
-
 const buildBucketedTargets = (
   sorted: Note[],
   readTs: (note: Note) => number,
@@ -157,6 +156,7 @@ export const buildWallTimelineLayout = (
     });
 
   const config = sizeConfig[cardSize];
+  const previewScale = cardSize as WallPreviewScale;
   const spreadMultiplier = zoomSpreadMultiplier[zoom];
   const fitWidth = Math.max(420, viewportWidth - startOffset - endOffset);
   const minimumSpread = Math.max(120, Math.round(config.minimumSpread * spreadMultiplier));
@@ -193,8 +193,12 @@ export const buildWallTimelineLayout = (
     const targetX = bucketTargets
       ? bucketTargets.get(note.id) ?? startOffset
       : startOffset + normalized * Math.max(minimumSpread * Math.max(sorted.length - 1, 1), minimumTimelineSpread);
-    const width = clampDimension(note.w * config.scale, 144);
-    const height = clampDimension(note.h * config.scale, 116);
+    const dimensions = resolveWallPreviewDimensions(note, {
+      surface: "timeline-canvas",
+      previewScale,
+    });
+    const width = dimensions.width;
+    const height = dimensions.height;
     const bucketKey = makeBucketKey(timestamp, groupBy);
 
     let lane = laneRightEdges.findIndex((rightEdge) => targetX >= rightEdge + config.horizontalGap);

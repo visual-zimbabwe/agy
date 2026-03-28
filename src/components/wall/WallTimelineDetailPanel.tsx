@@ -2,6 +2,7 @@
 
 import { WallNotePreview } from "@/components/wall/WallNotePreview";
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
+import { resolveWallPreviewDimensions } from "@/components/wall/wallNotePreviewSizing";
 import { formatTimelineDateTime } from "@/components/wall/wallTimelineViewHelpers";
 import type { Note } from "@/features/wall/types";
 
@@ -24,6 +25,12 @@ export const WallTimelineDetailPanel = ({ note, timestamp, onReveal, onClose }: 
     );
   }
 
+  const previewDimensions = resolveWallPreviewDimensions(note, {
+    surface: "timeline-detail",
+    maxWidth: 320,
+    maxHeight: 520,
+  });
+
   return (
     <aside className="hidden w-[380px] shrink-0 border-l border-[var(--timeline-panel-border)] bg-[var(--timeline-panel)]/92 p-4 backdrop-blur-xl xl:block">
       <div className="flex h-full flex-col gap-4 overflow-hidden">
@@ -38,7 +45,7 @@ export const WallTimelineDetailPanel = ({ note, timestamp, onReveal, onClose }: 
         </div>
 
         <div className="min-h-0 overflow-auto rounded-[32px] border border-[var(--timeline-panel-border)] bg-[var(--timeline-panel-alt)] p-4">
-          <WallNotePreview note={note} width={320} height={Math.max(260, Math.min(520, note.h * 1.08))} scale="large" tone="detail" selected />
+          <WallNotePreview note={note} width={previewDimensions.width} height={previewDimensions.height} scale="large" tone="detail" selected />
 
           <div className="mt-4 space-y-3">
             <div>

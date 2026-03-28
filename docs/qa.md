@@ -1075,16 +1075,19 @@ Expected:
 2. Click `Timeline View` in the top toolbar or press `V`.
 3. Verify the timeline opens as a vertical editorial stream with a warm paper background, a centered timeline rail, and day markers such as `Today` or `Yesterday`.
 4. Verify notes render with the same specialized frontend shells used on `/wall` instead of generic cards, including readable journal, quote, image, and pinned-note treatments.
-5. Verify unpinned notes alternate to the left and right of the center rail on desktop-sized viewports.
-6. Verify pinned notes render centered in the timeline stream rather than joining the left-right alternation.
-7. Scroll through the timeline and verify each note shows a compact timestamp beneath the card without clipping or overlapping the surrounding layout.
-8. Verify clicking a note does not open details, does not reveal the note on the wall, and does not enter any editor flow.
-9. Press `Escape` or click `Close` and verify the app exits timeline view.
-10. Resize to a mobile-sized viewport and verify the timeline collapses into a readable single-column stream while keeping date markers and timestamps visible.
+5. Verify a note that fits on the wall keeps the same visible width and height in timeline view rather than shrinking into a smaller preview card.
+6. Verify unpinned notes alternate to the left and right of the center rail on desktop-sized viewports.
+7. Verify pinned notes render centered in the timeline stream rather than joining the left-right alternation.
+8. Scroll through the timeline and verify each note shows a compact timestamp beneath the card without clipping or overlapping the surrounding layout.
+9. Resize the wall note larger, reopen timeline view, and verify the timeline copy grows with it while still downscaling proportionally on narrow/mobile viewports only when required to fit the available width.
+10. Verify clicking a note does not open details, does not reveal the note on the wall, and does not enter any editor flow.
+11. Press `Escape` or click `Close` and verify the app exits timeline view.
+12. Resize to a mobile-sized viewport and verify the timeline collapses into a readable single-column stream while keeping date markers and timestamps visible.
 
 Expected:
 - Timeline view provides a read-only chronological review surface rather than an interactive editor or detail browser.
 - Timeline notes preserve the same note-type identity and visual treatment used on `/wall`.
+- Timeline notes preserve wall note dimensions when space allows, and only scale down proportionally when the viewport or timeline column cannot fit the original note size.
 - The centered date rail, day chips, and timestamp labels remain fully visible on desktop and mobile-sized viewports.
 - Notes cannot be opened, edited, or revealed from timeline view.
 ## Wiki Links and Backlinks (`/wall`) (2026-03-16)

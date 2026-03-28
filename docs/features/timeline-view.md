@@ -19,6 +19,7 @@ Current capabilities include:
 - grouping notes by day with centered date markers such as `Today`, `Yesterday`, or a full calendar date
 - alternating note placement across the central timeline rail while allowing pinned notes to sit centered in the stream
 - reusing the same note preview system as `/wall` so specialized note kinds keep their current dedicated shells in timeline view
+- preserving the wall note's stored width and height in timeline previews by default, with proportional downscaling only when a timeline surface is too narrow to fit the original note safely
 
 Timeline is now intentionally view-only. Notes in this mode do not open details, do not reveal themselves back on the wall when clicked, and do not enter editing flows from the timeline surface.
 

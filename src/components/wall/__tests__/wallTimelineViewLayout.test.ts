@@ -41,7 +41,7 @@ describe("buildWallTimelineLayout", () => {
     expect(layout.items.map((item) => item.id)).toEqual(["last-updated", "first-created"]);
   });
 
-  it("scales note dimensions using card size while preserving proportions", () => {
+  it("uses the shared timeline preview sizing policy for card dimensions", () => {
     const layout = buildWallTimelineLayout([
       makeNote("wide", 1000, 1000, { w: 420, h: 180 }),
       makeNote("tall", 2000, 2000, { w: 180, h: 320 }),
@@ -54,6 +54,7 @@ describe("buildWallTimelineLayout", () => {
     expect(layout.items[0]?.width).toBe(420);
     expect(layout.items[1]?.height).toBe(320);
     expect(compact.items[0]?.width).toBeLessThan(layout.items[0]?.width ?? 0);
+    expect(compact.items[1]?.height).toBeLessThan(layout.items[1]?.height ?? 0);
   });
 
   it("widens the timeline spread for detail zoom levels", () => {

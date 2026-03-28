@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 
 import { WallNotePreview } from "@/components/wall/WallNotePreview";
+import { resolveWallPreviewDimensions } from "@/components/wall/wallNotePreviewSizing";
 import { formatTimelineDateTime } from "@/components/wall/wallTimelineViewHelpers";
 import type { Note } from "@/features/wall/types";
 
@@ -15,18 +16,13 @@ type WallTimelineViewProps = {
   onExit: () => void;
 };
 
-type TimelineDimensions = {
-  width: number;
-  height: number;
-};
-
 type TimelineEntry = {
   id: string;
   note: Note;
   ts: number;
   side: "left" | "right" | "center";
-  desktop: TimelineDimensions;
-  mobile: TimelineDimensions;
+  desktop: ReturnType<typeof resolveWallPreviewDimensions>;
+  mobile: ReturnType<typeof resolveWallPreviewDimensions>;
 };
 
 type TimelineGroup = {
@@ -50,8 +46,6 @@ const shellStyles = {
 
 const desktopColumnWidth = 520;
 const mobileColumnWidth = 320;
-const minimumCardWidth = 220;
-const minimumCardHeight = 170;
 
 const dayKey = (timestamp: number) => {
   const date = new Date(timestamp);
@@ -84,17 +78,6 @@ const formatTimeLabel = (timestamp: number) =>
     hour: "numeric",
     minute: "2-digit",
   }).format(timestamp);
-
-const fitNoteDimensions = (note: Note, maxWidth: number): TimelineDimensions => {
-  const safeWidth = Math.max(note.w, minimumCardWidth);
-  const safeHeight = Math.max(note.h, minimumCardHeight);
-  const scale = Math.min(1, maxWidth / safeWidth);
-
-  return {
-    width: Math.max(minimumCardWidth, Math.round(safeWidth * scale)),
-    height: Math.max(minimumCardHeight, Math.round(safeHeight * scale)),
-  };
-};
 
 const buildTimelineGroups = (notes: Note[]) => {
   const sorted = [...notes]
@@ -130,8 +113,8 @@ const buildTimelineGroups = (notes: Note[]) => {
       note,
       ts: timestamp,
       side,
-      desktop: fitNoteDimensions(note, desktopColumnWidth),
-      mobile: fitNoteDimensions(note, mobileColumnWidth),
+      desktop: resolveWallPreviewDimensions(note, { surface: "timeline-stream", maxWidth: desktopColumnWidth }),
+      mobile: resolveWallPreviewDimensions(note, { surface: "timeline-stream", maxWidth: mobileColumnWidth }),
     };
 
     if (current) {
