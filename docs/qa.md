@@ -182,6 +182,18 @@ Expected:
 - File notes support local-device upload and link-backed file creation without breaking other note kinds.
 - The non-edit shell matches the new document-card frontend: filename-first layout, muted uppercase metadata, and a visible download or open affordance.
 - File-note overlays remain visible and unclipped on desktop and mobile wall layouts.
+
+## Code Note (`/wall`) (2026-03-28)
+1. Open `/wall`, create or convert a note that starts with a fenced code block such as ```py plus a few lines of Python.
+2. Verify the wall note renders as the dark `notes_v2` editor-card shell instead of a plain paper note.
+3. Verify the top chrome shows the three traffic-light dots on the left, an uppercase filename on the right, and a copy-style glyph.
+4. Verify the code body uses a monospace font with syntax-tinted lines rather than plain paragraph text.
+5. Open timeline view for the same note and verify it keeps the same dark editor-card shell because timeline reuses the wall renderer.
+
+Expected:
+- Code notes on `/wall` use the dark `notes_v2` editor-card frontend rather than the default paper note shell.
+- The code-note shell includes editor chrome, uppercase filename treatment, and syntax-colored code lines.
+- Timeline copies match the same wall-rendered code-note frontend.
 ## Audio Note (`/wall`) (2026-03-26)
 1. Open `/wall`, open `Tools`, and click `New Audio`.
 2. Verify an audio card appears using the new `notes_v3` audio frontend: icon tile, serif title, terracotta waveform, and top-right download/open actions.

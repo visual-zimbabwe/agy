@@ -5,6 +5,7 @@ import { Circle, Group, Image as KonvaImage, Line, Rect, Text } from "react-konv
 import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
+import { parseCodeNote, tokenizeCodeLine } from "@/components/wall/codeNoteRendering";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { getApodCaption, isApodNote } from "@/features/wall/apod";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
@@ -630,6 +631,8 @@ export const WallNotesLayer = ({
         const videoCurrentTime = formatVideoDuration(noteView.video?.durationSeconds ? Math.max(0, Math.round(noteView.video.durationSeconds * 0.35)) : 0);
         const videoPoster = noteView.video?.posterDataUrl?.trim();
         const loadedVideoPoster = videoPoster ? loadedImagesByUrl[videoPoster] : undefined;
+        const parsedCodeNote = looksLikeCode ? parseCodeNote(noteView.text) : null;
+        const renderedCodeLines = parsedCodeNote?.body.split("\n").slice(0, 8) ?? [];
         const journalTitle = noteLines[0] ?? "Dear Wall,";
         const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
         const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isVideo && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !isCurrency && !isEconomist && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
@@ -1956,26 +1959,66 @@ export const WallNotesLayer = ({
             )}
             {looksLikeCode && (
               <>
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={14} fill="#1E1E1E" listening={false} />
-                <Rect x={0} y={0} width={noteView.w} height={40} cornerRadius={[14, 14, 0, 0]} fill="#252526" listening={false} />
-                <Rect x={16} y={15} width={10} height={10} cornerRadius={5} fill="#FF5F56" listening={false} />
-                <Rect x={31} y={15} width={10} height={10} cornerRadius={5} fill="#FFBD2E" listening={false} />
-                <Rect x={46} y={15} width={10} height={10} cornerRadius={5} fill="#27C93F" listening={false} />
-                <Text x={Math.max(72, noteView.w - 132)} y={16} width={76} align="right" fontSize={9} fill="rgba(255,255,255,0.4)" text={fileNameMatch?.[1] ?? "main.py"} ellipsis listening={false} />
-                <Text x={Math.max(18, noteView.w - 48)} y={16} width={30} align="right" fontSize={9} fill="rgba(255,255,255,0.28)" text="COPY" listening={false} />
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={18} fill="#1E1E1E" listening={false} />
+                <Rect width={noteView.w} height={noteView.h} cornerRadius={18} stroke="rgba(255,255,255,0.06)" strokeWidth={1} listening={false} />
+                <Rect x={18} y={18} width={10} height={10} cornerRadius={5} fill="#FF5F56" listening={false} />
+                <Rect x={34} y={18} width={10} height={10} cornerRadius={5} fill="#FFBD2E" listening={false} />
+                <Rect x={50} y={18} width={10} height={10} cornerRadius={5} fill="#27C93F" listening={false} />
                 <Text
-                  x={16}
-                  y={56}
-                  width={Math.max(0, noteView.w - 32)}
-                  height={Math.max(0, noteView.h - 72)}
-                  fontSize={12}
+                  x={Math.max(108, noteView.w - 144)}
+                  y={18}
+                  width={92}
+                  align="right"
+                  fontSize={9}
                   fontFamily="JetBrains Mono"
-                  lineHeight={1.45}
-                  fill="#D4D4D4"
-                  text={strippedNoteText}
+                  fontStyle="bold"
+                  letterSpacing={1.1}
+                  fill="rgba(255,255,255,0.42)"
+                  text={(parsedCodeNote?.fileName ?? "main.py").toUpperCase()}
                   ellipsis
                   listening={false}
                 />
+                <Group x={Math.max(18, noteView.w - 48)} y={16} listening={false}>
+                  <Rect x={6} y={2} width={12} height={14} cornerRadius={2} fill="rgba(255,255,255,0.14)" />
+                  <Rect x={2} y={6} width={12} height={14} cornerRadius={2} fill="rgba(255,255,255,0.24)" />
+                </Group>
+                {renderedCodeLines.map((line, lineIndex) => {
+                  const segments = tokenizeCodeLine(line, parsedCodeNote?.language ?? "plain");
+                  let cursorX = 22;
+                  const baseY = 64 + lineIndex * 26;
+                  return (
+                    <Group key={`${note.id}-code-line-${lineIndex}`} listening={false}>
+                      {segments.map((segment, segmentIndex) => {
+                        const fill =
+                          segment.tone === "keyword" ? "#c586c0" :
+                            segment.tone === "string" ? "#ce9178" :
+                              segment.tone === "comment" ? "#6a9955" :
+                                segment.tone === "number" ? "#b5cea8" :
+                                  segment.tone === "function" ? "#dcdcaa" :
+                                    segment.tone === "variable" ? "#9cdcfe" :
+                                      segment.tone === "property" ? "#7fc7ff" :
+                                        segment.tone === "command" ? "#4fc1ff" :
+                                          "#d4d4d4";
+                        const text = segment.text.replace(/\t/g, "  ");
+                        const widthEstimate = text.length * 7.2;
+                        const node = (
+                          <Text
+                            key={`${note.id}-code-line-${lineIndex}-segment-${segmentIndex}`}
+                            x={cursorX}
+                            y={baseY}
+                            fontSize={12}
+                            fontFamily="JetBrains Mono"
+                            lineHeight={1.45}
+                            fill={fill}
+                            text={text}
+                          />
+                        );
+                        cursorX += widthEstimate;
+                        return node;
+                      })}
+                    </Group>
+                  );
+                })}
               </>
             )}
             {isAudio && (
@@ -2310,5 +2353,4 @@ export const WallNotesLayer = ({
     </>
   );
 };
-
 
