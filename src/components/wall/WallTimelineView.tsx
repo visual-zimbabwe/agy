@@ -232,7 +232,7 @@ export const WallTimelineView = ({
                       return (
                         <div key={entry.id} className="flex justify-center px-4">
                           <div className="max-w-full text-center">
-                            <WallRenderedNote note={entry.note} width={entry.mobile.width} height={entry.mobile.height} />
+                            <WallRenderedNote note={entry.note} width={entry.mobile.width} height={entry.mobile.height} showNoteTags={false} />
                             {commonTimeLabel}
                           </div>
                         </div>
@@ -244,10 +244,10 @@ export const WallTimelineView = ({
                         <div className={`flex ${entry.side === "left" ? "justify-end text-right" : "justify-start md:col-start-3"}`}>
                           <div className={`flex max-w-full flex-col ${entry.side === "left" ? "items-end text-right" : "items-start text-left"}`}>
                             <div className="md:hidden">
-                              <WallRenderedNote note={entry.note} width={entry.mobile.width} height={entry.mobile.height} />
+                              <WallRenderedNote note={entry.note} width={entry.mobile.width} height={entry.mobile.height} showNoteTags={false} />
                             </div>
                             <div className="hidden md:block">
-                              <WallRenderedNote note={entry.note} width={entry.desktop.width} height={entry.desktop.height} />
+                              <WallRenderedNote note={entry.note} width={entry.desktop.width} height={entry.desktop.height} showNoteTags={false} />
                             </div>
                             {commonTimeLabel}
                           </div>
