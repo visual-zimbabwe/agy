@@ -85,16 +85,16 @@ const getMinimumCardHeight = (note: Note) => {
     return 220;
   }
   if (note.noteKind === "quote") {
-    return 360;
+    return 420;
   }
   if (note.noteKind === "poetry") {
-    return 380;
+    return 440;
   }
   if (note.noteKind === "journal") {
-    return 320;
+    return 380;
   }
   if (note.noteKind === "throne") {
-    return 320;
+    return 380;
   }
   if (note.vocabulary) {
     return 260;
@@ -113,20 +113,20 @@ const getMinimumCardHeight = (note: Note) => {
 
 const getMaximumCardHeight = (note: Note) => {
   if (note.noteKind === "quote" || note.noteKind === "poetry" || note.noteKind === "journal" || note.noteKind === "throne") {
-    return 560;
+    return 820;
   }
-  return 460;
+  return 560;
 };
 
 const getTextDrivenHeightBoost = (note: Note) => {
   const textLength = note.text.replace(/\s+/g, " ").trim().length;
-  if (textLength < 140) {
+  if (textLength < 120) {
     return 0;
   }
   if (note.noteKind === "quote" || note.noteKind === "poetry" || note.noteKind === "journal" || note.noteKind === "throne") {
-    return Math.min(180, Math.ceil((textLength - 140) / 70) * 28);
+    return Math.min(360, Math.ceil((textLength - 120) / 45) * 34);
   }
-  return Math.min(96, Math.ceil((textLength - 140) / 120) * 20);
+  return Math.min(140, Math.ceil((textLength - 120) / 100) * 22);
 };
 
 const getCardHeight = (note: Note, width: number) => {
@@ -330,3 +330,5 @@ export const WallTimelineView = ({
     </div>
   );
 };
+
+
