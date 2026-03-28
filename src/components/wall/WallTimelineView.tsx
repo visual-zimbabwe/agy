@@ -250,7 +250,7 @@ export const WallTimelineView = ({
                         <div key={entry.id} className="flex justify-center px-4">
                           <div className="max-w-full text-center">
                             <div className="rounded-[20px] p-1" style={{ boxShadow: shellStyles.shadow }}>
-                              <WallNotePreview note={entry.note} width={entry.mobile.width} height={entry.mobile.height} scale="large" tone="card" />
+                              <WallNotePreview note={entry.note} width={entry.mobile.width} height={entry.mobile.height} scale="large" tone="detail" />
                             </div>
                             {commonTimeLabel}
                           </div>
@@ -263,10 +263,10 @@ export const WallTimelineView = ({
                         <div className={`flex ${entry.side === "left" ? "justify-end text-right" : "justify-start md:col-start-3"}`}>
                           <div className={`flex max-w-full flex-col ${entry.side === "left" ? "items-end text-right" : "items-start text-left"}`}>
                             <div className="md:hidden rounded-[20px] p-1" style={{ boxShadow: shellStyles.shadow }}>
-                              <WallNotePreview note={entry.note} width={entry.mobile.width} height={entry.mobile.height} scale="large" tone="card" />
+                              <WallNotePreview note={entry.note} width={entry.mobile.width} height={entry.mobile.height} scale="large" tone="detail" />
                             </div>
                             <div className="hidden md:block rounded-[20px] p-1" style={{ boxShadow: shellStyles.shadow }}>
-                              <WallNotePreview note={entry.note} width={entry.desktop.width} height={entry.desktop.height} scale="large" tone="card" />
+                              <WallNotePreview note={entry.note} width={entry.desktop.width} height={entry.desktop.height} scale="large" tone="detail" />
                             </div>
                             {commonTimeLabel}
                           </div>
@@ -293,3 +293,4 @@ export const WallTimelineView = ({
     </div>
   );
 };
+
