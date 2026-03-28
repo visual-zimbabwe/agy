@@ -83,18 +83,18 @@ const buildTimelineGroups = (notes: Note[]) => {
   const sorted = [...notes]
     .filter((note) => !note.deletedAt)
     .sort((left, right) => {
-      const delta = left.createdAt - right.createdAt;
+      const delta = right.createdAt - left.createdAt;
       if (delta !== 0) {
         return delta;
       }
-      return left.updatedAt - right.updatedAt;
+      return right.updatedAt - left.updatedAt;
     });
 
   if (sorted.length === 0) {
     return [] as TimelineGroup[];
   }
 
-  const latestDay = startOfDay(sorted[sorted.length - 1]!.createdAt);
+  const latestDay = startOfDay(sorted[0]!.createdAt);
   let streamIndex = 0;
   const groupMap = new Map<string, TimelineGroup>();
 
