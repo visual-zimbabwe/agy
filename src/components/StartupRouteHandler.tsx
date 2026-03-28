@@ -11,6 +11,7 @@ import {
 } from "@/lib/account-settings";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 import { applyPreferencesToDocument, preferenceStorageKeys, readStoredPreferences } from "@/lib/preferences";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const allowedStartupPaths = new Set(["/wall", "/page", "/decks", "/media", "/settings", "/help"]);
 
@@ -33,8 +34,18 @@ export const StartupRouteHandler = () => {
     let cancelled = false;
     const bootstrap = async () => {
       applyLatest();
+
+      const supabase = createSupabaseBrowserClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (cancelled || !sessionData.session) {
+        return;
+      }
+
       try {
         const response = await fetch("/api/account/settings", { cache: "no-store" });
+        if (response.status === 401) {
+          return;
+        }
         if (response.ok) {
           const payload = (await response.json()) as { settings?: unknown | null };
           if (!cancelled && payload.settings) {

@@ -39,8 +39,8 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings, onOpenHelp
   useEffect(() => {
     const loadProfile = async () => {
       const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase.auth.getUser();
-      const metadata = data.user?.user_metadata as Record<string, unknown> | undefined;
+      const { data } = await supabase.auth.getSession();
+      const metadata = data.session?.user.user_metadata as Record<string, unknown> | undefined;
       setPreferredName(typeof metadata?.full_name === "string" ? metadata.full_name : "");
       setAvatarUrl(typeof metadata?.avatar_url === "string" ? metadata.avatar_url : "");
     };
