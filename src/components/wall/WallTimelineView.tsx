@@ -80,9 +80,60 @@ const formatTimeLabel = (timestamp: number) =>
 
 const getCardWidth = (note: Note) => Math.max(240, Math.min(desktopCardWidth, Math.round(note.w * 0.92)));
 
+const getMinimumCardHeight = (note: Note) => {
+  if (note.pinned) {
+    return 220;
+  }
+  if (note.noteKind === "quote") {
+    return 360;
+  }
+  if (note.noteKind === "poetry") {
+    return 380;
+  }
+  if (note.noteKind === "journal") {
+    return 320;
+  }
+  if (note.noteKind === "throne") {
+    return 320;
+  }
+  if (note.vocabulary) {
+    return 260;
+  }
+  if (note.noteKind === "image" || note.imageUrl?.trim()) {
+    return 300;
+  }
+  if (note.noteKind === "video") {
+    return 320;
+  }
+  if (note.noteKind === "audio") {
+    return 300;
+  }
+  return 210;
+};
+
+const getMaximumCardHeight = (note: Note) => {
+  if (note.noteKind === "quote" || note.noteKind === "poetry" || note.noteKind === "journal" || note.noteKind === "throne") {
+    return 560;
+  }
+  return 460;
+};
+
+const getTextDrivenHeightBoost = (note: Note) => {
+  const textLength = note.text.replace(/\s+/g, " ").trim().length;
+  if (textLength < 140) {
+    return 0;
+  }
+  if (note.noteKind === "quote" || note.noteKind === "poetry" || note.noteKind === "journal" || note.noteKind === "throne") {
+    return Math.min(180, Math.ceil((textLength - 140) / 70) * 28);
+  }
+  return Math.min(96, Math.ceil((textLength - 140) / 120) * 20);
+};
+
 const getCardHeight = (note: Note, width: number) => {
   const scaledHeight = Math.round(note.h * (width / Math.max(note.w, 1)));
-  return Math.max(170, Math.min(440, scaledHeight));
+  const minimumHeight = getMinimumCardHeight(note) + getTextDrivenHeightBoost(note);
+  const maximumHeight = getMaximumCardHeight(note);
+  return Math.min(maximumHeight, Math.max(minimumHeight, scaledHeight));
 };
 
 const buildTimelineGroups = (notes: Note[]) => {
@@ -279,5 +330,3 @@ export const WallTimelineView = ({
     </div>
   );
 };
-
-
