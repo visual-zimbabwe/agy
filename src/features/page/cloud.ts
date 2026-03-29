@@ -1,13 +1,13 @@
 import type { PersistedPageState } from "@/features/page/types";
+import { getSupabaseBrowserUserSafely } from "@/lib/supabase/browser-auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const getAuthedUserId = async (): Promise<string | null> => {
-  const supabase = createSupabaseBrowserClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) {
+  const { user, error } = await getSupabaseBrowserUserSafely();
+  if (error || !user) {
     return null;
   }
-  return data.user.id;
+  return user.id;
 };
 
 export const loadCloudPageSnapshot = async (docId: string): Promise<PersistedPageState | null> => {

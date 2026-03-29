@@ -1033,6 +1033,7 @@ Expected:
 13. While signed in on `/wall`, clear or expire the session, trigger `Sync now`, and verify the app redirects to `/login` with a session-expired message instead of showing raw `Unauthorized`.
 14. Repeat the expired-session check from `/settings` by saving settings after the session is cleared; verify redirect to `/login` and that re-sign-in returns to `/settings`.
 15. On `/login` and `/signup`, simulate the auth service being unreachable and verify the form shows a readable transport error instead of throwing an uncaught browser exception.
+16. On `/`, `/forgot-password`, `/reset-password`, and `/settings`, simulate the auth service being unreachable and verify the app falls back to local/default state or inline error messaging without uncaught `Failed to fetch` / `AuthRetryableFetchError` console failures.
 
 Expected:
 - `/wall` is protected for unauthenticated users.
@@ -1042,6 +1043,7 @@ Expected:
 - Note formatting (`textAlign`, `textVAlign`, `textColor`) survives app/browser restarts and cloud rehydration.
 - Expired authenticated sessions redirect to `/login` cleanly for wall sync and settings saves without surfacing raw backend auth strings.
 - Login and signup surface network/auth transport failures as inline form errors.
+- Browser-side auth bootstrap and recovery flows degrade cleanly when Supabase auth is temporarily unreachable.
 
 ## Cloud Sync Regression - Note Groups and Note State (2026-02-14)
 1. Sign in on device A and create 3 notes.

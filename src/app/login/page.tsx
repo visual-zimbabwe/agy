@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { consumeAuthRedirectState } from "@/lib/api/client-auth";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getBrowserAuthErrorMessage, getSupabaseBrowserSessionSafely } from "@/lib/supabase/browser-auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -74,16 +74,16 @@ export default function LoginPage() {
       }
 
       // Keep the browser auth client warm so downstream listeners can observe the fresh cookie-backed session.
-      const supabase = createSupabaseBrowserClient();
-      await supabase.auth.getSession();
+      const { error: sessionError } = await getSupabaseBrowserSessionSafely();
+      if (sessionError) {
+        throw sessionError;
+      }
 
       router.replace(nextPath);
       router.refresh();
     } catch (error) {
       const message =
-        error instanceof Error && error.message
-          ? `Unable to reach sign-in service. ${error.message}`
-          : "Unable to reach sign-in service. Check your connection and try again.";
+        `Unable to reach sign-in service. ${getBrowserAuthErrorMessage(error)}`;
       setError(message);
     } finally {
       setBusy(false);

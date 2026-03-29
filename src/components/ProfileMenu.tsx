@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { legacyProfileUpdatedEventName, profileUpdatedEventName } from "@/lib/brand";
+import { getSupabaseBrowserSessionSafely } from "@/lib/supabase/browser-auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type ProfileMenuProps = {
@@ -38,9 +39,8 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings, onOpenHelp
 
   useEffect(() => {
     const loadProfile = async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase.auth.getSession();
-      const metadata = data.session?.user.user_metadata as Record<string, unknown> | undefined;
+      const { session } = await getSupabaseBrowserSessionSafely();
+      const metadata = session?.user.user_metadata as Record<string, unknown> | undefined;
       setPreferredName(typeof metadata?.full_name === "string" ? metadata.full_name : "");
       setAvatarUrl(typeof metadata?.avatar_url === "string" ? metadata.avatar_url : "");
     };

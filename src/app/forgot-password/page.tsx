@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { type FormEvent, useState } from "react";
 
+import { getBrowserAuthErrorMessage } from "@/lib/supabase/browser-auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
@@ -16,18 +17,22 @@ export default function ForgotPasswordPage() {
     setError(null);
     setNotice(null);
     setBusy(true);
-    const supabase = createSupabaseBrowserClient();
-    const redirectTo = `${window.location.origin}/reset-password`;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const redirectTo = `${window.location.origin}/reset-password`;
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
 
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+      if (resetError) {
+        setError(resetError.message);
+        return;
+      }
 
-    setBusy(false);
-    if (resetError) {
-      setError(resetError.message);
-      return;
+      setNotice("Check your inbox for the password reset link.");
+    } catch (error) {
+      setError(getBrowserAuthErrorMessage(error));
+    } finally {
+      setBusy(false);
     }
-
-    setNotice("Check your inbox for the password reset link.");
   };
 
   return (

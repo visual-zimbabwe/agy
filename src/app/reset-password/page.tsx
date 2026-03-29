@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
+import { getBrowserAuthErrorMessage, getSupabaseBrowserSessionSafely } from "@/lib/supabase/browser-auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
@@ -17,8 +18,8 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
+    void getSupabaseBrowserSessionSafely().then(({ session }) => {
+      if (session) {
         setReady(true);
       }
     });
@@ -47,18 +48,23 @@ export default function ResetPasswordPage() {
       return;
     }
     setBusy(true);
-    const supabase = createSupabaseBrowserClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    setBusy(false);
-    if (updateError) {
-      setError(updateError.message);
-      return;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+      setNotice("Password updated. Redirecting to login...");
+      window.setTimeout(() => {
+        router.replace("/login");
+        router.refresh();
+      }, 900);
+    } catch (error) {
+      setError(getBrowserAuthErrorMessage(error));
+    } finally {
+      setBusy(false);
     }
-    setNotice("Password updated. Redirecting to login...");
-    window.setTimeout(() => {
-      router.replace("/login");
-      router.refresh();
-    }, 900);
   };
 
   return (

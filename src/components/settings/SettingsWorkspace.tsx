@@ -11,6 +11,7 @@ import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-aut
 import { appName, profileUpdatedEventName } from "@/lib/brand";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import { readStoredPreferences, type StartupBehavior, type StartupPage, type ThemePreference } from "@/lib/preferences";
+import { getBrowserAuthErrorMessage, getSupabaseBrowserUserSafely } from "@/lib/supabase/browser-auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type SettingsWorkspaceProps = {
@@ -413,30 +414,33 @@ export const SettingsWorkspace = ({ userEmail, embedded = false, onReplayTour }:
 
   useEffect(() => {
     const loadProfile = async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase.auth.getUser();
-      const metadata = data.user?.user_metadata as Record<string, unknown> | undefined;
+      const { user } = await getSupabaseBrowserUserSafely();
+      const metadata = user?.user_metadata as Record<string, unknown> | undefined;
       setPreferredName(typeof metadata?.full_name === "string" ? metadata.full_name : "");
       setProfilePhotoUrl(typeof metadata?.avatar_url === "string" ? metadata.avatar_url : "");
-      setProfileEmail(data.user?.email ?? userEmail);
+      setProfileEmail(user?.email ?? userEmail);
     };
     void loadProfile();
   }, [userEmail]);
 
   const refreshMfaState = async () => {
-    const supabase = createSupabaseBrowserClient();
-    const { data, error } = await supabase.auth.mfa.listFactors();
-    if (error) {
-      setAccountStatus(error.message ?? "Failed to load 2FA status.");
-      return;
-    }
-    const verifiedTotp = data.totp.find((entry) => entry.status === "verified");
-    setMfaEnabled(Boolean(verifiedTotp));
-    if (verifiedTotp) {
-      setMfaFactorId(verifiedTotp.id);
-      setMfaQrCode("");
-      setMfaSecret("");
-      setMfaVerifyCode("");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error) {
+        setAccountStatus(error.message ?? "Failed to load 2FA status.");
+        return;
+      }
+      const verifiedTotp = data.totp.find((entry) => entry.status === "verified");
+      setMfaEnabled(Boolean(verifiedTotp));
+      if (verifiedTotp) {
+        setMfaFactorId(verifiedTotp.id);
+        setMfaQrCode("");
+        setMfaSecret("");
+        setMfaVerifyCode("");
+      }
+    } catch (error) {
+      setAccountStatus(getBrowserAuthErrorMessage(error, "Failed to load 2FA status."));
     }
   };
 
