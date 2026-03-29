@@ -34,31 +34,21 @@ export async function GET(request: Request) {
   const rangeKey = url.searchParams.get("range") ?? "30d";
   const deckId = url.searchParams.get("deckId");
   const includeChildren = url.searchParams.get("includeChildren") !== "0";
+  const now = new Date();
+  const rangeDays = rangeDaysByKey[rangeKey] ?? 30;
+  const floorDate = rangeDays ? new Date(now.getTime() - rangeDays * DAY_MS) : null;
+  const monthFloor = new Date(now.getTime() - 30 * DAY_MS);
+  const yearFloor = new Date(now.getTime() - 365 * DAY_MS);
 
-  const [decksResult, cardsResult, reviewsResult, notesResult] = await Promise.all([
-    auth.supabase.from("decks").select("id,parent_id").eq("owner_id", auth.user.id).eq("archived", false),
-    auth.supabase
-      .from("deck_cards")
-      .select("id,deck_id,note_id,state,due_at,interval_days,reps")
-      .eq("owner_id", auth.user.id),
-    auth.supabase
-      .from("deck_reviews")
-      .select("id,deck_id,rating,reviewed_at,state_before,state_after,interval_days_after")
-      .eq("owner_id", auth.user.id)
-      .order("reviewed_at", { ascending: false })
-      .limit(5000),
-    auth.supabase.from("deck_notes").select("id,deck_id,suspended,created_at").eq("owner_id", auth.user.id),
-  ]);
-
-  if (decksResult.error || cardsResult.error || reviewsResult.error || notesResult.error) {
+  const { data: decks, error: decksError } = await auth.supabase
+    .from("decks")
+    .select("id,parent_id")
+    .eq("owner_id", auth.user.id)
+    .eq("archived", false);
+  if (decksError) {
     return NextResponse.json(
       {
-        error:
-          decksResult.error?.message ??
-          cardsResult.error?.message ??
-          reviewsResult.error?.message ??
-          notesResult.error?.message ??
-          "Failed to load stats.",
+        error: decksError.message,
       },
       { status: 500 },
     );
@@ -66,16 +56,70 @@ export async function GET(request: Request) {
 
   const deckIds = deckId
     ? includeChildren
-      ? collectDeckAndChildrenIds(decksResult.data ?? [], deckId, new Set())
+      ? collectDeckAndChildrenIds(decks ?? [], deckId, new Set())
       : [deckId]
-    : (decksResult.data ?? []).map((deck) => deck.id);
-  const allowed = new Set(deckIds);
+    : (decks ?? []).map((deck) => deck.id);
+  if (deckIds.length === 0) {
+    return NextResponse.json({
+      summary: { totalCards: 0, totalReviews: 0, retentionRate: 0, dueTomorrow: 0 },
+      workload7: Array.from({ length: 7 }, (_, index) => ({
+        day: new Date(startOfDay(now).getTime() + index * DAY_MS).toISOString().slice(0, 10),
+        due: 0,
+      })),
+      forecast: [],
+      forecastMode: "daily",
+      reviewCount: [],
+      reviewTime: [],
+      intervals: { under1: 0, d1to6: 0, d7to20: 0, d21to90: 0, over90: 0 },
+      hourly: Array.from({ length: 24 }, (_, hour) => ({ hour, reviews: 0, correctRate: 0 })),
+      answerButtons: {
+        new: { again: 0, hard: 0, good: 0, easy: 0 },
+        young: { again: 0, hard: 0, good: 0, easy: 0 },
+        mature: { again: 0, hard: 0, good: 0, easy: 0 },
+      },
+      added: [],
+      cardCounts: { new: 0, suspended: 0, buried: 0, reviewed: 0 },
+      retention: { month: 0, year: 0 },
+      today: { studied: 0, minutes: 0, again: 0, correctPct: 0, learn: 0, review: 0, relearn: 0, filtered: 0 },
+    });
+  }
 
-  const now = new Date();
-  const rangeDays = rangeDaysByKey[rangeKey] ?? 30;
-  const floorDate = rangeDays ? new Date(now.getTime() - rangeDays * 86_400_000) : null;
-  const monthFloor = new Date(now.getTime() - 30 * DAY_MS);
-  const yearFloor = new Date(now.getTime() - 365 * DAY_MS);
+  const allowed = new Set(deckIds);
+  const reviewsFloor = rangeKey === "deck_life" ? null : yearFloor;
+
+  const [cardsResult, notesResult, reviewsResult] = await Promise.all([
+    auth.supabase
+      .from("deck_cards")
+      .select("id,deck_id,note_id,state,due_at,interval_days,reps")
+      .eq("owner_id", auth.user.id)
+      .in("deck_id", deckIds),
+    auth.supabase
+      .from("deck_notes")
+      .select("id,deck_id,suspended,created_at")
+      .eq("owner_id", auth.user.id)
+      .in("deck_id", deckIds),
+    (() => {
+      let query = auth.supabase
+        .from("deck_reviews")
+        .select("id,deck_id,rating,reviewed_at,state_before,state_after,interval_days_after")
+        .eq("owner_id", auth.user.id)
+        .in("deck_id", deckIds)
+        .order("reviewed_at", { ascending: false });
+      if (reviewsFloor) {
+        query = query.gte("reviewed_at", reviewsFloor.toISOString());
+      }
+      return query.limit(rangeKey === "deck_life" ? 20000 : 5000);
+    })(),
+  ]);
+
+  if (cardsResult.error || reviewsResult.error || notesResult.error) {
+    return NextResponse.json(
+      {
+        error: cardsResult.error?.message ?? reviewsResult.error?.message ?? notesResult.error?.message ?? "Failed to load stats.",
+      },
+      { status: 500 },
+    );
+  }
 
   const reviews = (reviewsResult.data ?? []).filter((review) => {
     if (!allowed.has(review.deck_id)) {
@@ -87,8 +131,8 @@ export async function GET(request: Request) {
     return true;
   });
 
-  const cards = (cardsResult.data ?? []).filter((card) => allowed.has(card.deck_id));
-  const notes = (notesResult.data ?? []).filter((note) => allowed.has(note.deck_id));
+  const cards = cardsResult.data ?? [];
+  const notes = notesResult.data ?? [];
   const dueTomorrowEnd = new Date(startOfDay(now).getTime() + 2 * 86_400_000).toISOString();
   const dueTomorrowStart = new Date(startOfDay(now).getTime() + 1 * 86_400_000).toISOString();
   const dueTomorrow = cards.filter((card) => card.due_at && card.due_at >= dueTomorrowStart && card.due_at < dueTomorrowEnd).length;

@@ -20,74 +20,104 @@ export async function GET(request: Request) {
   const noteTypeId = (url.searchParams.get("noteTypeId") ?? "").trim();
   const tag = (url.searchParams.get("tag") ?? "").trim();
 
-  const [decksResult, notesResult, cardsResult, noteTypesResult] = await Promise.all([
+  const [decksResult, noteTypesResult] = await Promise.all([
     auth.supabase.from("decks").select("id,name,parent_id").eq("owner_id", auth.user.id).eq("archived", false),
-    auth.supabase
-      .from("deck_notes")
-      .select("id,deck_id,note_type_id,sort_field,fields,tags,suspended,flagged,created_at,updated_at")
-      .eq("owner_id", auth.user.id),
-    auth.supabase
-      .from("deck_cards")
-      .select("id,note_id,deck_id,card_ordinal,prompt,answer,state,due_at,interval_days,reps,lapses,last_reviewed_at,created_at,updated_at")
-      .eq("owner_id", auth.user.id),
     auth.supabase.from("deck_note_types").select("id,name,builtin_key").eq("owner_id", auth.user.id),
   ]);
 
-  if (decksResult.error || notesResult.error || cardsResult.error || noteTypesResult.error) {
+  if (decksResult.error || noteTypesResult.error) {
     return NextResponse.json(
       {
-        error:
-          decksResult.error?.message ??
-          notesResult.error?.message ??
-          cardsResult.error?.message ??
-          noteTypesResult.error?.message ??
-          "Failed to load browser data.",
+        error: decksResult.error?.message ?? noteTypesResult.error?.message ?? "Failed to load browser data.",
       },
       { status: 500 },
     );
   }
 
   const decks = decksResult.data ?? [];
-  const noteMap = new Map((notesResult.data ?? []).map((note) => [note.id, note]));
   const deckMap = new Map(decks.map((deck) => [deck.id, deck]));
   const noteTypeMap = new Map((noteTypesResult.data ?? []).map((type) => [type.id, type]));
 
-  let allowedDeckIds: Set<string> | null = null;
+  let allowedDeckIds: string[] | null = null;
   if (deckId) {
     if (includeChildren) {
-      allowedDeckIds = new Set(collectDeckAndChildrenIds(decks, deckId, excludedIds));
+      allowedDeckIds = collectDeckAndChildrenIds(decks, deckId, excludedIds);
     } else {
-      allowedDeckIds = new Set([deckId]);
+      allowedDeckIds = [deckId];
     }
+  }
+
+  let notesQuery = auth.supabase
+    .from("deck_notes")
+    .select("id,deck_id,note_type_id,sort_field,fields,tags,suspended,flagged,created_at,updated_at")
+    .eq("owner_id", auth.user.id);
+  if (allowedDeckIds) {
+    if (allowedDeckIds.length === 0) {
+      return NextResponse.json({
+        rows: [],
+        sidebar: {
+          decks,
+          noteTypes: noteTypesResult.data ?? [],
+          tags: [],
+          quickFilters: ["added_today", "suspended", "flagged"],
+        },
+      });
+    }
+    notesQuery = notesQuery.in("deck_id", allowedDeckIds);
+  }
+  if (noteTypeId) {
+    notesQuery = notesQuery.eq("note_type_id", noteTypeId);
+  }
+  if (tag) {
+    notesQuery = notesQuery.contains("tags", [tag]);
+  }
+  if (quick === "suspended") {
+    notesQuery = notesQuery.eq("suspended", true);
+  }
+  if (quick === "flagged") {
+    notesQuery = notesQuery.eq("flagged", true);
+  }
+  if (quick === "added_today") {
+    notesQuery = notesQuery.gte("created_at", `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`);
+  }
+
+  const notesResult = await notesQuery;
+  if (notesResult.error) {
+    return NextResponse.json({ error: notesResult.error.message }, { status: 500 });
+  }
+
+  const notes = notesResult.data ?? [];
+  const noteMap = new Map(notes.map((note) => [note.id, note]));
+  const noteIds = notes.map((note) => note.id);
+  if (noteIds.length === 0) {
+    return NextResponse.json({
+      rows: [],
+      sidebar: {
+        decks,
+        noteTypes: noteTypesResult.data ?? [],
+        tags: [],
+        quickFilters: ["added_today", "suspended", "flagged"],
+      },
+    });
+  }
+
+  let cardsQuery = auth.supabase
+    .from("deck_cards")
+    .select("id,note_id,deck_id,card_ordinal,prompt,answer,state,due_at,interval_days,reps,lapses,last_reviewed_at,created_at,updated_at")
+    .eq("owner_id", auth.user.id)
+    .in("note_id", noteIds);
+  if (allowedDeckIds) {
+    cardsQuery = cardsQuery.in("deck_id", allowedDeckIds);
+  }
+
+  const cardsResult = await cardsQuery;
+  if (cardsResult.error) {
+    return NextResponse.json({ error: cardsResult.error.message }, { status: 500 });
   }
 
   const filteredRows = (cardsResult.data ?? []).filter((card) => {
     const note = noteMap.get(card.note_id);
     if (!note) {
-      return false;
-    }
-    if (allowedDeckIds && !allowedDeckIds.has(card.deck_id)) {
-      return false;
-    }
-    if (noteTypeId && note.note_type_id !== noteTypeId) {
-      return false;
-    }
-    if (tag) {
-      const tags = Array.isArray(note.tags) ? note.tags.map((entry) => String(entry)) : [];
-      if (!tags.some((entry) => entry.toLowerCase() === tag.toLowerCase())) {
-        return false;
-      }
-    }
-    if (quick === "added_today") {
-      const today = new Date().toISOString().slice(0, 10);
-      if (!note.created_at.startsWith(today)) {
-        return false;
-      }
-    }
-    if (quick === "suspended" && !note.suspended) {
-      return false;
-    }
-    if (quick === "flagged" && !note.flagged) {
       return false;
     }
     if (query) {
@@ -119,7 +149,7 @@ export async function GET(request: Request) {
   });
 
   const tags = new Set<string>();
-  for (const note of notesResult.data ?? []) {
+  for (const note of notes) {
     if (!Array.isArray(note.tags)) {
       continue;
     }

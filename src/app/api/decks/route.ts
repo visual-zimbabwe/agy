@@ -25,7 +25,9 @@ export async function GET() {
   }
 
   let fsrsAvailable = true;
-  const [noteTypesResult, cardsResult] = await Promise.all([
+  const nowIso = new Date().toISOString();
+  const dueFilter = `due_at.is.null,due_at.lte.${nowIso}`;
+  const [noteTypesResult, newCardsResult, learningCardsResult, reviewCardsResult] = await Promise.all([
     auth.supabase
       .from("deck_note_types")
       .select("id,name,builtin_key,fields,front_template,back_template,css,is_builtin,created_at,updated_at")
@@ -34,8 +36,21 @@ export async function GET() {
       .order("name", { ascending: true }),
     auth.supabase
       .from("deck_cards")
-      .select("deck_id,state,due_at")
-      .eq("owner_id", auth.user.id),
+      .select("deck_id")
+      .eq("owner_id", auth.user.id)
+      .eq("state", "new"),
+    auth.supabase
+      .from("deck_cards")
+      .select("deck_id")
+      .eq("owner_id", auth.user.id)
+      .eq("state", "learning")
+      .or(dueFilter),
+    auth.supabase
+      .from("deck_cards")
+      .select("deck_id")
+      .eq("owner_id", auth.user.id)
+      .eq("state", "review")
+      .or(dueFilter),
   ]);
 
   let decksResult = await auth.supabase
@@ -66,13 +81,15 @@ export async function GET() {
     }
   }
 
-  if (decksResult.error || noteTypesResult.error || cardsResult.error) {
+  if (decksResult.error || noteTypesResult.error || newCardsResult.error || learningCardsResult.error || reviewCardsResult.error) {
     return NextResponse.json(
       {
         error:
           decksResult.error?.message ??
           noteTypesResult.error?.message ??
-          cardsResult.error?.message ??
+          newCardsResult.error?.message ??
+          learningCardsResult.error?.message ??
+          reviewCardsResult.error?.message ??
           "Failed to load decks data.",
       },
       { status: 500 },
@@ -80,18 +97,16 @@ export async function GET() {
   }
 
   const countsByDeck = new Map<string, { newCount: number; learningCount: number; reviewCount: number }>();
-  const nowIso = new Date().toISOString();
-  for (const card of cardsResult.data ?? []) {
-    const bucket = countsByDeck.get(card.deck_id) ?? { newCount: 0, learningCount: 0, reviewCount: 0 };
-    if (card.state === "new") {
-      bucket.newCount += 1;
-    } else if (card.state === "learning" && (!card.due_at || card.due_at <= nowIso)) {
-      bucket.learningCount += 1;
-    } else if (card.state === "review" && (!card.due_at || card.due_at <= nowIso)) {
-      bucket.reviewCount += 1;
+  const addDeckCounts = (deckIds: Array<{ deck_id: string }>, key: "newCount" | "learningCount" | "reviewCount") => {
+    for (const card of deckIds) {
+      const bucket = countsByDeck.get(card.deck_id) ?? { newCount: 0, learningCount: 0, reviewCount: 0 };
+      bucket[key] += 1;
+      countsByDeck.set(card.deck_id, bucket);
     }
-    countsByDeck.set(card.deck_id, bucket);
-  }
+  };
+  addDeckCounts(newCardsResult.data ?? [], "newCount");
+  addDeckCounts(learningCardsResult.data ?? [], "learningCount");
+  addDeckCounts(reviewCardsResult.data ?? [], "reviewCount");
 
   return NextResponse.json({
     decks: (decksResult.data ?? []).map((deck) => ({

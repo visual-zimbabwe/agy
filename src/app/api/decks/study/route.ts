@@ -59,15 +59,6 @@ export async function GET(request: Request) {
     });
   }
 
-  const { data: cards, error: cardsError } = await auth.supabase
-    .from("deck_cards")
-    .select("id,deck_id,note_id,prompt,answer,state,step,interval_days,ease_factor,reps,lapses,due_at,last_reviewed_at,created_at")
-    .eq("owner_id", auth.user.id)
-    .in("deck_id", selectedDeckIds);
-  if (cardsError) {
-    return NextResponse.json({ error: cardsError.message }, { status: 500 });
-  }
-
   const today = todayKeyUtc();
   const { data: todayOverride, error: todayOverrideError } = await auth.supabase
     .from("deck_daily_overrides")
@@ -81,33 +72,90 @@ export async function GET(request: Request) {
   }
 
   const nowIso = new Date().toISOString();
-  const dueLearning = (cards ?? [])
-    .filter((card) => card.state === "learning" && (!card.due_at || card.due_at <= nowIso))
-    .sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""));
-  const dueReview = (cards ?? [])
-    .filter((card) => card.state === "review" && (!card.due_at || card.due_at <= nowIso))
-    .sort((a, b) => (a.due_at ?? "").localeCompare(b.due_at ?? ""));
-  const newCards = (cards ?? [])
-    .filter((card) => card.state === "new")
-    .sort((a, b) => a.created_at.localeCompare(b.created_at));
-
   const effectiveNewLimit = BASE_DAILY_NEW_LIMIT + (todayOverride?.extra_new_limit ?? 0);
   const effectiveReviewLimit = BASE_DAILY_REVIEW_LIMIT + (todayOverride?.extra_review_limit ?? 0);
   const newServed = todayOverride?.new_served_count ?? 0;
   const reviewServed = todayOverride?.review_served_count ?? 0;
   const remainingNew = Math.max(0, effectiveNewLimit - newServed);
   const remainingReview = Math.max(0, effectiveReviewLimit - reviewServed);
-  const dueReviewLimited = dueReview.slice(0, remainingReview);
-  const newCardsLimited = newCards.slice(0, remainingNew);
 
+  const dueFilter = `due_at.is.null,due_at.lte.${nowIso}`;
+  const learningQuery = auth.supabase
+    .from("deck_cards")
+    .select("id,deck_id,note_id,prompt,answer,state,step,interval_days,ease_factor,reps,lapses,due_at,last_reviewed_at,created_at", {
+      count: "exact",
+    })
+    .eq("owner_id", auth.user.id)
+    .eq("state", "learning")
+    .in("deck_id", selectedDeckIds)
+    .or(dueFilter)
+    .order("due_at", { ascending: true, nullsFirst: true })
+    .limit(1);
+
+  const reviewQuery =
+    remainingReview > 0
+      ? auth.supabase
+          .from("deck_cards")
+          .select("id,deck_id,note_id,prompt,answer,state,step,interval_days,ease_factor,reps,lapses,due_at,last_reviewed_at,created_at", {
+            count: "exact",
+          })
+          .eq("owner_id", auth.user.id)
+          .eq("state", "review")
+          .in("deck_id", selectedDeckIds)
+          .or(dueFilter)
+          .order("due_at", { ascending: true, nullsFirst: true })
+          .limit(remainingReview)
+      : auth.supabase
+          .from("deck_cards")
+          .select("id", { count: "exact", head: true })
+          .eq("owner_id", auth.user.id)
+          .eq("state", "review")
+          .in("deck_id", selectedDeckIds)
+          .or(dueFilter);
+
+  const newQuery =
+    remainingNew > 0
+      ? auth.supabase
+          .from("deck_cards")
+          .select("id,deck_id,note_id,prompt,answer,state,step,interval_days,ease_factor,reps,lapses,due_at,last_reviewed_at,created_at", {
+            count: "exact",
+          })
+          .eq("owner_id", auth.user.id)
+          .eq("state", "new")
+          .in("deck_id", selectedDeckIds)
+          .order("created_at", { ascending: true })
+          .limit(remainingNew)
+      : auth.supabase
+          .from("deck_cards")
+          .select("id", { count: "exact", head: true })
+          .eq("owner_id", auth.user.id)
+          .eq("state", "new")
+          .in("deck_id", selectedDeckIds);
+
+  const [learningResult, reviewResult, newResult] = await Promise.all([learningQuery, reviewQuery, newQuery]);
+  if (learningResult.error || reviewResult.error || newResult.error) {
+    return NextResponse.json(
+      {
+        error: learningResult.error?.message ?? reviewResult.error?.message ?? newResult.error?.message ?? "Failed to load study session.",
+      },
+      { status: 500 },
+    );
+  }
+
+  const dueLearning = learningResult.data ?? [];
+  const dueReviewLimited = "data" in reviewResult ? reviewResult.data ?? [] : [];
+  const newCardsLimited = "data" in newResult ? newResult.data ?? [] : [];
   const nextCard = dueLearning[0] ?? dueReviewLimited[0] ?? newCardsLimited[0] ?? null;
+  const learningCount = learningResult.count ?? dueLearning.length;
+  const reviewCount = Math.min(reviewResult.count ?? dueReviewLimited.length, remainingReview);
+  const newCount = Math.min(newResult.count ?? newCardsLimited.length, remainingNew);
 
   return NextResponse.json({
     card: nextCard,
     counts: {
-      newCount: newCardsLimited.length,
-      learningCount: dueLearning.length,
-      reviewCount: dueReviewLimited.length,
+      newCount,
+      learningCount,
+      reviewCount,
     },
     limits: {
       baseNewLimit: BASE_DAILY_NEW_LIMIT,
