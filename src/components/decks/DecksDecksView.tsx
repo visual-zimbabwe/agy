@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+import { FieldLabel, SelectField, TextAreaField, TextField } from "@/components/ui/Field";
+import { ModalShell } from "@/components/ui/ModalShell";
+
 type DeckCounts = { newCount: number; learningCount: number; reviewCount: number };
 
 type Deck = {
@@ -14,6 +18,13 @@ type Deck = {
 
 type DecksPayload = {
   decks?: Deck[];
+  noteTypes?: NoteType[];
+};
+
+type NoteType = {
+  id: string;
+  name: string;
+  fields: unknown;
 };
 
 const CANVAS_BACKGROUND =
@@ -21,12 +32,25 @@ const CANVAS_BACKGROUND =
 const GRAIN_OVERLAY =
   "url(https://lh3.googleusercontent.com/aida-public/AB6AXuDXG-kDCh5WCO09ONZ-VHukW1gaVA5_SR8-HOrJrCh1ieiLpS2EqWHKILVcOOdOv6v7NvOkZ8sbKVz4MLI2itcLH1-wXm0ncUOIj_pp3pYLPg0dUEE05UtDzb-JdcIf1IgTxKPxORvxpGmcdCk8B2I_erErmbPV8HCrj5s_KWKlO3Ee4SfKXHGTnqMa93cgGg62B-N1di5sRp1dFqIa9R4gcPT4iKBJMyIEfLXYGYSc2zvV78l6IirbQpBtWKejdNvytvCj5PoeLIoL)";
 
+const toStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((entry) => String(entry));
+};
+
 export function DecksDecksView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [decks, setDecks] = useState<Deck[]>([]);
+  const [noteTypes, setNoteTypes] = useState<NoteType[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState("");
   const [deckName, setDeckName] = useState("");
+  const [toolbarModal, setToolbarModal] = useState<"none" | "add">("none");
+  const [addDeckId, setAddDeckId] = useState("");
+  const [addNoteTypeId, setAddNoteTypeId] = useState("");
+  const [addFields, setAddFields] = useState<Record<string, string>>({});
+  const [addTags, setAddTags] = useState("");
   const [loading, setLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState("");
 
@@ -45,11 +69,16 @@ export function DecksDecksView() {
           return;
         }
         const nextDecks = payload.decks ?? [];
+        const nextNoteTypes = payload.noteTypes ?? [];
         setDecks(nextDecks);
+        setNoteTypes(nextNoteTypes);
         const requestedDeckId = searchParams.get("deckId") ?? "";
         const requestedDeck = nextDecks.find((deck) => deck.id === requestedDeckId);
         const fallbackDeck = nextDecks.find((deck) => deck.parent_id !== null) ?? nextDecks[0] ?? null;
-        setSelectedDeckId(requestedDeck?.id ?? fallbackDeck?.id ?? "");
+        const nextSelectedDeckId = requestedDeck?.id ?? fallbackDeck?.id ?? "";
+        setSelectedDeckId(nextSelectedDeckId);
+        setAddDeckId((current) => current || nextSelectedDeckId);
+        setAddNoteTypeId((current) => current || nextNoteTypes[0]?.id || "");
       } catch (error) {
         if (!cancelled) {
           setStatusMessage(error instanceof Error ? error.message : "Failed to load decks.");
@@ -77,6 +106,8 @@ export function DecksDecksView() {
     () => decks.filter((deck) => deck.parent_id === (selectedParentDeck?.id ?? selectedDeck?.id ?? "")),
     [decks, selectedDeck, selectedParentDeck],
   );
+  const selectedNoteType = useMemo(() => noteTypes.find((entry) => entry.id === addNoteTypeId) ?? null, [addNoteTypeId, noteTypes]);
+  const addNoteFields = useMemo(() => toStringArray(selectedNoteType?.fields), [selectedNoteType]);
   const totalCards =
     (selectedDeck?.counts.newCount ?? 0) +
     (selectedDeck?.counts.learningCount ?? 0) +
@@ -95,6 +126,16 @@ export function DecksDecksView() {
       next.set("deckId", selectedDeckId);
     }
     router.push(`/decks/${view}${next.toString() ? `?${next.toString()}` : ""}`);
+  };
+
+  const reloadDeckData = async () => {
+    const response = await fetch("/api/decks", { cache: "no-store" });
+    const payload = (await response.json()) as DecksPayload & { error?: string };
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Failed to load decks.");
+    }
+    setDecks(payload.decks ?? []);
+    setNoteTypes(payload.noteTypes ?? []);
   };
 
   const createDeck = async () => {
@@ -122,6 +163,38 @@ export function DecksDecksView() {
     if (created) {
       chooseDeck(created.id);
     }
+  };
+
+  const openAddNote = () => {
+    setAddDeckId(selectedDeck?.id ?? addDeckId ?? decks[0]?.id ?? "");
+    setAddNoteTypeId((current) => current || noteTypes[0]?.id || "");
+    setToolbarModal("add");
+  };
+
+  const handleCreateNote = async () => {
+    const response = await fetch("/api/decks/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deckId: addDeckId,
+        noteTypeId: addNoteTypeId,
+        fields: addFields,
+        tags: addTags
+          .split(",")
+          .map((entry) => entry.trim())
+          .filter((entry) => entry.length > 0),
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      setStatusMessage(payload.error ?? "Failed to create note.");
+      return;
+    }
+    setToolbarModal("none");
+    setAddFields({});
+    setAddTags("");
+    await reloadDeckData();
+    setStatusMessage("Note created.");
   };
 
   return (
@@ -227,6 +300,7 @@ export function DecksDecksView() {
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40">⌕</span>
               <input className="w-64 rounded-full bg-[#f0ede8] py-1.5 pl-10 pr-4 text-sm outline-none" placeholder="Search cards..." />
             </div>
+            <Button size="sm" onClick={openAddNote}>Add Note</Button>
             <button type="button" onClick={() => openView("study")} className="rounded-full p-2 text-black/60 transition-colors hover:bg-black/5">⚙</button>
             <button type="button" onClick={() => openView("study")} className="rounded-full p-2 text-black/60 transition-colors hover:bg-black/5">◉</button>
           </div>
@@ -250,6 +324,7 @@ export function DecksDecksView() {
                 </p>
               </div>
               <div className="flex gap-4">
+                <Button onClick={openAddNote}>Add Note</Button>
                 <button
                   type="button"
                   onClick={() => openView("study")}
@@ -329,6 +404,99 @@ export function DecksDecksView() {
           {loading && <p className="mt-6 text-sm text-black/50">Loading deck workspace...</p>}
         </div>
       </main>
+
+      <ModalShell
+        open={toolbarModal === "add"}
+        onClose={() => setToolbarModal("none")}
+        title="Add Note"
+        description="Compose a note, choose its deck, and preview the generated study object."
+        maxWidthClassName="max-w-5xl"
+        panelClassName="border-[#dfc0b8] bg-[linear-gradient(180deg,rgba(252,249,244,0.98)_0%,rgba(243,232,221,0.96)_100%)] shadow-[0_30px_90px_rgba(87,52,34,0.16)]"
+      >
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_24rem]">
+          <div className="space-y-4 rounded-[28px] border border-[#e5d2c5] bg-[rgba(255,251,245,0.9)] p-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <FieldLabel>Deck</FieldLabel>
+                <SelectField value={addDeckId} onChange={(event) => setAddDeckId(event.target.value)}>
+                  {decks.map((deck) => (
+                    <option key={deck.id} value={deck.id}>
+                      {deck.name}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+              <div>
+                <FieldLabel>Note Type</FieldLabel>
+                <SelectField value={addNoteTypeId} onChange={(event) => setAddNoteTypeId(event.target.value)}>
+                  {noteTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+            </div>
+            {addNoteFields.map((field) => (
+              <div key={field}>
+                <FieldLabel>{field}</FieldLabel>
+                <TextAreaField
+                  value={addFields[field] ?? ""}
+                  onChange={(event) => setAddFields((previous) => ({ ...previous, [field]: event.target.value }))}
+                  rows={field.length > 16 ? 4 : 3}
+                />
+              </div>
+            ))}
+            <div>
+              <FieldLabel>Tags (comma-separated)</FieldLabel>
+              <TextField value={addTags} onChange={(event) => setAddTags(event.target.value)} placeholder="biology, exam1" />
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={handleCreateNote} disabled={!addDeckId || !addNoteTypeId}>
+                Create Note
+              </Button>
+            </div>
+          </div>
+
+          <aside className="rounded-[32px] border border-[#e1c6b7] bg-[linear-gradient(180deg,rgba(248,239,228,0.92)_0%,rgba(243,229,216,0.98)_100%)] p-6 shadow-[0_24px_60px_rgba(94,56,37,0.1)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#9b6c55]">Live Preview</p>
+            <h3 className="mt-3 font-['Newsreader'] text-[2rem] italic leading-none text-[#2b1c16]">
+              {selectedNoteType?.name ?? "Study note"}
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-[#6f5a52]">
+              {decks.find((deck) => deck.id === addDeckId)?.name ?? "Select a deck to place this note into your collection."}
+            </p>
+            <div className="mt-6 space-y-3">
+              {addNoteFields.length === 0 && (
+                <div className="rounded-[22px] border border-dashed border-[#cfaf9d] bg-[rgba(255,250,244,0.82)] px-4 py-5 text-sm text-[#7a6257]">
+                  Choose a note type to see its fields.
+                </div>
+              )}
+              {addNoteFields.map((field) => (
+                <article key={field} className="rounded-[22px] border border-[#e6d5c7] bg-[rgba(255,252,247,0.92)] px-4 py-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9b6c55]">{field}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#322621]">{addFields[field]?.trim() || "Empty field"}</p>
+                </article>
+              ))}
+            </div>
+            <div className="mt-6 rounded-[24px] border border-[#e6d5c7] bg-[rgba(255,252,247,0.86)] px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9b6c55]">Tags</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {addTags
+                  .split(",")
+                  .map((entry) => entry.trim())
+                  .filter((entry) => entry.length > 0)
+                  .map((tag) => (
+                    <span key={tag} className="rounded-full border border-[#d8b7a8] bg-[#f7ede4] px-2.5 py-1 text-[11px] font-medium text-[#7d5948]">
+                      {tag}
+                    </span>
+                  ))}
+                {addTags.trim().length === 0 && <p className="text-sm text-[#7a6257]">No tags yet.</p>}
+              </div>
+            </div>
+          </aside>
+        </div>
+      </ModalShell>
 
       <div className="pointer-events-none fixed inset-0 z-[9999] opacity-[0.03]" style={{ backgroundImage: GRAIN_OVERLAY }} />
     </main>

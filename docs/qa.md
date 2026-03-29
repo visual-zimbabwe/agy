@@ -381,7 +381,7 @@ Expected:
 ## Decks Route and Workflow (2026-03-03)
 1. Sign in and open `/decks` from landing and from `/wall` toolbar.
 2. In deck sidebar, create a root deck and one child deck.
-3. Open `Add` and create one note using each built-in note type (Basic, reversed, optional reversed, cloze).
+3. On `/decks/decks`, click `Add Note`, choose a deck and note type, and create one note using each built-in note type (Basic, reversed, optional reversed, cloze).
 4. Start study on parent deck with `Include child decks` enabled; confirm cards from child deck appear.
 5. Exclude the child deck and confirm child cards are removed from current queue.
 6. In study view, click `Show Answer`, then rate cards with `Again/Hard/Good/Easy`.
@@ -392,10 +392,11 @@ Expected:
 11. Save an import preset, close modal, reopen, and apply the saved preset.
 12. Switch to dark mode on `/decks` and verify deck backgrounds, panels, badges, and modal surfaces render as pure `#000000`, while text and status/icon indicators remain readable.
 13. Verify Decks behavior in Electron app build (`agy-studio`) by opening `/decks`, adding one note, and reviewing one card.
+14. Reload `/decks/decks` after creating a note and verify the selected deck counts update and the generated card appears in `Browse Cards`.
 
 Expected:
 - Decks route is reachable from both landing and wall.
-- Add/Browse/Stats/Study/Import toolbar flows work end-to-end.
+- Add Note/Browse/Stats/Study/Import flows work end-to-end.
 - Parent study optionally includes children and supports exclusions.
 - Card scheduling updates queue counts after rating.
 - Import mapping presets persist via cloud data and reload correctly.

@@ -15,6 +15,7 @@ The decks workspace is mounted at `/decks` and requires an authenticated user.
 Current workspace areas include:
 
 - deck list and hierarchy management
+- add-note creation from the `/decks` overview
 - browse view
 - stats view
 - study view
@@ -22,6 +23,8 @@ Current workspace areas include:
 - note-type and import flows
 
 The workspace supports nested decks, filtered study, due counts, tags, and import presets.
+
+On `/decks`, the main deck overview includes an `Add Note` entry point. That modal lets the user choose a deck, choose a note type, fill the note fields, add comma-separated tags, and create the note. Card generation still happens note-first through the note type template system rather than by creating raw cards directly.
 
 The wall toolbar can also open decks, which makes decks part of the broader product flow rather than a disconnected side project.
 
