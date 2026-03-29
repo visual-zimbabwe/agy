@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { normalizeAccountSettings, persistAccountSettingsLocally, readStoredControlsMode, readStoredWallLayoutPrefs, type ControlsMode, type WallLayoutPrefs } from "@/lib/account-settings";
+import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-auth";
 import { appName, profileUpdatedEventName } from "@/lib/brand";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import { readStoredPreferences, type StartupBehavior, type StartupPage, type ThemePreference } from "@/lib/preferences";
@@ -332,6 +333,12 @@ export const SettingsWorkspace = ({ userEmail, embedded = false, onReplayTour }:
         body: JSON.stringify(nextSettings),
       });
 
+      if (response.status === 401) {
+        setSettingsStatus(authExpiredMessage);
+        redirectToLoginForAuth("/settings");
+        return;
+      }
+
       if (!response.ok) {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         throw new Error(payload.error ?? "Failed to save settings.");
@@ -373,6 +380,10 @@ export const SettingsWorkspace = ({ userEmail, embedded = false, onReplayTour }:
     const loadSettings = async () => {
       try {
         const response = await fetch("/api/account/settings", { cache: "no-store" });
+        if (response.status === 401) {
+          redirectToLoginForAuth("/settings");
+          return;
+        }
         if (!response.ok) {
           return;
         }

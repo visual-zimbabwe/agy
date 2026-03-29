@@ -1030,6 +1030,8 @@ Expected:
 10. Turn off network, make local edits, turn network back on, click `Sync now`, verify changes persist and error clears.
 11. Sign in with a second account and verify it does not see the first account's wall.
 12. While signed in, set a note's `Horizontal align`, `Vertical align`, and `Text color`; wait for sync, then close browser, restart `npm run dev`, and reopen `/wall`.
+13. While signed in on `/wall`, clear or expire the session, trigger `Sync now`, and verify the app redirects to `/login` with a session-expired message instead of showing raw `Unauthorized`.
+14. Repeat the expired-session check from `/settings` by saving settings after the session is cleared; verify redirect to `/login` and that re-sign-in returns to `/settings`.
 
 Expected:
 - `/wall` is protected for unauthenticated users.
@@ -1037,6 +1039,7 @@ Expected:
 - Cross-device sync works for create/edit/delete.
 - Accounts remain isolated via RLS.
 - Note formatting (`textAlign`, `textVAlign`, `textColor`) survives app/browser restarts and cloud rehydration.
+- Expired authenticated sessions redirect to `/login` cleanly for wall sync and settings saves without surfacing raw backend auth strings.
 
 ## Cloud Sync Regression - Note Groups and Note State (2026-02-14)
 1. Sign in on device A and create 3 notes.

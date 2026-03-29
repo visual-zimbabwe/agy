@@ -9,6 +9,7 @@ import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
 import type { PersistedWallState } from "@/features/wall/types";
 import { defaultWallTitle } from "@/lib/brand";
+import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-auth";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 type UseWallPersistenceEffectsOptions = {
@@ -86,6 +87,9 @@ export const useWallPersistenceEffects = ({
 
       try {
         const listResponse = await fetch("/api/walls", { cache: "no-store" });
+        if (listResponse.status === 401) {
+          throw new Error(authExpiredMessage);
+        }
         if (!listResponse.ok) {
           const payload = (await listResponse.json().catch(() => ({}))) as { error?: string };
           throw new Error(payload.error ?? "Unable to load walls");
@@ -100,6 +104,9 @@ export const useWallPersistenceEffects = ({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title: defaultWallTitle }),
           });
+          if (createResponse.status === 401) {
+            throw new Error(authExpiredMessage);
+          }
           if (!createResponse.ok) {
             const payload = (await createResponse.json().catch(() => ({}))) as { error?: string };
             throw new Error(payload.error ?? "Unable to create wall");
@@ -115,6 +122,9 @@ export const useWallPersistenceEffects = ({
         setCloudWallId(wallId);
 
         const snapshotResponse = await fetch(`/api/walls/${wallId}`, { cache: "no-store" });
+        if (snapshotResponse.status === 401) {
+          throw new Error(authExpiredMessage);
+        }
         if (!snapshotResponse.ok) {
           const payload = (await snapshotResponse.json().catch(() => ({}))) as { error?: string };
           throw new Error(payload.error ?? "Unable to load cloud snapshot");
@@ -152,6 +162,9 @@ export const useWallPersistenceEffects = ({
           const message = error instanceof Error ? error.message : "Cloud sync unavailable";
           setSyncError(message);
           cloudReadyRef.current = false;
+          if (message === authExpiredMessage) {
+            redirectToLoginForAuth("/wall");
+          }
         }
       }
     };

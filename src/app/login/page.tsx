@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
+import { consumeAuthRedirectState } from "@/lib/api/client-auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -12,6 +13,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [nextPath, setNextPath] = useState("/wall");
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) {
+        return;
+      }
+      const redirectState = consumeAuthRedirectState();
+      if (redirectState.reason) {
+        setError(redirectState.reason);
+      }
+      if (redirectState.nextPath) {
+        setNextPath(redirectState.nextPath);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -30,7 +51,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace("/wall");
+    router.replace(nextPath);
     router.refresh();
   };
 

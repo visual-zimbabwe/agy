@@ -140,6 +140,7 @@ import type { Note, PersistedWallState, WebBookmarkMetadata } from "@/features/w
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
 import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
+import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-auth";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
 import {
   accountSettingsUpdatedEventName,
@@ -1030,6 +1031,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             clientSyncedAt: lastCloudSyncedAtRef.current || undefined,
           }),
         });
+
+        if (response.status === 401) {
+          setSyncError(authExpiredMessage);
+          redirectToLoginForAuth("/wall");
+          return;
+        }
 
         if (!response.ok) {
           const payload = (await response.json().catch(() => ({}))) as { error?: string };

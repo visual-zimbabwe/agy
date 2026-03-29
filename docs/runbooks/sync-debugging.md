@@ -47,6 +47,11 @@ Use this runbook when cloud-backed wall state is not loading, local and cloud st
    - outdated database schema
    - server-side query or upsert errors
 
+   Current expired-session behavior:
+   - protected wall and settings API calls return `401`
+   - the client redirects to `/login` instead of leaving the raw `Unauthorized` string in the wall sync UI
+   - the login screen should show a short session-expired message before re-authentication
+
 8. Check for compatibility fallback conditions in the wall API.
    Current wall read and sync handlers contain compatibility logic for missing:
    - `zones.kind`
