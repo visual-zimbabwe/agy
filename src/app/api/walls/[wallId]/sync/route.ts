@@ -255,7 +255,8 @@ const toIso = (value: number) => new Date(value).toISOString();
 const toStoredTextSize = (note: { textSize?: "sm" | "md" | "lg"; textSizePx?: number }) =>
   typeof note.textSizePx === "number" ? `px:${Math.max(8, Math.min(72, Math.round(note.textSizePx)))}` : note.textSize ?? null;
 
-const syncChunkSize = 100;
+const syncChunkSize = 500;
+const syncChunkConcurrency = 4;
 
 const chunkArray = <T,>(items: T[], size: number) => {
   const chunks: T[][] = [];
@@ -298,10 +299,13 @@ const runChunked = async <T,>(
   items: T[],
   task: (chunk: T[]) => Promise<{ error: { message: string } | null }>,
 ) => {
-  for (const chunk of chunkArray(items, syncChunkSize)) {
-    const result = await task(chunk);
-    if (result.error) {
-      return result;
+  const chunks = chunkArray(items, syncChunkSize);
+  for (let index = 0; index < chunks.length; index += syncChunkConcurrency) {
+    const batch = chunks.slice(index, index + syncChunkConcurrency);
+    const results = await Promise.all(batch.map((chunk) => task(chunk)));
+    const firstError = results.find((result) => result.error);
+    if (firstError?.error) {
+      return firstError;
     }
   }
   return { error: null as { message: string } | null };
@@ -547,6 +551,10 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   }
 
   const deleteMissing = async (table: "notes" | "zones" | "zone_groups" | "note_groups" | "links", ids: string[]) => {
+    if (ids.length === 0) {
+      return auth.supabase.from(table).delete().eq("wall_id", wallId).eq("owner_id", auth.user.id);
+    }
+
     const existingResult = await auth.supabase
       .from(table)
       .select("id")
@@ -561,6 +569,10 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     const staleIds = (existingResult.data ?? [])
       .map((row) => row.id)
       .filter((id): id is string => typeof id === "string" && !keepIds.has(id));
+
+    if (staleIds.length === 0) {
+      return { error: null as { message: string } | null };
+    }
 
     return runChunked(staleIds, async (chunk) =>
       auth.supabase.from(table).delete().eq("wall_id", wallId).eq("owner_id", auth.user.id).in("id", chunk),

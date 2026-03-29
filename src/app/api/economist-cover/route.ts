@@ -21,6 +21,34 @@ type EconomistApiResponse = {
 };
 
 const clean = (value?: string | null) => value?.trim() || undefined;
+const fallbackCoverImageUrl = "/placeholders/magazine-cover-unavailable.svg";
+const upstreamFetchInit: RequestInit = {
+  cache: "no-store",
+  headers: {
+    "ngrok-skip-browser-warning": "true",
+    accept: "application/json",
+  },
+};
+
+const buildFallbackPayload = ({
+  sourceId,
+  sourceName,
+  sourceUrl,
+  year,
+}: {
+  sourceId: string;
+  sourceName: string;
+  sourceUrl: string;
+  year?: string;
+}) => ({
+  sourceId,
+  sourceName,
+  displayDate: "",
+  displayLabel: year?.trim() ? `${year.trim()} archive unavailable` : "Cover temporarily unavailable",
+  mainStory: `Unable to fetch the latest ${sourceName} cover right now.`,
+  imageUrl: fallbackCoverImageUrl,
+  sourceUrl,
+});
 
 export async function GET(request: Request) {
   const parsed = querySchema.safeParse({
@@ -44,7 +72,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const response = await fetch(upstreamUrl, { cache: "no-store" });
+    const response = await fetch(upstreamUrl, upstreamFetchInit);
     if (!response.ok) {
       if (sourceId === "newsweek" && response.status === 502) {
         return NextResponse.json({
@@ -57,8 +85,14 @@ export async function GET(request: Request) {
           sourceUrl: fallbackSource.sourceUrl,
         });
       }
-      const body = await response.text().catch(() => "");
-      return NextResponse.json({ error: body || `Magazine cover request failed with ${response.status}` }, { status: response.status });
+      return NextResponse.json(
+        buildFallbackPayload({
+          sourceId,
+          sourceName: fallbackSource.sourceName,
+          sourceUrl: fallbackSource.sourceUrl,
+          year: parsed.data.year,
+        }),
+      );
     }
     const payload = (await response.json()) as EconomistApiResponse;
     const imageUrl = clean(payload.image_url);
@@ -84,7 +118,13 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Magazine cover request failed";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json(
+      buildFallbackPayload({
+        sourceId,
+        sourceName: fallbackSource.sourceName,
+        sourceUrl: fallbackSource.sourceUrl,
+        year: parsed.data.year,
+      }),
+    );
   }
 }

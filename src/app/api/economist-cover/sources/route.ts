@@ -11,10 +11,17 @@ type SourcesApiResponse = {
 };
 
 const clean = (value?: string | null) => value?.trim() || undefined;
+const upstreamFetchInit: RequestInit = {
+  cache: "no-store",
+  headers: {
+    "ngrok-skip-browser-warning": "true",
+    accept: "application/json",
+  },
+};
 
 export async function GET() {
   try {
-    const response = await fetch("https://gregorio-unindulged-stephine.ngrok-free.dev/sources", { cache: "no-store" });
+    const response = await fetch("https://gregorio-unindulged-stephine.ngrok-free.dev/sources", upstreamFetchInit);
     if (!response.ok) {
       const body = await response.text().catch(() => "");
       return NextResponse.json({ error: body || `Magazine sources request failed with ${response.status}` }, { status: response.status });

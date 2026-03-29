@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 664 1016" role="img" aria-labelledby="title desc">
+  <title id="title">Magazine cover unavailable</title>
+  <desc id="desc">Placeholder cover shown when the upstream magazine cover provider is unavailable.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6efe2" />
+      <stop offset="100%" stop-color="#eadbc3" />
+    </linearGradient>
+  </defs>
+  <rect width="664" height="1016" rx="28" fill="url(#bg)" />
+  <rect x="32" y="32" width="600" height="952" rx="24" fill="#fffaf2" stroke="#d6c4a6" stroke-width="4" />
+  <rect x="72" y="96" width="520" height="120" rx="14" fill="#241b12" />
+  <text x="332" y="172" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" font-weight="700" fill="#fffaf2">
+    Cover Unavailable
+  </text>
+  <rect x="96" y="290" width="472" height="420" rx="18" fill="#efe3d0" stroke="#d6c4a6" stroke-dasharray="18 14" stroke-width="6" />
+  <path d="M232 556h200M232 610h200" stroke="#b08f5a" stroke-linecap="round" stroke-width="18" />
+  <circle cx="332" cy="454" r="76" fill="#d6c4a6" />
+  <path d="M300 454l22 22 42-46" fill="none" stroke="#fffaf2" stroke-linecap="round" stroke-linejoin="round" stroke-width="18" />
+  <text x="332" y="790" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#241b12">
+    The source did not return an image.
+  </text>
+  <text x="332" y="846" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#5b4a36">
+    Open the archive link from the note to check the issue directly.
+  </text>
+</svg>
