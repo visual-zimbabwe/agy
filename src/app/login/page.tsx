@@ -50,10 +50,26 @@ export default function LoginPage() {
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const contentType = response.headers.get("content-type") ?? "";
+      const rawBody = await response.text();
+      let payload: { error?: string } | null = null;
+      if (contentType.includes("application/json") && rawBody) {
+        try {
+          payload = JSON.parse(rawBody) as { error?: string };
+        } catch {
+          payload = null;
+        }
+      }
 
       if (!response.ok) {
-        setError(payload?.error ?? "Unable to sign in. Please try again.");
+        const fallbackMessage =
+          response.status === 401
+            ? "Invalid email or password."
+            : rawBody && !rawBody.startsWith("<")
+              ? rawBody
+              : "Unable to sign in. Please try again.";
+
+        setError(payload?.error ?? fallbackMessage);
         return;
       }
 
