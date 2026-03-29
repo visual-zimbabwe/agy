@@ -39,16 +39,27 @@ export default function LoginPage() {
     setError(null);
     setBusy(true);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
       });
 
-      if (signInError) {
-        setError(signInError.message);
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        setError(payload?.error ?? "Unable to sign in. Please try again.");
         return;
       }
+
+      // Keep the browser auth client warm so downstream listeners can observe the fresh cookie-backed session.
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.getSession();
 
       router.replace(nextPath);
       router.refresh();

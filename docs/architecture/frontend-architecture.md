@@ -20,6 +20,7 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 
 - Auth-only forms and account messaging
 - Built from shared UI primitives instead of route-local styling systems
+- Login posts credentials to the same-origin `src/app/api/auth/login/route.ts` handler so the server can establish Supabase auth cookies before redirecting into authenticated workspaces
 
 ### `src/app/wall/page.tsx`
 

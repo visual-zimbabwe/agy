@@ -92,6 +92,7 @@ API routes live under `src/app/api/`.
 
 Current major API groups:
 
+- `api/auth`
 - `api/walls`
 - `api/decks`
 - `api/page`
