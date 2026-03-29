@@ -17,6 +17,9 @@ import type { Note } from "@/features/wall/types";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 const getEconomistCacheKey = (sourceId: EconomistSourceId) => `${ECONOMIST_NOTE_CACHE_KEY}:${sourceId}`;
+const getEconomistFailureKey = (sourceId: EconomistSourceId) => `${ECONOMIST_NOTE_CACHE_KEY}:${sourceId}:last-failure`;
+const economistFailureBackoffMs = 30 * 60 * 1000;
+
 const readEconomistCache = (sourceId: EconomistSourceId) => {
   if (typeof window === "undefined") {
     return null;
@@ -32,12 +35,37 @@ const readEconomistCache = (sourceId: EconomistSourceId) => {
   }
 };
 
+const readEconomistFailureAt = (sourceId: EconomistSourceId) => {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+  const raw = readStorageValue(getEconomistFailureKey(sourceId));
+  const parsed = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+};
+
+const writeEconomistFailureAt = (sourceId: EconomistSourceId, timestamp?: number) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    if (timestamp) {
+      writeStorageValue(getEconomistFailureKey(sourceId), String(timestamp));
+      return;
+    }
+    window.localStorage.removeItem(getEconomistFailureKey(sourceId));
+  } catch {
+    // Ignore failure bookkeeping issues; cover refresh can still proceed.
+  }
+};
+
 const writeEconomistCache = (payload: EconomistCoverPayload) => {
   if (typeof window === "undefined") {
     return;
   }
   try {
     writeStorageValue(getEconomistCacheKey(payload.sourceId), JSON.stringify(payload));
+    writeEconomistFailureAt(payload.sourceId, undefined);
   } catch {
     // Ignore cache write failures; live refresh still works.
   }
@@ -72,6 +100,17 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
   const fetchEconomistCover = useCallback(async ({ sourceId = "economist", force = false, year }: { sourceId?: EconomistSourceId; force?: boolean; year?: string } = {}) => {
     const cached = readEconomistCache(sourceId);
     if (cached && !force && !year) {
+      return cached;
+    }
+
+    const lastFailureAt = readEconomistFailureAt(sourceId);
+    if (
+      sourceId === "economist" &&
+      cached &&
+      !year &&
+      lastFailureAt &&
+      Date.now() - lastFailureAt < economistFailureBackoffMs
+    ) {
       return cached;
     }
 
@@ -110,9 +149,19 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
         writeEconomistCache(nextPayload);
       }
       return nextPayload;
-    })().finally(() => {
-      delete inFlightRef.current[sourceId];
-    });
+    })()
+      .catch((error) => {
+        if (!year) {
+          writeEconomistFailureAt(sourceId, Date.now());
+        }
+        if (cached) {
+          return cached;
+        }
+        throw error;
+      })
+      .finally(() => {
+        delete inFlightRef.current[sourceId];
+      });
 
     if (!year) {
       inFlightRef.current[sourceId] = task;

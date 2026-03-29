@@ -1226,6 +1226,7 @@ Expected:
 10. Duplicate a non-Economist magazine-cover note and verify the duplicate keeps the reserved styling, then refresh it and verify it still resolves the same magazine source.
 11. If cloud sync is enabled, sync, reload, and verify the magazine-cover notes still render their cover images and source/date metadata after hydration.
 12. Resize the notes smaller and larger on desktop and mobile-sized viewports; verify the cover image remains visible, floating controls stay on-screen, and nothing clips against viewport edges.
+13. Simulate an upstream failure for the `economist` source after at least one successful load, then reload or sign in again and verify the existing Economist note keeps its last cached cover instead of degrading to an empty/error state.
 
 Expected:
 - The multi-cover action creates one Economist-shell note per magazine source exposed by the local API.
@@ -1234,6 +1235,7 @@ Expected:
 - `Details > Note Type > Magazine Cover` prefers the first missing magazine source on the wall when recreating a deleted cover.`r`n- The Details `Magazine Source` picker lets a single selected note switch to a different magazine source without recreating the full set.
 - Manual refresh updates the existing note in place without cross-overwriting other magazine notes.
 - Cover imagery, source actions, and floating editors remain fully visible on desktop and mobile layouts.
+- When the upstream Economist cover source is temporarily unavailable, existing Economist notes fall back to the last successful cached cover and back off repeated refresh attempts for a short period.
 ## Currency Note (`/wall`) (2026-03-19)
 1. Open `/wall` and verify one indigo `Currency` system note is present near the top-left of the wall.
 2. Refresh the page and verify the note still exists.
