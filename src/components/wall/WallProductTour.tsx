@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 export type TourCoachmark =
   | "welcome"
@@ -151,13 +151,14 @@ export const WallProductTour = ({
   onDismissTip,
   onDismissComplete,
 }: WallProductTourProps) => {
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
   const [, setViewportTick] = useState(0);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
     const refresh = () => setViewportTick((previous) => previous + 1);
     window.addEventListener("resize", refresh);
     window.addEventListener("scroll", refresh, true);
@@ -167,7 +168,7 @@ export const WallProductTour = ({
     };
   }, []);
 
-  if (!coachmark || typeof window === "undefined") {
+  if (!mounted || !coachmark) {
     return null;
   }
 
