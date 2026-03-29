@@ -255,8 +255,15 @@ const toIso = (value: number) => new Date(value).toISOString();
 const toStoredTextSize = (note: { textSize?: "sm" | "md" | "lg"; textSizePx?: number }) =>
   typeof note.textSizePx === "number" ? `px:${Math.max(8, Math.min(72, Math.round(note.textSizePx)))}` : note.textSize ?? null;
 
-const buildInFilter = (ids: string[]) =>
-  `(${ids.map((id) => `"${id.replaceAll('"', '\\"')}"`).join(",")})`;
+const syncChunkSize = 100;
+
+const chunkArray = <T,>(items: T[], size: number) => {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+};
 
 const isMissingZoneKindColumnError = (message?: string) =>
   Boolean(message && message.includes("column zones.kind does not exist"));
@@ -286,6 +293,19 @@ const isMissingNoteVocabularyColumnError = (message?: string) =>
   Boolean(message && message.includes("column notes.vocabulary does not exist"));
 const isMissingNoteGroupsTableError = (message?: string) =>
   Boolean(message && message.includes('relation "public.note_groups" does not exist'));
+
+const runChunked = async <T,>(
+  items: T[],
+  task: (chunk: T[]) => Promise<{ error: { message: string } | null }>,
+) => {
+  for (const chunk of chunkArray(items, syncChunkSize)) {
+    const result = await task(chunk);
+    if (result.error) {
+      return result;
+    }
+  }
+  return { error: null as { message: string } | null };
+};
 
 export async function POST(request: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
@@ -340,51 +360,53 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   const links = Object.values(snapshot.links);
 
   const upsertNotes = async ({ includeFormatting, includeVocabulary }: { includeFormatting: boolean; includeVocabulary: boolean }) =>
-    auth.supabase.from("notes").upsert(
-      notes.map((note) => ({
-        id: note.id,
-        wall_id: wallId,
-        owner_id: auth.user.id,
-        text: note.text,
-        ...(includeFormatting
-          ? {
-              note_kind: note.noteKind ?? "standard",
-              quote_author: note.quoteAuthor?.trim() || null,
-              quote_source: note.quoteSource?.trim() || null,
-              private_note: note.privateNote ?? null,
-              canon: note.canon ?? null,
-              eisenhower: note.eisenhower ?? null,
-              currency: note.currency ?? null,
-              bookmark: note.bookmark ?? null,
-              apod: note.apod ?? null,
-              poetry: note.poetry ?? null,
-              file: note.file ?? note.audio ?? note.video ?? null,
-              image_url: note.imageUrl?.trim() || null,
-              text_align: note.textAlign ?? null,
-              text_v_align: note.textVAlign ?? null,
-              text_font: note.textFont ?? null,
-              text_color: note.textColor ?? null,
-              pinned: note.pinned ?? false,
-              highlighted: note.highlighted ?? false,
-            }
-          : {}),
-        ...(includeVocabulary
-          ? {
-              vocabulary: note.vocabulary ?? null,
-            }
-          : {}),
-        tags: note.tags,
-        text_size: toStoredTextSize(note),
-        x: note.x,
-        y: note.y,
-        w: note.w,
-        h: note.h,
-        color: note.color,
-        created_at: toIso(note.createdAt),
-        updated_at: toIso(note.updatedAt),
-        deleted_at: null,
-      })),
-      { onConflict: "id" },
+    runChunked(notes, async (chunk) =>
+      auth.supabase.from("notes").upsert(
+        chunk.map((note) => ({
+          id: note.id,
+          wall_id: wallId,
+          owner_id: auth.user.id,
+          text: note.text,
+          ...(includeFormatting
+            ? {
+                note_kind: note.noteKind ?? "standard",
+                quote_author: note.quoteAuthor?.trim() || null,
+                quote_source: note.quoteSource?.trim() || null,
+                private_note: note.privateNote ?? null,
+                canon: note.canon ?? null,
+                eisenhower: note.eisenhower ?? null,
+                currency: note.currency ?? null,
+                bookmark: note.bookmark ?? null,
+                apod: note.apod ?? null,
+                poetry: note.poetry ?? null,
+                file: note.file ?? note.audio ?? note.video ?? null,
+                image_url: note.imageUrl?.trim() || null,
+                text_align: note.textAlign ?? null,
+                text_v_align: note.textVAlign ?? null,
+                text_font: note.textFont ?? null,
+                text_color: note.textColor ?? null,
+                pinned: note.pinned ?? false,
+                highlighted: note.highlighted ?? false,
+              }
+            : {}),
+          ...(includeVocabulary
+            ? {
+                vocabulary: note.vocabulary ?? null,
+              }
+            : {}),
+          tags: note.tags,
+          text_size: toStoredTextSize(note),
+          x: note.x,
+          y: note.y,
+          w: note.w,
+          h: note.h,
+          color: note.color,
+          created_at: toIso(note.createdAt),
+          updated_at: toIso(note.updatedAt),
+          deleted_at: null,
+        })),
+        { onConflict: "id" },
+      ),
     );
 
   let notesUpsert = { error: null as { message: string } | null };
@@ -415,24 +437,26 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   }
 
   const upsertZones = async (includeKind: boolean) =>
-    auth.supabase.from("zones").upsert(
-      zones.map((zone) => ({
-        id: zone.id,
-        wall_id: wallId,
-        owner_id: auth.user.id,
-        label: zone.label,
-        ...(includeKind ? { kind: zone.kind ?? "frame" } : {}),
-        group_id: zone.groupId ?? null,
-        x: zone.x,
-        y: zone.y,
-        w: zone.w,
-        h: zone.h,
-        color: zone.color,
-        created_at: toIso(zone.createdAt),
-        updated_at: toIso(zone.updatedAt),
-        deleted_at: null,
-      })),
-      { onConflict: "id" },
+    runChunked(zones, async (chunk) =>
+      auth.supabase.from("zones").upsert(
+        chunk.map((zone) => ({
+          id: zone.id,
+          wall_id: wallId,
+          owner_id: auth.user.id,
+          label: zone.label,
+          ...(includeKind ? { kind: zone.kind ?? "frame" } : {}),
+          group_id: zone.groupId ?? null,
+          x: zone.x,
+          y: zone.y,
+          w: zone.w,
+          h: zone.h,
+          color: zone.color,
+          created_at: toIso(zone.createdAt),
+          updated_at: toIso(zone.updatedAt),
+          deleted_at: null,
+        })),
+        { onConflict: "id" },
+      ),
     );
 
   let zonesUpsert = { error: null as { message: string } | null };
@@ -451,20 +475,22 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   }
 
   const groupsUpsert = zoneGroups.length
-    ? await auth.supabase.from("zone_groups").upsert(
-        zoneGroups.map((group) => ({
-          id: group.id,
-          wall_id: wallId,
-          owner_id: auth.user.id,
-          label: group.label,
-          color: group.color,
-          zone_ids: group.zoneIds,
-          collapsed: group.collapsed,
-          created_at: toIso(group.createdAt),
-          updated_at: toIso(group.updatedAt),
-          deleted_at: null,
-        })),
-        { onConflict: "id" },
+    ? await runChunked(zoneGroups, async (chunk) =>
+        auth.supabase.from("zone_groups").upsert(
+          chunk.map((group) => ({
+            id: group.id,
+            wall_id: wallId,
+            owner_id: auth.user.id,
+            label: group.label,
+            color: group.color,
+            zone_ids: group.zoneIds,
+            collapsed: group.collapsed,
+            created_at: toIso(group.createdAt),
+            updated_at: toIso(group.updatedAt),
+            deleted_at: null,
+          })),
+          { onConflict: "id" },
+        ),
       )
     : { error: null };
 
@@ -473,20 +499,22 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   }
 
   const noteGroupsUpsert = noteGroups.length
-    ? await auth.supabase.from("note_groups").upsert(
-        noteGroups.map((group) => ({
-          id: group.id,
-          wall_id: wallId,
-          owner_id: auth.user.id,
-          label: group.label,
-          color: group.color,
-          note_ids: group.noteIds,
-          collapsed: group.collapsed,
-          created_at: toIso(group.createdAt),
-          updated_at: toIso(group.updatedAt),
-          deleted_at: null,
-        })),
-        { onConflict: "id" },
+    ? await runChunked(noteGroups, async (chunk) =>
+        auth.supabase.from("note_groups").upsert(
+          chunk.map((group) => ({
+            id: group.id,
+            wall_id: wallId,
+            owner_id: auth.user.id,
+            label: group.label,
+            color: group.color,
+            note_ids: group.noteIds,
+            collapsed: group.collapsed,
+            created_at: toIso(group.createdAt),
+            updated_at: toIso(group.updatedAt),
+            deleted_at: null,
+          })),
+          { onConflict: "id" },
+        ),
       )
     : { error: null };
 
@@ -495,20 +523,22 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   }
 
   const linksUpsert = links.length
-    ? await auth.supabase.from("links").upsert(
-        links.map((link) => ({
-          id: link.id,
-          wall_id: wallId,
-          owner_id: auth.user.id,
-          from_note_id: link.fromNoteId,
-          to_note_id: link.toNoteId,
-          type: link.type,
-          label: link.label,
-          created_at: toIso(link.createdAt),
-          updated_at: toIso(link.updatedAt),
-          deleted_at: null,
-        })),
-        { onConflict: "id" },
+    ? await runChunked(links, async (chunk) =>
+        auth.supabase.from("links").upsert(
+          chunk.map((link) => ({
+            id: link.id,
+            wall_id: wallId,
+            owner_id: auth.user.id,
+            from_note_id: link.fromNoteId,
+            to_note_id: link.toNoteId,
+            type: link.type,
+            label: link.label,
+            created_at: toIso(link.createdAt),
+            updated_at: toIso(link.updatedAt),
+            deleted_at: null,
+          })),
+          { onConflict: "id" },
+        ),
       )
     : { error: null };
 
@@ -517,11 +547,24 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   }
 
   const deleteMissing = async (table: "notes" | "zones" | "zone_groups" | "note_groups" | "links", ids: string[]) => {
-    const base = auth.supabase.from(table).delete().eq("wall_id", wallId).eq("owner_id", auth.user.id);
-    if (ids.length === 0) {
-      return base;
+    const existingResult = await auth.supabase
+      .from(table)
+      .select("id")
+      .eq("wall_id", wallId)
+      .eq("owner_id", auth.user.id);
+
+    if (existingResult.error) {
+      return { error: existingResult.error };
     }
-    return base.not("id", "in", buildInFilter(ids));
+
+    const keepIds = new Set(ids);
+    const staleIds = (existingResult.data ?? [])
+      .map((row) => row.id)
+      .filter((id): id is string => typeof id === "string" && !keepIds.has(id));
+
+    return runChunked(staleIds, async (chunk) =>
+      auth.supabase.from(table).delete().eq("wall_id", wallId).eq("owner_id", auth.user.id).in("id", chunk),
+    );
   };
 
   const [notesDelete, zonesDelete, groupsDelete, noteGroupsDelete, linksDelete] = await Promise.all([
