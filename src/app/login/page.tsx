@@ -38,21 +38,29 @@ export default function LoginPage() {
     event.preventDefault();
     setError(null);
     setBusy(true);
-    const supabase = createSupabaseBrowserClient();
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
 
-    setBusy(false);
-    if (signInError) {
-      setError(signInError.message);
-      return;
+      router.replace(nextPath);
+      router.refresh();
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? `Unable to reach sign-in service. ${error.message}`
+          : "Unable to reach sign-in service. Check your connection and try again.";
+      setError(message);
+    } finally {
+      setBusy(false);
     }
-
-    router.replace(nextPath);
-    router.refresh();
   };
 
   return (

@@ -19,26 +19,34 @@ export default function SignupPage() {
     setError(null);
     setNotice(null);
     setBusy(true);
-    const supabase = createSupabaseBrowserClient();
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      });
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-    });
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
 
-    setBusy(false);
-    if (signUpError) {
-      setError(signUpError.message);
-      return;
+      if (!data.session) {
+        setNotice("Check your email to confirm your account, then sign in.");
+        return;
+      }
+
+      router.replace("/wall");
+      router.refresh();
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? `Unable to reach sign-up service. ${error.message}`
+          : "Unable to reach sign-up service. Check your connection and try again.";
+      setError(message);
+    } finally {
+      setBusy(false);
     }
-
-    if (!data.session) {
-      setNotice("Check your email to confirm your account, then sign in.");
-      return;
-    }
-
-    router.replace("/wall");
-    router.refresh();
   };
 
   return (

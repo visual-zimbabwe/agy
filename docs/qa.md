@@ -1032,6 +1032,7 @@ Expected:
 12. While signed in, set a note's `Horizontal align`, `Vertical align`, and `Text color`; wait for sync, then close browser, restart `npm run dev`, and reopen `/wall`.
 13. While signed in on `/wall`, clear or expire the session, trigger `Sync now`, and verify the app redirects to `/login` with a session-expired message instead of showing raw `Unauthorized`.
 14. Repeat the expired-session check from `/settings` by saving settings after the session is cleared; verify redirect to `/login` and that re-sign-in returns to `/settings`.
+15. On `/login` and `/signup`, simulate the auth service being unreachable and verify the form shows a readable transport error instead of throwing an uncaught browser exception.
 
 Expected:
 - `/wall` is protected for unauthenticated users.
@@ -1040,6 +1041,7 @@ Expected:
 - Accounts remain isolated via RLS.
 - Note formatting (`textAlign`, `textVAlign`, `textColor`) survives app/browser restarts and cloud rehydration.
 - Expired authenticated sessions redirect to `/login` cleanly for wall sync and settings saves without surfacing raw backend auth strings.
+- Login and signup surface network/auth transport failures as inline form errors.
 
 ## Cloud Sync Regression - Note Groups and Note State (2026-02-14)
 1. Sign in on device A and create 3 notes.
