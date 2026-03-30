@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getEconomistMagazineSource, isEconomistSourceId } from "@/features/wall/economist";
+import {
+  ECONOMIST_COVER_FALLBACK_IMAGE_URL,
+  getEconomistMagazineSource,
+  isEconomistSourceId,
+} from "@/features/wall/economist";
 
 const querySchema = z.object({
   refresh: z.enum(["true", "false"]).optional(),
@@ -21,7 +25,6 @@ type EconomistApiResponse = {
 };
 
 const clean = (value?: string | null) => value?.trim() || undefined;
-const fallbackCoverImageUrl = "/placeholders/magazine-cover-unavailable.svg";
 const upstreamFetchInit: RequestInit = {
   cache: "no-store",
   headers: {
@@ -46,7 +49,7 @@ const buildFallbackPayload = ({
   displayDate: "",
   displayLabel: year?.trim() ? `${year.trim()} archive unavailable` : "Cover temporarily unavailable",
   mainStory: `Unable to fetch the latest ${sourceName} cover right now.`,
-  imageUrl: fallbackCoverImageUrl,
+  imageUrl: ECONOMIST_COVER_FALLBACK_IMAGE_URL,
   sourceUrl,
 });
 
@@ -117,7 +120,7 @@ export async function GET(request: Request) {
         sourceUrl: clean(item.source_url) || clean(payload.source_url) || fallbackSource.sourceUrl,
       })),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       buildFallbackPayload({
         sourceId,

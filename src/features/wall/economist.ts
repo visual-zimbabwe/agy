@@ -11,6 +11,7 @@ export const ECONOMIST_NOTE_DEFAULTS = {
 
 export const ECONOMIST_NOTE_CACHE_KEY = "agy-economist-cover-cache-v2";
 export const ECONOMIST_NOTE_SOURCE_URL = "https://www.economist.com/printedition/covers";
+export const ECONOMIST_COVER_FALLBACK_IMAGE_URL = "/placeholders/magazine-cover-unavailable.svg";
 
 export type EconomistSourceId = "economist" | "barrons" | "newyorker" | "newsweek" | "forbes" | "theweek";
 
@@ -102,6 +103,9 @@ export const defaultEconomistCoverPayload = (payload?: Partial<EconomistCoverPay
   year: payload?.year?.trim() || undefined,
   items: Array.isArray(payload?.items) ? payload.items.map((item) => defaultEconomistCoverPayload(item)) : undefined,
 });
+
+export const isEconomistFallbackCoverUrl = (imageUrl?: string | null) =>
+  imageUrl?.trim() === ECONOMIST_COVER_FALLBACK_IMAGE_URL;
 
 export const formatEconomistNoteText = (payload: Pick<EconomistCoverPayload, "sourceName" | "displayLabel" | "displayDate">) => {
   return payload.sourceName?.trim() || "The Economist";

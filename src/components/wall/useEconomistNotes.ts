@@ -7,6 +7,7 @@ import {
   ECONOMIST_NOTE_CACHE_KEY,
   formatEconomistNoteText,
   getEconomistNoteSourceId,
+  isEconomistFallbackCoverUrl,
   isEconomistNote,
   type EconomistCoverPayload,
   type EconomistSourceId,
@@ -29,7 +30,8 @@ const readEconomistCache = (sourceId: EconomistSourceId) => {
     if (!raw) {
       return null;
     }
-    return defaultEconomistCoverPayload(JSON.parse(raw) as Partial<EconomistCoverPayload>);
+    const payload = defaultEconomistCoverPayload(JSON.parse(raw) as Partial<EconomistCoverPayload>);
+    return isEconomistFallbackCoverUrl(payload.imageUrl) ? null : payload;
   } catch {
     return null;
   }
@@ -145,6 +147,12 @@ export const useEconomistNotes = ({ hydrated, publishedReadOnly, loginKey }: { h
         year: payload.year,
         items: payload.items,
       });
+      if (isEconomistFallbackCoverUrl(nextPayload.imageUrl)) {
+        if (cached) {
+          return cached;
+        }
+        return nextPayload;
+      }
       if (!year) {
         writeEconomistCache(nextPayload);
       }
