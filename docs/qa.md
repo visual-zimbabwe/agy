@@ -1223,21 +1223,22 @@ Expected:
 
 ## Economist Cover Note (`/wall`) (2026-03-20)
 1. Open `/wall`, open `Tools`, and click `Magazine Covers`.
-2. Verify five warm-paper magazine-cover notes appear near viewport center, one each for `The Economist`, `Barron's`, `The New Yorker`, `Newsweek`, and `Forbes`.
-3. Verify each note loads a cover image, does not repeat the masthead at the top of the cover, shows the main story above the magazine name at bottom left, and shows the issue date only once instead of all notes collapsing to `The Economist`.
-4. Open the command palette, run `Create magazine cover notes`, and verify another full set of magazine-cover notes is created near viewport center.
-5. Press `Shift + M` and verify the keyboard shortcut creates another full set of magazine-cover notes.
-6. Delete one source from the multi-cover set, then convert an existing standard note through `Details > Note Type > Magazine Cover` and verify it recreates the first missing magazine source instead of defaulting back to Economist.
-7. In `Details`, change `Magazine Source` on that selected note to `Barron's`, verify only that note switches source, and verify it refreshes to the latest Barron's cover without changing the other magazine notes.
-8. Use `Refresh Cover` and `Open Source` in `Details` for the selected note, then verify the refresh only affects that note and the source link opens the correct archive page for the chosen magazine.
-9. Refresh `/wall` while signed in and verify existing magazine-cover notes automatically refresh against their own sources on hydration/login.
-10. Duplicate a non-Economist magazine-cover note and verify the duplicate keeps the reserved styling, then refresh it and verify it still resolves the same magazine source.
-11. If cloud sync is enabled, sync, reload, and verify the magazine-cover notes still render their cover images and source/date metadata after hydration.
-12. Resize the notes smaller and larger on desktop and mobile-sized viewports; verify the cover image remains visible, floating controls stay on-screen, and nothing clips against viewport edges.
-13. Simulate an upstream failure for the `economist` source after at least one successful load, then reload or sign in again and verify the existing Economist note keeps its last cached cover instead of degrading to an empty/error state.
+2. Verify warm-paper magazine-cover notes appear near viewport center for each source exposed by the local API, including `The Economist`, `Barron's`, `The New Yorker`, `Newsweek`, `Forbes`, and `The Week`.
+3. Verify each created note loads a cover image, does not repeat the masthead at the top of the cover, shows the main story above the magazine name at bottom left, and shows the issue date only once instead of all notes collapsing to `The Economist`.
+4. Verify `The Week` creates multiple distinct cartoon notes when the upstream API returns multiple images instead of collapsing that source to a single card.
+5. Open the command palette, run `Create magazine cover notes`, and verify another full set of magazine-cover notes is created near viewport center.
+6. Press `Shift + M` and verify the keyboard shortcut creates another full set of magazine-cover notes.
+7. Delete one source from the multi-cover set, then convert an existing standard note through `Details > Note Type > Magazine Cover` and verify it recreates the first missing magazine source instead of defaulting back to Economist.
+8. In `Details`, change `Magazine Source` on that selected note to `Barron's`, verify only that note switches source, and verify it refreshes to the latest Barron's cover without changing the other magazine notes.
+9. Use `Refresh Cover` and `Open Source` in `Details` for the selected note, then verify the refresh only affects that note and the source link opens the correct archive page for the chosen magazine.
+10. Refresh `/wall` while signed in and verify existing magazine-cover notes automatically refresh against their own sources on hydration/login.
+11. Duplicate a non-Economist magazine-cover note and verify the duplicate keeps the reserved styling, then refresh it and verify it still resolves the same magazine source.
+12. If cloud sync is enabled, sync, reload, and verify the magazine-cover notes still render their cover images and source/date metadata after hydration.
+13. Resize the notes smaller and larger on desktop and mobile-sized viewports; verify the cover image remains visible, floating controls stay on-screen, and nothing clips against viewport edges.
+14. Simulate an upstream failure for the `economist` source after at least one successful load, then reload or sign in again and verify the existing Economist note keeps its last cached cover instead of degrading to an empty/error state.
 
 Expected:
-- The multi-cover action creates one Economist-shell note per magazine source exposed by the local API.
+- The multi-cover action creates one or more Economist-shell notes per magazine source exposed by the local API, depending on how many distinct images the source returns.
 - The note uses the local backend proxy routes rather than calling the local cover API directly from the browser.
 - Sign-in or wall hydration refreshes existing magazine-cover notes against their own sources automatically.
 - `Details > Note Type > Magazine Cover` prefers the first missing magazine source on the wall when recreating a deleted cover.`r`n- The Details `Magazine Source` picker lets a single selected note switch to a different magazine source without recreating the full set.

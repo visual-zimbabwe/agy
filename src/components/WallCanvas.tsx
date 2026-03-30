@@ -132,7 +132,16 @@ import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, cr
 import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
 import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { isCurrencyNote } from "@/features/wall/currency";
-import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, getEconomistNoteSourceId, isEconomistNote, type EconomistMagazineSource, type EconomistSourceId } from "@/features/wall/economist";
+import {
+  defaultEconomistCoverPayload,
+  ECONOMIST_MAGAZINE_SOURCES,
+  ECONOMIST_NOTE_DEFAULTS,
+  getEconomistNoteSourceId,
+  isEconomistNote,
+  type EconomistCoverPayload,
+  type EconomistMagazineSource,
+  type EconomistSourceId,
+} from "@/features/wall/economist";
 import { getPoetryNoteDimensions } from "@/features/wall/poetry";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
@@ -2156,9 +2165,73 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       return;
     }
 
+    const fetchedCoverGroups = await Promise.allSettled(
+      sourcesToCreate.map(async (source) => {
+        const params = new URLSearchParams({
+          source: source.sourceId,
+          refresh: "true",
+        });
+        const response = await fetch(`/api/economist-cover?${params.toString()}`, { cache: "no-store" });
+        const payload = (await response.json()) as Partial<EconomistCoverPayload> & { error?: string };
+
+        const mainCover = defaultEconomistCoverPayload({
+          sourceId: source.sourceId,
+          sourceName: payload.sourceName || source.sourceName,
+          displayDate: payload.displayDate,
+          displayLabel: payload.displayLabel || "Latest cover",
+          mainStory: payload.mainStory,
+          imageUrl: payload.imageUrl,
+          sourceUrl: payload.sourceUrl || source.sourceUrl,
+          year: payload.year,
+          fetchedAt: Date.now(),
+        });
+
+        const distinctCovers = [mainCover];
+        if (Array.isArray(payload.items)) {
+          for (const item of payload.items) {
+            const cover = defaultEconomistCoverPayload({
+              sourceId: source.sourceId,
+              sourceName: item.sourceName || payload.sourceName || source.sourceName,
+              displayDate: item.displayDate,
+              displayLabel: item.displayLabel || payload.displayLabel || "Latest cover",
+              mainStory: item.mainStory,
+              imageUrl: item.imageUrl,
+              sourceUrl: item.sourceUrl || payload.sourceUrl || source.sourceUrl,
+              year: item.year || payload.year,
+              fetchedAt: Date.now(),
+            });
+            if (cover.imageUrl && !distinctCovers.some((candidate) => candidate.imageUrl === cover.imageUrl)) {
+              distinctCovers.push(cover);
+            }
+          }
+        }
+
+        return distinctCovers;
+      }),
+    );
+
+    const notePayloads = fetchedCoverGroups.flatMap((result, index) => {
+      const source = sourcesToCreate[index];
+      if (!source) {
+        return [];
+      }
+      if (result.status === "fulfilled" && result.value.length > 0) {
+        return result.value;
+      }
+      return [
+        defaultEconomistCoverPayload({
+          sourceId: source.sourceId,
+          sourceName: source.sourceName,
+          sourceUrl: source.sourceUrl,
+          displayLabel: "Latest cover",
+          fetchedAt: Date.now(),
+        }),
+      ];
+    });
+
     const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const columns = Math.min(3, Math.max(1, sourcesToCreate.length));
-    const rows = Math.ceil(sourcesToCreate.length / columns);
+    const columns = Math.min(3, Math.max(1, notePayloads.length));
+    const rows = Math.ceil(notePayloads.length / columns);
     const gapX = 40;
     const gapY = 40;
     const totalWidth = columns * ECONOMIST_NOTE_DEFAULTS.width + Math.max(0, columns - 1) * gapX;
@@ -2167,7 +2240,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     const occupiedRects = [...occupiedNoteRects];
 
     runHistoryGroup(() => {
-      sourcesToCreate.forEach((source, index) => {
+      notePayloads.forEach((payload, index) => {
         const column = index % columns;
         const row = Math.floor(index / columns);
         const preferredCenter = {
@@ -2178,12 +2251,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         const id = createEconomistNote(
           position.x,
           position.y,
-          {
-            sourceId: source.sourceId,
-            sourceName: source.sourceName,
-            sourceUrl: source.sourceUrl,
-            displayLabel: "Latest cover",
-          },
+          payload,
           { select: false },
         );
         createdIds.push(id);
@@ -2196,9 +2264,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       setSelectedNoteIds([firstId]);
       selectNote(firstId);
     }
-
-    await Promise.allSettled(createdIds.map((id) => refreshEconomistNote(id, { force: true })));
-  }, [camera, isTimeLocked, occupiedNoteRects, placeNewNote, refreshEconomistNote, runHistoryGroup, selectNote, viewport.h, viewport.w]);
+  }, [camera, isTimeLocked, occupiedNoteRects, placeNewNote, runHistoryGroup, selectNote, viewport.h, viewport.w]);
 
   const makeWordNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {

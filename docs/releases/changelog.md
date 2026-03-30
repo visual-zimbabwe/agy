@@ -7,7 +7,7 @@
 - Wall `web-bookmark` notes with server-side metadata fetch, local URL-level caching, timeline/detail previews, and synced bookmark payload support
 - Wall `apod` notes backed by the NASA Astronomy Picture of the Day API, including daily refresh, backend download flow, and synced APOD payload support
 - Wall `poetry` notes backed by PoetryDB, including daily auto-refresh, details-sidebar poem search by PoetryDB fields, adaptive poem sizing, and PNG/PDF export actions
-- Wall `economist` cover notes backed by the local magazine-cover API, including multi-source creation for Economist/Barron's/New Yorker/Newsweek/Forbes, login-time refresh, details conversion, and floating source/refresh actions
+- Wall `economist` cover notes backed by the local magazine-cover API, including multi-source creation for Economist/Barron's/New Yorker/Newsweek/Forbes/The Week, login-time refresh, details conversion, and floating source/refresh actions
 - Hybrid help center with a wall quick-help modal, shared help content model, and route-based `/help` library
 - Canonical documentation structure under `docs/product`, `docs/architecture`, `docs/features`, `docs/api`, `docs/runbooks`, and `docs/releases`
 - Initial convert API doc
@@ -39,6 +39,7 @@
 ### Fixed
 
 - Magazine cover notes no longer persist placeholder `cover unavailable` art in the per-source cache, so transient upstream misses can recover to the latest real cover on the next refresh instead of staying stuck on the fallback card
+- `Tools > Magazine Covers` now fans out sources like `The Week` into multiple notes when the API returns multiple distinct images instead of dropping everything after the first image
 - Electron desktop routing now allows current internal routes (`/wall`, `/page`, `/decks`, `/settings`, `/help`) without blocking valid in-app navigation, and startup preferences now cover the same route surface as the web app
 - Hosted auth login failures now normalize Supabase error payloads into readable messages instead of surfacing raw `{}` on `/login`
 - Hosted auth retryable failures now preserve service-unavailable status instead of incorrectly reporting `401` invalid-credential errors on `/login`
