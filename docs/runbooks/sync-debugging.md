@@ -46,11 +46,17 @@ Use this runbook when cloud-backed wall state is not loading, local and cloud st
    - missing wall record
    - outdated database schema
    - server-side query or upsert errors
+   - oversized snapshot writes that can exceed database statement timeouts
 
    Current expired-session behavior:
    - protected wall and settings API calls return `401`
    - the client redirects to `/login` instead of leaving the raw `Unauthorized` string in the wall sync UI
    - the login screen should show a short session-expired message before re-authentication
+
+   Current timeout mitigation:
+   - the sync route writes entity batches in chunks
+   - if a chunk fails with a Postgres statement timeout, the server retries that chunk with a smaller batch size before surfacing the error
+   - persistent timeout failures after retries usually mean the wall payload is unusually large or the database needs query/index review
 
 8. Check for compatibility fallback conditions in the wall API.
    Current wall read and sync handlers contain compatibility logic for missing:

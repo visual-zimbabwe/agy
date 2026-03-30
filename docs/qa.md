@@ -1063,6 +1063,19 @@ Expected:
 - `pinned` and `highlighted` persist through cloud sync and hydration.
 - Cross-device edits to note-group membership and note state converge after sync.
 
+## Cloud Sync Regression - Large Snapshot Retry (2026-03-30)
+1. Sign in to an account with cloud sync enabled.
+2. Create or import a wall with several hundred notes or a similarly large mixed snapshot.
+3. Click `Sync now`.
+4. Keep the sync status panel open until the request finishes.
+5. Reload `/wall`.
+6. Trigger another `Sync now` after a small edit.
+
+Expected:
+- Sync completes without surfacing `canceling statement due to statement timeout`.
+- Reloaded wall content matches the pre-reload snapshot.
+- A follow-up sync after a small edit also completes successfully.
+
 ## Priority 2 Maintainability Guardrails (2026-02-12)
 1. Run `npm run lint`.
 2. Run `npm run check:types`.

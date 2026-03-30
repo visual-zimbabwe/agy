@@ -255,8 +255,9 @@ const toIso = (value: number) => new Date(value).toISOString();
 const toStoredTextSize = (note: { textSize?: "sm" | "md" | "lg"; textSizePx?: number }) =>
   typeof note.textSizePx === "number" ? `px:${Math.max(8, Math.min(72, Math.round(note.textSizePx)))}` : note.textSize ?? null;
 
-const syncChunkSize = 500;
-const syncChunkConcurrency = 4;
+const syncChunkSize = 200;
+const syncChunkConcurrency = 2;
+const minSyncChunkSize = 25;
 
 const chunkArray = <T,>(items: T[], size: number) => {
   const chunks: T[][] = [];
@@ -294,18 +295,35 @@ const isMissingNoteVocabularyColumnError = (message?: string) =>
   Boolean(message && message.includes("column notes.vocabulary does not exist"));
 const isMissingNoteGroupsTableError = (message?: string) =>
   Boolean(message && message.includes('relation "public.note_groups" does not exist'));
+const isStatementTimeoutError = (message?: string) =>
+  Boolean(message && message.includes("statement timeout"));
 
 const runChunked = async <T,>(
   items: T[],
   task: (chunk: T[]) => Promise<{ error: { message: string } | null }>,
-) => {
-  const chunks = chunkArray(items, syncChunkSize);
+  chunkSize = syncChunkSize,
+): Promise<{ error: { message: string } | null }> => {
+  const chunks = chunkArray(items, chunkSize);
   for (let index = 0; index < chunks.length; index += syncChunkConcurrency) {
     const batch = chunks.slice(index, index + syncChunkConcurrency);
     const results = await Promise.all(batch.map((chunk) => task(chunk)));
-    const firstError = results.find((result) => result.error);
-    if (firstError?.error) {
-      return firstError;
+    for (let batchIndex = 0; batchIndex < results.length; batchIndex += 1) {
+      const result = results[batchIndex];
+      const failedChunk = batch[batchIndex];
+      if (!result || !failedChunk || !result.error) {
+        continue;
+      }
+
+      if (isStatementTimeoutError(result.error.message) && failedChunk.length > minSyncChunkSize) {
+        const nextChunkSize = Math.max(minSyncChunkSize, Math.ceil(failedChunk.length / 2));
+        const retried = await runChunked(failedChunk, task, nextChunkSize);
+        if (retried.error) {
+          return retried;
+        }
+        continue;
+      }
+
+      return result;
     }
   }
   return { error: null as { message: string } | null };
