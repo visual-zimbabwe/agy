@@ -8,13 +8,25 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-const getAuthErrorMessage = (error: unknown) => {
+const getAuthErrorDetails = (error: unknown) => {
   if (error instanceof Error && error.message.trim()) {
-    return error.message;
+    const status =
+      "status" in error && typeof error.status === "number" ? error.status : undefined;
+    const isRetryable = error.name === "AuthRetryableFetchError" || (status !== undefined && status >= 500);
+
+    return {
+      message: isRetryable
+        ? "Authentication service is temporarily unavailable. Please try again."
+        : error.message,
+      status: isRetryable ? 503 : status === 401 || status === 400 ? 401 : 401,
+    };
   }
 
   if (error && typeof error === "object") {
     const record = error as Record<string, unknown>;
+    const status = typeof record.status === "number" ? record.status : undefined;
+    const isRetryable =
+      record.name === "AuthRetryableFetchError" || (status !== undefined && status >= 500);
     const candidates = [
       record.message,
       record.error_description,
@@ -24,12 +36,27 @@ const getAuthErrorMessage = (error: unknown) => {
 
     for (const candidate of candidates) {
       if (typeof candidate === "string" && candidate.trim()) {
-        return candidate;
+        return {
+          message: isRetryable
+            ? "Authentication service is temporarily unavailable. Please try again."
+            : candidate,
+          status: isRetryable ? 503 : status === 401 || status === 400 ? 401 : 401,
+        };
       }
+    }
+
+    if (isRetryable) {
+      return {
+        message: "Authentication service is temporarily unavailable. Please try again.",
+        status: 503,
+      };
     }
   }
 
-  return "Invalid email or password.";
+  return {
+    message: "Invalid email or password.",
+    status: 401,
+  };
 };
 
 export async function POST(request: Request) {
@@ -48,7 +75,8 @@ export async function POST(request: Request) {
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
     if (error) {
-      return NextResponse.json({ error: getAuthErrorMessage(error) }, { status: 401 });
+      const authError = getAuthErrorDetails(error);
+      return NextResponse.json({ error: authError.message }, { status: authError.status });
     }
 
     return NextResponse.json({ ok: true });

@@ -40,6 +40,7 @@
 
 - Electron desktop routing now allows current internal routes (`/wall`, `/page`, `/decks`, `/settings`, `/help`) without blocking valid in-app navigation, and startup preferences now cover the same route surface as the web app
 - Hosted auth login failures now normalize Supabase error payloads into readable messages instead of surfacing raw `{}` on `/login`
+- Hosted auth retryable failures now preserve service-unavailable status instead of incorrectly reporting `401` invalid-credential errors on `/login`
 - Removed the stale flat `docs/frontend-architecture.md` file so there is a single canonical frontend architecture doc
 - Archived older flat planning and discovery docs under `docs/archive/legacy-plans/`
 - Promoted the quick-capture guide into `docs/features/quick-capture.md`

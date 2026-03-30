@@ -89,6 +89,8 @@ export default function LoginPage() {
         const fallbackMessage =
           response.status === 401
             ? "Invalid email or password."
+            : response.status >= 500
+              ? "Authentication service is temporarily unavailable. Please try again."
             : rawBody && !rawBody.startsWith("<")
               ? rawBody
               : "Unable to sign in. Please try again.";
