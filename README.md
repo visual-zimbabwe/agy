@@ -62,6 +62,7 @@ This repository is local-first in day-to-day interaction and cloud-backed when s
 
 - Node.js 20+
 - npm
+- Docker Desktop
 - Supabase project for authenticated and cloud-backed flows
 
 ### Install
@@ -85,6 +86,24 @@ CURRENCYAPI_API_KEY=your-currencyapi-com-api-key
 ```
 
 If you are setting up a fresh environment, apply the required Supabase migrations from `supabase/migrations/`.
+
+### Local Supabase
+
+This repo now includes the standard local Supabase CLI config at [`supabase/config.toml`](/C:/Dev/products/idea-wall/supabase/config.toml).
+
+To start the local stack without installing the CLI globally:
+
+```bash
+npx supabase@latest start
+```
+
+Useful local endpoints after startup:
+
+- API: `http://127.0.0.1:54321`
+- Studio: `http://127.0.0.1:54323`
+- DB: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
+
+This starts a local Docker-backed Supabase instance for development only. It does not modify your remote Supabase project unless you explicitly run remote-targeting CLI commands.
 
 ### Run
 

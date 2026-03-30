@@ -14,6 +14,7 @@ This covers setup, coding workflow, validation, documentation expectations, and 
 
 - Node.js 20+
 - npm
+- Docker Desktop
 - Supabase environment for authenticated and cloud-backed flows
 
 ### Install
@@ -21,6 +22,18 @@ This covers setup, coding workflow, validation, documentation expectations, and 
 ```bash
 npm install
 ```
+
+### Local Supabase
+
+The repo includes [`supabase/config.toml`](/C:/Dev/products/idea-wall/supabase/config.toml) and checked-in migrations under [`supabase/migrations/`](/C:/Dev/products/idea-wall/supabase/migrations).
+
+Start the local stack from the repository root with:
+
+```bash
+npx supabase@latest start
+```
+
+This creates or reuses a local Docker-backed development database on `127.0.0.1:54322` and local API services on `127.0.0.1:54321`. It does not affect the hosted Supabase project unless you intentionally run remote commands.
 
 ### Run
 
