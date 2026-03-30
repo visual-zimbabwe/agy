@@ -7,6 +7,30 @@ import { type FormEvent, useEffect, useState } from "react";
 import { consumeAuthRedirectState } from "@/lib/api/client-auth";
 import { getBrowserAuthErrorMessage, getSupabaseBrowserSessionSafely } from "@/lib/supabase/browser-auth";
 
+const getDisplayableError = (value: unknown) => {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const candidates = [
+      record.message,
+      record.error_description,
+      record.error,
+      record.msg,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate;
+      }
+    }
+  }
+
+  return null;
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -52,7 +76,7 @@ export default function LoginPage() {
 
       const contentType = response.headers.get("content-type") ?? "";
       const rawBody = await response.text();
-      let payload: { error?: string } | null = null;
+      let payload: { error?: unknown } | null = null;
       if (contentType.includes("application/json") && rawBody) {
         try {
           payload = JSON.parse(rawBody) as { error?: string };
@@ -69,7 +93,7 @@ export default function LoginPage() {
               ? rawBody
               : "Unable to sign in. Please try again.";
 
-        setError(payload?.error ?? fallbackMessage);
+        setError(getDisplayableError(payload?.error) ?? fallbackMessage);
         return;
       }
 

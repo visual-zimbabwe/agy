@@ -8,6 +8,30 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+const getAuthErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const candidates = [
+      record.message,
+      record.error_description,
+      record.error,
+      record.msg,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate;
+      }
+    }
+  }
+
+  return "Invalid email or password.";
+};
+
 export async function POST(request: Request) {
   const raw = await request.json().catch(() => ({}));
   const parsed = loginSchema.safeParse(raw);
@@ -24,7 +48,7 @@ export async function POST(request: Request) {
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
+      return NextResponse.json({ error: getAuthErrorMessage(error) }, { status: 401 });
     }
 
     return NextResponse.json({ ok: true });
