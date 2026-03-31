@@ -26,6 +26,8 @@ The workspace supports nested decks, filtered study, due counts, tags, and impor
 
 On `/decks`, the main deck overview includes an `Add Note` entry point. That modal lets the user choose a deck, choose a note type, fill the note fields, add comma-separated tags, and create the note. Card generation still happens note-first through the note type template system rather than by creating raw cards directly.
 
+Deck note creation blocks exact duplicates within the same deck and note type. The duplicate check compares normalized field content only: field order does not matter, leading and trailing whitespace is ignored, and Windows versus Unix line endings are treated as equivalent. Tags do not participate in duplicate detection, so changing tags alone does not make a note unique.
+
 The wall toolbar can also open decks, which makes decks part of the broader product flow rather than a disconnected side project.
 
 ## Data and State
@@ -46,6 +48,7 @@ The workspace relies heavily on server APIs rather than a purely local-only stat
 - The deck APIs include compatibility handling for missing scheduler columns, which means the frontend must tolerate partial schema rollout.
 - Nested decks change study semantics because parent deck sessions can include or exclude child decks.
 - Browse and bulk operations need careful selection behavior to avoid accidental destructive actions.
+- Duplicate prevention is enforced in the shared note-creation API, so both manual add and file import reject exact duplicate notes in the same deck and note-type scope.
 
 ## Limitations
 

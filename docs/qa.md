@@ -382,21 +382,24 @@ Expected:
 1. Sign in and open `/decks` from landing and from `/wall` toolbar.
 2. In deck sidebar, create a root deck and one child deck.
 3. On `/decks/decks`, click `Add Note`, choose a deck and note type, and create one note using each built-in note type (Basic, reversed, optional reversed, cloze).
-4. Start study on parent deck with `Include child decks` enabled; confirm cards from child deck appear.
-5. Exclude the child deck and confirm child cards are removed from current queue.
-6. In study view, click `Show Answer`, then rate cards with `Again/Hard/Good/Easy`.
-7. Open `Browse`, search cards, select rows, and run bulk `Suspend`, `Unsuspend`, and `Delete`.
-8. In Browse editor, edit prompt/answer and save.
-9. Open `Stats`, switch ranges (`7d`, `30d`, `90d`, `1y`, `deck_life`) and verify summary/workload updates.
-10. Open `Import File`, upload sample `.csv` or tab-delimited `.txt`, map columns, import notes.
-11. Save an import preset, close modal, reopen, and apply the saved preset.
-12. Switch to dark mode on `/decks` and verify deck backgrounds, panels, badges, and modal surfaces render as pure `#000000`, while text and status/icon indicators remain readable.
-13. Verify Decks behavior in Electron app build (`agy-studio`) by opening `/decks`, adding one note, and reviewing one card.
-14. Reload `/decks/decks` after creating a note and verify the selected deck counts update and the generated card appears in `Browse Cards`.
+4. Try creating the same note again in the same deck and note type, varying only field order, surrounding whitespace, or line endings, and verify the app rejects it as a duplicate.
+5. Start study on parent deck with `Include child decks` enabled; confirm cards from child deck appear.
+6. Exclude the child deck and confirm child cards are removed from current queue.
+7. In study view, click `Show Answer`, then rate cards with `Again/Hard/Good/Easy`.
+8. Open `Browse`, search cards, select rows, and run bulk `Suspend`, `Unsuspend`, and `Delete`.
+9. In Browse editor, edit prompt/answer and save.
+10. Open `Stats`, switch ranges (`7d`, `30d`, `90d`, `1y`, `deck_life`) and verify summary/workload updates.
+11. Open `Import File`, upload sample `.csv` or tab-delimited `.txt`, map columns, import notes.
+12. Re-import the same rows into the same deck and verify the import stops with a duplicate-note error instead of adding another copy.
+13. Save an import preset, close modal, reopen, and apply the saved preset.
+14. Switch to dark mode on `/decks` and verify deck backgrounds, panels, badges, and modal surfaces render as pure `#000000`, while text and status/icon indicators remain readable.
+15. Verify Decks behavior in Electron app build (`agy-studio`) by opening `/decks`, adding one note, and reviewing one card.
+16. Reload `/decks/decks` after creating a note and verify the selected deck counts update and the generated card appears in `Browse Cards`.
 
 Expected:
 - Decks route is reachable from both landing and wall.
 - Add Note/Browse/Stats/Study/Import flows work end-to-end.
+- Duplicate deck notes are rejected for both manual creation and import.
 - Parent study optionally includes children and supports exclusions.
 - Card scheduling updates queue counts after rating.
 - Import mapping presets persist via cloud data and reload correctly.

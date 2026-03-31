@@ -1,3 +1,5 @@
+import { normalizeDeckNoteFields } from "@/features/decks/duplicates";
+
 export type BuiltinDeckNoteTypeKey =
   | "basic"
   | "basic_reversed"
@@ -53,8 +55,6 @@ export const builtinDeckNoteTypes: DeckNoteTypeDefinition[] = [
     css: "",
   },
 ];
-
-const normalizeFieldValue = (value: unknown) => (typeof value === "string" ? value : "");
 
 const renderTemplate = (template: string, fields: Record<string, string>) =>
   template.replace(/\{\{([^}]+)\}\}/g, (_whole, rawKey) => {
@@ -114,9 +114,7 @@ export const createDeckCardsFromNote = (options: {
   backTemplate: string;
   fields: Record<string, unknown>;
 }): GeneratedDeckCard[] => {
-  const normalizedFields = Object.fromEntries(
-    Object.entries(options.fields).map(([key, value]) => [key, normalizeFieldValue(value)]),
-  ) as Record<string, string>;
+  const normalizedFields = normalizeDeckNoteFields(options.fields);
   const key = options.builtinKey as BuiltinDeckNoteTypeKey | null;
 
   if (key === "cloze") {

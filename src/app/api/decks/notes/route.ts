@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { findDuplicateDeckNote, normalizeDeckNoteFields } from "@/features/decks/duplicates";
 import { createDeckCardsFromNote } from "@/features/decks/note-types";
 import { requireApiUser } from "@/lib/api/auth";
 
@@ -34,18 +35,43 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Note type not found." }, { status: 404 });
   }
 
+  const normalizedFields = normalizeDeckNoteFields(parsed.data.fields);
+  const { data: existingNotes, error: existingNotesError } = await auth.supabase
+    .from("deck_notes")
+    .select("id,fields")
+    .eq("owner_id", auth.user.id)
+    .eq("deck_id", parsed.data.deckId)
+    .eq("note_type_id", parsed.data.noteTypeId);
+
+  if (existingNotesError) {
+    return NextResponse.json({ error: existingNotesError.message }, { status: 500 });
+  }
+
+  const comparableNotes = (existingNotes ?? []).flatMap((note) =>
+    note.fields && typeof note.fields === "object" && !Array.isArray(note.fields)
+      ? [{ id: note.id, fields: note.fields as Record<string, unknown> }]
+      : [],
+  );
+  const duplicate = findDuplicateDeckNote(comparableNotes, normalizedFields);
+  if (duplicate) {
+    return NextResponse.json(
+      { error: "An identical note already exists in this deck.", duplicateNoteId: duplicate.id },
+      { status: 409 },
+    );
+  }
+
   const generatedCards = createDeckCardsFromNote({
     builtinKey: noteType.builtin_key,
     frontTemplate: noteType.front_template,
     backTemplate: noteType.back_template,
-    fields: parsed.data.fields,
+    fields: normalizedFields,
   });
 
   if (generatedCards.length === 0) {
     return NextResponse.json({ error: "No cards generated from this note." }, { status: 400 });
   }
 
-  const sortField = Object.values(parsed.data.fields)[0] ?? "New note";
+  const sortField = Object.values(normalizedFields)[0] ?? "New note";
   const { data: note, error: noteError } = await auth.supabase
     .from("deck_notes")
     .insert({
@@ -53,7 +79,7 @@ export async function POST(request: Request) {
       deck_id: parsed.data.deckId,
       note_type_id: parsed.data.noteTypeId,
       sort_field: sortField,
-      fields: parsed.data.fields,
+      fields: normalizedFields,
       tags: parsed.data.tags ?? [],
     })
     .select("id,deck_id,note_type_id,sort_field,fields,tags,suspended,flagged,created_at,updated_at")
