@@ -360,9 +360,10 @@ Expected:
 ## Decks Route and Workflow (2026-03-03)
 1. Sign in and open `/decks` from landing and from `/wall` toolbar.
 2. In deck sidebar, create a root deck and one child deck.
-3. In the top decks header, click `Wall`, `Page`, and `Media` and verify each route opens directly without losing access to the decks workspace.
-4. On `/decks/decks`, verify the top-right gear opens `/settings` and the `Study` action opens the deck study surface instead of showing an unlabeled icon-only shortcut.
-5. On `/decks/decks`, click `Add Note`, choose a deck and note type, and create one note using each built-in note type (Basic, reversed, optional reversed, cloze).
+3. In the top decks header, verify `Decks`, `Browse`, `Stats`, and `Study` stay grouped on the left while `Wall`, `Page`, and `Media` are aligned at the top-right; click `Wall`, `Page`, and `Media` and verify each route opens directly without losing access to the decks workspace.
+4. On `/decks/decks`, verify the lower-left sidebar footer shows linked `Settings` and `Help` actions, and that each opens `/settings` and `/help` respectively.
+5. On `/decks/decks`, verify the header no longer shows duplicate `Add Note`, `Study`, settings, or nonfunctional `Search cards` controls, and that the nav-bar `Study` tab still opens the deck study surface.
+6. On `/decks/decks`, click the hero-section `Add Note`, choose a deck and note type, and create one note using each built-in note type (Basic, reversed, optional reversed, cloze).
 6. Try creating the same note again in the same deck and note type, varying only field order, surrounding whitespace, or line endings, and verify the app rejects it as a duplicate.
 7. Start study on parent deck with `Include child decks` enabled; confirm cards from child deck appear.
 8. Exclude the child deck and confirm child cards are removed from current queue.
@@ -379,7 +380,7 @@ Expected:
 Expected:
 - Decks route is reachable from both landing and wall.
 - Decks header provides direct route access to Wall, Page, and Media, and no longer relies on an unlabeled icon for study navigation.
-- Add Note/Browse/Stats/Study/Import flows work end-to-end.
+- Add Note/Browse/Stats/Study/Import flows work end-to-end, with settings/help reachable from the sidebar footer and no duplicate or nonfunctional header shortcuts.
 - Duplicate deck notes are rejected for both manual creation and import.
 - Parent study optionally includes children and supports exclusions.
 - Card scheduling updates queue counts after rating.
