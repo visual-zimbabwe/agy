@@ -42,7 +42,7 @@ Using `frontend-design`: the biggest frontend win is to separate visual system w
 6. **Hardening + Documentation (Week 3)** (Done)
 - Run `npm run lint`, `npm run build`, and full `docs/qa.md` checks.
 - Add frontend architecture notes (component boundaries and token usage) so new features don't regress into one-file growth.
-- Update `docs/product-improvements.md` with frontend milestones and completion criteria.
+- Record frontend milestones and completion criteria in the active documentation set.
 
 ## Top Priority Backlog (Do First)
 1. Tokenize styles + reusable UI primitives.

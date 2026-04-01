@@ -1,3 +1,5 @@
+# GitHub Workflow
+
 ## Purpose
 
 This repository uses a protected `main` branch. All work must happen on feature branches and reach `main` only through a pull request that the repository owner approves.
