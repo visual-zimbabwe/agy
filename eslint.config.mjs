@@ -26,12 +26,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    "agy-studio/**",
-    // Desktop packaging outputs:
-    "agy-studio/node_modules/**",
-    "agy-studio/.dist/**",
-    "agy-studio/release/**",
-    "agy-studio/dist/**",
   ]),
 ]);
 

@@ -30,6 +30,7 @@
 
 ### Changed
 
+- Removed the deprecated Electron desktop packaging subtree and its release workflow so the repository now reflects the current web-only product surface
 - Wall search now ships as a dock-first inline omnibar with grouped suggestions/actions/notes, shared `Ctrl/Cmd + K` focus behavior, and query tokens for `tag:`, `type:`, `is:`, and `tool:` filters
 - `Help / Docs` in the wall profile menu now opens a real help center, and the omnibar now exposes help actions including `tool:help`
 - `README.md` now reflects the current multi-surface product instead of describing only the wall workspace
@@ -40,7 +41,6 @@
 
 - Magazine cover notes no longer persist placeholder `cover unavailable` art in the per-source cache, so transient upstream misses can recover to the latest real cover on the next refresh instead of staying stuck on the fallback card
 - `Tools > Magazine Covers` now fans out sources like `The Week` into multiple notes when the API returns multiple distinct images instead of dropping everything after the first image
-- Electron desktop routing now allows current internal routes (`/wall`, `/page`, `/decks`, `/settings`, `/help`) without blocking valid in-app navigation, and startup preferences now cover the same route surface as the web app
 - Hosted auth login failures now normalize Supabase error payloads into readable messages instead of surfacing raw `{}` on `/login`
 - Hosted auth retryable failures now preserve service-unavailable status instead of incorrectly reporting `401` invalid-credential errors on `/login`
 - Removed the stale flat `docs/frontend-architecture.md` file so there is a single canonical frontend architecture doc

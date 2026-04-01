@@ -357,27 +357,6 @@ Expected:
 - Uploads create an immediate local preview and route through the same image-note rendering path as URL images.
 - Dropping on empty canvas creates a new image note; dropping on an existing note replaces its image.
 - The insert modal feels like a proper wall UI panel, not a browser alert or prompt.
-## Electron Desktop Packaging (2026-02-18)
-1. In `agy-studio`, run `npm install`.
-2. Run `npm run dist`.
-3. Verify installer exists at `agy-studio/release/Agy-Setup-0.1.0.exe`.
-4. Launch unpacked app from `agy-studio/release/win-unpacked/Agy.exe`.
-5. Verify routes work in desktop app:
-   - `/` landing loads
-   - `/wall` loads and note interactions work
-   - `/page` loads and canvas interactions work
-   - `/decks` loads and study workspace renders
-   - `/settings` loads after sign-in
-   - `/login` and `/signup` render
-6. Create note(s), reload app window, verify local persistence.
-7. Open an external link from the app and verify it opens in system browser (not in-app webview).
-
-Expected:
-- Desktop package builds successfully and launches without blank-window or server-start errors.
-- Core routes and wall interactions work inside Electron.
-- IndexedDB/local persistence works across desktop relaunch.
-- External navigation is blocked in-app and delegated to system browser.
-
 ## Decks Route and Workflow (2026-03-03)
 1. Sign in and open `/decks` from landing and from `/wall` toolbar.
 2. In deck sidebar, create a root deck and one child deck.
@@ -393,8 +372,7 @@ Expected:
 12. Re-import the same rows into the same deck and verify the import stops with a duplicate-note error instead of adding another copy.
 13. Save an import preset, close modal, reopen, and apply the saved preset.
 14. Switch to dark mode on `/decks` and verify deck backgrounds, panels, badges, and modal surfaces render as pure `#000000`, while text and status/icon indicators remain readable.
-15. Verify Decks behavior in Electron app build (`agy-studio`) by opening `/decks`, adding one note, and reviewing one card.
-16. Reload `/decks/decks` after creating a note and verify the selected deck counts update and the generated card appears in `Browse Cards`.
+15. Reload `/decks/decks` after creating a note and verify the selected deck counts update and the generated card appears in `Browse Cards`.
 
 Expected:
 - Decks route is reachable from both landing and wall.
@@ -403,7 +381,7 @@ Expected:
 - Parent study optionally includes children and supports exclusions.
 - Card scheduling updates queue counts after rating.
 - Import mapping presets persist via cloud data and reload correctly.
-- Same Decks route/features work in web and Electron builds.
+- Decks route/features work correctly in the web app.
 
 ## Custom Study Session (2026-03-04)
 1. Open `/decks`, select a deck, and confirm `Study Deck` overview appears with `New`, `Learning`, and `To Review` counts.
