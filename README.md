@@ -1,62 +1,18 @@
 # Agy
 
-Agy is a visual thinking studio for capturing, organizing, and interacting with ideas across multiple work surfaces.
+Agy is a local-first visual thinking workspace built with Next.js, React, and TypeScript.
 
 The current product includes:
 
-- `/wall`: the spatial wall for notes, links, zones, timeline review, export, and published read-only snapshots
-- `/page`: a block-based infinite page editor for structured documents, embeds, uploads, and comments
-- `/decks`: a study workspace for decks, cards, browsing, custom study sessions, and stats
-- `/settings`: account, appearance, keyboard, and workspace preferences
+- `/wall`: infinite spatial canvas for notes, links, grouping, search, timeline review, export, and published snapshots
+- `/page`: block-based infinite document canvas for structured writing, embeds, uploads, and comments
+- `/decks`: study workspace for decks, cards, browsing, review sessions, and stats
+- `/settings`: account and workspace preferences
+- `/help`: route-based help library and support entry point
 
-This repository is local-first in day-to-day interaction and cloud-backed when signed in. IndexedDB is used for fast client persistence and Supabase provides authentication, storage, and account-scoped sync.
+Local state is stored in IndexedDB with Dexie. Signed-in and cloud-backed flows use Supabase for authentication, storage, and account-scoped data.
 
-## Core Capabilities
-
-### Wall
-
-- Infinite canvas with pan and zoom
-- Rich note types including standard, quote, canon, journal, vocabulary, Eisenhower, APOD, bookmark, and Poetry workflows
-- Tags, wiki-style links, directional links, zones, zone groups, and note groups
-- Search, quick capture, recall, timeline view, presentation mode, and multiple export paths
-- Cloud sync and published read-only snapshot links
-
-### Page Editor
-
-- Infinite, pannable block canvas
-- Slash commands for text, headings, lists, tables, quotes, code, dividers, bookmarks, embeds, media blocks, and page cover insertion
-- File uploads, external embeds, Unsplash image search, comments, block menus, drag and nesting behavior
-- Local and cloud-backed page snapshots
-
-### Decks
-
-- Nested decks
-- Study, browse, stats, and custom study modes
-- Note types, import presets, tags, and scheduler support
-- Dedicated API surface for deck management and review flows
-
-## Tech Stack
-
-- Next.js App Router
-- React + TypeScript
-- Tailwind CSS
-- Zustand
-- Dexie + IndexedDB
-- Supabase Auth, Postgres, Storage, and RLS
-- Konva + react-konva for wall rendering
-- Vitest and Playwright for automated validation
-
-## Routes
-
-- `/`: landing page
-- `/wall`: main wall workspace
-- `/wall?snapshot=...`: read-only published wall snapshot
-- `/page`: block page editor workspace
-- `/decks`: deck study workspace
-- `/settings`: account and workspace settings
-- `/login`, `/signup`: auth flows
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
@@ -71,11 +27,11 @@ This repository is local-first in day-to-day interaction and cloud-backed when s
 npm install
 ```
 
-The repository includes [`.nvmrc`](/C:/Dev/products/idea-wall/.nvmrc) to pin the expected Node.js major version.
+The repo includes `.nvmrc` to pin the expected Node.js major version.
 
 ### Environment
 
-Copy [`.env.example`](/C:/Dev/products/idea-wall/.env.example) to `.env.local` and fill in the values:
+Copy `.env.example` to `.env.local` and provide the required values:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -83,17 +39,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 UNSPLASH_ACCESS_KEY=your-unsplash-access-key
 CURRENCY_API_KEY=your-currencyapi-com-api-key
-# or, if you already use CurrencyAPI's naming
+# or, if you already use CurrencyAPI naming
 CURRENCYAPI_API_KEY=your-currencyapi-com-api-key
 ```
 
-If you are setting up a fresh environment, apply the required Supabase migrations from `supabase/migrations/`.
-
 ### Local Supabase
 
-This repo now includes the standard local Supabase CLI config at [`supabase/config.toml`](/C:/Dev/products/idea-wall/supabase/config.toml).
+The repository includes `supabase/config.toml` and checked-in migrations under `supabase/migrations/`.
 
-To start the local stack without installing the CLI globally:
+Start the local stack with:
 
 ```bash
 npx supabase@latest start
@@ -105,7 +59,7 @@ Useful local endpoints after startup:
 - Studio: `http://127.0.0.1:54323`
 - DB: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
 
-This starts a local Docker-backed Supabase instance for development only. It does not modify your remote Supabase project unless you explicitly run remote-targeting CLI commands.
+This runs a local Docker-backed Supabase instance for development only. It does not modify the hosted project unless you explicitly run remote-targeting commands.
 
 ### Run
 
@@ -120,21 +74,25 @@ Open:
 - `http://localhost:3000/page`
 - `http://localhost:3000/decks`
 - `http://localhost:3000/settings`
+- `http://localhost:3000/help`
 
 Authenticated routes redirect to `/login` when no signed-in user is available, except published snapshot views.
 
-## Validation Commands
+## Validation
+
+Minimum validation for meaningful changes:
 
 ```bash
 npm run lint
-npm run check:types
-npm run test:unit
 npm run build
 ```
 
-Additional project checks:
+Additional checks when relevant:
 
 ```bash
+npm run check:types
+npm run test:unit
+npm run test:e2e
 npm run check:styles:duplicates
 npm run check:regressions
 npm run baseline:capture
@@ -142,109 +100,45 @@ npm run baseline:capture
 
 Manual validation lives in `docs/qa.md`.
 
-## Project Structure
+## Repository Shape
 
-### App Routes
+Key paths:
 
-- `src/app/page.tsx`: landing page
-- `src/app/wall/page.tsx`: wall route and auth gate
-- `src/app/page/page.tsx`: block page editor route
-- `src/app/decks/page.tsx`: decks workspace route
-- `src/app/settings/page.tsx`: settings route
-- `src/app/api/`: API routes for walls, decks, page files, account settings, conversion, and related workflows
+- `src/app/`: Next.js app routes
+- `src/components/`: shared UI and workspace components
+- `src/features/wall/`: wall domain types, commands, storage, and sync helpers
+- `src/features/page/`: page editor state and persistence
+- `src/features/decks/`: deck study logic and data helpers
+- `src/lib/`: shared utilities
+- `docs/`: product, architecture, feature, API, runbook, and release documentation
+- `supabase/`: local Supabase config and migrations
 
-### UI
+## Main Commands
 
-- `src/components/WallCanvas.tsx`: wall composition root
-- `src/components/wall/`: wall-specific surfaces, layers, hooks, panels, and controls
-- `src/components/page-editor/PageEditor.tsx`: page editor workspace
-- `src/components/decks/DecksWorkspace.tsx`: decks workspace
-- `src/components/settings/SettingsWorkspace.tsx`: settings UI
-
-### Domain
-
-- `src/features/wall/`: wall types, commands, storage, cloud sync, migrations, and feature helpers
-- `src/features/page/`: page types, storage, and cloud persistence
-- `src/features/decks/`: deck note-type and scheduling logic
-
-## Data and Persistence
-
-### Wall
-
-Persisted wall state includes:
-
-- notes
-- zones
-- zone groups
-- note groups
-- links
-- camera
-- last-used color
-
-Wall notes can also carry richer payloads such as canon content, vocabulary review state, Eisenhower data, quote metadata, APOD metadata, PoetryDB poem state, image URLs, text formatting, highlight state, and the permanent currency widget state.
-
-### Page
-
-Persisted page state includes:
-
-- blocks
-- block comments
-- embedded file metadata
-- optional page cover metadata
-- camera
-- update timestamp
-
-### Cloud
-
-Supabase is used for:
-
-- authentication
-- wall records and wall snapshots
-- decks, notes, cards, and deck stats
-- page file storage and file signing
-- account settings and profile state
+```bash
+npm run dev
+npm run lint
+npm run build
+npm run start
+```
 
 ## Documentation
 
-Canonical documentation now lives under `docs/`:
+Use the docs folder as the canonical source of truth for product and engineering detail:
 
-- `docs/product/overview.md`
-- `docs/contributing/development-workflow.md`
-- `docs/decisions/0001-local-first-with-cloud-sync.md`
-- `docs/architecture/overview.md`
-- `docs/architecture/frontend-architecture.md`
-- `docs/features/timeline-view.md`
-- `docs/features/wall-notes.md`
-- `docs/features/search-and-retrieval.md`
-- `docs/features/quick-capture.md`
-- `docs/features/page-editor.md`
-- `docs/features/decks.md`
-- `docs/features/settings.md`
-- `docs/features/file-conversion.md`
-- `docs/features/published-snapshots.md`
-- `docs/features/vocabulary-review.md`
-- `docs/features/eisenhower-notes.md`
-- `docs/api/walls.md`
-- `docs/api/decks.md`
-- `docs/api/account.md`
-- `docs/api/convert.md`
-- `docs/api/page.md`
-- `docs/architecture/state-and-storage.md`
-- `docs/architecture/decks-data-model.md`
-- `docs/architecture/wall-rendering-model.md`
-- `docs/runbooks/sync-debugging.md`
-- `docs/runbooks/page-file-storage-debugging.md`
-- `docs/runbooks/local-storage-reset-and-recovery.md`
-- `docs/releases/changelog.md`
-- `docs/qa.md`
+- `docs/product/overview.md`: current product surface
+- `docs/architecture/overview.md`: system overview
+- `docs/architecture/frontend-architecture.md`: frontend structure and responsibilities
+- `docs/architecture/state-and-storage.md`: persistence and data flow
+- `docs/features/`: feature-specific behavior and constraints
+- `docs/api/`: API contracts
+- `docs/runbooks/`: debugging and recovery procedures
+- `docs/contributing/development-workflow.md`: contributor workflow
+- `docs/releases/changelog.md`: release history
+- `.codex/skills/idea-wall-documentation/SKILL.md`: documentation rules for this repo
 
-Documentation rules and standards are defined in `.codex/skills/idea-wall-documentation/SKILL.md`.
+## Notes
 
-Contributor workflow guidance is available at [CONTRIBUTING.md](/C:/Dev/products/idea-wall/CONTRIBUTING.md) and [docs/contributing/development-workflow.md](/C:/Dev/products/idea-wall/docs/contributing/development-workflow.md).
-
-
-
-
-
-
-
+- This repository is local-first in day-to-day use.
+- Published wall snapshots are intentionally read-only.
+- Storage-related changes should be validated against `src/features/wall/storage.ts` and related migrations before shipping.
