@@ -31,18 +31,14 @@ export function DecksBrowseView() {
 
   const selectedRow = useMemo(() => rows.find((row) => row.id === selectedRowId) ?? null, [rows, selectedRowId]);
 
-  const loadDecks = async () => {
+  const fetchDecks = async () => {
     const response = await fetch("/api/decks", { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Failed to load decks.");
-    const nextDecks = payload.decks ?? [];
-    setDecks(nextDecks);
-    const requested = searchParams.get("deckId") ?? "";
-    const nextDeck = nextDecks.find((deck: Deck) => deck.id === requested) ?? nextDecks[0] ?? null;
-    if (nextDeck) setDeckId((current) => current || nextDeck.id);
+    return payload.decks ?? [];
   };
 
-  const loadBrowse = async (nextDeckId: string, nextQuery: string) => {
+  const fetchBrowse = async (nextDeckId: string, nextQuery: string) => {
     const params = new URLSearchParams();
     if (nextDeckId) params.set("deckId", nextDeckId);
     if (nextQuery.trim()) params.set("q", nextQuery.trim());
@@ -50,12 +46,64 @@ export function DecksBrowseView() {
     const response = await fetch(`/api/decks/browse?${params.toString()}`, { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Failed to load browser.");
-    setRows(payload.rows ?? []);
-    setSelectedRowId((payload.rows ?? [])[0]?.id ?? "");
+    return payload.rows ?? [];
   };
 
-  useEffect(() => { void loadDecks().catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load browse.")); }, [searchParams]);
-  useEffect(() => { if (deckId) { void loadBrowse(deckId, query).catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load browse.")); } }, [deckId]);
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDecks = async () => {
+      try {
+        const nextDecks = await fetchDecks();
+        if (cancelled) {
+          return;
+        }
+        setDecks(nextDecks);
+        const requested = searchParams.get("deckId") ?? "";
+        const nextDeck = nextDecks.find((deck: Deck) => deck.id === requested) ?? nextDecks[0] ?? null;
+        if (nextDeck) {
+          setDeckId((current) => current || nextDeck.id);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStatus(error instanceof Error ? error.message : "Failed to load browse.");
+        }
+      }
+    };
+
+    void loadDecks();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!deckId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadBrowse = async () => {
+      try {
+        const nextRows = await fetchBrowse(deckId, query);
+        if (cancelled) {
+          return;
+        }
+        setRows(nextRows);
+        setSelectedRowId(nextRows[0]?.id ?? "");
+      } catch (error) {
+        if (!cancelled) {
+          setStatus(error instanceof Error ? error.message : "Failed to load browse.");
+        }
+      }
+    };
+
+    void loadBrowse();
+    return () => {
+      cancelled = true;
+    };
+  }, [deckId, query]);
 
   const updateDeck = (nextDeckId: string) => {
     setDeckId(nextDeckId);
@@ -64,7 +112,14 @@ export function DecksBrowseView() {
     router.replace(`/decks/browse?${params.toString()}`);
   };
 
-  const search = async () => { if (deckId) await loadBrowse(deckId, query); };
+  const search = async () => {
+    if (!deckId) {
+      return;
+    }
+    const nextRows = await fetchBrowse(deckId, query);
+    setRows(nextRows);
+    setSelectedRowId(nextRows[0]?.id ?? "");
+  };
 
   const patchRow = async (patch: Record<string, unknown>) => {
     if (!selectedRow) return;
@@ -78,7 +133,9 @@ export function DecksBrowseView() {
       setStatus(payload.error ?? "Failed to update row.");
       return;
     }
-    await loadBrowse(deckId, query);
+    const nextRows = await fetchBrowse(deckId, query);
+    setRows(nextRows);
+    setSelectedRowId(nextRows[0]?.id ?? "");
   };
 
   const runBulk = async (action: "suspend" | "unsuspend" | "delete") => {
@@ -94,7 +151,9 @@ export function DecksBrowseView() {
       return;
     }
     setSelectedRowIds([]);
-    await loadBrowse(deckId, query);
+    const nextRows = await fetchBrowse(deckId, query);
+    setRows(nextRows);
+    setSelectedRowId(nextRows[0]?.id ?? "");
   };
 
   return (

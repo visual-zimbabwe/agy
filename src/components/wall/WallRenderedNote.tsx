@@ -66,7 +66,7 @@ export const WallRenderedNote = ({ note, width, height, showNoteTags = true }: W
             linkType="wiki"
             isTimeLocked
             showHeatmap={false}
-            heatmapReferenceTs={Date.now()}
+            heatmapReferenceTs={0}
             showNoteTags={showNoteTags}
             noteNodeRefs={noteNodeRefs}
             dragSelectionStartRef={dragSelectionStartRef}

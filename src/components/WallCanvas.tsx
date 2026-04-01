@@ -2728,7 +2728,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       syncPrimarySelection(createdIds);
       selectNote(createdIds[0]);
     }
-  }, [camera, occupiedNoteRects, placeNewNote, renderSnapshot.notes, runHistoryGroup, selectNote, syncPrimarySelection, ui.lastColor, viewport.h, viewport.w]);
+  }, [camera, occupiedNoteRects, placeNewNote, renderSnapshot.notes, runHistoryGroup, selectNote, syncPrimarySelection, viewport.h, viewport.w]);
 
   useEffect(() => {
     if (isTimeLocked) {

@@ -29,36 +29,86 @@ export function DecksStudyView() {
   const totalQueue = counts.newCount + counts.learningCount + counts.reviewCount;
   const progressPct = totalQueue === 0 ? 0 : Math.min(100, Math.round(((counts.learningCount + counts.reviewCount) / totalQueue) * 100));
 
-  const loadDecks = async () => {
+  const fetchDecks = async () => {
     const response = await fetch("/api/decks", { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Failed to load decks.");
-    const nextDecks = payload.decks ?? [];
-    setDecks(nextDecks);
-    const requested = searchParams.get("deckId") ?? "";
-    const nextDeck = nextDecks.find((deck: Deck) => deck.id === requested) ?? nextDecks.find((deck: Deck) => deck.parent_id !== null) ?? nextDecks[0] ?? null;
-    if (nextDeck) setDeckId((current) => current || nextDeck.id);
+    return payload.decks ?? [];
   };
 
-  const loadStudy = async (nextDeckId: string) => {
+  const fetchStudy = async (nextDeckId: string) => {
     if (!nextDeckId) return;
     const params = new URLSearchParams({ deckId: nextDeckId, includeChildren: "1", excludedDeckIds: "" });
     const response = await fetch(`/api/decks/study?${params.toString()}`, { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Failed to load study session.");
-    setCard(payload.card ?? null);
-    setCounts(payload.counts ?? { newCount: 0, learningCount: 0, reviewCount: 0 });
-    setLimits(payload.limits ?? null);
-    setShowAnswer(false);
+    return {
+      card: payload.card ?? null,
+      counts: payload.counts ?? { newCount: 0, learningCount: 0, reviewCount: 0 },
+      limits: payload.limits ?? null,
+    };
   };
 
   useEffect(() => {
-    void loadDecks().catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load study."));
+    let cancelled = false;
+
+    const loadDecks = async () => {
+      try {
+        const nextDecks = await fetchDecks();
+        if (cancelled) {
+          return;
+        }
+        setDecks(nextDecks);
+        const requested = searchParams.get("deckId") ?? "";
+        const nextDeck =
+          nextDecks.find((deck: Deck) => deck.id === requested) ??
+          nextDecks.find((deck: Deck) => deck.parent_id !== null) ??
+          nextDecks[0] ??
+          null;
+        if (nextDeck) {
+          setDeckId((current) => current || nextDeck.id);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStatus(error instanceof Error ? error.message : "Failed to load study.");
+        }
+      }
+    };
+
+    void loadDecks();
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   useEffect(() => {
-    if (!deckId) return;
-    void loadStudy(deckId).catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load study."));
+    if (!deckId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadStudy = async () => {
+      try {
+        const payload = await fetchStudy(deckId);
+        if (cancelled || !payload) {
+          return;
+        }
+        setCard(payload.card);
+        setCounts(payload.counts);
+        setLimits(payload.limits);
+        setShowAnswer(false);
+      } catch (error) {
+        if (!cancelled) {
+          setStatus(error instanceof Error ? error.message : "Failed to load study.");
+        }
+      }
+    };
+
+    void loadStudy();
+    return () => {
+      cancelled = true;
+    };
   }, [deckId]);
 
   const chooseDeck = (nextDeckId: string) => {
@@ -80,7 +130,12 @@ export function DecksStudyView() {
       setStatus(payload.error ?? "Failed to rate card.");
       return;
     }
-    await Promise.all([loadDecks(), loadStudy(deckId)]);
+    const [nextDecks, studyPayload] = await Promise.all([fetchDecks(), fetchStudy(deckId)]);
+    setDecks(nextDecks);
+    setCard(studyPayload?.card ?? null);
+    setCounts(studyPayload?.counts ?? { newCount: 0, learningCount: 0, reviewCount: 0 });
+    setLimits(studyPayload?.limits ?? null);
+    setShowAnswer(false);
   };
 
   return (
