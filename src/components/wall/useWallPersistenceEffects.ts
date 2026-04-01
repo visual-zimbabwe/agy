@@ -3,7 +3,7 @@
 import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
 import { createJokerNote } from "@/features/wall/commands";
-import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
+import { hasContent, hasMeaningfulContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { hasJokerCardBeenActivated, markJokerCardActivated } from "@/features/wall/joker";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { createSnapshotSaver, createTimelineRecorder, loadTimelineEntries, loadWallSnapshot, type TimelineEntry } from "@/features/wall/storage";
@@ -27,6 +27,8 @@ type UseWallPersistenceEffectsOptions = {
   lastTimelineSerialized: MutableRefObject<string>;
   lastTimelineRecordedAt: MutableRefObject<number>;
 };
+
+const lastCloudWallStorageKey = "agy-last-cloud-wall-id";
 
 export const useWallPersistenceEffects = ({
   hydrate,
@@ -54,6 +56,19 @@ export const useWallPersistenceEffects = ({
     const timelineRecorder = createTimelineRecorder({ delayMs: 1100, minIntervalMs: 1400, maxEntries: 500 });
     const timer = cloudSyncTimerRef.current;
     let cancelled = false;
+
+    const fetchCloudSnapshot = async (wallId: string) => {
+      const snapshotResponse = await fetch(`/api/walls/${wallId}`, { cache: "no-store" });
+      if (snapshotResponse.status === 401) {
+        throw new Error(authExpiredMessage);
+      }
+      if (!snapshotResponse.ok) {
+        const payload = (await snapshotResponse.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error ?? "Unable to load cloud snapshot");
+      }
+
+      return (await snapshotResponse.json()) as { snapshot: PersistedWallState };
+    };
 
     const finalizeJokerState = (snapshot: PersistedWallState, allowSeed: boolean) => {
       const jokerNotes = Object.values(snapshot.notes).filter((note) => note.noteKind === "joker");
@@ -96,7 +111,8 @@ export const useWallPersistenceEffects = ({
         }
 
         const listPayload = (await listResponse.json()) as { walls: Array<{ id: string }> };
-        let wallId = listPayload.walls[0]?.id;
+        const listedWallIds = listPayload.walls.map((wall) => wall.id);
+        let wallId = listedWallIds[0];
 
         if (!wallId) {
           const createResponse = await fetch("/api/walls", {
@@ -119,19 +135,40 @@ export const useWallPersistenceEffects = ({
           throw new Error("No wall available");
         }
 
+        let serverSnapshot: PersistedWallState | null = null;
+
+        if (listedWallIds.length <= 1) {
+          const snapshotPayload = await fetchCloudSnapshot(wallId);
+          serverSnapshot = snapshotPayload.snapshot;
+        } else {
+          const preferredWallId = readStorageValue(lastCloudWallStorageKey);
+          const orderedWallIds = [
+            ...(preferredWallId && listedWallIds.includes(preferredWallId) ? [preferredWallId] : []),
+            ...listedWallIds.filter((id) => id !== preferredWallId),
+          ];
+          let fallbackSelection: { wallId: string; snapshot: PersistedWallState } | null = null;
+
+          for (const candidateWallId of orderedWallIds) {
+            const snapshotPayload = await fetchCloudSnapshot(candidateWallId);
+            if (!fallbackSelection) {
+              fallbackSelection = { wallId: candidateWallId, snapshot: snapshotPayload.snapshot };
+            }
+
+            if (hasMeaningfulContent(snapshotPayload.snapshot)) {
+              wallId = candidateWallId;
+              serverSnapshot = snapshotPayload.snapshot;
+              break;
+            }
+          }
+
+          if (!serverSnapshot) {
+            wallId = fallbackSelection?.wallId ?? wallId;
+            serverSnapshot = fallbackSelection?.snapshot ?? (await fetchCloudSnapshot(wallId)).snapshot;
+          }
+        }
+
         setCloudWallId(wallId);
-
-        const snapshotResponse = await fetch(`/api/walls/${wallId}`, { cache: "no-store" });
-        if (snapshotResponse.status === 401) {
-          throw new Error(authExpiredMessage);
-        }
-        if (!snapshotResponse.ok) {
-          const payload = (await snapshotResponse.json().catch(() => ({}))) as { error?: string };
-          throw new Error(payload.error ?? "Unable to load cloud snapshot");
-        }
-
-        const snapshotPayload = (await snapshotResponse.json()) as { snapshot: PersistedWallState };
-        const serverSnapshot = snapshotPayload.snapshot;
+        writeStorageValue(lastCloudWallStorageKey, wallId);
         const migrationKey = `agy-cloud-imported-v1:${wallId}`;
         const legacyMigrationKey = `idea-wall-cloud-imported-v1:${wallId}`;
         const canPromptImport = typeof window !== "undefined" && !readStorageValue(migrationKey, [legacyMigrationKey]);

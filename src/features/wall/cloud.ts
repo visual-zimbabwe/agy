@@ -1,5 +1,5 @@
 import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/wall/bookmarks";
-import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
+import { defaultCurrencyNoteState, inferCurrencyTrend, isSystemNote } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { normalizeAudioNote } from "@/features/wall/audio-notes";
@@ -127,6 +127,13 @@ export const fromIso = (timestampIso: string) => new Date(timestampIso).getTime(
 
 export const hasContent = (snapshot: PersistedWallState) =>
   Object.keys(snapshot.notes).length > 0 ||
+  Object.keys(snapshot.zones).length > 0 ||
+  Object.keys(snapshot.zoneGroups).length > 0 ||
+  Object.keys(snapshot.noteGroups).length > 0 ||
+  Object.keys(snapshot.links).length > 0;
+
+export const hasMeaningfulContent = (snapshot: PersistedWallState) =>
+  Object.values(snapshot.notes).some((note) => !isSystemNote(note)) ||
   Object.keys(snapshot.zones).length > 0 ||
   Object.keys(snapshot.zoneGroups).length > 0 ||
   Object.keys(snapshot.noteGroups).length > 0 ||
@@ -550,5 +557,4 @@ export const rowsToSnapshot = (rows: {
   },
   lastColor: rows.wall.last_color ?? undefined,
 });
-
 

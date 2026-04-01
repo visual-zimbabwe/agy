@@ -1276,6 +1276,7 @@ Expected:
 12. Simulate offline or API failure, reload, and verify the note falls back to cached/default values with a readable error state.
 13. Switch between light and dark theme and verify the indigo identity remains readable with strong contrast in both.
 14. On mobile and desktop widths, verify the currency editor, badges, and floating UI stay fully visible and are not clipped by viewport edges or other wall chrome.
+15. If the signed-in account has multiple cloud wall records, sign out and back in, reopen `/wall`, and verify the app restores the last real wall you were working on rather than landing on a wall that only contains the currency system note.
 
 Expected:
 - The wall always contains exactly one permanent currency system note.
@@ -1283,6 +1284,7 @@ Expected:
 - Location detection degrades from geolocation to IP lookup to USD fallback cleanly.
 - Exchange-rate fetches are lazy, cached, debounced, and recover gracefully from API failures.
 - The note remains legible and premium-looking in both light and dark themes.
+- Sign-in should not switch the user onto a stray cloud wall whose only visible content is the currency system note.
 
 
 

@@ -1,9 +1,51 @@
 import { describe, expect, it } from "vitest";
 
-import { rowsToSnapshot } from "@/features/wall/cloud";
+import { hasMeaningfulContent, rowsToSnapshot } from "@/features/wall/cloud";
+import { buildCurrencySystemNote } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 
 describe("cloud rows mapping", () => {
+  it("treats a wall with only the system currency note as lacking meaningful content", () => {
+    expect(
+      hasMeaningfulContent({
+        notes: {
+          "system-currency-note": buildCurrencySystemNote(),
+        },
+        zones: {},
+        zoneGroups: {},
+        noteGroups: {},
+        links: {},
+        camera: { x: 0, y: 0, zoom: 1 },
+      }),
+    ).toBe(false);
+  });
+
+  it("treats a wall with a user note as having meaningful content", () => {
+    expect(
+      hasMeaningfulContent({
+        notes: {
+          n1: {
+            id: "n1",
+            text: "Hello",
+            tags: [],
+            x: 0,
+            y: 0,
+            w: 200,
+            h: 140,
+            color: "#FEEA89",
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+        zones: {},
+        zoneGroups: {},
+        noteGroups: {},
+        links: {},
+        camera: { x: 0, y: 0, zoom: 1 },
+      }),
+    ).toBe(true);
+  });
+
   it("maps persisted note formatting fields from cloud rows", () => {
     const snapshot = rowsToSnapshot({
       wall: { camera_x: 0, camera_y: 0, camera_zoom: 1, last_color: null },

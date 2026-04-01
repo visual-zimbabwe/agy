@@ -84,6 +84,7 @@ Important current behavior:
 
 - the app loads local wall state first
 - then loads or creates the remote wall record
+- when multiple cloud wall records exist, `/wall` prefers the last successfully opened wall and otherwise falls back to the first wall with non-system content instead of blindly loading the newest mostly-empty wall
 - then fetches the cloud snapshot
 - then merges local and server state with a last-write-wins strategy for entity maps
 - local camera wins during merge
