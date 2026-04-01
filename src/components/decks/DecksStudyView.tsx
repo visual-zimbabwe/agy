@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -28,36 +29,86 @@ export function DecksStudyView() {
   const totalQueue = counts.newCount + counts.learningCount + counts.reviewCount;
   const progressPct = totalQueue === 0 ? 0 : Math.min(100, Math.round(((counts.learningCount + counts.reviewCount) / totalQueue) * 100));
 
-  const loadDecks = async () => {
+  const fetchDecks = async () => {
     const response = await fetch("/api/decks", { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Failed to load decks.");
-    const nextDecks = payload.decks ?? [];
-    setDecks(nextDecks);
-    const requested = searchParams.get("deckId") ?? "";
-    const nextDeck = nextDecks.find((deck: Deck) => deck.id === requested) ?? nextDecks.find((deck: Deck) => deck.parent_id !== null) ?? nextDecks[0] ?? null;
-    if (nextDeck) setDeckId((current) => current || nextDeck.id);
+    return payload.decks ?? [];
   };
 
-  const loadStudy = async (nextDeckId: string) => {
+  const fetchStudy = async (nextDeckId: string) => {
     if (!nextDeckId) return;
     const params = new URLSearchParams({ deckId: nextDeckId, includeChildren: "1", excludedDeckIds: "" });
     const response = await fetch(`/api/decks/study?${params.toString()}`, { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Failed to load study session.");
-    setCard(payload.card ?? null);
-    setCounts(payload.counts ?? { newCount: 0, learningCount: 0, reviewCount: 0 });
-    setLimits(payload.limits ?? null);
-    setShowAnswer(false);
+    return {
+      card: payload.card ?? null,
+      counts: payload.counts ?? { newCount: 0, learningCount: 0, reviewCount: 0 },
+      limits: payload.limits ?? null,
+    };
   };
 
   useEffect(() => {
-    void loadDecks().catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load study."));
+    let cancelled = false;
+
+    const loadDecks = async () => {
+      try {
+        const nextDecks = await fetchDecks();
+        if (cancelled) {
+          return;
+        }
+        setDecks(nextDecks);
+        const requested = searchParams.get("deckId") ?? "";
+        const nextDeck =
+          nextDecks.find((deck: Deck) => deck.id === requested) ??
+          nextDecks.find((deck: Deck) => deck.parent_id !== null) ??
+          nextDecks[0] ??
+          null;
+        if (nextDeck) {
+          setDeckId((current) => current || nextDeck.id);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStatus(error instanceof Error ? error.message : "Failed to load study.");
+        }
+      }
+    };
+
+    void loadDecks();
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   useEffect(() => {
-    if (!deckId) return;
-    void loadStudy(deckId).catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load study."));
+    if (!deckId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadStudy = async () => {
+      try {
+        const payload = await fetchStudy(deckId);
+        if (cancelled || !payload) {
+          return;
+        }
+        setCard(payload.card);
+        setCounts(payload.counts);
+        setLimits(payload.limits);
+        setShowAnswer(false);
+      } catch (error) {
+        if (!cancelled) {
+          setStatus(error instanceof Error ? error.message : "Failed to load study.");
+        }
+      }
+    };
+
+    void loadStudy();
+    return () => {
+      cancelled = true;
+    };
   }, [deckId]);
 
   const chooseDeck = (nextDeckId: string) => {
@@ -79,7 +130,12 @@ export function DecksStudyView() {
       setStatus(payload.error ?? "Failed to rate card.");
       return;
     }
-    await Promise.all([loadDecks(), loadStudy(deckId)]);
+    const [nextDecks, studyPayload] = await Promise.all([fetchDecks(), fetchStudy(deckId)]);
+    setDecks(nextDecks);
+    setCard(studyPayload?.card ?? null);
+    setCounts(studyPayload?.counts ?? { newCount: 0, learningCount: 0, reviewCount: 0 });
+    setLimits(studyPayload?.limits ?? null);
+    setShowAnswer(false);
   };
 
   return (
@@ -91,7 +147,7 @@ export function DecksStudyView() {
           <span className="font-['Newsreader'] text-xl font-bold text-[#a33818]">{selectedDeck?.name ?? 'Study'}</span>
           <div className="hidden w-64 items-center gap-3 md:flex"><div className="h-1.5 w-full overflow-hidden rounded-full bg-[#f0ede8]"><div className="h-full rounded-full bg-[#755717]" style={{ width: `${progressPct}%` }} /></div><span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#58423c]">{progressPct}%</span></div>
         </div>
-        <nav className="hidden items-center gap-8 md:flex"><button type="button" className="border-b-2 border-[#a33818] pb-1 font-bold text-[#a33818]">Study</button><button type="button" onClick={() => router.push(`/decks/stats?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Stats</button><button type="button" onClick={() => router.push(`/decks/browse?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Browse</button></nav>
+        <nav className="hidden items-center gap-4 md:flex"><button type="button" className="border-b-2 border-[#a33818] pb-1 font-bold text-[#a33818]">Study</button><button type="button" onClick={() => router.push(`/decks/stats?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Stats</button><button type="button" onClick={() => router.push(`/decks/browse?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Browse</button><button type="button" onClick={() => router.push(`/decks/decks?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Decks</button><span className="h-4 w-px bg-[#1c1c19]/10" aria-hidden="true" /><Link href="/wall" className="text-[#1c1c19]/60 hover:text-[#a33818]">Wall</Link><Link href="/page" className="text-[#1c1c19]/60 hover:text-[#a33818]">Page</Link><Link href="/media" className="text-[#1c1c19]/60 hover:text-[#a33818]">Media</Link></nav>
         <select value={deckId} onChange={(event) => chooseDeck(event.target.value)} className="rounded-full bg-[#f0ede8] px-4 py-2 text-sm outline-none">{decks.map((deck) => <option key={deck.id} value={deck.id}>{deck.name}</option>)}</select>
       </header>
       <main className="relative flex h-screen items-center justify-center px-6 pb-32 pt-16">

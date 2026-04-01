@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -36,37 +37,78 @@ export function DecksStatsView() {
   );
   const maturityMax = useMemo(() => Math.max(1, ...maturity.map((item) => item.value)), [maturity]);
 
-  const loadDecks = async () => {
+  const fetchDecks = async () => {
     const response = await fetch("/api/decks", { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Failed to load decks.");
-    const nextDecks = payload.decks ?? [];
-    setDecks(nextDecks);
-    const requested = searchParams.get("deckId") ?? "";
-    const nextDeck =
-      nextDecks.find((deck: Deck) => deck.id === requested) ??
-      nextDecks.find((deck: Deck) => deck.parent_id !== null) ??
-      nextDecks[0] ??
-      null;
-    if (nextDeck) setDeckId((current) => current || nextDeck.id);
+    return payload.decks ?? [];
   };
 
-  const loadStats = async (nextDeckId: string, nextRange: string) => {
+  const fetchStats = async (nextDeckId: string, nextRange: string) => {
     if (!nextDeckId) return;
     const params = new URLSearchParams({ deckId: nextDeckId, includeChildren: "1", range: nextRange });
     const response = await fetch(`/api/decks/stats?${params.toString()}`, { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? "Failed to load stats.");
-    setStats(payload);
+    return payload as StatsPayload;
   };
 
   useEffect(() => {
-    void loadDecks().catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load stats."));
+    let cancelled = false;
+
+    const loadDecks = async () => {
+      try {
+        const nextDecks = await fetchDecks();
+        if (cancelled) {
+          return;
+        }
+        setDecks(nextDecks);
+        const requested = searchParams.get("deckId") ?? "";
+        const nextDeck =
+          nextDecks.find((deck: Deck) => deck.id === requested) ??
+          nextDecks.find((deck: Deck) => deck.parent_id !== null) ??
+          nextDecks[0] ??
+          null;
+        if (nextDeck) {
+          setDeckId((current) => current || nextDeck.id);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStatus(error instanceof Error ? error.message : "Failed to load stats.");
+        }
+      }
+    };
+
+    void loadDecks();
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   useEffect(() => {
-    if (!deckId) return;
-    void loadStats(deckId, range).catch((error) => setStatus(error instanceof Error ? error.message : "Failed to load stats."));
+    if (!deckId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadStats = async () => {
+      try {
+        const nextStats = await fetchStats(deckId, range);
+        if (!cancelled) {
+          setStats(nextStats ?? null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStatus(error instanceof Error ? error.message : "Failed to load stats.");
+        }
+      }
+    };
+
+    void loadStats();
+    return () => {
+      cancelled = true;
+    };
   }, [deckId, range]);
 
   const updateDeck = (nextDeckId: string) => {
@@ -90,7 +132,7 @@ export function DecksStatsView() {
       <header className="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[#1c1c19]/10 bg-[#fcf9f4]/80 px-8 backdrop-blur-xl">
         <div className="flex items-center gap-8">
           <span className="font-['Newsreader'] text-2xl font-bold tracking-tight text-[#a33818]">Agy Decks</span>
-          <nav className="hidden items-center gap-6 md:flex">
+          <nav className="hidden items-center gap-4 md:flex">
             <button type="button" onClick={() => router.push(`/decks/decks?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">
               Decks
             </button>
@@ -103,6 +145,16 @@ export function DecksStatsView() {
             <button type="button" onClick={() => router.push(`/decks/study?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">
               Study
             </button>
+            <span className="h-4 w-px bg-[#1c1c19]/10" aria-hidden="true" />
+            <Link href="/wall" className="text-[#1c1c19]/60 hover:text-[#a33818]">
+              Wall
+            </Link>
+            <Link href="/page" className="text-[#1c1c19]/60 hover:text-[#a33818]">
+              Page
+            </Link>
+            <Link href="/media" className="text-[#1c1c19]/60 hover:text-[#a33818]">
+              Media
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
