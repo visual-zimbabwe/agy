@@ -47,6 +47,12 @@
   - `feat: ...`
   - `fix: ...`
   - `docs: ...`
+- Before every git commit, run a cleanup pass using standard developer cleanup rules:
+  - remove transient output files and local scratch artifacts that do not belong in source control
+  - delete stale one-off docs instead of leaving them at the repo root
+  - archive historical process/planning docs under `docs/archive/` instead of keeping them as active root docs
+  - remove unreferenced design artifact folders/files when they are no longer part of the active documentation set
+  - verify `git status` so no unrelated files are accidentally staged or committed
 - Keep commits focused and atomic (one feature/fix per commit).
 - Always create a local git commit after making repository changes so work is recoverable and easy to roll back.
 - Repository work is complete when the requested changes are committed locally, unless the user explicitly asks for additional git workflow steps.
