@@ -71,9 +71,11 @@ This repository is local-first in day-to-day interaction and cloud-backed when s
 npm install
 ```
 
+The repository includes [`.nvmrc`](/C:/Dev/products/idea-wall/.nvmrc) to pin the expected Node.js major version.
+
 ### Environment
 
-Create `.env.local`:
+Copy [`.env.example`](/C:/Dev/products/idea-wall/.env.example) to `.env.local` and fill in the values:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -237,6 +239,8 @@ Canonical documentation now lives under `docs/`:
 - `docs/qa.md`
 
 Documentation rules and standards are defined in `.codex/skills/idea-wall-documentation/SKILL.md`.
+
+Contributor workflow guidance is available at [CONTRIBUTING.md](/C:/Dev/products/idea-wall/CONTRIBUTING.md) and [docs/contributing/development-workflow.md](/C:/Dev/products/idea-wall/docs/contributing/development-workflow.md).
 
 
 
