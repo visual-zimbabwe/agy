@@ -165,7 +165,7 @@ Expected:
 
 ## File Note (`/wall`) (2026-03-26)
 1. Open `/wall`, open `Tools`, and click `New File`.
-2. Verify a compact file card appears using the new `notes_v2` document frontend rather than a generic sticky note.
+2. Verify a compact file card appears using the dedicated document-card shell rather than a generic sticky note.
 3. Double-click the file note and verify the floating editor opens with `Upload` and `Paste URL` tabs plus the same file-card preview.
 4. In the floating editor `Upload` tab, choose a local PDF or document and verify the note updates with the file name, inferred document metadata, and download action.
 5. Click the download affordance on the card and verify the uploaded file downloads with a readable filename.
@@ -185,18 +185,18 @@ Expected:
 
 ## Code Note (`/wall`) (2026-03-28)
 1. Open `/wall`, create or convert a note that starts with a fenced code block such as ```py plus a few lines of Python.
-2. Verify the wall note renders as the dark `notes_v2` editor-card shell instead of a plain paper note.
+2. Verify the wall note renders as the dark editor-card shell instead of a plain paper note.
 3. Verify the top chrome shows the three traffic-light dots on the left, an uppercase filename on the right, and a copy-style glyph.
 4. Verify the code body uses a monospace font with syntax-tinted lines rather than plain paragraph text.
 5. Open timeline view for the same note and verify it keeps the same dark editor-card shell because timeline reuses the wall renderer.
 
 Expected:
-- Code notes on `/wall` use the dark `notes_v2` editor-card frontend rather than the default paper note shell.
+- Code notes on `/wall` use the dark editor-card frontend rather than the default paper note shell.
 - The code-note shell includes editor chrome, uppercase filename treatment, and syntax-colored code lines.
 - Timeline copies match the same wall-rendered code-note frontend.
 ## Audio Note (`/wall`) (2026-03-26)
 1. Open `/wall`, open `Tools`, and click `New Audio`.
-2. Verify an audio card appears using the new `notes_v3` audio frontend: icon tile, serif title, terracotta waveform, and top-right download/open actions.
+2. Verify an audio card appears using the dedicated audio card frontend: icon tile, serif title, terracotta waveform, and top-right download/open actions.
 3. Double-click the audio note and verify the floating editor opens with `Upload` and `Paste URL` tabs plus the same audio-card preview.
 4. In the floating editor `Upload` tab, choose a local audio file and verify the note updates with the audio title, metadata, and duration-aware footer when available.
 5. Click the in-note download action and verify the uploaded audio downloads with a readable filename.
@@ -211,7 +211,7 @@ Expected:
 
 Expected:
 - Audio notes are available from both `Tools` and `Details > Note Type`.
-- Audio notes use the dedicated `notes_v3` audio frontend in both the Konva wall renderer and the React preview/editor surfaces.
+- Audio notes use the dedicated audio frontend in both the Konva wall renderer and the React preview/editor surfaces.
 - Audio note uploads and link-backed notes both persist through local storage and cloud sync.
 - Open/download actions remain visible and usable without clipping on the wall or in floating/details editors.
 
@@ -1231,7 +1231,7 @@ Expected:
 Expected:
 - Poetry notes are creatable from `Tools`, the command palette, and note-type conversion in `Details`.
 - Poetry text wraps cleanly inside the note and the default note size grows to fit the poem on first load.
-- Poetry cards follow the `notes_v2` Poetry shell with the faint source eyebrow, centered poem body, and separated poet footer row.
+- Poetry cards follow the dedicated Poetry shell with the faint source eyebrow, centered poem body, and separated poet footer row.
 - The details sidebar exposes Poetry-only search controls for random, author, title, line text, and line count lookups.
 - Poetry notes auto-refresh on local day changes and manual refresh reuses the note's saved search method without creating duplicate notes.
 - Poetry notes can be exported directly as PNG or PDF from the floating editor.
