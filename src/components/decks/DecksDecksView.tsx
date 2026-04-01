@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -288,11 +289,15 @@ export function DecksDecksView() {
         <header className="fixed left-64 right-0 top-0 z-50 flex h-16 items-center justify-between border-b border-black/10 bg-[rgba(252,249,244,0.8)] px-8 backdrop-blur-xl">
           <div className="flex items-center gap-8">
             <span className="font-['Newsreader'] text-2xl font-bold tracking-tight text-[#a33818]">Agy Decks</span>
-            <nav className="hidden items-center gap-6 md:flex">
+            <nav className="hidden items-center gap-3 md:flex">
               <button type="button" className="border-b-2 border-[#a33818] pb-1 text-sm font-bold text-[#a33818]">Decks</button>
               <button type="button" onClick={() => openView("browse")} className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Browse</button>
               <button type="button" onClick={() => openView("stats")} className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Stats</button>
               <button type="button" onClick={() => openView("study")} className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Study</button>
+              <span className="mx-1 h-4 w-px bg-black/10" aria-hidden="true" />
+              <Link href="/wall" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Wall</Link>
+              <Link href="/page" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Page</Link>
+              <Link href="/media" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Media</Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">
@@ -301,8 +306,23 @@ export function DecksDecksView() {
               <input className="w-64 rounded-full bg-[#f0ede8] py-1.5 pl-10 pr-4 text-sm outline-none" placeholder="Search cards..." />
             </div>
             <Button size="sm" onClick={openAddNote}>Add Note</Button>
-            <button type="button" onClick={() => openView("study")} className="rounded-full p-2 text-black/60 transition-colors hover:bg-black/5">⚙</button>
-            <button type="button" onClick={() => openView("study")} className="rounded-full p-2 text-black/60 transition-colors hover:bg-black/5">◉</button>
+            <Link
+              href="/settings"
+              aria-label="Open settings"
+              title="Open settings"
+              className="rounded-full p-2 text-black/60 transition-colors hover:bg-black/5"
+            >
+              ⚙
+            </Link>
+            <button
+              type="button"
+              onClick={() => openView("study")}
+              aria-label="Start study"
+              title="Start study"
+              className="rounded-full border border-black/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-black/60 transition-colors hover:bg-black/5 hover:text-[#a33818]"
+            >
+              Study
+            </button>
           </div>
         </header>
 

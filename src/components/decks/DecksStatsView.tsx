@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -90,7 +91,7 @@ export function DecksStatsView() {
       <header className="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[#1c1c19]/10 bg-[#fcf9f4]/80 px-8 backdrop-blur-xl">
         <div className="flex items-center gap-8">
           <span className="font-['Newsreader'] text-2xl font-bold tracking-tight text-[#a33818]">Agy Decks</span>
-          <nav className="hidden items-center gap-6 md:flex">
+          <nav className="hidden items-center gap-4 md:flex">
             <button type="button" onClick={() => router.push(`/decks/decks?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">
               Decks
             </button>
@@ -103,6 +104,16 @@ export function DecksStatsView() {
             <button type="button" onClick={() => router.push(`/decks/study?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">
               Study
             </button>
+            <span className="h-4 w-px bg-[#1c1c19]/10" aria-hidden="true" />
+            <Link href="/wall" className="text-[#1c1c19]/60 hover:text-[#a33818]">
+              Wall
+            </Link>
+            <Link href="/page" className="text-[#1c1c19]/60 hover:text-[#a33818]">
+              Page
+            </Link>
+            <Link href="/media" className="text-[#1c1c19]/60 hover:text-[#a33818]">
+              Media
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">

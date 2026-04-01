@@ -360,22 +360,25 @@ Expected:
 ## Decks Route and Workflow (2026-03-03)
 1. Sign in and open `/decks` from landing and from `/wall` toolbar.
 2. In deck sidebar, create a root deck and one child deck.
-3. On `/decks/decks`, click `Add Note`, choose a deck and note type, and create one note using each built-in note type (Basic, reversed, optional reversed, cloze).
-4. Try creating the same note again in the same deck and note type, varying only field order, surrounding whitespace, or line endings, and verify the app rejects it as a duplicate.
-5. Start study on parent deck with `Include child decks` enabled; confirm cards from child deck appear.
-6. Exclude the child deck and confirm child cards are removed from current queue.
-7. In study view, click `Show Answer`, then rate cards with `Again/Hard/Good/Easy`.
-8. Open `Browse`, search cards, select rows, and run bulk `Suspend`, `Unsuspend`, and `Delete`.
-9. In Browse editor, edit prompt/answer and save.
-10. Open `Stats`, switch ranges (`7d`, `30d`, `90d`, `1y`, `deck_life`) and verify summary/workload updates.
-11. Open `Import File`, upload sample `.csv` or tab-delimited `.txt`, map columns, import notes.
-12. Re-import the same rows into the same deck and verify the import stops with a duplicate-note error instead of adding another copy.
-13. Save an import preset, close modal, reopen, and apply the saved preset.
-14. Switch to dark mode on `/decks` and verify deck backgrounds, panels, badges, and modal surfaces render as pure `#000000`, while text and status/icon indicators remain readable.
-15. Reload `/decks/decks` after creating a note and verify the selected deck counts update and the generated card appears in `Browse Cards`.
+3. In the top decks header, click `Wall`, `Page`, and `Media` and verify each route opens directly without losing access to the decks workspace.
+4. On `/decks/decks`, verify the top-right gear opens `/settings` and the `Study` action opens the deck study surface instead of showing an unlabeled icon-only shortcut.
+5. On `/decks/decks`, click `Add Note`, choose a deck and note type, and create one note using each built-in note type (Basic, reversed, optional reversed, cloze).
+6. Try creating the same note again in the same deck and note type, varying only field order, surrounding whitespace, or line endings, and verify the app rejects it as a duplicate.
+7. Start study on parent deck with `Include child decks` enabled; confirm cards from child deck appear.
+8. Exclude the child deck and confirm child cards are removed from current queue.
+9. In study view, click `Show Answer`, then rate cards with `Again/Hard/Good/Easy`.
+10. Open `Browse`, search cards, select rows, and run bulk `Suspend`, `Unsuspend`, and `Delete`.
+11. In Browse editor, edit prompt/answer and save.
+12. Open `Stats`, switch ranges (`7d`, `30d`, `90d`, `1y`, `deck_life`) and verify summary/workload updates.
+13. Open `Import File`, upload sample `.csv` or tab-delimited `.txt`, map columns, import notes.
+14. Re-import the same rows into the same deck and verify the import stops with a duplicate-note error instead of adding another copy.
+15. Save an import preset, close modal, reopen, and apply the saved preset.
+16. Switch to dark mode on `/decks` and verify deck backgrounds, panels, badges, and modal surfaces render as pure `#000000`, while text and status/icon indicators remain readable.
+17. Reload `/decks/decks` after creating a note and verify the selected deck counts update and the generated card appears in `Browse Cards`.
 
 Expected:
 - Decks route is reachable from both landing and wall.
+- Decks header provides direct route access to Wall, Page, and Media, and no longer relies on an unlabeled icon for study navigation.
 - Add Note/Browse/Stats/Study/Import flows work end-to-end.
 - Duplicate deck notes are rejected for both manual creation and import.
 - Parent study optionally includes children and supports exclusions.

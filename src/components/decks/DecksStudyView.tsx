@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -91,7 +92,7 @@ export function DecksStudyView() {
           <span className="font-['Newsreader'] text-xl font-bold text-[#a33818]">{selectedDeck?.name ?? 'Study'}</span>
           <div className="hidden w-64 items-center gap-3 md:flex"><div className="h-1.5 w-full overflow-hidden rounded-full bg-[#f0ede8]"><div className="h-full rounded-full bg-[#755717]" style={{ width: `${progressPct}%` }} /></div><span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#58423c]">{progressPct}%</span></div>
         </div>
-        <nav className="hidden items-center gap-8 md:flex"><button type="button" className="border-b-2 border-[#a33818] pb-1 font-bold text-[#a33818]">Study</button><button type="button" onClick={() => router.push(`/decks/stats?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Stats</button><button type="button" onClick={() => router.push(`/decks/browse?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Browse</button></nav>
+        <nav className="hidden items-center gap-4 md:flex"><button type="button" className="border-b-2 border-[#a33818] pb-1 font-bold text-[#a33818]">Study</button><button type="button" onClick={() => router.push(`/decks/stats?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Stats</button><button type="button" onClick={() => router.push(`/decks/browse?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Browse</button><button type="button" onClick={() => router.push(`/decks/decks?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Decks</button><span className="h-4 w-px bg-[#1c1c19]/10" aria-hidden="true" /><Link href="/wall" className="text-[#1c1c19]/60 hover:text-[#a33818]">Wall</Link><Link href="/page" className="text-[#1c1c19]/60 hover:text-[#a33818]">Page</Link><Link href="/media" className="text-[#1c1c19]/60 hover:text-[#a33818]">Media</Link></nav>
         <select value={deckId} onChange={(event) => chooseDeck(event.target.value)} className="rounded-full bg-[#f0ede8] px-4 py-2 text-sm outline-none">{decks.map((deck) => <option key={deck.id} value={deck.id}>{deck.name}</option>)}</select>
       </header>
       <main className="relative flex h-screen items-center justify-center px-6 pb-32 pt-16">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -101,7 +102,7 @@ export function DecksBrowseView() {
       <div className="fixed inset-0 z-[-1] opacity-[0.02] pointer-events-none" style={{ backgroundImage: "url(data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E)" }} />
       <header className="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[#1c1c19]/10 bg-[#fcf9f4]/80 px-8 backdrop-blur-xl">
         <div className="font-['Newsreader'] text-2xl font-bold tracking-tight text-[#a33818]">Agy Decks</div>
-        <nav className="hidden items-center space-x-8 md:flex"><button type="button" onClick={() => router.push(`/decks/decks?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Decks</button><button type="button" className="border-b-2 border-[#a33818] pb-1 font-bold text-[#a33818]">Browse</button><button type="button" onClick={() => router.push(`/decks/stats?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Stats</button><button type="button" onClick={() => router.push(`/decks/study?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Study</button></nav>
+        <nav className="hidden items-center gap-4 md:flex"><button type="button" onClick={() => router.push(`/decks/decks?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Decks</button><button type="button" className="border-b-2 border-[#a33818] pb-1 font-bold text-[#a33818]">Browse</button><button type="button" onClick={() => router.push(`/decks/stats?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Stats</button><button type="button" onClick={() => router.push(`/decks/study?deckId=${deckId}`)} className="text-[#1c1c19]/60 hover:text-[#a33818]">Study</button><span className="h-4 w-px bg-[#1c1c19]/10" aria-hidden="true" /><Link href="/wall" className="text-[#1c1c19]/60 hover:text-[#a33818]">Wall</Link><Link href="/page" className="text-[#1c1c19]/60 hover:text-[#a33818]">Page</Link><Link href="/media" className="text-[#1c1c19]/60 hover:text-[#a33818]">Media</Link></nav>
         <div className="flex items-center space-x-4"><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#58423c]/40">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void search(); }} className="w-64 rounded-full bg-[#f0ede8] py-1.5 pl-10 pr-4 text-sm outline-none" placeholder="Search the library..." /></div><button type="button" onClick={() => void search()} className="text-[#58423c]">⏎</button></div>
       </header>
       <div className="flex h-screen pt-16">
