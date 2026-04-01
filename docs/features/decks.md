@@ -24,7 +24,7 @@ Current workspace areas include:
 
 The workspace supports nested decks, filtered study, due counts, tags, and import presets.
 
-The decks header keeps the local Decks/Browse/Stats/Study tabs visible while also providing direct route links back into `Wall`, `Page`, and `Media`. The primary deck overview reserves the top-right controls for search and `Study`, while persistent `Settings` and `Help` route links live together in the lower-left sidebar footer.
+The decks header keeps the local Decks/Browse/Stats/Study tabs visible while also providing direct route links back into `Wall`, `Page`, and `Media`. The deck overview header does not keep separate duplicate `Study` or decorative search controls; persistent `Settings` and `Help` route links live together in the lower-left sidebar footer.
 
 On `/decks`, the main deck overview includes a single in-content `Add Note` entry point in the hero actions. That modal lets the user choose a deck, choose a note type, fill the note fields, add comma-separated tags, and create the note. Card generation still happens note-first through the note type template system rather than by creating raw cards directly.
 
