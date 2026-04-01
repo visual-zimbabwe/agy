@@ -273,14 +273,20 @@ export function DecksDecksView() {
             className="w-full rounded-full border border-black/10 bg-white px-4 py-2 text-sm outline-none"
           />
           <div className="space-y-1 border-t border-black/5 pt-4">
-            <button type="button" className="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-black/50 transition-colors hover:bg-black/5">
+            <Link
+              href="/settings"
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-black/50 transition-colors hover:bg-black/5 hover:text-[#a33818]"
+            >
               <span className="text-[18px]">⚙</span>
               <span className="text-xs font-bold uppercase tracking-[0.22em]">Settings</span>
-            </button>
-            <button type="button" className="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-black/50 transition-colors hover:bg-black/5">
+            </Link>
+            <Link
+              href="/help"
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-black/50 transition-colors hover:bg-black/5 hover:text-[#a33818]"
+            >
               <span className="text-[18px]">?</span>
               <span className="text-xs font-bold uppercase tracking-[0.22em]">Help</span>
-            </button>
+            </Link>
           </div>
         </div>
       </aside>
@@ -305,15 +311,6 @@ export function DecksDecksView() {
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40">⌕</span>
               <input className="w-64 rounded-full bg-[#f0ede8] py-1.5 pl-10 pr-4 text-sm outline-none" placeholder="Search cards..." />
             </div>
-            <Button size="sm" onClick={openAddNote}>Add Note</Button>
-            <Link
-              href="/settings"
-              aria-label="Open settings"
-              title="Open settings"
-              className="rounded-full p-2 text-black/60 transition-colors hover:bg-black/5"
-            >
-              ⚙
-            </Link>
             <button
               type="button"
               onClick={() => openView("study")}
