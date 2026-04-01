@@ -173,7 +173,10 @@ Use this tree as the target shape over time:
 
 ```text
 README.md
-SKILL.md
+.codex/
+  skills/
+    idea-wall-documentation/
+      SKILL.md
 docs/
   product/
     overview.md

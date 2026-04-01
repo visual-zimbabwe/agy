@@ -236,7 +236,7 @@ Canonical documentation now lives under `docs/`:
 - `docs/releases/changelog.md`
 - `docs/qa.md`
 
-Documentation rules and standards are defined in `SKILL.md`.
+Documentation rules and standards are defined in `.codex/skills/idea-wall-documentation/SKILL.md`.
 
 
 

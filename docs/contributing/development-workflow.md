@@ -52,7 +52,7 @@ Key routes during development:
 
 - Keep changes focused.
 - Prefer updating the canonical file for a topic instead of creating duplicates.
-- Follow the documentation rules in `SKILL.md`.
+- Follow the documentation rules in `.codex/skills/idea-wall-documentation/SKILL.md`.
 - Treat docs as part of shipping, especially when changing user-visible behavior, routes, storage shape, APIs, or contributor workflow.
 
 ## Coding Conventions
@@ -126,7 +126,7 @@ The repo may contain unrelated local changes or experimental assets. Do not assu
 
 ## Related Docs
 
-- `SKILL.md`
+- `.codex/skills/idea-wall-documentation/SKILL.md`
 - `README.md`
 - `docs/releases/changelog.md`
 - `docs/qa.md`
