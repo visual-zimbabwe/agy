@@ -360,7 +360,7 @@ Expected:
 ## Decks Route and Workflow (2026-03-03)
 1. Sign in and open `/decks` from landing and from `/wall` toolbar.
 2. In deck sidebar, create a root deck and one child deck.
-3. In the top decks header, click `Wall`, `Page`, and `Media` and verify each route opens directly without losing access to the decks workspace.
+3. In the top decks header, verify `Decks`, `Browse`, `Stats`, and `Study` stay grouped on the left while `Wall`, `Page`, and `Media` are aligned at the top-right; click `Wall`, `Page`, and `Media` and verify each route opens directly without losing access to the decks workspace.
 4. On `/decks/decks`, verify the lower-left sidebar footer shows linked `Settings` and `Help` actions, and that each opens `/settings` and `/help` respectively.
 5. On `/decks/decks`, verify the header no longer shows duplicate `Add Note`, `Study`, settings, or nonfunctional `Search cards` controls, and that the nav-bar `Study` tab still opens the deck study surface.
 6. On `/decks/decks`, click the hero-section `Add Note`, choose a deck and note type, and create one note using each built-in note type (Basic, reversed, optional reversed, cloze).

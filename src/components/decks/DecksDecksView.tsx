@@ -295,16 +295,19 @@ export function DecksDecksView() {
         <header className="fixed left-64 right-0 top-0 z-50 flex h-16 items-center border-b border-black/10 bg-[rgba(252,249,244,0.8)] px-8 backdrop-blur-xl">
           <div className="flex w-full items-center gap-10">
             <span className="font-['Newsreader'] text-2xl font-bold tracking-tight text-[#a33818]">Agy Decks</span>
-            <nav className="hidden flex-1 items-center gap-4 md:flex">
-              <button type="button" className="border-b-2 border-[#a33818] pb-1 text-sm font-bold text-[#a33818]">Decks</button>
-              <button type="button" onClick={() => openView("browse")} className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Browse</button>
-              <button type="button" onClick={() => openView("stats")} className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Stats</button>
-              <button type="button" onClick={() => openView("study")} className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Study</button>
-              <span className="mx-1 h-4 w-px bg-black/10" aria-hidden="true" />
-              <Link href="/wall" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Wall</Link>
-              <Link href="/page" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Page</Link>
-              <Link href="/media" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Media</Link>
-            </nav>
+            <div className="hidden flex-1 items-center justify-between md:flex">
+              <nav className="flex items-center gap-4">
+                <button type="button" className="border-b-2 border-[#a33818] pb-1 text-sm font-bold text-[#a33818]">Decks</button>
+                <button type="button" onClick={() => openView("browse")} className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Browse</button>
+                <button type="button" onClick={() => openView("stats")} className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Stats</button>
+                <button type="button" onClick={() => openView("study")} className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Study</button>
+              </nav>
+              <nav className="flex items-center gap-4">
+                <Link href="/wall" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Wall</Link>
+                <Link href="/page" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Page</Link>
+                <Link href="/media" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Media</Link>
+              </nav>
+            </div>
           </div>
         </header>
 
