@@ -60,6 +60,19 @@
   - current branch name
   - commit hash
 
+## GitHub and Repo Workflow Best Practices
+- Treat `main` as the stable public branch. Do not leave it in a knowingly broken state.
+- Prefer short-lived branches for meaningful work, even when working solo. Merge or delete them once the work is complete.
+- Keep pull requests focused on one change area and include a short summary, validation notes, and screenshots for UI changes when useful.
+- Update `README.md` when setup, positioning, or top-level workflow changes. Update canonical docs under `docs/` when behavior, architecture, APIs, or QA expectations change.
+- Before pushing, verify the branch contains only intentional files and that `git status` is clean except for expected work.
+- Push only after running the relevant validation commands for the change scope. At minimum, use the required quality gate in this file unless the user explicitly asks otherwise.
+- Do not force-push shared branches unless the user explicitly asks for history replacement or the branch is clearly private/isolated.
+- Delete stale remote branches after merge so GitHub reflects the active project state.
+- Keep the repository presentation clean on GitHub: accurate project description, correct default branch, current README, and no obsolete root-level clutter.
+- Never commit secrets, local-only environment files, large transient outputs, or generated artifacts that are not part of the intended source of truth.
+- When replacing or restructuring major project surfaces, make docs and routing changes in the same branch so GitHub never presents a half-migrated state.
+
 ## Security & Configuration Tips
 - App is local-first; persistence uses IndexedDB via Dexie.
 - Do not commit secrets or local environment credentials.
