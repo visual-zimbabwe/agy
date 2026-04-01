@@ -54,6 +54,8 @@ Key routes during development:
 - Prefer updating the canonical file for a topic instead of creating duplicates.
 - Follow the documentation rules in `.codex/skills/idea-wall-documentation/SKILL.md`.
 - Treat docs as part of shipping, especially when changing user-visible behavior, routes, storage shape, APIs, or contributor workflow.
+- Keep the repository root intentional: only core project config, lockfiles, contributor instructions, and a small number of canonical entry-point docs should live there.
+- Move loose plans, discovery notes, and superseded status documents into `docs/archive/` unless they are the active source of truth for a current workflow.
 
 ## Coding Conventions
 
@@ -104,6 +106,17 @@ Common canonical locations:
 - `docs/decisions/`
 - `docs/runbooks/`
 - `docs/releases/`
+
+## Repository Root
+
+The repository root should stay small and predictable. Contributors should expect these categories at the top level:
+
+- package manager files such as `package.json` and `package-lock.json`
+- framework and tool configuration such as Next.js, TypeScript, ESLint, Playwright, and Vitest config
+- top-level contributor guidance such as `README.md` and `AGENTS.md`
+- stable project folders such as `src/`, `docs/`, `public/`, `scripts/`, `e2e/`, and `supabase/`
+
+Avoid leaving one-off planning documents or historical notes at the root. Move them into the appropriate canonical doc area or archive them under `docs/archive/`.
 
 ## Commits
 

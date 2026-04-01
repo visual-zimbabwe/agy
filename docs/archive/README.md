@@ -28,3 +28,5 @@ Use the active canonical docs under:
 ## Legacy Plans
 
 `docs/archive/legacy-plans/` contains older planning, discovery, and implementation files that were previously mixed into the top-level `docs/` directory.
+
+Other archived files in this folder may be preserved root-level notes or documents that were moved out of the active repository surface during cleanup.

@@ -1,5 +1,11 @@
 # Product Improvements
 
+## Status
+
+Archived historical planning note. This file is preserved for project history and is not a current source of truth for roadmap, implementation status, or contributor workflow.
+
+## Original Notes
+
 1. Usability polish pass (Done)
 - Add iconography to top bar/left rail and tighten spacing hierarchy.
 - Add tooltips for all controls with shortcut hints.
@@ -12,7 +18,7 @@
 
 3. Undo/redo hardening (Done)
 - Group related operations into single history entries (bulk move, align, template apply).
-- Add visible history depth indicator and “clear history” safety option.
+- Add visible history depth indicator and "clear history" safety option.
 
 4. Tests
 - Add unit tests for command functions and store reducers.
@@ -22,12 +28,12 @@
 5. Information architecture cleanup (Done)
 - Move some right-panel sections into collapsible accordions.
 - Keep context bar minimal and show only truly selection-relevant actions.
-- Add “Customize layout” toggles to hide panels per user preference.
+- Add "Customize layout" toggles to hide panels per user preference.
 
 6. Data and backup safety (Done)
-- Add explicit “Export JSON / Import JSON” for full wall backup/restore.
+- Add explicit "Export JSON / Import JSON" for full wall backup/restore.
 - Add optional auto-backup download reminder (daily/weekly).
 
 7. Docs
 - Update `README.md` with the new layout map and shortcuts.
-- Add a “Power User Workflow” doc and a quick-start GIF checklist.
+- Add a "Power User Workflow" doc and a quick-start GIF checklist.
