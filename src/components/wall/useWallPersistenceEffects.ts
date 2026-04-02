@@ -14,6 +14,7 @@ import {
   loadTimelineEntries,
   loadWallCloudBaselineSnapshot,
   loadWallSnapshot,
+  saveWallSnapshot,
   loadWallSyncVersion,
   saveWallCloudBaselineSnapshot,
   saveWallSyncVersion,
@@ -250,6 +251,7 @@ export const useWallPersistenceEffects = ({
         }
 
         lastPersistedSerializedRef.current = JSON.stringify(nextSnapshot);
+        await saveWallSnapshot(nextSnapshot);
 
         if (!cancelled) {
           hydrate(nextSnapshot);
