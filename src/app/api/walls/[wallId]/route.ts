@@ -76,17 +76,19 @@ const logWallReadDiagnostic = (
   logger("[wall-read]", JSON.stringify({ event, ...detail }));
 };
 
-const fetchBatchedRowsById = async <TRow extends { id: string },>(
-  fetchPage: (afterId: string | null) => Promise<{ data: unknown[] | null; error: { message: string } | null }>,
+const fetchBatchedRowsByRecency = async <TRow extends { id: string; updated_at: string },>(
+  fetchPage: (
+    from: number,
+    to: number,
+  ) => Promise<{ data: unknown[] | null; error: { message: string } | null }>,
 ) => {
   const rows: TRow[] = [];
   const batches: Array<{ index: number; count: number; durationMs: number; lastId: string | null }> = [];
-  let batchIndex = 0;
-  let afterId: string | null = null;
-
-  for (;;) {
+  for (let batchIndex = 0; ; batchIndex += 1) {
+    const from = batchIndex * wallReadBatchSize;
+    const to = from + wallReadBatchSize - 1;
     const startedAt = Date.now();
-    const result = await fetchPage(afterId);
+    const result = await fetchPage(from, to);
     const durationMs = Date.now() - startedAt;
     if (result.error) {
       return { data: null as TRow[] | null, error: result.error, batches };
@@ -94,15 +96,12 @@ const fetchBatchedRowsById = async <TRow extends { id: string },>(
 
     const page = (result.data ?? []) as TRow[];
     rows.push(...page);
-    const nextAfterId: string | null = page.length > 0 ? page[page.length - 1]?.id ?? null : afterId;
-    batches.push({ index: batchIndex, count: page.length, durationMs, lastId: nextAfterId });
+    const lastId: string | null = page.length > 0 ? page[page.length - 1]?.id ?? null : null;
+    batches.push({ index: batchIndex, count: page.length, durationMs, lastId });
 
     if (page.length < wallReadBatchSize) {
       break;
     }
-
-    afterId = nextAfterId;
-    batchIndex += 1;
   }
 
   return { data: rows, error: null as { message: string } | null, batches };
@@ -197,52 +196,43 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   const zonesSelectWithKind = "id,revision,label,kind,group_id,x,y,w,h,color,created_at,updated_at";
   const zonesSelectLegacy = "id,revision,label,group_id,x,y,w,h,color,created_at,updated_at";
 
-  const notesWithFormattingResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["notes"]>[number]>(async (afterId) => {
-    let query = auth.supabase
+  const notesWithFormattingResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) => {
+    return await auth.supabase
       .from("notes")
       .select(notesSelectWithFormatting)
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null)
-      .order("id", { ascending: true })
-      .limit(wallReadBatchSize);
-    if (afterId) {
-      query = query.gt("id", afterId);
-    }
-    return await query;
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to);
   });
 
   let notesData: SnapshotArgs["notes"] | null = notesWithFormattingResult.data as unknown as SnapshotArgs["notes"] | null;
   if (notesWithFormattingResult.error && isMissingNoteVocabularyColumnError(notesWithFormattingResult.error.message)) {
-    const notesWithoutVocabularyResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["notes"]>[number]>(async (afterId) => {
-      let query = auth.supabase
+    const notesWithoutVocabularyResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) => {
+      return await auth.supabase
         .from("notes")
         .select(notesSelectWithoutVocabulary)
         .eq("wall_id", wallId)
         .eq("owner_id", auth.user.id)
         .is("deleted_at", null)
-        .order("id", { ascending: true })
-        .limit(wallReadBatchSize);
-      if (afterId) {
-        query = query.gt("id", afterId);
-      }
-      return await query;
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to);
     });
 
     if (notesWithoutVocabularyResult.error && isMissingNoteFormattingColumnError(notesWithoutVocabularyResult.error.message)) {
-      const notesLegacyResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["notes"]>[number]>(async (afterId) => {
-        let query = auth.supabase
+      const notesLegacyResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) => {
+        return await auth.supabase
           .from("notes")
           .select(notesSelectLegacy)
           .eq("wall_id", wallId)
           .eq("owner_id", auth.user.id)
           .is("deleted_at", null)
-          .order("id", { ascending: true })
-          .limit(wallReadBatchSize);
-        if (afterId) {
-          query = query.gt("id", afterId);
-        }
-        return await query;
+          .order("updated_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to);
       });
       if (notesLegacyResult.error) {
         logWallReadDiagnostic("error", "notes-legacy-query-failed", {
@@ -290,19 +280,16 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       notesData = (((notesWithoutVocabularyResult.data as unknown as SnapshotArgs["notes"] | null) ?? []).map((note) => ({ ...note, vocabulary: null })) as SnapshotArgs["notes"]);
     }
   } else if (notesWithFormattingResult.error && isMissingNoteFormattingColumnError(notesWithFormattingResult.error.message)) {
-    const notesLegacyResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["notes"]>[number]>(async (afterId) => {
-      let query = auth.supabase
+    const notesLegacyResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) => {
+      return await auth.supabase
         .from("notes")
         .select(notesSelectLegacy)
         .eq("wall_id", wallId)
         .eq("owner_id", auth.user.id)
         .is("deleted_at", null)
-        .order("id", { ascending: true })
-        .limit(wallReadBatchSize);
-      if (afterId) {
-        query = query.gt("id", afterId);
-      }
-      return await query;
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to);
     });
     if (notesLegacyResult.error) {
       logWallReadDiagnostic("error", "notes-legacy-query-failed", {
@@ -358,36 +345,30 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     memoryMb: memorySnapshotMb(),
   });
 
-  const zonesWithKindResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["zones"]>[number]>(async (afterId) => {
-    let query = auth.supabase
+  const zonesWithKindResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["zones"]>[number]>(async (from, to) => {
+    return await auth.supabase
       .from("zones")
       .select(zonesSelectWithKind)
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null)
-      .order("id", { ascending: true })
-      .limit(wallReadBatchSize);
-    if (afterId) {
-      query = query.gt("id", afterId);
-    }
-    return await query;
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to);
   });
 
   let zonesData: SnapshotArgs["zones"] | null = zonesWithKindResult.data as unknown as SnapshotArgs["zones"] | null;
   if (zonesWithKindResult.error && isMissingZoneKindColumnError(zonesWithKindResult.error.message)) {
-    const zonesLegacyResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["zones"]>[number]>(async (afterId) => {
-      let query = auth.supabase
+    const zonesLegacyResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["zones"]>[number]>(async (from, to) => {
+      return await auth.supabase
         .from("zones")
         .select(zonesSelectLegacy)
         .eq("wall_id", wallId)
         .eq("owner_id", auth.user.id)
         .is("deleted_at", null)
-        .order("id", { ascending: true })
-        .limit(wallReadBatchSize);
-      if (afterId) {
-        query = query.gt("id", afterId);
-      }
-      return await query;
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to);
     });
     if (zonesLegacyResult.error) {
       logWallReadDiagnostic("error", "zones-legacy-query-failed", {
