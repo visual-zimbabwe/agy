@@ -6,6 +6,8 @@ import {
   filterLinksToVisibleNoteIds,
   filterNotesToWallBounds,
   filterZonesToWallBounds,
+  getAdaptiveWallOverscanWorldPx,
+  getWallRenderDetailLevel,
   mergeWallWindowIntoSnapshot,
 } from "@/features/wall/windowing";
 
@@ -44,6 +46,14 @@ describe("wall windowing", () => {
     ];
 
     expect(filterLinksToVisibleNoteIds(links, new Set(["a", "b"])).map((link) => link.id)).toEqual(["keep"]);
+  });
+
+  it("adapts overscan and render detail level for zoomed-out walls", () => {
+    expect(getAdaptiveWallOverscanWorldPx(0.35, 320)).toBe(128);
+    expect(getAdaptiveWallOverscanWorldPx(2, 320)).toBe(432);
+    expect(getWallRenderDetailLevel(0.35, 24)).toBe("ambient");
+    expect(getWallRenderDetailLevel(0.8, 90)).toBe("summary");
+    expect(getWallRenderDetailLevel(1.2, 18)).toBe("full");
   });
 
   it("merges a window snapshot into an existing normalized snapshot", () => {

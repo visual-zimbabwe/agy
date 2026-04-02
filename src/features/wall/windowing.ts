@@ -23,6 +23,8 @@ export type WallWindowPayload = {
   syncVersion: number;
 };
 
+export type WallRenderDetailLevel = "full" | "summary" | "ambient";
+
 const rectIntersectsBounds = (
   x: number,
   y: number,
@@ -41,6 +43,29 @@ export const createViewportWallBounds = (
   maxX: (-camera.x + viewport.w + overscanWorldPx) / camera.zoom,
   maxY: (-camera.y + viewport.h + overscanWorldPx) / camera.zoom,
 });
+
+export const getAdaptiveWallOverscanWorldPx = (cameraZoom: number, defaultOverscanWorldPx = 320) => {
+  if (cameraZoom <= 0.45) {
+    return Math.max(120, Math.round(defaultOverscanWorldPx * 0.4));
+  }
+  if (cameraZoom <= 0.75) {
+    return Math.max(180, Math.round(defaultOverscanWorldPx * 0.7));
+  }
+  if (cameraZoom >= 1.8) {
+    return Math.round(defaultOverscanWorldPx * 1.35);
+  }
+  return defaultOverscanWorldPx;
+};
+
+export const getWallRenderDetailLevel = (cameraZoom: number, visibleNoteCount: number): WallRenderDetailLevel => {
+  if (cameraZoom <= 0.4 || visibleNoteCount >= 140) {
+    return "ambient";
+  }
+  if (cameraZoom <= 0.72 || visibleNoteCount >= 70) {
+    return "summary";
+  }
+  return "full";
+};
 
 export const noteIntersectsWallBounds = (note: Pick<Note, "x" | "y" | "w" | "h">, bounds: WallBounds) =>
   rectIntersectsBounds(note.x, note.y, note.w, note.h, bounds);

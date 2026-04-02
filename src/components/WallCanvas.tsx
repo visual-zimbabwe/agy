@@ -2912,6 +2912,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     visibleNotes: layerVisibleNotes,
     visibleZones: layerVisibleZones,
     visibleLinks: layerVisibleLinks,
+    renderDetailLevel: layerRenderDetailLevel,
   } = useWallViewportWindow({
     notes: displayVisibleNotes,
     zones: renderVisibleZones,
@@ -4286,6 +4287,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
             <WallNotesLayer
               visibleNotes={layerVisibleNotes}
+              renderDetailLevel={layerRenderDetailLevel}
               activeSelectedNoteIds={activeSelectedNoteIds}
               selectedNoteId={ui.selectedNoteId}
               flashNoteId={ui.flashNoteId}

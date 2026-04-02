@@ -4,6 +4,8 @@ import { useMemo } from "react";
 
 import type { Link, Note, Zone } from "@/features/wall/types";
 import {
+  getAdaptiveWallOverscanWorldPx,
+  getWallRenderDetailLevel,
   createViewportWallBounds,
   filterLinksToVisibleNoteIds,
   filterNotesToWallBounds,
@@ -29,9 +31,13 @@ export const useWallViewportWindow = ({
   overscanWorldPx = 320,
   enabled = true,
 }: UseWallViewportWindowOptions) => {
+  const resolvedOverscanWorldPx = useMemo(
+    () => getAdaptiveWallOverscanWorldPx(camera.zoom, overscanWorldPx),
+    [camera.zoom, overscanWorldPx],
+  );
   const bounds = useMemo(
-    () => createViewportWallBounds(camera, viewport, overscanWorldPx),
-    [camera, overscanWorldPx, viewport],
+    () => createViewportWallBounds(camera, viewport, resolvedOverscanWorldPx),
+    [camera, resolvedOverscanWorldPx, viewport],
   );
 
   const visibleNotes = useMemo(
@@ -47,11 +53,16 @@ export const useWallViewportWindow = ({
     () => (enabled ? filterLinksToVisibleNoteIds(links, visibleNoteIdSet) : links),
     [enabled, links, visibleNoteIdSet],
   );
+  const renderDetailLevel = useMemo(
+    () => getWallRenderDetailLevel(camera.zoom, visibleNotes.length),
+    [camera.zoom, visibleNotes.length],
+  );
 
   return {
     bounds,
     visibleNotes,
     visibleZones,
     visibleLinks,
+    renderDetailLevel,
   };
 };
