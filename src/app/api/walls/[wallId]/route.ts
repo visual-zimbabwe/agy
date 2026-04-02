@@ -48,10 +48,13 @@ const isMissingNoteVocabularyColumnError = (message?: string) =>
   Boolean(message && message.includes("column notes.vocabulary does not exist"));
 const isMissingNoteGroupsTableError = (message?: string) =>
   Boolean(message && message.includes('relation "public.note_groups" does not exist'));
+const isStatementTimeoutError = (message?: string) =>
+  Boolean(message && message.includes("statement timeout"));
 
 type SnapshotArgs = Parameters<typeof rowsToSnapshot>[0];
 
 const wallReadBatchSize = 250;
+const minWallReadBatchSize = 25;
 
 const memorySnapshotMb = () => {
   if (typeof process === "undefined" || typeof process.memoryUsage !== "function") {
@@ -80,18 +83,24 @@ const fetchBatchedRowsByRecency = async <TRow extends { id: string; updated_at: 
   fetchPage: (
     from: number,
     to: number,
+    batchSize: number,
   ) => Promise<{ data: unknown[] | null; error: { message: string } | null }>,
+  batchSize = wallReadBatchSize,
 ) => {
   const rows: TRow[] = [];
   const batches: Array<{ index: number; count: number; durationMs: number; lastId: string | null }> = [];
   for (let batchIndex = 0; ; batchIndex += 1) {
-    const from = batchIndex * wallReadBatchSize;
-    const to = from + wallReadBatchSize - 1;
+    const from = batchIndex * batchSize;
+    const to = from + batchSize - 1;
     const startedAt = Date.now();
-    const result = await fetchPage(from, to);
+    const result = await fetchPage(from, to, batchSize);
     const durationMs = Date.now() - startedAt;
     if (result.error) {
-      return { data: null as TRow[] | null, error: result.error, batches };
+      if (isStatementTimeoutError(result.error.message) && batchSize > minWallReadBatchSize) {
+        const nextBatchSize = Math.max(minWallReadBatchSize, Math.ceil(batchSize / 2));
+        return fetchBatchedRowsByRecency(fetchPage, nextBatchSize);
+      }
+      return { data: null as TRow[] | null, error: result.error, batches, batchSize };
     }
 
     const page = (result.data ?? []) as TRow[];
@@ -99,12 +108,16 @@ const fetchBatchedRowsByRecency = async <TRow extends { id: string; updated_at: 
     const lastId: string | null = page.length > 0 ? page[page.length - 1]?.id ?? null : null;
     batches.push({ index: batchIndex, count: page.length, durationMs, lastId });
 
-    if (page.length < wallReadBatchSize) {
+    if (page.length < batchSize) {
       break;
     }
   }
 
-  return { data: rows, error: null as { message: string } | null, batches };
+  return { data: rows, error: null as { message: string } | null, batches, batchSize };
+};
+
+export const __test__ = {
+  fetchBatchedRowsByRecency,
 };
 
 export async function GET(_: Request, context: { params: Promise<{ wallId: string }> }) {
@@ -337,6 +350,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   logWallReadDiagnostic("info", "rows-fetched", {
     wallId,
     notesCount: notesData?.length ?? 0,
+    noteBatchSize: notesWithFormattingResult.batchSize,
     noteBatches: notesWithFormattingResult.batches,
     zoneGroupsCount: groupsResult.data?.length ?? 0,
     noteGroupsCount: noteGroupsData.length,
@@ -398,6 +412,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     zoneGroupsCount: groupsResult.data?.length ?? 0,
     noteGroupsCount: noteGroupsData.length,
     linksCount: linksResult.data?.length ?? 0,
+    zonesBatchSize: zonesWithKindResult.batchSize,
     zonesBatches: zonesWithKindResult.batches,
     durationMs: Date.now() - requestStartedAt,
     memoryMb: memorySnapshotMb(),
