@@ -353,4 +353,26 @@ export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups
   lastColor?: string;
 };
 
+export type WallWindowBounds = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+};
+
+export type WallShellState = {
+  id: string;
+  title?: string;
+  camera: Camera;
+  lastColor?: string;
+  updatedAt?: string;
+  syncVersion: number;
+};
+
+export type WallWindowResponse = {
+  shell: WallShellState;
+  bounds: WallWindowBounds;
+  snapshot: PersistedWallState;
+  syncVersion: number;
+};
 
