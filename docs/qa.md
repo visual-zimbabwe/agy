@@ -170,14 +170,19 @@ Expected:
 1. Open `/wall`, select a standard text note, and use `Details > Page Interchange > Reference In Page`.
 2. Open `/page` and verify a new bookmark block appears in the default page workspace that links back to `/wall?note=<id>`.
 3. Click that bookmark block and verify `/wall` opens with the target note selected, flashed, and camera-focused.
-4. Back on `/wall`, select a note with content and use `Details > Page Interchange > Convert To Page`.
-5. Verify the wall note becomes a bookmark-style page link, then open it and confirm a new page document exists with converted content.
-6. From that new page document, open the converted block menu, run `Turn into wall note`, and verify the block becomes a wall-link bookmark while a converted wall note is created and focused from the link.
+4. Back on `/wall`, verify the note itself still renders in its original note shell and that the only wall-side page controls are in `Details > Page Interchange` (`Open Page Ref`, `Undo Reference`).
+5. Use `Undo Reference` and verify the page-side bookmark block is removed from the default page workspace.
+6. Select a note with content and use `Details > Page Interchange > Convert To Page`.
+7. Verify the wall note keeps its original visual appearance, and that `Details > Page Interchange` now exposes `Open Converted Page` and `Undo Convert`.
+8. Open the converted page and confirm a new page document exists with converted content.
+9. Use `Undo Convert` and verify the converted page document is removed and the details panel reverts to the pre-conversion action state.
+10. From that new page document, open the converted block menu, run `Turn into wall note`, and verify the block becomes a wall-link bookmark while a converted wall note is created and focused from the link.
 
 Expected:
 - Wall notes can append page references without losing the source note.
-- Wall note conversion creates a new page document and leaves behind a wall-side page reference.
+- Wall note conversion creates a new page document without changing the wall note into a visible link card.
 - Page block conversion creates a wall note and leaves behind a page-side wall reference.
+- Wall-side page links are managed only from the details panel, and both reference and conversion flows support undo.
 - Internal `/wall?note=...` and `/page?doc=...#block` links resolve to the intended content instead of generic workspace entry points.
 
 ## File Note (`/wall`) (2026-03-26)

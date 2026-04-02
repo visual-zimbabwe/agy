@@ -49,6 +49,19 @@ export const saveCloudPageSnapshot = async (docId: string, snapshot: PersistedPa
   }
 };
 
+export const deleteCloudPageSnapshot = async (docId: string): Promise<void> => {
+  const ownerId = await getAuthedUserId();
+  if (!ownerId) {
+    return;
+  }
+
+  const supabase = createSupabaseBrowserClient();
+  const { error } = await supabase.from("page_docs").delete().eq("owner_id", ownerId).eq("doc_id", docId);
+  if (error) {
+    throw new Error(error.message || "Failed to delete cloud page document.");
+  }
+};
+
 export const listCloudPageDocIds = async (): Promise<string[]> => {
   const ownerId = await getAuthedUserId();
   if (!ownerId) {

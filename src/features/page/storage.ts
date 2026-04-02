@@ -294,6 +294,11 @@ export const savePageSnapshot = async (snapshot: PersistedPageState, docId = def
   });
 };
 
+export const deletePageSnapshot = async (docId = defaultPageDocId): Promise<void> => {
+  await migrateLegacyPageDatabaseIfNeeded();
+  await db.pageDocs.delete(docId);
+};
+
 export const listPageDocIds = async (): Promise<string[]> => {
   await migrateLegacyPageDatabaseIfNeeded();
   const rows = await db.pageDocs.orderBy("updatedAt").reverse().toArray();

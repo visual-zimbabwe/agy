@@ -78,7 +78,8 @@ import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
 import { useWallZoomControls } from "@/components/wall/useWallZoomControls";
 import { useWallProductTour } from "@/components/wall/useWallProductTour";
 import type { PageBlock } from "@/features/page/types";
-import { defaultPageDocId, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
+import { deleteCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
+import { defaultPageDocId, deletePageSnapshot, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
 import {
   toolbarBtn,
   toolbarBtnActive,
@@ -145,6 +146,7 @@ import {
   type EconomistSourceId,
 } from "@/features/wall/economist";
 import { getPoetryNoteDimensions } from "@/features/wall/poetry";
+import { readWallPageLinkState, writeWallPageLinkState, type WallPageLinkState } from "@/features/wall/page-links";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import { saveWallCloudBaselineSnapshot, saveWallSyncVersion } from "@/features/wall/storage";
@@ -174,7 +176,6 @@ import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 import {
-  buildWallReferenceNote,
   createPageReferenceForWallNote,
   pageBlocksFromWallNote,
 } from "@/lib/content-interchange";
@@ -364,6 +365,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [reviewRevealMeaning, setReviewRevealMeaning] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
+  const [wallPageLinks, setWallPageLinks] = useState<WallPageLinkState>(() => readWallPageLinkState());
   const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
   const [preferredFileConversionMode, setPreferredFileConversionMode] = useState<"pdf_to_word" | "word_to_pdf" | null>(null);
   const [presentationIndex, setPresentationIndex] = useState(0);
@@ -1477,6 +1479,38 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       },
       docId,
     );
+    try {
+      await saveCloudPageSnapshot(docId, {
+        ...snapshot,
+        blocks: [...snapshot.blocks, ...nextBlocks],
+        updatedAt: Date.now(),
+      });
+    } catch {
+      // Local page persistence remains authoritative if cloud save fails.
+    }
+    return nextBlocks;
+  }, []);
+
+  const updateWallPageLinks = useCallback((updater: (state: WallPageLinkState) => WallPageLinkState) => {
+    setWallPageLinks((previous) => {
+      const next = updater(previous);
+      writeWallPageLinkState(next);
+      return next;
+    });
+  }, []);
+
+  const openPageDoc = useCallback((docId: string, blockId?: string) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const target = new URL("/page", window.location.origin);
+    if (docId !== defaultPageDocId) {
+      target.searchParams.set("doc", docId);
+    }
+    if (blockId) {
+      target.hash = blockId;
+    }
+    window.open(target.toString(), "_blank", "noopener,noreferrer");
   }, []);
 
   const referenceNoteInPage = useCallback(
@@ -1488,9 +1522,26 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       if (!note) {
         return;
       }
-      await appendBlocksToPageDoc(defaultPageDocId, [createPageReferenceForWallNote(note, window.location.origin)]);
+      if (wallPageLinks.referencesByNoteId[noteId]) {
+        return;
+      }
+      const [createdBlock] = await appendBlocksToPageDoc(defaultPageDocId, [createPageReferenceForWallNote(note, window.location.origin)]);
+      if (!createdBlock) {
+        return;
+      }
+      updateWallPageLinks((previous) => ({
+        ...previous,
+        referencesByNoteId: {
+          ...previous.referencesByNoteId,
+          [noteId]: {
+            docId: defaultPageDocId,
+            blockId: createdBlock.id,
+            createdAt: Date.now(),
+          },
+        },
+      }));
     },
-    [appendBlocksToPageDoc, renderSnapshot.notes],
+    [appendBlocksToPageDoc, renderSnapshot.notes, updateWallPageLinks, wallPageLinks.referencesByNoteId],
   );
 
   const convertNoteToPage = useCallback(
@@ -1502,57 +1553,92 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       if (!note) {
         return;
       }
+      if (wallPageLinks.conversionsByNoteId[noteId]) {
+        return;
+      }
 
       const pageDocId = `page_${Math.random().toString(36).slice(2, 8)}`;
       const pageBlocks = pageBlocksFromWallNote(note);
-      await savePageSnapshot(
-        {
-          blocks: pageBlocks,
-          camera: { x: 0, y: 0, zoom: 1 },
-          updatedAt: Date.now(),
-          cover: undefined,
+      const snapshot = {
+        blocks: pageBlocks,
+        camera: { x: 0, y: 0, zoom: 1 },
+        updatedAt: Date.now(),
+        cover: undefined,
+      };
+      await savePageSnapshot(snapshot, pageDocId);
+      try {
+        await saveCloudPageSnapshot(pageDocId, snapshot);
+      } catch {
+        // Local page persistence remains authoritative if cloud save fails.
+      }
+      updateWallPageLinks((previous) => ({
+        ...previous,
+        conversionsByNoteId: {
+          ...previous.conversionsByNoteId,
+          [noteId]: {
+            docId: pageDocId,
+            createdAt: Date.now(),
+          },
         },
-        pageDocId,
-      );
+      }));
+    },
+    [isTimeLocked, renderSnapshot.notes, updateWallPageLinks, wallPageLinks.conversionsByNoteId],
+  );
 
-      const pageUrl = new URL("/page", window.location.origin);
-      pageUrl.searchParams.set("doc", pageDocId);
-      const referenceNote = buildWallReferenceNote(
-        pageUrl.toString(),
-        `Page: ${note.text.trim().split("\n")[0] || "Converted note"}`,
-        "Converted into a page document. Open the page copy from here.",
-        note.x,
-        note.y,
-      );
-
-      updateNote(noteId, {
-        noteKind: "web-bookmark",
-        text: referenceNote.text,
-        bookmark: referenceNote.bookmark,
-        canon: undefined,
-        eisenhower: undefined,
-        currency: undefined,
-        apod: undefined,
-        poetry: undefined,
-        economist: undefined,
-        file: undefined,
-        audio: undefined,
-        video: undefined,
-        imageUrl: undefined,
-        quoteAuthor: undefined,
-        quoteSource: undefined,
-        textAlign: referenceNote.textAlign,
-        textVAlign: referenceNote.textVAlign,
-        textFont: referenceNote.textFont,
-        textColor: referenceNote.textColor,
-        textSizePx: referenceNote.textSizePx,
-        tags: Array.from(new Set([...note.tags.filter((tag) => tag !== "image" && tag !== "file" && tag !== "audio" && tag !== "video"), "reference", "page"])),
-        w: referenceNote.w,
-        h: referenceNote.h,
-        color: referenceNote.color,
+  const undoPageReferenceForNote = useCallback(
+    async (noteId: string) => {
+      const reference = wallPageLinks.referencesByNoteId[noteId];
+      if (!reference) {
+        return;
+      }
+      const snapshot = await loadPageSnapshot(reference.docId);
+      if (snapshot) {
+        const nextSnapshot = {
+          ...snapshot,
+          blocks: snapshot.blocks.filter((block) => block.id !== reference.blockId),
+          updatedAt: Date.now(),
+        };
+        await savePageSnapshot(nextSnapshot, reference.docId);
+        try {
+          await saveCloudPageSnapshot(reference.docId, nextSnapshot);
+        } catch {
+          // Keep local state even if cloud cleanup fails.
+        }
+      }
+      updateWallPageLinks((previous) => {
+        const nextReferences = { ...previous.referencesByNoteId };
+        delete nextReferences[noteId];
+        return {
+          ...previous,
+          referencesByNoteId: nextReferences,
+        };
       });
     },
-    [isTimeLocked, renderSnapshot.notes],
+    [updateWallPageLinks, wallPageLinks.referencesByNoteId],
+  );
+
+  const undoPageConversionForNote = useCallback(
+    async (noteId: string) => {
+      const conversion = wallPageLinks.conversionsByNoteId[noteId];
+      if (!conversion) {
+        return;
+      }
+      await deletePageSnapshot(conversion.docId);
+      try {
+        await deleteCloudPageSnapshot(conversion.docId);
+      } catch {
+        // Keep local cleanup even if cloud delete fails.
+      }
+      updateWallPageLinks((previous) => {
+        const nextConversions = { ...previous.conversionsByNoteId };
+        delete nextConversions[noteId];
+        return {
+          ...previous,
+          conversionsByNoteId: nextConversions,
+        };
+      });
+    },
+    [updateWallPageLinks, wallPageLinks.conversionsByNoteId],
   );
 
   const readFileAsDataUrl = useCallback(
@@ -4410,6 +4496,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           onTagInputChange={setTagInput}
           onAddTag={addTagToSelectedNote}
           selectedNote={primarySelectedNote}
+          selectedNotePageReference={primarySelectedNote ? wallPageLinks.referencesByNoteId[primarySelectedNote.id] : undefined}
+          selectedNotePageConversion={primarySelectedNote ? wallPageLinks.conversionsByNoteId[primarySelectedNote.id] : undefined}
           hasJokerNote={hasJokerNote}
           hasThroneNote={hasThroneNote}
           selectedNoteId={ui.selectedNoteId}
@@ -4458,7 +4546,21 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           }}
           onDuplicateSelectedNote={duplicateNote}
           onReferenceSelectedNoteInPage={(noteId) => { void referenceNoteInPage(noteId); }}
+          onOpenSelectedNotePageReference={(noteId) => {
+            const reference = wallPageLinks.referencesByNoteId[noteId];
+            if (reference) {
+              openPageDoc(reference.docId, reference.blockId);
+            }
+          }}
+          onUndoSelectedNotePageReference={(noteId) => { void undoPageReferenceForNote(noteId); }}
           onConvertSelectedNoteToPage={(noteId) => { void convertNoteToPage(noteId); }}
+          onOpenSelectedNoteConvertedPage={(noteId) => {
+            const conversion = wallPageLinks.conversionsByNoteId[noteId];
+            if (conversion) {
+              openPageDoc(conversion.docId);
+            }
+          }}
+          onUndoSelectedNotePageConversion={(noteId) => { void undoPageConversionForNote(noteId); }}
           onTogglePinSelectedNote={togglePinOnNote}
           onToggleHighlightSelectedNote={toggleHighlightOnNote}
           onToggleFocusSelectedNote={toggleFocusNote}
@@ -4655,4 +4757,3 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
-
