@@ -60,6 +60,7 @@ import { useWallSelection } from "@/components/wall/useWallSelection";
 import { useWallSnapping } from "@/components/wall/useWallSnapping";
 import { WallStage } from "@/components/wall/WallStage";
 import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
+import { useWallViewportWindow } from "@/components/wall/useWallViewportWindow";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
 import { useApodNotes } from "@/components/wall/useApodNotes";
 import { useEconomistNotes } from "@/components/wall/useEconomistNotes";
@@ -2902,6 +2903,18 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const renderVisibleZones = useMemo(() => (focusedNote ? [] : visibleZones), [focusedNote, visibleZones]);
   const renderVisibleLinks = useMemo(() => (focusedNote ? [] : visibleLinks), [focusedNote, visibleLinks]);
   const renderPathLinkIds = useMemo(() => (focusedNote ? new Set<string>() : pathLinkIds), [focusedNote, pathLinkIds]);
+  const {
+    visibleNotes: layerVisibleNotes,
+    visibleZones: layerVisibleZones,
+    visibleLinks: layerVisibleLinks,
+  } = useWallViewportWindow({
+    notes: displayVisibleNotes,
+    zones: renderVisibleZones,
+    links: renderVisibleLinks,
+    camera,
+    viewport,
+    enabled: !timelineViewActive && !readingMode,
+  });
   const presentationModeType: "notes" | "narrative" = hasNarrativePresentation ? "narrative" : "notes";
   const presentationLength = presentationModeType === "narrative" ? activePresentationSteps.length : presentationNotes.length;
   const activePresentationStep =
@@ -4217,8 +4230,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
           <Layer>
             <WallLinksZonesLayer
-              visibleLinks={renderVisibleLinks}
-              visibleZones={renderVisibleZones}
+              visibleLinks={layerVisibleLinks}
+              visibleZones={layerVisibleZones}
               notesById={displayNotesById}
               selectedLinkId={ui.selectedLinkId}
               selectedNoteId={ui.selectedNoteId}
@@ -4267,7 +4280,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             )}
 
             <WallNotesLayer
-              visibleNotes={displayVisibleNotes}
+              visibleNotes={layerVisibleNotes}
               activeSelectedNoteIds={activeSelectedNoteIds}
               selectedNoteId={ui.selectedNoteId}
               flashNoteId={ui.flashNoteId}
