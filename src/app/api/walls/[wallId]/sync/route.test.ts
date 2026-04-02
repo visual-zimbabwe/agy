@@ -60,4 +60,64 @@ describe("POST /api/walls/[wallId]/sync", () => {
     });
     expect(from).toHaveBeenCalledTimes(1);
   });
+
+  it("accepts offset-formatted wall revision timestamps in the sync payload", async () => {
+    const wallSelectMaybeSingle = vi
+      .fn()
+      .mockResolvedValue({
+        data: { id: "wall-1", updated_at: "2026-04-02T12:00:00.123456+00:00" },
+        error: null,
+      });
+    const wallUpdateMaybeSingle = vi.fn().mockResolvedValue({
+        data: { updated_at: "2026-04-02T12:00:01.123456+00:00" },
+        error: null,
+      });
+    const deleteEqOwner = vi.fn().mockResolvedValue({ error: null });
+    const deleteEqWall = vi.fn(() => ({ eq: deleteEqOwner }));
+    const deleteBuilder = { eq: deleteEqWall };
+    const updateEqOwner = vi.fn(() => ({ maybeSingle: wallUpdateMaybeSingle }));
+    const updateEqId = vi.fn(() => ({ eq: updateEqOwner }));
+    const updateSelect = vi.fn(() => ({ eq: updateEqId }));
+    const update = vi.fn(() => ({ select: updateSelect }));
+    const selectEqOwner = vi.fn(() => ({ maybeSingle: wallSelectMaybeSingle }));
+    const selectEqId = vi.fn(() => ({ eq: selectEqOwner }));
+    const select = vi.fn(() => ({ eq: selectEqId }));
+    const from = vi.fn((table: string) => {
+      if (table === "walls") {
+        return { select, update };
+      }
+      return { delete: () => deleteBuilder };
+    });
+
+    vi.mocked(requireApiUser).mockResolvedValue({
+      user: { id: "user-1" },
+      supabase: { from },
+    } as never);
+
+    const request = new Request("http://localhost/api/walls/wall-1/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        notes: {},
+        zones: {},
+        zoneGroups: {},
+        noteGroups: {},
+        links: {},
+        camera: { x: 0, y: 0, zoom: 1 },
+        expectedWallUpdatedAt: "2026-04-02T12:00:00.123456+00:00",
+      }),
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ wallId: "11111111-1111-4111-8111-111111111111" }),
+    });
+    if (!response) {
+      throw new Error("Expected sync route to return a response");
+    }
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      currentWallUpdatedAt: "2026-04-02T12:00:01.123456+00:00",
+    });
+  });
 });
