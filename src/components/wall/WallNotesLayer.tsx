@@ -42,6 +42,7 @@ const THRONE_NOTE_MUTED = "rgba(245,240,232,0.42)";
 const THRONE_NOTE_RULE = "rgba(245,240,232,0.18)";
 const THRONE_NOTE_ACCENT = "#a67a10";
 const THRONE_SHIELD_POINTS = [7, 0, 14, 3, 14, 14, 7, 24, 0, 14, 0, 3];
+const maxLoadedWallImages = 72;
 
 const estimateImageCaptionHeight = (noteWidth: number, caption: string) => {
   const trimmed = caption.trim();
@@ -371,6 +372,7 @@ export const WallNotesLayer = ({
   const colorWashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
   const sizePulseTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
   const imageLayoutSignatureRef = useRef<Record<string, string>>({});
+  const imageAccessOrderRef = useRef<string[]>([]);
 
   useEffect(() => {
     const reducedMotion = typeof document !== "undefined" && document.documentElement.classList.contains("motion-reduce");
@@ -446,6 +448,22 @@ export const WallNotesLayer = ({
           .filter((url): url is string => Boolean(url)),
       ),
     ];
+    const visibleUrlSet = new Set(urls);
+
+    setLoadedImagesByUrl((previous) => {
+      const nextEntries = Object.entries(previous).filter(([url]) => visibleUrlSet.has(url));
+      if (nextEntries.length === Object.keys(previous).length) {
+        return previous;
+      }
+      imageAccessOrderRef.current = imageAccessOrderRef.current.filter((url) => visibleUrlSet.has(url));
+      return Object.fromEntries(nextEntries);
+    });
+
+    setFailedImagesByUrl((previous) => {
+      const nextEntries = Object.entries(previous).filter(([url]) => visibleUrlSet.has(url));
+      return nextEntries.length === Object.keys(previous).length ? previous : Object.fromEntries(nextEntries);
+    });
+
     const nextLoads = urls.filter((url) => !loadedImagesByUrl[url] && !failedImagesByUrl[url]);
     for (const url of nextLoads) {
       const image = new window.Image();
@@ -458,7 +476,16 @@ export const WallNotesLayer = ({
           if (previous[url] === image) {
             return previous;
           }
-          return { ...previous, [url]: image };
+          const next = { ...previous, [url]: image };
+          imageAccessOrderRef.current = [...imageAccessOrderRef.current.filter((entry) => entry !== url), url];
+          while (imageAccessOrderRef.current.length > maxLoadedWallImages) {
+            const evictedUrl = imageAccessOrderRef.current.shift();
+            if (!evictedUrl || visibleUrlSet.has(evictedUrl)) {
+              continue;
+            }
+            delete next[evictedUrl];
+          }
+          return next;
         });
       };
       image.onerror = () => {
@@ -2353,4 +2380,3 @@ export const WallNotesLayer = ({
     </>
   );
 };
-
