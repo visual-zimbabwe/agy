@@ -246,6 +246,8 @@ const defaultSpatialPrefs: SpatialPreferences = {
   dotGridSpacing: 32,
 };
 const timelineHistoryLoadLimit = 120;
+const maxVideoPosterDimensionPx = 320;
+const videoPosterJpegQuality = 0.58;
 
 type WallCanvasProps = {
   userEmail?: string;
@@ -1706,16 +1708,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         video.onloadeddata = () => {
           const durationSeconds = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : undefined;
           try {
+            const sourceWidth = Math.max(1, video.videoWidth || 960);
+            const sourceHeight = Math.max(1, video.videoHeight || 540);
+            const scale = Math.min(1, maxVideoPosterDimensionPx / Math.max(sourceWidth, sourceHeight));
             const canvas = document.createElement("canvas");
-            canvas.width = video.videoWidth || 960;
-            canvas.height = video.videoHeight || 540;
+            canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+            canvas.height = Math.max(1, Math.round(sourceHeight * scale));
             const context = canvas.getContext("2d");
             if (!context) {
               settle({ durationSeconds });
               return;
             }
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            settle({ durationSeconds, posterDataUrl: canvas.toDataURL("image/jpeg", 0.84) });
+            settle({ durationSeconds, posterDataUrl: canvas.toDataURL("image/jpeg", videoPosterJpegQuality) });
           } catch {
             settle({ durationSeconds });
           }
