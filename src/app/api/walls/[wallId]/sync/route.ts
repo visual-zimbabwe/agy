@@ -249,7 +249,7 @@ const syncSchema = z.object({
     zoom: z.number().positive().max(5),
   }),
   lastColor: z.string().optional(),
-  expectedWallUpdatedAt: z.string().datetime().optional(),
+  expectedWallUpdatedAt: z.string().datetime({ offset: true }).optional(),
   clientSyncedAt: z.number().optional(),
 });
 
@@ -656,6 +656,5 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
     currentWallUpdatedAt: wallUpdate.data.updated_at,
   });
 }
-
 
 
