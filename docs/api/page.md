@@ -6,7 +6,7 @@ This document describes the current page-related API surface used by the `/page`
 
 ## Scope
 
-This is a current-state contract summary for routes under `src/app/api/page/`. It covers page document listing, page snapshot load/save, bookmark preview, file upload, file deletion, and signed file URLs.
+This is a current-state contract summary for routes under `src/app/api/page/`. It covers page document listing, page snapshot load/save, file upload, file deletion, and signed file URLs.
 
 ## Route Groups
 
@@ -48,25 +48,6 @@ The route does not enforce the full page schema at the HTTP boundary. It accepts
 Current success response:
 
 - `doc` with `docId` and `updatedAt`
-
-### Bookmark Preview
-
-#### `GET /api/page/bookmark-preview?url=...`
-
-Fetches metadata for a bookmark-style preview.
-
-Current behavior:
-
-- requires an authenticated user
-- accepts only `http` and `https` URLs
-- fetches remote HTML with a short timeout
-- extracts title, description, image, and hostname from common meta tags and document title
-- falls back to hostname-only data for non-HTML responses
-
-Typical failure responses:
-
-- `400` for missing or invalid URL
-- `502` for upstream fetch or preview failures
 
 ### Page Files
 
@@ -116,14 +97,13 @@ All current page API routes require an authenticated user.
 
 - Page document persistence currently stores whole snapshots rather than field-level patches.
 - Page file storage is private and depends on signed URL generation.
-- Bookmark preview depends on external site availability and metadata quality.
+- Page bookmark preview now uses the shared bookmark route at `GET /api/bookmarks/preview`.
 
 ## Failure Modes
 
 - invalid doc ids return `400`
 - invalid file paths return `400`
 - missing auth returns the shared auth response path
-- upstream preview failures return `502`
 - storage and database failures return `500`
 
 ## Related Docs
