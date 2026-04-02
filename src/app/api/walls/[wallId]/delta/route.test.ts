@@ -53,6 +53,8 @@ describe("wall delta route", () => {
       currentVersion: 12,
       changes: [{ entity_type: "note", entity_id: "n1" }],
     });
+    expect(selectChangesGt).toHaveBeenCalledWith("revision", 10);
+    expect(selectChangesOrder).toHaveBeenCalledWith("revision", { ascending: true });
   });
 
   it("rejects stale delta writes when baseVersion lags the wall sync version", async () => {

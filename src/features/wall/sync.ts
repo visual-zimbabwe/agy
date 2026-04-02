@@ -1,5 +1,6 @@
 import { mergeSnapshotsLww } from "@/features/wall/cloud";
-import type { PersistedWallState } from "@/features/wall/types";
+import type { DeltaLink, DeltaNote, DeltaNoteGroup, DeltaSyncRequest, DeltaZone, DeltaZoneGroup } from "@/features/wall/delta-sync";
+import type { Link, Note, NoteGroup, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
 
 export type WallSyncRequest = {
   wallId: string;
@@ -8,6 +9,194 @@ export type WallSyncRequest = {
 
 export const shouldRejectWallSync = (expectedWallUpdatedAt?: string, currentWallUpdatedAt?: string | null) =>
   Boolean(expectedWallUpdatedAt && currentWallUpdatedAt && expectedWallUpdatedAt !== currentWallUpdatedAt);
+
+const cloneSnapshot = (snapshot: PersistedWallState): PersistedWallState => ({
+  notes: { ...snapshot.notes },
+  zones: { ...snapshot.zones },
+  zoneGroups: { ...snapshot.zoneGroups },
+  noteGroups: { ...snapshot.noteGroups },
+  links: { ...snapshot.links },
+  camera: { ...snapshot.camera },
+  lastColor: snapshot.lastColor,
+});
+
+const entityChanged = <T extends { updatedAt: number; revision?: number }>(baseline?: T, current?: T) => {
+  if (!baseline || !current) {
+    return baseline !== current;
+  }
+  return JSON.stringify(baseline) !== JSON.stringify(current);
+};
+
+const toDeletedNote = (baseline: Note, deletedAt: number): DeltaNote => ({
+  ...baseline,
+  revision: baseline.revision,
+  deletedAt,
+  updatedAt: Math.max(baseline.updatedAt, deletedAt),
+});
+
+const toDeletedZone = (baseline: Zone, deletedAt: number): DeltaZone => ({
+  ...baseline,
+  revision: baseline.revision,
+  deletedAt,
+  updatedAt: Math.max(baseline.updatedAt, deletedAt),
+});
+
+const toDeletedZoneGroup = (baseline: ZoneGroup, deletedAt: number): DeltaZoneGroup => ({
+  ...baseline,
+  revision: baseline.revision,
+  deletedAt,
+  updatedAt: Math.max(baseline.updatedAt, deletedAt),
+});
+
+const toDeletedNoteGroup = (baseline: NoteGroup, deletedAt: number): DeltaNoteGroup => ({
+  ...baseline,
+  revision: baseline.revision,
+  deletedAt,
+  updatedAt: Math.max(baseline.updatedAt, deletedAt),
+});
+
+const toDeletedLink = (baseline: Link, deletedAt: number): DeltaLink => ({
+  ...baseline,
+  revision: baseline.revision,
+  deletedAt,
+  updatedAt: Math.max(baseline.updatedAt, deletedAt),
+});
+
+const computeEntityDelta = <
+  T extends { id: string; updatedAt: number; revision?: number },
+  TDelta extends { id: string; deletedAt?: number },
+>(
+  baselineMap: Record<string, T>,
+  currentMap: Record<string, T>,
+  toDeleted: (baseline: T, deletedAt: number) => TDelta,
+) => {
+  const delta: TDelta[] = [];
+
+  for (const [id, current] of Object.entries(currentMap)) {
+    const baseline = baselineMap[id];
+    if (entityChanged(baseline, current)) {
+      delta.push(current as unknown as TDelta);
+    }
+  }
+
+  const deletedAt = Date.now();
+  for (const [id, baseline] of Object.entries(baselineMap)) {
+    if (!(id in currentMap)) {
+      delta.push(toDeleted(baseline, deletedAt));
+    }
+  }
+
+  return delta;
+};
+
+export const buildWallDeltaSyncRequest = ({
+  baseVersion,
+  baseline,
+  current,
+}: {
+  baseVersion: number;
+  baseline: PersistedWallState | null;
+  current: PersistedWallState;
+}): DeltaSyncRequest => {
+  const safeBaseline =
+    baseline ??
+    ({
+      notes: {},
+      zones: {},
+      zoneGroups: {},
+      noteGroups: {},
+      links: {},
+      camera: { x: 0, y: 0, zoom: 1 },
+    } satisfies PersistedWallState);
+
+  return {
+    baseVersion,
+    camera:
+      JSON.stringify(safeBaseline.camera) !== JSON.stringify(current.camera)
+        ? current.camera
+        : undefined,
+    lastColor: safeBaseline.lastColor !== current.lastColor ? current.lastColor : undefined,
+    notes: computeEntityDelta<Note, DeltaNote>(safeBaseline.notes, current.notes, toDeletedNote),
+    zones: computeEntityDelta<Zone, DeltaZone>(safeBaseline.zones, current.zones, toDeletedZone),
+    zoneGroups: computeEntityDelta<ZoneGroup, DeltaZoneGroup>(safeBaseline.zoneGroups, current.zoneGroups, toDeletedZoneGroup),
+    noteGroups: computeEntityDelta<NoteGroup, DeltaNoteGroup>(safeBaseline.noteGroups, current.noteGroups, toDeletedNoteGroup),
+    links: computeEntityDelta<Link, DeltaLink>(safeBaseline.links, current.links, toDeletedLink),
+  };
+};
+
+export const hasWallDeltaChanges = (delta: DeltaSyncRequest) =>
+  Boolean(
+    delta.camera ||
+      delta.lastColor !== undefined ||
+      delta.notes.length > 0 ||
+      delta.zones.length > 0 ||
+      delta.zoneGroups.length > 0 ||
+      delta.noteGroups.length > 0 ||
+      delta.links.length > 0,
+  );
+
+export const applyWallDeltaChanges = (snapshot: PersistedWallState, changes: Array<{ entity_type: string; entity_id: string; deleted: boolean; payload: unknown }>) => {
+  const next = cloneSnapshot(snapshot);
+
+  for (const change of changes) {
+    if (change.entity_type === "wall") {
+      const wallPayload = change.payload as { camera?: PersistedWallState["camera"]; lastColor?: string | undefined };
+      if (wallPayload.camera) {
+        next.camera = wallPayload.camera;
+      }
+      if ("lastColor" in wallPayload) {
+        next.lastColor = wallPayload.lastColor;
+      }
+      continue;
+    }
+
+    if (change.entity_type === "note") {
+      if (change.deleted) {
+        delete next.notes[change.entity_id];
+      } else {
+        next.notes[change.entity_id] = change.payload as Note;
+      }
+      continue;
+    }
+
+    if (change.entity_type === "zone") {
+      if (change.deleted) {
+        delete next.zones[change.entity_id];
+      } else {
+        next.zones[change.entity_id] = change.payload as Zone;
+      }
+      continue;
+    }
+
+    if (change.entity_type === "zone_group") {
+      if (change.deleted) {
+        delete next.zoneGroups[change.entity_id];
+      } else {
+        next.zoneGroups[change.entity_id] = change.payload as ZoneGroup;
+      }
+      continue;
+    }
+
+    if (change.entity_type === "note_group") {
+      if (change.deleted) {
+        delete next.noteGroups[change.entity_id];
+      } else {
+        next.noteGroups[change.entity_id] = change.payload as NoteGroup;
+      }
+      continue;
+    }
+
+    if (change.entity_type === "link") {
+      if (change.deleted) {
+        delete next.links[change.entity_id];
+      } else {
+        next.links[change.entity_id] = change.payload as Link;
+      }
+    }
+  }
+
+  return next;
+};
 
 export const stageWallSyncRequest = ({
   inFlight,

@@ -83,8 +83,8 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
     .select("id,entity_type,entity_id,revision,deleted,payload,changed_at")
     .eq("wall_id", wallId)
     .eq("owner_id", auth.user.id)
-    .gt("id", since)
-    .order("id", { ascending: true });
+    .gt("revision", since)
+    .order("revision", { ascending: true });
 
   if (changesError) {
     return NextResponse.json({ error: changesError.message }, { status: 500 });

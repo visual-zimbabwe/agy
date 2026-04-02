@@ -193,6 +193,31 @@ export const saveWallSyncVersion = async (syncVersion: number) => {
   await db.meta.put({ key: "cloudSyncVersion", value: String(Math.max(0, Math.trunc(syncVersion))) });
 };
 
+export const loadWallCloudBaselineSnapshot = async (): Promise<PersistedWallState | null> => {
+  await migrateLegacyWallDatabaseIfNeeded();
+  const baselineMeta = await db.meta.get("cloudBaselineSnapshot");
+  if (!baselineMeta?.value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(baselineMeta.value) as PersistedWallState;
+    return normalizePersistedWallState(parsed);
+  } catch {
+    return null;
+  }
+};
+
+export const saveWallCloudBaselineSnapshot = async (snapshot: PersistedWallState | null) => {
+  await migrateLegacyWallDatabaseIfNeeded();
+  if (!snapshot) {
+    await db.meta.delete("cloudBaselineSnapshot");
+    return;
+  }
+
+  await db.meta.put({ key: "cloudBaselineSnapshot", value: JSON.stringify(snapshot) });
+};
+
 const writeWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
   await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta], async () => {
     const notes = Object.values(snapshot.notes);

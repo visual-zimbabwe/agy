@@ -137,19 +137,19 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       .maybeSingle(),
     auth.supabase
       .from("zone_groups")
-      .select("id,label,color,zone_ids,collapsed,created_at,updated_at")
+      .select("id,revision,label,color,zone_ids,collapsed,created_at,updated_at")
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null),
     auth.supabase
       .from("note_groups")
-      .select("id,label,color,note_ids,collapsed,created_at,updated_at")
+      .select("id,revision,label,color,note_ids,collapsed,created_at,updated_at")
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null),
     auth.supabase
       .from("links")
-      .select("id,from_note_id,to_note_id,type,label,created_at,updated_at")
+      .select("id,revision,from_note_id,to_note_id,type,label,created_at,updated_at")
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null),
@@ -190,12 +190,12 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   }
 
   const notesSelectWithFormatting =
-    "id,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
+    "id,revision,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
   const notesSelectWithoutVocabulary =
-    "id,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
-  const notesSelectLegacy = "id,text,tags,text_size,x,y,w,h,color,created_at,updated_at";
-  const zonesSelectWithKind = "id,label,kind,group_id,x,y,w,h,color,created_at,updated_at";
-  const zonesSelectLegacy = "id,label,group_id,x,y,w,h,color,created_at,updated_at";
+    "id,revision,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
+  const notesSelectLegacy = "id,text,tags,text_size,x,y,w,h,color,created_at,updated_at,revision";
+  const zonesSelectWithKind = "id,revision,label,kind,group_id,x,y,w,h,color,created_at,updated_at";
+  const zonesSelectLegacy = "id,revision,label,group_id,x,y,w,h,color,created_at,updated_at";
 
   const notesWithFormattingResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["notes"]>[number]>(async (afterId) => {
     let query = auth.supabase

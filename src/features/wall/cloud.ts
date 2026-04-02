@@ -16,6 +16,7 @@ type WallRow = {
 
 type NoteRow = {
   id: string;
+  revision?: number | null;
   wall_id?: string | null;
   note_kind?: string | null;
   text: string;
@@ -81,6 +82,7 @@ const normalizeNoteFont = (value: string | null | undefined) => {
 
 type ZoneRow = {
   id: string;
+  revision?: number | null;
   label: string;
   kind: string | null;
   group_id: string | null;
@@ -95,6 +97,7 @@ type ZoneRow = {
 
 type ZoneGroupRow = {
   id: string;
+  revision?: number | null;
   label: string;
   color: string;
   zone_ids: unknown;
@@ -105,6 +108,7 @@ type ZoneGroupRow = {
 
 type NoteGroupRow = {
   id: string;
+  revision?: number | null;
   label: string;
   color: string;
   note_ids: unknown;
@@ -115,6 +119,7 @@ type NoteGroupRow = {
 
 type LinkRow = {
   id: string;
+  revision?: number | null;
   from_note_id: string;
   to_note_id: string;
   type: string;
@@ -455,6 +460,7 @@ export const rowsToSnapshot = (rows: {
         {
           ...parseTextSize(note.text_size),
           id: note.id,
+          revision: typeof note.revision === "number" ? note.revision : undefined,
           noteKind,
           text: note.text,
           quoteAuthor: note.quote_author?.trim() || undefined,
@@ -494,6 +500,7 @@ export const rowsToSnapshot = (rows: {
       zone.id,
       {
         id: zone.id,
+        revision: typeof zone.revision === "number" ? zone.revision : undefined,
         label: zone.label,
         kind: zone.kind === "column" || zone.kind === "swimlane" ? zone.kind : "frame",
         groupId: zone.group_id ?? undefined,
@@ -512,6 +519,7 @@ export const rowsToSnapshot = (rows: {
       group.id,
       {
         id: group.id,
+        revision: typeof group.revision === "number" ? group.revision : undefined,
         label: group.label,
         color: group.color,
         zoneIds: Array.isArray(group.zone_ids) ? (group.zone_ids as string[]) : [],
@@ -526,6 +534,7 @@ export const rowsToSnapshot = (rows: {
       group.id,
       {
         id: group.id,
+        revision: typeof group.revision === "number" ? group.revision : undefined,
         label: group.label,
         color: group.color,
         noteIds: Array.isArray(group.note_ids) ? (group.note_ids as string[]) : [],
@@ -540,6 +549,7 @@ export const rowsToSnapshot = (rows: {
       link.id,
       {
         id: link.id,
+        revision: typeof link.revision === "number" ? link.revision : undefined,
         fromNoteId: link.from_note_id,
         toNoteId: link.to_note_id,
         type:
