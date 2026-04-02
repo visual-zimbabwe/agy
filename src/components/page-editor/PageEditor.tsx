@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Fragment,
@@ -98,6 +99,8 @@ const PAGE_WORKSPACE_ICON_BUTTON =
   "inline-flex h-7 w-7 items-center justify-center rounded-[7px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] text-white/68 transition hover:border-white/16 hover:bg-white/7 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0";
 const PAGE_WORKSPACE_TOOL_BUTTON =
   "group flex h-8 w-8 items-center justify-center rounded-[7px] border border-transparent bg-transparent text-white/62 transition hover:border-white/10 hover:bg-white/6 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f9cd6] focus-visible:ring-offset-0";
+const PAGE_TOP_NAV_LINK =
+  "relative inline-flex items-center justify-center px-1 py-2 text-sm font-medium text-[#4d6356] transition hover:text-[#1c1c19] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30";
 
 const BLOCK_TEXT_COLORS = [
   { id: "default", label: "Default text", value: "", preview: "#2e2e2e" },
@@ -4606,6 +4609,32 @@ export function PageEditor() {
   }, [camera.zoom, fileInsert.intent, fileInsert.mode, fileInsert.open, fileInsert.worldX, fileInsert.worldY, fileInsert.x, fileInsert.y, toScreenPoint, viewport.h, viewport.w]);
   return (
     <main className="route-shell page-workspace-shell text-[var(--color-text)]">
+      <header className="fixed inset-x-0 top-0 z-[70] border-b border-[#f0e7dc] bg-[rgba(252,249,244,0.88)] px-4 backdrop-blur-xl sm:px-6">
+        <div className="mx-auto flex h-16 max-w-[96rem] items-center justify-between gap-6">
+          <Link href="/page" className="font-[Newsreader] text-[2rem] italic leading-none text-[#1c1c19] no-underline">
+            Agy
+          </Link>
+
+          <nav className="flex items-center justify-center gap-6">
+            {[
+              { href: "/wall", label: "Wall" },
+              { href: "/decks", label: "Decks" },
+              { href: "/page", label: "Page" },
+            ].map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link key={item.href} href={item.href} className={`${PAGE_TOP_NAV_LINK} ${isActive ? "text-[#a33818]" : ""}`}>
+                  {item.label}
+                  {isActive ? <span className="absolute inset-x-1 -bottom-0.5 h-[2px] rounded-full bg-[#a33818]" /> : null}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="w-8 sm:w-16" aria-hidden="true" />
+        </div>
+      </header>
+
       <input
         ref={fileInputRef}
         type="file"
@@ -4635,7 +4664,7 @@ export function PageEditor() {
         }}
       />
 
-      <div className="pointer-events-none absolute inset-0 z-30">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 top-16 z-30">
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 px-2 py-1.5">
           <div className={`${PAGE_WORKSPACE_PANEL} pointer-events-auto flex min-w-0 items-center gap-2 px-2 py-1`}>
             <div className="flex h-7 w-7 items-center justify-center rounded-[7px] border border-white/10 bg-[linear-gradient(180deg,rgba(79,156,214,0.22)_0%,rgba(79,156,214,0.08)_100%)] text-[9px] font-semibold tracking-[0.18em] text-white/86">
@@ -4686,7 +4715,7 @@ export function PageEditor() {
 
       <div
         ref={containerRef}
-        className="relative h-screen w-full overflow-hidden"
+        className="relative mt-16 h-[calc(100vh-4rem)] w-full overflow-hidden"
         onPointerDown={onCanvasPointerDown}
         onWheel={handleWheel}
         onDragOver={(event) => {
@@ -5852,7 +5881,7 @@ export function PageEditor() {
         )}
 
         {uploading && (
-          <div className="pointer-events-none fixed left-1/2 top-5 z-50 -translate-x-1/2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] shadow-[var(--shadow-sm)]">
+          <div className="pointer-events-none fixed left-1/2 top-20 z-[80] -translate-x-1/2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] shadow-[var(--shadow-sm)]">
             Uploading files...
           </div>
         )}
