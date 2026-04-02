@@ -4,6 +4,9 @@ const outputMode = process.env.NEXT_OUTPUT === "standalone" ? "standalone" : und
 
 const nextConfig: NextConfig = {
   output: outputMode,
+  turbopack: {
+    root: __dirname,
+  },
   allowedDevOrigins: [
     "http://127.0.0.1:3000",
     "http://localhost:3000",
