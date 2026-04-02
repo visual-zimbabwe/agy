@@ -4708,7 +4708,7 @@ export function PageEditor() {
         }}
       >
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(34,58,86,0.16)_0%,transparent_30%),linear-gradient(180deg,rgba(6,8,11,0.98)_0%,rgba(1,2,4,1)_100%)]" />
+          <div className="absolute inset-0 bg-[#fcf9f4]" />
           <div className="absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]" />
         </div>
         <div

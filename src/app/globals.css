@@ -254,7 +254,7 @@ select optgroup {
   width: 100%;
   overflow: hidden;
   color-scheme: dark;
-  --background: #000103;
+  --background: #fcf9f4;
   --foreground: #dbe6f1;
   --color-surface: #070b10;
   --color-surface-muted: #0d131b;
@@ -272,9 +272,7 @@ select optgroup {
   --shadow-sm: 0 10px 22px rgb(0 0 0 / 0.22);
   --shadow-md: 0 16px 32px rgb(0 0 0 / 0.34);
   --shadow-lg: 0 24px 48px rgb(0 0 0 / 0.42);
-  background:
-    radial-gradient(circle at 50% -24%, rgb(42 84 122 / 0.12) 0, transparent 28%),
-    linear-gradient(180deg, #05070a 0%, #020305 100%);
+  background: #fcf9f4;
 }
 
 .page-workspace-shell::before {

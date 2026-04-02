@@ -29,6 +29,16 @@ const legacyDb = new PageDatabase(legacyPageDatabaseName);
 const defaultCamera = { x: 0, y: 0, zoom: 1 } as const;
 let migrationPromise: Promise<void> | null = null;
 
+const isQuotaExceededPersistenceError = (error: unknown) => {
+  if (error instanceof DOMException) {
+    return error.name === "QuotaExceededError" || error.name === "AbortError";
+  }
+  if (error instanceof Error) {
+    return error.name === "QuotaExceededError" || error.name === "AbortError" || error.message.includes("QuotaExceededError");
+  }
+  return false;
+};
+
 const migrateLegacyPageDatabaseIfNeeded = async () => {
   if (!migrationPromise) {
     migrationPromise = (async () => {
@@ -287,11 +297,19 @@ export const loadPageSnapshot = async (docId = defaultPageDocId): Promise<Persis
 
 export const savePageSnapshot = async (snapshot: PersistedPageState, docId = defaultPageDocId): Promise<void> => {
   await migrateLegacyPageDatabaseIfNeeded();
-  await db.pageDocs.put({
-    id: docId,
-    snapshot,
-    updatedAt: Date.now(),
-  });
+  try {
+    await db.pageDocs.put({
+      id: docId,
+      snapshot,
+      updatedAt: Date.now(),
+    });
+  } catch (error) {
+    if (isQuotaExceededPersistenceError(error)) {
+      console.warn("Page snapshot was not saved because browser storage quota was exceeded.", { docId });
+      return;
+    }
+    throw error;
+  }
 };
 
 export const deletePageSnapshot = async (docId = defaultPageDocId): Promise<void> => {
@@ -328,7 +346,13 @@ export const createPageSnapshotSaver = (
       clearTimeout(timer);
     }
     timer = setTimeout(() => {
-      void flush();
+      void flush().catch((error) => {
+        if (isQuotaExceededPersistenceError(error)) {
+          console.warn("Page snapshot autosave skipped because browser storage quota was exceeded.", { docId });
+          return;
+        }
+        console.error("Page snapshot autosave failed.", error);
+      });
     }, delayMs);
   };
 
