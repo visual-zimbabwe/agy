@@ -37,6 +37,8 @@ type WallDetailsSidebarProps = {
   onTextVerticalAlignChange: (align: "top" | "middle" | "bottom") => void;
   onBackgroundColorChange: (color: string) => void;
   onDuplicateSelectedNote: (noteId: string) => void;
+  onReferenceSelectedNoteInPage: (noteId: string) => void;
+  onConvertSelectedNoteToPage: (noteId: string) => void;
   onTogglePinSelectedNote: (noteId: string) => void;
   onToggleHighlightSelectedNote: (noteId: string) => void;
   onToggleFocusSelectedNote: (noteId: string) => void;
@@ -166,6 +168,8 @@ export const WallDetailsSidebar = ({
   onTextVerticalAlignChange,
   onBackgroundColorChange,
   onDuplicateSelectedNote,
+  onReferenceSelectedNoteInPage,
+  onConvertSelectedNoteToPage,
   onTogglePinSelectedNote,
   onToggleHighlightSelectedNote,
   onToggleFocusSelectedNote,
@@ -298,6 +302,8 @@ export const WallDetailsSidebar = ({
         onTextVerticalAlignChange={onTextVerticalAlignChange}
         onBackgroundColorChange={onBackgroundColorChange}
         onDuplicateSelectedNote={onDuplicateSelectedNote}
+        onReferenceSelectedNoteInPage={onReferenceSelectedNoteInPage}
+        onConvertSelectedNoteToPage={onConvertSelectedNoteToPage}
         onTogglePinSelectedNote={onTogglePinSelectedNote}
         onToggleHighlightSelectedNote={onToggleHighlightSelectedNote}
         onToggleFocusSelectedNote={onToggleFocusSelectedNote}
@@ -395,4 +401,3 @@ export const WallDetailsSidebar = ({
     </WallDetailsPanel>
   );
 };
-

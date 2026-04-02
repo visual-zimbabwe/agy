@@ -77,6 +77,8 @@ import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
 import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
 import { useWallZoomControls } from "@/components/wall/useWallZoomControls";
 import { useWallProductTour } from "@/components/wall/useWallProductTour";
+import type { PageBlock } from "@/features/page/types";
+import { defaultPageDocId, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
 import {
   toolbarBtn,
   toolbarBtnActive,
@@ -168,6 +170,11 @@ import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
+import {
+  buildWallReferenceNote,
+  createPageReferenceForWallNote,
+  pageBlocksFromWallNote,
+} from "@/lib/content-interchange";
 import { getImageFileFromClipboard, getImageFilesFromDataTransfer, readImageFileAsDataUrl } from "@/lib/wall-image-upload";
 import { trackUnsplashDownload } from "@/lib/unsplash-client";
 
@@ -366,6 +373,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [clientPrefsLoaded, setClientPrefsLoaded] = useState(false);
   const previousSelectedNoteIdRef = useRef<string | undefined>(undefined);
   const detailsPanelAutoOpenedRef = useRef(false);
+  const handledDeepLinkNoteRef = useRef<string | null>(null);
   const wallAudioRef = useRef<HTMLAudioElement | null>(null);
   const wallInlineVideoRef = useRef<HTMLVideoElement | null>(null);
   const playingAudioNoteIdRef = useRef<string | undefined>(undefined);
@@ -1356,6 +1364,107 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     }
     window.open(target, "_blank", "noopener,noreferrer");
   }, []);
+
+  const appendBlocksToPageDoc = useCallback(async (docId: string, blocksToAppend: PageBlock[]) => {
+    const snapshot = (await loadPageSnapshot(docId)) ?? {
+      blocks: [],
+      camera: { x: 0, y: 0, zoom: 1 },
+      updatedAt: Date.now(),
+      cover: undefined,
+    };
+    const maxY = snapshot.blocks.reduce((value, block) => Math.max(value, block.y + block.h), 240);
+    const nextBlocks = blocksToAppend.map((block, index) => {
+      const offsetY = blocksToAppend.slice(0, index).reduce((total, entry) => total + entry.h + 18, 0);
+      return {
+        ...block,
+        y: maxY + 24 + offsetY,
+      };
+    });
+    await savePageSnapshot(
+      {
+        ...snapshot,
+        blocks: [...snapshot.blocks, ...nextBlocks],
+        updatedAt: Date.now(),
+      },
+      docId,
+    );
+  }, []);
+
+  const referenceNoteInPage = useCallback(
+    async (noteId: string) => {
+      if (typeof window === "undefined") {
+        return;
+      }
+      const note = renderSnapshot.notes[noteId];
+      if (!note) {
+        return;
+      }
+      await appendBlocksToPageDoc(defaultPageDocId, [createPageReferenceForWallNote(note, window.location.origin)]);
+    },
+    [appendBlocksToPageDoc, renderSnapshot.notes],
+  );
+
+  const convertNoteToPage = useCallback(
+    async (noteId: string) => {
+      if (typeof window === "undefined" || isTimeLocked) {
+        return;
+      }
+      const note = renderSnapshot.notes[noteId];
+      if (!note) {
+        return;
+      }
+
+      const pageDocId = `page_${Math.random().toString(36).slice(2, 8)}`;
+      const pageBlocks = pageBlocksFromWallNote(note);
+      await savePageSnapshot(
+        {
+          blocks: pageBlocks,
+          camera: { x: 0, y: 0, zoom: 1 },
+          updatedAt: Date.now(),
+          cover: undefined,
+        },
+        pageDocId,
+      );
+
+      const pageUrl = new URL("/page", window.location.origin);
+      pageUrl.searchParams.set("doc", pageDocId);
+      const referenceNote = buildWallReferenceNote(
+        pageUrl.toString(),
+        `Page: ${note.text.trim().split("\n")[0] || "Converted note"}`,
+        "Converted into a page document. Open the page copy from here.",
+        note.x,
+        note.y,
+      );
+
+      updateNote(noteId, {
+        noteKind: "web-bookmark",
+        text: referenceNote.text,
+        bookmark: referenceNote.bookmark,
+        canon: undefined,
+        eisenhower: undefined,
+        currency: undefined,
+        apod: undefined,
+        poetry: undefined,
+        economist: undefined,
+        file: undefined,
+        audio: undefined,
+        video: undefined,
+        imageUrl: undefined,
+        quoteAuthor: undefined,
+        quoteSource: undefined,
+        textAlign: referenceNote.textAlign,
+        textVAlign: referenceNote.textVAlign,
+        textFont: referenceNote.textFont,
+        textColor: referenceNote.textColor,
+        textSizePx: referenceNote.textSizePx,
+        tags: Array.from(new Set([...note.tags.filter((tag) => tag !== "image" && tag !== "file" && tag !== "audio" && tag !== "video"), "reference", "page"])),
+        w: referenceNote.w,
+        h: referenceNote.h,
+        color: referenceNote.color,
+      });
+    },
+    [isTimeLocked, renderSnapshot.notes],
+  );
 
   const readFileAsDataUrl = useCallback(
     (file: File) =>
@@ -2860,6 +2969,25 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     animateCamera,
   });
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const targetNoteId = new URLSearchParams(window.location.search).get("note");
+    if (!targetNoteId) {
+      handledDeepLinkNoteRef.current = null;
+      return;
+    }
+    if (handledDeepLinkNoteRef.current === targetNoteId) {
+      return;
+    }
+    if (!renderSnapshot.notes[targetNoteId]) {
+      return;
+    }
+    handledDeepLinkNoteRef.current = targetNoteId;
+    focusNote(targetNoteId);
+  }, [focusNote, renderSnapshot.notes]);
+
   const { stepZoom, resetZoom } = useWallZoomControls({ camera, viewport, animateCamera });
 
   const zoomToFitTracked = useCallback(() => {
@@ -4240,6 +4368,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             updateNote(primarySelectedNote.id, { color });
           }}
           onDuplicateSelectedNote={duplicateNote}
+          onReferenceSelectedNoteInPage={(noteId) => { void referenceNoteInPage(noteId); }}
+          onConvertSelectedNoteToPage={(noteId) => { void convertNoteToPage(noteId); }}
           onTogglePinSelectedNote={togglePinOnNote}
           onToggleHighlightSelectedNote={toggleHighlightOnNote}
           onToggleFocusSelectedNote={toggleFocusNote}
@@ -4436,13 +4566,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
-
-
-
-
-
-
-
 
 
 

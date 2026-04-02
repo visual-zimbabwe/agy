@@ -20,8 +20,16 @@ import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnap
 import { fetchPageBookmarkPreview } from "@/features/page/bookmarks";
 import { listCloudPageDocIds, loadCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
 import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageCover, PageEmbedData, PageNumberedFormat, PageTableData, PersistedPageState } from "@/features/page/types";
+import { loadWallSnapshot, saveWallSnapshot } from "@/features/wall/storage";
 import { UnsplashPicker } from "@/components/media/UnsplashPicker";
 import { cn } from "@/lib/cn";
+import {
+  buildWallNoteUrl,
+  buildPageReferenceBlock,
+  createWallReferenceForPageBlock,
+  pageBlockTitle,
+  wallNoteFromPageBlock,
+} from "@/lib/content-interchange";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { trackUnsplashDownload } from "@/lib/unsplash-client";
@@ -2442,6 +2450,76 @@ export function PageEditor() {
     [blocks, loadDocSnapshot, saveDocSnapshot],
   );
 
+  const nextWallNotePosition = useCallback(async () => {
+    const snapshot = await loadWallSnapshot();
+    const wallNotes = Object.values(snapshot.notes);
+    if (wallNotes.length === 0) {
+      return { snapshot, x: 160, y: 160 };
+    }
+    const maxY = wallNotes.reduce((value, note) => Math.max(value, note.y + note.h), 120);
+    const column = wallNotes.length % 3;
+    return {
+      snapshot,
+      x: 120 + column * 42,
+      y: maxY + 32,
+    };
+  }, []);
+
+  const createWallReferenceForBlock = useCallback(
+    async (blockId: string) => {
+      if (typeof window === "undefined") {
+        return;
+      }
+      const block = blocks.find((entry) => entry.id === blockId);
+      if (!block) {
+        return;
+      }
+      const { snapshot, x, y } = await nextWallNotePosition();
+      const referenceNote = createWallReferenceForPageBlock(block, docId, window.location.origin, x, y);
+      await saveWallSnapshot({
+        ...snapshot,
+        notes: {
+          ...snapshot.notes,
+          [referenceNote.id]: referenceNote,
+        },
+      });
+    },
+    [blocks, docId, nextWallNotePosition],
+  );
+
+  const convertBlockToWallNote = useCallback(
+    async (blockId: string) => {
+      if (typeof window === "undefined") {
+        return;
+      }
+      const block = blocks.find((entry) => entry.id === blockId);
+      if (!block) {
+        return;
+      }
+
+      const { snapshot, x, y } = await nextWallNotePosition();
+      const wallNote = wallNoteFromPageBlock(block, x, y);
+      await saveWallSnapshot({
+        ...snapshot,
+        notes: {
+          ...snapshot.notes,
+          [wallNote.id]: wallNote,
+        },
+      });
+
+      const referenceBlock = buildPageReferenceBlock(
+        buildWallNoteUrl(window.location.origin, wallNote.id),
+        `Wall: ${pageBlockTitle(block)}`,
+        "Converted into a wall note. Open the wall copy from here.",
+        block.x,
+        block.y,
+      );
+      setBlocks((previous) => previous.map((entry) => (entry.id === blockId ? referenceBlock : entry)));
+      setSelectedBlockIds([referenceBlock.id]);
+    },
+    [blocks, nextWallNotePosition],
+  );
+
   const turnBlockIntoPage = useCallback(
     async (blockId: string) => {
       const block = blocks.find((entry) => entry.id === blockId);
@@ -4434,6 +4512,24 @@ export function PageEditor() {
             ]
           : []),
         {
+          id: "reference_on_wall",
+          label: "Reference on wall",
+          shortcut: "",
+          onClick: () => {
+            void createWallReferenceForBlock(blockMenu.blockId!);
+            setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
+          },
+        },
+        {
+          id: "convert_to_wall_note",
+          label: "Turn into wall note",
+          shortcut: "",
+          onClick: () => {
+            void convertBlockToWallNote(blockMenu.blockId!);
+            setBlockMenu({ open: false, x: 0, y: 0, moveToQuery: "", searchQuery: "" });
+          },
+        },
+        {
           id: "copy_link",
           label: "Copy link to block",
           shortcut: "Alt+Shift+L",
@@ -5764,4 +5860,3 @@ export function PageEditor() {
     </main>
   );
 }
-

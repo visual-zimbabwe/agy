@@ -83,6 +83,8 @@
 74. In block menu, run `Turn into page`; verify block is moved to a new `doc` route and a page-link block remains in the source page.
 75. In block menu, run `Copy link`, paste in browser address bar, and verify it navigates to and focuses the target block.
 76. In block menu, use `Move to page` search/typed id to move block to another doc; verify it is removed from source and appears in destination.
+76a. In block menu, run `Reference on wall`; open `/wall`, find the new bookmark note, and verify it deep-links back to the original `/page?doc=...#block` location.
+76b. In block menu, run `Turn into wall note`; verify the original block is replaced by a wall-link bookmark block, then open the wall link and confirm the converted wall note appears focused via the `note` query param.
 77. In block menu, run `Comment`; verify floating comment panel opens with composer (`Add a comment...`, attach, mention, send).
 78. In comment panel, type text and verify send icon becomes active (blue), then post and verify new card shows author preferred name + `Just now`.
 79. On posted comment, click the `...` menu and verify actions: `Mark as unread`, `Edit`, `Copy link`, `Mute replies`, `Delete`.
@@ -135,6 +137,7 @@ Expected:
 - `Cmd/Ctrl + /` opens block actions for the selected/focused block.
 - Multi-selected blocks can be moved together from a handle drag.
 - Block menu supports delete/duplicate/turn-into/page conversion/link copying/move-to/comment/color actions.
+- Block menu also supports cross-surface wall reference and wall conversion actions, and internal wall links should focus the target note when opened.
 - File upload works via both picker and drag-drop, including multi-file insertion.
 - Uploaded image files preview inline; non-image files render as file cards.
 - File/media blocks support open/preview, download original, caption, comment, rename title, delete, and drag repositioning.
@@ -162,6 +165,20 @@ Expected:
 - Bookmark previews cache by normalized URL and do not refetch on every render.
 - Compact, comfortable, and expanded card states remain polished on the wall and in preview surfaces.
 - Invalid, missing, or partial metadata degrades gracefully without clipping or unsafe HTML rendering.
+
+## Wall/Page Interchange (`/wall`, `/page`) (2026-04-02)
+1. Open `/wall`, select a standard text note, and use `Details > Page Interchange > Reference In Page`.
+2. Open `/page` and verify a new bookmark block appears in the default page workspace that links back to `/wall?note=<id>`.
+3. Click that bookmark block and verify `/wall` opens with the target note selected, flashed, and camera-focused.
+4. Back on `/wall`, select a note with content and use `Details > Page Interchange > Convert To Page`.
+5. Verify the wall note becomes a bookmark-style page link, then open it and confirm a new page document exists with converted content.
+6. From that new page document, open the converted block menu, run `Turn into wall note`, and verify the block becomes a wall-link bookmark while a converted wall note is created and focused from the link.
+
+Expected:
+- Wall notes can append page references without losing the source note.
+- Wall note conversion creates a new page document and leaves behind a wall-side page reference.
+- Page block conversion creates a wall note and leaves behind a page-side wall reference.
+- Internal `/wall?note=...` and `/page?doc=...#block` links resolve to the intended content instead of generic workspace entry points.
 
 ## File Note (`/wall`) (2026-03-26)
 1. Open `/wall`, open `Tools`, and click `New File`.
@@ -1404,4 +1421,3 @@ Expected:
 - Keyboard shortcuts remain available, but they are a subsection of help rather than the entire help experience.
 - Help actions are discoverable from both the profile menu and the wall omnibar.
 - The quick-help modal and `/help` route share the same article inventory and stay visually within the viewport.
-
