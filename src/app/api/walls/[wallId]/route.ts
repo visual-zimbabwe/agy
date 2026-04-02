@@ -51,6 +51,62 @@ const isMissingNoteGroupsTableError = (message?: string) =>
 
 type SnapshotArgs = Parameters<typeof rowsToSnapshot>[0];
 
+const wallReadBatchSize = 250;
+
+const memorySnapshotMb = () => {
+  if (typeof process === "undefined" || typeof process.memoryUsage !== "function") {
+    return null;
+  }
+
+  const usage = process.memoryUsage();
+  return {
+    rss: Math.round(usage.rss / (1024 * 1024)),
+    heapUsed: Math.round(usage.heapUsed / (1024 * 1024)),
+    heapTotal: Math.round(usage.heapTotal / (1024 * 1024)),
+  };
+};
+
+const logWallReadDiagnostic = (
+  level: "info" | "warn" | "error",
+  event: string,
+  detail: Record<string, unknown>,
+) => {
+  const logger =
+    level === "error" ? console.error : level === "warn" ? console.warn : console.info;
+  logger("[wall-read]", JSON.stringify({ event, ...detail }));
+};
+
+const fetchBatchedRows = async <TRow,>(
+  fetchPage: (from: number, to: number) => Promise<{ data: unknown[] | null; error: { message: string } | null }>,
+) => {
+  const rows: TRow[] = [];
+  const batches: Array<{ index: number; count: number; durationMs: number }> = [];
+  let from = 0;
+  let batchIndex = 0;
+
+  for (;;) {
+    const startedAt = Date.now();
+    const result = await fetchPage(from, from + wallReadBatchSize - 1);
+    const durationMs = Date.now() - startedAt;
+    if (result.error) {
+      return { data: null as TRow[] | null, error: result.error, batches };
+    }
+
+    const page = (result.data ?? []) as TRow[];
+    rows.push(...page);
+    batches.push({ index: batchIndex, count: page.length, durationMs });
+
+    if (page.length < wallReadBatchSize) {
+      break;
+    }
+
+    from += wallReadBatchSize;
+    batchIndex += 1;
+  }
+
+  return { data: rows, error: null as { message: string } | null, batches };
+};
+
 export async function GET(_: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
   if ("response" in auth) {
@@ -63,6 +119,13 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   }
 
   const wallId = parsedParams.data.wallId;
+  const requestStartedAt = Date.now();
+
+  logWallReadDiagnostic("info", "start", {
+    wallId,
+    batchSize: wallReadBatchSize,
+    memoryMb: memorySnapshotMb(),
+  });
 
   const [wallResult, groupsResult, noteGroupsResult, linksResult] = await Promise.all([
     auth.supabase
@@ -85,7 +148,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       .is("deleted_at", null),
     auth.supabase
       .from("links")
-      .select("id,from_note_id,to_note_id,type,label,created_at,updated_at")
+      .select("id,from_note_id,to_note_id,type,label,created_at,updated_at", { count: "exact" })
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null),
@@ -96,6 +159,13 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   }
 
   if (groupsResult.error || linksResult.error) {
+    logWallReadDiagnostic("error", "base-query-failed", {
+      wallId,
+      groupsError: groupsResult.error?.message,
+      linksError: linksResult.error?.message,
+      durationMs: Date.now() - requestStartedAt,
+      memoryMb: memorySnapshotMb(),
+    });
     return NextResponse.json(
       {
         error: groupsResult.error?.message ?? linksResult.error?.message ?? "Query failed",
@@ -107,39 +177,67 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   let noteGroupsData = noteGroupsResult.data ?? [];
   if (noteGroupsResult.error) {
     if (!isMissingNoteGroupsTableError(noteGroupsResult.error.message)) {
+      logWallReadDiagnostic("error", "note-groups-query-failed", {
+        wallId,
+        error: noteGroupsResult.error.message,
+        durationMs: Date.now() - requestStartedAt,
+        memoryMb: memorySnapshotMb(),
+      });
       return NextResponse.json({ error: noteGroupsResult.error.message }, { status: 500 });
     }
     noteGroupsData = [];
   }
 
-  const notesWithFormattingResult = await auth.supabase
-    .from("notes")
-    .select(
-      "id,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at",
-    )
-    .eq("wall_id", wallId)
-    .eq("owner_id", auth.user.id)
-    .is("deleted_at", null);
+  const notesSelectWithFormatting =
+    "id,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
+  const notesSelectWithoutVocabulary =
+    "id,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
+  const notesSelectLegacy = "id,text,tags,text_size,x,y,w,h,color,created_at,updated_at";
+  const zonesSelectWithKind = "id,label,kind,group_id,x,y,w,h,color,created_at,updated_at";
+  const zonesSelectLegacy = "id,label,group_id,x,y,w,h,color,created_at,updated_at";
+
+  const notesWithFormattingResult = await fetchBatchedRows<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) =>
+    await auth.supabase
+      .from("notes")
+      .select(notesSelectWithFormatting)
+      .eq("wall_id", wallId)
+      .eq("owner_id", auth.user.id)
+      .is("deleted_at", null)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   let notesData: SnapshotArgs["notes"] | null = notesWithFormattingResult.data as unknown as SnapshotArgs["notes"] | null;
   if (notesWithFormattingResult.error && isMissingNoteVocabularyColumnError(notesWithFormattingResult.error.message)) {
-    const notesWithoutVocabularyResult = await auth.supabase
-      .from("notes")
-      .select(
-        "id,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at",
-      )
-      .eq("wall_id", wallId)
-      .eq("owner_id", auth.user.id)
-      .is("deleted_at", null);
-
-    if (notesWithoutVocabularyResult.error && isMissingNoteFormattingColumnError(notesWithoutVocabularyResult.error.message)) {
-      const notesLegacyResult = await auth.supabase
+    const notesWithoutVocabularyResult = await fetchBatchedRows<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) =>
+      await auth.supabase
         .from("notes")
-        .select("id,text,tags,text_size,x,y,w,h,color,created_at,updated_at")
+        .select(notesSelectWithoutVocabulary)
         .eq("wall_id", wallId)
         .eq("owner_id", auth.user.id)
-        .is("deleted_at", null);
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+
+    if (notesWithoutVocabularyResult.error && isMissingNoteFormattingColumnError(notesWithoutVocabularyResult.error.message)) {
+      const notesLegacyResult = await fetchBatchedRows<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) =>
+        await auth.supabase
+          .from("notes")
+          .select(notesSelectLegacy)
+          .eq("wall_id", wallId)
+          .eq("owner_id", auth.user.id)
+          .is("deleted_at", null)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
       if (notesLegacyResult.error) {
+        logWallReadDiagnostic("error", "notes-legacy-query-failed", {
+          wallId,
+          error: notesLegacyResult.error.message,
+          durationMs: Date.now() - requestStartedAt,
+          memoryMb: memorySnapshotMb(),
+        });
         return NextResponse.json({ error: notesLegacyResult.error.message }, { status: 500 });
       }
       notesData =
@@ -166,18 +264,36 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
           file: null,
         })) as SnapshotArgs["notes"]) ?? [];
     } else if (notesWithoutVocabularyResult.error) {
+      logWallReadDiagnostic("error", "notes-query-failed", {
+        wallId,
+        mode: "without-vocabulary",
+        error: notesWithoutVocabularyResult.error.message,
+        batches: notesWithoutVocabularyResult.batches,
+        durationMs: Date.now() - requestStartedAt,
+        memoryMb: memorySnapshotMb(),
+      });
       return NextResponse.json({ error: notesWithoutVocabularyResult.error.message }, { status: 500 });
     } else {
       notesData = (((notesWithoutVocabularyResult.data as unknown as SnapshotArgs["notes"] | null) ?? []).map((note) => ({ ...note, vocabulary: null })) as SnapshotArgs["notes"]);
     }
   } else if (notesWithFormattingResult.error && isMissingNoteFormattingColumnError(notesWithFormattingResult.error.message)) {
-    const notesLegacyResult = await auth.supabase
-      .from("notes")
-      .select("id,text,tags,text_size,x,y,w,h,color,created_at,updated_at")
-      .eq("wall_id", wallId)
-      .eq("owner_id", auth.user.id)
-      .is("deleted_at", null);
+    const notesLegacyResult = await fetchBatchedRows<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) =>
+      await auth.supabase
+        .from("notes")
+        .select(notesSelectLegacy)
+        .eq("wall_id", wallId)
+        .eq("owner_id", auth.user.id)
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
     if (notesLegacyResult.error) {
+      logWallReadDiagnostic("error", "notes-legacy-query-failed", {
+        wallId,
+        error: notesLegacyResult.error.message,
+        durationMs: Date.now() - requestStartedAt,
+        memoryMb: memorySnapshotMb(),
+      });
       return NextResponse.json({ error: notesLegacyResult.error.message }, { status: 500 });
     }
     notesData =
@@ -203,45 +319,118 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
           poetry: null,
       })) as SnapshotArgs["notes"]) ?? [];
   } else if (notesWithFormattingResult.error) {
+    logWallReadDiagnostic("error", "notes-query-failed", {
+      wallId,
+      mode: "full",
+      error: notesWithFormattingResult.error.message,
+      batches: notesWithFormattingResult.batches,
+      durationMs: Date.now() - requestStartedAt,
+      memoryMb: memorySnapshotMb(),
+    });
     return NextResponse.json({ error: notesWithFormattingResult.error.message }, { status: 500 });
   }
 
-  const zonesWithKindResult = await auth.supabase
-    .from("zones")
-    .select("id,label,kind,group_id,x,y,w,h,color,created_at,updated_at")
-    .eq("wall_id", wallId)
-    .eq("owner_id", auth.user.id)
-    .is("deleted_at", null);
+  logWallReadDiagnostic("info", "rows-fetched", {
+    wallId,
+    notesCount: notesData?.length ?? 0,
+    noteBatches: notesWithFormattingResult.batches,
+    zoneGroupsCount: groupsResult.data?.length ?? 0,
+    noteGroupsCount: noteGroupsData.length,
+    linksCount: linksResult.data?.length ?? 0,
+    durationMs: Date.now() - requestStartedAt,
+    memoryMb: memorySnapshotMb(),
+  });
+
+  const zonesWithKindResult = await fetchBatchedRows<NonNullable<SnapshotArgs["zones"]>[number]>(async (from, to) =>
+    await auth.supabase
+      .from("zones")
+      .select(zonesSelectWithKind)
+      .eq("wall_id", wallId)
+      .eq("owner_id", auth.user.id)
+      .is("deleted_at", null)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   let zonesData: SnapshotArgs["zones"] | null = zonesWithKindResult.data as unknown as SnapshotArgs["zones"] | null;
   if (zonesWithKindResult.error && isMissingZoneKindColumnError(zonesWithKindResult.error.message)) {
-    const zonesLegacyResult = await auth.supabase
-      .from("zones")
-      .select("id,label,group_id,x,y,w,h,color,created_at,updated_at")
-      .eq("wall_id", wallId)
-      .eq("owner_id", auth.user.id)
-      .is("deleted_at", null);
+    const zonesLegacyResult = await fetchBatchedRows<NonNullable<SnapshotArgs["zones"]>[number]>(async (from, to) =>
+      await auth.supabase
+        .from("zones")
+        .select(zonesSelectLegacy)
+        .eq("wall_id", wallId)
+        .eq("owner_id", auth.user.id)
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
     if (zonesLegacyResult.error) {
+      logWallReadDiagnostic("error", "zones-legacy-query-failed", {
+        wallId,
+        error: zonesLegacyResult.error.message,
+        durationMs: Date.now() - requestStartedAt,
+        memoryMb: memorySnapshotMb(),
+      });
       return NextResponse.json({ error: zonesLegacyResult.error.message }, { status: 500 });
     }
     zonesData = (zonesLegacyResult.data?.map((zone) => ({ ...zone, kind: "frame" })) as SnapshotArgs["zones"]) ?? [];
   } else if (zonesWithKindResult.error) {
+    logWallReadDiagnostic("error", "zones-query-failed", {
+      wallId,
+      error: zonesWithKindResult.error.message,
+      batches: zonesWithKindResult.batches,
+      durationMs: Date.now() - requestStartedAt,
+      memoryMb: memorySnapshotMb(),
+    });
     return NextResponse.json({ error: zonesWithKindResult.error.message }, { status: 500 });
   }
 
-  const snapshot = rowsToSnapshot({
-    wall: wallResult.data,
-    notes: (notesData ?? []) as SnapshotArgs["notes"],
-    zones: (zonesData ?? []) as SnapshotArgs["zones"],
-    zoneGroups: (groupsResult.data ?? []) as SnapshotArgs["zoneGroups"],
-    noteGroups: noteGroupsData as SnapshotArgs["noteGroups"],
-    links: (linksResult.data ?? []) as SnapshotArgs["links"],
+  logWallReadDiagnostic("info", "pre-snapshot-build", {
+    wallId,
+    notesCount: notesData?.length ?? 0,
+    zonesCount: zonesData?.length ?? 0,
+    zoneGroupsCount: groupsResult.data?.length ?? 0,
+    noteGroupsCount: noteGroupsData.length,
+    linksCount: linksResult.data?.length ?? 0,
+    zonesBatches: zonesWithKindResult.batches,
+    durationMs: Date.now() - requestStartedAt,
+    memoryMb: memorySnapshotMb(),
   });
 
-  return NextResponse.json({
-    wall: wallResult.data,
-    snapshot,
-  });
+  try {
+    const snapshot = rowsToSnapshot({
+      wall: wallResult.data,
+      notes: (notesData ?? []) as SnapshotArgs["notes"],
+      zones: (zonesData ?? []) as SnapshotArgs["zones"],
+      zoneGroups: (groupsResult.data ?? []) as SnapshotArgs["zoneGroups"],
+      noteGroups: noteGroupsData as SnapshotArgs["noteGroups"],
+      links: (linksResult.data ?? []) as SnapshotArgs["links"],
+    });
+
+    logWallReadDiagnostic("info", "success", {
+      wallId,
+      durationMs: Date.now() - requestStartedAt,
+      memoryMb: memorySnapshotMb(),
+    });
+
+    return NextResponse.json({
+      wall: wallResult.data,
+      snapshot,
+    });
+  } catch (error) {
+    logWallReadDiagnostic("error", "snapshot-build-failed", {
+      wallId,
+      error: error instanceof Error ? error.message : "Unknown snapshot build error",
+      durationMs: Date.now() - requestStartedAt,
+      memoryMb: memorySnapshotMb(),
+      notesCount: notesData?.length ?? 0,
+      zonesCount: zonesData?.length ?? 0,
+      zoneGroupsCount: groupsResult.data?.length ?? 0,
+      noteGroupsCount: noteGroupsData.length,
+      linksCount: linksResult.data?.length ?? 0,
+    });
+    return NextResponse.json({ error: "Unable to build wall snapshot" }, { status: 500 });
+  }
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ wallId: string }> }) {
@@ -323,5 +512,3 @@ export async function DELETE(_: Request, context: { params: Promise<{ wallId: st
 
   return NextResponse.json({ ok: true });
 }
-
-
