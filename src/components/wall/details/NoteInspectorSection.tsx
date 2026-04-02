@@ -58,8 +58,14 @@ type NoteInspectorSectionProps = {
   onTextVerticalAlignChange: (align: "top" | "middle" | "bottom") => void;
   onBackgroundColorChange: (color: string) => void;
   onDuplicate: (noteId: string) => void;
+  pageReference?: { docId: string; blockId: string };
+  pageConversion?: { docId: string };
   onReferenceInPage: (noteId: string) => void;
+  onOpenPageReference: (noteId: string) => void;
+  onUndoPageReference: (noteId: string) => void;
   onConvertToPage: (noteId: string) => void;
+  onOpenConvertedPage: (noteId: string) => void;
+  onUndoPageConversion: (noteId: string) => void;
   onTogglePin: (noteId: string) => void;
   onToggleHighlight: (noteId: string) => void;
   onToggleFocus: (noteId: string) => void;
@@ -160,8 +166,14 @@ export const NoteInspectorSection = ({
   onTextVerticalAlignChange,
   onBackgroundColorChange,
   onDuplicate,
+  pageReference,
+  pageConversion,
   onReferenceInPage,
+  onOpenPageReference,
+  onUndoPageReference,
   onConvertToPage,
+  onOpenConvertedPage,
+  onUndoPageConversion,
   onTogglePin,
   onToggleHighlight,
   onToggleFocus,
@@ -1075,14 +1087,38 @@ export const NoteInspectorSection = ({
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Page Interchange</p>
           <div className={actionGridClass}>
-            <button type="button" onClick={() => onReferenceInPage(selectedNote.id)} className={detailButton} disabled={isTimeLocked}>
-              Reference In Page
-            </button>
-            <button type="button" onClick={() => onConvertToPage(selectedNote.id)} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>
-              Convert To Page
-            </button>
+            {pageReference ? (
+              <>
+                <button type="button" onClick={() => onOpenPageReference(selectedNote.id)} className={detailButton}>
+                  Open Page Ref
+                </button>
+                <button type="button" onClick={() => onUndoPageReference(selectedNote.id)} className={detailButton} disabled={isTimeLocked}>
+                  Undo Reference
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={() => onReferenceInPage(selectedNote.id)} className={detailButton} disabled={isTimeLocked}>
+                Reference In Page
+              </button>
+            )}
+            {pageConversion ? (
+              <>
+                <button type="button" onClick={() => onOpenConvertedPage(selectedNote.id)} className={detailButton}>
+                  Open Converted Page
+                </button>
+                <button type="button" onClick={() => onUndoPageConversion(selectedNote.id)} className={detailButton} disabled={isTimeLocked}>
+                  Undo Convert
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={() => onConvertToPage(selectedNote.id)} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>
+                Convert To Page
+              </button>
+            )}
           </div>
-          <div className={detailMutedPanel}>Add a page bookmark back to this note, or turn the note into page content and keep a wall reference behind.</div>
+          <div className={detailMutedPanel}>
+            Keep wall/page links in the details panel only. References add a page-side link block without changing the note, and conversions create a page doc while leaving the wall note visually unchanged.
+          </div>
         </div>
 
         <div className={sectionBlockClass}>
@@ -1180,7 +1216,5 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
-
-
 
 

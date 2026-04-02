@@ -20,6 +20,8 @@ type WallDetailsSidebarProps = {
   onTagInputChange: (value: string) => void;
   onAddTag: () => void;
   selectedNote?: Note;
+  selectedNotePageReference?: { docId: string; blockId: string };
+  selectedNotePageConversion?: { docId: string };
   hasJokerNote: boolean;
   hasThroneNote: boolean;
   selectedNoteId?: string;
@@ -38,7 +40,11 @@ type WallDetailsSidebarProps = {
   onBackgroundColorChange: (color: string) => void;
   onDuplicateSelectedNote: (noteId: string) => void;
   onReferenceSelectedNoteInPage: (noteId: string) => void;
+  onOpenSelectedNotePageReference: (noteId: string) => void;
+  onUndoSelectedNotePageReference: (noteId: string) => void;
   onConvertSelectedNoteToPage: (noteId: string) => void;
+  onOpenSelectedNoteConvertedPage: (noteId: string) => void;
+  onUndoSelectedNotePageConversion: (noteId: string) => void;
   onTogglePinSelectedNote: (noteId: string) => void;
   onToggleHighlightSelectedNote: (noteId: string) => void;
   onToggleFocusSelectedNote: (noteId: string) => void;
@@ -151,6 +157,8 @@ export const WallDetailsSidebar = ({
   onTagInputChange,
   onAddTag,
   selectedNote,
+  selectedNotePageReference,
+  selectedNotePageConversion,
   hasJokerNote,
   hasThroneNote,
   selectedNoteId,
@@ -169,7 +177,11 @@ export const WallDetailsSidebar = ({
   onBackgroundColorChange,
   onDuplicateSelectedNote,
   onReferenceSelectedNoteInPage,
+  onOpenSelectedNotePageReference,
+  onUndoSelectedNotePageReference,
   onConvertSelectedNoteToPage,
+  onOpenSelectedNoteConvertedPage,
+  onUndoSelectedNotePageConversion,
   onTogglePinSelectedNote,
   onToggleHighlightSelectedNote,
   onToggleFocusSelectedNote,
@@ -285,6 +297,8 @@ export const WallDetailsSidebar = ({
         onTagInputChange={onTagInputChange}
         onAddTag={onAddTag}
         selectedNote={selectedNote}
+        selectedNotePageReference={selectedNotePageReference}
+        selectedNotePageConversion={selectedNotePageConversion}
         hasJokerNote={hasJokerNote}
         hasThroneNote={hasThroneNote}
         selectedNoteId={selectedNoteId}
@@ -303,7 +317,11 @@ export const WallDetailsSidebar = ({
         onBackgroundColorChange={onBackgroundColorChange}
         onDuplicateSelectedNote={onDuplicateSelectedNote}
         onReferenceSelectedNoteInPage={onReferenceSelectedNoteInPage}
+        onOpenSelectedNotePageReference={onOpenSelectedNotePageReference}
+        onUndoSelectedNotePageReference={onUndoSelectedNotePageReference}
         onConvertSelectedNoteToPage={onConvertSelectedNoteToPage}
+        onOpenSelectedNoteConvertedPage={onOpenSelectedNoteConvertedPage}
+        onUndoSelectedNotePageConversion={onUndoSelectedNotePageConversion}
         onTogglePinSelectedNote={onTogglePinSelectedNote}
         onToggleHighlightSelectedNote={onToggleHighlightSelectedNote}
         onToggleFocusSelectedNote={onToggleFocusSelectedNote}

@@ -31,6 +31,8 @@ type WallDetailsContentProps = {
   onTagInputChange: (value: string) => void;
   onAddTag: () => void;
   selectedNote?: Note;
+  selectedNotePageReference?: { docId: string; blockId: string };
+  selectedNotePageConversion?: { docId: string };
   hasJokerNote: boolean;
   hasThroneNote: boolean;
   selectedNoteId?: string;
@@ -49,7 +51,11 @@ type WallDetailsContentProps = {
   onBackgroundColorChange: (color: string) => void;
   onDuplicateSelectedNote: (noteId: string) => void;
   onReferenceSelectedNoteInPage: (noteId: string) => void;
+  onOpenSelectedNotePageReference: (noteId: string) => void;
+  onUndoSelectedNotePageReference: (noteId: string) => void;
   onConvertSelectedNoteToPage: (noteId: string) => void;
+  onOpenSelectedNoteConvertedPage: (noteId: string) => void;
+  onUndoSelectedNotePageConversion: (noteId: string) => void;
   onTogglePinSelectedNote: (noteId: string) => void;
   onToggleHighlightSelectedNote: (noteId: string) => void;
   onToggleFocusSelectedNote: (noteId: string) => void;
@@ -175,6 +181,8 @@ export const WallDetailsContent = ({
   onTagInputChange,
   onAddTag,
   selectedNote,
+  selectedNotePageReference,
+  selectedNotePageConversion,
   hasJokerNote,
   hasThroneNote,
   selectedNoteId,
@@ -193,7 +201,11 @@ export const WallDetailsContent = ({
   onBackgroundColorChange,
   onDuplicateSelectedNote,
   onReferenceSelectedNoteInPage,
+  onOpenSelectedNotePageReference,
+  onUndoSelectedNotePageReference,
   onConvertSelectedNoteToPage,
+  onOpenSelectedNoteConvertedPage,
+  onUndoSelectedNotePageConversion,
   onTogglePinSelectedNote,
   onToggleHighlightSelectedNote,
   onToggleFocusSelectedNote,
@@ -348,8 +360,14 @@ export const WallDetailsContent = ({
             onTextVerticalAlignChange={onTextVerticalAlignChange}
             onBackgroundColorChange={onBackgroundColorChange}
             onDuplicate={onDuplicateSelectedNote}
+            pageReference={selectedNotePageReference}
+            pageConversion={selectedNotePageConversion}
             onReferenceInPage={onReferenceSelectedNoteInPage}
+            onOpenPageReference={onOpenSelectedNotePageReference}
+            onUndoPageReference={onUndoSelectedNotePageReference}
             onConvertToPage={onConvertSelectedNoteToPage}
+            onOpenConvertedPage={onOpenSelectedNoteConvertedPage}
+            onUndoPageConversion={onUndoSelectedNotePageConversion}
             onTogglePin={onTogglePinSelectedNote}
             onToggleHighlight={onToggleHighlightSelectedNote}
             onToggleFocus={onToggleFocusSelectedNote}
