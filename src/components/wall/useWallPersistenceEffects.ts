@@ -112,20 +112,22 @@ export const useWallPersistenceEffects = ({
       }
 
       try {
-        const listResponse = await fetch("/api/walls", { cache: "no-store" });
-        if (listResponse.status === 401) {
-          throw new Error(authExpiredMessage);
-        }
-        if (!listResponse.ok) {
-          const payload = (await listResponse.json().catch(() => ({}))) as { error?: string };
-          throw new Error(payload.error ?? "Unable to load walls");
-        }
+        const preferredWallId = readStorageValue(lastCloudWallStorageKey);
+        const listWalls = async () => {
+          const listResponse = await fetch("/api/walls", { cache: "no-store" });
+          if (listResponse.status === 401) {
+            throw new Error(authExpiredMessage);
+          }
+          if (!listResponse.ok) {
+            const payload = (await listResponse.json().catch(() => ({}))) as { error?: string };
+            throw new Error(payload.error ?? "Unable to load walls");
+          }
 
-        const listPayload = (await listResponse.json()) as { walls: Array<{ id: string }> };
-        const listedWallIds = listPayload.walls.map((wall) => wall.id);
-        let wallId = listedWallIds[0];
+          const listPayload = (await listResponse.json()) as { walls: Array<{ id: string }> };
+          return listPayload.walls.map((wall) => wall.id);
+        };
 
-        if (!wallId) {
+        const createWall = async () => {
           const createResponse = await fetch("/api/walls", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -139,19 +141,14 @@ export const useWallPersistenceEffects = ({
             throw new Error(payload.error ?? "Unable to create wall");
           }
           const createdPayload = (await createResponse.json()) as { wall: { id: string } };
-          wallId = createdPayload.wall.id;
-        }
+          return createdPayload.wall.id;
+        };
 
-        if (!wallId) {
-          throw new Error("No wall available");
-        }
-
-        const preferredWallId = readStorageValue(lastCloudWallStorageKey);
-        const loadCloudState = async (candidateWallId: string) => {
+        const loadCloudState = async (candidateWallId: string, knownWallIds: string[]) => {
           const canUseStoredDelta =
             localBaselineSnapshot &&
             localSyncVersion > 0 &&
-            (listedWallIds.length <= 1 || candidateWallId === preferredWallId);
+            (knownWallIds.length <= 1 || candidateWallId === preferredWallId);
 
           if (canUseStoredDelta) {
             try {
@@ -172,51 +169,83 @@ export const useWallPersistenceEffects = ({
 
         let serverSnapshot: PersistedWallState | null = null;
         let serverSyncVersion = 0;
+        let wallId = preferredWallId;
 
-        if (listedWallIds.length <= 1) {
-          const snapshotPayload = await loadCloudState(wallId);
-          serverSnapshot = snapshotPayload.snapshot;
-          serverSyncVersion = snapshotPayload.syncVersion;
-          setCloudWallUpdatedAt(null);
-        } else {
-          const orderedWallIds = [
-            ...(preferredWallId && listedWallIds.includes(preferredWallId) ? [preferredWallId] : []),
-            ...listedWallIds.filter((id) => id !== preferredWallId),
-          ];
-          let fallbackSelection: { wallId: string; snapshot: PersistedWallState; syncVersion: number } | null = null;
-
-          for (const candidateWallId of orderedWallIds) {
-            const snapshotPayload = await loadCloudState(candidateWallId);
-            if (!fallbackSelection) {
-              fallbackSelection = {
-                wallId: candidateWallId,
-                snapshot: snapshotPayload.snapshot,
-                syncVersion: snapshotPayload.syncVersion,
-              };
+        if (preferredWallId) {
+          try {
+            const snapshotPayload = await loadCloudState(preferredWallId, [preferredWallId]);
+            serverSnapshot = snapshotPayload.snapshot;
+            serverSyncVersion = snapshotPayload.syncVersion;
+            setCloudWallUpdatedAt(null);
+          } catch (error) {
+            if (error instanceof Error && error.message === authExpiredMessage) {
+              throw error;
             }
+            wallId = null;
+          }
+        }
 
-            if (hasMeaningfulContent(snapshotPayload.snapshot)) {
-              wallId = candidateWallId;
-              serverSnapshot = snapshotPayload.snapshot;
-              serverSyncVersion = snapshotPayload.syncVersion;
-              setCloudWallUpdatedAt(null);
-              break;
-            }
+        if (!serverSnapshot) {
+          const listedWallIds = await listWalls();
+          wallId = listedWallIds[0] ?? null;
+
+          if (!wallId) {
+            wallId = await createWall();
           }
 
-          if (!serverSnapshot) {
-            wallId = fallbackSelection?.wallId ?? wallId;
-            if (fallbackSelection) {
-              serverSnapshot = fallbackSelection.snapshot;
-              serverSyncVersion = fallbackSelection.syncVersion;
-              setCloudWallUpdatedAt(null);
-            } else {
-              const fallbackPayload = await loadCloudState(wallId);
-              serverSnapshot = fallbackPayload.snapshot;
-              serverSyncVersion = fallbackPayload.syncVersion;
-              setCloudWallUpdatedAt(null);
+          if (!wallId) {
+            throw new Error("No wall available");
+          }
+
+          if (listedWallIds.length <= 1) {
+            const snapshotPayload = await loadCloudState(wallId, listedWallIds.length > 0 ? listedWallIds : [wallId]);
+            serverSnapshot = snapshotPayload.snapshot;
+            serverSyncVersion = snapshotPayload.syncVersion;
+            setCloudWallUpdatedAt(null);
+          } else {
+            const orderedWallIds = [
+              ...(preferredWallId && listedWallIds.includes(preferredWallId) ? [preferredWallId] : []),
+              ...listedWallIds.filter((id) => id !== preferredWallId),
+            ];
+            let fallbackSelection: { wallId: string; snapshot: PersistedWallState; syncVersion: number } | null = null;
+
+            for (const candidateWallId of orderedWallIds) {
+              const snapshotPayload = await loadCloudState(candidateWallId, listedWallIds);
+              if (!fallbackSelection) {
+                fallbackSelection = {
+                  wallId: candidateWallId,
+                  snapshot: snapshotPayload.snapshot,
+                  syncVersion: snapshotPayload.syncVersion,
+                };
+              }
+
+              if (hasMeaningfulContent(snapshotPayload.snapshot)) {
+                wallId = candidateWallId;
+                serverSnapshot = snapshotPayload.snapshot;
+                serverSyncVersion = snapshotPayload.syncVersion;
+                setCloudWallUpdatedAt(null);
+                break;
+              }
+            }
+
+            if (!serverSnapshot) {
+              wallId = fallbackSelection?.wallId ?? wallId;
+              if (fallbackSelection) {
+                serverSnapshot = fallbackSelection.snapshot;
+                serverSyncVersion = fallbackSelection.syncVersion;
+                setCloudWallUpdatedAt(null);
+              } else {
+                const fallbackPayload = await loadCloudState(wallId, listedWallIds);
+                serverSnapshot = fallbackPayload.snapshot;
+                serverSyncVersion = fallbackPayload.syncVersion;
+                setCloudWallUpdatedAt(null);
+              }
             }
           }
+        }
+
+        if (!wallId || !serverSnapshot) {
+          throw new Error("No wall available");
         }
 
         setCloudWallId(wallId);
