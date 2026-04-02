@@ -17,6 +17,7 @@ type UseWallPersistenceEffectsOptions = {
   publishedReadOnly: boolean;
   scheduleCloudSync: (snapshot: PersistedWallState) => void;
   syncSnapshotToCloud: (cloudWallId: string, snapshot: PersistedWallState) => Promise<void>;
+  setCloudWallUpdatedAt: (value: string | null) => void;
   setCloudWallId: (id: string | null) => void;
   setTimelineEntries: Dispatch<SetStateAction<TimelineEntry[]>>;
   setTimelineIndex: Dispatch<SetStateAction<number>>;
@@ -35,6 +36,7 @@ export const useWallPersistenceEffects = ({
   publishedReadOnly,
   scheduleCloudSync,
   syncSnapshotToCloud,
+  setCloudWallUpdatedAt,
   setCloudWallId,
   setTimelineEntries,
   setTimelineIndex,
@@ -67,7 +69,7 @@ export const useWallPersistenceEffects = ({
         throw new Error(payload.error ?? "Unable to load cloud snapshot");
       }
 
-      return (await snapshotResponse.json()) as { snapshot: PersistedWallState };
+      return (await snapshotResponse.json()) as { wall?: { updated_at?: string | null }; snapshot: PersistedWallState };
     };
 
     const finalizeJokerState = (snapshot: PersistedWallState, allowSeed: boolean) => {
@@ -140,30 +142,43 @@ export const useWallPersistenceEffects = ({
         if (listedWallIds.length <= 1) {
           const snapshotPayload = await fetchCloudSnapshot(wallId);
           serverSnapshot = snapshotPayload.snapshot;
+          setCloudWallUpdatedAt(snapshotPayload.wall?.updated_at ?? null);
         } else {
           const preferredWallId = readStorageValue(lastCloudWallStorageKey);
           const orderedWallIds = [
             ...(preferredWallId && listedWallIds.includes(preferredWallId) ? [preferredWallId] : []),
             ...listedWallIds.filter((id) => id !== preferredWallId),
           ];
-          let fallbackSelection: { wallId: string; snapshot: PersistedWallState } | null = null;
+          let fallbackSelection: { wallId: string; snapshot: PersistedWallState; updatedAt: string | null } | null = null;
 
           for (const candidateWallId of orderedWallIds) {
             const snapshotPayload = await fetchCloudSnapshot(candidateWallId);
             if (!fallbackSelection) {
-              fallbackSelection = { wallId: candidateWallId, snapshot: snapshotPayload.snapshot };
+              fallbackSelection = {
+                wallId: candidateWallId,
+                snapshot: snapshotPayload.snapshot,
+                updatedAt: snapshotPayload.wall?.updated_at ?? null,
+              };
             }
 
             if (hasMeaningfulContent(snapshotPayload.snapshot)) {
               wallId = candidateWallId;
               serverSnapshot = snapshotPayload.snapshot;
+              setCloudWallUpdatedAt(snapshotPayload.wall?.updated_at ?? null);
               break;
             }
           }
 
           if (!serverSnapshot) {
             wallId = fallbackSelection?.wallId ?? wallId;
-            serverSnapshot = fallbackSelection?.snapshot ?? (await fetchCloudSnapshot(wallId)).snapshot;
+            if (fallbackSelection) {
+              serverSnapshot = fallbackSelection.snapshot;
+              setCloudWallUpdatedAt(fallbackSelection.updatedAt);
+            } else {
+              const fallbackPayload = await fetchCloudSnapshot(wallId);
+              serverSnapshot = fallbackPayload.snapshot;
+              setCloudWallUpdatedAt(fallbackPayload.wall?.updated_at ?? null);
+            }
           }
         }
 
@@ -257,6 +272,7 @@ export const useWallPersistenceEffects = ({
     onLocalSaveStateChange,
     publishedReadOnly,
     scheduleCloudSync,
+    setCloudWallUpdatedAt,
     setCloudWallId,
     setSyncError,
     setTimelineEntries,
@@ -264,7 +280,4 @@ export const useWallPersistenceEffects = ({
     syncSnapshotToCloud,
   ]);
 };
-
-
-
 

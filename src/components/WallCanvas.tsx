@@ -147,6 +147,7 @@ import {
 import { getPoetryNoteDimensions } from "@/features/wall/poetry";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
+import { rebaseLocalWallSnapshot, stageWallSyncRequest, takeNextQueuedWallSync, type WallSyncRequest } from "@/features/wall/sync";
 import type { Note, PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
@@ -336,6 +337,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cloudSyncInFlightRef = useRef(false);
   const cloudReadyRef = useRef(false);
+  const queuedCloudSyncRef = useRef<WallSyncRequest | null>(null);
+  const cloudWallUpdatedAtRef = useRef<string | null>(null);
   const lastCloudSyncedAtRef = useRef<number>(0);
   const [recallQuery, setRecallQuery] = useState("");
   const [recallZoneId, setRecallZoneId] = useState("");
@@ -1023,13 +1026,35 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setPresentationIndex((previous) => clampPresentationIndex(previous, activePresentationSteps.length || 1));
   }, [activePresentationPath, activePresentationPathId, activePresentationSteps.length]);
 
+  const fetchLatestCloudSnapshot = useCallback(async (wallId: string) => {
+    const response = await fetch(`/api/walls/${wallId}`, { cache: "no-store" });
+    if (response.status === 401) {
+      throw new Error(authExpiredMessage);
+    }
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error ?? "Unable to load cloud snapshot");
+    }
+
+    return (await response.json()) as {
+      wall?: { updated_at?: string | null };
+      snapshot: PersistedWallState;
+    };
+  }, []);
+
   const syncSnapshotToCloud = useCallback(
     async (wallId: string, snapshot: PersistedWallState) => {
       if (publishedReadOnly) {
         return;
       }
 
-      if (cloudSyncInFlightRef.current) {
+      const stagedRequest = stageWallSyncRequest({
+        inFlight: cloudSyncInFlightRef.current,
+        next: { wallId, snapshot },
+      });
+      if (!stagedRequest.active) {
+        queuedCloudSyncRef.current = stagedRequest.queued;
+        setHasPendingSync(true);
         return;
       }
 
@@ -1045,6 +1070,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           },
           body: JSON.stringify({
             ...snapshot,
+            expectedWallUpdatedAt: cloudWallUpdatedAtRef.current ?? undefined,
             clientSyncedAt: lastCloudSyncedAtRef.current || undefined,
           }),
         });
@@ -1055,12 +1081,41 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
           return;
         }
 
+        if (response.status === 409) {
+          const latestPayload = await fetchLatestCloudSnapshot(wallId);
+          const latestWallUpdatedAt = latestPayload.wall?.updated_at ?? null;
+          cloudWallUpdatedAtRef.current = latestWallUpdatedAt;
+
+          const latestLocalSnapshot = selectPersistedSnapshot(useWallStore.getState());
+          const rebasedSnapshot = rebaseLocalWallSnapshot(latestPayload.snapshot, latestLocalSnapshot);
+          const serverSerialized = JSON.stringify(latestPayload.snapshot);
+          const rebasedSerialized = JSON.stringify(rebasedSnapshot);
+
+          hydrate(rebasedSnapshot);
+
+          if (rebasedSerialized !== serverSerialized) {
+            queuedCloudSyncRef.current = { wallId, snapshot: rebasedSnapshot };
+            setHasPendingSync(true);
+          } else {
+            const syncedAt = latestWallUpdatedAt ? Date.parse(latestWallUpdatedAt) : Date.now();
+            if (Number.isFinite(syncedAt)) {
+              lastCloudSyncedAtRef.current = syncedAt;
+              setLastSyncedAt(syncedAt);
+            }
+            setHasPendingSync(false);
+          }
+
+          setSyncError(null);
+          return;
+        }
+
         if (!response.ok) {
           const payload = (await response.json().catch(() => ({}))) as { error?: string };
           throw new Error(payload.error ?? "Cloud sync failed");
         }
 
-        const payload = (await response.json()) as { serverTime?: number };
+        const payload = (await response.json()) as { serverTime?: number; currentWallUpdatedAt?: string | null };
+        cloudWallUpdatedAtRef.current = payload.currentWallUpdatedAt ?? cloudWallUpdatedAtRef.current;
         const syncedAt = payload.serverTime ?? Date.now();
         lastCloudSyncedAtRef.current = syncedAt;
         setLastSyncedAt(syncedAt);
@@ -1068,12 +1123,21 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Cloud sync failed";
         setSyncError(message);
+        if (message === authExpiredMessage) {
+          redirectToLoginForAuth("/wall");
+        }
       } finally {
         cloudSyncInFlightRef.current = false;
+        const queued = takeNextQueuedWallSync(queuedCloudSyncRef.current);
+        queuedCloudSyncRef.current = queued.queued;
+        if (queued.next) {
+          void syncSnapshotToCloud(queued.next.wallId, queued.next.snapshot);
+          return;
+        }
         setIsSyncing(false);
       }
     },
-    [publishedReadOnly],
+    [fetchLatestCloudSnapshot, hydrate, publishedReadOnly],
   );
 
   const scheduleCloudSync = useCallback(
@@ -1121,6 +1185,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     publishedReadOnly,
     scheduleCloudSync,
     syncSnapshotToCloud,
+    setCloudWallUpdatedAt: (value) => {
+      cloudWallUpdatedAtRef.current = value;
+    },
     setCloudWallId,
     setTimelineEntries,
     setTimelineIndex,
@@ -4566,9 +4633,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
-
-
-
 
 
 

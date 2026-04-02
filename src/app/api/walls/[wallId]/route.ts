@@ -67,7 +67,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   const [wallResult, groupsResult, noteGroupsResult, linksResult] = await Promise.all([
     auth.supabase
       .from("walls")
-      .select("id,camera_x,camera_y,camera_zoom,last_color")
+      .select("id,camera_x,camera_y,camera_zoom,last_color,updated_at")
       .eq("id", wallId)
       .eq("owner_id", auth.user.id)
       .maybeSingle(),
@@ -323,6 +323,5 @@ export async function DELETE(_: Request, context: { params: Promise<{ wallId: st
 
   return NextResponse.json({ ok: true });
 }
-
 
 
