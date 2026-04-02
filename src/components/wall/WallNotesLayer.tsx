@@ -17,7 +17,7 @@ import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
-import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
+import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle, getVideoPosterUrl } from "@/features/wall/video-notes";
 import { throneLoadingText } from "@/features/wall/throne";
 import type { LinkType, Note } from "@/features/wall/types";
 
@@ -442,7 +442,7 @@ export const WallNotesLayer = ({
     const urls = [
       ...new Set(
         visibleNotes
-          .flatMap((note) => [note.imageUrl?.trim(), note.bookmark?.metadata?.imageUrl?.trim(), note.bookmark?.metadata?.faviconUrl?.trim(), note.video?.posterDataUrl?.trim()])
+          .flatMap((note) => [note.imageUrl?.trim(), note.bookmark?.metadata?.imageUrl?.trim(), note.bookmark?.metadata?.faviconUrl?.trim(), getVideoPosterUrl(note.video)])
           .filter((url): url is string => Boolean(url)),
       ),
     ];
@@ -629,7 +629,7 @@ export const WallNotesLayer = ({
         const videoMeta = getVideoNoteMeta(noteView.video).toUpperCase();
         const videoDuration = formatVideoDuration(noteView.video?.durationSeconds);
         const videoCurrentTime = formatVideoDuration(noteView.video?.durationSeconds ? Math.max(0, Math.round(noteView.video.durationSeconds * 0.35)) : 0);
-        const videoPoster = noteView.video?.posterDataUrl?.trim();
+        const videoPoster = getVideoPosterUrl(noteView.video);
         const loadedVideoPoster = videoPoster ? loadedImagesByUrl[videoPoster] : undefined;
         const parsedCodeNote = looksLikeCode ? parseCodeNote(noteView.text) : null;
         const renderedCodeLines = parsedCodeNote?.body.split("\n").slice(0, 8) ?? [];

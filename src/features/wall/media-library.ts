@@ -1,5 +1,5 @@
 import { getAudioNoteTitle } from "@/features/wall/audio-notes";
-import { getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
+import { getVideoNoteMeta, getVideoNoteTitle, getVideoPosterUrl } from "@/features/wall/video-notes";
 import type { AudioNote, Note, VideoNote } from "@/features/wall/types";
 
 export type MediaLibraryItem = {
@@ -79,7 +79,7 @@ export const mediaLibraryItemFromNote = (note: Note): MediaLibraryItem | undefin
       source: note.video.source,
       url: note.video.url,
       mimeType: trimText(note.video.mimeType) || undefined,
-      posterUrl: trimText(note.video.posterDataUrl) || undefined,
+      posterUrl: getVideoPosterUrl(note.video),
       tags: note.tags,
       noteText: trimText(note.text),
       video: note.video,
