@@ -245,7 +245,6 @@ const defaultSpatialPrefs: SpatialPreferences = {
   snapToGrid: false,
   dotGridSpacing: 32,
 };
-const timelineHistoryLoadLimit = 120;
 const maxVideoPosterDimensionPx = 320;
 const videoPosterJpegQuality = 0.58;
 
