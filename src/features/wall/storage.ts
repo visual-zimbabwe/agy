@@ -15,6 +15,25 @@ type TimelineSnapshotRecord = {
   payload: string;
 };
 
+type SnapshotCollections = Pick<PersistedWallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links">;
+
+type SnapshotWritePlan = {
+  notesToPut: Note[];
+  noteIdsToDelete: string[];
+  zonesToPut: Zone[];
+  zoneIdsToDelete: string[];
+  zoneGroupsToPut: ZoneGroup[];
+  zoneGroupIdsToDelete: string[];
+  noteGroupsToPut: NoteGroup[];
+  noteGroupIdsToDelete: string[];
+  linksToPut: Link[];
+  linkIdsToDelete: string[];
+  cameraChanged: boolean;
+  lastColorChanged: boolean;
+  nextCamera: Camera;
+  nextLastColor?: string;
+};
+
 const wallDatabaseName = `${appSlug}-db`;
 const legacyWallDatabaseName = `${legacyAppSlug}-db`;
 
@@ -81,6 +100,54 @@ const isQuotaExceededError = (error: unknown) => {
   const name = error.name.toLowerCase();
   const message = error.message.toLowerCase();
   return name.includes("quota") || name.includes("abort") || message.includes("quotaexceeded") || message.includes("quota exceeded");
+};
+
+const emptyCollections: SnapshotCollections = {
+  notes: {},
+  zones: {},
+  zoneGroups: {},
+  noteGroups: {},
+  links: {},
+};
+
+const serializeValue = (value: unknown) => JSON.stringify(value);
+
+const collectEntityUpserts = <T extends { id: string }>(
+  previous: Record<string, T>,
+  next: Record<string, T>,
+) =>
+  Object.values(next).filter((entity) => {
+    const previousEntity = previous[entity.id];
+    return !previousEntity || serializeValue(previousEntity) !== serializeValue(entity);
+  });
+
+const collectDeletedEntityIds = <T extends { id: string }>(
+  previous: Record<string, T>,
+  next: Record<string, T>,
+) => Object.keys(previous).filter((id) => !(id in next));
+
+export const createWallSnapshotWritePlan = (
+  previousSnapshot: PersistedWallState | null,
+  nextSnapshot: PersistedWallState,
+): SnapshotWritePlan => {
+  const previousCollections = previousSnapshot ?? { ...emptyCollections, camera: defaultCamera };
+
+  return {
+    notesToPut: collectEntityUpserts(previousCollections.notes, nextSnapshot.notes),
+    noteIdsToDelete: collectDeletedEntityIds(previousCollections.notes, nextSnapshot.notes),
+    zonesToPut: collectEntityUpserts(previousCollections.zones, nextSnapshot.zones),
+    zoneIdsToDelete: collectDeletedEntityIds(previousCollections.zones, nextSnapshot.zones),
+    zoneGroupsToPut: collectEntityUpserts(previousCollections.zoneGroups, nextSnapshot.zoneGroups),
+    zoneGroupIdsToDelete: collectDeletedEntityIds(previousCollections.zoneGroups, nextSnapshot.zoneGroups),
+    noteGroupsToPut: collectEntityUpserts(previousCollections.noteGroups, nextSnapshot.noteGroups),
+    noteGroupIdsToDelete: collectDeletedEntityIds(previousCollections.noteGroups, nextSnapshot.noteGroups),
+    linksToPut: collectEntityUpserts(previousCollections.links, nextSnapshot.links),
+    linkIdsToDelete: collectDeletedEntityIds(previousCollections.links, nextSnapshot.links),
+    cameraChanged: !previousSnapshot || serializeValue(previousCollections.camera) !== serializeValue(nextSnapshot.camera),
+    lastColorChanged: !previousSnapshot || previousSnapshot.lastColor !== nextSnapshot.lastColor,
+    nextCamera: nextSnapshot.camera,
+    nextLastColor: nextSnapshot.lastColor,
+  };
 };
 
 
@@ -259,18 +326,79 @@ const writeWallSnapshot = async (snapshot: PersistedWallState): Promise<void> =>
   });
 };
 
-export const saveWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
+const writeWallSnapshotIncremental = async (snapshot: PersistedWallState, previousSnapshot: PersistedWallState): Promise<void> => {
+  const plan = createWallSnapshotWritePlan(previousSnapshot, snapshot);
+
+  await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta], async () => {
+    if (plan.notesToPut.length > 0) {
+      await db.notes.bulkPut(plan.notesToPut);
+    }
+    if (plan.noteIdsToDelete.length > 0) {
+      await db.notes.bulkDelete(plan.noteIdsToDelete);
+    }
+
+    if (plan.zonesToPut.length > 0) {
+      await db.zones.bulkPut(plan.zonesToPut);
+    }
+    if (plan.zoneIdsToDelete.length > 0) {
+      await db.zones.bulkDelete(plan.zoneIdsToDelete);
+    }
+
+    if (plan.zoneGroupsToPut.length > 0) {
+      await db.zoneGroups.bulkPut(plan.zoneGroupsToPut);
+    }
+    if (plan.zoneGroupIdsToDelete.length > 0) {
+      await db.zoneGroups.bulkDelete(plan.zoneGroupIdsToDelete);
+    }
+
+    if (plan.noteGroupsToPut.length > 0) {
+      await db.noteGroups.bulkPut(plan.noteGroupsToPut);
+    }
+    if (plan.noteGroupIdsToDelete.length > 0) {
+      await db.noteGroups.bulkDelete(plan.noteGroupIdsToDelete);
+    }
+
+    if (plan.linksToPut.length > 0) {
+      await db.links.bulkPut(plan.linksToPut);
+    }
+    if (plan.linkIdsToDelete.length > 0) {
+      await db.links.bulkDelete(plan.linkIdsToDelete);
+    }
+
+    if (plan.cameraChanged) {
+      await db.meta.put({ key: "camera", value: JSON.stringify(plan.nextCamera) });
+    }
+
+    if (plan.lastColorChanged) {
+      if (plan.nextLastColor) {
+        await db.meta.put({ key: "lastColor", value: plan.nextLastColor });
+      } else {
+        await db.meta.delete("lastColor");
+      }
+    }
+  });
+};
+
+export const saveWallSnapshot = async (snapshot: PersistedWallState, previousSnapshot?: PersistedWallState): Promise<void> => {
   await migrateLegacyWallDatabaseIfNeeded();
 
   try {
-    await writeWallSnapshot(snapshot);
+    if (previousSnapshot) {
+      await writeWallSnapshotIncremental(snapshot, previousSnapshot);
+    } else {
+      await writeWallSnapshot(snapshot);
+    }
   } catch (error) {
     if (!isQuotaExceededError(error)) {
       throw error;
     }
 
     await db.timelineSnapshots.clear();
-    await writeWallSnapshot(snapshot);
+    if (previousSnapshot) {
+      await writeWallSnapshotIncremental(snapshot, previousSnapshot);
+    } else {
+      await writeWallSnapshot(snapshot);
+    }
   }
 };
 
@@ -285,6 +413,7 @@ export const createSnapshotSaver = (
   let timer: ReturnType<typeof setTimeout> | undefined;
   let latest: PersistedWallState | undefined;
   let pendingWrites = 0;
+  let committedSnapshot: PersistedWallState | undefined;
 
   const flush = async () => {
     if (!latest) {
@@ -296,7 +425,8 @@ export const createSnapshotSaver = (
     pendingWrites += 1;
 
     try {
-      await saveWallSnapshot(snapshot);
+      await saveWallSnapshot(snapshot, committedSnapshot);
+      committedSnapshot = snapshot;
       pendingWrites = Math.max(0, pendingWrites - 1);
       if (pendingWrites === 0) {
         callbacks?.onSuccess?.();
@@ -320,7 +450,11 @@ export const createSnapshotSaver = (
     }, delayMs);
   };
 
-  return { schedule, flush };
+  const markCommittedSnapshot = (snapshot: PersistedWallState) => {
+    committedSnapshot = snapshot;
+  };
+
+  return { schedule, flush, markCommittedSnapshot };
 };
 
 export type TimelineEntry = {
