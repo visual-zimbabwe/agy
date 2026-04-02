@@ -21,6 +21,7 @@ Current behavior includes:
 - drag, nesting, column placement, and block-level menus
 - block comments
 - file upload, linked media insertion, and Unsplash-powered image search for `/image` and `/cover`
+- block-level wall interchange actions that can either create a wall reference note for the current page block or convert the block into a wall note while replacing the source block with a wall deep link
 
 The interaction model is closer to a hybrid of document editing and spatial layout than a fixed linear editor.
 

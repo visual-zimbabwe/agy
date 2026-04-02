@@ -58,6 +58,8 @@ type NoteInspectorSectionProps = {
   onTextVerticalAlignChange: (align: "top" | "middle" | "bottom") => void;
   onBackgroundColorChange: (color: string) => void;
   onDuplicate: (noteId: string) => void;
+  onReferenceInPage: (noteId: string) => void;
+  onConvertToPage: (noteId: string) => void;
   onTogglePin: (noteId: string) => void;
   onToggleHighlight: (noteId: string) => void;
   onToggleFocus: (noteId: string) => void;
@@ -158,6 +160,8 @@ export const NoteInspectorSection = ({
   onTextVerticalAlignChange,
   onBackgroundColorChange,
   onDuplicate,
+  onReferenceInPage,
+  onConvertToPage,
   onTogglePin,
   onToggleHighlight,
   onToggleFocus,
@@ -1069,6 +1073,19 @@ export const NoteInspectorSection = ({
         </div>
 
         <div className={sectionBlockClass}>
+          <p className={sectionLabelClass}>Page Interchange</p>
+          <div className={actionGridClass}>
+            <button type="button" onClick={() => onReferenceInPage(selectedNote.id)} className={detailButton} disabled={isTimeLocked}>
+              Reference In Page
+            </button>
+            <button type="button" onClick={() => onConvertToPage(selectedNote.id)} className={detailButton} disabled={isTimeLocked || isPrivateEnabled}>
+              Convert To Page
+            </button>
+          </div>
+          <div className={detailMutedPanel}>Add a page bookmark back to this note, or turn the note into page content and keep a wall reference behind.</div>
+        </div>
+
+        <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Alignment</p>
           <div className="space-y-2">
             <div>
@@ -1163,7 +1180,6 @@ export const NoteInspectorSection = ({
     </section>
   );
 };
-
 
 
 

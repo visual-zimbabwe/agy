@@ -48,6 +48,8 @@ type WallDetailsContentProps = {
   onTextVerticalAlignChange: (align: "top" | "middle" | "bottom") => void;
   onBackgroundColorChange: (color: string) => void;
   onDuplicateSelectedNote: (noteId: string) => void;
+  onReferenceSelectedNoteInPage: (noteId: string) => void;
+  onConvertSelectedNoteToPage: (noteId: string) => void;
   onTogglePinSelectedNote: (noteId: string) => void;
   onToggleHighlightSelectedNote: (noteId: string) => void;
   onToggleFocusSelectedNote: (noteId: string) => void;
@@ -190,6 +192,8 @@ export const WallDetailsContent = ({
   onTextVerticalAlignChange,
   onBackgroundColorChange,
   onDuplicateSelectedNote,
+  onReferenceSelectedNoteInPage,
+  onConvertSelectedNoteToPage,
   onTogglePinSelectedNote,
   onToggleHighlightSelectedNote,
   onToggleFocusSelectedNote,
@@ -344,6 +348,8 @@ export const WallDetailsContent = ({
             onTextVerticalAlignChange={onTextVerticalAlignChange}
             onBackgroundColorChange={onBackgroundColorChange}
             onDuplicate={onDuplicateSelectedNote}
+            onReferenceInPage={onReferenceSelectedNoteInPage}
+            onConvertToPage={onConvertSelectedNoteToPage}
             onTogglePin={onTogglePinSelectedNote}
             onToggleHighlight={onToggleHighlightSelectedNote}
             onToggleFocus={onToggleFocusSelectedNote}
@@ -530,4 +536,3 @@ export const WallDetailsContent = ({
     </div>
   );
 };
-
