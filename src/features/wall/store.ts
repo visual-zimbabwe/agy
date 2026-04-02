@@ -680,7 +680,20 @@ export const useWallStore = create<WallStore>((set) => ({
 }));
 
 export const selectPersistedSnapshot = (state: WallStore): PersistedWallState => ({
-  notes: state.notes,
+  notes: Object.fromEntries(
+    Object.entries(state.notes).map(([id, note]) => [
+      id,
+      note.video?.posterDataUrl
+        ? {
+            ...note,
+            video: {
+              ...note.video,
+              posterDataUrl: undefined,
+            },
+          }
+        : note,
+    ]),
+  ),
   zones: state.zones,
   zoneGroups: state.zoneGroups,
   noteGroups: state.noteGroups,
@@ -688,7 +701,6 @@ export const selectPersistedSnapshot = (state: WallStore): PersistedWallState =>
   camera: state.camera,
   lastColor: state.ui.lastColor,
 });
-
 
 
 
