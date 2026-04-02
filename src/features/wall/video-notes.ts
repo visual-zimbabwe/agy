@@ -6,6 +6,7 @@ import {
   getFileKindLabel,
   inferMimeTypeFromFileName,
 } from "@/features/wall/file-notes";
+import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 export const VIDEO_NOTE_DEFAULTS = {
   color: "#FFFFFF",
@@ -25,6 +26,52 @@ const asNumber = (value: unknown) =>
 
 const clean = (value?: string | null) => value?.trim() || undefined;
 const directVideoExtensions = [".mp4", ".webm", ".ogg", ".mov"];
+const videoPosterCacheStorageKey = "agy-video-poster-cache-v1";
+const maxCachedVideoPosters = 24;
+
+type VideoPosterCacheEntry = {
+  posterDataUrl: string;
+  updatedAt: number;
+};
+
+let videoPosterCache: Record<string, VideoPosterCacheEntry> | null = null;
+
+const loadVideoPosterCache = () => {
+  if (videoPosterCache) {
+    return videoPosterCache;
+  }
+
+  const raw = readStorageValue(videoPosterCacheStorageKey);
+  if (!raw) {
+    videoPosterCache = {};
+    return videoPosterCache;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, VideoPosterCacheEntry>;
+    videoPosterCache = Object.fromEntries(
+      Object.entries(parsed).filter(
+        ([key, value]) =>
+          typeof key === "string" &&
+          typeof value?.posterDataUrl === "string" &&
+          typeof value?.updatedAt === "number" &&
+          Number.isFinite(value.updatedAt),
+      ),
+    );
+  } catch {
+    videoPosterCache = {};
+  }
+
+  return videoPosterCache;
+};
+
+const persistVideoPosterCache = (cache: Record<string, VideoPosterCacheEntry>) => {
+  const orderedEntries = Object.entries(cache)
+    .sort((left, right) => right[1].updatedAt - left[1].updatedAt)
+    .slice(0, maxCachedVideoPosters);
+  videoPosterCache = Object.fromEntries(orderedEntries);
+  writeStorageValue(videoPosterCacheStorageKey, JSON.stringify(videoPosterCache));
+};
 
 const parseUrl = (value?: string | null) => {
   const cleaned = clean(value);
@@ -105,6 +152,33 @@ export const getVideoPlayback = (video?: Partial<VideoNote> | null): VideoPlayba
 
   return undefined;
 };
+
+export const cacheVideoPoster = (url: string, posterDataUrl?: string) => {
+  const cleanUrl = clean(url);
+  const cleanPoster = clean(posterDataUrl);
+  if (!cleanUrl || !cleanPoster) {
+    return;
+  }
+
+  const cache = loadVideoPosterCache();
+  cache[cleanUrl] = {
+    posterDataUrl: cleanPoster,
+    updatedAt: Date.now(),
+  };
+  persistVideoPosterCache(cache);
+};
+
+export const readCachedVideoPoster = (url?: string | null) => {
+  const cleanUrl = clean(url);
+  if (!cleanUrl) {
+    return undefined;
+  }
+
+  return loadVideoPosterCache()[cleanUrl]?.posterDataUrl;
+};
+
+export const getVideoPosterUrl = (video?: Partial<VideoNote> | null) =>
+  clean(video?.posterDataUrl) ?? readCachedVideoPoster(video?.url);
 
 export const formatVideoDuration = (seconds?: number) => {
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {

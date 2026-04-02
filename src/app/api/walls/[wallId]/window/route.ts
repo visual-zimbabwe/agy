@@ -1,0 +1,406 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+import { rowsToSnapshot } from "@/features/wall/cloud";
+import type { WallWindowResponse } from "@/features/wall/types";
+import {
+  filterLinksToVisibleNoteIds,
+  filterNotesToWallBounds,
+  filterZonesToWallBounds,
+  type WallBounds,
+} from "@/features/wall/windowing";
+import { requireApiUser } from "@/lib/api/auth";
+
+const paramsSchema = z.object({
+  wallId: z.string().uuid(),
+});
+
+const boundsSchema = z.object({
+  minX: z.coerce.number().finite(),
+  minY: z.coerce.number().finite(),
+  maxX: z.coerce.number().finite(),
+  maxY: z.coerce.number().finite(),
+  candidateMargin: z.coerce.number().finite().min(0).max(5000).optional(),
+});
+
+type SnapshotArgs = Parameters<typeof rowsToSnapshot>[0];
+type WallWindowRow = SnapshotArgs["wall"] & {
+  id: string;
+  title?: string | null;
+  updated_at?: string | null;
+  sync_version?: number | null;
+};
+type QueryErrorLike = { message: string };
+type QueryRowsResult = { data: unknown[] | null; error: QueryErrorLike | null };
+type QuerySingleResult = { data: Record<string, unknown> | null; error: QueryErrorLike | null };
+
+type QueryBuilderLike = PromiseLike<QueryRowsResult | QuerySingleResult> & {
+  select: (columns: string) => QueryBuilderLike;
+  eq: (column: string, value: unknown) => QueryBuilderLike;
+  is: (column: string, value: null) => QueryBuilderLike;
+  gte: (column: string, value: number) => QueryBuilderLike;
+  lte: (column: string, value: number) => QueryBuilderLike;
+  order: (column: string, options: { ascending: boolean }) => QueryBuilderLike;
+  in: (column: string, values: string[]) => QueryBuilderLike;
+  maybeSingle: () => Promise<QuerySingleResult>;
+};
+
+type SupabaseLike = {
+  from: (table: string) => QueryBuilderLike;
+};
+
+const isMissingZoneKindColumnError = (message?: string) =>
+  Boolean(message && message.includes("column zones.kind does not exist"));
+const isMissingNoteFormattingColumnError = (message?: string) =>
+  Boolean(
+    message &&
+      (message.includes("column notes.note_kind does not exist") ||
+        message.includes("column notes.quote_author does not exist") ||
+        message.includes("column notes.quote_source does not exist") ||
+        message.includes("column notes.private_note does not exist") ||
+        message.includes("column notes.canon does not exist") ||
+        message.includes("column notes.eisenhower does not exist") ||
+        message.includes("column notes.currency does not exist") ||
+        message.includes("column notes.bookmark does not exist") ||
+        message.includes("column notes.apod does not exist") ||
+        message.includes("column notes.poetry does not exist") ||
+        message.includes("column notes.text_size does not exist") ||
+        message.includes("column notes.image_url does not exist") ||
+        message.includes("column notes.text_align does not exist") ||
+        message.includes("column notes.text_v_align does not exist") ||
+        message.includes("column notes.text_font does not exist") ||
+        message.includes("column notes.text_color does not exist") ||
+        message.includes("column notes.pinned does not exist") ||
+        message.includes("column notes.highlighted does not exist")),
+  );
+const isMissingNoteVocabularyColumnError = (message?: string) =>
+  Boolean(message && message.includes("column notes.vocabulary does not exist"));
+const isMissingNoteGroupsTableError = (message?: string) =>
+  Boolean(message && message.includes('relation "public.note_groups" does not exist'));
+
+const notesSelectWithFormatting =
+  "id,revision,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
+const notesSelectWithoutVocabulary =
+  "id,revision,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
+const notesSelectLegacy = "id,text,tags,text_size,x,y,w,h,color,created_at,updated_at,revision";
+const zonesSelectWithKind = "id,revision,label,kind,group_id,x,y,w,h,color,created_at,updated_at";
+const zonesSelectLegacy = "id,revision,label,group_id,x,y,w,h,color,created_at,updated_at";
+
+const buildCandidateBounds = (bounds: WallBounds, margin: number) => ({
+  minX: bounds.minX - margin,
+  minY: bounds.minY - margin,
+  maxX: bounds.maxX,
+  maxY: bounds.maxY,
+});
+
+const loadWindowNotes = async (
+  supabase: SupabaseLike,
+  ownerId: string,
+  wallId: string,
+  bounds: ReturnType<typeof buildCandidateBounds>,
+) => {
+  const baseQuery = () =>
+    supabase
+      .from("notes")
+      .eq("wall_id", wallId)
+      .eq("owner_id", ownerId)
+      .is("deleted_at", null)
+      .gte("x", bounds.minX)
+      .lte("x", bounds.maxX)
+      .gte("y", bounds.minY)
+      .lte("y", bounds.maxY)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: false });
+
+  const fullResult = await baseQuery().select(notesSelectWithFormatting);
+  if (fullResult.error && isMissingNoteVocabularyColumnError(fullResult.error.message)) {
+    const withoutVocabularyResult = await baseQuery().select(notesSelectWithoutVocabulary);
+    if (withoutVocabularyResult.error && isMissingNoteFormattingColumnError(withoutVocabularyResult.error.message)) {
+      const legacyResult = await baseQuery().select(notesSelectLegacy);
+      if (legacyResult.error) {
+        return { data: null as SnapshotArgs["notes"] | null, error: legacyResult.error };
+      }
+      return {
+        data:
+          ((legacyResult.data as Array<Record<string, unknown>> | null)?.map((note) => ({
+            ...note,
+            note_kind: "standard",
+            quote_author: null,
+            quote_source: null,
+            private_note: null,
+            image_url: null,
+            text_align: null,
+            text_v_align: null,
+            text_font: null,
+            text_color: null,
+            pinned: false,
+            highlighted: false,
+            vocabulary: null,
+            canon: null,
+            eisenhower: null,
+            currency: null,
+            bookmark: null,
+            apod: null,
+            poetry: null,
+            file: null,
+          })) as SnapshotArgs["notes"]) ?? [],
+        error: null,
+      };
+    }
+
+    if (withoutVocabularyResult.error) {
+      return { data: null as SnapshotArgs["notes"] | null, error: withoutVocabularyResult.error };
+    }
+
+    return {
+      data: (((withoutVocabularyResult.data as unknown as SnapshotArgs["notes"] | null) ?? []).map((note) => ({ ...note, vocabulary: null })) as SnapshotArgs["notes"]),
+      error: null,
+    };
+  }
+
+  if (fullResult.error && isMissingNoteFormattingColumnError(fullResult.error.message)) {
+    const legacyResult = await baseQuery().select(notesSelectLegacy);
+    if (legacyResult.error) {
+      return { data: null as SnapshotArgs["notes"] | null, error: legacyResult.error };
+    }
+    return {
+      data:
+        ((legacyResult.data as Array<Record<string, unknown>> | null)?.map((note) => ({
+          ...note,
+          note_kind: "standard",
+          quote_author: null,
+          quote_source: null,
+          private_note: null,
+          image_url: null,
+          text_align: null,
+          text_v_align: null,
+          text_font: null,
+          text_color: null,
+          pinned: false,
+          highlighted: false,
+          vocabulary: null,
+          canon: null,
+          eisenhower: null,
+          currency: null,
+          bookmark: null,
+          apod: null,
+          poetry: null,
+          file: null,
+        })) as SnapshotArgs["notes"]) ?? [],
+      error: null,
+    };
+  }
+
+  return {
+    data: (fullResult.data as SnapshotArgs["notes"] | null) ?? [],
+    error: fullResult.error,
+  };
+};
+
+const loadWindowZones = async (
+  supabase: SupabaseLike,
+  ownerId: string,
+  wallId: string,
+  bounds: ReturnType<typeof buildCandidateBounds>,
+) => {
+  const baseQuery = () =>
+    supabase
+      .from("zones")
+      .eq("wall_id", wallId)
+      .eq("owner_id", ownerId)
+      .is("deleted_at", null)
+      .gte("x", bounds.minX)
+      .lte("x", bounds.maxX)
+      .gte("y", bounds.minY)
+      .lte("y", bounds.maxY)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: false });
+
+  const withKindResult = await baseQuery().select(zonesSelectWithKind);
+  if (withKindResult.error && isMissingZoneKindColumnError(withKindResult.error.message)) {
+    const legacyResult = await baseQuery().select(zonesSelectLegacy);
+    if (legacyResult.error) {
+      return { data: null as SnapshotArgs["zones"] | null, error: legacyResult.error };
+    }
+    return {
+      data: (((legacyResult.data as Array<Record<string, unknown>> | null)?.map((zone) => ({ ...zone, kind: "frame" })) as SnapshotArgs["zones"]) ?? []),
+      error: null,
+    };
+  }
+
+  return {
+    data: (withKindResult.data as SnapshotArgs["zones"] | null) ?? [],
+    error: withKindResult.error,
+  };
+};
+
+export async function GET(request: Request, context: { params: Promise<{ wallId: string }> }) {
+  const auth = await requireApiUser();
+  if ("response" in auth) {
+    return auth.response;
+  }
+
+  const parsedParams = paramsSchema.safeParse(await context.params);
+  if (!parsedParams.success) {
+    return NextResponse.json({ error: "Invalid wall id" }, { status: 400 });
+  }
+
+  const url = new URL(request.url);
+  const parsedBounds = boundsSchema.safeParse({
+    minX: url.searchParams.get("minX"),
+    minY: url.searchParams.get("minY"),
+    maxX: url.searchParams.get("maxX"),
+    maxY: url.searchParams.get("maxY"),
+    candidateMargin: url.searchParams.get("candidateMargin") ?? undefined,
+  });
+
+  if (!parsedBounds.success || parsedBounds.data.maxX < parsedBounds.data.minX || parsedBounds.data.maxY < parsedBounds.data.minY) {
+    return NextResponse.json({ error: "Invalid window bounds" }, { status: 400 });
+  }
+
+  const wallId = parsedParams.data.wallId;
+  const bounds: WallBounds = {
+    minX: parsedBounds.data.minX,
+    minY: parsedBounds.data.minY,
+    maxX: parsedBounds.data.maxX,
+    maxY: parsedBounds.data.maxY,
+  };
+  const candidateBounds = buildCandidateBounds(bounds, parsedBounds.data.candidateMargin ?? 1200);
+
+  const supabase = auth.supabase as unknown as SupabaseLike;
+
+  const [wallResult, zoneGroupsResult, noteGroupsResult, notesResult, zonesResult] = await Promise.all([
+    supabase
+      .from("walls")
+      .select("id,title,camera_x,camera_y,camera_zoom,last_color,updated_at,sync_version")
+      .eq("id", wallId)
+      .eq("owner_id", auth.user.id)
+      .maybeSingle(),
+    supabase
+      .from("zone_groups")
+      .select("id,revision,label,color,zone_ids,collapsed,created_at,updated_at")
+      .eq("wall_id", wallId)
+      .eq("owner_id", auth.user.id)
+      .is("deleted_at", null),
+    supabase
+      .from("note_groups")
+      .select("id,revision,label,color,note_ids,collapsed,created_at,updated_at")
+      .eq("wall_id", wallId)
+      .eq("owner_id", auth.user.id)
+      .is("deleted_at", null),
+    loadWindowNotes(supabase, auth.user.id, wallId, candidateBounds),
+    loadWindowZones(supabase, auth.user.id, wallId, candidateBounds),
+  ]);
+
+  const wallRow = wallResult.data as WallWindowRow | null;
+
+  if (wallResult.error || !wallRow) {
+    return NextResponse.json({ error: "Wall not found" }, { status: 404 });
+  }
+  if (zoneGroupsResult.error) {
+    return NextResponse.json({ error: zoneGroupsResult.error.message }, { status: 500 });
+  }
+  if (noteGroupsResult.error && !isMissingNoteGroupsTableError(noteGroupsResult.error.message)) {
+    return NextResponse.json({ error: noteGroupsResult.error.message }, { status: 500 });
+  }
+  if (notesResult.error) {
+    return NextResponse.json({ error: notesResult.error.message }, { status: 500 });
+  }
+  if (zonesResult.error) {
+    return NextResponse.json({ error: zonesResult.error.message }, { status: 500 });
+  }
+
+  const fullWindowSnapshot = rowsToSnapshot({
+    wall: wallRow,
+    notes: (notesResult.data ?? []) as SnapshotArgs["notes"],
+    zones: (zonesResult.data ?? []) as SnapshotArgs["zones"],
+    zoneGroups: (zoneGroupsResult.data ?? []) as SnapshotArgs["zoneGroups"],
+    noteGroups: ((noteGroupsResult.data ?? []) as SnapshotArgs["noteGroups"]) ?? [],
+    links: [],
+  });
+
+  const filteredNotes = filterNotesToWallBounds(Object.values(fullWindowSnapshot.notes), bounds);
+  const filteredZones = filterZonesToWallBounds(Object.values(fullWindowSnapshot.zones), bounds);
+  const filteredNoteIds = new Set(filteredNotes.map((note) => note.id));
+  const filteredZoneIds = new Set(filteredZones.map((zone) => zone.id));
+
+  const linksResult = filteredNoteIds.size > 0
+    ? await supabase
+        .from("links")
+        .select("id,revision,from_note_id,to_note_id,type,label,created_at,updated_at")
+        .eq("wall_id", wallId)
+        .eq("owner_id", auth.user.id)
+        .is("deleted_at", null)
+        .in("from_note_id", [...filteredNoteIds])
+        .in("to_note_id", [...filteredNoteIds])
+    : { data: [], error: null };
+
+  if (linksResult.error) {
+    return NextResponse.json({ error: linksResult.error.message }, { status: 500 });
+  }
+
+  const snapshot = rowsToSnapshot({
+    wall: wallRow,
+    notes: (notesResult.data ?? []).filter((row) => filteredNoteIds.has(row.id)) as SnapshotArgs["notes"],
+    zones: (zonesResult.data ?? []).filter((row) => filteredZoneIds.has(row.id)) as SnapshotArgs["zones"],
+    zoneGroups: ((zoneGroupsResult.data as Array<{ zone_ids: unknown }> | null) ?? []).filter((group) => {
+      const zoneIds = Array.isArray(group.zone_ids) ? (group.zone_ids as string[]) : [];
+      return zoneIds.some((zoneId) => filteredZoneIds.has(zoneId));
+    }) as SnapshotArgs["zoneGroups"],
+    noteGroups: ((((noteGroupsResult.data as Array<{ note_ids: unknown }> | null) ?? []).filter((group) => {
+      const noteIds = Array.isArray(group.note_ids) ? (group.note_ids as string[]) : [];
+      return noteIds.some((noteId) => filteredNoteIds.has(noteId));
+    }) as SnapshotArgs["noteGroups"])) ?? [],
+    links: filterLinksToVisibleNoteIds(
+      rowsToSnapshot({
+        wall: wallRow,
+        notes: [],
+        zones: [],
+        zoneGroups: [],
+        noteGroups: [],
+        links: (linksResult.data ?? []) as SnapshotArgs["links"],
+      }).links
+        ? Object.values(
+            rowsToSnapshot({
+              wall: wallRow,
+              notes: [],
+              zones: [],
+              zoneGroups: [],
+              noteGroups: [],
+              links: (linksResult.data ?? []) as SnapshotArgs["links"],
+            }).links,
+          )
+        : [],
+      filteredNoteIds,
+    ).map((link) => ({
+      id: link.id,
+      revision: link.revision,
+      from_note_id: link.fromNoteId,
+      to_note_id: link.toNoteId,
+      type: link.type,
+      label: link.label,
+      created_at: new Date(link.createdAt).toISOString(),
+      updated_at: new Date(link.updatedAt).toISOString(),
+    })) as SnapshotArgs["links"],
+  });
+
+  const payload: WallWindowResponse = {
+    shell: {
+      id: wallRow.id,
+      title: wallRow.title ?? undefined,
+      camera: {
+        x: wallRow.camera_x,
+        y: wallRow.camera_y,
+        zoom: wallRow.camera_zoom,
+      },
+      lastColor: wallRow.last_color ?? undefined,
+      updatedAt: wallRow.updated_at ?? undefined,
+      syncVersion: wallRow.sync_version ?? 0,
+    },
+    bounds,
+    snapshot,
+    syncVersion: wallRow.sync_version ?? 0,
+  };
+
+  return NextResponse.json(payload);
+}

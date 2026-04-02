@@ -60,6 +60,7 @@ import { useWallSelection } from "@/components/wall/useWallSelection";
 import { useWallSnapping } from "@/components/wall/useWallSnapping";
 import { WallStage } from "@/components/wall/WallStage";
 import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
+import { useWallViewportWindow } from "@/components/wall/useWallViewportWindow";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
 import { useApodNotes } from "@/components/wall/useApodNotes";
 import { useEconomistNotes } from "@/components/wall/useEconomistNotes";
@@ -130,7 +131,7 @@ import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh
 import { createAudioNoteState, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
 import { createImageNoteState, getImageNoteFilename, toImageNotePatch, IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
-import { createVideoNoteState, getVideoNoteTitle, getVideoPlayback, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
+import { cacheVideoPoster, createVideoNoteState, getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
 import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
 import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
@@ -449,7 +450,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       height: mediaHeight * camera.zoom,
       title: getVideoNoteTitle(inlinePlayingVideoNote.video),
       playback,
-      posterUrl: inlinePlayingVideoNote.video?.posterDataUrl?.trim(),
+      posterUrl: getVideoPosterUrl(inlinePlayingVideoNote.video),
     };
   }, [camera, inlinePlayingVideoNote]);
   const notes = useMemo(() => Object.values(renderSnapshot.notes), [renderSnapshot.notes]);
@@ -1720,7 +1721,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               return;
             }
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            settle({ durationSeconds, posterDataUrl: canvas.toDataURL("image/jpeg", videoPosterJpegQuality) });
+            const posterDataUrl = canvas.toDataURL("image/jpeg", videoPosterJpegQuality);
+            cacheVideoPoster(url, posterDataUrl);
+            settle({ durationSeconds, posterDataUrl });
           } catch {
             settle({ durationSeconds });
           }
@@ -1794,7 +1797,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             source: "link",
             url: normalizedUrl,
             durationSeconds: media.durationSeconds,
-            posterDataUrl: media.posterDataUrl,
           }),
         ),
       );
@@ -1895,7 +1897,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             sizeBytes: file.size,
             uploadedAt: Date.now(),
             durationSeconds: media.durationSeconds,
-            posterDataUrl: media.posterDataUrl,
           }),
         ),
       );
@@ -2907,6 +2908,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const renderVisibleZones = useMemo(() => (focusedNote ? [] : visibleZones), [focusedNote, visibleZones]);
   const renderVisibleLinks = useMemo(() => (focusedNote ? [] : visibleLinks), [focusedNote, visibleLinks]);
   const renderPathLinkIds = useMemo(() => (focusedNote ? new Set<string>() : pathLinkIds), [focusedNote, pathLinkIds]);
+  const {
+    visibleNotes: layerVisibleNotes,
+    visibleZones: layerVisibleZones,
+    visibleLinks: layerVisibleLinks,
+    renderDetailLevel: layerRenderDetailLevel,
+  } = useWallViewportWindow({
+    notes: displayVisibleNotes,
+    zones: renderVisibleZones,
+    links: renderVisibleLinks,
+    camera,
+    viewport,
+    enabled: !timelineViewActive && !readingMode,
+  });
   const presentationModeType: "notes" | "narrative" = hasNarrativePresentation ? "narrative" : "notes";
   const presentationLength = presentationModeType === "narrative" ? activePresentationSteps.length : presentationNotes.length;
   const activePresentationStep =
@@ -4222,8 +4236,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
           <Layer>
             <WallLinksZonesLayer
-              visibleLinks={renderVisibleLinks}
-              visibleZones={renderVisibleZones}
+              visibleLinks={layerVisibleLinks}
+              visibleZones={layerVisibleZones}
               notesById={displayNotesById}
               selectedLinkId={ui.selectedLinkId}
               selectedNoteId={ui.selectedNoteId}
@@ -4272,7 +4286,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             )}
 
             <WallNotesLayer
-              visibleNotes={displayVisibleNotes}
+              visibleNotes={layerVisibleNotes}
+              renderDetailLevel={layerRenderDetailLevel}
               activeSelectedNoteIds={activeSelectedNoteIds}
               selectedNoteId={ui.selectedNoteId}
               flashNoteId={ui.flashNoteId}

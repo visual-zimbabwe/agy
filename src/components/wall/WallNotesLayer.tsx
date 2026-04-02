@@ -17,9 +17,10 @@ import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
-import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
+import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle, getVideoPosterUrl } from "@/features/wall/video-notes";
 import { throneLoadingText } from "@/features/wall/throne";
 import type { LinkType, Note } from "@/features/wall/types";
+import type { WallRenderDetailLevel } from "@/features/wall/windowing";
 
 type GuideLineState = {
   vertical?: { x: number; y1: number; y2: number; distance?: number };
@@ -246,8 +247,62 @@ const formatCurrencyUpdatedAgo = (value?: number) => {
   return `Updated ${elapsedDays}d ago`;
 };
 
+const getWallNotePreviewTitle = (note: Note) => {
+  if (isCurrencyNote(note)) {
+    return note.currency?.baseCurrency ? `${note.currency.baseCurrency} rates` : "Currency";
+  }
+  if (note.noteKind === "web-bookmark") {
+    return note.bookmark?.metadata?.title?.trim() || note.bookmark?.metadata?.domain || note.bookmark?.url || "Bookmark";
+  }
+  if (note.noteKind === "audio") {
+    return getAudioNoteTitle(note.audio);
+  }
+  if (note.noteKind === "video") {
+    return getVideoNoteTitle(note.video);
+  }
+  if (note.noteKind === "file") {
+    return getFileNoteTitle(note.file);
+  }
+  if (note.noteKind === "poetry") {
+    return note.poetry?.title?.trim() || note.poetry?.author?.trim() || "Poetry";
+  }
+  if (note.noteKind === "economist") {
+    return note.economist?.mainStory?.trim() || note.economist?.issueDate?.trim() || "Magazine";
+  }
+  if (note.vocabulary?.word?.trim()) {
+    return note.vocabulary.word.trim();
+  }
+  return stripWikiLinkMarkup(note.text).split(/\r?\n/).map((line) => line.trim()).find(Boolean) || "Untitled note";
+};
+
+const getWallNotePreviewMeta = (note: Note) => {
+  if (note.noteKind === "audio") {
+    return getAudioNoteMeta(note.audio);
+  }
+  if (note.noteKind === "video") {
+    return getVideoNoteMeta(note.video);
+  }
+  if (note.noteKind === "file") {
+    return getFileNoteMetaCaps(note.file);
+  }
+  if (note.noteKind === "web-bookmark") {
+    return note.bookmark?.metadata?.siteName?.trim() || note.bookmark?.metadata?.domain || "Link preview";
+  }
+  if (note.noteKind === "poetry") {
+    return note.poetry?.author?.trim() || "Poem";
+  }
+  if (note.noteKind === "economist") {
+    return note.economist?.issueDate?.trim() || "Issue";
+  }
+  if (note.tags.length > 0) {
+    return `#${note.tags[0]}`;
+  }
+  return note.noteKind ? note.noteKind.replaceAll("-", " ") : "standard note";
+};
+
 type WallNotesLayerProps = {
   visibleNotes: Note[];
+  renderDetailLevel: WallRenderDetailLevel;
   activeSelectedNoteIds: string[];
   selectedNoteId?: string;
   flashNoteId?: string;
@@ -307,6 +362,7 @@ type WallNotesLayerProps = {
 
 export const WallNotesLayer = ({
   visibleNotes,
+  renderDetailLevel,
   activeSelectedNoteIds,
   selectedNoteId,
   flashNoteId,
@@ -441,13 +497,13 @@ export const WallNotesLayer = ({
 
   useEffect(() => {
     let cancelled = false;
-    const urls = [
+    const urls = renderDetailLevel === "full" ? [
       ...new Set(
         visibleNotes
-          .flatMap((note) => [note.imageUrl?.trim(), note.bookmark?.metadata?.imageUrl?.trim(), note.bookmark?.metadata?.faviconUrl?.trim(), note.video?.posterDataUrl?.trim()])
+          .flatMap((note) => [note.imageUrl?.trim(), note.bookmark?.metadata?.imageUrl?.trim(), note.bookmark?.metadata?.faviconUrl?.trim(), getVideoPosterUrl(note.video)])
           .filter((url): url is string => Boolean(url)),
       ),
-    ];
+    ] : [];
     const visibleUrlSet = new Set(urls);
 
     setLoadedImagesByUrl((previous) => {
@@ -463,7 +519,6 @@ export const WallNotesLayer = ({
       const nextEntries = Object.entries(previous).filter(([url]) => visibleUrlSet.has(url));
       return nextEntries.length === Object.keys(previous).length ? previous : Object.fromEntries(nextEntries);
     });
-
     const nextLoads = urls.filter((url) => !loadedImagesByUrl[url] && !failedImagesByUrl[url]);
     for (const url of nextLoads) {
       const image = new window.Image();
@@ -504,7 +559,7 @@ export const WallNotesLayer = ({
     return () => {
       cancelled = true;
     };
-  }, [failedImagesByUrl, loadedImagesByUrl, visibleNotes]);
+  }, [failedImagesByUrl, loadedImagesByUrl, renderDetailLevel, visibleNotes]);
 
   useEffect(() => {
     const nextSignatures: Record<string, string> = {};
@@ -558,9 +613,297 @@ export const WallNotesLayer = ({
         const pulseScale = sizePulseScaleByNote[note.id] ?? 1;
         const textSpringFactor = 1 + (pulseScale - 1) * 0.7;
         const colorWashOpacity = colorWashOpacityByNote[note.id] ?? 0;
+        const resolvedNoteColor = resolveNoteFillColor(noteView);
+        const noteCornerRadius = getNoteCornerRadius(noteView);
+
+        const handleSelect = (multiSelect: boolean) => {
+          if (multiSelect) {
+            toggleSelectNote(note.id);
+          } else {
+            selectSingleNote(note.id);
+          }
+          if (editingId !== note.id) {
+            setEditing(null);
+          }
+        };
+
+        const openNoteEditor = () => {
+          if (isTimeLocked) {
+            return;
+          }
+          selectSingleNote(note.id);
+          if (note.vocabulary) {
+            toggleVocabularyFlip(note.id);
+            return;
+          }
+          if (isApodNote(noteView) || noteView.noteKind === "poetry" || noteView.noteKind === "file" || noteView.noteKind === "image") {
+            openEditor(note.id, noteView.text);
+            return;
+          }
+          if (noteView.imageUrl?.trim()) {
+            openImageInsert(note.id);
+            return;
+          }
+          openEditor(note.id, note.text);
+        };
+
+        const groupProps = {
+          ref: (node: Konva.Group | null) => {
+            noteNodeRefs.current[note.id] = node;
+          },
+          x: noteView.x,
+          y: noteView.y,
+          width: noteView.w,
+          height: noteView.h,
+          draggable: !isTimeLocked && !isPinned,
+          onMouseEnter: () => setHoveredNoteId(note.id),
+          onMouseLeave: () => setHoveredNoteId((previous) => (previous === note.id ? undefined : previous)),
+          onClick: (event: Konva.KonvaEventObject<MouseEvent>) => {
+            if (isTimeLocked) {
+              selectSingleNote(note.id);
+              return;
+            }
+            if (linkingFromNoteId && linkingFromNoteId !== note.id) {
+              createLink(linkingFromNoteId, note.id, linkType);
+              setLinkingFromNote(undefined);
+              return;
+            }
+            handleSelect(Boolean(event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey));
+          },
+          onTap: (event: Konva.KonvaEventObject<Event>) => {
+            if (isTimeLocked) {
+              selectSingleNote(note.id);
+              return;
+            }
+            const nativeEvent = event.evt as Event & { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean };
+            if (linkingFromNoteId && linkingFromNoteId !== note.id) {
+              createLink(linkingFromNoteId, note.id, linkType);
+              setLinkingFromNote(undefined);
+              return;
+            }
+            handleSelect(Boolean(nativeEvent.shiftKey || nativeEvent.ctrlKey || nativeEvent.metaKey));
+          },
+          onDblClick: openNoteEditor,
+          onDragStart: (event: Konva.KonvaEventObject<DragEvent>) => {
+            if (isTimeLocked || isPinned) {
+              return;
+            }
+            setDraggingNoteId(note.id);
+            setGuideLines({});
+            if (!activeSelectedNoteIds.includes(note.id)) {
+              syncPrimarySelection([note.id]);
+            }
+            const activeIds = activeSelectedNoteIds.includes(note.id) ? activeSelectedNoteIds : [note.id];
+            dragSingleStartRef.current = {
+              id: note.id,
+              x: note.x,
+              y: note.y,
+              altClone: event.evt.altKey,
+            };
+            if (activeIds.length > 1) {
+              dragSelectionStartRef.current = Object.fromEntries(
+                activeIds.flatMap((id) => {
+                  const entry = notesById[id];
+                  if (!entry || entry.pinned) {
+                    return [];
+                  }
+                  return [[entry.id, { x: entry.x, y: entry.y }] as const];
+                }),
+              );
+              dragAnchorRef.current = { id: note.id, x: event.target.x(), y: event.target.y() };
+            }
+          },
+          onDragMove: (event: Konva.KonvaEventObject<DragEvent>) => {
+            if (isTimeLocked || isPinned) {
+              return;
+            }
+            const start = dragSingleStartRef.current;
+            const pointerX = event.target.x();
+            const pointerY = event.target.y();
+            let candidateX = pointerX;
+            let candidateY = pointerY;
+            if (start && event.evt.shiftKey) {
+              const dx = Math.abs(pointerX - start.x);
+              const dy = Math.abs(pointerY - start.y);
+              if (dx > dy) {
+                candidateY = start.y;
+              } else {
+                candidateX = start.x;
+              }
+            }
+            const snapped = resolveSnappedPosition(note, candidateX, candidateY);
+            event.target.position(snapped);
+
+            const anchor = dragAnchorRef.current;
+            const startMap = dragSelectionStartRef.current;
+            if (!anchor || !startMap) {
+              return;
+            }
+            const dx = snapped.x - anchor.x;
+            const dy = snapped.y - anchor.y;
+            let movedPeers = false;
+            for (const [id, startPos] of Object.entries(startMap)) {
+              if (id === note.id || notesById[id]?.pinned) {
+                continue;
+              }
+              const peerNode = noteNodeRefs.current[id];
+              if (!peerNode) {
+                continue;
+              }
+              peerNode.position({ x: startPos.x + dx, y: startPos.y + dy });
+              movedPeers = true;
+            }
+            if (movedPeers) {
+              event.target.getLayer()?.batchDraw();
+            }
+          },
+          onDragEnd: (event: Konva.KonvaEventObject<DragEvent>) => {
+            if (isTimeLocked || isPinned) {
+              return;
+            }
+            const snapped = resolveSnappedPosition(note, event.target.x(), event.target.y());
+            event.target.position(snapped);
+            const anchor = dragAnchorRef.current;
+            const startMap = dragSelectionStartRef.current;
+            if (anchor && startMap) {
+              runHistoryGroup(() => {
+                moveNote(note.id, snapped.x, snapped.y);
+                const dx = snapped.x - anchor.x;
+                const dy = snapped.y - anchor.y;
+                for (const [id, startPos] of Object.entries(startMap)) {
+                  if (id === note.id || notesById[id]?.pinned) {
+                    continue;
+                  }
+                  updateNote(id, { x: startPos.x + dx, y: startPos.y + dy });
+                }
+              });
+            } else {
+              moveNote(note.id, snapped.x, snapped.y);
+            }
+            const dragStart = dragSingleStartRef.current;
+            if (dragStart?.id === note.id && dragStart.altClone) {
+              updateNote(note.id, { x: dragStart.x, y: dragStart.y });
+              duplicateNoteAt(note.id, snapped.x, snapped.y);
+              syncPrimarySelection([note.id]);
+            }
+            setDraggingNoteId(undefined);
+            setGuideLines({});
+            dragSelectionStartRef.current = null;
+            dragAnchorRef.current = null;
+            dragSingleStartRef.current = null;
+          },
+          onTransform: (event: Konva.KonvaEventObject<Event>) => {
+            if (isTimeLocked || isPinned || isCurrencyNote(noteView)) {
+              return;
+            }
+            const node = event.target;
+            const width = Math.max(NOTE_DEFAULTS.minWidth, node.width() * node.scaleX());
+            const height = Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
+            node.scaleX(1);
+            node.scaleY(1);
+            setResizingNoteDrafts((previous) => ({
+              ...previous,
+              [note.id]: { x: node.x(), y: node.y(), w: width, h: height },
+            }));
+          },
+          onTransformEnd: (event: Konva.KonvaEventObject<Event>) => {
+            if (isTimeLocked || isPinned || isCurrencyNote(noteView)) {
+              return;
+            }
+            const node = event.target;
+            const draftEntry = resizingNoteDrafts[note.id];
+            const width = draftEntry?.w ?? Math.max(NOTE_DEFAULTS.minWidth, node.width() * node.scaleX());
+            const height = draftEntry?.h ?? Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
+            const x = draftEntry?.x ?? node.x();
+            const y = draftEntry?.y ?? node.y();
+            node.scaleX(1);
+            node.scaleY(1);
+            updateNote(note.id, { x, y, w: width, h: height });
+            setResizingNoteDrafts((previous) => {
+              if (!previous[note.id]) {
+                return previous;
+              }
+              const next = { ...previous };
+              delete next[note.id];
+              return next;
+            });
+          },
+        };
+
+        if (renderDetailLevel !== "full") {
+          const previewTitle = getWallNotePreviewTitle(noteView);
+          const previewMeta = getWallNotePreviewMeta(noteView);
+          const ambient = renderDetailLevel === "ambient";
+          const previewFill = isPrivateNote(noteView) ? "#F5F1EA" : noteView.noteKind === "joker" ? "#D6FF57" : noteView.noteKind === "throne" ? "#FF2400" : isCurrencyNote(noteView) ? CURRENCY_NOTE_DEFAULTS.color : "#FFFCF8";
+          const previewTextColor = getContrastTextColor(resolveNoteFillColor(noteView));
+          const previewStroke = getNoteStrokeColor({ isSelected, isHovered, isHighlighted: Boolean(note.highlighted), accent: resolvedNoteColor });
+          const previewBadge = noteView.noteKind ? noteView.noteKind.replaceAll("-", " ").toUpperCase() : "NOTE";
+
+          return (
+            <Group key={note.id} {...groupProps}>
+              <Rect
+                width={noteView.w}
+                height={noteView.h}
+                cornerRadius={noteCornerRadius}
+                fill={previewFill}
+                stroke={previewStroke}
+                strokeWidth={Boolean(note.highlighted) ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
+                shadowColor={atelierPalette.paperShadow}
+                shadowBlur={isFlashing ? 24 : isDragging ? 18 : 12}
+                shadowOpacity={isFlashing ? 0.14 : isDragging ? 0.11 : 0.06}
+                shadowOffsetY={isDragging ? 6 : 3}
+              />
+              <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={resolvedNoteColor} opacity={ambient ? 0.08 : 0.05} listening={false} />
+              <Rect x={0} y={0} width={Math.max(10, Math.min(noteView.w, 8))} height={noteView.h} cornerRadius={[noteCornerRadius, 0, 0, noteCornerRadius]} fill={resolvedNoteColor} listening={false} />
+              {!ambient ? (
+                <>
+                  <Text
+                    x={16}
+                    y={16}
+                    width={Math.max(0, noteView.w - 32)}
+                    fontSize={Math.max(12, Math.min(18, noteView.w * 0.08))}
+                    fontStyle="bold"
+                    fill={previewTextColor}
+                    text={previewTitle}
+                    ellipsis
+                    listening={false}
+                  />
+                  <Text
+                    x={16}
+                    y={Math.max(38, noteView.h - 28)}
+                    width={Math.max(0, noteView.w - 32)}
+                    fontSize={10}
+                    letterSpacing={1.2}
+                    fill={colorWithAlpha(previewTextColor, 0.68)}
+                    text={previewMeta}
+                    ellipsis
+                    listening={false}
+                  />
+                </>
+              ) : (
+                <>
+                  <Rect x={14} y={14} width={Math.max(32, Math.min(noteView.w - 28, noteView.w * 0.36))} height={8} cornerRadius={4} fill={colorWithAlpha(previewTextColor, 0.22)} listening={false} />
+                  <Rect x={14} y={Math.max(28, noteView.h - 18)} width={Math.max(26, Math.min(noteView.w - 28, noteView.w * 0.22))} height={6} cornerRadius={3} fill={colorWithAlpha(previewTextColor, 0.14)} listening={false} />
+                </>
+              )}
+              <Text
+                x={Math.max(14, noteView.w - 86)}
+                y={14}
+                width={72}
+                align="right"
+                fontSize={9}
+                letterSpacing={1.4}
+                fill={colorWithAlpha(previewTextColor, 0.58)}
+                text={previewBadge}
+                ellipsis
+                listening={false}
+              />
+            </Group>
+          );
+        }
+
         const noteTextStyle = getNoteTextStyle(noteView.textSize, noteView.textSizePx);
         const noteTextFontFamily = getNoteTextFontFamily(noteView.textFont);
-        const resolvedNoteColor = resolveNoteFillColor(noteView);
         const vocabulary = noteView.vocabulary;
         const isVocabulary = Boolean(vocabulary);
         const isQuote = noteView.noteKind === "quote";
@@ -614,7 +957,6 @@ export const WallNotesLayer = ({
         const bookmarkFavicon = bookmarkFaviconUrl ? loadedImagesByUrl[bookmarkFaviconUrl] : undefined;
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
         const isImageNote = Boolean(imageUrl);
-        const noteCornerRadius = getNoteCornerRadius(noteView);
         const isPaperShellNote = !isCurrency && !isJoker && !isThrone;
         const baseShellFill = isThrone ? THRONE_NOTE_BACKGROUND : isJoker ? "#F0CB88" : isCurrency ? CURRENCY_NOTE_DEFAULTS.color : isStandardNote ? "#FFFFFF" : atelierPalette.paper;
         const defaultTextColor =
@@ -656,7 +998,7 @@ export const WallNotesLayer = ({
         const videoMeta = getVideoNoteMeta(noteView.video).toUpperCase();
         const videoDuration = formatVideoDuration(noteView.video?.durationSeconds);
         const videoCurrentTime = formatVideoDuration(noteView.video?.durationSeconds ? Math.max(0, Math.round(noteView.video.durationSeconds * 0.35)) : 0);
-        const videoPoster = noteView.video?.posterDataUrl?.trim();
+        const videoPoster = getVideoPosterUrl(noteView.video);
         const loadedVideoPoster = videoPoster ? loadedImagesByUrl[videoPoster] : undefined;
         const parsedCodeNote = looksLikeCode ? parseCodeNote(noteView.text) : null;
         const renderedCodeLines = parsedCodeNote?.body.split("\n").slice(0, 8) ?? [];
@@ -732,234 +1074,7 @@ export const WallNotesLayer = ({
         const economistSubhead = noteView.economist?.mainStory?.trim() || "Curated issue";
 
         return (
-          <Group
-            key={note.id}
-            ref={(node) => {
-              noteNodeRefs.current[note.id] = node;
-            }}
-            x={noteView.x}
-            y={noteView.y}
-            width={noteView.w}
-            height={noteView.h}
-            draggable={!isTimeLocked && !isPinned}
-            onMouseEnter={() => setHoveredNoteId(note.id)}
-            onMouseLeave={() => setHoveredNoteId((previous) => (previous === note.id ? undefined : previous))}
-            onClick={(event) => {
-              if (isTimeLocked) {
-                selectSingleNote(note.id);
-                return;
-              }
-              if (linkingFromNoteId && linkingFromNoteId !== note.id) {
-                createLink(linkingFromNoteId, note.id, linkType);
-                setLinkingFromNote(undefined);
-                return;
-              }
-              if (event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey) {
-                toggleSelectNote(note.id);
-              } else {
-                selectSingleNote(note.id);
-              }
-              if (editingId !== note.id) {
-                setEditing(null);
-              }
-            }}
-            onTap={(event) => {
-              if (isTimeLocked) {
-                selectSingleNote(note.id);
-                return;
-              }
-              if (linkingFromNoteId && linkingFromNoteId !== note.id) {
-                createLink(linkingFromNoteId, note.id, linkType);
-                setLinkingFromNote(undefined);
-                return;
-              }
-              if (event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey) {
-                toggleSelectNote(note.id);
-              } else {
-                selectSingleNote(note.id);
-              }
-            }}
-            onDblClick={() => {
-              if (isTimeLocked) {
-                return;
-              }
-              selectSingleNote(note.id);
-              if (note.vocabulary) {
-                toggleVocabularyFlip(note.id);
-                return;
-              }
-              if (isApod || isPoetry || noteView.noteKind === "file") {
-                openEditor(note.id, noteView.text);
-                return;
-              }
-              if (noteView.noteKind === "image") {
-                openEditor(note.id, noteView.text);
-                return;
-              }
-              if (imageUrl) {
-                openImageInsert(note.id);
-                return;
-              }
-              openEditor(note.id, note.text);
-            }}
-            onDragStart={(event) => {
-              if (isTimeLocked || isPinned) {
-                return;
-              }
-              setDraggingNoteId(note.id);
-              setGuideLines({});
-              if (!activeSelectedNoteIds.includes(note.id)) {
-                syncPrimarySelection([note.id]);
-              }
-              const activeIds = activeSelectedNoteIds.includes(note.id) ? activeSelectedNoteIds : [note.id];
-              dragSingleStartRef.current = {
-                id: note.id,
-                x: note.x,
-                y: note.y,
-                altClone: event.evt.altKey,
-              };
-              if (activeIds.length > 1) {
-                dragSelectionStartRef.current = Object.fromEntries(
-                  activeIds
-                    .map((id) => notesById[id])
-                    .filter((entry): entry is Note => {
-                      if (!entry) {
-                        return false;
-                      }
-                      return !entry.pinned;
-                    })
-                    .map((entry) => [entry.id, { x: entry.x, y: entry.y }]),
-                );
-                dragAnchorRef.current = { id: note.id, x: event.target.x(), y: event.target.y() };
-              }
-            }}
-            onDragMove={(event) => {
-              if (isTimeLocked || isPinned) {
-                return;
-              }
-              const start = dragSingleStartRef.current;
-              const pointerX = event.target.x();
-              const pointerY = event.target.y();
-              let candidateX = pointerX;
-              let candidateY = pointerY;
-              if (start && event.evt.shiftKey) {
-                const dx = Math.abs(pointerX - start.x);
-                const dy = Math.abs(pointerY - start.y);
-                if (dx > dy) {
-                  candidateY = start.y;
-                } else {
-                  candidateX = start.x;
-                }
-              }
-              const snapped = resolveSnappedPosition(note, candidateX, candidateY);
-              event.target.position(snapped);
-
-              const anchor = dragAnchorRef.current;
-              const startMap = dragSelectionStartRef.current;
-              if (!anchor || !startMap) {
-                return;
-              }
-              const dx = snapped.x - anchor.x;
-              const dy = snapped.y - anchor.y;
-              let movedPeers = false;
-              for (const [id, startPos] of Object.entries(startMap)) {
-                if (id === note.id) {
-                  continue;
-                }
-                if (notesById[id]?.pinned) {
-                  continue;
-                }
-                const peerNode = noteNodeRefs.current[id];
-                if (!peerNode) {
-                  continue;
-                }
-                peerNode.position({ x: startPos.x + dx, y: startPos.y + dy });
-                movedPeers = true;
-              }
-              if (movedPeers) {
-                event.target.getLayer()?.batchDraw();
-              }
-            }}
-            onDragEnd={(event) => {
-              if (isTimeLocked || isPinned) {
-                return;
-              }
-              const snapped = resolveSnappedPosition(note, event.target.x(), event.target.y());
-              event.target.position(snapped);
-              const anchor = dragAnchorRef.current;
-              const startMap = dragSelectionStartRef.current;
-              if (anchor && startMap) {
-                runHistoryGroup(() => {
-                  moveNote(note.id, snapped.x, snapped.y);
-                  const dx = snapped.x - anchor.x;
-                  const dy = snapped.y - anchor.y;
-                  for (const [id, startPos] of Object.entries(startMap)) {
-                    if (id === note.id) {
-                      continue;
-                    }
-                    if (notesById[id]?.pinned) {
-                      continue;
-                    }
-                    updateNote(id, { x: startPos.x + dx, y: startPos.y + dy });
-                  }
-                });
-              } else {
-                moveNote(note.id, snapped.x, snapped.y);
-              }
-              const dragStart = dragSingleStartRef.current;
-              if (dragStart?.id === note.id && dragStart.altClone) {
-                updateNote(note.id, { x: dragStart.x, y: dragStart.y });
-                duplicateNoteAt(note.id, snapped.x, snapped.y);
-                syncPrimarySelection([note.id]);
-              }
-              setDraggingNoteId(undefined);
-              setGuideLines({});
-              dragSelectionStartRef.current = null;
-              dragAnchorRef.current = null;
-              dragSingleStartRef.current = null;
-            }}
-            onTransform={(event) => {
-              if (isTimeLocked || isPinned || isCurrency) {
-                return;
-              }
-              const node = event.target;
-              const width = Math.max(NOTE_DEFAULTS.minWidth, node.width() * node.scaleX());
-              const height = Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
-              node.scaleX(1);
-              node.scaleY(1);
-              setResizingNoteDrafts((previous) => ({
-                ...previous,
-                [note.id]: {
-                  x: node.x(),
-                  y: node.y(),
-                  w: width,
-                  h: height,
-                },
-              }));
-            }}
-            onTransformEnd={(event) => {
-              if (isTimeLocked || isPinned || isCurrency) {
-                return;
-              }
-              const node = event.target;
-              const draftEntry = resizingNoteDrafts[note.id];
-              const width = draftEntry?.w ?? Math.max(NOTE_DEFAULTS.minWidth, node.width() * node.scaleX());
-              const height = draftEntry?.h ?? Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
-              const x = draftEntry?.x ?? node.x();
-              const y = draftEntry?.y ?? node.y();
-              node.scaleX(1);
-              node.scaleY(1);
-              updateNote(note.id, { x, y, w: width, h: height });
-              setResizingNoteDrafts((previous) => {
-                if (!previous[note.id]) {
-                  return previous;
-                }
-                const next = { ...previous };
-                delete next[note.id];
-                return next;
-              });
-            }}
-          >
+          <Group key={note.id} {...groupProps}>
             {isJournal ? (
               <Rect
                 width={noteView.w}

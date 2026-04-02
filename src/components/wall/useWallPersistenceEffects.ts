@@ -96,6 +96,7 @@ export const useWallPersistenceEffects = ({
         loadWallSyncVersion(),
       ]);
       lastPersistedSerializedRef.current = JSON.stringify(snapshot);
+      saver.markCommittedSnapshot(snapshot);
 
       if (!cancelled) {
         hydrate(snapshot);
@@ -275,7 +276,8 @@ export const useWallPersistenceEffects = ({
         }
 
         lastPersistedSerializedRef.current = JSON.stringify(nextSnapshot);
-        await saveWallSnapshot(nextSnapshot);
+        await saveWallSnapshot(nextSnapshot, snapshot);
+        saver.markCommittedSnapshot(nextSnapshot);
 
         if (!cancelled) {
           hydrate(nextSnapshot);

@@ -9,7 +9,7 @@ import { getApodCaption } from "@/features/wall/apod";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
 import { getImageNoteMeta, getImageNoteTitle } from "@/features/wall/image-notes";
-import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle, getVideoPlayback } from "@/features/wall/video-notes";
+import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl } from "@/features/wall/video-notes";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
@@ -1082,13 +1082,14 @@ const VideoRenderer = ({ note, width, height, tone }: RendererProps) => {
   const duration = formatVideoDuration(video?.durationSeconds);
   const progress = formatVideoDuration(video?.durationSeconds ? Math.max(0, Math.round(video.durationSeconds * 0.35)) : 0);
   const playback = getVideoPlayback(video);
+  const posterUrl = getVideoPosterUrl(video);
 
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="flex h-full flex-col overflow-hidden" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(252,249,244,0.98))" }}>
         <div className="relative aspect-[16/9] overflow-hidden rounded-b-[8px]" style={{ background: "linear-gradient(140deg, rgba(56,37,33,1) 0%, rgba(124,68,52,0.94) 42%, rgba(29,26,24,1) 100%)" }}>
           {playback?.kind === "direct" ? (
-            <video src={playback.url} poster={video?.posterDataUrl} className="h-full w-full object-cover" controls muted playsInline preload="metadata" />
+            <video src={playback.url} poster={posterUrl} className="h-full w-full object-cover" controls muted playsInline preload="metadata" />
           ) : playback?.kind === "embed" ? (
             <iframe
               src={playback.url}
@@ -1097,9 +1098,9 @@ const VideoRenderer = ({ note, width, height, tone }: RendererProps) => {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
-          ) : video?.posterDataUrl ? (
+          ) : posterUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={video.posterDataUrl} alt={title} className="h-full w-full object-cover" loading="lazy" />
+            <img src={posterUrl} alt={title} className="h-full w-full object-cover" loading="lazy" />
           ) : null}
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02),rgba(0,0,0,0.24))]" />
           <div className="absolute inset-0 flex items-center justify-center">
@@ -1238,4 +1239,3 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
     </div>
   );
 });
-

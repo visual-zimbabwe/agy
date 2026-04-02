@@ -58,6 +58,7 @@ export const WallRenderedNote = ({ note, width, height, showNoteTags = true }: W
         <Layer listening={false}>
           <WallNotesLayer
             visibleNotes={[renderedNote]}
+            renderDetailLevel="full"
             activeSelectedNoteIds={[]}
             hoveredNoteId={hoveredNoteId}
             draggingNoteId={draggingNoteId}
