@@ -11,7 +11,6 @@ import { applyWallDeltaChanges } from "@/features/wall/sync";
 import {
   createSnapshotSaver,
   createTimelineRecorder,
-  loadTimelineEntries,
   loadWallCloudBaselineSnapshot,
   loadWallSnapshot,
   saveWallSnapshot,
@@ -65,6 +64,7 @@ export const useWallPersistenceEffects = ({
   lastTimelineRecordedAt,
 }: UseWallPersistenceEffectsOptions) => {
   const lastPersistedSerializedRef = useRef("");
+  const inMemoryTimelineLimit = 120;
 
   useEffect(() => {
     const saver = createSnapshotSaver(320, {
@@ -90,9 +90,8 @@ export const useWallPersistenceEffects = ({
     };
 
     const load = async () => {
-      const [snapshot, loadedTimeline, localBaselineSnapshot, localSyncVersion] = await Promise.all([
+      const [snapshot, localBaselineSnapshot, localSyncVersion] = await Promise.all([
         loadWallSnapshot(),
-        loadTimelineEntries(500),
         loadWallCloudBaselineSnapshot(),
         loadWallSyncVersion(),
       ]);
@@ -101,10 +100,6 @@ export const useWallPersistenceEffects = ({
       if (!cancelled) {
         hydrate(snapshot);
         finalizeJokerState(snapshot, false);
-        setTimelineEntries(loadedTimeline);
-        if (loadedTimeline.length > 0) {
-          setTimelineIndex(loadedTimeline.length - 1);
-        }
       }
 
       if (publishedReadOnly || cancelled) {
@@ -325,8 +320,8 @@ export const useWallPersistenceEffects = ({
         lastTimelineRecordedAt.current = now;
         setTimelineEntries((previous) => {
           const next = [...previous, { ts: now, snapshot }];
-          if (next.length > 500) {
-            next.splice(0, next.length - 500);
+          if (next.length > inMemoryTimelineLimit) {
+            next.splice(0, next.length - inMemoryTimelineLimit);
           }
           return next;
         });

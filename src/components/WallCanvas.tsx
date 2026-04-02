@@ -149,7 +149,7 @@ import { getPoetryNoteDimensions } from "@/features/wall/poetry";
 import { readWallPageLinkState, writeWallPageLinkState, type WallPageLinkState } from "@/features/wall/page-links";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
-import { saveWallCloudBaselineSnapshot, saveWallSyncVersion } from "@/features/wall/storage";
+import { loadTimelineEntries, saveWallCloudBaselineSnapshot, saveWallSyncVersion } from "@/features/wall/storage";
 import { loadWallBootstrap, loadWallDelta, pushWallDelta } from "@/features/wall/cloud-delta";
 import { applyWallDeltaChanges, buildWallDeltaSyncRequest, hasWallDeltaChanges, rebaseLocalWallSnapshot, stageWallSyncRequest, takeNextQueuedWallSync, type WallSyncRequest } from "@/features/wall/sync";
 import type { Note, PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
@@ -245,6 +245,7 @@ const defaultSpatialPrefs: SpatialPreferences = {
   snapToGrid: false,
   dotGridSpacing: 32,
 };
+const timelineHistoryLoadLimit = 120;
 
 type WallCanvasProps = {
   userEmail?: string;
@@ -324,6 +325,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [showAutoTagGroups, setShowAutoTagGroups] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([]);
+  const [timelineHistoryLoaded, setTimelineHistoryLoaded] = useState(false);
   const [timelineMode, setTimelineMode] = useState(false);
   const [timelineViewActive, setTimelineViewActive] = useState(false);
   const timelineModeRef = useRef(false);
@@ -2766,6 +2768,45 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setIsTimelinePlaying,
     setTimelineIndex,
   });
+
+  useEffect(() => {
+    if (!timelineMode || timelineHistoryLoaded) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadHistory = async () => {
+      const entries = await loadTimelineEntries(timelineHistoryLoadLimit);
+      if (cancelled) {
+        return;
+      }
+      setTimelineEntries((previous) => {
+        if (previous.length === 0) {
+          return entries;
+        }
+
+        const merged = new Map<number, TimelineEntry>();
+        for (const entry of entries) {
+          merged.set(entry.ts, entry);
+        }
+        for (const entry of previous) {
+          merged.set(entry.ts, entry);
+        }
+        return [...merged.values()].sort((left, right) => left.ts - right.ts).slice(-timelineHistoryLoadLimit);
+      });
+      setTimelineHistoryLoaded(true);
+      if (entries.length > 0) {
+        setTimelineIndex((previous) => Math.max(previous, entries.length - 1));
+      }
+    };
+
+    void loadHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [timelineHistoryLoaded, timelineMode]);
 
   useEffect(() => {
     if (!ui.flashNoteId) {
