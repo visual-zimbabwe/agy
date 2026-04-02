@@ -147,7 +147,9 @@ import {
 import { getPoetryNoteDimensions } from "@/features/wall/poetry";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
-import { rebaseLocalWallSnapshot, stageWallSyncRequest, takeNextQueuedWallSync, type WallSyncRequest } from "@/features/wall/sync";
+import { saveWallCloudBaselineSnapshot, saveWallSyncVersion } from "@/features/wall/storage";
+import { loadWallBootstrap, loadWallDelta, pushWallDelta } from "@/features/wall/cloud-delta";
+import { applyWallDeltaChanges, buildWallDeltaSyncRequest, hasWallDeltaChanges, rebaseLocalWallSnapshot, stageWallSyncRequest, takeNextQueuedWallSync, type WallSyncRequest } from "@/features/wall/sync";
 import type { Note, PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
@@ -339,6 +341,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const cloudReadyRef = useRef(false);
   const queuedCloudSyncRef = useRef<WallSyncRequest | null>(null);
   const cloudWallUpdatedAtRef = useRef<string | null>(null);
+  const acknowledgedCloudSnapshotRef = useRef<PersistedWallState | null>(null);
+  const cloudSyncVersionRef = useRef(0);
   const lastCloudSyncedAtRef = useRef<number>(0);
   const [recallQuery, setRecallQuery] = useState("");
   const [recallZoneId, setRecallZoneId] = useState("");
@@ -1027,19 +1031,21 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   }, [activePresentationPath, activePresentationPathId, activePresentationSteps.length]);
 
   const fetchLatestCloudSnapshot = useCallback(async (wallId: string) => {
-    const response = await fetch(`/api/walls/${wallId}`, { cache: "no-store" });
-    if (response.status === 401) {
-      throw new Error(authExpiredMessage);
-    }
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-      throw new Error(payload.error ?? "Unable to load cloud snapshot");
+    if (acknowledgedCloudSnapshotRef.current && cloudSyncVersionRef.current > 0) {
+      try {
+        const deltaPayload = await loadWallDelta(wallId, cloudSyncVersionRef.current);
+        return {
+          snapshot: applyWallDeltaChanges(acknowledgedCloudSnapshotRef.current, deltaPayload.changes),
+          syncVersion: deltaPayload.currentVersion,
+        };
+      } catch (error) {
+        if (error instanceof Error && error.message === authExpiredMessage) {
+          throw error;
+        }
+      }
     }
 
-    return (await response.json()) as {
-      wall?: { updated_at?: string | null };
-      snapshot: PersistedWallState;
-    };
+    return await loadWallBootstrap(wallId);
   }, []);
 
   const syncSnapshotToCloud = useCallback(
@@ -1063,17 +1069,22 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       setSyncError(null);
 
       try {
-        const response = await fetch(`/api/walls/${wallId}/sync`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...snapshot,
-            expectedWallUpdatedAt: cloudWallUpdatedAtRef.current ?? undefined,
-            clientSyncedAt: lastCloudSyncedAtRef.current || undefined,
-          }),
+        const delta = buildWallDeltaSyncRequest({
+          baseVersion: cloudSyncVersionRef.current,
+          baseline: acknowledgedCloudSnapshotRef.current,
+          current: snapshot,
         });
+        if (!hasWallDeltaChanges(delta)) {
+          acknowledgedCloudSnapshotRef.current = snapshot;
+          await Promise.all([
+            saveWallSyncVersion(cloudSyncVersionRef.current),
+            saveWallCloudBaselineSnapshot(snapshot),
+          ]);
+          setHasPendingSync(false);
+          return;
+        }
+
+        const response = await pushWallDelta(wallId, delta);
 
         if (response.status === 401) {
           setSyncError(authExpiredMessage);
@@ -1083,8 +1094,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
 
         if (response.status === 409) {
           const latestPayload = await fetchLatestCloudSnapshot(wallId);
-          const latestWallUpdatedAt = latestPayload.wall?.updated_at ?? null;
-          cloudWallUpdatedAtRef.current = latestWallUpdatedAt;
+          cloudSyncVersionRef.current = latestPayload.syncVersion;
+          acknowledgedCloudSnapshotRef.current = latestPayload.snapshot;
+          await Promise.all([
+            saveWallSyncVersion(latestPayload.syncVersion),
+            saveWallCloudBaselineSnapshot(latestPayload.snapshot),
+          ]);
 
           const latestLocalSnapshot = selectPersistedSnapshot(useWallStore.getState());
           const rebasedSnapshot = rebaseLocalWallSnapshot(latestPayload.snapshot, latestLocalSnapshot);
@@ -1097,11 +1112,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             queuedCloudSyncRef.current = { wallId, snapshot: rebasedSnapshot };
             setHasPendingSync(true);
           } else {
-            const syncedAt = latestWallUpdatedAt ? Date.parse(latestWallUpdatedAt) : Date.now();
-            if (Number.isFinite(syncedAt)) {
-              lastCloudSyncedAtRef.current = syncedAt;
-              setLastSyncedAt(syncedAt);
-            }
+            const syncedAt = Date.now();
+            lastCloudSyncedAtRef.current = syncedAt;
+            setLastSyncedAt(syncedAt);
             setHasPendingSync(false);
           }
 
@@ -1110,13 +1123,16 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         }
 
         if (!response.ok) {
-          const payload = (await response.json().catch(() => ({}))) as { error?: string };
-          throw new Error(payload.error ?? "Cloud sync failed");
+          throw new Error(response.payload.error ?? "Cloud sync failed");
         }
 
-        const payload = (await response.json()) as { serverTime?: number; currentWallUpdatedAt?: string | null };
-        cloudWallUpdatedAtRef.current = payload.currentWallUpdatedAt ?? cloudWallUpdatedAtRef.current;
-        const syncedAt = payload.serverTime ?? Date.now();
+        cloudSyncVersionRef.current = response.payload.currentVersion ?? cloudSyncVersionRef.current;
+        acknowledgedCloudSnapshotRef.current = snapshot;
+        await Promise.all([
+          saveWallSyncVersion(cloudSyncVersionRef.current),
+          saveWallCloudBaselineSnapshot(snapshot),
+        ]);
+        const syncedAt = Date.now();
         lastCloudSyncedAtRef.current = syncedAt;
         setLastSyncedAt(syncedAt);
         setHasPendingSync(false);
@@ -1185,6 +1201,12 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     publishedReadOnly,
     scheduleCloudSync,
     syncSnapshotToCloud,
+    setAcknowledgedCloudSnapshot: (snapshot) => {
+      acknowledgedCloudSnapshotRef.current = snapshot;
+    },
+    setCloudSyncVersion: (value) => {
+      cloudSyncVersionRef.current = value;
+    },
     setCloudWallUpdatedAt: (value) => {
       cloudWallUpdatedAtRef.current = value;
     },
@@ -4633,9 +4655,4 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     </div>
   );
 };
-
-
-
-
-
 
