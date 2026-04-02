@@ -130,7 +130,7 @@ import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh
 import { createAudioNoteState, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
 import { createImageNoteState, getImageNoteFilename, toImageNotePatch, IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
-import { createVideoNoteState, getVideoNoteTitle, getVideoPlayback, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
+import { cacheVideoPoster, createVideoNoteState, getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
 import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
 import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
@@ -445,7 +445,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       height: mediaHeight * camera.zoom,
       title: getVideoNoteTitle(inlinePlayingVideoNote.video),
       playback,
-      posterUrl: inlinePlayingVideoNote.video?.posterDataUrl?.trim(),
+      posterUrl: getVideoPosterUrl(inlinePlayingVideoNote.video),
     };
   }, [camera, inlinePlayingVideoNote]);
   const notes = useMemo(() => Object.values(renderSnapshot.notes), [renderSnapshot.notes]);
@@ -1713,7 +1713,9 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
               return;
             }
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            settle({ durationSeconds, posterDataUrl: canvas.toDataURL("image/jpeg", 0.84) });
+            const posterDataUrl = canvas.toDataURL("image/jpeg", 0.84);
+            cacheVideoPoster(url, posterDataUrl);
+            settle({ durationSeconds, posterDataUrl });
           } catch {
             settle({ durationSeconds });
           }
@@ -1787,7 +1789,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             source: "link",
             url: normalizedUrl,
             durationSeconds: media.durationSeconds,
-            posterDataUrl: media.posterDataUrl,
           }),
         ),
       );
@@ -1888,7 +1889,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             sizeBytes: file.size,
             uploadedAt: Date.now(),
             durationSeconds: media.durationSeconds,
-            posterDataUrl: media.posterDataUrl,
           }),
         ),
       );

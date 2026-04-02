@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-import { createVideoNoteState, getVideoPlayback } from "@/features/wall/video-notes";
+import { createVideoNoteState, getVideoPlayback, getVideoPosterUrl } from "@/features/wall/video-notes";
 import { normalizeFileUrl } from "@/features/wall/file-notes";
 import type { Note } from "@/features/wall/types";
 
@@ -57,6 +57,7 @@ export const VideoNoteEditor = ({
       ? createVideoNoteState({ ...editingNote.video, source: "link", url: normalizedUrl, name })
       : createVideoNoteState({ ...editingNote.video, name });
   const playback = getVideoPlayback(previewVideo);
+  const posterUrl = getVideoPosterUrl(previewVideo);
 
   const handleFile = async (file?: File | null) => {
     if (!file) {
@@ -187,7 +188,7 @@ export const VideoNoteEditor = ({
         {playback?.kind === "direct" ? (
           <video
             src={playback.url}
-            poster={previewVideo.posterDataUrl}
+            poster={posterUrl}
             className="aspect-video w-full bg-[#11120f] object-cover"
             controls
             autoPlay
