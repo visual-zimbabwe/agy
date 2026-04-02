@@ -16,6 +16,7 @@ type WallRow = {
 
 type NoteRow = {
   id: string;
+  wall_id?: string | null;
   note_kind?: string | null;
   text: string;
   quote_author?: string | null;
@@ -38,6 +39,7 @@ type NoteRow = {
   file?: unknown;
   tags: unknown;
   text_size: string | null;
+  text_size_px?: number | null;
   x: number;
   y: number;
   w: number;
@@ -557,4 +559,3 @@ export const rowsToSnapshot = (rows: {
   },
   lastColor: rows.wall.last_color ?? undefined,
 });
-

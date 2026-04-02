@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { shouldRejectWallSync } from "@/features/wall/sync";
 import { requireApiUser } from "@/lib/api/auth";
 
 const paramsSchema = z.object({
@@ -248,6 +249,7 @@ const syncSchema = z.object({
     zoom: z.number().positive().max(5),
   }),
   lastColor: z.string().optional(),
+  expectedWallUpdatedAt: z.string().datetime().optional(),
   clientSyncedAt: z.number().optional(),
 });
 
@@ -351,13 +353,24 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
 
   const { data: wall, error: wallError } = await auth.supabase
     .from("walls")
-    .select("id")
+    .select("id,updated_at")
     .eq("id", wallId)
     .eq("owner_id", auth.user.id)
     .maybeSingle();
 
   if (wallError || !wall) {
     return NextResponse.json({ error: "Wall not found" }, { status: 404 });
+  }
+
+  if (shouldRejectWallSync(snapshot.expectedWallUpdatedAt, wall.updated_at)) {
+    return NextResponse.json(
+      {
+        error: "Cloud wall changed since your last sync. Reloading the latest version is required.",
+        code: "wall_sync_conflict",
+        currentWallUpdatedAt: wall.updated_at,
+      },
+      { status: 409 },
+    );
   }
 
   const wallUpdate = await auth.supabase
@@ -368,11 +381,13 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
       camera_zoom: snapshot.camera.zoom,
       last_color: snapshot.lastColor ?? null,
     })
+    .select("updated_at")
     .eq("id", wallId)
-    .eq("owner_id", auth.user.id);
+    .eq("owner_id", auth.user.id)
+    .maybeSingle();
 
-  if (wallUpdate.error) {
-    return NextResponse.json({ error: wallUpdate.error.message }, { status: 500 });
+  if (wallUpdate.error || !wallUpdate.data) {
+    return NextResponse.json({ error: wallUpdate.error?.message ?? "Unable to update wall" }, { status: 500 });
   }
 
   const notes = Object.values(snapshot.notes);
@@ -638,9 +653,9 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
   return NextResponse.json({
     serverSnapshot,
     serverTime: Date.now(),
+    currentWallUpdatedAt: wallUpdate.data.updated_at,
   });
 }
-
 
 
 
