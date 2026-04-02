@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
+import { fetchPageBookmarkPreview } from "@/features/page/bookmarks";
 import { listCloudPageDocIds, loadCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
 import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageCover, PageEmbedData, PageNumberedFormat, PageTableData, PersistedPageState } from "@/features/page/types";
 import { UnsplashPicker } from "@/components/media/UnsplashPicker";
@@ -1807,14 +1808,7 @@ export function PageEditor() {
 
   const requestBookmarkPreview = useCallback(async (blockId: string, url: string) => {
     try {
-      const response = await fetch(`/api/page/bookmark-preview?url=${encodeURIComponent(url)}`);
-      const payload = (await response.json().catch(() => ({}))) as {
-        title?: string;
-        description?: string;
-        imageUrl?: string;
-        hostname?: string;
-      };
-      if (!response.ok) return;
+      const payload = await fetchPageBookmarkPreview(url);
       setBlocks((previous) =>
         previous.map((block) => {
           if (block.id !== blockId || block.type !== "bookmark" || !block.bookmark) {
@@ -5770,5 +5764,4 @@ export function PageEditor() {
     </main>
   );
 }
-
 

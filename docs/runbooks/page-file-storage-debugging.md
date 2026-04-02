@@ -17,7 +17,7 @@ Use this runbook when page file upload, deletion, signed URLs, or bookmark-style
    - upload through `POST /api/page/files`
    - delete through `DELETE /api/page/files`
    - signed URL fetch through `POST /api/page/files/sign`
-   - bookmark preview through `GET /api/page/bookmark-preview`
+   - bookmark preview through `GET /api/bookmarks/preview`
 
 2. Confirm authentication state.
    All current page file routes require an authenticated user.
@@ -42,7 +42,7 @@ Use this runbook when page file upload, deletion, signed URLs, or bookmark-style
    The signing route does not repair missing files; it only signs valid user-owned paths.
 
 8. For bookmark preview failures, confirm the issue is really file storage and not upstream metadata fetch.
-   `GET /api/page/bookmark-preview` can fail due to invalid URL, unsupported protocol, timeout, or upstream fetch failure.
+   `GET /api/bookmarks/preview` can fail due to invalid URL, unsupported protocol, timeout, or upstream fetch failure.
 
 9. If upload succeeds but the page block still fails, inspect the page block payload.
    Page snapshots store file metadata separately from the actual stored object, so broken metadata can cause apparent file failures even when storage succeeded.
