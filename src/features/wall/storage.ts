@@ -181,6 +181,18 @@ export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
   return normalized ?? { notes: {}, zones: {}, zoneGroups: {}, noteGroups: {}, links: {}, camera: defaultCamera };
 };
 
+export const loadWallSyncVersion = async () => {
+  await migrateLegacyWallDatabaseIfNeeded();
+  const syncVersionMeta = await db.meta.get("cloudSyncVersion");
+  const numeric = syncVersionMeta ? Number(syncVersionMeta.value) : 0;
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+};
+
+export const saveWallSyncVersion = async (syncVersion: number) => {
+  await migrateLegacyWallDatabaseIfNeeded();
+  await db.meta.put({ key: "cloudSyncVersion", value: String(Math.max(0, Math.trunc(syncVersion))) });
+};
+
 const writeWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
   await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta], async () => {
     const notes = Object.values(snapshot.notes);

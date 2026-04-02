@@ -15,7 +15,7 @@ export async function GET() {
 
   const { data, error } = await auth.supabase
     .from("walls")
-    .select("id,title,updated_at,created_at")
+    .select("id,title,updated_at,created_at,sync_version")
     .eq("owner_id", auth.user.id)
     .order("updated_at", { ascending: false });
 
@@ -46,8 +46,9 @@ export async function POST(request: Request) {
     .insert({
       owner_id: auth.user.id,
       title: parsed.data.title ?? "My Wall",
+      sync_version: 0,
     })
-    .select("id,title,updated_at,created_at,camera_x,camera_y,camera_zoom,last_color")
+    .select("id,title,updated_at,created_at,camera_x,camera_y,camera_zoom,last_color,sync_version")
     .single();
 
   if (error) {

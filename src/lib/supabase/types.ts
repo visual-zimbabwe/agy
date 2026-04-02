@@ -50,6 +50,7 @@ export type Database = {
           camera_y: number;
           camera_zoom: number;
           last_color: string | null;
+          sync_version: number;
           created_at: string;
           updated_at: string;
         };
@@ -61,6 +62,7 @@ export type Database = {
           camera_y?: number;
           camera_zoom?: number;
           last_color?: string | null;
+          sync_version?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -70,6 +72,7 @@ export type Database = {
           camera_y?: number;
           camera_zoom?: number;
           last_color?: string | null;
+          sync_version?: number;
           updated_at?: string;
         };
         Relationships: [];
@@ -103,6 +106,7 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          revision: number;
           note_kind: string | null;
           text: string;
           quote_author: string | null;
@@ -137,6 +141,7 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          revision?: number;
           note_kind?: string | null;
           text: string;
           quote_author?: string | null;
@@ -168,6 +173,7 @@ export type Database = {
           deleted_at?: string | null;
         };
         Update: {
+          revision?: number;
           note_kind?: string | null;
           text?: string;
           quote_author?: string | null;
@@ -204,6 +210,7 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          revision: number;
           label: string;
           kind: string;
           group_id: string | null;
@@ -220,6 +227,7 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          revision?: number;
           label: string;
           kind?: string;
           group_id?: string | null;
@@ -233,6 +241,7 @@ export type Database = {
           deleted_at?: string | null;
         };
         Update: {
+          revision?: number;
           label?: string;
           kind?: string;
           group_id?: string | null;
@@ -251,6 +260,7 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          revision: number;
           label: string;
           color: string;
           zone_ids: unknown;
@@ -263,6 +273,7 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          revision?: number;
           label: string;
           color: string;
           zone_ids?: unknown;
@@ -272,6 +283,7 @@ export type Database = {
           deleted_at?: string | null;
         };
         Update: {
+          revision?: number;
           label?: string;
           color?: string;
           zone_ids?: unknown;
@@ -286,6 +298,7 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          revision: number;
           label: string;
           color: string;
           note_ids: unknown;
@@ -298,6 +311,7 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          revision?: number;
           label: string;
           color: string;
           note_ids?: unknown;
@@ -307,6 +321,7 @@ export type Database = {
           deleted_at?: string | null;
         };
         Update: {
+          revision?: number;
           label?: string;
           color?: string;
           note_ids?: unknown;
@@ -321,6 +336,7 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          revision: number;
           from_note_id: string;
           to_note_id: string;
           type: string;
@@ -333,6 +349,7 @@ export type Database = {
           id: string;
           wall_id: string;
           owner_id: string;
+          revision?: number;
           from_note_id: string;
           to_note_id: string;
           type: string;
@@ -342,12 +359,44 @@ export type Database = {
           deleted_at?: string | null;
         };
         Update: {
+          revision?: number;
           from_note_id?: string;
           to_note_id?: string;
           type?: string;
           label?: string;
           updated_at?: string;
           deleted_at?: string | null;
+        };
+        Relationships: [];
+      };
+      wall_changes: {
+        Row: {
+          id: number;
+          owner_id: string;
+          wall_id: string;
+          entity_type: string;
+          entity_id: string;
+          revision: number;
+          deleted: boolean;
+          payload: unknown;
+          changed_at: string;
+        };
+        Insert: {
+          id?: number;
+          owner_id: string;
+          wall_id: string;
+          entity_type: string;
+          entity_id: string;
+          revision: number;
+          deleted?: boolean;
+          payload?: unknown;
+          changed_at?: string;
+        };
+        Update: {
+          revision?: number;
+          deleted?: boolean;
+          payload?: unknown;
+          changed_at?: string;
         };
         Relationships: [];
       };
@@ -617,7 +666,6 @@ export type Database = {
     CompositeTypes: Record<string, never>;
   };
 };
-
 
 
 

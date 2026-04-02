@@ -131,7 +131,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   const [wallResult, groupsResult, noteGroupsResult, linksResult] = await Promise.all([
     auth.supabase
       .from("walls")
-      .select("id,camera_x,camera_y,camera_zoom,last_color,updated_at")
+      .select("id,camera_x,camera_y,camera_zoom,last_color,updated_at,sync_version")
       .eq("id", wallId)
       .eq("owner_id", auth.user.id)
       .maybeSingle(),
@@ -441,6 +441,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     return NextResponse.json({
       wall: wallResult.data,
       snapshot,
+      syncVersion: wallResult.data.sync_version ?? 0,
     });
   } catch (error) {
     logWallReadDiagnostic("error", "snapshot-build-failed", {

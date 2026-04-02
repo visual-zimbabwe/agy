@@ -208,6 +208,7 @@ export type PrivateNoteData = {
 
 export type Note = {
   id: string;
+  revision?: number;
   noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod" | "poetry" | "economist" | "image" | "file" | "audio" | "video";
   text: string;
   quoteAuthor?: string;
@@ -247,6 +248,7 @@ export type Note = {
 
 export type Zone = {
   id: string;
+  revision?: number;
   label: string;
   kind: ZoneKind;
   groupId?: string;
@@ -263,6 +265,7 @@ export type Zone = {
 
 export type ZoneGroup = {
   id: string;
+  revision?: number;
   label: string;
   color: string;
   zoneIds: string[];
@@ -275,6 +278,7 @@ export type ZoneGroup = {
 
 export type NoteGroup = {
   id: string;
+  revision?: number;
   label: string;
   color: string;
   noteIds: string[];
@@ -291,6 +295,7 @@ export type LinkType = "cause_effect" | "dependency" | "idea_execution" | "wiki"
 
 export type Link = {
   id: string;
+  revision?: number;
   fromNoteId: string;
   toNoteId: string;
   type: LinkType;
@@ -347,6 +352,5 @@ export type WallState = {
 export type PersistedWallState = Pick<WallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links" | "camera"> & {
   lastColor?: string;
 };
-
 
 
