@@ -76,17 +76,17 @@ const logWallReadDiagnostic = (
   logger("[wall-read]", JSON.stringify({ event, ...detail }));
 };
 
-const fetchBatchedRows = async <TRow,>(
-  fetchPage: (from: number, to: number) => Promise<{ data: unknown[] | null; error: { message: string } | null }>,
+const fetchBatchedRowsById = async <TRow extends { id: string },>(
+  fetchPage: (afterId: string | null) => Promise<{ data: unknown[] | null; error: { message: string } | null }>,
 ) => {
   const rows: TRow[] = [];
-  const batches: Array<{ index: number; count: number; durationMs: number }> = [];
-  let from = 0;
+  const batches: Array<{ index: number; count: number; durationMs: number; lastId: string | null }> = [];
   let batchIndex = 0;
+  let afterId: string | null = null;
 
   for (;;) {
     const startedAt = Date.now();
-    const result = await fetchPage(from, from + wallReadBatchSize - 1);
+    const result = await fetchPage(afterId);
     const durationMs = Date.now() - startedAt;
     if (result.error) {
       return { data: null as TRow[] | null, error: result.error, batches };
@@ -94,13 +94,14 @@ const fetchBatchedRows = async <TRow,>(
 
     const page = (result.data ?? []) as TRow[];
     rows.push(...page);
-    batches.push({ index: batchIndex, count: page.length, durationMs });
+    const nextAfterId: string | null = page.length > 0 ? page[page.length - 1]?.id ?? null : afterId;
+    batches.push({ index: batchIndex, count: page.length, durationMs, lastId: nextAfterId });
 
     if (page.length < wallReadBatchSize) {
       break;
     }
 
-    from += wallReadBatchSize;
+    afterId = nextAfterId;
     batchIndex += 1;
   }
 
@@ -148,7 +149,7 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       .is("deleted_at", null),
     auth.supabase
       .from("links")
-      .select("id,from_note_id,to_note_id,type,label,created_at,updated_at", { count: "exact" })
+      .select("id,from_note_id,to_note_id,type,label,created_at,updated_at")
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null),
@@ -196,41 +197,53 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   const zonesSelectWithKind = "id,label,kind,group_id,x,y,w,h,color,created_at,updated_at";
   const zonesSelectLegacy = "id,label,group_id,x,y,w,h,color,created_at,updated_at";
 
-  const notesWithFormattingResult = await fetchBatchedRows<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) =>
-    await auth.supabase
+  const notesWithFormattingResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["notes"]>[number]>(async (afterId) => {
+    let query = auth.supabase
       .from("notes")
       .select(notesSelectWithFormatting)
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null)
       .order("id", { ascending: true })
-      .range(from, to),
-  );
+      .limit(wallReadBatchSize);
+    if (afterId) {
+      query = query.gt("id", afterId);
+    }
+    return await query;
+  });
 
   let notesData: SnapshotArgs["notes"] | null = notesWithFormattingResult.data as unknown as SnapshotArgs["notes"] | null;
   if (notesWithFormattingResult.error && isMissingNoteVocabularyColumnError(notesWithFormattingResult.error.message)) {
-    const notesWithoutVocabularyResult = await fetchBatchedRows<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) =>
-      await auth.supabase
+    const notesWithoutVocabularyResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["notes"]>[number]>(async (afterId) => {
+      let query = auth.supabase
         .from("notes")
         .select(notesSelectWithoutVocabulary)
         .eq("wall_id", wallId)
         .eq("owner_id", auth.user.id)
         .is("deleted_at", null)
         .order("id", { ascending: true })
-        .range(from, to),
-    );
+        .limit(wallReadBatchSize);
+      if (afterId) {
+        query = query.gt("id", afterId);
+      }
+      return await query;
+    });
 
     if (notesWithoutVocabularyResult.error && isMissingNoteFormattingColumnError(notesWithoutVocabularyResult.error.message)) {
-      const notesLegacyResult = await fetchBatchedRows<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) =>
-        await auth.supabase
+      const notesLegacyResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["notes"]>[number]>(async (afterId) => {
+        let query = auth.supabase
           .from("notes")
           .select(notesSelectLegacy)
           .eq("wall_id", wallId)
           .eq("owner_id", auth.user.id)
           .is("deleted_at", null)
           .order("id", { ascending: true })
-          .range(from, to),
-      );
+          .limit(wallReadBatchSize);
+        if (afterId) {
+          query = query.gt("id", afterId);
+        }
+        return await query;
+      });
       if (notesLegacyResult.error) {
         logWallReadDiagnostic("error", "notes-legacy-query-failed", {
           wallId,
@@ -277,16 +290,20 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
       notesData = (((notesWithoutVocabularyResult.data as unknown as SnapshotArgs["notes"] | null) ?? []).map((note) => ({ ...note, vocabulary: null })) as SnapshotArgs["notes"]);
     }
   } else if (notesWithFormattingResult.error && isMissingNoteFormattingColumnError(notesWithFormattingResult.error.message)) {
-    const notesLegacyResult = await fetchBatchedRows<NonNullable<SnapshotArgs["notes"]>[number]>(async (from, to) =>
-      await auth.supabase
+    const notesLegacyResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["notes"]>[number]>(async (afterId) => {
+      let query = auth.supabase
         .from("notes")
         .select(notesSelectLegacy)
         .eq("wall_id", wallId)
         .eq("owner_id", auth.user.id)
         .is("deleted_at", null)
         .order("id", { ascending: true })
-        .range(from, to),
-    );
+        .limit(wallReadBatchSize);
+      if (afterId) {
+        query = query.gt("id", afterId);
+      }
+      return await query;
+    });
     if (notesLegacyResult.error) {
       logWallReadDiagnostic("error", "notes-legacy-query-failed", {
         wallId,
@@ -341,29 +358,37 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
     memoryMb: memorySnapshotMb(),
   });
 
-  const zonesWithKindResult = await fetchBatchedRows<NonNullable<SnapshotArgs["zones"]>[number]>(async (from, to) =>
-    await auth.supabase
+  const zonesWithKindResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["zones"]>[number]>(async (afterId) => {
+    let query = auth.supabase
       .from("zones")
       .select(zonesSelectWithKind)
       .eq("wall_id", wallId)
       .eq("owner_id", auth.user.id)
       .is("deleted_at", null)
       .order("id", { ascending: true })
-      .range(from, to),
-  );
+      .limit(wallReadBatchSize);
+    if (afterId) {
+      query = query.gt("id", afterId);
+    }
+    return await query;
+  });
 
   let zonesData: SnapshotArgs["zones"] | null = zonesWithKindResult.data as unknown as SnapshotArgs["zones"] | null;
   if (zonesWithKindResult.error && isMissingZoneKindColumnError(zonesWithKindResult.error.message)) {
-    const zonesLegacyResult = await fetchBatchedRows<NonNullable<SnapshotArgs["zones"]>[number]>(async (from, to) =>
-      await auth.supabase
+    const zonesLegacyResult = await fetchBatchedRowsById<NonNullable<SnapshotArgs["zones"]>[number]>(async (afterId) => {
+      let query = auth.supabase
         .from("zones")
         .select(zonesSelectLegacy)
         .eq("wall_id", wallId)
         .eq("owner_id", auth.user.id)
         .is("deleted_at", null)
         .order("id", { ascending: true })
-        .range(from, to),
-    );
+        .limit(wallReadBatchSize);
+      if (afterId) {
+        query = query.gt("id", afterId);
+      }
+      return await query;
+    });
     if (zonesLegacyResult.error) {
       logWallReadDiagnostic("error", "zones-legacy-query-failed", {
         wallId,
