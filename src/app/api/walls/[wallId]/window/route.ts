@@ -24,7 +24,30 @@ const boundsSchema = z.object({
 });
 
 type SnapshotArgs = Parameters<typeof rowsToSnapshot>[0];
-type SupabaseLike = any;
+type WallWindowRow = SnapshotArgs["wall"] & {
+  id: string;
+  title?: string | null;
+  updated_at?: string | null;
+  sync_version?: number | null;
+};
+type QueryErrorLike = { message: string };
+type QueryRowsResult = { data: unknown[] | null; error: QueryErrorLike | null };
+type QuerySingleResult = { data: Record<string, unknown> | null; error: QueryErrorLike | null };
+
+type QueryBuilderLike = PromiseLike<QueryRowsResult | QuerySingleResult> & {
+  select: (columns: string) => QueryBuilderLike;
+  eq: (column: string, value: unknown) => QueryBuilderLike;
+  is: (column: string, value: null) => QueryBuilderLike;
+  gte: (column: string, value: number) => QueryBuilderLike;
+  lte: (column: string, value: number) => QueryBuilderLike;
+  order: (column: string, options: { ascending: boolean }) => QueryBuilderLike;
+  in: (column: string, values: string[]) => QueryBuilderLike;
+  maybeSingle: () => Promise<QuerySingleResult>;
+};
+
+type SupabaseLike = {
+  from: (table: string) => QueryBuilderLike;
+};
 
 const isMissingZoneKindColumnError = (message?: string) =>
   Boolean(message && message.includes("column zones.kind does not exist"));
@@ -244,7 +267,7 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
   };
   const candidateBounds = buildCandidateBounds(bounds, parsedBounds.data.candidateMargin ?? 1200);
 
-  const supabase: SupabaseLike = auth.supabase;
+  const supabase = auth.supabase as unknown as SupabaseLike;
 
   const [wallResult, zoneGroupsResult, noteGroupsResult, notesResult, zonesResult] = await Promise.all([
     supabase
@@ -269,7 +292,9 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
     loadWindowZones(supabase, auth.user.id, wallId, candidateBounds),
   ]);
 
-  if (wallResult.error || !wallResult.data) {
+  const wallRow = wallResult.data as WallWindowRow | null;
+
+  if (wallResult.error || !wallRow) {
     return NextResponse.json({ error: "Wall not found" }, { status: 404 });
   }
   if (zoneGroupsResult.error) {
@@ -286,7 +311,7 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
   }
 
   const fullWindowSnapshot = rowsToSnapshot({
-    wall: wallResult.data,
+    wall: wallRow,
     notes: (notesResult.data ?? []) as SnapshotArgs["notes"],
     zones: (zonesResult.data ?? []) as SnapshotArgs["zones"],
     zoneGroups: (zoneGroupsResult.data ?? []) as SnapshotArgs["zoneGroups"],
@@ -315,7 +340,7 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
   }
 
   const snapshot = rowsToSnapshot({
-    wall: wallResult.data,
+    wall: wallRow,
     notes: (notesResult.data ?? []).filter((row) => filteredNoteIds.has(row.id)) as SnapshotArgs["notes"],
     zones: (zonesResult.data ?? []).filter((row) => filteredZoneIds.has(row.id)) as SnapshotArgs["zones"],
     zoneGroups: ((zoneGroupsResult.data as Array<{ zone_ids: unknown }> | null) ?? []).filter((group) => {
@@ -328,7 +353,7 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
     }) as SnapshotArgs["noteGroups"])) ?? [],
     links: filterLinksToVisibleNoteIds(
       rowsToSnapshot({
-        wall: wallResult.data,
+        wall: wallRow,
         notes: [],
         zones: [],
         zoneGroups: [],
@@ -337,7 +362,7 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
       }).links
         ? Object.values(
             rowsToSnapshot({
-              wall: wallResult.data,
+              wall: wallRow,
               notes: [],
               zones: [],
               zoneGroups: [],
@@ -361,20 +386,20 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
 
   const payload: WallWindowResponse = {
     shell: {
-      id: wallResult.data.id,
-      title: wallResult.data.title ?? undefined,
+      id: wallRow.id,
+      title: wallRow.title ?? undefined,
       camera: {
-        x: wallResult.data.camera_x,
-        y: wallResult.data.camera_y,
-        zoom: wallResult.data.camera_zoom,
+        x: wallRow.camera_x,
+        y: wallRow.camera_y,
+        zoom: wallRow.camera_zoom,
       },
-      lastColor: wallResult.data.last_color ?? undefined,
-      updatedAt: wallResult.data.updated_at ?? undefined,
-      syncVersion: wallResult.data.sync_version ?? 0,
+      lastColor: wallRow.last_color ?? undefined,
+      updatedAt: wallRow.updated_at ?? undefined,
+      syncVersion: wallRow.sync_version ?? 0,
     },
     bounds,
     snapshot,
-    syncVersion: wallResult.data.sync_version ?? 0,
+    syncVersion: wallRow.sync_version ?? 0,
   };
 
   return NextResponse.json(payload);
