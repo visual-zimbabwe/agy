@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { PersistedWallState } from "@/features/wall/types";
 import {
   alignBoundsToWallTile,
+  createWallRenderBudget,
   createViewportWallBounds,
   filterLinksToVisibleNoteIds,
   filterNotesToWallBounds,
@@ -10,6 +11,7 @@ import {
   getAdaptiveWallOverscanWorldPx,
   getWallRenderDetailLevel,
   mergeWallWindowIntoSnapshot,
+  prioritizeNotesForRender,
 } from "@/features/wall/windowing";
 
 describe("wall windowing", () => {
@@ -55,6 +57,55 @@ describe("wall windowing", () => {
     expect(getWallRenderDetailLevel(0.35, 24)).toBe("ambient");
     expect(getWallRenderDetailLevel(0.8, 90)).toBe("summary");
     expect(getWallRenderDetailLevel(1.2, 18)).toBe("full");
+  });
+
+  it("creates denser render budgets that tighten overscan and cap decoded media work", () => {
+    expect(
+      createWallRenderBudget({
+        cameraZoom: 1.15,
+        visibleNoteCount: 36,
+        defaultOverscanWorldPx: 320,
+      }),
+    ).toMatchObject({
+      detailLevel: "full",
+      overscanWorldPx: 320,
+      maxRenderedNotes: 36,
+      maxDecodedMediaNotes: 18,
+      allowImageAutoLayout: true,
+      culledNoteCount: 0,
+    });
+
+    expect(
+      createWallRenderBudget({
+        cameraZoom: 0.9,
+        visibleNoteCount: 230,
+        defaultOverscanWorldPx: 320,
+      }),
+    ).toMatchObject({
+      detailLevel: "ambient",
+      overscanWorldPx: 144,
+      maxRenderedNotes: 96,
+      maxDecodedMediaNotes: 0,
+      allowImageAutoLayout: false,
+      culledNoteCount: 134,
+    });
+  });
+
+  it("prioritizes selected and central notes when a dense viewport must be culled", () => {
+    const notes = [
+      { id: "edge-left", x: -600, y: 0, w: 100, h: 100, updatedAt: 1 },
+      { id: "selected", x: -580, y: -20, w: 100, h: 100, updatedAt: 2 },
+      { id: "center", x: -20, y: -20, w: 120, h: 120, updatedAt: 3 },
+      { id: "edge-right", x: 540, y: 0, w: 100, h: 100, updatedAt: 4 },
+    ];
+    const prioritized = prioritizeNotesForRender(
+      notes,
+      { minX: -200, minY: -200, maxX: 200, maxY: 200 },
+      2,
+      ["selected"],
+    );
+
+    expect(prioritized.map((note) => note.id)).toEqual(["selected", "center"]);
   });
 
   it("aligns viewport bounds to stable window tiles", () => {

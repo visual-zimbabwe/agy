@@ -21,7 +21,7 @@ import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-note
 import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
 import { throneLoadingText } from "@/features/wall/throne";
 import type { LinkType, Note, WallAssetMap } from "@/features/wall/types";
-import type { WallRenderDetailLevel } from "@/features/wall/windowing";
+import type { WallRenderBudget, WallRenderDetailLevel } from "@/features/wall/windowing";
 
 type GuideLineState = {
   vertical?: { x: number; y1: number; y2: number; distance?: number };
@@ -44,7 +44,7 @@ const THRONE_NOTE_MUTED = "rgba(245,240,232,0.42)";
 const THRONE_NOTE_RULE = "rgba(245,240,232,0.18)";
 const THRONE_NOTE_ACCENT = "#a67a10";
 const THRONE_SHIELD_POINTS = [7, 0, 14, 3, 14, 14, 7, 24, 0, 14, 0, 3];
-const maxLoadedWallImages = 72;
+const defaultMaxLoadedWallImages = 72;
 
 const estimateImageCaptionHeight = (noteWidth: number, caption: string) => {
   const trimmed = caption.trim();
@@ -304,6 +304,7 @@ const getWallNotePreviewMeta = (note: Note) => {
 type WallNotesLayerProps = {
   visibleNotes: Note[];
   renderDetailLevel: WallRenderDetailLevel;
+  renderBudget: WallRenderBudget;
   assetRecords?: WallAssetMap;
   activeSelectedNoteIds: string[];
   selectedNoteId?: string;
@@ -365,6 +366,7 @@ type WallNotesLayerProps = {
 export const WallNotesLayer = ({
   visibleNotes,
   renderDetailLevel,
+  renderBudget,
   assetRecords,
   activeSelectedNoteIds,
   selectedNoteId,
@@ -504,19 +506,31 @@ export const WallNotesLayer = ({
 
   useEffect(() => {
     let cancelled = false;
-    const urls = renderDetailLevel === "full" ? [
-      ...new Set(
-        visibleNotes
-          .flatMap((note) => [
-            resolveImageAssetUrl(note, resolvedAssetRecords),
-            note.bookmark?.metadata?.imageUrl?.trim(),
-            note.bookmark?.metadata?.faviconUrl?.trim(),
-            resolveVideoPosterAssetUrl(note, resolvedAssetRecords),
-          ])
-          .filter((url): url is string => Boolean(url)),
-      ),
-    ] : [];
+    const urls = renderDetailLevel === "full" && renderBudget.maxDecodedMediaNotes > 0
+      ? (() => {
+          const nextUrls: string[] = [];
+          let decodedMediaNotes = 0;
+          for (const note of visibleNotes) {
+            if (decodedMediaNotes >= renderBudget.maxDecodedMediaNotes) {
+              break;
+            }
+            const noteUrls = [
+              resolveImageAssetUrl(note, resolvedAssetRecords),
+              note.bookmark?.metadata?.imageUrl?.trim(),
+              note.bookmark?.metadata?.faviconUrl?.trim(),
+              resolveVideoPosterAssetUrl(note, resolvedAssetRecords),
+            ].filter((url): url is string => Boolean(url));
+            if (noteUrls.length === 0) {
+              continue;
+            }
+            decodedMediaNotes += 1;
+            nextUrls.push(...noteUrls);
+          }
+          return [...new Set(nextUrls)];
+        })()
+      : [];
     const visibleUrlSet = new Set(urls);
+    const maxLoadedWallImages = Math.max(18, Math.min(defaultMaxLoadedWallImages, renderBudget.maxDecodedMediaNotes * 3 || 18));
 
     setLoadedImagesByUrl((previous) => {
       const nextEntries = Object.entries(previous).filter(([url]) => visibleUrlSet.has(url));
@@ -571,9 +585,14 @@ export const WallNotesLayer = ({
     return () => {
       cancelled = true;
     };
-  }, [failedImagesByUrl, loadedImagesByUrl, renderDetailLevel, resolvedAssetRecords, visibleNotes]);
+  }, [failedImagesByUrl, loadedImagesByUrl, renderBudget.maxDecodedMediaNotes, renderDetailLevel, resolvedAssetRecords, visibleNotes]);
 
   useEffect(() => {
+    if (!renderBudget.allowImageAutoLayout) {
+      imageLayoutSignatureRef.current = {};
+      return;
+    }
+
     const nextSignatures: Record<string, string> = {};
 
     for (const note of visibleNotes) {
@@ -600,7 +619,7 @@ export const WallNotesLayer = ({
     }
 
     imageLayoutSignatureRef.current = nextSignatures;
-  }, [loadedImagesByUrl, resolvedAssetRecords, updateNote, visibleNotes]);
+  }, [loadedImagesByUrl, renderBudget.allowImageAutoLayout, resolvedAssetRecords, updateNote, visibleNotes]);
 
   useEffect(() => {
     const colorWashTimers = colorWashTimersRef.current;
