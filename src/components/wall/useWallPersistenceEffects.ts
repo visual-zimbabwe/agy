@@ -12,8 +12,10 @@ import { mergeWallWindowIntoSnapshot } from "@/features/wall/windowing";
 import {
   createSnapshotSaver,
   createTimelineRecorder,
+  loadWallCameraState,
   loadWallCloudBaselineSnapshot,
   loadWallSnapshot,
+  loadWallWindowSnapshot,
   saveWallSnapshot,
   loadWallSyncVersion,
   saveWallCloudBaselineSnapshot,
@@ -78,6 +80,7 @@ export const useWallPersistenceEffects = ({
 }: UseWallPersistenceEffectsOptions) => {
   const lastPersistedSerializedRef = useRef("");
   const skippedRemoteSerializedRef = useRef<string | null>(null);
+  const persistenceReadyRef = useRef(false);
   const inMemoryTimelineLimit = 120;
 
   useEffect(() => {
@@ -103,9 +106,15 @@ export const useWallPersistenceEffects = ({
       }
     };
 
-    const markHydrated = (snapshot: PersistedWallState, options?: { degraded?: boolean; loadStartedAt?: number }) => {
+    const markHydrated = (
+      snapshot: PersistedWallState,
+      options?: { degraded?: boolean; loadStartedAt?: number; complete?: boolean },
+    ) => {
       lastPersistedSerializedRef.current = JSON.stringify(snapshot);
-      saver.markCommittedSnapshot(snapshot);
+      persistenceReadyRef.current = Boolean(options?.complete);
+      if (options?.complete) {
+        saver.markCommittedSnapshot(snapshot);
+      }
 
       if (!cancelled) {
         hydrate(snapshot);
@@ -126,11 +135,16 @@ export const useWallPersistenceEffects = ({
       const loadStartedAt = performance.now();
       recordWallStartupCheckpoint("local-bootstrap-started");
 
-      const localBootstrapTask = Promise.all([
+      const fullLocalBootstrapTask = Promise.all([
         loadWallSnapshot(),
         loadWallCloudBaselineSnapshot(),
         loadWallSyncVersion(),
       ])
+        .then((value) => ({ status: "resolved" as const, value }))
+        .catch((error) => ({ status: "rejected" as const, error }));
+
+      const localBootstrapTask = loadWallCameraState()
+        .then(({ camera }) => loadWallWindowSnapshot(getViewportWindowBounds(camera)))
         .then((value) => ({ status: "resolved" as const, value }))
         .catch((error) => ({ status: "rejected" as const, error }));
 
@@ -142,16 +156,14 @@ export const useWallPersistenceEffects = ({
       ]);
 
       let snapshot = emptyWallSnapshot;
-      let localBaselineSnapshot: PersistedWallState | null = null;
-      let localSyncVersion = 0;
       let degradedLocalBootstrap = false;
 
       if (localBootstrapResult.status === "resolved") {
-        [snapshot, localBaselineSnapshot, localSyncVersion] = localBootstrapResult.value;
+        snapshot = localBootstrapResult.value;
         const durationMs = performance.now() - loadStartedAt;
         recordWallTelemetryMetric("startupLocalBootstrapMs", durationMs);
         recordWallStartupCheckpoint("local-bootstrap-completed", { durationMs });
-        markHydrated(snapshot, { loadStartedAt });
+        markHydrated(snapshot, { loadStartedAt, complete: false });
       } else {
         degradedLocalBootstrap = true;
         const durationMs = performance.now() - loadStartedAt;
@@ -164,7 +176,7 @@ export const useWallPersistenceEffects = ({
           const detail = localBootstrapResult.error instanceof Error ? localBootstrapResult.error.message : "unknown-local-bootstrap-error";
           recordWallStartupCheckpoint("local-bootstrap-failed", { durationMs, detail });
         }
-        markHydrated(emptyWallSnapshot, { degraded: true, loadStartedAt });
+        markHydrated(emptyWallSnapshot, { degraded: true, loadStartedAt, complete: false });
       }
 
       if (publishedReadOnly || cancelled) {
@@ -174,6 +186,8 @@ export const useWallPersistenceEffects = ({
       try {
         const cloudBootstrapStartedAt = performance.now();
         recordWallStartupCheckpoint("cloud-bootstrap-started", degradedLocalBootstrap ? { detail: "degraded-local-bootstrap" } : undefined);
+        let localBaselineSnapshot: PersistedWallState | null = null;
+        let localSyncVersion = 0;
         const preferredWallId = readStorageValue(lastCloudWallStorageKey);
         const listWalls = async () => {
           const listResponse = await fetch("/api/walls", { cache: "no-store" });
@@ -215,7 +229,6 @@ export const useWallPersistenceEffects = ({
               ? windowPayload.snapshot
               : mergeSnapshotsLww(windowPayload.snapshot, snapshot);
           lastPersistedSerializedRef.current = JSON.stringify(previewSnapshot);
-          saver.markCommittedSnapshot(previewSnapshot);
 
           if (!cancelled) {
             hydrate(previewSnapshot);
@@ -268,6 +281,25 @@ export const useWallPersistenceEffects = ({
               throw error;
             }
           }
+        }
+
+        const fullLocalBootstrapResult = await fullLocalBootstrapTask;
+        if (fullLocalBootstrapResult.status === "resolved") {
+          const [fullLocalSnapshot, loadedBaselineSnapshot, loadedSyncVersion] = fullLocalBootstrapResult.value;
+          localBaselineSnapshot = loadedBaselineSnapshot;
+          localSyncVersion = loadedSyncVersion;
+
+          const mergedLocalSnapshot = mergeSnapshotsLww(fullLocalSnapshot, selectPersistedSnapshot(useWallStore.getState()));
+          const mergedSerialized = JSON.stringify(mergedLocalSnapshot);
+          skippedRemoteSerializedRef.current = mergedSerialized;
+          lastPersistedSerializedRef.current = mergedSerialized;
+          persistenceReadyRef.current = true;
+          saver.markCommittedSnapshot(mergedLocalSnapshot);
+          useWallStore.getState().mergeHydratedSnapshot(fullLocalSnapshot, {
+            updateCamera: false,
+            updateLastColor: true,
+          });
+          snapshot = mergedLocalSnapshot;
         }
 
         if (preferredWallId) {
@@ -402,6 +434,7 @@ export const useWallPersistenceEffects = ({
         });
 
         if (!cancelled) {
+          persistenceReadyRef.current = true;
           hydrate(nextSnapshot);
           finalizeJokerState(nextSnapshot, true);
           cloudReadyRef.current = true;
@@ -434,7 +467,13 @@ export const useWallPersistenceEffects = ({
       if (serialized === skippedRemoteSerializedRef.current) {
         skippedRemoteSerializedRef.current = null;
         lastPersistedSerializedRef.current = serialized;
-        saver.markCommittedSnapshot(snapshot);
+        if (persistenceReadyRef.current) {
+          saver.markCommittedSnapshot(snapshot);
+        }
+        return;
+      }
+      if (!persistenceReadyRef.current) {
+        lastPersistedSerializedRef.current = serialized;
         return;
       }
       if (serialized === lastPersistedSerializedRef.current) {
