@@ -110,6 +110,18 @@ This starts:
 - a second `agy` listener on `http://localhost:5000` for the LocaltoNet tunnel target
 - the LocaltoNet tunnel process using the configured token
 
+The tunnel startup also launches a LocalXpose watchdog. It checks the public URL every few minutes, restarts the tunnel when the free URL expires, and publishes the latest URL here:
+
+- `.logs/runtime/agy.localxpose.url.txt`
+- `.logs/runtime/agy.localxpose.state.json`
+- `.logs/runtime/agy.localxpose.state.html`
+
+You can inspect the current state at any time with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\status-agy-stack.ps1
+```
+
 The runtime scripts expect:
 
 - `SUPABASE_PLATFORM_ROOT` to point at the local `supabase-platform` checkout, or the default `E:\supabase-platform`

@@ -9,3 +9,4 @@ New-Item -ItemType Directory -Force -Path $startupDir | Out-Null
 Set-Content -Path $shortcutPath -Value $cmdContent -NoNewline
 
 Write-Output "Autostart installed: $shortcutPath"
+Write-Output "The startup flow includes the LocalXpose watchdog, which will refresh expired free tunnel URLs automatically."
