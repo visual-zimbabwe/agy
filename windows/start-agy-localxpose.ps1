@@ -14,6 +14,7 @@ $urlFile = Join-Path $runtimeLogDir "agy.localxpose.url.txt"
 $monitorPidFile = Join-Path $runtimeLogDir "agy.localxpose.monitor.pid"
 $stateJsonFile = Join-Path $runtimeLogDir "agy.localxpose.state.json"
 $stateHtmlFile = Join-Path $runtimeLogDir "agy.localxpose.state.html"
+$publishedMarkdownFile = "F:\CloudData\NextcloudData\ncadmin\files\Documents\agy.md"
 $token = $env:LOCALXPOSE_ACCESS_TOKEN
 
 if (-not $token) {
@@ -117,6 +118,10 @@ $state | ConvertTo-Json | Set-Content -Path $stateJsonFile
 </body>
 </html>
 "@ | Set-Content -Path $stateHtmlFile
+
+if ($currentUrl) {
+    "public link:<$currentUrl>" | Set-Content -Path $publishedMarkdownFile
+}
 
 if (-not $NoMonitor) {
     $monitorScript = Join-Path $PSScriptRoot "watch-agy-localxpose.ps1"

@@ -11,6 +11,7 @@ $stdoutLog = Join-Path $runtimeLogDir "agy.localxpose.stdout.log"
 $stderrLog = Join-Path $runtimeLogDir "agy.localxpose.stderr.log"
 $appUrl = "http://localhost:3000"
 $startScript = Join-Path $PSScriptRoot "start-agy-localxpose.ps1"
+$publishedMarkdownFile = "F:\CloudData\NextcloudData\ncadmin\files\Documents\agy.md"
 
 New-Item -ItemType Directory -Force -Path $runtimeLogDir | Out-Null
 $PID | Set-Content -Path $monitorPidFile
@@ -48,6 +49,10 @@ function Update-State {
 </body>
 </html>
 "@ | Set-Content -Path $stateHtmlFile
+
+    if ($Url) {
+        "public link:<$Url>" | Set-Content -Path $publishedMarkdownFile
+    }
 }
 
 function Test-AppReady {
