@@ -41,4 +41,17 @@ describe("GET /api/walls/[wallId]/window batching", () => {
       [0, 124, 125],
     ]);
   });
+
+  it("filters links to only the notes that remain inside the candidate window", () => {
+    const filtered = __test__.filterLinksToCandidateNoteIds(
+      [
+        { from_note_id: "note-1", to_note_id: "note-2" },
+        { from_note_id: "note-1", to_note_id: "note-3" },
+        { from_note_id: "note-4", to_note_id: "note-2" },
+      ],
+      new Set(["note-1", "note-2"]),
+    );
+
+    expect(filtered).toEqual([{ from_note_id: "note-1", to_note_id: "note-2" }]);
+  });
 });

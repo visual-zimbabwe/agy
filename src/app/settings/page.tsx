@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { SettingsWorkspace } from "@/components/settings/SettingsWorkspace";
+import { readUserProfile } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function SettingsPage() {
@@ -11,5 +12,7 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
-  return <SettingsWorkspace userEmail={data.user.email ?? "Signed in"} />;
+  const profile = readUserProfile(data.user);
+
+  return <SettingsWorkspace userEmail={profile.email} initialProfile={profile} />;
 }

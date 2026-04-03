@@ -8,6 +8,7 @@ import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { SettingsWorkspace } from "@/components/settings/SettingsWorkspace";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { ImageInsertModal } from "@/components/wall/ImageInsertModal";
+import type { AppUserProfile } from "@/lib/profile";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 
 type WallGlobalModalsProps = {
@@ -39,6 +40,7 @@ type WallGlobalModalsProps = {
   isSettingsOpen: boolean;
   onCloseSettings: () => void;
   userEmail?: string;
+  userProfile?: AppUserProfile;
   imageInsertOpen: boolean;
   imageInsertTargetLabel?: string;
   onCloseImageInsert: () => void;
@@ -77,6 +79,7 @@ export const WallGlobalModals = ({
   isSettingsOpen,
   onCloseSettings,
   userEmail,
+  userProfile,
   imageInsertOpen,
   imageInsertTargetLabel,
   onCloseImageInsert,
@@ -143,7 +146,12 @@ export const WallGlobalModals = ({
         contentClassName="mt-3"
       >
         {userEmail ? (
-          <SettingsWorkspace userEmail={userEmail} embedded onReplayTour={onReplayTour} />
+          <SettingsWorkspace
+            userEmail={userEmail}
+            initialProfile={userProfile}
+            embedded
+            onReplayTour={onReplayTour}
+          />
         ) : (
           <p className="text-sm text-[var(--color-text-muted)]">Sign in to manage settings.</p>
         )}
