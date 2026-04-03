@@ -29,6 +29,11 @@ export const useWallEntityWindowCache = ({
   const loadedWindowKeysRef = useRef<Set<string>>(new Set());
   const inflightWindowKeysRef = useRef<Set<string>>(new Set());
   const previousWallIdRef = useRef<string | null>(null);
+  const onWindowLoadedRef = useRef(onWindowLoaded);
+
+  useEffect(() => {
+    onWindowLoadedRef.current = onWindowLoaded;
+  }, [onWindowLoaded]);
 
   const requestBounds = useMemo<WallWindowBounds>(() => {
     const viewportBounds = createViewportWallBounds(camera, viewport, overscanWorldPx);
@@ -63,7 +68,7 @@ export const useWallEntityWindowCache = ({
             return;
           }
           loadedWindowKeysRef.current.add(boundsKey);
-          onWindowLoaded({
+          onWindowLoadedRef.current({
             snapshot: payload.snapshot,
             assets: payload.assets,
             syncVersion: payload.syncVersion,
@@ -95,5 +100,5 @@ export const useWallEntityWindowCache = ({
     return () => {
       cancelled = true;
     };
-  }, [enabled, onWindowLoaded, requestBounds, viewport.h, viewport.w, wallId]);
+  }, [enabled, requestBounds, viewport.h, viewport.w, wallId]);
 };

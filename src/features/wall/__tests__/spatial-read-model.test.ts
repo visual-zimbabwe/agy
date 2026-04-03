@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildWindowCandidateBounds, createWallWindowResponse } from "@/features/wall/spatial-read-model";
 
 describe("wall spatial read model", () => {
-  it("builds candidate bounds with an expanded leading margin", () => {
+  it("builds candidate bounds with a symmetric margin", () => {
     expect(
       buildWindowCandidateBounds(
         {
@@ -17,8 +17,8 @@ describe("wall spatial read model", () => {
     ).toEqual({
       minX: -140,
       minY: -40,
-      maxX: 500,
-      maxY: 800,
+      maxX: 740,
+      maxY: 1040,
     });
   });
 
@@ -45,8 +45,8 @@ describe("wall spatial read model", () => {
       candidateBounds: {
         minX: -200,
         minY: -200,
-        maxX: 500,
-        maxY: 400,
+        maxX: 700,
+        maxY: 600,
       },
       notes: [
         {

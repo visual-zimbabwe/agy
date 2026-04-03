@@ -45,8 +45,8 @@ const buildAdjacentBounds = (bounds: WallBounds): WallBounds[] => {
 export const buildWindowCandidateBounds = (bounds: WallBounds, margin: number): WallBounds => ({
   minX: bounds.minX - margin,
   minY: bounds.minY - margin,
-  maxX: bounds.maxX,
-  maxY: bounds.maxY,
+  maxX: bounds.maxX + margin,
+  maxY: bounds.maxY + margin,
 });
 
 export const createWallWindowReadModel = ({
