@@ -19,6 +19,7 @@ import {
   saveWallSyncVersion,
   type TimelineEntry,
 } from "@/features/wall/storage";
+import { recordWallStartupCheckpoint, recordWallTelemetryMetric } from "@/features/wall/telemetry";
 import type { PersistedWallState } from "@/features/wall/types";
 import { defaultWallTitle } from "@/lib/brand";
 import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-auth";
@@ -44,6 +45,15 @@ type UseWallPersistenceEffectsOptions = {
 };
 
 const lastCloudWallStorageKey = "agy-last-cloud-wall-id";
+const localBootstrapTimeoutMs = 3000;
+const emptyWallSnapshot: PersistedWallState = {
+  notes: {},
+  zones: {},
+  zoneGroups: {},
+  noteGroups: {},
+  links: {},
+  camera: { x: 0, y: 0, zoom: 1 },
+};
 
 export const useWallPersistenceEffects = ({
   hydrate,
@@ -89,12 +99,7 @@ export const useWallPersistenceEffects = ({
       }
     };
 
-    const load = async () => {
-      const [snapshot, localBaselineSnapshot, localSyncVersion] = await Promise.all([
-        loadWallSnapshot(),
-        loadWallCloudBaselineSnapshot(),
-        loadWallSyncVersion(),
-      ]);
+    const markHydrated = (snapshot: PersistedWallState, options?: { degraded?: boolean; loadStartedAt?: number }) => {
       lastPersistedSerializedRef.current = JSON.stringify(snapshot);
       saver.markCommittedSnapshot(snapshot);
 
@@ -103,11 +108,68 @@ export const useWallPersistenceEffects = ({
         finalizeJokerState(snapshot, false);
       }
 
+      if (typeof options?.loadStartedAt === "number") {
+        const durationMs = performance.now() - options.loadStartedAt;
+        recordWallTelemetryMetric(options.degraded ? "startupRecoveryMs" : "startupHydrateMs", durationMs);
+        recordWallStartupCheckpoint("hydrate-completed", {
+          durationMs,
+          detail: options.degraded ? "degraded-local-bootstrap" : "local-bootstrap",
+        });
+      }
+    };
+
+    const load = async () => {
+      const loadStartedAt = performance.now();
+      recordWallStartupCheckpoint("local-bootstrap-started");
+
+      const localBootstrapTask = Promise.all([
+        loadWallSnapshot(),
+        loadWallCloudBaselineSnapshot(),
+        loadWallSyncVersion(),
+      ])
+        .then((value) => ({ status: "resolved" as const, value }))
+        .catch((error) => ({ status: "rejected" as const, error }));
+
+      const localBootstrapResult = await Promise.race([
+        localBootstrapTask,
+        new Promise<{ status: "timeout" }>((resolve) => {
+          setTimeout(() => resolve({ status: "timeout" }), localBootstrapTimeoutMs);
+        }),
+      ]);
+
+      let snapshot = emptyWallSnapshot;
+      let localBaselineSnapshot: PersistedWallState | null = null;
+      let localSyncVersion = 0;
+      let degradedLocalBootstrap = false;
+
+      if (localBootstrapResult.status === "resolved") {
+        [snapshot, localBaselineSnapshot, localSyncVersion] = localBootstrapResult.value;
+        const durationMs = performance.now() - loadStartedAt;
+        recordWallTelemetryMetric("startupLocalBootstrapMs", durationMs);
+        recordWallStartupCheckpoint("local-bootstrap-completed", { durationMs });
+        markHydrated(snapshot, { loadStartedAt });
+      } else {
+        degradedLocalBootstrap = true;
+        const durationMs = performance.now() - loadStartedAt;
+        if (localBootstrapResult.status === "timeout") {
+          recordWallStartupCheckpoint("local-bootstrap-timeout", {
+            durationMs,
+            detail: `exceeded-${localBootstrapTimeoutMs}ms`,
+          });
+        } else {
+          const detail = localBootstrapResult.error instanceof Error ? localBootstrapResult.error.message : "unknown-local-bootstrap-error";
+          recordWallStartupCheckpoint("local-bootstrap-failed", { durationMs, detail });
+        }
+        markHydrated(emptyWallSnapshot, { degraded: true, loadStartedAt });
+      }
+
       if (publishedReadOnly || cancelled) {
         return;
       }
 
       try {
+        const cloudBootstrapStartedAt = performance.now();
+        recordWallStartupCheckpoint("cloud-bootstrap-started", degradedLocalBootstrap ? { detail: "degraded-local-bootstrap" } : undefined);
         const preferredWallId = readStorageValue(lastCloudWallStorageKey);
         const listWalls = async () => {
           const listResponse = await fetch("/api/walls", { cache: "no-store" });
@@ -148,9 +210,10 @@ export const useWallPersistenceEffects = ({
 
           if (canUseStoredDelta) {
             try {
+              const baselineSnapshot = localBaselineSnapshot;
               const deltaPayload = await loadWallDelta(candidateWallId, localSyncVersion);
               return {
-                snapshot: applyWallDeltaChanges(localBaselineSnapshot, deltaPayload.changes),
+                snapshot: applyWallDeltaChanges(baselineSnapshot!, deltaPayload.changes),
                 syncVersion: deltaPayload.currentVersion,
               };
             } catch (error) {
@@ -278,6 +341,12 @@ export const useWallPersistenceEffects = ({
         lastPersistedSerializedRef.current = JSON.stringify(nextSnapshot);
         await saveWallSnapshot(nextSnapshot, snapshot);
         saver.markCommittedSnapshot(nextSnapshot);
+        const cloudBootstrapDurationMs = performance.now() - cloudBootstrapStartedAt;
+        recordWallTelemetryMetric("startupCloudBootstrapMs", cloudBootstrapDurationMs);
+        recordWallStartupCheckpoint("cloud-bootstrap-completed", {
+          durationMs: cloudBootstrapDurationMs,
+          detail: degradedLocalBootstrap ? "recovered-from-degraded-local-bootstrap" : undefined,
+        });
 
         if (!cancelled) {
           hydrate(nextSnapshot);
@@ -286,6 +355,8 @@ export const useWallPersistenceEffects = ({
           setSyncError(null);
         }
       } catch (error) {
+        const detail = error instanceof Error ? error.message : "cloud-bootstrap-failed";
+        recordWallStartupCheckpoint("cloud-bootstrap-failed", { detail });
         if (!cancelled) {
           finalizeJokerState(snapshot, true);
           const message = error instanceof Error ? error.message : "Cloud sync unavailable";
