@@ -2937,19 +2937,6 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const renderVisibleZones = useMemo(() => (focusedNote ? [] : visibleZones), [focusedNote, visibleZones]);
   const renderVisibleLinks = useMemo(() => (focusedNote ? [] : visibleLinks), [focusedNote, visibleLinks]);
   const renderPathLinkIds = useMemo(() => (focusedNote ? new Set<string>() : pathLinkIds), [focusedNote, pathLinkIds]);
-  const {
-    visibleNotes: layerVisibleNotes,
-    visibleZones: layerVisibleZones,
-    visibleLinks: layerVisibleLinks,
-    renderDetailLevel: layerRenderDetailLevel,
-  } = useWallViewportWindow({
-    notes: displayVisibleNotes,
-    zones: renderVisibleZones,
-    links: renderVisibleLinks,
-    camera,
-    viewport,
-    enabled: !timelineViewActive && !readingMode,
-  });
   const presentationModeType: "notes" | "narrative" = hasNarrativePresentation ? "narrative" : "notes";
   const presentationLength = presentationModeType === "narrative" ? activePresentationSteps.length : presentationNotes.length;
   const activePresentationStep =
@@ -2977,6 +2964,32 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     selectNote,
     selectionBox,
     setSelectionBox,
+  });
+  const viewportPriorityNoteIds = useMemo(
+    () =>
+      [
+        focusedNoteId,
+        ui.selectedNoteId,
+        hoveredNoteId,
+        draggingNoteId,
+        ...activeSelectedNoteIds,
+      ].filter((value): value is string => Boolean(value)),
+    [activeSelectedNoteIds, draggingNoteId, focusedNoteId, hoveredNoteId, ui.selectedNoteId],
+  );
+  const {
+    visibleNotes: layerVisibleNotes,
+    visibleZones: layerVisibleZones,
+    visibleLinks: layerVisibleLinks,
+    renderDetailLevel: layerRenderDetailLevel,
+    renderBudget: layerRenderBudget,
+  } = useWallViewportWindow({
+    notes: displayVisibleNotes,
+    zones: renderVisibleZones,
+    links: renderVisibleLinks,
+    camera,
+    viewport,
+    enabled: !timelineViewActive && !readingMode,
+    priorityNoteIds: viewportPriorityNoteIds,
   });
   const { resolveSnappedPosition } = useWallSnapping({
     dragSnapThreshold,
@@ -4317,6 +4330,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             <WallNotesLayer
               visibleNotes={layerVisibleNotes}
               renderDetailLevel={layerRenderDetailLevel}
+              renderBudget={layerRenderBudget}
               assetRecords={resolvedWallAssets}
               activeSelectedNoteIds={activeSelectedNoteIds}
               selectedNoteId={ui.selectedNoteId}

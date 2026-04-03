@@ -59,6 +59,15 @@ export const WallRenderedNote = ({ note, width, height, showNoteTags = true }: W
           <WallNotesLayer
             visibleNotes={[renderedNote]}
             renderDetailLevel="full"
+            renderBudget={{
+              detailLevel: "full",
+              overscanWorldPx: 0,
+              maxRenderedNotes: 1,
+              maxDecodedMediaNotes: 18,
+              allowImageAutoLayout: true,
+              totalVisibleNoteCount: 1,
+              culledNoteCount: 0,
+            }}
             activeSelectedNoteIds={[]}
             hoveredNoteId={hoveredNoteId}
             draggingNoteId={draggingNoteId}

@@ -24,6 +24,15 @@ export type WallWindowPayload = {
 };
 
 export type WallRenderDetailLevel = "full" | "summary" | "ambient";
+export type WallRenderBudget = {
+  detailLevel: WallRenderDetailLevel;
+  overscanWorldPx: number;
+  maxRenderedNotes: number;
+  maxDecodedMediaNotes: number;
+  allowImageAutoLayout: boolean;
+  totalVisibleNoteCount: number;
+  culledNoteCount: number;
+};
 const defaultWindowTileWorldPx = 2400;
 
 const rectIntersectsBounds = (
@@ -66,6 +75,109 @@ export const getWallRenderDetailLevel = (cameraZoom: number, visibleNoteCount: n
     return "summary";
   }
   return "full";
+};
+
+export const createWallRenderBudget = ({
+  cameraZoom,
+  visibleNoteCount,
+  defaultOverscanWorldPx,
+}: {
+  cameraZoom: number;
+  visibleNoteCount: number;
+  defaultOverscanWorldPx: number;
+}): WallRenderBudget => {
+  const detailLevel = getWallRenderDetailLevel(cameraZoom, visibleNoteCount);
+
+  let overscanWorldPx = defaultOverscanWorldPx;
+  let maxRenderedNotes = detailLevel === "full" ? 72 : detailLevel === "summary" ? 120 : 150;
+  let maxDecodedMediaNotes = detailLevel === "full" ? 18 : 0;
+
+  if (visibleNoteCount >= 320) {
+    overscanWorldPx = Math.max(96, Math.round(defaultOverscanWorldPx * 0.3));
+    maxRenderedNotes = 72;
+    maxDecodedMediaNotes = 0;
+  } else if (visibleNoteCount >= 200) {
+    overscanWorldPx = Math.max(120, Math.round(defaultOverscanWorldPx * 0.45));
+    maxRenderedNotes = detailLevel === "ambient" ? 96 : 84;
+    maxDecodedMediaNotes = 0;
+  } else if (visibleNoteCount >= 120) {
+    overscanWorldPx = Math.max(160, Math.round(defaultOverscanWorldPx * 0.65));
+    maxRenderedNotes = detailLevel === "full" ? 60 : 96;
+    maxDecodedMediaNotes = detailLevel === "full" ? 8 : 0;
+  } else if (visibleNoteCount >= 72) {
+    overscanWorldPx = Math.max(192, Math.round(defaultOverscanWorldPx * 0.8));
+    maxRenderedNotes = detailLevel === "full" ? 56 : 90;
+    maxDecodedMediaNotes = detailLevel === "full" ? 12 : 0;
+  }
+
+  maxRenderedNotes = Math.max(24, Math.min(visibleNoteCount, maxRenderedNotes));
+
+  return {
+    detailLevel,
+    overscanWorldPx,
+    maxRenderedNotes,
+    maxDecodedMediaNotes,
+    allowImageAutoLayout: detailLevel === "full" && visibleNoteCount <= 48,
+    totalVisibleNoteCount: visibleNoteCount,
+    culledNoteCount: Math.max(0, visibleNoteCount - maxRenderedNotes),
+  };
+};
+
+const noteDistanceFromBoundsCenter = (note: Pick<Note, "x" | "y" | "w" | "h">, bounds: WallBounds) => {
+  const centerX = (bounds.minX + bounds.maxX) / 2;
+  const centerY = (bounds.minY + bounds.maxY) / 2;
+  const noteCenterX = note.x + note.w / 2;
+  const noteCenterY = note.y + note.h / 2;
+  return (noteCenterX - centerX) ** 2 + (noteCenterY - centerY) ** 2;
+};
+
+export const prioritizeNotesForRender = <TNote extends Pick<Note, "id" | "x" | "y" | "w" | "h" | "updatedAt">>(
+  notes: TNote[],
+  bounds: WallBounds,
+  maxRenderedNotes: number,
+  priorityNoteIds: string[] = [],
+) => {
+  if (notes.length <= maxRenderedNotes) {
+    return notes;
+  }
+
+  const priorityRank = new Map<string, number>();
+  for (const noteId of priorityNoteIds) {
+    if (!noteId || priorityRank.has(noteId)) {
+      continue;
+    }
+    priorityRank.set(noteId, priorityRank.size);
+  }
+
+  return [...notes]
+    .sort((left, right) => {
+      const leftPriority = priorityRank.get(left.id);
+      const rightPriority = priorityRank.get(right.id);
+      if (leftPriority != null || rightPriority != null) {
+        if (leftPriority == null) {
+          return 1;
+        }
+        if (rightPriority == null) {
+          return -1;
+        }
+        if (leftPriority !== rightPriority) {
+          return leftPriority - rightPriority;
+        }
+      }
+
+      const distanceDelta = noteDistanceFromBoundsCenter(left, bounds) - noteDistanceFromBoundsCenter(right, bounds);
+      if (Math.abs(distanceDelta) > 1) {
+        return distanceDelta;
+      }
+
+      const areaDelta = right.w * right.h - left.w * left.h;
+      if (areaDelta !== 0) {
+        return areaDelta;
+      }
+
+      return right.updatedAt - left.updatedAt;
+    })
+    .slice(0, maxRenderedNotes);
 };
 
 export const noteIntersectsWallBounds = (note: Pick<Note, "x" | "y" | "w" | "h">, bounds: WallBounds) =>
