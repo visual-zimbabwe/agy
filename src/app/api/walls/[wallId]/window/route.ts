@@ -31,7 +31,6 @@ type QueryRowsResult = { data: unknown[] | null; error: QueryErrorLike | null };
 type QuerySingleResult = { data: Record<string, unknown> | null; error: QueryErrorLike | null };
 
 type QueryBuilderLike = PromiseLike<QueryRowsResult | QuerySingleResult> & {
-  select: (columns: string) => QueryBuilderLike;
   eq: (column: string, value: unknown) => QueryBuilderLike;
   is: (column: string, value: null) => QueryBuilderLike;
   gte: (column: string, value: number) => QueryBuilderLike;
@@ -41,8 +40,12 @@ type QueryBuilderLike = PromiseLike<QueryRowsResult | QuerySingleResult> & {
   maybeSingle: () => Promise<QuerySingleResult>;
 };
 
+type QuerySourceLike = {
+  select: (columns: string) => QueryBuilderLike;
+};
+
 type SupabaseLike = {
-  from: (table: string) => QueryBuilderLike;
+  from: (table: string) => QuerySourceLike;
 };
 
 const isMissingZoneKindColumnError = (message?: string) =>
@@ -88,9 +91,10 @@ const loadWindowNotes = async (
   wallId: string,
   bounds: WallBounds,
 ) => {
-  const baseQuery = () =>
+  const baseQuery = (columns: string) =>
     supabase
       .from("notes")
+      .select(columns)
       .eq("wall_id", wallId)
       .eq("owner_id", ownerId)
       .is("deleted_at", null)
@@ -101,11 +105,11 @@ const loadWindowNotes = async (
       .order("updated_at", { ascending: false })
       .order("id", { ascending: false });
 
-  const fullResult = await baseQuery().select(notesSelectWithFormatting);
+  const fullResult = await baseQuery(notesSelectWithFormatting);
   if (fullResult.error && isMissingNoteVocabularyColumnError(fullResult.error.message)) {
-    const withoutVocabularyResult = await baseQuery().select(notesSelectWithoutVocabulary);
+    const withoutVocabularyResult = await baseQuery(notesSelectWithoutVocabulary);
     if (withoutVocabularyResult.error && isMissingNoteFormattingColumnError(withoutVocabularyResult.error.message)) {
-      const legacyResult = await baseQuery().select(notesSelectLegacy);
+      const legacyResult = await baseQuery(notesSelectLegacy);
       if (legacyResult.error) {
         return { data: null as SnapshotArgs["notes"] | null, error: legacyResult.error };
       }
@@ -148,7 +152,7 @@ const loadWindowNotes = async (
   }
 
   if (fullResult.error && isMissingNoteFormattingColumnError(fullResult.error.message)) {
-    const legacyResult = await baseQuery().select(notesSelectLegacy);
+    const legacyResult = await baseQuery(notesSelectLegacy);
     if (legacyResult.error) {
       return { data: null as SnapshotArgs["notes"] | null, error: legacyResult.error };
     }
@@ -192,9 +196,10 @@ const loadWindowZones = async (
   wallId: string,
   bounds: WallBounds,
 ) => {
-  const baseQuery = () =>
+  const baseQuery = (columns: string) =>
     supabase
       .from("zones")
+      .select(columns)
       .eq("wall_id", wallId)
       .eq("owner_id", ownerId)
       .is("deleted_at", null)
@@ -205,9 +210,9 @@ const loadWindowZones = async (
       .order("updated_at", { ascending: false })
       .order("id", { ascending: false });
 
-  const withKindResult = await baseQuery().select(zonesSelectWithKind);
+  const withKindResult = await baseQuery(zonesSelectWithKind);
   if (withKindResult.error && isMissingZoneKindColumnError(withKindResult.error.message)) {
-    const legacyResult = await baseQuery().select(zonesSelectLegacy);
+    const legacyResult = await baseQuery(zonesSelectLegacy);
     if (legacyResult.error) {
       return { data: null as SnapshotArgs["zones"] | null, error: legacyResult.error };
     }
