@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { loadWallDelta } from "@/features/wall/cloud-delta";
 import { applyWallDeltaChanges, hasRelevantWallDeltaChanges, sliceWallSnapshotToBounds } from "@/features/wall/sync";
@@ -32,6 +32,27 @@ export const useWallRemoteDeltaFeed = ({
   getViewportBounds,
   onRemoteSnapshot,
 }: UseWallRemoteDeltaFeedOptions) => {
+  const getBaselineSnapshotRef = useRef(getBaselineSnapshot);
+  const getSyncVersionRef = useRef(getSyncVersion);
+  const getViewportBoundsRef = useRef(getViewportBounds);
+  const onRemoteSnapshotRef = useRef(onRemoteSnapshot);
+
+  useEffect(() => {
+    getBaselineSnapshotRef.current = getBaselineSnapshot;
+  }, [getBaselineSnapshot]);
+
+  useEffect(() => {
+    getSyncVersionRef.current = getSyncVersion;
+  }, [getSyncVersion]);
+
+  useEffect(() => {
+    getViewportBoundsRef.current = getViewportBounds;
+  }, [getViewportBounds]);
+
+  useEffect(() => {
+    onRemoteSnapshotRef.current = onRemoteSnapshot;
+  }, [onRemoteSnapshot]);
+
   useEffect(() => {
     if (!enabled || !wallId) {
       return;
@@ -49,8 +70,8 @@ export const useWallRemoteDeltaFeed = ({
     };
 
     const poll = async () => {
-      const baselineSnapshot = getBaselineSnapshot();
-      const syncVersion = getSyncVersion();
+      const baselineSnapshot = getBaselineSnapshotRef.current();
+      const syncVersion = getSyncVersionRef.current();
       if (!baselineSnapshot || syncVersion <= 0) {
         scheduleNextPoll();
         return;
@@ -64,12 +85,12 @@ export const useWallRemoteDeltaFeed = ({
         }
 
         const nextBaselineSnapshot = applyWallDeltaChanges(baselineSnapshot, deltaPayload.changes);
-        const viewportBounds = getViewportBounds();
+        const viewportBounds = getViewportBoundsRef.current();
         const viewportSnapshot = hasRelevantWallDeltaChanges(deltaPayload.changes, viewportBounds)
           ? sliceWallSnapshotToBounds(nextBaselineSnapshot, viewportBounds)
           : null;
 
-        onRemoteSnapshot({
+        onRemoteSnapshotRef.current({
           baselineSnapshot: nextBaselineSnapshot,
           viewportSnapshot,
           syncVersion: deltaPayload.currentVersion,
@@ -92,5 +113,5 @@ export const useWallRemoteDeltaFeed = ({
         clearTimeout(timer);
       }
     };
-  }, [enabled, getBaselineSnapshot, getSyncVersion, getViewportBounds, onRemoteSnapshot, wallId]);
+  }, [enabled, wallId]);
 };
