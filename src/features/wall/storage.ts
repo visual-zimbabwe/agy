@@ -1,7 +1,8 @@
 import Dexie, { type Table } from "dexie";
 
-import type { Camera, Link, Note, NoteGroup, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
+import type { Camera, Link, Note, NoteGroup, PersistedWallState, WallWindowBounds, Zone, ZoneGroup } from "@/features/wall/types";
 import { normalizePersistedWallState, parseTimelinePayload } from "@/features/wall/storage-migrations";
+import { filterLinksToVisibleNoteIds, noteIntersectsWallBounds, zoneIntersectsWallBounds } from "@/features/wall/windowing";
 import { appSlug, legacyAppSlug } from "@/lib/brand";
 
 type MetaRecord = {
@@ -83,6 +84,15 @@ class WallDatabase extends Dexie {
       meta: "key",
       timelineSnapshots: "++id, ts",
     });
+    this.version(6).stores({
+      notes: "id, updatedAt, x, y",
+      zones: "id, groupId, updatedAt, x, y",
+      zoneGroups: "id, updatedAt",
+      noteGroups: "id, updatedAt",
+      links: "id, fromNoteId, toNoteId, updatedAt",
+      meta: "key",
+      timelineSnapshots: "++id, ts",
+    });
   }
 }
 
@@ -91,6 +101,7 @@ const legacyDb = new WallDatabase(legacyWallDatabaseName);
 let migrationPromise: Promise<void> | null = null;
 
 const defaultCamera: Camera = { x: 0, y: 0, zoom: 1 };
+const defaultLocalWindowCandidateMargin = 1600;
 
 const isQuotaExceededError = (error: unknown) => {
   if (!(error instanceof Error)) {
@@ -246,6 +257,89 @@ export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
   });
 
   return normalized ?? { notes: {}, zones: {}, zoneGroups: {}, noteGroups: {}, links: {}, camera: defaultCamera };
+};
+
+const parseStoredCamera = (cameraMeta?: MetaRecord) => {
+  if (!cameraMeta?.value) {
+    return defaultCamera;
+  }
+
+  try {
+    const parsed = JSON.parse(cameraMeta.value) as Camera;
+    if (
+      typeof parsed?.x === "number" &&
+      Number.isFinite(parsed.x) &&
+      typeof parsed?.y === "number" &&
+      Number.isFinite(parsed.y) &&
+      typeof parsed?.zoom === "number" &&
+      Number.isFinite(parsed.zoom) &&
+      parsed.zoom > 0
+    ) {
+      return parsed;
+    }
+  } catch {
+    return defaultCamera;
+  }
+
+  return defaultCamera;
+};
+
+export const loadWallCameraState = async (): Promise<{ camera: Camera; lastColor?: string }> => {
+  await migrateLegacyWallDatabaseIfNeeded();
+  const [cameraMeta, lastColorMeta] = await Promise.all([db.meta.get("camera"), db.meta.get("lastColor")]);
+  return {
+    camera: parseStoredCamera(cameraMeta),
+    lastColor: lastColorMeta?.value,
+  };
+};
+
+export const loadWallWindowSnapshot = async (
+  bounds: WallWindowBounds,
+  options?: { candidateMargin?: number },
+): Promise<PersistedWallState> => {
+  await migrateLegacyWallDatabaseIfNeeded();
+  const candidateMargin = Math.max(0, options?.candidateMargin ?? defaultLocalWindowCandidateMargin);
+  const minX = bounds.minX - candidateMargin;
+  const maxX = bounds.maxX;
+
+  const [cameraState, noteCandidates, zoneCandidates, zoneGroupsList, noteGroupsList] = await Promise.all([
+    loadWallCameraState(),
+    db.notes.where("x").between(minX, maxX, true, true).toArray(),
+    db.zones.where("x").between(minX, maxX, true, true).toArray(),
+    db.zoneGroups.toArray(),
+    db.noteGroups.toArray(),
+  ]);
+
+  const visibleNotes = noteCandidates.filter((note) => noteIntersectsWallBounds(note, bounds));
+  const visibleZones = zoneCandidates.filter((zone) => zoneIntersectsWallBounds(zone, bounds));
+  const visibleNoteIds = new Set(visibleNotes.map((note) => note.id));
+  const visibleZoneIds = new Set(visibleZones.map((zone) => zone.id));
+
+  const linkCandidates =
+    visibleNoteIds.size > 0 ? await db.links.where("fromNoteId").anyOf([...visibleNoteIds]).toArray() : [];
+  const visibleLinks = filterLinksToVisibleNoteIds(linkCandidates, visibleNoteIds);
+  const visibleZoneGroups = zoneGroupsList.filter((group) => group.zoneIds.some((zoneId) => visibleZoneIds.has(zoneId)));
+  const visibleNoteGroups = noteGroupsList.filter((group) => group.noteIds.some((noteId) => visibleNoteIds.has(noteId)));
+
+  return (
+    normalizePersistedWallState({
+      notes: Object.fromEntries(visibleNotes.map((note) => [note.id, note])),
+      zones: Object.fromEntries(visibleZones.map((zone) => [zone.id, zone])),
+      zoneGroups: Object.fromEntries(visibleZoneGroups.map((group) => [group.id, group])),
+      noteGroups: Object.fromEntries(visibleNoteGroups.map((group) => [group.id, group])),
+      links: Object.fromEntries(visibleLinks.map((link) => [link.id, link])),
+      camera: cameraState.camera,
+      lastColor: cameraState.lastColor,
+    }) ?? {
+      notes: {},
+      zones: {},
+      zoneGroups: {},
+      noteGroups: {},
+      links: {},
+      camera: cameraState.camera,
+      lastColor: cameraState.lastColor,
+    }
+  );
 };
 
 export const loadWallSyncVersion = async () => {
