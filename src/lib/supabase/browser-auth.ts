@@ -3,7 +3,7 @@
 import type { Session, User } from "@supabase/supabase-js";
 
 import {
-  createFreshSupabaseBrowserClient,
+  createSupabaseBrowserClient,
   getSupabaseBrowserStorageKey,
   resetSupabaseBrowserClient,
 } from "@/lib/supabase/client";
@@ -66,7 +66,7 @@ const recoverFromStaleRefreshToken = (error: unknown) => {
 
 export const getSupabaseBrowserSessionSafely = async (): Promise<{ session: Session | null; error: Error | null }> => {
   try {
-    const supabase = createFreshSupabaseBrowserClient();
+    const supabase = createSupabaseBrowserClient();
     const { data, error } = await supabase.auth.getSession();
     if (error && recoverFromStaleRefreshToken(error.message)) {
       return {
@@ -94,7 +94,7 @@ export const getSupabaseBrowserSessionSafely = async (): Promise<{ session: Sess
 
 export const getSupabaseBrowserUserSafely = async (): Promise<{ user: User | null; error: Error | null }> => {
   try {
-    const supabase = createFreshSupabaseBrowserClient();
+    const supabase = createSupabaseBrowserClient();
     const { data, error } = await supabase.auth.getUser();
     if (error && recoverFromStaleRefreshToken(error.message)) {
       return {

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const createFreshSupabaseBrowserClient = vi.fn();
+const createSupabaseBrowserClient = vi.fn();
 const resetSupabaseBrowserClient = vi.fn();
 const getSupabaseBrowserStorageKey = vi.fn(() => "sb-test-auth-token");
 
 vi.mock("@/lib/supabase/client", () => ({
-  createFreshSupabaseBrowserClient,
+  createSupabaseBrowserClient,
   resetSupabaseBrowserClient,
   getSupabaseBrowserStorageKey,
 }));
@@ -19,7 +19,7 @@ describe("browser auth helpers", () => {
   });
 
   it("clears stale auth cookies when getSession hits an invalid refresh token", async () => {
-    createFreshSupabaseBrowserClient.mockReturnValue({
+    createSupabaseBrowserClient.mockReturnValue({
       auth: {
         getSession: vi.fn().mockResolvedValue({
           data: { session: null },
@@ -40,7 +40,7 @@ describe("browser auth helpers", () => {
   });
 
   it("preserves non-stale auth errors", async () => {
-    createFreshSupabaseBrowserClient.mockReturnValue({
+    createSupabaseBrowserClient.mockReturnValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
           data: { user: null },
