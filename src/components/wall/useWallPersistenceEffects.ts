@@ -4,7 +4,7 @@ import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateA
 
 import { createJokerNote } from "@/features/wall/commands";
 import { hasContent, hasMeaningfulContent, mergeSnapshotsLww } from "@/features/wall/cloud";
-import { loadWallBootstrap, loadWallDelta } from "@/features/wall/cloud-delta";
+import { loadWallBootstrap, loadWallDelta, loadWallShell, loadWallWindow } from "@/features/wall/cloud-delta";
 import { hasJokerCardBeenActivated, markJokerCardActivated } from "@/features/wall/joker";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { applyWallDeltaChanges } from "@/features/wall/sync";
@@ -20,7 +20,7 @@ import {
   type TimelineEntry,
 } from "@/features/wall/storage";
 import { recordWallStartupCheckpoint, recordWallTelemetryMetric } from "@/features/wall/telemetry";
-import type { PersistedWallState } from "@/features/wall/types";
+import type { Camera, PersistedWallState, WallWindowBounds } from "@/features/wall/types";
 import { defaultWallTitle } from "@/lib/brand";
 import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-auth";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
@@ -42,6 +42,7 @@ type UseWallPersistenceEffectsOptions = {
   cloudSyncTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>;
   lastTimelineSerialized: MutableRefObject<string>;
   lastTimelineRecordedAt: MutableRefObject<number>;
+  getViewportWindowBounds: (camera: Camera) => WallWindowBounds;
 };
 
 const lastCloudWallStorageKey = "agy-last-cloud-wall-id";
@@ -72,6 +73,7 @@ export const useWallPersistenceEffects = ({
   cloudSyncTimerRef,
   lastTimelineSerialized,
   lastTimelineRecordedAt,
+  getViewportWindowBounds,
 }: UseWallPersistenceEffectsOptions) => {
   const lastPersistedSerializedRef = useRef("");
   const inMemoryTimelineLimit = 120;
@@ -202,6 +204,30 @@ export const useWallPersistenceEffects = ({
           return createdPayload.wall.id;
         };
 
+        const hydrateCloudWindowPreview = async (candidateWallId: string) => {
+          const shell = await loadWallShell(candidateWallId);
+          const previewCamera = degradedLocalBootstrap || !hasContent(snapshot) ? shell.camera : snapshot.camera;
+          const windowPayload = await loadWallWindow(candidateWallId, getViewportWindowBounds(previewCamera));
+          const previewSnapshot =
+            degradedLocalBootstrap || !hasContent(snapshot)
+              ? windowPayload.snapshot
+              : mergeSnapshotsLww(windowPayload.snapshot, snapshot);
+          lastPersistedSerializedRef.current = JSON.stringify(previewSnapshot);
+          saver.markCommittedSnapshot(previewSnapshot);
+
+          if (!cancelled) {
+            hydrate(previewSnapshot);
+            setCloudWallId(candidateWallId);
+            setCloudSyncVersion(windowPayload.syncVersion);
+            setCloudWallUpdatedAt(windowPayload.shell.updatedAt ?? null);
+          }
+
+          return {
+            shell,
+            snapshot: previewSnapshot,
+          };
+        };
+
         const loadCloudState = async (candidateWallId: string, knownWallIds: string[]) => {
           const canUseStoredDelta =
             localBaselineSnapshot &&
@@ -229,6 +255,18 @@ export const useWallPersistenceEffects = ({
         let serverSnapshot: PersistedWallState | null = null;
         let serverSyncVersion = 0;
         let wallId = preferredWallId;
+        let listedWallIdsCache: string[] | null = null;
+
+        if (preferredWallId) {
+          try {
+            await hydrateCloudWindowPreview(preferredWallId);
+            writeStorageValue(lastCloudWallStorageKey, preferredWallId);
+          } catch (error) {
+            if (error instanceof Error && error.message === authExpiredMessage) {
+              throw error;
+            }
+          }
+        }
 
         if (preferredWallId) {
           try {
@@ -245,11 +283,23 @@ export const useWallPersistenceEffects = ({
         }
 
         if (!serverSnapshot) {
-          const listedWallIds = await listWalls();
+          const listedWallIds = listedWallIdsCache ?? (await listWalls());
+          listedWallIdsCache = listedWallIds;
           wallId = listedWallIds[0] ?? null;
 
           if (!wallId) {
             wallId = await createWall();
+          }
+
+          if (wallId && wallId !== preferredWallId) {
+            try {
+              await hydrateCloudWindowPreview(wallId);
+              writeStorageValue(lastCloudWallStorageKey, wallId);
+            } catch (error) {
+              if (error instanceof Error && error.message === authExpiredMessage) {
+                throw error;
+              }
+            }
           }
 
           if (!wallId) {
@@ -317,14 +367,15 @@ export const useWallPersistenceEffects = ({
         const migrationKey = `agy-cloud-imported-v1:${wallId}`;
         const legacyMigrationKey = `idea-wall-cloud-imported-v1:${wallId}`;
         const canPromptImport = typeof window !== "undefined" && !readStorageValue(migrationKey, [legacyMigrationKey]);
-        let nextSnapshot = mergeSnapshotsLww(serverSnapshot, snapshot);
+        const latestLocalSnapshot = selectPersistedSnapshot(useWallStore.getState());
+        let nextSnapshot = mergeSnapshotsLww(serverSnapshot, latestLocalSnapshot);
 
-        if (hasContent(snapshot) && !hasContent(serverSnapshot) && canPromptImport && typeof window !== "undefined") {
+        if (hasContent(latestLocalSnapshot) && !hasContent(serverSnapshot) && canPromptImport && typeof window !== "undefined") {
           const importLocal = window.confirm("Import your existing local wall data to your cloud account now?");
           if (importLocal) {
-            nextSnapshot = snapshot;
+            nextSnapshot = latestLocalSnapshot;
             setAcknowledgedCloudSnapshot(serverSnapshot);
-            await syncSnapshotToCloud(wallId, snapshot);
+            await syncSnapshotToCloud(wallId, latestLocalSnapshot);
           }
           writeStorageValue(migrationKey, "1");
         } else if (JSON.stringify(nextSnapshot) !== JSON.stringify(serverSnapshot)) {
@@ -339,7 +390,7 @@ export const useWallPersistenceEffects = ({
         }
 
         lastPersistedSerializedRef.current = JSON.stringify(nextSnapshot);
-        await saveWallSnapshot(nextSnapshot, snapshot);
+        await saveWallSnapshot(nextSnapshot, latestLocalSnapshot);
         saver.markCommittedSnapshot(nextSnapshot);
         const cloudBootstrapDurationMs = performance.now() - cloudBootstrapStartedAt;
         recordWallTelemetryMetric("startupCloudBootstrapMs", cloudBootstrapDurationMs);
@@ -358,7 +409,7 @@ export const useWallPersistenceEffects = ({
         const detail = error instanceof Error ? error.message : "cloud-bootstrap-failed";
         recordWallStartupCheckpoint("cloud-bootstrap-failed", { detail });
         if (!cancelled) {
-          finalizeJokerState(snapshot, true);
+          finalizeJokerState(selectPersistedSnapshot(useWallStore.getState()), true);
           const message = error instanceof Error ? error.message : "Cloud sync unavailable";
           setSyncError(message);
           cloudReadyRef.current = false;
@@ -428,5 +479,6 @@ export const useWallPersistenceEffects = ({
     setTimelineEntries,
     setTimelineIndex,
     syncSnapshotToCloud,
+    getViewportWindowBounds,
   ]);
 };

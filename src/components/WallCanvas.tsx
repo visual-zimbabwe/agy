@@ -154,6 +154,7 @@ import { loadTimelineEntries, saveWallCloudBaselineSnapshot, saveWallSyncVersion
 import { loadWallBootstrap, loadWallDelta, pushWallDelta } from "@/features/wall/cloud-delta";
 import { applyWallDeltaChanges, buildWallDeltaSyncRequest, hasWallDeltaChanges, rebaseLocalWallSnapshot, stageWallSyncRequest, takeNextQueuedWallSync, type WallSyncRequest } from "@/features/wall/sync";
 import type { Note, PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
+import { createViewportWallBounds } from "@/features/wall/windowing";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
 import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
@@ -1203,6 +1204,11 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     setLocalSaveState("idle");
   }, []);
 
+  const getViewportWindowBounds = useCallback(
+    (targetCamera: { x: number; y: number; zoom: number }) => createViewportWallBounds(targetCamera, viewport, 320),
+    [viewport],
+  );
+
   useWallPersistenceEffects({
     hydrate,
     publishedReadOnly,
@@ -1226,6 +1232,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     cloudSyncTimerRef,
     lastTimelineSerialized,
     lastTimelineRecordedAt,
+    getViewportWindowBounds,
   });
 
   const {

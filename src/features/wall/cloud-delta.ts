@@ -1,5 +1,5 @@
 import type { DeltaSyncRequest } from "@/features/wall/delta-sync";
-import type { PersistedWallState } from "@/features/wall/types";
+import type { PersistedWallState, WallShellResponse, WallWindowBounds, WallWindowResponse } from "@/features/wall/types";
 import { authExpiredMessage } from "@/lib/api/client-auth";
 
 export type WallDeltaChange = {
@@ -27,6 +27,38 @@ export const loadWallBootstrap = async (wallId: string): Promise<{ snapshot: Per
     snapshot: payload.snapshot,
     syncVersion: payload.syncVersion ?? 0,
   };
+};
+
+export const loadWallShell = async (wallId: string) => {
+  const response = await fetch(`/api/walls/${wallId}/shell`, { cache: "no-store" });
+  if (response.status === 401) {
+    throw new Error(authExpiredMessage);
+  }
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(payload.error ?? "Unable to load wall shell");
+  }
+
+  return ((await response.json()) as WallShellResponse).shell;
+};
+
+export const loadWallWindow = async (wallId: string, bounds: WallWindowBounds) => {
+  const params = new URLSearchParams({
+    minX: String(bounds.minX),
+    minY: String(bounds.minY),
+    maxX: String(bounds.maxX),
+    maxY: String(bounds.maxY),
+  });
+  const response = await fetch(`/api/walls/${wallId}/window?${params.toString()}`, { cache: "no-store" });
+  if (response.status === 401) {
+    throw new Error(authExpiredMessage);
+  }
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(payload.error ?? "Unable to load wall window");
+  }
+
+  return (await response.json()) as WallWindowResponse;
 };
 
 export const loadWallDelta = async (wallId: string, since: number) => {
