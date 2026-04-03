@@ -1,15 +1,10 @@
-import { deriveWallAssetRecords } from "@/features/wall/asset-records";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { rowsToSnapshot } from "@/features/wall/cloud";
+import { buildWindowCandidateBounds, createWallWindowResponse } from "@/features/wall/spatial-read-model";
 import type { WallWindowResponse } from "@/features/wall/types";
-import {
-  filterLinksToVisibleNoteIds,
-  filterNotesToWallBounds,
-  filterZonesToWallBounds,
-  type WallBounds,
-} from "@/features/wall/windowing";
+import { type WallBounds } from "@/features/wall/windowing";
 import { requireApiUser } from "@/lib/api/auth";
 
 const paramsSchema = z.object({
@@ -87,18 +82,11 @@ const notesSelectLegacy = "id,text,tags,text_size,x,y,w,h,color,created_at,updat
 const zonesSelectWithKind = "id,revision,label,kind,group_id,x,y,w,h,color,created_at,updated_at";
 const zonesSelectLegacy = "id,revision,label,group_id,x,y,w,h,color,created_at,updated_at";
 
-const buildCandidateBounds = (bounds: WallBounds, margin: number) => ({
-  minX: bounds.minX - margin,
-  minY: bounds.minY - margin,
-  maxX: bounds.maxX,
-  maxY: bounds.maxY,
-});
-
 const loadWindowNotes = async (
   supabase: SupabaseLike,
   ownerId: string,
   wallId: string,
-  bounds: ReturnType<typeof buildCandidateBounds>,
+  bounds: WallBounds,
 ) => {
   const baseQuery = () =>
     supabase
@@ -202,7 +190,7 @@ const loadWindowZones = async (
   supabase: SupabaseLike,
   ownerId: string,
   wallId: string,
-  bounds: ReturnType<typeof buildCandidateBounds>,
+  bounds: WallBounds,
 ) => {
   const baseQuery = () =>
     supabase
@@ -266,7 +254,7 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
     maxX: parsedBounds.data.maxX,
     maxY: parsedBounds.data.maxY,
   };
-  const candidateBounds = buildCandidateBounds(bounds, parsedBounds.data.candidateMargin ?? 1200);
+  const candidateBounds = buildWindowCandidateBounds(bounds, parsedBounds.data.candidateMargin ?? 1200);
 
   const supabase = auth.supabase as unknown as SupabaseLike;
 
@@ -311,81 +299,24 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
     return NextResponse.json({ error: zonesResult.error.message }, { status: 500 });
   }
 
-  const fullWindowSnapshot = rowsToSnapshot({
-    wall: wallRow,
-    notes: (notesResult.data ?? []) as SnapshotArgs["notes"],
-    zones: (zonesResult.data ?? []) as SnapshotArgs["zones"],
-    zoneGroups: (zoneGroupsResult.data ?? []) as SnapshotArgs["zoneGroups"],
-    noteGroups: ((noteGroupsResult.data ?? []) as SnapshotArgs["noteGroups"]) ?? [],
-    links: [],
-  });
+  const candidateNoteIds = new Set(((notesResult.data ?? []) as Array<{ id: string }>).map((note) => note.id));
 
-  const filteredNotes = filterNotesToWallBounds(Object.values(fullWindowSnapshot.notes), bounds);
-  const filteredZones = filterZonesToWallBounds(Object.values(fullWindowSnapshot.zones), bounds);
-  const filteredNoteIds = new Set(filteredNotes.map((note) => note.id));
-  const filteredZoneIds = new Set(filteredZones.map((zone) => zone.id));
-
-  const linksResult = filteredNoteIds.size > 0
+  const linksResult = candidateNoteIds.size > 0
     ? await supabase
         .from("links")
         .select("id,revision,from_note_id,to_note_id,type,label,created_at,updated_at")
         .eq("wall_id", wallId)
         .eq("owner_id", auth.user.id)
         .is("deleted_at", null)
-        .in("from_note_id", [...filteredNoteIds])
-        .in("to_note_id", [...filteredNoteIds])
+        .in("from_note_id", [...candidateNoteIds])
+        .in("to_note_id", [...candidateNoteIds])
     : { data: [], error: null };
 
   if (linksResult.error) {
     return NextResponse.json({ error: linksResult.error.message }, { status: 500 });
   }
 
-  const snapshot = rowsToSnapshot({
-    wall: wallRow,
-    notes: (notesResult.data ?? []).filter((row) => filteredNoteIds.has(row.id)) as SnapshotArgs["notes"],
-    zones: (zonesResult.data ?? []).filter((row) => filteredZoneIds.has(row.id)) as SnapshotArgs["zones"],
-    zoneGroups: ((zoneGroupsResult.data as Array<{ zone_ids: unknown }> | null) ?? []).filter((group) => {
-      const zoneIds = Array.isArray(group.zone_ids) ? (group.zone_ids as string[]) : [];
-      return zoneIds.some((zoneId) => filteredZoneIds.has(zoneId));
-    }) as SnapshotArgs["zoneGroups"],
-    noteGroups: ((((noteGroupsResult.data as Array<{ note_ids: unknown }> | null) ?? []).filter((group) => {
-      const noteIds = Array.isArray(group.note_ids) ? (group.note_ids as string[]) : [];
-      return noteIds.some((noteId) => filteredNoteIds.has(noteId));
-    }) as SnapshotArgs["noteGroups"])) ?? [],
-    links: filterLinksToVisibleNoteIds(
-      rowsToSnapshot({
-        wall: wallRow,
-        notes: [],
-        zones: [],
-        zoneGroups: [],
-        noteGroups: [],
-        links: (linksResult.data ?? []) as SnapshotArgs["links"],
-      }).links
-        ? Object.values(
-            rowsToSnapshot({
-              wall: wallRow,
-              notes: [],
-              zones: [],
-              zoneGroups: [],
-              noteGroups: [],
-              links: (linksResult.data ?? []) as SnapshotArgs["links"],
-            }).links,
-          )
-        : [],
-      filteredNoteIds,
-    ).map((link) => ({
-      id: link.id,
-      revision: link.revision,
-      from_note_id: link.fromNoteId,
-      to_note_id: link.toNoteId,
-      type: link.type,
-      label: link.label,
-      created_at: new Date(link.createdAt).toISOString(),
-      updated_at: new Date(link.updatedAt).toISOString(),
-    })) as SnapshotArgs["links"],
-  });
-
-  const payload: WallWindowResponse = {
+  const payload: WallWindowResponse = createWallWindowResponse({
     shell: {
       id: wallRow.id,
       title: wallRow.title ?? undefined,
@@ -398,11 +329,15 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
       updatedAt: wallRow.updated_at ?? undefined,
       syncVersion: wallRow.sync_version ?? 0,
     },
+    wall: wallRow,
     bounds,
-    snapshot,
-    assets: deriveWallAssetRecords(snapshot.notes),
-    syncVersion: wallRow.sync_version ?? 0,
-  };
+    candidateBounds,
+    notes: (notesResult.data ?? []) as SnapshotArgs["notes"],
+    zones: (zonesResult.data ?? []) as SnapshotArgs["zones"],
+    zoneGroups: (zoneGroupsResult.data ?? []) as SnapshotArgs["zoneGroups"],
+    noteGroups: ((noteGroupsResult.data ?? []) as SnapshotArgs["noteGroups"]) ?? [],
+    links: (linksResult.data ?? []) as SnapshotArgs["links"],
+  });
 
   return NextResponse.json(payload);
 }
