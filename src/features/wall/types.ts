@@ -369,10 +369,13 @@ export type WallShellState = {
   syncVersion: number;
 };
 
+export type WallShellResponse = {
+  shell: WallShellState;
+};
+
 export type WallWindowResponse = {
   shell: WallShellState;
   bounds: WallWindowBounds;
   snapshot: PersistedWallState;
   syncVersion: number;
 };
-
