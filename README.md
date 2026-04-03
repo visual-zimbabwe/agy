@@ -34,7 +34,9 @@ The repo includes `.nvmrc` to pin the expected Node.js major version.
 Copy `.env.example` to `.env.local` and provide the required values:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=/supabase
+SUPABASE_SERVER_URL=http://localhost:18000
+SUPABASE_PROXY_TARGET=http://localhost:18000
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 UNSPLASH_ACCESS_KEY=your-unsplash-access-key
@@ -42,6 +44,8 @@ CURRENCY_API_KEY=your-currencyapi-com-api-key
 # or, if you already use CurrencyAPI naming
 CURRENCYAPI_API_KEY=your-currencyapi-com-api-key
 ```
+
+`NEXT_PUBLIC_SUPABASE_URL=/supabase` keeps browser traffic same-origin, so remote users only need access to the `agy` app URL. Server-side routes still talk directly to the local Supabase API through `SUPABASE_SERVER_URL`.
 
 ### Local Supabase
 
@@ -77,6 +81,35 @@ Open:
 - `http://localhost:3000/help`
 
 Authenticated routes redirect to `/login` when no signed-in user is available, except published snapshot views.
+
+### Windows Local Runtime
+
+This repo includes Windows helpers for a local self-hosted setup:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\start-agy-stack.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\status-agy-stack.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\stop-agy-stack.ps1
+```
+
+To start the app and a public LocalXpose tunnel together:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\start-agy-stack.ps1 -WithTunnel
+```
+
+The runtime scripts expect:
+
+- `SUPABASE_PLATFORM_ROOT` to point at the local `supabase-platform` checkout, or the default `E:\supabase-platform`
+- `LOCALXPOSE_ACCESS_TOKEN` in your user environment if you want the public tunnel
+
+Install Windows login-time autostart with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\install-agy-autostart.ps1
+```
+
+That startup entry launches the local Supabase stack first, then `agy`, then the LocalXpose tunnel.
 
 ## Validation
 
