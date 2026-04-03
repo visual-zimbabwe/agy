@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject, t
 
 import { createJokerNote } from "@/features/wall/commands";
 import { hasContent, hasMeaningfulContent, mergeSnapshotsLww } from "@/features/wall/cloud";
-import { loadWallBootstrap, loadWallDelta, loadWallShell, loadWallWindow } from "@/features/wall/cloud-delta";
+import { loadWallBootstrap, loadWallDelta, loadWallShell } from "@/features/wall/cloud-delta";
 import { hasJokerCardBeenActivated, markJokerCardActivated } from "@/features/wall/joker";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { applyWallDeltaChanges } from "@/features/wall/sync";
@@ -57,6 +57,22 @@ const emptyWallSnapshot: PersistedWallState = {
   links: {},
   camera: { x: 0, y: 0, zoom: 1 },
 };
+
+const createShellPreviewSnapshot = ({
+  baseSnapshot,
+  shellCamera,
+  shellLastColor,
+  preferShellCamera,
+}: {
+  baseSnapshot: PersistedWallState;
+  shellCamera: Camera;
+  shellLastColor?: string;
+  preferShellCamera: boolean;
+}): PersistedWallState => ({
+  ...baseSnapshot,
+  camera: preferShellCamera ? shellCamera : baseSnapshot.camera,
+  lastColor: baseSnapshot.lastColor ?? shellLastColor,
+});
 
 export const useWallPersistenceEffects = ({
   hydrate,
@@ -223,19 +239,22 @@ export const useWallPersistenceEffects = ({
         const hydrateCloudWindowPreview = async (candidateWallId: string) => {
           const shell = await loadWallShell(candidateWallId);
           const previewCamera = degradedLocalBootstrap || !hasContent(snapshot) ? shell.camera : snapshot.camera;
-          const windowPayload = await loadWallWindow(candidateWallId, getViewportWindowBounds(previewCamera));
-          const previewSnapshot =
-            degradedLocalBootstrap || !hasContent(snapshot)
-              ? windowPayload.snapshot
-              : mergeSnapshotsLww(windowPayload.snapshot, snapshot);
+          const previewSnapshot = createShellPreviewSnapshot({
+            baseSnapshot:
+              degradedLocalBootstrap || !hasContent(snapshot)
+                ? { ...emptyWallSnapshot }
+                : snapshot,
+            shellCamera: previewCamera,
+            shellLastColor: shell.lastColor,
+            preferShellCamera: degradedLocalBootstrap || !hasContent(snapshot),
+          });
           lastPersistedSerializedRef.current = JSON.stringify(previewSnapshot);
 
           if (!cancelled) {
             hydrate(previewSnapshot);
             setCloudWallId(candidateWallId);
-            setCloudSyncVersion(windowPayload.syncVersion);
-            setCloudWallUpdatedAt(windowPayload.shell.updatedAt ?? null);
-            setWallAssets(windowPayload.assets);
+            setCloudSyncVersion(shell.syncVersion);
+            setCloudWallUpdatedAt(shell.updatedAt ?? null);
           }
 
           return {
