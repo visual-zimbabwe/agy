@@ -35,8 +35,6 @@ export const useWallEntityWindowCache = ({
     return alignBoundsToWallTile(viewportBounds);
   }, [camera, overscanWorldPx, viewport]);
 
-  const requestKey = useMemo(() => wallBoundsCacheKey(requestBounds), [requestBounds]);
-
   useEffect(() => {
     if (previousWallIdRef.current !== wallId) {
       previousWallIdRef.current = wallId;
@@ -49,40 +47,53 @@ export const useWallEntityWindowCache = ({
     if (!enabled || !wallId || viewport.w <= 0 || viewport.h <= 0) {
       return;
     }
-    if (loadedWindowKeysRef.current.has(requestKey) || inflightWindowKeysRef.current.has(requestKey)) {
-      return;
-    }
-
     let cancelled = false;
-    inflightWindowKeysRef.current.add(requestKey);
 
-    void loadWallWindow(wallId, requestBounds)
-      .then((payload) => {
-        if (cancelled) {
-          return;
-        }
-        loadedWindowKeysRef.current.add(requestKey);
-        onWindowLoaded({
-          snapshot: payload.snapshot,
-          assets: payload.assets,
-          syncVersion: payload.syncVersion,
-          updatedAt: payload.shell.updatedAt ?? null,
+    const loadWindow = (bounds: WallWindowBounds, allowPrefetch: boolean) => {
+      const boundsKey = wallBoundsCacheKey(bounds);
+      if (loadedWindowKeysRef.current.has(boundsKey) || inflightWindowKeysRef.current.has(boundsKey)) {
+        return;
+      }
+
+      inflightWindowKeysRef.current.add(boundsKey);
+
+      void loadWallWindow(wallId, bounds)
+        .then((payload) => {
+          if (cancelled) {
+            return;
+          }
+          loadedWindowKeysRef.current.add(boundsKey);
+          onWindowLoaded({
+            snapshot: payload.snapshot,
+            assets: payload.assets,
+            syncVersion: payload.syncVersion,
+            updatedAt: payload.shell.updatedAt ?? null,
+          });
+
+          if (!allowPrefetch) {
+            return;
+          }
+          for (const prefetchBounds of payload.readModel.prefetchBounds.slice(0, 2)) {
+            loadWindow(prefetchBounds, false);
+          }
+        })
+        .catch((error) => {
+          if (cancelled) {
+            return;
+          }
+          if (error instanceof Error && error.message === authExpiredMessage) {
+            redirectToLoginForAuth("/wall");
+          }
+        })
+        .finally(() => {
+          inflightWindowKeysRef.current.delete(boundsKey);
         });
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-        if (error instanceof Error && error.message === authExpiredMessage) {
-          redirectToLoginForAuth("/wall");
-        }
-      })
-      .finally(() => {
-        inflightWindowKeysRef.current.delete(requestKey);
-      });
+    };
+
+    loadWindow(requestBounds, true);
 
     return () => {
       cancelled = true;
     };
-  }, [enabled, onWindowLoaded, requestBounds, requestKey, viewport.h, viewport.w, wallId]);
+  }, [enabled, onWindowLoaded, requestBounds, viewport.h, viewport.w, wallId]);
 };

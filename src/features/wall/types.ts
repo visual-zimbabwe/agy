@@ -393,10 +393,27 @@ export type WallShellResponse = {
   shell: WallShellState;
 };
 
+export type WallWindowReadModel = {
+  tileKey: string;
+  queryBounds: WallWindowBounds;
+  candidateBounds: WallWindowBounds;
+  prefetchBounds: WallWindowBounds[];
+  counts: {
+    candidateNotes: number;
+    candidateZones: number;
+    visibleNotes: number;
+    visibleZones: number;
+    visibleLinks: number;
+    visibleZoneGroups: number;
+    visibleNoteGroups: number;
+  };
+};
+
 export type WallWindowResponse = {
   shell: WallShellState;
   bounds: WallWindowBounds;
   snapshot: PersistedWallState;
   assets: WallAssetMap;
+  readModel: WallWindowReadModel;
   syncVersion: number;
 };
