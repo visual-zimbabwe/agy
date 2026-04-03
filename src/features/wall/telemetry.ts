@@ -7,7 +7,11 @@ export type WallTelemetryMetricKey =
   | "detailsPanelOpenMs"
   | "searchOpenMs"
   | "exportOpenMs"
-  | "shortcutsOpenMs";
+  | "shortcutsOpenMs"
+  | "startupLocalBootstrapMs"
+  | "startupHydrateMs"
+  | "startupCloudBootstrapMs"
+  | "startupRecoveryMs";
 
 export type WallTelemetryMetricSummary = {
   count: number;
@@ -22,9 +26,34 @@ export type WallTelemetrySnapshot = {
   summary: Partial<Record<WallTelemetryMetricKey, WallTelemetryMetricSummary>>;
 };
 
+export type WallStartupCheckpointStage =
+  | "local-bootstrap-started"
+  | "local-bootstrap-completed"
+  | "local-bootstrap-timeout"
+  | "local-bootstrap-failed"
+  | "hydrate-completed"
+  | "cloud-bootstrap-started"
+  | "cloud-bootstrap-completed"
+  | "cloud-bootstrap-failed";
+
+export type WallStartupCheckpoint = {
+  ts: number;
+  stage: WallStartupCheckpointStage;
+  durationMs?: number;
+  detail?: string;
+};
+
+export type WallStartupDiagnosticsSnapshot = {
+  updatedAt: number;
+  checkpoints: WallStartupCheckpoint[];
+};
+
 export const wallTelemetryStorageKey = `${appSlug}-ux-telemetry-v1`;
+export const wallStartupDiagnosticsStorageKey = `${appSlug}-wall-startup-diagnostics-v1`;
 const legacyWallTelemetryStorageKey = `${legacyAppSlug}-ux-telemetry-v1`;
+const legacyWallStartupDiagnosticsStorageKey = `${legacyAppSlug}-wall-startup-diagnostics-v1`;
 const maxSamplesPerMetric = 50;
+const maxStartupCheckpoints = 80;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -121,6 +150,74 @@ export const recordWallTelemetryMetric = (key: WallTelemetryMetricKey, valueMs: 
     writeStorageValue(wallTelemetryStorageKey, JSON.stringify(next));
   } catch {
     return null;
+  }
+
+  return next;
+};
+
+export const loadWallStartupDiagnosticsSnapshot = (): WallStartupDiagnosticsSnapshot | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = readStorageValue(wallStartupDiagnosticsStorageKey, [legacyWallStartupDiagnosticsStorageKey]);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isRecord(parsed) || !Array.isArray(parsed.checkpoints)) {
+      return null;
+    }
+
+    const checkpoints = parsed.checkpoints
+      .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+      .map((entry) => ({
+        ts: typeof entry.ts === "number" ? entry.ts : Date.now(),
+        stage: entry.stage as WallStartupCheckpointStage,
+        durationMs: typeof entry.durationMs === "number" ? entry.durationMs : undefined,
+        detail: typeof entry.detail === "string" ? entry.detail : undefined,
+      }))
+      .slice(-maxStartupCheckpoints);
+
+    return {
+      updatedAt: typeof parsed.updatedAt === "number" ? parsed.updatedAt : Date.now(),
+      checkpoints,
+    };
+  } catch {
+    return null;
+  }
+};
+
+export const recordWallStartupCheckpoint = (
+  stage: WallStartupCheckpointStage,
+  options?: { durationMs?: number; detail?: string },
+) => {
+  if (!isWallTelemetryEnabled()) {
+    return null;
+  }
+
+  const current = loadWallStartupDiagnosticsSnapshot();
+  const checkpoint: WallStartupCheckpoint = {
+    ts: Date.now(),
+    stage,
+    durationMs: typeof options?.durationMs === "number" && Number.isFinite(options.durationMs) ? Number(options.durationMs.toFixed(1)) : undefined,
+    detail: options?.detail?.trim() || undefined,
+  };
+
+  const next: WallStartupDiagnosticsSnapshot = {
+    updatedAt: checkpoint.ts,
+    checkpoints: [...(current?.checkpoints ?? []), checkpoint].slice(-maxStartupCheckpoints),
+  };
+
+  try {
+    writeStorageValue(wallStartupDiagnosticsStorageKey, JSON.stringify(next));
+  } catch {
+    return null;
+  }
+
+  if (typeof console !== "undefined") {
+    console.debug("[wall-startup]", checkpoint);
   }
 
   return next;
