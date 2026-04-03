@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
 import { createJokerNote } from "@/features/wall/commands";
 import { hasContent, hasMeaningfulContent, mergeSnapshotsLww } from "@/features/wall/cloud";
@@ -8,6 +8,7 @@ import { loadWallBootstrap, loadWallDelta, loadWallShell, loadWallWindow } from 
 import { hasJokerCardBeenActivated, markJokerCardActivated } from "@/features/wall/joker";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { applyWallDeltaChanges } from "@/features/wall/sync";
+import { mergeWallWindowIntoSnapshot } from "@/features/wall/windowing";
 import {
   createSnapshotSaver,
   createTimelineRecorder,
@@ -76,6 +77,7 @@ export const useWallPersistenceEffects = ({
   getViewportWindowBounds,
 }: UseWallPersistenceEffectsOptions) => {
   const lastPersistedSerializedRef = useRef("");
+  const skippedRemoteSerializedRef = useRef<string | null>(null);
   const inMemoryTimelineLimit = 120;
 
   useEffect(() => {
@@ -429,6 +431,12 @@ export const useWallPersistenceEffects = ({
 
       const snapshot = selectPersistedSnapshot(state);
       const serialized = JSON.stringify(snapshot);
+      if (serialized === skippedRemoteSerializedRef.current) {
+        skippedRemoteSerializedRef.current = null;
+        lastPersistedSerializedRef.current = serialized;
+        saver.markCommittedSnapshot(snapshot);
+        return;
+      }
       if (serialized === lastPersistedSerializedRef.current) {
         return;
       }
@@ -481,4 +489,22 @@ export const useWallPersistenceEffects = ({
     syncSnapshotToCloud,
     getViewportWindowBounds,
   ]);
+
+  const mergeRemoteWindowSnapshot = useCallback(
+    (snapshot: PersistedWallState, options?: { syncVersion?: number; updatedAt?: string | null }) => {
+      const state = useWallStore.getState();
+      const nextSnapshot = mergeWallWindowIntoSnapshot(selectPersistedSnapshot(state), snapshot);
+      skippedRemoteSerializedRef.current = JSON.stringify(nextSnapshot);
+      state.mergeHydratedSnapshot(snapshot, { updateCamera: false });
+      if (typeof options?.syncVersion === "number") {
+        setCloudSyncVersion(options.syncVersion);
+      }
+      if (Object.prototype.hasOwnProperty.call(options ?? {}, "updatedAt")) {
+        setCloudWallUpdatedAt(options?.updatedAt ?? null);
+      }
+    },
+    [setCloudSyncVersion, setCloudWallUpdatedAt],
+  );
+
+  return { mergeRemoteWindowSnapshot };
 };

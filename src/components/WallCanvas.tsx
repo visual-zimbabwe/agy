@@ -62,6 +62,7 @@ import { WallStage } from "@/components/wall/WallStage";
 import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
 import { useWallViewportWindow } from "@/components/wall/useWallViewportWindow";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
+import { useWallEntityWindowCache } from "@/components/wall/useWallEntityWindowCache";
 import { useApodNotes } from "@/components/wall/useApodNotes";
 import { useEconomistNotes } from "@/components/wall/useEconomistNotes";
 import { usePoetryNotes } from "@/components/wall/usePoetryNotes";
@@ -1209,7 +1210,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     [viewport],
   );
 
-  useWallPersistenceEffects({
+  const { mergeRemoteWindowSnapshot } = useWallPersistenceEffects({
     hydrate,
     publishedReadOnly,
     scheduleCloudSync,
@@ -1233,6 +1234,19 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     lastTimelineSerialized,
     lastTimelineRecordedAt,
     getViewportWindowBounds,
+  });
+
+  useWallEntityWindowCache({
+    wallId: publishedReadOnly ? null : cloudWallId,
+    camera,
+    viewport,
+    enabled: hydrated && !publishedReadOnly,
+    onWindowLoaded: ({ snapshot, syncVersion, updatedAt }) => {
+      mergeRemoteWindowSnapshot(snapshot, {
+        syncVersion: Math.max(cloudSyncVersionRef.current, syncVersion),
+        updatedAt,
+      });
+    },
   });
 
   const {

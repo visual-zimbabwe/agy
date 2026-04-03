@@ -24,6 +24,7 @@ export type WallWindowPayload = {
 };
 
 export type WallRenderDetailLevel = "full" | "summary" | "ambient";
+const defaultWindowTileWorldPx = 2400;
 
 const rectIntersectsBounds = (
   x: number,
@@ -84,27 +85,43 @@ export const filterLinksToVisibleNoteIds = <TLink extends Pick<Link, "fromNoteId
   visibleNoteIds: Set<string>,
 ) => links.filter((link) => visibleNoteIds.has(link.fromNoteId) && visibleNoteIds.has(link.toNoteId));
 
+export const alignBoundsToWallTile = (bounds: WallBounds, tileWorldPx = defaultWindowTileWorldPx): WallBounds => ({
+  minX: Math.floor(bounds.minX / tileWorldPx) * tileWorldPx,
+  minY: Math.floor(bounds.minY / tileWorldPx) * tileWorldPx,
+  maxX: Math.ceil(bounds.maxX / tileWorldPx) * tileWorldPx,
+  maxY: Math.ceil(bounds.maxY / tileWorldPx) * tileWorldPx,
+});
+
+export const wallBoundsCacheKey = (bounds: WallBounds) =>
+  `${bounds.minX}:${bounds.minY}:${bounds.maxX}:${bounds.maxY}`;
+
+const mergeEntityMapByUpdatedAt = <
+  TEntity extends {
+    id: string;
+    updatedAt: number;
+  },
+>(
+  base: Record<string, TEntity>,
+  incoming: Record<string, TEntity>,
+) => {
+  const merged: Record<string, TEntity> = { ...base };
+
+  for (const [id, nextEntity] of Object.entries(incoming)) {
+    const currentEntity = base[id];
+    if (!currentEntity || nextEntity.updatedAt >= currentEntity.updatedAt) {
+      merged[id] = nextEntity;
+    }
+  }
+
+  return merged;
+};
+
 export const mergeWallWindowIntoSnapshot = (base: PersistedWallState, windowSnapshot: PersistedWallState): PersistedWallState => ({
-  notes: {
-    ...base.notes,
-    ...windowSnapshot.notes,
-  },
-  zones: {
-    ...base.zones,
-    ...windowSnapshot.zones,
-  },
-  zoneGroups: {
-    ...base.zoneGroups,
-    ...windowSnapshot.zoneGroups,
-  },
-  noteGroups: {
-    ...base.noteGroups,
-    ...windowSnapshot.noteGroups,
-  },
-  links: {
-    ...base.links,
-    ...windowSnapshot.links,
-  },
-  camera: windowSnapshot.camera,
+  notes: mergeEntityMapByUpdatedAt(base.notes, windowSnapshot.notes),
+  zones: mergeEntityMapByUpdatedAt(base.zones, windowSnapshot.zones),
+  zoneGroups: mergeEntityMapByUpdatedAt(base.zoneGroups, windowSnapshot.zoneGroups),
+  noteGroups: mergeEntityMapByUpdatedAt(base.noteGroups, windowSnapshot.noteGroups),
+  links: mergeEntityMapByUpdatedAt(base.links, windowSnapshot.links),
+  camera: base.camera,
   lastColor: windowSnapshot.lastColor ?? base.lastColor,
 });
