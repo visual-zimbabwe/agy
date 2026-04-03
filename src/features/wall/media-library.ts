@@ -1,6 +1,7 @@
 import { getAudioNoteTitle } from "@/features/wall/audio-notes";
+import { resolveAudioAssetUrl, resolveVideoAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { getVideoNoteMeta, getVideoNoteTitle, getVideoPosterUrl } from "@/features/wall/video-notes";
-import type { AudioNote, Note, VideoNote } from "@/features/wall/types";
+import type { AudioNote, Note, VideoNote, WallAssetMap } from "@/features/wall/types";
 
 export type MediaLibraryItem = {
   id: string;
@@ -48,49 +49,53 @@ const deriveVideoSubtitle = (note: Note, video: VideoNote) => {
   return "Video fragment";
 };
 
-export const mediaLibraryItemFromNote = (note: Note): MediaLibraryItem | undefined => {
-  if (note.noteKind === "audio" && note.audio?.url) {
+export const mediaLibraryItemFromNote = (note: Note, assets?: WallAssetMap): MediaLibraryItem | undefined => {
+  const audioUrl = resolveAudioAssetUrl(note, assets);
+  const audio = note.audio;
+  if (note.noteKind === "audio" && audioUrl && audio) {
     return {
       id: note.id,
       kind: "audio",
-      title: getAudioNoteTitle(note.audio),
-      subtitle: deriveAudioSubtitle(note, note.audio),
-      durationSeconds: note.audio.durationSeconds,
+      title: getAudioNoteTitle(audio),
+      subtitle: deriveAudioSubtitle(note, audio),
+      durationSeconds: audio.durationSeconds,
       createdAt: note.createdAt,
       updatedAt: note.updatedAt,
-      source: note.audio.source,
-      url: note.audio.url,
-      mimeType: trimText(note.audio.mimeType) || undefined,
+      source: audio.source,
+      url: audioUrl,
+      mimeType: trimText(audio.mimeType) || undefined,
       tags: note.tags,
       noteText: trimText(note.text),
-      audio: note.audio,
+      audio,
     };
   }
 
-  if (note.noteKind === "video" && note.video?.url) {
+  const videoUrl = resolveVideoAssetUrl(note, assets);
+  const video = note.video;
+  if (note.noteKind === "video" && videoUrl && video) {
     return {
       id: note.id,
       kind: "video",
-      title: getVideoNoteTitle(note.video),
-      subtitle: deriveVideoSubtitle(note, note.video),
-      durationSeconds: note.video.durationSeconds,
+      title: getVideoNoteTitle(video),
+      subtitle: deriveVideoSubtitle(note, video),
+      durationSeconds: video.durationSeconds,
       createdAt: note.createdAt,
       updatedAt: note.updatedAt,
-      source: note.video.source,
-      url: note.video.url,
-      mimeType: trimText(note.video.mimeType) || undefined,
-      posterUrl: getVideoPosterUrl(note.video),
+      source: video.source,
+      url: videoUrl,
+      mimeType: trimText(video.mimeType) || undefined,
+      posterUrl: resolveVideoPosterAssetUrl(note, assets) ?? getVideoPosterUrl(note.video),
       tags: note.tags,
       noteText: trimText(note.text),
-      video: note.video,
+      video,
     };
   }
 
   return undefined;
 };
 
-export const deriveMediaLibrary = (notes: Record<string, Note>) =>
+export const deriveMediaLibrary = (notes: Record<string, Note>, assets?: WallAssetMap) =>
   Object.values(notes)
-    .map(mediaLibraryItemFromNote)
+    .map((note) => mediaLibraryItemFromNote(note, assets))
     .filter((item): item is MediaLibraryItem => Boolean(item))
     .sort((left, right) => right.updatedAt - left.updatedAt);

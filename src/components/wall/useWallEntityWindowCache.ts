@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { loadWallWindow } from "@/features/wall/cloud-delta";
-import type { Camera, PersistedWallState, WallWindowBounds } from "@/features/wall/types";
+import type { Camera, PersistedWallState, WallAssetMap, WallWindowBounds } from "@/features/wall/types";
 import { alignBoundsToWallTile, createViewportWallBounds, wallBoundsCacheKey } from "@/features/wall/windowing";
 import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-auth";
 
@@ -13,7 +13,7 @@ type UseWallEntityWindowCacheOptions = {
   viewport: { w: number; h: number };
   enabled?: boolean;
   overscanWorldPx?: number;
-  onWindowLoaded: (payload: { snapshot: PersistedWallState; syncVersion: number; updatedAt: string | null }) => void;
+  onWindowLoaded: (payload: { snapshot: PersistedWallState; assets: WallAssetMap; syncVersion: number; updatedAt: string | null }) => void;
 };
 
 const defaultWindowOverscanWorldPx = 640;
@@ -64,6 +64,7 @@ export const useWallEntityWindowCache = ({
         loadedWindowKeysRef.current.add(requestKey);
         onWindowLoaded({
           snapshot: payload.snapshot,
+          assets: payload.assets,
           syncVersion: payload.syncVersion,
           updatedAt: payload.shell.updatedAt ?? null,
         });

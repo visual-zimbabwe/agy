@@ -321,6 +321,26 @@ export type Camera = {
   zoom: number;
 };
 
+export type WallAssetKind = "image" | "file" | "audio" | "video";
+
+export type WallAssetRecord = {
+  id: string;
+  noteId: string;
+  kind: WallAssetKind;
+  url: string;
+  source: "upload" | "link";
+  name?: string;
+  mimeType?: string;
+  extension?: string;
+  sizeBytes?: number;
+  uploadedAt?: number;
+  durationSeconds?: number;
+  posterUrl?: string;
+  updatedAt: number;
+};
+
+export type WallAssetMap = Record<string, WallAssetRecord>;
+
 export type WallUI = {
   selectedNoteId?: string;
   selectedZoneId?: string;
@@ -377,5 +397,6 @@ export type WallWindowResponse = {
   shell: WallShellState;
   bounds: WallWindowBounds;
   snapshot: PersistedWallState;
+  assets: WallAssetMap;
   syncVersion: number;
 };

@@ -129,6 +129,7 @@ import {
   updateZone,
 } from "@/features/wall/commands";
 import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
+import { deriveWallAssetRecords, mergeWallAssetRecords } from "@/features/wall/asset-records";
 import { createAudioNoteState, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
 import { createImageNoteState, getImageNoteFilename, toImageNotePatch, IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
@@ -154,7 +155,7 @@ import type { TimelineEntry } from "@/features/wall/storage";
 import { loadTimelineEntries, saveWallCloudBaselineSnapshot, saveWallSyncVersion } from "@/features/wall/storage";
 import { loadWallBootstrap, loadWallDelta, pushWallDelta } from "@/features/wall/cloud-delta";
 import { applyWallDeltaChanges, buildWallDeltaSyncRequest, hasWallDeltaChanges, rebaseLocalWallSnapshot, stageWallSyncRequest, takeNextQueuedWallSync, type WallSyncRequest } from "@/features/wall/sync";
-import type { Note, PersistedWallState, WebBookmarkMetadata } from "@/features/wall/types";
+import type { Note, PersistedWallState, WallAssetMap, WebBookmarkMetadata } from "@/features/wall/types";
 import { createViewportWallBounds } from "@/features/wall/windowing";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
@@ -339,6 +340,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [wallClockTs, setWallClockTs] = useState(() => Date.now());
   const [cloudWallId, setCloudWallId] = useState<string | null>(null);
+  const [wallAssets, setWallAssets] = useState<WallAssetMap>({});
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -427,6 +429,10 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     camera,
     lastColor: ui.lastColor,
   };
+  const resolvedWallAssets = useMemo(
+    () => mergeWallAssetRecords(deriveWallAssetRecords(renderSnapshot.notes), wallAssets),
+    [renderSnapshot.notes, wallAssets],
+  );
   const inlinePlayingVideoNote = inlinePlayingVideoNoteId ? renderSnapshot.notes[inlinePlayingVideoNoteId] : undefined;
   const inlinePlayingVideoScreenRect = useMemo(() => {
     if (inlinePlayingVideoNote?.noteKind !== "video") {
@@ -1225,6 +1231,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
       cloudWallUpdatedAtRef.current = value;
     },
     setCloudWallId,
+    setWallAssets,
     setTimelineEntries,
     setTimelineIndex,
     setSyncError,
@@ -1241,7 +1248,8 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
     camera,
     viewport,
     enabled: hydrated && !publishedReadOnly,
-    onWindowLoaded: ({ snapshot, syncVersion, updatedAt }) => {
+    onWindowLoaded: ({ snapshot, assets, syncVersion, updatedAt }) => {
+      setWallAssets((previous) => mergeWallAssetRecords(previous, assets));
       mergeRemoteWindowSnapshot(snapshot, {
         syncVersion: Math.max(cloudSyncVersionRef.current, syncVersion),
         updatedAt,
@@ -4309,6 +4317,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
             <WallNotesLayer
               visibleNotes={layerVisibleNotes}
               renderDetailLevel={layerRenderDetailLevel}
+              assetRecords={resolvedWallAssets}
               activeSelectedNoteIds={activeSelectedNoteIds}
               selectedNoteId={ui.selectedNoteId}
               flashNoteId={ui.flashNoteId}

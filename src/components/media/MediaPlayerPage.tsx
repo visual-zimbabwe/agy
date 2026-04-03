@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { deriveWallAssetRecords } from "@/features/wall/asset-records";
 import { formatAudioDuration } from "@/features/wall/audio-notes";
 import { deriveMediaLibrary, type MediaLibraryItem } from "@/features/wall/media-library";
 import { loadWallSnapshot } from "@/features/wall/storage";
@@ -88,7 +89,7 @@ export const MediaPlayerPage = () => {
   useEffect(() => {
     const subscription = liveQuery(async () => {
       const snapshot = await loadWallSnapshot();
-      return deriveMediaLibrary(snapshot.notes);
+      return deriveMediaLibrary(snapshot.notes, deriveWallAssetRecords(snapshot.notes));
     }).subscribe({
       next: (nextItems) => {
         setItems(nextItems);
