@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { WallCanvas } from "@/components/WallCanvas";
+import { readUserProfile } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type WallPageProps = {
@@ -23,5 +24,5 @@ export default async function WallPage({ searchParams }: WallPageProps) {
     redirect("/login");
   }
 
-  return <WallCanvas userEmail={data.user.email ?? "Signed in"} />;
+  return <WallCanvas userProfile={readUserProfile(data.user)} />;
 }

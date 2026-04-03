@@ -11,11 +11,14 @@ import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-aut
 import { appName, profileUpdatedEventName } from "@/lib/brand";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import { readStoredPreferences, type StartupBehavior, type StartupPage, type ThemePreference } from "@/lib/preferences";
+import type { AppUserProfile } from "@/lib/profile";
+import { readUserProfile } from "@/lib/profile";
 import { getBrowserAuthErrorMessage, getSupabaseBrowserUserSafely } from "@/lib/supabase/browser-auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type SettingsWorkspaceProps = {
   userEmail: string;
+  initialProfile?: AppUserProfile;
   embedded?: boolean;
   onReplayTour?: () => void;
 };
@@ -280,7 +283,12 @@ const AvatarCropModal = ({
   );
 };
 
-export const SettingsWorkspace = ({ userEmail, embedded = false, onReplayTour }: SettingsWorkspaceProps) => {
+export const SettingsWorkspace = ({
+  userEmail,
+  initialProfile,
+  embedded = false,
+  onReplayTour,
+}: SettingsWorkspaceProps) => {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("general");
   const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
@@ -291,12 +299,12 @@ export const SettingsWorkspace = ({ userEmail, embedded = false, onReplayTour }:
   const [keyboardColorSlots, setKeyboardColorSlots] = useState<Array<string | null>>(() => readKeyboardColorSlots());
   const [wallLayoutPrefs, setWallLayoutPrefs] = useState<WallLayoutPrefs>(() => readStoredWallLayoutPrefs());
   const [controlsMode, setControlsMode] = useState<ControlsMode>(() => readStoredControlsMode());
-  const [savedAt, setSavedAt] = useState<number>(() => Date.now());
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
-  const [preferredName, setPreferredName] = useState("");
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
-  const [profileEmail, setProfileEmail] = useState(userEmail);
+  const [preferredName, setPreferredName] = useState(initialProfile?.preferredName ?? "");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(initialProfile?.avatarUrl ?? "");
+  const [profileEmail, setProfileEmail] = useState(initialProfile?.email ?? userEmail);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [accountStatus, setAccountStatus] = useState<string | null>(null);
@@ -376,6 +384,10 @@ export const SettingsWorkspace = ({ userEmail, embedded = false, onReplayTour }:
   }, [theme]);
 
   useEffect(() => {
+    setSavedAt((current) => current ?? Date.now());
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadSettings = async () => {
@@ -415,10 +427,14 @@ export const SettingsWorkspace = ({ userEmail, embedded = false, onReplayTour }:
   useEffect(() => {
     const loadProfile = async () => {
       const { user } = await getSupabaseBrowserUserSafely();
-      const metadata = user?.user_metadata as Record<string, unknown> | undefined;
-      setPreferredName(typeof metadata?.full_name === "string" ? metadata.full_name : "");
-      setProfilePhotoUrl(typeof metadata?.avatar_url === "string" ? metadata.avatar_url : "");
-      setProfileEmail(user?.email ?? userEmail);
+      if (!user) {
+        return;
+      }
+
+      const profile = readUserProfile(user, userEmail);
+      setPreferredName(profile.preferredName);
+      setProfilePhotoUrl(profile.avatarUrl ?? "");
+      setProfileEmail(profile.email);
     };
     void loadProfile();
   }, [userEmail]);
@@ -1139,7 +1155,10 @@ export const SettingsWorkspace = ({ userEmail, embedded = false, onReplayTour }:
             )}
 
             <footer className="pt-5 text-xs text-[var(--color-text-muted)]">
-              {settingsStatus ?? `Last saved ${new Date(savedAt).toLocaleTimeString()}.`}
+              {settingsStatus ??
+                (savedAt
+                  ? `Last saved ${new Date(savedAt).toLocaleTimeString()}.`
+                  : "Settings ready.")}
             </footer>
             <p className="mt-1 text-xs text-[var(--color-text-muted)]">Current controls mode: {controlsModeLabel}.</p>
           </section>

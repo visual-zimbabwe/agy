@@ -129,6 +129,14 @@ const fetchBatchedRowsByRecency = async <TRow extends { id: string; updated_at: 
 
 export const __test__ = {
   fetchBatchedRowsByRecency,
+  filterLinksToCandidateNoteIds: <TLink extends { from_note_id: string; to_note_id: string }>(
+    links: TLink[],
+    candidateNoteIds: Set<string>,
+  ) =>
+    links.filter(
+      (link) =>
+        candidateNoteIds.has(link.from_note_id) && candidateNoteIds.has(link.to_note_id),
+    ),
 };
 
 const loadWindowNotes = async (
@@ -290,6 +298,42 @@ const loadWindowZones = async (
   };
 };
 
+const loadWindowLinks = async (
+  supabase: SupabaseLike,
+  ownerId: string,
+  wallId: string,
+  candidateNoteIds: Set<string>,
+) => {
+  if (candidateNoteIds.size === 0) {
+    return { data: [] as SnapshotArgs["links"], error: null as QueryErrorLike | null };
+  }
+
+  const linksResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["links"]>[number]>(
+    async (from, to) =>
+      (await supabase
+        .from("links")
+        .select("id,revision,from_note_id,to_note_id,type,label,created_at,updated_at")
+        .eq("wall_id", wallId)
+        .eq("owner_id", ownerId)
+        .is("deleted_at", null)
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to)) as QueryRowsResult,
+  );
+
+  if (linksResult.error) {
+    return { data: null as SnapshotArgs["links"] | null, error: linksResult.error };
+  }
+
+  return {
+    data: __test__.filterLinksToCandidateNoteIds(
+      (linksResult.data ?? []) as SnapshotArgs["links"],
+      candidateNoteIds,
+    ) as SnapshotArgs["links"],
+    error: null as QueryErrorLike | null,
+  };
+};
+
 export async function GET(request: Request, context: { params: Promise<{ wallId: string }> }) {
   const auth = await requireApiUser();
   if ("response" in auth) {
@@ -368,16 +412,12 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
 
   const candidateNoteIds = new Set(((notesResult.data ?? []) as Array<{ id: string }>).map((note) => note.id));
 
-  const linksResult = candidateNoteIds.size > 0
-    ? await supabase
-        .from("links")
-        .select("id,revision,from_note_id,to_note_id,type,label,created_at,updated_at")
-        .eq("wall_id", wallId)
-        .eq("owner_id", auth.user.id)
-        .is("deleted_at", null)
-        .in("from_note_id", [...candidateNoteIds])
-        .in("to_note_id", [...candidateNoteIds])
-    : { data: [], error: null };
+  const linksResult = await loadWindowLinks(
+    supabase,
+    auth.user.id,
+    wallId,
+    candidateNoteIds,
+  );
 
   if (linksResult.error) {
     return NextResponse.json({ error: linksResult.error.message }, { status: 500 });

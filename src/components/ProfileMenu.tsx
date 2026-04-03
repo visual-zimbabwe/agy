@@ -6,17 +6,26 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { legacyProfileUpdatedEventName, profileUpdatedEventName } from "@/lib/brand";
-import { getSupabaseBrowserSessionSafely } from "@/lib/supabase/browser-auth";
+import type { AppUserProfile } from "@/lib/profile";
+import { readUserProfile } from "@/lib/profile";
+import { getSupabaseBrowserUserSafely } from "@/lib/supabase/browser-auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type ProfileMenuProps = {
   email: string;
+  initialProfile?: AppUserProfile;
   onOpenShortcuts: () => void;
   onOpenSettings: () => void;
   onOpenHelp: () => void;
 };
 
-export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings, onOpenHelp }: ProfileMenuProps) => {
+export const ProfileMenu = ({
+  email,
+  initialProfile,
+  onOpenShortcuts,
+  onOpenSettings,
+  onOpenHelp,
+}: ProfileMenuProps) => {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
@@ -34,15 +43,19 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings, onOpenHelp
 
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
-  const [preferredName, setPreferredName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [preferredName, setPreferredName] = useState(initialProfile?.preferredName ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(initialProfile?.avatarUrl ?? "");
 
   useEffect(() => {
     const loadProfile = async () => {
-      const { session } = await getSupabaseBrowserSessionSafely();
-      const metadata = session?.user.user_metadata as Record<string, unknown> | undefined;
-      setPreferredName(typeof metadata?.full_name === "string" ? metadata.full_name : "");
-      setAvatarUrl(typeof metadata?.avatar_url === "string" ? metadata.avatar_url : "");
+      const { user } = await getSupabaseBrowserUserSafely();
+      if (!user) {
+        return;
+      }
+
+      const profile = readUserProfile(user, email);
+      setPreferredName(profile.preferredName);
+      setAvatarUrl(profile.avatarUrl ?? "");
     };
     const handleProfileRefresh = () => {
       void loadProfile();
@@ -55,7 +68,7 @@ export const ProfileMenu = ({ email, onOpenShortcuts, onOpenSettings, onOpenHelp
       window.removeEventListener(profileUpdatedEventName, handleProfileRefresh);
       window.removeEventListener(legacyProfileUpdatedEventName, handleProfileRefresh);
     };
-  }, []);
+  }, [email]);
 
   useEffect(() => {
     if (!open) {

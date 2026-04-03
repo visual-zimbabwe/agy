@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { SyncStatus } from "@/components/wall/SyncStatus";
 import type { Note } from "@/features/wall/types";
+import type { AppUserProfile } from "@/lib/profile";
 
 type LayoutPrefs = {
   showToolsPanel: boolean;
@@ -32,6 +33,7 @@ type WallHeaderBarProps = {
   uiLastColor: string;
   statusMessage: string;
   userEmail?: string;
+  userProfile?: AppUserProfile;
   cloudWallId: string | null;
   isSyncing: boolean;
   localSaveState: "idle" | "saving" | "error";
@@ -68,6 +70,7 @@ export const WallHeaderBar = ({
   publishedReadOnly,
   timelineViewActive,
   userEmail,
+  userProfile,
   cloudWallId,
   isSyncing,
   localSaveState,
@@ -124,7 +127,15 @@ export const WallHeaderBar = ({
           <button type="button" onClick={onOpenSettings} className={roundButtonClassName} aria-label="Open settings">
             <HeaderIcon />
           </button>
-          {userEmail ? <ProfileMenu email={userEmail} onOpenShortcuts={onOpenShortcuts} onOpenSettings={onOpenSettings} onOpenHelp={onOpenHelp} /> : null}
+          {userEmail ? (
+            <ProfileMenu
+              email={userEmail}
+              initialProfile={userProfile}
+              onOpenShortcuts={onOpenShortcuts}
+              onOpenSettings={onOpenSettings}
+              onOpenHelp={onOpenHelp}
+            />
+          ) : null}
         </div>
       </div>
     </header>

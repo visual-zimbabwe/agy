@@ -162,6 +162,7 @@ import type { UnsplashPhoto } from "@/lib/unsplash";
 import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
 import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
 import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-auth";
+import type { AppUserProfile } from "@/lib/profile";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
 import {
   accountSettingsUpdatedEventName,
@@ -255,7 +256,7 @@ const maxVideoPosterDimensionPx = 320;
 const videoPosterJpegQuality = 0.58;
 
 type WallCanvasProps = {
-  userEmail?: string;
+  userProfile?: AppUserProfile;
 };
 
 const CODE_NOTE_DEFAULTS = {
@@ -269,7 +270,8 @@ const CODE_NOTE_DEFAULTS = {
 const DEFAULT_CODE_NOTE_TEXT = `\`\`\`ts
 const idea = "";
 \`\`\``;
-export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
+export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
+  const userEmail = userProfile?.email;
   const notesMap = useWallStore((state) => state.notes);
   const zonesMap = useWallStore((state) => state.zones);
   const zoneGroupsMap = useWallStore((state) => state.zoneGroups);
@@ -4073,6 +4075,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         uiLastColor={ui.lastColor ?? NOTE_COLORS[0]}
         statusMessage={statusMessage}
         userEmail={userEmail}
+        userProfile={userProfile}
         cloudWallId={cloudWallId}
         isSyncing={isSyncing}
         localSaveState={localSaveState}
@@ -4882,6 +4885,7 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         isSettingsOpen={settingsOpen}
         onCloseSettings={() => setSettingsOpen(false)}
         userEmail={userEmail}
+        userProfile={userProfile}
       />
     </div>
   );
