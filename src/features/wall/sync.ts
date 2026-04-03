@@ -1,6 +1,7 @@
 import { mergeSnapshotsLww } from "@/features/wall/cloud";
 import type { DeltaLink, DeltaNote, DeltaNoteGroup, DeltaSyncRequest, DeltaZone, DeltaZoneGroup } from "@/features/wall/delta-sync";
 import type { Link, Note, NoteGroup, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
+import { filterLinksToVisibleNoteIds, filterNotesToWallBounds, filterZonesToWallBounds, type WallBounds } from "@/features/wall/windowing";
 
 export type WallSyncRequest = {
   wallId: string;
@@ -196,6 +197,60 @@ export const applyWallDeltaChanges = (snapshot: PersistedWallState, changes: Arr
   }
 
   return next;
+};
+
+export const sliceWallSnapshotToBounds = (snapshot: PersistedWallState, bounds: WallBounds): PersistedWallState => {
+  const visibleNotes = filterNotesToWallBounds(Object.values(snapshot.notes), bounds);
+  const visibleZones = filterZonesToWallBounds(Object.values(snapshot.zones), bounds);
+  const visibleNoteIds = new Set(visibleNotes.map((note) => note.id));
+  const visibleZoneIds = new Set(visibleZones.map((zone) => zone.id));
+  const visibleLinks = filterLinksToVisibleNoteIds(Object.values(snapshot.links), visibleNoteIds);
+  const visibleZoneGroups = Object.values(snapshot.zoneGroups).filter((group) => group.zoneIds.some((zoneId) => visibleZoneIds.has(zoneId)));
+  const visibleNoteGroups = Object.values(snapshot.noteGroups).filter((group) => group.noteIds.some((noteId) => visibleNoteIds.has(noteId)));
+
+  return {
+    notes: Object.fromEntries(visibleNotes.map((note) => [note.id, note])),
+    zones: Object.fromEntries(visibleZones.map((zone) => [zone.id, zone])),
+    zoneGroups: Object.fromEntries(visibleZoneGroups.map((group) => [group.id, group])),
+    noteGroups: Object.fromEntries(visibleNoteGroups.map((group) => [group.id, group])),
+    links: Object.fromEntries(visibleLinks.map((link) => [link.id, link])),
+    camera: snapshot.camera,
+    lastColor: snapshot.lastColor,
+  };
+};
+
+export const hasRelevantWallDeltaChanges = (
+  changes: Array<{ entity_type: string; entity_id: string; deleted: boolean; payload: unknown }>,
+  bounds: WallBounds,
+) => {
+  for (const change of changes) {
+    if (change.entity_type === "wall" || change.entity_type === "link" || change.entity_type === "zone_group" || change.entity_type === "note_group") {
+      return true;
+    }
+
+    if (change.entity_type === "note") {
+      if (change.deleted) {
+        return true;
+      }
+      const note = change.payload as Note;
+      if (filterNotesToWallBounds([note], bounds).length > 0) {
+        return true;
+      }
+      continue;
+    }
+
+    if (change.entity_type === "zone") {
+      if (change.deleted) {
+        return true;
+      }
+      const zone = change.payload as Zone;
+      if (filterZonesToWallBounds([zone], bounds).length > 0) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 };
 
 export const stageWallSyncRequest = ({

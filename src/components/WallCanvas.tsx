@@ -63,6 +63,7 @@ import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
 import { useWallViewportWindow } from "@/components/wall/useWallViewportWindow";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
 import { useWallEntityWindowCache } from "@/components/wall/useWallEntityWindowCache";
+import { useWallRemoteDeltaFeed } from "@/components/wall/useWallRemoteDeltaFeed";
 import { useApodNotes } from "@/components/wall/useApodNotes";
 import { useEconomistNotes } from "@/components/wall/useEconomistNotes";
 import { usePoetryNotes } from "@/components/wall/usePoetryNotes";
@@ -1254,6 +1255,29 @@ export const WallCanvas = ({ userEmail }: WallCanvasProps) => {
         syncVersion: Math.max(cloudSyncVersionRef.current, syncVersion),
         updatedAt,
       });
+    },
+  });
+
+  useWallRemoteDeltaFeed({
+    wallId: publishedReadOnly ? null : cloudWallId,
+    enabled: hydrated && !publishedReadOnly,
+    getBaselineSnapshot: () => acknowledgedCloudSnapshotRef.current,
+    getSyncVersion: () => cloudSyncVersionRef.current,
+    getViewportBounds: () => getViewportWindowBounds(camera),
+    onRemoteSnapshot: ({ baselineSnapshot, viewportSnapshot, syncVersion }) => {
+      acknowledgedCloudSnapshotRef.current = baselineSnapshot;
+      cloudSyncVersionRef.current = syncVersion;
+      void Promise.all([
+        saveWallSyncVersion(syncVersion),
+        saveWallCloudBaselineSnapshot(baselineSnapshot),
+      ]);
+
+      if (!viewportSnapshot) {
+        return;
+      }
+
+      setWallAssets((previous) => mergeWallAssetRecords(previous, deriveWallAssetRecords(viewportSnapshot.notes)));
+      mergeRemoteWindowSnapshot(viewportSnapshot, { syncVersion });
     },
   });
 
