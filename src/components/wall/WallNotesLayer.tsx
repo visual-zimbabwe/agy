@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { Circle, Group, Image as KonvaImage, Line, Rect, Text } from "react-konva";
 import type Konva from "konva";
 
@@ -8,6 +8,7 @@ import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { parseCodeNote, tokenizeCodeLine } from "@/components/wall/codeNoteRendering";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { getApodCaption, isApodNote } from "@/features/wall/apod";
+import { deriveWallAssetRecords, mergeWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
@@ -17,9 +18,9 @@ import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
-import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle, getVideoPosterUrl } from "@/features/wall/video-notes";
+import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
 import { throneLoadingText } from "@/features/wall/throne";
-import type { LinkType, Note } from "@/features/wall/types";
+import type { LinkType, Note, WallAssetMap } from "@/features/wall/types";
 import type { WallRenderDetailLevel } from "@/features/wall/windowing";
 
 type GuideLineState = {
@@ -303,6 +304,7 @@ const getWallNotePreviewMeta = (note: Note) => {
 type WallNotesLayerProps = {
   visibleNotes: Note[];
   renderDetailLevel: WallRenderDetailLevel;
+  assetRecords?: WallAssetMap;
   activeSelectedNoteIds: string[];
   selectedNoteId?: string;
   flashNoteId?: string;
@@ -363,6 +365,7 @@ type WallNotesLayerProps = {
 export const WallNotesLayer = ({
   visibleNotes,
   renderDetailLevel,
+  assetRecords,
   activeSelectedNoteIds,
   selectedNoteId,
   flashNoteId,
@@ -425,6 +428,10 @@ export const WallNotesLayer = ({
   const [sizePulseScaleByNote, setSizePulseScaleByNote] = useState<Record<string, number>>({});
   const [loadedImagesByUrl, setLoadedImagesByUrl] = useState<Record<string, HTMLImageElement>>({});
   const [failedImagesByUrl, setFailedImagesByUrl] = useState<Record<string, true>>({});
+  const resolvedAssetRecords = useMemo(
+    () => mergeWallAssetRecords(deriveWallAssetRecords(notesById), assetRecords),
+    [assetRecords, notesById],
+  );
   const colorWashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
   const sizePulseTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>[]>>({});
   const imageLayoutSignatureRef = useRef<Record<string, string>>({});
@@ -500,7 +507,12 @@ export const WallNotesLayer = ({
     const urls = renderDetailLevel === "full" ? [
       ...new Set(
         visibleNotes
-          .flatMap((note) => [note.imageUrl?.trim(), note.bookmark?.metadata?.imageUrl?.trim(), note.bookmark?.metadata?.faviconUrl?.trim(), getVideoPosterUrl(note.video)])
+          .flatMap((note) => [
+            resolveImageAssetUrl(note, resolvedAssetRecords),
+            note.bookmark?.metadata?.imageUrl?.trim(),
+            note.bookmark?.metadata?.faviconUrl?.trim(),
+            resolveVideoPosterAssetUrl(note, resolvedAssetRecords),
+          ])
           .filter((url): url is string => Boolean(url)),
       ),
     ] : [];
@@ -559,13 +571,13 @@ export const WallNotesLayer = ({
     return () => {
       cancelled = true;
     };
-  }, [failedImagesByUrl, loadedImagesByUrl, renderDetailLevel, visibleNotes]);
+  }, [failedImagesByUrl, loadedImagesByUrl, renderDetailLevel, resolvedAssetRecords, visibleNotes]);
 
   useEffect(() => {
     const nextSignatures: Record<string, string> = {};
 
     for (const note of visibleNotes) {
-      const imageUrl = note.imageUrl?.trim();
+      const imageUrl = resolveImageAssetUrl(note, resolvedAssetRecords);
       if (!imageUrl) {
         continue;
       }
@@ -588,7 +600,7 @@ export const WallNotesLayer = ({
     }
 
     imageLayoutSignatureRef.current = nextSignatures;
-  }, [loadedImagesByUrl, updateNote, visibleNotes]);
+  }, [loadedImagesByUrl, resolvedAssetRecords, updateNote, visibleNotes]);
 
   useEffect(() => {
     const colorWashTimers = colorWashTimersRef.current;
@@ -640,7 +652,7 @@ export const WallNotesLayer = ({
             openEditor(note.id, noteView.text);
             return;
           }
-          if (noteView.imageUrl?.trim()) {
+          if (resolveImageAssetUrl(noteView, resolvedAssetRecords)) {
             openImageInsert(note.id);
             return;
           }
@@ -947,7 +959,7 @@ export const WallNotesLayer = ({
         const textWidth = Math.max(0, noteView.w - (isQuote ? 50 : isJournal ? journalHorizontalInset * 2 : isPoetry ? 52 : 24));
         const currencyState = noteView.currency;
         const currencyDisplay = getCurrencyDisplayState(currencyState?.baseCurrency, currencyState?.usdRate, currencyState?.previousUsdRate);
-        const imageUrl = noteView.imageUrl?.trim();
+        const imageUrl = resolveImageAssetUrl(noteView, resolvedAssetRecords);
         const bookmarkState = noteView.bookmark;
         const bookmarkMetadata = bookmarkState?.metadata;
         const bookmarkDisplaySize = resolveBookmarkDisplaySize(noteView);
@@ -998,7 +1010,7 @@ export const WallNotesLayer = ({
         const videoMeta = getVideoNoteMeta(noteView.video).toUpperCase();
         const videoDuration = formatVideoDuration(noteView.video?.durationSeconds);
         const videoCurrentTime = formatVideoDuration(noteView.video?.durationSeconds ? Math.max(0, Math.round(noteView.video.durationSeconds * 0.35)) : 0);
-        const videoPoster = getVideoPosterUrl(noteView.video);
+        const videoPoster = resolveVideoPosterAssetUrl(noteView, resolvedAssetRecords);
         const loadedVideoPoster = videoPoster ? loadedImagesByUrl[videoPoster] : undefined;
         const parsedCodeNote = looksLikeCode ? parseCodeNote(noteView.text) : null;
         const renderedCodeLines = parsedCodeNote?.body.split("\n").slice(0, 8) ?? [];

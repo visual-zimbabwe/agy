@@ -23,7 +23,7 @@ import {
   type TimelineEntry,
 } from "@/features/wall/storage";
 import { recordWallStartupCheckpoint, recordWallTelemetryMetric } from "@/features/wall/telemetry";
-import type { Camera, PersistedWallState, WallWindowBounds } from "@/features/wall/types";
+import type { Camera, PersistedWallState, WallAssetMap, WallWindowBounds } from "@/features/wall/types";
 import { defaultWallTitle } from "@/lib/brand";
 import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-auth";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
@@ -37,6 +37,7 @@ type UseWallPersistenceEffectsOptions = {
   setCloudSyncVersion: (value: number) => void;
   setCloudWallUpdatedAt: (value: string | null) => void;
   setCloudWallId: (id: string | null) => void;
+  setWallAssets: (assets: WallAssetMap) => void;
   setTimelineEntries: Dispatch<SetStateAction<TimelineEntry[]>>;
   setTimelineIndex: Dispatch<SetStateAction<number>>;
   setSyncError: (value: string | null) => void;
@@ -68,6 +69,7 @@ export const useWallPersistenceEffects = ({
   setCloudSyncVersion,
   setCloudWallUpdatedAt,
   setCloudWallId,
+  setWallAssets,
   setTimelineEntries,
   setTimelineIndex,
   setSyncError,
@@ -236,6 +238,7 @@ export const useWallPersistenceEffects = ({
             setCloudWallId(candidateWallId);
             setCloudSyncVersion(windowPayload.syncVersion);
             setCloudWallUpdatedAt(windowPayload.shell.updatedAt ?? null);
+            setWallAssets(windowPayload.assets);
           }
 
           return {
@@ -526,6 +529,7 @@ export const useWallPersistenceEffects = ({
     setCloudSyncVersion,
     setCloudWallUpdatedAt,
     setCloudWallId,
+    setWallAssets,
     setSyncError,
     setTimelineEntries,
     setTimelineIndex,

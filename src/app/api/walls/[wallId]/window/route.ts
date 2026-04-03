@@ -1,3 +1,4 @@
+import { deriveWallAssetRecords } from "@/features/wall/asset-records";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -399,6 +400,7 @@ export async function GET(request: Request, context: { params: Promise<{ wallId:
     },
     bounds,
     snapshot,
+    assets: deriveWallAssetRecords(snapshot.notes),
     syncVersion: wallRow.sync_version ?? 0,
   };
 

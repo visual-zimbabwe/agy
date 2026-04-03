@@ -6,10 +6,11 @@ import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, trunca
 import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
 import { getApodCaption } from "@/features/wall/apod";
+import { deriveWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
 import { getImageNoteMeta, getImageNoteTitle } from "@/features/wall/image-notes";
-import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl } from "@/features/wall/video-notes";
+import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle, getVideoPlayback } from "@/features/wall/video-notes";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
@@ -721,14 +722,15 @@ const ImageRenderer = ({ note, width, height, tone }: RendererProps) => {
   const title = getImageNoteTitle(note.file);
   const meta = getImageNoteMeta(note.file);
   const caption = note.text.trim();
+  const imageUrl = resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note }));
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="flex h-full flex-col bg-[linear-gradient(180deg,#fffdfa_0%,#fbf7f1_100%)] px-5 pb-6 pt-5">
         {meta ? <MetaLabel>{meta}</MetaLabel> : null}
         <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-[6px] bg-[#ece6df] shadow-[0_12px_28px_rgba(28,28,25,0.08)]">
-          {note.imageUrl ? (
+          {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={note.imageUrl} alt={caption || title} className="h-full w-full object-cover" loading="lazy" />
+            <img src={imageUrl} alt={caption || title} className="h-full w-full object-cover" loading="lazy" />
           ) : (
             <div className="flex h-full items-center justify-center text-[11px]" style={{ color: atelier.quiet }}>No image</div>
           )}
@@ -743,12 +745,13 @@ const ApodRenderer = ({ note, width, height, readableText, mutedText, bodyClamp,
   const caption = getApodCaption(note);
   const playback = getApodPlayback(note.apod);
   const isVideo = note.apod?.mediaType === "video";
+  const imageUrl = resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note })) ?? note.imageUrl;
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="flex h-full flex-col overflow-hidden">
         <div className="relative aspect-video bg-[#31302d]">
           {isVideo && playback?.kind === "direct" ? (
-            <video src={playback.url} poster={note.imageUrl} className="h-full w-full object-cover opacity-85" controls muted loop playsInline preload="metadata" />
+            <video src={playback.url} poster={imageUrl} className="h-full w-full object-cover opacity-85" controls muted loop playsInline preload="metadata" />
           ) : isVideo && playback?.kind === "embed" ? (
             <iframe
               src={playback.url}
@@ -757,9 +760,9 @@ const ApodRenderer = ({ note, width, height, readableText, mutedText, bodyClamp,
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
-          ) : note.imageUrl ? (
+          ) : imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={note.imageUrl} alt={note.apod?.title || "NASA APOD"} className="h-full w-full object-cover opacity-85" loading="lazy" />
+            <img src={imageUrl} alt={note.apod?.title || "NASA APOD"} className="h-full w-full object-cover opacity-85" loading="lazy" />
           ) : (
             <div className="flex h-full items-center justify-center px-4 text-center text-[11px] text-white/80">{note.apod?.error || "Loading APOD"}</div>
           )}
@@ -916,6 +919,7 @@ const EconomistRenderer = ({ note, width, height, tone }: RendererProps) => {
   const lines = splitNoteText(note.text);
   const masthead = lines[0] || "Magazine";
   const subhead = note.economist?.mainStory?.trim() || "The Infinite Canvas: A New Era of Spatial Thinking";
+  const imageUrl = resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note })) ?? note.imageUrl;
   return (
     <div className="relative" style={{ width, height }}>
       <div className="absolute inset-0 translate-x-3 rotate-[6deg] rounded-[16px] bg-[#ebe8e3] shadow-[0_12px_28px_rgba(28,28,25,0.12)]" />
@@ -923,9 +927,9 @@ const EconomistRenderer = ({ note, width, height, tone }: RendererProps) => {
       <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
         <div className="flex h-full flex-col">
           <div className="relative h-[68%] bg-[#ddd6ce]">
-            {note.imageUrl ? (
+            {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={note.imageUrl} alt={masthead} className="h-full w-full object-cover" loading="lazy" />
+              <img src={imageUrl} alt={masthead} className="h-full w-full object-cover" loading="lazy" />
             ) : null}
           </div>
           <div className="flex flex-1 flex-col justify-between p-4" style={{ background: atelier.paper }}>
@@ -1082,7 +1086,7 @@ const VideoRenderer = ({ note, width, height, tone }: RendererProps) => {
   const duration = formatVideoDuration(video?.durationSeconds);
   const progress = formatVideoDuration(video?.durationSeconds ? Math.max(0, Math.round(video.durationSeconds * 0.35)) : 0);
   const playback = getVideoPlayback(video);
-  const posterUrl = getVideoPosterUrl(video);
+  const posterUrl = resolveVideoPosterAssetUrl(note, deriveWallAssetRecords({ [note.id]: note }));
 
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
@@ -1180,7 +1184,7 @@ const resolveRendererKey = (note: Note) => {
   if (note.noteKind === "economist") {
     return "economist";
   }
-  if (note.imageUrl?.trim()) {
+  if (resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note }))) {
     return "image";
   }
   if (note.vocabulary) {
