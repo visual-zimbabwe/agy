@@ -3,6 +3,7 @@
 import { useCallback, useEffect } from "react";
 
 import { parseBackupJson, shouldPromptBackupReminder, type BackupReminderCadence } from "@/features/wall/backup";
+import { replaceWallLocalState } from "@/features/wall/storage";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { PersistedWallState } from "@/features/wall/types";
 import { legacyBackupReminderLastPromptStorageKeys } from "@/components/wall/wall-canvas-helpers";
@@ -52,6 +53,10 @@ export const useWallBackupActions = ({
         if (!ok) {
           return;
         }
+        await replaceWallLocalState(parsed, {
+          cloudBaselineSnapshot: null,
+          syncVersion: 0,
+        });
         hydrate(parsed);
         clearSelectedNotes();
         setExportOpen(false);

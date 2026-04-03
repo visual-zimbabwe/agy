@@ -13,11 +13,9 @@ import {
   createSnapshotSaver,
   createTimelineRecorder,
   loadWallCameraState,
-  loadWallCloudBaselineSnapshot,
-  loadWallSnapshot,
+  loadWallLocalStateWithRepair,
   loadWallWindowSnapshot,
   saveWallSnapshot,
-  loadWallSyncVersion,
   saveWallCloudBaselineSnapshot,
   saveWallSyncVersion,
   type TimelineEntry,
@@ -138,12 +136,11 @@ export const useWallPersistenceEffects = ({
       const loadStartedAt = performance.now();
       recordWallStartupCheckpoint("local-bootstrap-started");
 
-      const fullLocalBootstrapTask = Promise.all([
-        loadWallSnapshot(),
-        loadWallCloudBaselineSnapshot(),
-        loadWallSyncVersion(),
-      ])
-        .then((value) => ({ status: "resolved" as const, value }))
+      const fullLocalBootstrapTask = loadWallLocalStateWithRepair()
+        .then((value) => ({
+          status: "resolved" as const,
+          value: [value.snapshot, value.cloudBaselineSnapshot, value.syncVersion] as const,
+        }))
         .catch((error) => ({ status: "rejected" as const, error }));
 
       const localBootstrapTask = loadWallCameraState()
