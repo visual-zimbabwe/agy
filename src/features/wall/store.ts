@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
 import { ECONOMIST_NOTE_DEFAULTS } from "@/features/wall/economist";
 import { JOKER_NOTE_COLOR, POETRY_NOTE_COLOR, sanitizeStandardNoteColor, THRONE_NOTE_COLOR } from "@/features/wall/special-notes";
+import { mergeWallWindowIntoSnapshot } from "@/features/wall/windowing";
 
 import type {
   Camera,
@@ -19,6 +20,7 @@ import type {
 
 type WallActions = {
   hydrate: (snapshot: PersistedWallState) => void;
+  mergeHydratedSnapshot: (snapshot: PersistedWallState, options?: { updateCamera?: boolean; updateLastColor?: boolean }) => void;
   setCamera: (camera: Camera) => void;
   resetSelection: () => void;
   selectNote: (noteId?: string) => void;
@@ -171,6 +173,24 @@ export const useWallStore = create<WallStore>((set) => ({
       historyGroupDepth: 0,
       historyGroupSnapshot: undefined,
     })),
+
+  mergeHydratedSnapshot: (snapshot, options) =>
+    set((state) => {
+      const merged = mergeWallWindowIntoSnapshot(selectPersistedSnapshot(state), snapshot);
+      return {
+        notes: merged.notes,
+        zones: merged.zones,
+        zoneGroups: merged.zoneGroups,
+        noteGroups: merged.noteGroups,
+        links: merged.links,
+        camera: options?.updateCamera ? snapshot.camera : state.camera,
+        ui: {
+          ...state.ui,
+          lastColor: options?.updateLastColor === false ? state.ui.lastColor : merged.lastColor,
+        },
+        hydrated: true,
+      };
+    }),
 
   setCamera: (camera) => set({ camera }),
 
@@ -701,6 +721,5 @@ export const selectPersistedSnapshot = (state: WallStore): PersistedWallState =>
   camera: state.camera,
   lastColor: state.ui.lastColor,
 });
-
 
 

@@ -116,4 +116,34 @@ describe("wall store history", () => {
     expect(useWallStore.getState().links["link-1"]).toBeUndefined();
     expect(useWallStore.getState().noteGroups["group-1"]?.noteIds).toEqual(["b"]);
   });
+
+  it("merges hydrated window snapshots into the normalized entity cache without resetting history", () => {
+    const state = useWallStore.getState();
+    state.hydrate({
+      ...emptySnapshot,
+      camera: { x: 25, y: 40, zoom: 1.2 },
+      lastColor: "#abc",
+      notes: {
+        "note-1": baseNote({ text: "Local", updatedAt: 10 }),
+      },
+    });
+    state.clearHistory();
+
+    state.mergeHydratedSnapshot({
+      ...emptySnapshot,
+      camera: { x: 999, y: 999, zoom: 2 },
+      lastColor: "#def",
+      notes: {
+        "note-1": baseNote({ text: "Remote stale", updatedAt: 5 }),
+        "note-2": baseNote({ id: "note-2", text: "Remote fresh", updatedAt: 12 }),
+      },
+    });
+
+    const mergedState = useWallStore.getState();
+    expect(mergedState.notes["note-1"]?.text).toBe("Local");
+    expect(mergedState.notes["note-2"]?.text).toBe("Remote fresh");
+    expect(mergedState.camera).toEqual({ x: 25, y: 40, zoom: 1.2 });
+    expect(mergedState.ui.lastColor).toBe("#def");
+    expect(mergedState.historyPast).toHaveLength(0);
+  });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { PersistedWallState } from "@/features/wall/types";
 import {
+  alignBoundsToWallTile,
   createViewportWallBounds,
   filterLinksToVisibleNoteIds,
   filterNotesToWallBounds,
@@ -56,7 +57,23 @@ describe("wall windowing", () => {
     expect(getWallRenderDetailLevel(1.2, 18)).toBe("full");
   });
 
-  it("merges a window snapshot into an existing normalized snapshot", () => {
+  it("aligns viewport bounds to stable window tiles", () => {
+    expect(
+      alignBoundsToWallTile({
+        minX: 120,
+        minY: -50,
+        maxX: 2610,
+        maxY: 2501,
+      }),
+    ).toEqual({
+      minX: 0,
+      minY: -2400,
+      maxX: 4800,
+      maxY: 4800,
+    });
+  });
+
+  it("merges a window snapshot into an existing normalized snapshot with last-write-wins semantics", () => {
     const base: PersistedWallState = {
       notes: {
         a: {
@@ -83,7 +100,7 @@ describe("wall windowing", () => {
       notes: {
         a: {
           id: "a",
-          text: "New",
+          text: "Stale",
           tags: [],
           x: 0,
           y: 0,
@@ -91,7 +108,7 @@ describe("wall windowing", () => {
           h: 10,
           color: "#fff",
           createdAt: 1,
-          updatedAt: 2,
+          updatedAt: 0,
         },
         b: {
           id: "b",
@@ -116,9 +133,9 @@ describe("wall windowing", () => {
 
     const merged = mergeWallWindowIntoSnapshot(base, windowSnapshot);
 
-    expect(merged.notes.a?.text).toBe("New");
+    expect(merged.notes.a?.text).toBe("Old");
     expect(merged.notes.b?.text).toBe("Added");
-    expect(merged.camera).toEqual({ x: 20, y: 30, zoom: 1.2 });
+    expect(merged.camera).toEqual({ x: 0, y: 0, zoom: 1 });
     expect(merged.lastColor).toBe("#eee");
   });
 });
