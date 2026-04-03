@@ -63,6 +63,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.bookmark does not exist") ||
         message.includes("column notes.apod does not exist") ||
         message.includes("column notes.poetry does not exist") ||
+        message.includes("column notes.file does not exist") ||
         message.includes("column notes.text_size does not exist") ||
         message.includes("column notes.image_url does not exist") ||
         message.includes("column notes.text_align does not exist") ||
