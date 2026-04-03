@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { rebaseLocalWallSnapshot, shouldRejectWallSync, stageWallSyncRequest, takeNextQueuedWallSync } from "@/features/wall/sync";
+import {
+  hasRelevantWallDeltaChanges,
+  rebaseLocalWallSnapshot,
+  shouldRejectWallSync,
+  sliceWallSnapshotToBounds,
+  stageWallSyncRequest,
+  takeNextQueuedWallSync,
+} from "@/features/wall/sync";
 import type { PersistedWallState } from "@/features/wall/types";
 
 const makeSnapshot = (updatedAt: number): PersistedWallState => ({
@@ -73,5 +80,150 @@ describe("wall sync helpers", () => {
     expect(merged.notes.n1?.updatedAt).toBe(10);
     expect(merged.notes.n1?.text).toBe("note-10");
     expect(merged.notes.serverOnly?.text).toBe("server");
+  });
+
+  it("slices snapshots down to the current viewport window", () => {
+    const snapshot: PersistedWallState = {
+      notes: {
+        n1: {
+          id: "n1",
+          text: "inside",
+          tags: [],
+          x: 40,
+          y: 60,
+          w: 120,
+          h: 80,
+          color: "#FEEA89",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+        n2: {
+          id: "n2",
+          text: "outside",
+          tags: [],
+          x: 800,
+          y: 800,
+          w: 120,
+          h: 80,
+          color: "#FEEA89",
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      },
+      zones: {
+        z1: {
+          id: "z1",
+          label: "visible",
+          kind: "frame",
+          groupId: "zg1",
+          x: 0,
+          y: 0,
+          w: 240,
+          h: 240,
+          color: "#e5e7eb",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+      zoneGroups: {
+        zg1: {
+          id: "zg1",
+          label: "zone-group",
+          color: "#bfdbfe",
+          zoneIds: ["z1"],
+          collapsed: false,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+      noteGroups: {
+        ng1: {
+          id: "ng1",
+          label: "note-group",
+          color: "#fecaca",
+          noteIds: ["n1", "n2"],
+          collapsed: false,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+      links: {
+        l1: {
+          id: "l1",
+          fromNoteId: "n1",
+          toNoteId: "n2",
+          type: "wiki",
+          label: "",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+      camera: { x: 0, y: 0, zoom: 1 },
+    };
+
+    const sliced = sliceWallSnapshotToBounds(snapshot, {
+      minX: 0,
+      minY: 0,
+      maxX: 300,
+      maxY: 300,
+    });
+
+    expect(Object.keys(sliced.notes)).toEqual(["n1"]);
+    expect(Object.keys(sliced.zones)).toEqual(["z1"]);
+    expect(Object.keys(sliced.zoneGroups)).toEqual(["zg1"]);
+    expect(Object.keys(sliced.noteGroups)).toEqual(["ng1"]);
+    expect(Object.keys(sliced.links)).toEqual([]);
+  });
+
+  it("marks delta changes relevant when they touch the viewport", () => {
+    expect(
+      hasRelevantWallDeltaChanges(
+        [
+          {
+            entity_type: "note",
+            entity_id: "n1",
+            deleted: false,
+            payload: {
+              id: "n1",
+              text: "inside",
+              tags: [],
+              x: 20,
+              y: 20,
+              w: 100,
+              h: 100,
+              color: "#FEEA89",
+              createdAt: 1,
+              updatedAt: 2,
+            },
+          },
+        ],
+        { minX: 0, minY: 0, maxX: 200, maxY: 200 },
+      ),
+    ).toBe(true);
+
+    expect(
+      hasRelevantWallDeltaChanges(
+        [
+          {
+            entity_type: "note",
+            entity_id: "n2",
+            deleted: false,
+            payload: {
+              id: "n2",
+              text: "outside",
+              tags: [],
+              x: 900,
+              y: 900,
+              w: 100,
+              h: 100,
+              color: "#FEEA89",
+              createdAt: 1,
+              updatedAt: 2,
+            },
+          },
+        ],
+        { minX: 0, minY: 0, maxX: 200, maxY: 200 },
+      ),
+    ).toBe(false);
   });
 });
