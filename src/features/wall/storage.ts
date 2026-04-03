@@ -16,6 +16,31 @@ type TimelineSnapshotRecord = {
   payload: string;
 };
 
+type TimelineDeltaPayload = {
+  notes?: Record<string, Note>;
+  deletedNoteIds?: string[];
+  zones?: Record<string, Zone>;
+  deletedZoneIds?: string[];
+  zoneGroups?: Record<string, ZoneGroup>;
+  deletedZoneGroupIds?: string[];
+  noteGroups?: Record<string, NoteGroup>;
+  deletedNoteGroupIds?: string[];
+  links?: Record<string, Link>;
+  deletedLinkIds?: string[];
+  camera?: Camera;
+  lastColor?: string;
+};
+
+type TimelineRecordPayload =
+  | {
+      kind: "checkpoint";
+      snapshot: PersistedWallState;
+    }
+  | {
+      kind: "delta";
+      delta: TimelineDeltaPayload;
+    };
+
 type SnapshotCollections = Pick<PersistedWallState, "notes" | "zones" | "zoneGroups" | "noteGroups" | "links">;
 
 type SnapshotWritePlan = {
@@ -122,6 +147,7 @@ const emptyCollections: SnapshotCollections = {
 };
 
 const serializeValue = (value: unknown) => JSON.stringify(value);
+const timelineCheckpointInterval = 12;
 
 const collectEntityUpserts = <T extends { id: string }>(
   previous: Record<string, T>,
@@ -556,19 +582,120 @@ export type TimelineEntry = {
   snapshot: PersistedWallState;
 };
 
+const toEntityRecord = <TEntity extends { id: string }>(entities: TEntity[]) =>
+  Object.fromEntries(entities.map((entity) => [entity.id, entity])) as Record<string, TEntity>;
+
+const buildTimelineDeltaPayload = (
+  previousSnapshot: PersistedWallState,
+  nextSnapshot: PersistedWallState,
+): TimelineDeltaPayload => {
+  const plan = createWallSnapshotWritePlan(previousSnapshot, nextSnapshot);
+
+  return {
+    notes: plan.notesToPut.length > 0 ? toEntityRecord(plan.notesToPut) : undefined,
+    deletedNoteIds: plan.noteIdsToDelete.length > 0 ? plan.noteIdsToDelete : undefined,
+    zones: plan.zonesToPut.length > 0 ? toEntityRecord(plan.zonesToPut) : undefined,
+    deletedZoneIds: plan.zoneIdsToDelete.length > 0 ? plan.zoneIdsToDelete : undefined,
+    zoneGroups: plan.zoneGroupsToPut.length > 0 ? toEntityRecord(plan.zoneGroupsToPut) : undefined,
+    deletedZoneGroupIds: plan.zoneGroupIdsToDelete.length > 0 ? plan.zoneGroupIdsToDelete : undefined,
+    noteGroups: plan.noteGroupsToPut.length > 0 ? toEntityRecord(plan.noteGroupsToPut) : undefined,
+    deletedNoteGroupIds: plan.noteGroupIdsToDelete.length > 0 ? plan.noteGroupIdsToDelete : undefined,
+    links: plan.linksToPut.length > 0 ? toEntityRecord(plan.linksToPut) : undefined,
+    deletedLinkIds: plan.linkIdsToDelete.length > 0 ? plan.linkIdsToDelete : undefined,
+    camera: plan.cameraChanged ? nextSnapshot.camera : undefined,
+    lastColor: plan.lastColorChanged ? nextSnapshot.lastColor : undefined,
+  };
+};
+
+const applyTimelineDeltaPayload = (
+  snapshot: PersistedWallState,
+  delta: TimelineDeltaPayload,
+): PersistedWallState => {
+  const next: PersistedWallState = {
+    notes: { ...snapshot.notes, ...(delta.notes ?? {}) },
+    zones: { ...snapshot.zones, ...(delta.zones ?? {}) },
+    zoneGroups: { ...snapshot.zoneGroups, ...(delta.zoneGroups ?? {}) },
+    noteGroups: { ...snapshot.noteGroups, ...(delta.noteGroups ?? {}) },
+    links: { ...snapshot.links, ...(delta.links ?? {}) },
+    camera: delta.camera ?? snapshot.camera,
+    lastColor: Object.prototype.hasOwnProperty.call(delta, "lastColor") ? delta.lastColor : snapshot.lastColor,
+  };
+
+  for (const id of delta.deletedNoteIds ?? []) {
+    delete next.notes[id];
+  }
+  for (const id of delta.deletedZoneIds ?? []) {
+    delete next.zones[id];
+  }
+  for (const id of delta.deletedZoneGroupIds ?? []) {
+    delete next.zoneGroups[id];
+  }
+  for (const id of delta.deletedNoteGroupIds ?? []) {
+    delete next.noteGroups[id];
+  }
+  for (const id of delta.deletedLinkIds ?? []) {
+    delete next.links[id];
+  }
+
+  return next;
+};
+
+const parseTimelineRecordPayload = (
+  payload: string,
+): { kind: "checkpoint"; snapshot: PersistedWallState } | { kind: "delta"; delta: TimelineDeltaPayload } | null => {
+  const legacySnapshot = parseTimelinePayload(payload);
+  if (legacySnapshot) {
+    return { kind: "checkpoint", snapshot: legacySnapshot };
+  }
+
+  try {
+    const parsed = JSON.parse(payload) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+
+    const record = parsed as Partial<TimelineRecordPayload>;
+    if (record.kind === "checkpoint" && record.snapshot) {
+      const snapshot = normalizePersistedWallState(record.snapshot);
+      return snapshot ? { kind: "checkpoint", snapshot } : null;
+    }
+    if (record.kind === "delta" && record.delta && typeof record.delta === "object" && !Array.isArray(record.delta)) {
+      return { kind: "delta", delta: record.delta as TimelineDeltaPayload };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
 export const loadTimelineEntries = async (limit = 500): Promise<TimelineEntry[]> => {
   await migrateLegacyWallDatabaseIfNeeded();
-  const rows = await db.timelineSnapshots.orderBy("ts").reverse().limit(limit).toArray();
-  return rows
-    .reverse()
-    .map((row) => {
-      const snapshot = parseTimelinePayload(row.payload);
-      if (!snapshot) {
-        return null;
-      }
-      return { ts: row.ts, snapshot };
-    })
-    .filter((entry): entry is TimelineEntry => Boolean(entry));
+  const rows = await db.timelineSnapshots.orderBy("ts").toArray();
+  const entries: TimelineEntry[] = [];
+  let currentSnapshot: PersistedWallState | null = null;
+
+  for (const row of rows) {
+    const parsed = parseTimelineRecordPayload(row.payload);
+    if (!parsed) {
+      continue;
+    }
+
+    if (parsed.kind === "checkpoint") {
+      currentSnapshot = parsed.snapshot;
+    } else if (currentSnapshot) {
+      currentSnapshot = applyTimelineDeltaPayload(currentSnapshot, parsed.delta);
+    } else {
+      continue;
+    }
+
+    entries.push({
+      ts: row.ts,
+      snapshot: currentSnapshot,
+    });
+  }
+
+  return entries.slice(-limit);
 };
 
 const trimTimelineSnapshots = async (keepCount: number) => {
@@ -584,13 +711,32 @@ const trimTimelineSnapshots = async (keepCount: number) => {
   }
 };
 
-const persistTimelineSnapshot = async (snapshot: PersistedWallState, maxEntries: number) => {
+const persistTimelineSnapshot = async (
+  snapshot: PersistedWallState,
+  maxEntries: number,
+  options?: { previousSnapshot?: PersistedWallState; entryIndex?: number },
+) => {
   await migrateLegacyWallDatabaseIfNeeded();
+
+  const shouldWriteCheckpoint =
+    !options?.previousSnapshot ||
+    typeof options.entryIndex !== "number" ||
+    options.entryIndex % timelineCheckpointInterval === 0;
+  const previousSnapshot = options?.previousSnapshot;
+  const payload: TimelineRecordPayload = shouldWriteCheckpoint
+    ? {
+        kind: "checkpoint",
+        snapshot,
+      }
+    : {
+        kind: "delta",
+        delta: buildTimelineDeltaPayload(previousSnapshot!, snapshot),
+      };
 
   try {
     await db.timelineSnapshots.add({
       ts: Date.now(),
-      payload: JSON.stringify(snapshot),
+      payload: JSON.stringify(payload),
     });
   } catch (error) {
     if (!isQuotaExceededError(error)) {
@@ -612,6 +758,8 @@ export const createTimelineRecorder = (options?: { delayMs?: number; minInterval
   let latest: PersistedWallState | undefined;
   let lastSerialized = "";
   let lastWrittenAt = 0;
+  let committedSnapshot: PersistedWallState | undefined;
+  let entryIndex = 0;
 
   const flush = async () => {
     if (!latest) {
@@ -628,7 +776,12 @@ export const createTimelineRecorder = (options?: { delayMs?: number; minInterval
     latest = undefined;
 
     try {
-      await persistTimelineSnapshot(snapshot, maxEntries);
+      await persistTimelineSnapshot(snapshot, maxEntries, {
+        previousSnapshot: committedSnapshot,
+        entryIndex,
+      });
+      committedSnapshot = snapshot;
+      entryIndex += 1;
       lastSerialized = serialized;
       lastWrittenAt = now;
     } catch {
@@ -647,5 +800,15 @@ export const createTimelineRecorder = (options?: { delayMs?: number; minInterval
     }, delayMs);
   };
 
-  return { schedule, flush };
+  const markCommittedSnapshot = (snapshot: PersistedWallState) => {
+    committedSnapshot = snapshot;
+  };
+
+  return { schedule, flush, markCommittedSnapshot };
+};
+
+export const __test__ = {
+  buildTimelineDeltaPayload,
+  applyTimelineDeltaPayload,
+  parseTimelineRecordPayload,
 };

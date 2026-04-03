@@ -114,6 +114,7 @@ export const useWallPersistenceEffects = ({
       persistenceReadyRef.current = Boolean(options?.complete);
       if (options?.complete) {
         saver.markCommittedSnapshot(snapshot);
+        timelineRecorder.markCommittedSnapshot(snapshot);
       }
 
       if (!cancelled) {
@@ -295,6 +296,7 @@ export const useWallPersistenceEffects = ({
           lastPersistedSerializedRef.current = mergedSerialized;
           persistenceReadyRef.current = true;
           saver.markCommittedSnapshot(mergedLocalSnapshot);
+          timelineRecorder.markCommittedSnapshot(mergedLocalSnapshot);
           useWallStore.getState().mergeHydratedSnapshot(fullLocalSnapshot, {
             updateCamera: false,
             updateLastColor: true,
@@ -426,6 +428,7 @@ export const useWallPersistenceEffects = ({
         lastPersistedSerializedRef.current = JSON.stringify(nextSnapshot);
         await saveWallSnapshot(nextSnapshot, latestLocalSnapshot);
         saver.markCommittedSnapshot(nextSnapshot);
+        timelineRecorder.markCommittedSnapshot(nextSnapshot);
         const cloudBootstrapDurationMs = performance.now() - cloudBootstrapStartedAt;
         recordWallTelemetryMetric("startupCloudBootstrapMs", cloudBootstrapDurationMs);
         recordWallStartupCheckpoint("cloud-bootstrap-completed", {
@@ -464,14 +467,15 @@ export const useWallPersistenceEffects = ({
 
       const snapshot = selectPersistedSnapshot(state);
       const serialized = JSON.stringify(snapshot);
-      if (serialized === skippedRemoteSerializedRef.current) {
-        skippedRemoteSerializedRef.current = null;
-        lastPersistedSerializedRef.current = serialized;
-        if (persistenceReadyRef.current) {
-          saver.markCommittedSnapshot(snapshot);
+        if (serialized === skippedRemoteSerializedRef.current) {
+          skippedRemoteSerializedRef.current = null;
+          lastPersistedSerializedRef.current = serialized;
+          if (persistenceReadyRef.current) {
+            saver.markCommittedSnapshot(snapshot);
+            timelineRecorder.markCommittedSnapshot(snapshot);
+          }
+          return;
         }
-        return;
-      }
       if (!persistenceReadyRef.current) {
         lastPersistedSerializedRef.current = serialized;
         return;

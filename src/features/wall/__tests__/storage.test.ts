@@ -1,4 +1,5 @@
-import { createWallSnapshotWritePlan } from "@/features/wall/storage";
+import { __test__, createWallSnapshotWritePlan } from "@/features/wall/storage";
+import { normalizePersistedWallState } from "@/features/wall/storage-migrations";
 import type { Link, Note, PersistedWallState, Zone } from "@/features/wall/types";
 import { describe, expect, it } from "vitest";
 
@@ -114,5 +115,64 @@ describe("createWallSnapshotWritePlan", () => {
     expect(plan.cameraChanged).toBe(true);
     expect(plan.lastColorChanged).toBe(true);
     expect(plan.nextLastColor).toBe("#222222");
+  });
+
+  it("builds and reapplies compact timeline deltas", () => {
+    const previous = makeSnapshot({
+      notes: {
+        "note-1": baseNote(),
+      },
+      zones: {
+        "zone-1": baseZone(),
+      },
+      links: {
+        "link-1": baseLink(),
+      },
+      lastColor: "#111111",
+    });
+    const next = makeSnapshot({
+      notes: {
+        "note-1": baseNote({ text: "Updated", updatedAt: 2 }),
+        "note-2": baseNote({ id: "note-2", text: "Added", updatedAt: 3 }),
+      },
+      zones: {},
+      links: {},
+      camera: { x: 80, y: 40, zoom: 1.4 },
+      lastColor: "#333333",
+    });
+
+    const delta = __test__.buildTimelineDeltaPayload(previous, next);
+    const reapplied = __test__.applyTimelineDeltaPayload(previous, delta);
+
+    expect(reapplied).toEqual(next);
+  });
+
+  it("parses both legacy and compact timeline payloads", () => {
+    const snapshot = makeSnapshot({
+      notes: {
+        "note-1": baseNote(),
+      },
+    });
+
+    expect(__test__.parseTimelineRecordPayload(JSON.stringify(snapshot))).toEqual({
+      kind: "checkpoint",
+      snapshot: normalizePersistedWallState(snapshot),
+    });
+
+    expect(
+      __test__.parseTimelineRecordPayload(
+        JSON.stringify({
+          kind: "delta",
+          delta: {
+            deletedNoteIds: ["note-1"],
+          },
+        }),
+      ),
+    ).toEqual({
+      kind: "delta",
+      delta: {
+        deletedNoteIds: ["note-1"],
+      },
+    });
   });
 });
