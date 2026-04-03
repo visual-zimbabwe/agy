@@ -175,4 +175,57 @@ describe("createWallSnapshotWritePlan", () => {
       },
     });
   });
+
+  it("sanitizes malformed stored cloud baseline metadata", () => {
+    expect(__test__.parseStoredCloudBaselineSnapshot(undefined)).toEqual({
+      snapshot: null,
+      repaired: false,
+    });
+
+    expect(__test__.parseStoredCloudBaselineSnapshot("{bad-json")).toEqual({
+      snapshot: null,
+      repaired: true,
+    });
+
+    expect(
+      __test__.parseStoredCloudBaselineSnapshot(
+        JSON.stringify({
+          notes: {
+            "note-1": baseNote(),
+          },
+          zones: {},
+          zoneGroups: {},
+          noteGroups: {},
+          links: {},
+          camera: { x: 0, y: 0, zoom: 1 },
+        }),
+      ),
+    ).toEqual({
+      snapshot: normalizePersistedWallState(
+        makeSnapshot({
+          notes: {
+            "note-1": baseNote(),
+          },
+        }),
+      ),
+      repaired: false,
+    });
+  });
+
+  it("repairs malformed sync-version metadata back to zero", () => {
+    expect(__test__.parseStoredSyncVersion(undefined)).toEqual({
+      syncVersion: 0,
+      repaired: false,
+    });
+
+    expect(__test__.parseStoredSyncVersion("15")).toEqual({
+      syncVersion: 15,
+      repaired: false,
+    });
+
+    expect(__test__.parseStoredSyncVersion("NaN-ish")).toEqual({
+      syncVersion: 0,
+      repaired: true,
+    });
+  });
 });

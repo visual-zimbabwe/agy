@@ -60,6 +60,12 @@ type SnapshotWritePlan = {
   nextLastColor?: string;
 };
 
+type WallLocalState = {
+  snapshot: PersistedWallState;
+  cloudBaselineSnapshot: PersistedWallState | null;
+  syncVersion: number;
+};
+
 const wallDatabaseName = `${appSlug}-db`;
 const legacyWallDatabaseName = `${legacyAppSlug}-db`;
 
@@ -278,7 +284,7 @@ export const loadWallSnapshot = async (): Promise<PersistedWallState> => {
     zoneGroups,
     noteGroups,
     links,
-    camera: cameraMeta ? (JSON.parse(cameraMeta.value) as Camera) : defaultCamera,
+    camera: parseStoredCamera(cameraMeta),
     lastColor: lastColorMeta?.value,
   });
 
@@ -308,6 +314,35 @@ const parseStoredCamera = (cameraMeta?: MetaRecord) => {
   }
 
   return defaultCamera;
+};
+
+const parseStoredCloudBaselineSnapshot = (value?: string | null) => {
+  if (!value) {
+    return { snapshot: null as PersistedWallState | null, repaired: false };
+  }
+
+  try {
+    const parsed = JSON.parse(value) as PersistedWallState;
+    const normalized = normalizePersistedWallState(parsed);
+    return {
+      snapshot: normalized,
+      repaired: !normalized,
+    };
+  } catch {
+    return {
+      snapshot: null as PersistedWallState | null,
+      repaired: true,
+    };
+  }
+};
+
+const parseStoredSyncVersion = (value?: string | null) => {
+  const numeric = value ? Number(value) : 0;
+  const syncVersion = Number.isFinite(numeric) && numeric >= 0 ? Math.trunc(numeric) : 0;
+  return {
+    syncVersion,
+    repaired: value != null && syncVersion === 0 && value !== "0",
+  };
 };
 
 export const loadWallCameraState = async (): Promise<{ camera: Camera; lastColor?: string }> => {
@@ -383,16 +418,11 @@ export const saveWallSyncVersion = async (syncVersion: number) => {
 export const loadWallCloudBaselineSnapshot = async (): Promise<PersistedWallState | null> => {
   await migrateLegacyWallDatabaseIfNeeded();
   const baselineMeta = await db.meta.get("cloudBaselineSnapshot");
-  if (!baselineMeta?.value) {
-    return null;
+  const parsed = parseStoredCloudBaselineSnapshot(baselineMeta?.value);
+  if (parsed.repaired) {
+    await db.meta.delete("cloudBaselineSnapshot");
   }
-
-  try {
-    const parsed = JSON.parse(baselineMeta.value) as PersistedWallState;
-    return normalizePersistedWallState(parsed);
-  } catch {
-    return null;
-  }
+  return parsed.snapshot;
 };
 
 export const saveWallCloudBaselineSnapshot = async (snapshot: PersistedWallState | null) => {
@@ -403,6 +433,70 @@ export const saveWallCloudBaselineSnapshot = async (snapshot: PersistedWallState
   }
 
   await db.meta.put({ key: "cloudBaselineSnapshot", value: JSON.stringify(snapshot) });
+};
+
+export const replaceWallLocalState = async (
+  snapshot: PersistedWallState,
+  options?: { cloudBaselineSnapshot?: PersistedWallState | null; syncVersion?: number },
+) => {
+  await migrateLegacyWallDatabaseIfNeeded();
+  const normalizedSnapshot = normalizePersistedWallState(snapshot) ?? {
+    notes: {},
+    zones: {},
+    zoneGroups: {},
+    noteGroups: {},
+    links: {},
+    camera: defaultCamera,
+  };
+  const normalizedBaseline =
+    options && Object.prototype.hasOwnProperty.call(options, "cloudBaselineSnapshot")
+      ? normalizePersistedWallState(options.cloudBaselineSnapshot ?? null)
+      : undefined;
+  const nextSyncVersion =
+    typeof options?.syncVersion === "number" && Number.isFinite(options.syncVersion) && options.syncVersion >= 0
+      ? Math.trunc(options.syncVersion)
+      : undefined;
+
+  await db.transaction("rw", [db.notes, db.zones, db.zoneGroups, db.noteGroups, db.links, db.meta], async () => {
+    await writeWallSnapshot(normalizedSnapshot);
+    if (normalizedBaseline !== undefined) {
+      if (normalizedBaseline) {
+        await db.meta.put({ key: "cloudBaselineSnapshot", value: JSON.stringify(normalizedBaseline) });
+      } else {
+        await db.meta.delete("cloudBaselineSnapshot");
+      }
+    }
+    if (nextSyncVersion !== undefined) {
+      await db.meta.put({ key: "cloudSyncVersion", value: String(nextSyncVersion) });
+    }
+  });
+};
+
+export const loadWallLocalStateWithRepair = async (): Promise<WallLocalState> => {
+  await migrateLegacyWallDatabaseIfNeeded();
+  const [snapshot, baselineMeta, syncVersionMeta] = await Promise.all([
+    loadWallSnapshot(),
+    db.meta.get("cloudBaselineSnapshot"),
+    db.meta.get("cloudSyncVersion"),
+  ]);
+
+  const parsedBaseline = parseStoredCloudBaselineSnapshot(baselineMeta?.value);
+  const cloudBaselineSnapshot = parsedBaseline.snapshot;
+  const parsedSyncVersion = parseStoredSyncVersion(syncVersionMeta?.value);
+  const syncVersion = parsedSyncVersion.syncVersion;
+
+  if (parsedBaseline.repaired || parsedSyncVersion.repaired) {
+    await replaceWallLocalState(snapshot, {
+      cloudBaselineSnapshot,
+      syncVersion,
+    });
+  }
+
+  return {
+    snapshot,
+    cloudBaselineSnapshot,
+    syncVersion,
+  };
 };
 
 const writeWallSnapshot = async (snapshot: PersistedWallState): Promise<void> => {
@@ -811,4 +905,6 @@ export const __test__ = {
   buildTimelineDeltaPayload,
   applyTimelineDeltaPayload,
   parseTimelineRecordPayload,
+  parseStoredCloudBaselineSnapshot,
+  parseStoredSyncVersion,
 };
