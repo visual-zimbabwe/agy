@@ -37,6 +37,7 @@ type QueryBuilderLike = PromiseLike<QueryRowsResult | QuerySingleResult> & {
   lte: (column: string, value: number) => QueryBuilderLike;
   order: (column: string, options: { ascending: boolean }) => QueryBuilderLike;
   in: (column: string, values: string[]) => QueryBuilderLike;
+  range: (from: number, to: number) => QueryBuilderLike;
   maybeSingle: () => Promise<QuerySingleResult>;
 };
 
@@ -77,6 +78,11 @@ const isMissingNoteVocabularyColumnError = (message?: string) =>
   Boolean(message && message.includes("column notes.vocabulary does not exist"));
 const isMissingNoteGroupsTableError = (message?: string) =>
   Boolean(message && message.includes('relation "public.note_groups" does not exist'));
+const isStatementTimeoutError = (message?: string) =>
+  Boolean(message && message.includes("statement timeout"));
+
+const wallReadBatchSize = 250;
+const minWallReadBatchSize = 25;
 
 const notesSelectWithFormatting =
   "id,revision,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
@@ -86,6 +92,45 @@ const notesSelectLegacy = "id,text,tags,text_size,x,y,w,h,color,created_at,updat
 const zonesSelectWithKind = "id,revision,label,kind,group_id,x,y,w,h,color,created_at,updated_at";
 const zonesSelectLegacy = "id,revision,label,group_id,x,y,w,h,color,created_at,updated_at";
 
+const fetchBatchedRowsByRecency = async <TRow extends { id: string; updated_at: string },>(
+  fetchPage: (
+    from: number,
+    to: number,
+    batchSize: number,
+  ) => Promise<{ data: unknown[] | null; error: { message: string } | null }>,
+  batchSize = wallReadBatchSize,
+) => {
+  const rows: TRow[] = [];
+
+  for (let batchIndex = 0; ; batchIndex += 1) {
+    const from = batchIndex * batchSize;
+    const to = from + batchSize - 1;
+    const result = await fetchPage(from, to, batchSize);
+
+    if (result.error) {
+      if (isStatementTimeoutError(result.error.message) && batchSize > minWallReadBatchSize) {
+        const nextBatchSize = Math.max(minWallReadBatchSize, Math.ceil(batchSize / 2));
+        return fetchBatchedRowsByRecency(fetchPage, nextBatchSize);
+      }
+
+      return { data: null as TRow[] | null, error: result.error, batchSize };
+    }
+
+    const page = (result.data ?? []) as TRow[];
+    rows.push(...page);
+
+    if (page.length < batchSize) {
+      break;
+    }
+  }
+
+  return { data: rows, error: null as { message: string } | null, batchSize };
+};
+
+export const __test__ = {
+  fetchBatchedRowsByRecency,
+};
+
 const loadWindowNotes = async (
   supabase: SupabaseLike,
   ownerId: string,
@@ -93,24 +138,32 @@ const loadWindowNotes = async (
   bounds: WallBounds,
 ) => {
   const baseQuery = (columns: string) =>
-    supabase
-      .from("notes")
-      .select(columns)
-      .eq("wall_id", wallId)
-      .eq("owner_id", ownerId)
-      .is("deleted_at", null)
-      .gte("x", bounds.minX)
-      .lte("x", bounds.maxX)
-      .gte("y", bounds.minY)
-      .lte("y", bounds.maxY)
-      .order("updated_at", { ascending: false })
-      .order("id", { ascending: false });
+    async (from: number, to: number) =>
+      (await supabase
+        .from("notes")
+        .select(columns)
+        .eq("wall_id", wallId)
+        .eq("owner_id", ownerId)
+        .is("deleted_at", null)
+        .gte("x", bounds.minX)
+        .lte("x", bounds.maxX)
+        .gte("y", bounds.minY)
+        .lte("y", bounds.maxY)
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to)) as QueryRowsResult;
 
-  const fullResult = await baseQuery(notesSelectWithFormatting);
+  const fullResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["notes"]>[number]>(
+    baseQuery(notesSelectWithFormatting),
+  );
   if (fullResult.error && isMissingNoteVocabularyColumnError(fullResult.error.message)) {
-    const withoutVocabularyResult = await baseQuery(notesSelectWithoutVocabulary);
+    const withoutVocabularyResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["notes"]>[number]>(
+      baseQuery(notesSelectWithoutVocabulary),
+    );
     if (withoutVocabularyResult.error && isMissingNoteFormattingColumnError(withoutVocabularyResult.error.message)) {
-      const legacyResult = await baseQuery(notesSelectLegacy);
+      const legacyResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["notes"]>[number]>(
+        baseQuery(notesSelectLegacy),
+      );
       if (legacyResult.error) {
         return { data: null as SnapshotArgs["notes"] | null, error: legacyResult.error };
       }
@@ -153,7 +206,9 @@ const loadWindowNotes = async (
   }
 
   if (fullResult.error && isMissingNoteFormattingColumnError(fullResult.error.message)) {
-    const legacyResult = await baseQuery(notesSelectLegacy);
+    const legacyResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["notes"]>[number]>(
+      baseQuery(notesSelectLegacy),
+    );
     if (legacyResult.error) {
       return { data: null as SnapshotArgs["notes"] | null, error: legacyResult.error };
     }
@@ -198,22 +253,28 @@ const loadWindowZones = async (
   bounds: WallBounds,
 ) => {
   const baseQuery = (columns: string) =>
-    supabase
-      .from("zones")
-      .select(columns)
-      .eq("wall_id", wallId)
-      .eq("owner_id", ownerId)
-      .is("deleted_at", null)
-      .gte("x", bounds.minX)
-      .lte("x", bounds.maxX)
-      .gte("y", bounds.minY)
-      .lte("y", bounds.maxY)
-      .order("updated_at", { ascending: false })
-      .order("id", { ascending: false });
+    async (from: number, to: number) =>
+      (await supabase
+        .from("zones")
+        .select(columns)
+        .eq("wall_id", wallId)
+        .eq("owner_id", ownerId)
+        .is("deleted_at", null)
+        .gte("x", bounds.minX)
+        .lte("x", bounds.maxX)
+        .gte("y", bounds.minY)
+        .lte("y", bounds.maxY)
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to)) as QueryRowsResult;
 
-  const withKindResult = await baseQuery(zonesSelectWithKind);
+  const withKindResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["zones"]>[number]>(
+    baseQuery(zonesSelectWithKind),
+  );
   if (withKindResult.error && isMissingZoneKindColumnError(withKindResult.error.message)) {
-    const legacyResult = await baseQuery(zonesSelectLegacy);
+    const legacyResult = await fetchBatchedRowsByRecency<NonNullable<SnapshotArgs["zones"]>[number]>(
+      baseQuery(zonesSelectLegacy),
+    );
     if (legacyResult.error) {
       return { data: null as SnapshotArgs["zones"] | null, error: legacyResult.error };
     }
