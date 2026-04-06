@@ -3,6 +3,7 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 
 import { useWallStore } from "@/features/wall/store";
+import { bulkDeleteNotes, bulkRecolorNotes } from "@/features/wall/commands";
 import type { Note } from "@/features/wall/types";
 import { sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
@@ -151,20 +152,16 @@ export const useWallKeyboard = ({
       if (isTimeLocked) {
         return;
       }
-      const { patchNote, setLastColor } = useWallStore.getState();
       const safeColor = sanitizeStandardNoteColor(color, ui.lastColor);
 
       const targetIds = selectedNoteIds.length > 0 ? selectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
       if (targetIds.length === 0) {
-        setLastColor(safeColor);
+        useWallStore.getState().setLastColor(safeColor);
         return;
       }
 
-      for (const noteId of targetIds) {
-        const note = notesMap[noteId];
-        patchNote(noteId, { color: safeColor });
-      }
-      setLastColor(safeColor);
+      // Use the bulk command so the entire recolor lands as one undo step.
+      bulkRecolorNotes(targetIds, safeColor);
     };
 
     const applyColorByIndex = (index: number) => {
@@ -466,9 +463,8 @@ export const useWallKeyboard = ({
         if (selectedNoteIds.length > 1) {
           const ok = window.confirm(`Delete ${selectedNoteIds.length} selected notes?`);
           if (ok) {
-            for (const id of selectedNoteIds) {
-              deleteNote(id);
-            }
+            // Use bulk command so all deletes are a single undo step.
+            bulkDeleteNotes(selectedNoteIds);
             setSelectedNoteIds([]);
             selectNote(undefined);
           }
