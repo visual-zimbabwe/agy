@@ -190,8 +190,6 @@ export const toFileNotePatch = (file: FileNote): Partial<Note> => ({
   canon: undefined,
   eisenhower: undefined,
   bookmark: undefined,
-  apod: undefined,
-  poetry: undefined,
   imageUrl: undefined,
   vocabulary: undefined,
   file,

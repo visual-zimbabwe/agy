@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
-import { createJokerNote } from "@/features/wall/commands";
 import { hasContent, hasMeaningfulContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { loadWallBootstrap, loadWallDelta, loadWallShell } from "@/features/wall/cloud-delta";
-import { hasJokerCardBeenActivated, markJokerCardActivated } from "@/features/wall/joker";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import { applyWallDeltaChanges } from "@/features/wall/sync";
 import { mergeWallWindowIntoSnapshot } from "@/features/wall/windowing";
@@ -109,19 +107,6 @@ export const useWallPersistenceEffects = ({
     const timer = cloudSyncTimerRef.current;
     let cancelled = false;
 
-    const finalizeJokerState = (snapshot: PersistedWallState, allowSeed: boolean) => {
-      const jokerNotes = Object.values(snapshot.notes).filter((note) => note.noteKind === "joker");
-      if (jokerNotes.length > 0) {
-        markJokerCardActivated();
-        return;
-      }
-
-      if (allowSeed && !publishedReadOnly && !hasJokerCardBeenActivated() && !hasContent(snapshot)) {
-        createJokerNote(-120, -92, { select: false });
-        lastPersistedSerializedRef.current = JSON.stringify(selectPersistedSnapshot(useWallStore.getState()));
-      }
-    };
-
     const markHydrated = (
       snapshot: PersistedWallState,
       options?: { degraded?: boolean; loadStartedAt?: number; complete?: boolean },
@@ -135,7 +120,6 @@ export const useWallPersistenceEffects = ({
 
       if (!cancelled) {
         hydrate(snapshot);
-        finalizeJokerState(snapshot, false);
       }
 
       if (typeof options?.loadStartedAt === "number") {
@@ -458,7 +442,6 @@ export const useWallPersistenceEffects = ({
         if (!cancelled) {
           persistenceReadyRef.current = true;
           hydrate(nextSnapshot);
-          finalizeJokerState(nextSnapshot, true);
           cloudReadyRef.current = true;
           setSyncError(null);
         }
@@ -466,7 +449,6 @@ export const useWallPersistenceEffects = ({
         const detail = error instanceof Error ? error.message : "cloud-bootstrap-failed";
         recordWallStartupCheckpoint("cloud-bootstrap-failed", { detail });
         if (!cancelled) {
-          finalizeJokerState(selectPersistedSnapshot(useWallStore.getState()), true);
           const message = error instanceof Error ? error.message : "Cloud sync unavailable";
           setSyncError(message);
           cloudReadyRef.current = false;

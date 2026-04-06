@@ -119,8 +119,6 @@ export const toAudioNotePatch = (audio: AudioNote): Partial<Note> => ({
   canon: undefined,
   eisenhower: undefined,
   bookmark: undefined,
-  apod: undefined,
-  poetry: undefined,
   file: undefined,
   audio,
   imageUrl: undefined,

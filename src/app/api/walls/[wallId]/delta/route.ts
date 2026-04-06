@@ -182,8 +182,6 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
             canon: note.canon ?? null,
             eisenhower: note.eisenhower ?? null,
             bookmark: note.bookmark ?? null,
-            apod: note.apod ?? null,
-            poetry: note.poetry ?? null,
             file: note.file ?? note.audio ?? note.video ?? null,
             image_url: note.imageUrl?.trim() || null,
             text_align: note.textAlign ?? null,
