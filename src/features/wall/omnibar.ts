@@ -9,11 +9,9 @@ export type OmnibarNoteKind =
   | "eisenhower"
   | "joker"
   | "throne"
-  | "currency"
   | "web-bookmark"
   | "apod"
   | "poetry"
-  | "economist"
   | "image"
   | "file"
   | "audio"
@@ -73,11 +71,9 @@ export const omnibarNoteKindDefinitions: NoteKindDefinition[] = [
   { value: "eisenhower", label: "Matrix", aliases: ["eisenhower", "matrix", "priority"] },
   { value: "joker", label: "Joker", aliases: ["joker", "joke"] },
   { value: "throne", label: "Throne", aliases: ["throne"] },
-  { value: "currency", label: "Currency", aliases: ["currency", "fx", "money"] },
   { value: "web-bookmark", label: "Bookmarks", aliases: ["bookmark", "bookmarks", "web", "link"] },
   { value: "apod", label: "APOD", aliases: ["apod", "nasa", "space"] },
   { value: "poetry", label: "Poetry", aliases: ["poetry", "poem", "poems"] },
-  { value: "economist", label: "Magazine Covers", aliases: ["economist", "magazine", "cover", "covers"] },
   { value: "image", label: "Images", aliases: ["image", "images", "photo"] },
   { value: "file", label: "Files", aliases: ["file", "files", "document"] },
   { value: "audio", label: "Audio", aliases: ["audio", "sound", "podcast"] },

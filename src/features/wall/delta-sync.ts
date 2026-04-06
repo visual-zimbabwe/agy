@@ -47,25 +47,6 @@ const eisenhowerSchema = z.object({
   }),
 });
 
-const currencySchema = z.object({
-  status: z.enum(["idle", "locating", "loading", "ready", "error"]),
-  detectedCountryCode: z.string().optional(),
-  detectedCountryName: z.string().optional(),
-  detectedCurrency: z.string().optional(),
-  baseCurrency: z.string(),
-  baseCurrencyMode: z.enum(["auto", "manual"]),
-  manualBaseCurrency: z.string().optional(),
-  amountInput: z.string(),
-  usdRate: z.number(),
-  previousUsdRate: z.number().optional(),
-  thousandValueUsd: z.number(),
-  rateUpdatedAt: z.number().optional(),
-  rateSource: z.enum(["live", "cache", "default"]),
-  detectionSource: z.enum(["geolocation", "ip", "manual", "default"]),
-  trend: z.enum(["up", "down", "flat"]),
-  error: z.string().optional(),
-});
-
 const bookmarkMetadataSchema = z.object({
   url: z.string(),
   finalUrl: z.string(),
@@ -155,7 +136,7 @@ const baseEntitySchema = z.object({
 });
 
 export const deltaNoteSchema = baseEntitySchema.extend({
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark", "apod", "poetry", "economist", "image", "file", "audio", "video"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "web-bookmark", "apod", "poetry", "image", "file", "audio", "video"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -180,7 +161,6 @@ export const deltaNoteSchema = baseEntitySchema.extend({
   vocabulary: vocabularySchema.optional(),
   canon: canonSchema.optional(),
   eisenhower: eisenhowerSchema.optional(),
-  currency: currencySchema.optional(),
   bookmark: bookmarkSchema.optional(),
   apod: apodSchema.optional(),
   poetry: poetrySchema.optional(),

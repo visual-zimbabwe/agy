@@ -1,11 +1,8 @@
 import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, FILE_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, POETRY_NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
-import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
-import { buildEconomistNote, ECONOMIST_NOTE_DEFAULTS, isEconomistNote } from "@/features/wall/economist";
 import { createAudioNoteState, isAudioNote, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, isFileNote, toFileNotePatch } from "@/features/wall/file-notes";
 import { createImageNoteState, IMAGE_NOTE_DEFAULTS, isImageNote, toImageNotePatch } from "@/features/wall/image-notes";
 import { createVideoNoteState, isVideoNote, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
-import type { EconomistCoverPayload } from "@/features/wall/economist";
 import { buildApodNote, isApodNote } from "@/features/wall/apod";
 import { buildPoetryNote, isPoetryNote } from "@/features/wall/poetry";
 import { createBookmarkNoteState, isWebBookmarkNote, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
@@ -356,16 +353,6 @@ export const createPoetryNote = (x: number, y: number) => {
   return note.id;
 };
 
-export const createEconomistNote = (x: number, y: number, payload?: Partial<EconomistCoverPayload>, options?: { select?: boolean }) => {
-  const note = buildEconomistNote(makeId(), x, y, payload);
-  const { upsertNote, selectNote } = useWallStore.getState();
-  upsertNote(note);
-  if (options?.select !== false) {
-    selectNote(note.id);
-  }
-  return note.id;
-};
-
 export const createWebBookmarkNote = (x: number, y: number, url = "") => {
   const noteId = createNote(x, y, WEB_BOOKMARK_DEFAULTS.color);
   useWallStore.getState().patchNote(noteId, {
@@ -376,8 +363,7 @@ export const createWebBookmarkNote = (x: number, y: number, url = "") => {
     vocabulary: undefined,
     canon: undefined,
     eisenhower: undefined,
-    currency: undefined,
-    imageUrl: undefined,
+      imageUrl: undefined,
     bookmark: createBookmarkNoteState(url),
     textFont: WEB_BOOKMARK_DEFAULTS.textFont,
     textColor: WEB_BOOKMARK_DEFAULTS.textColor,
@@ -420,27 +406,6 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
     return;
   }
 
-  if (isCurrencyNote(current)) {
-    useWallStore.getState().patchNote(noteId, {
-      ...patch,
-      noteKind: "currency",
-      color: CURRENCY_NOTE_DEFAULTS.color,
-      textColor: current.textColor ?? CURRENCY_NOTE_DEFAULTS.textColor,
-      textFont: current.textFont ?? CURRENCY_NOTE_DEFAULTS.textFont,
-      w: CURRENCY_NOTE_DEFAULTS.width,
-      h: CURRENCY_NOTE_DEFAULTS.height,
-      tags: ["system", "currency"],
-      text: "",
-      quoteAuthor: undefined,
-      quoteSource: undefined,
-      canon: undefined,
-      eisenhower: undefined,
-      vocabulary: undefined,
-      imageUrl: undefined,
-    });
-    return;
-  }
-
   if (isJokerNote(current)) {
     useWallStore.getState().patchNote(noteId, {
       ...patch,
@@ -471,7 +436,6 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       quoteSource: undefined,
       canon: undefined,
       eisenhower: undefined,
-      currency: undefined,
       bookmark: undefined,
       apod: patch.apod ?? current.apod,
       imageUrl: patch.imageUrl ?? current.imageUrl,
@@ -492,7 +456,6 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       quoteSource: patch.quoteSource ?? current.quoteSource ?? "PoetryDB",
       canon: undefined,
       eisenhower: undefined,
-      currency: undefined,
       bookmark: undefined,
       apod: undefined,
       poetry: patch.poetry ?? current.poetry,
@@ -532,7 +495,6 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       quoteSource: undefined,
       canon: undefined,
       eisenhower: undefined,
-      currency: undefined,
       vocabulary: undefined,
       imageUrl: undefined,
       color: WEB_BOOKMARK_DEFAULTS.color,
@@ -541,28 +503,6 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       textSizePx: patch.textSizePx ?? current.textSizePx ?? WEB_BOOKMARK_DEFAULTS.textSizePx,
       bookmark: patch.bookmark ?? current.bookmark,
       tags: patch.tags ?? current.tags,
-    });
-    return;
-  }
-
-  if (isEconomistNote(current)) {
-    useWallStore.getState().patchNote(noteId, {
-      ...patch,
-      noteKind: "economist",
-      canon: undefined,
-      eisenhower: undefined,
-      currency: undefined,
-      bookmark: undefined,
-      apod: undefined,
-      poetry: undefined,
-      audio: undefined,
-      video: undefined,
-      color: ECONOMIST_NOTE_DEFAULTS.color,
-      textColor: patch.textColor ?? current.textColor ?? ECONOMIST_NOTE_DEFAULTS.textColor,
-      textFont: patch.textFont ?? current.textFont ?? ECONOMIST_NOTE_DEFAULTS.textFont,
-      textSizePx: patch.textSizePx ?? current.textSizePx ?? ECONOMIST_NOTE_DEFAULTS.textSizePx,
-      tags: patch.tags ?? current.tags,
-      imageUrl: patch.imageUrl ?? current.imageUrl,
     });
     return;
   }
@@ -616,7 +556,7 @@ export const moveNote = (noteId: string, x: number, y: number) => {
 
 export const deleteNote = (noteId: string) => {
   const note = useWallStore.getState().notes[noteId];
-  if (!note || isCurrencyNote(note)) {
+  if (!note) {
     return;
   }
   useWallStore.getState().removeNote(noteId);
@@ -660,7 +600,7 @@ export const mergeNotes = (keepNoteId: string, mergeNoteId: string) => {
     const state = useWallStore.getState();
     const keep = state.notes[keepNoteId];
     const merge = state.notes[mergeNoteId];
-    if (!keep || !merge || isCurrencyNote(keep) || isCurrencyNote(merge) || isPrivateNote(keep) || isPrivateNote(merge)) {
+    if (!keep || !merge || isPrivateNote(keep) || isPrivateNote(merge)) {
       return;
     }
 
@@ -718,7 +658,7 @@ export const mergeNotes = (keepNoteId: string, mergeNoteId: string) => {
 export const duplicateNote = (noteId: string) => {
   const { notes, upsertNote, selectNote } = useWallStore.getState();
   const current = notes[noteId];
-  if (!current || isCurrencyNote(current)) {
+  if (!current) {
     return;
   }
 
@@ -745,7 +685,7 @@ export const duplicateNote = (noteId: string) => {
 export const duplicateNoteAt = (noteId: string, x: number, y: number) => {
   const { notes, upsertNote, selectNote } = useWallStore.getState();
   const current = notes[noteId];
-  if (!current || isCurrencyNote(current)) {
+  if (!current) {
     return;
   }
 

@@ -56,25 +56,6 @@ const eisenhowerSchema = z.object({
   }),
 });
 
-const currencySchema = z.object({
-  status: z.enum(["idle", "locating", "loading", "ready", "error"]),
-  detectedCountryCode: z.string().optional(),
-  detectedCountryName: z.string().optional(),
-  detectedCurrency: z.string().optional(),
-  baseCurrency: z.string(),
-  baseCurrencyMode: z.enum(["auto", "manual"]),
-  manualBaseCurrency: z.string().optional(),
-  amountInput: z.string(),
-  usdRate: z.number(),
-  previousUsdRate: z.number().optional(),
-  thousandValueUsd: z.number(),
-  rateUpdatedAt: z.number().optional(),
-  rateSource: z.enum(["live", "cache", "default"]),
-  detectionSource: z.enum(["geolocation", "ip", "manual", "default"]),
-  trend: z.enum(["up", "down", "flat"]),
-  error: z.string().optional(),
-});
-
 const bookmarkMetadataSchema = z.object({
   url: z.string(),
   finalUrl: z.string(),
@@ -159,7 +140,7 @@ const videoSchema = fileSchema.extend({
 
 const noteSchema = z.object({
   id: z.string().min(1),
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark", "apod", "poetry", "economist", "image", "file", "audio", "video"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "web-bookmark", "apod", "poetry", "image", "file", "audio", "video"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -184,7 +165,6 @@ const noteSchema = z.object({
   vocabulary: vocabularySchema.optional(),
   canon: canonSchema.optional(),
   eisenhower: eisenhowerSchema.optional(),
-  currency: currencySchema.optional(),
   bookmark: bookmarkSchema.optional(),
   apod: apodSchema.optional(),
   poetry: poetrySchema.optional(),
@@ -280,8 +260,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.private_note does not exist") ||
         message.includes("column notes.canon does not exist") ||
         message.includes("column notes.eisenhower does not exist") ||
-        message.includes("column notes.currency does not exist") ||
-        message.includes("column notes.bookmark does not exist") ||
+    message.includes("column notes.bookmark does not exist") ||
         message.includes("column notes.apod does not exist") ||
         message.includes("column notes.poetry does not exist") ||
         message.includes("column notes.text_size does not exist") ||
@@ -412,7 +391,6 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
                 private_note: note.privateNote ?? null,
                 canon: note.canon ?? null,
                 eisenhower: note.eisenhower ?? null,
-                currency: note.currency ?? null,
                 bookmark: note.bookmark ?? null,
                 apod: note.apod ?? null,
                 poetry: note.poetry ?? null,

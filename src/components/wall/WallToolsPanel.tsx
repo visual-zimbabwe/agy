@@ -35,7 +35,6 @@ type WallToolsPanelProps = {
   onCreateVideoNote: () => void;
   onCreateApodNote: () => void;
   onCreatePoetryNote: () => void;
-  onCreateEconomistNote: () => void;
   onCreateEisenhowerNote: () => void;
   onCreateOrRefreshJokerNote: () => void;
   onCreateOrRefreshThroneNote: () => void;
@@ -87,7 +86,6 @@ export const WallToolsPanel = ({
   onCreateVideoNote,
   onCreateApodNote,
   onCreatePoetryNote,
-  onCreateEconomistNote,
   onCreateEisenhowerNote,
   onCreateOrRefreshJokerNote,
   onCreateOrRefreshThroneNote,
@@ -146,7 +144,6 @@ export const WallToolsPanel = ({
             <button type="button" onClick={onCreateVideoNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Video</span></button>
             <button type="button" onClick={onCreateApodNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New APOD</span></button>
             <button type="button" onClick={onCreatePoetryNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>New Poetry</span></button>
-            <button type="button" onClick={onCreateEconomistNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="note" /><span>Magazine Covers</span></button>
             <button type="button" onClick={onCreateEisenhowerNote} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="layout" /><span>Eisenhower Matrix</span></button>
             <button type="button" onClick={() => onCreateZone("frame")} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="zone" /><span>New Frame</span></button>
             {advancedMode ? <button type="button" onClick={() => onCreateZone("column")} disabled={isTimeLocked} className={toolButtonClassName}><Icon name="zone" /><span>New Column</span></button> : null}

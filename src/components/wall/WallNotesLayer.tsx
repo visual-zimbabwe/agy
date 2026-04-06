@@ -10,7 +10,6 @@ import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { getApodCaption, isApodNote } from "@/features/wall/apod";
 import { deriveWallAssetRecords, mergeWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
-import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { getPoetryFooterHeight, getPoetryHeaderHeight } from "@/features/wall/poetry";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
@@ -120,9 +119,6 @@ const resolveNoteFillColor = (note: Note) => {
   if (note.noteKind === "throne") {
     return "#FF2400";
   }
-  if (isCurrencyNote(note)) {
-    return CURRENCY_NOTE_DEFAULTS.color;
-  }
   return sanitizeStandardNoteColor(note.color, DEFAULT_STANDARD_NOTE_COLOR);
 };
 
@@ -189,9 +185,6 @@ const getNoteStrokeColor = ({
 };
 
 const getNoteCornerRadius = (note: Note) => {
-  if (note.noteKind === "economist") {
-    return 12;
-  }
   if (note.noteKind === "standard") {
     return 18;
   }
@@ -201,57 +194,7 @@ const getNoteCornerRadius = (note: Note) => {
   return 14;
 };
 
-const formatCurrencyDisplayRate = (value: number) => value.toFixed(value >= 1 ? 2 : 4);
-
-const getCurrencyDisplayState = (baseCurrency?: string, usdRate?: number, previousUsdRate?: number) => {
-  const safeBaseCurrency = baseCurrency ?? "USD";
-  const safeUsdRate = typeof usdRate === "number" && Number.isFinite(usdRate) && usdRate > 0 ? usdRate : 1;
-  const displayRate = 1 / safeUsdRate;
-  const previousDisplayRate =
-    typeof previousUsdRate === "number" && Number.isFinite(previousUsdRate) && previousUsdRate > 0 ? 1 / previousUsdRate : undefined;
-  const changePercent = previousDisplayRate
-    ? ((displayRate - previousDisplayRate) / previousDisplayRate) * 100
-    : 0;
-
-  return {
-    pairLabel: `USD / ${safeBaseCurrency}`,
-    quoteLabel: `${safeBaseCurrency} per 1 USD`,
-    displayRate,
-    changePercent,
-  };
-};
-
-const formatCurrencyChangeBadge = (value: number) => {
-  const rounded = Math.round(value * 10) / 10;
-  const prefix = rounded > 0 ? "+" : "";
-  return `${prefix}${rounded.toFixed(1)}%`;
-};
-
-const formatCurrencyUpdatedAgo = (value?: number) => {
-  if (!value) {
-    return "Updated just now";
-  }
-
-  const elapsedMs = Date.now() - value;
-  if (elapsedMs < 60_000) {
-    return "Updated just now";
-  }
-  const elapsedMinutes = Math.round(elapsedMs / 60_000);
-  if (elapsedMinutes < 60) {
-    return `Updated ${elapsedMinutes}m ago`;
-  }
-  const elapsedHours = Math.round(elapsedMinutes / 60);
-  if (elapsedHours < 24) {
-    return `Updated ${elapsedHours}h ago`;
-  }
-  const elapsedDays = Math.round(elapsedHours / 24);
-  return `Updated ${elapsedDays}d ago`;
-};
-
 const getWallNotePreviewTitle = (note: Note) => {
-  if (isCurrencyNote(note)) {
-    return note.currency?.baseCurrency ? `${note.currency.baseCurrency} rates` : "Currency";
-  }
   if (note.noteKind === "web-bookmark") {
     return note.bookmark?.metadata?.title?.trim() || note.bookmark?.metadata?.domain || note.bookmark?.url || "Bookmark";
   }
@@ -266,9 +209,6 @@ const getWallNotePreviewTitle = (note: Note) => {
   }
   if (note.noteKind === "poetry") {
     return note.poetry?.title?.trim() || note.poetry?.author?.trim() || "Poetry";
-  }
-  if (note.noteKind === "economist") {
-    return note.economist?.mainStory?.trim() || note.economist?.issueDate?.trim() || "Magazine";
   }
   if (note.vocabulary?.word?.trim()) {
     return note.vocabulary.word.trim();
@@ -291,9 +231,6 @@ const getWallNotePreviewMeta = (note: Note) => {
   }
   if (note.noteKind === "poetry") {
     return note.poetry?.author?.trim() || "Poem";
-  }
-  if (note.noteKind === "economist") {
-    return note.economist?.issueDate?.trim() || "Issue";
   }
   if (note.tags.length > 0) {
     return `#${note.tags[0]}`;
@@ -824,7 +761,7 @@ export const WallNotesLayer = ({
             dragSingleStartRef.current = null;
           },
           onTransform: (event: Konva.KonvaEventObject<Event>) => {
-            if (isTimeLocked || isPinned || isCurrencyNote(noteView)) {
+            if (isTimeLocked || isPinned) {
               return;
             }
             const node = event.target;
@@ -838,7 +775,7 @@ export const WallNotesLayer = ({
             }));
           },
           onTransformEnd: (event: Konva.KonvaEventObject<Event>) => {
-            if (isTimeLocked || isPinned || isCurrencyNote(noteView)) {
+            if (isTimeLocked || isPinned) {
               return;
             }
             const node = event.target;
@@ -865,7 +802,7 @@ export const WallNotesLayer = ({
           const previewTitle = getWallNotePreviewTitle(noteView);
           const previewMeta = getWallNotePreviewMeta(noteView);
           const ambient = renderDetailLevel === "ambient";
-          const previewFill = isPrivateNote(noteView) ? "#F5F1EA" : noteView.noteKind === "joker" ? "#D6FF57" : noteView.noteKind === "throne" ? "#FF2400" : isCurrencyNote(noteView) ? CURRENCY_NOTE_DEFAULTS.color : "#FFFCF8";
+          const previewFill = isPrivateNote(noteView) ? "#F5F1EA" : noteView.noteKind === "joker" ? "#D6FF57" : noteView.noteKind === "throne" ? "#FF2400" : "#FFFCF8";
           const previewTextColor = getContrastTextColor(resolveNoteFillColor(noteView));
           const previewStroke = getNoteStrokeColor({ isSelected, isHovered, isHighlighted: Boolean(note.highlighted), accent: resolvedNoteColor });
           const previewBadge = noteView.noteKind ? noteView.noteKind.replaceAll("-", " ").toUpperCase() : "NOTE";
@@ -945,10 +882,8 @@ export const WallNotesLayer = ({
         const isPrivate = isPrivateNote(noteView);
         const isJoker = noteView.noteKind === "joker";
         const isThrone = noteView.noteKind === "throne";
-        const isCurrency = isCurrencyNote(noteView);
         const isBookmark = noteView.noteKind === "web-bookmark";
         const isApod = isApodNote(noteView);
-        const isEconomist = noteView.noteKind === "economist";
         const isAudio = noteView.noteKind === "audio";
         const isVideo = noteView.noteKind === "video";
         const isStandardNote = !noteView.noteKind || noteView.noteKind === "standard";
@@ -976,8 +911,6 @@ export const WallNotesLayer = ({
         const isApiQuoteNote = isJoker || isThrone;
         const textX = isQuote ? 24 : isJournal ? journalHorizontalInset : isPoetry ? 26 : 12;
         const textWidth = Math.max(0, noteView.w - (isQuote ? 50 : isJournal ? journalHorizontalInset * 2 : isPoetry ? 52 : 24));
-        const currencyState = noteView.currency;
-        const currencyDisplay = getCurrencyDisplayState(currencyState?.baseCurrency, currencyState?.usdRate, currencyState?.previousUsdRate);
         const imageUrl = resolveImageAssetUrl(noteView, resolvedAssetRecords);
         const bookmarkState = noteView.bookmark;
         const bookmarkMetadata = bookmarkState?.metadata;
@@ -988,10 +921,10 @@ export const WallNotesLayer = ({
         const bookmarkFavicon = bookmarkFaviconUrl ? loadedImagesByUrl[bookmarkFaviconUrl] : undefined;
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
         const isImageNote = Boolean(imageUrl);
-        const isPaperShellNote = !isCurrency && !isJoker && !isThrone;
-        const baseShellFill = isThrone ? THRONE_NOTE_BACKGROUND : isJoker ? "#F0CB88" : isCurrency ? CURRENCY_NOTE_DEFAULTS.color : isStandardNote ? "#FFFFFF" : atelierPalette.paper;
+        const isPaperShellNote = !isJoker && !isThrone;
+        const baseShellFill = isThrone ? THRONE_NOTE_BACKGROUND : isJoker ? "#F0CB88" : isStandardNote ? "#FFFFFF" : atelierPalette.paper;
         const defaultTextColor =
-          isQuote || isJournal || isBookmark || isApod || isImageNote || isPrivate || isPoetry || isEconomist || isAudio ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
+          isQuote || isJournal || isBookmark || isApod || isImageNote || isPrivate || isPoetry || isAudio ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
         const resolvedTextColor = noteView.textColor ?? defaultTextColor;
         const paperTintOpacity = isPaperShellNote ? (isStandardNote ? 0.02 : isPoetry ? 0.04 : isQuote ? 0.06 : isVocabulary ? 0.14 : 0.1) : 0;
         const isApodMediaCard = isApod;
@@ -1035,13 +968,13 @@ export const WallNotesLayer = ({
         const renderedCodeLines = parsedCodeNote?.body.split("\n").slice(0, 8) ?? [];
         const journalTitle = noteLines[0] ?? "Dear Wall,";
         const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
-        const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isVideo && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !isCurrency && !isEconomist && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
+        const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isVideo && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
         const noteTextContent = isPrivate
           ? ""
-          : isCurrency || isBookmark
+          : isBookmark
           ? ""
           : isApodMediaCard
           ? imageCaption || noteView.apod?.error || noteView.apod?.title || "NASA APOD"
@@ -1098,11 +1031,6 @@ export const WallNotesLayer = ({
         const decryptButtonX = Math.max(26, noteView.w / 2 - decryptButtonWidth / 2);
         const decryptButtonY = Math.max(noteView.h - 74, noteView.h * 0.72);
 
-
-        const economistLines = isEconomist ? noteView.text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : [];
-        const economistMasthead = economistLines[0] || "Magazine";
-        const economistIssueLabel = noteView.economist?.issueDate?.trim() || noteView.quoteSource?.trim() || "Latest issue";
-        const economistSubhead = noteView.economist?.mainStory?.trim() || "Curated issue";
 
         return (
           <Group key={note.id} {...groupProps}>
@@ -1377,122 +1305,6 @@ export const WallNotesLayer = ({
                   </>
                 )}
               </>
-            ) : isEconomist && imageNoteLayout ? (
-              <>
-                <Rect
-                  x={16}
-                  y={18}
-                  width={Math.max(1, noteView.w - 16)}
-                  height={Math.max(1, noteView.h - 10)}
-                  cornerRadius={10}
-                  fill="rgba(28,28,25,0.08)"
-                  rotation={5}
-                  listening={false}
-                />
-                <Rect
-                  x={6}
-                  y={8}
-                  width={Math.max(1, noteView.w - 8)}
-                  height={Math.max(1, noteView.h - 2)}
-                  cornerRadius={10}
-                  fill="rgba(255,255,255,0.76)"
-                  stroke="rgba(223,192,184,0.42)"
-                  strokeWidth={0.9}
-                  rotation={-2.5}
-                  listening={false}
-                />
-                <Rect
-                  width={noteView.w}
-                  height={noteView.h}
-                  cornerRadius={noteCornerRadius}
-                  fill={atelierPalette.paper}
-                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.terracotta })}
-                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
-                  shadowColor={atelierPalette.paperShadow}
-                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
-                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
-                  shadowOffsetY={isDragging ? 7 : 3}
-                />
-                {noteImage ? (
-                  <KonvaImage
-                    x={0}
-                    y={0}
-                    width={noteView.w}
-                    height={Math.max(1, noteView.h * 0.72)}
-                    image={noteImage}
-                    cornerRadius={[noteCornerRadius, noteCornerRadius, 0, 0]}
-                    listening={false}
-                  />
-                ) : (
-                  <Rect
-                    x={0}
-                    y={0}
-                    width={noteView.w}
-                    height={Math.max(1, noteView.h * 0.72)}
-                    cornerRadius={[noteCornerRadius, noteCornerRadius, 0, 0]}
-                    fill="#DDD6CE"
-                    listening={false}
-                  />
-                )}
-                <Rect
-                  x={0}
-                  y={Math.max(0, noteView.h - 136)}
-                  width={noteView.w}
-                  height={136}
-                  fill="rgba(255,252,248,0.97)"
-                  listening={false}
-                />
-
-                <Text
-                  x={16}
-                  y={Math.max(0, noteView.h - 118)}
-                  width={Math.max(0, noteView.w - 32)}
-                  fontSize={10}
-                  fontStyle="bold"
-                  fill={atelierPalette.terracotta}
-                  text={(economistIssueLabel || "Latest issue").toUpperCase()}
-                  wrap="none"
-                  ellipsis
-                  listening={false}
-                />
-                <Text
-                  x={16}
-                  y={Math.max(0, noteView.h - 94)}
-                  width={Math.max(0, noteView.w - 32)}
-                  height={48}
-                  fontSize={18}
-                  fontStyle="bold"
-                  fill={atelierPalette.text}
-                  text={economistSubhead}
-                  lineHeight={1.15}
-                  ellipsis
-                  listening={false}
-                />
-                <Text
-                  x={16}
-                  y={Math.max(0, noteView.h - 42)}
-                  width={Math.max(0, noteView.w - 32)}
-                  fontSize={18}
-                  fontFamily="Newsreader"
-                  fontStyle="bold"
-                  fill={atelierPalette.text}
-                  text={economistMasthead.toUpperCase()}
-                  wrap="none"
-                  ellipsis
-                  listening={false}
-                />
-                <Text
-                  x={16}
-                  y={Math.max(0, noteView.h - 22)}
-                  width={Math.max(0, noteView.w - 32)}
-                  fontSize={9}
-                  fill={atelierPalette.quietText}
-                  text="SOURCE: MAGAZINE API"
-                  wrap="none"
-                  ellipsis
-                  listening={false}
-                />
-              </>
             ) : isImageNote && imageNoteLayout ? (
               <>
                 <Rect
@@ -1752,78 +1564,6 @@ export const WallNotesLayer = ({
                 )}
               </>
             )}
-            {isCurrency && (
-              <>
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={atelierPalette.paper} listening={false} />
-                <Text x={18} y={18} width={Math.max(0, noteView.w - 36)} fontSize={9} fontStyle="bold" fill={colorWithAlpha(atelierPalette.quietText, 0.75)} text="CURRENCY PAIR" listening={false} />
-                <Text x={18} y={36} width={Math.max(0, noteView.w - 128)} fontSize={20} fontStyle="bold" fill={atelierPalette.text} text={currencyDisplay.pairLabel} listening={false} />
-                <Rect x={Math.max(112, noteView.w - 88)} y={34} width={52} height={18} cornerRadius={6} fill="#DCEEDD" listening={false} />
-                <Text x={Math.max(112, noteView.w - 88)} y={39} width={52} align="center" fontSize={10} fontStyle="bold" fill={atelierPalette.forest} text={formatCurrencyChangeBadge(currencyDisplay.changePercent)} listening={false} />
-                <Line
-                  points={[Math.max(18, noteView.w - 38), 42, Math.max(18, noteView.w - 31), 35, Math.max(18, noteView.w - 24), 41, Math.max(18, noteView.w - 12), 28]}
-                  stroke={atelierPalette.forest}
-                  strokeWidth={2.2}
-                  lineCap="round"
-                  lineJoin="round"
-                  listening={false}
-                />
-                <Line
-                  points={[Math.max(18, noteView.w - 18), 28, Math.max(18, noteView.w - 12), 28, Math.max(18, noteView.w - 12), 34]}
-                  stroke={atelierPalette.forest}
-                  strokeWidth={2.2}
-                  lineCap="round"
-                  lineJoin="round"
-                  listening={false}
-                />
-                <Text x={18} y={72} width={Math.max(92, noteView.w - 132)} fontSize={32} fontStyle="bold" fill={atelierPalette.text} text={formatCurrencyDisplayRate(currencyDisplay.displayRate)} listening={false} />
-                <Text x={Math.min(noteView.w - 132, 112)} y={85} width={Math.max(0, noteView.w - 130)} fontSize={11} fill={atelierPalette.mutedText} text={currencyDisplay.quoteLabel} listening={false} />
-                <Line
-                  points={[
-                    18,
-                    136,
-                    Math.max(34, noteView.w * 0.18),
-                    132,
-                    Math.max(54, noteView.w * 0.3),
-                    142,
-                    Math.max(84, noteView.w * 0.42),
-                    122,
-                    Math.max(112, noteView.w * 0.56),
-                    144,
-                    Math.max(146, noteView.w * 0.72),
-                    102,
-                    Math.max(184, noteView.w * 0.86),
-                    112,
-                    Math.max(208, noteView.w - 18),
-                    132,
-                  ]}
-                  stroke="#D5DBD7"
-                  strokeWidth={2.8}
-                  bezier
-                  lineCap="round"
-                  lineJoin="round"
-                  listening={false}
-                />
-                <Text
-                  x={18}
-                  y={Math.max(18, noteView.h - 28)}
-                  width={Math.max(0, noteView.w - 142)}
-                  fontSize={9}
-                  fill={colorWithAlpha(atelierPalette.quietText, 0.72)}
-                  text={currencyState?.rateSource === "default" ? "SOURCE: DEFAULT RATE" : "SOURCE: CURRENCY API"}
-                  listening={false}
-                />
-                <Text
-                  x={Math.max(112, noteView.w - 116)}
-                  y={Math.max(18, noteView.h - 28)}
-                  width={98}
-                  align="right"
-                  fontSize={9}
-                  fill={colorWithAlpha(atelierPalette.quietText, 0.72)}
-                  text={formatCurrencyUpdatedAgo(currencyState?.rateUpdatedAt)}
-                  listening={false}
-                />
-              </>
-            )}
             {isApiQuoteNote && (
               <>
                 {isJoker && (
@@ -1958,7 +1698,7 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isPrivate && !isThrone && !isJoker && !isApodMediaCard && !isImageNote && !isEisenhower && !isCurrency && !isBookmark && !isEconomist && !isJournal && !isQuote && !isAudio && !isVideo && !looksLikeCode && !looksLikeFile && !isStandardNote && (
+            {!isPrivate && !isThrone && !isJoker && !isApodMediaCard && !isImageNote && !isEisenhower && !isBookmark && !isJournal && !isQuote && !isAudio && !isVideo && !looksLikeCode && !looksLikeFile && !isStandardNote && (
               <Text
                 x={textX}
                 y={textY}
@@ -2411,7 +2151,7 @@ export const WallNotesLayer = ({
                 )}
               </>
             )}
-            {wikiLinks.length > 0 && !isApodMediaCard && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && !isPoetry && !isEconomist && (
+            {wikiLinks.length > 0 && !isApodMediaCard && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && !isPoetry && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;
@@ -2484,7 +2224,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isEconomist && !isVideo &&
+            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isVideo &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -2509,7 +2249,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isEconomist && !isVideo && overflowTags > 0 && (
+            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isVideo && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}

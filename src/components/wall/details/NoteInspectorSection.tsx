@@ -29,7 +29,6 @@ import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, N
 import { createBookmarkNoteState, normalizeBookmarkUrl, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
 import { createFileNoteState, getFileNoteMeta, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
 import { createImageNoteState, getImageNoteFilename, getImageNoteMeta, renameImageNoteFile, toImageNotePatch } from "@/features/wall/image-notes";
-import { ECONOMIST_MAGAZINE_SOURCES, ECONOMIST_NOTE_DEFAULTS, formatEconomistNoteText, getEconomistMagazineSource, getEconomistNoteSourceId } from "@/features/wall/economist";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
 import { sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import type { Note, NoteTextFont, PoetrySearchField, PoetrySearchMatchType } from "@/features/wall/types";
@@ -43,7 +42,6 @@ type PoetryRefreshOptions = {
 
 type NoteInspectorSectionProps = {
   selectedNote?: Note;
-  notes: Note[];
   isTimeLocked: boolean;
   hasJokerNote: boolean;
   hasThroneNote: boolean;
@@ -72,7 +70,6 @@ type NoteInspectorSectionProps = {
   onToggleOrRefreshJoker: (noteId: string) => void;
   onToggleOrRefreshThrone: (noteId: string) => void;
   onRefreshPoetry: (noteId: string, options?: PoetryRefreshOptions) => void;
-  onRefreshEconomist: (noteId: string, year?: string) => void;
   onStartLink: (noteId: string) => void;
   onUpdateNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -151,7 +148,6 @@ const fromCodeNoteText = (text: string) => {
 
 export const NoteInspectorSection = ({
   selectedNote,
-  notes,
   isTimeLocked,
   hasJokerNote,
   hasThroneNote,
@@ -180,7 +176,6 @@ export const NoteInspectorSection = ({
   onToggleOrRefreshJoker,
   onToggleOrRefreshThrone,
   onRefreshPoetry,
-  onRefreshEconomist,
   onStartLink,
   onUpdateNote,
   onSubmitBookmarkUrl,
@@ -228,16 +223,7 @@ export const NoteInspectorSection = ({
     return null;
   }
 
-  const selectedMagazineSourceId = selectedNote.noteKind === "economist" ? getEconomistNoteSourceId(selectedNote) ?? "economist" : "economist";
   const isCodeNote = selectedNote.noteKind === "standard" && isCodeNoteText(selectedNote.text);
-  const usedMagazineSourceIds = new Set(
-    notes
-      .filter((note) => note.id !== selectedNote.id && note.noteKind === "economist")
-      .map((note) => getEconomistNoteSourceId(note))
-      .filter((sourceId): sourceId is NonNullable<ReturnType<typeof getEconomistNoteSourceId>> => Boolean(sourceId)),
-  );
-  const preferredMagazineSourceId =
-    ECONOMIST_MAGAZINE_SOURCES.find((source) => !usedMagazineSourceIds.has(source.sourceId))?.sourceId ?? selectedMagazineSourceId;
 
   const applyImageNote = () => {
     const imagePatch = toImageNotePatch(createImageNoteState(selectedNote.file ?? { url: selectedNote.imageUrl ?? "" }), {
@@ -262,7 +248,6 @@ export const NoteInspectorSection = ({
       bookmark: undefined,
       apod: undefined,
       poetry: undefined,
-      economist: undefined,
       imageUrl: undefined,
       vocabulary: undefined,
       color: CODE_NOTE_COLOR,
@@ -286,12 +271,10 @@ export const NoteInspectorSection = ({
     const toBookmark = nextKind === "web-bookmark" && selectedNote.noteKind !== "web-bookmark";
     const toApod = nextKind === "apod" && selectedNote.noteKind !== "apod";
     const toPoetry = nextKind === "poetry" && selectedNote.noteKind !== "poetry";
-    const toEconomist = nextKind === "economist" && selectedNote.noteKind !== "economist";
     const toFile = nextKind === "file" && selectedNote.noteKind !== "file";
     const toAudio = nextKind === "audio" && selectedNote.noteKind !== "audio";
     const toVideo = nextKind === "video" && selectedNote.noteKind !== "video";
     const fromCodeNote = selectedNote.noteKind === "standard" && isCodeNoteText(selectedNote.text);
-    const economistSource = getEconomistMagazineSource(toEconomist ? preferredMagazineSourceId : selectedMagazineSourceId);
     const filePatch = toFile ? toFileNotePatch(createFileNoteState(selectedNote.file)) : undefined;
     const audioPatch = toAudio ? toAudioNotePatch(createAudioNoteState(selectedNote.audio)) : undefined;
     const videoPatch = toVideo ? toVideoNotePatch(createVideoNoteState(selectedNote.video)) : undefined;
@@ -309,9 +292,7 @@ export const NoteInspectorSection = ({
             ? videoPatch?.text ?? selectedNote.text
           : toBookmark
             ? ""
-            : toEconomist
-              ? formatEconomistNoteText({ sourceName: economistSource.sourceName, displayLabel: "Latest cover", displayDate: "" })
-              : toStandard && fromCodeNote
+            : toStandard && fromCodeNote
                 ? fromCodeNoteText(selectedNote.text)
                 : toStandard && selectedNote.noteKind === "file"
                   ? selectedNote.file?.name ?? selectedNote.text
@@ -320,8 +301,8 @@ export const NoteInspectorSection = ({
                     : toStandard && selectedNote.noteKind === "video"
                       ? selectedNote.video?.name ?? selectedNote.text
                       : selectedNote.text,
-      quoteAuthor: toStandard ? undefined : toQuote ? "" : toEconomist ? economistSource.sourceUrl : undefined,
-      quoteSource: toStandard ? undefined : toQuote ? "" : toEconomist ? "Latest cover" : undefined,
+      quoteAuthor: toStandard ? undefined : toQuote ? "" : undefined,
+      quoteSource: toStandard ? undefined : toQuote ? "" : undefined,
       canon: toCanon
         ? {
             mode: "single",
@@ -337,12 +318,11 @@ export const NoteInspectorSection = ({
       bookmark: toStandard ? undefined : toBookmark ? createBookmarkNoteState(selectedNote.bookmark?.url ?? "") : undefined,
       apod: toStandard ? undefined : toApod ? defaultApodNoteState(selectedNote.apod) : undefined,
       poetry: toStandard ? undefined : toPoetry ? defaultPoetryNoteState(selectedNote.poetry) : undefined,
-      economist: toStandard || toFile || toAudio || toVideo ? undefined : selectedNote.economist,
       file: toStandard || toAudio || toVideo ? undefined : filePatch?.file,
       audio: toStandard || toFile || toVideo ? undefined : audioPatch?.audio,
       video: toStandard || toFile || toAudio ? undefined : videoPatch?.video,
-      imageUrl: toStandard || toBookmark || toApod || toPoetry || toEconomist || toFile || toAudio || toVideo ? undefined : selectedNote.imageUrl,
-      vocabulary: toStandard || toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry || toEconomist || toFile || toAudio || toVideo ? undefined : selectedNote.vocabulary,
+      imageUrl: toStandard || toBookmark || toApod || toPoetry || toFile || toAudio || toVideo ? undefined : selectedNote.imageUrl,
+      vocabulary: toStandard || toCanon || toJournal || toEisenhower || toBookmark || toApod || toPoetry || toFile || toAudio || toVideo ? undefined : selectedNote.vocabulary,
       color: toStandard
         ? sanitizeStandardNoteColor(fromCodeNote ? NOTE_COLORS[0] ?? "#FEEA89" : selectedNote.color, NOTE_COLORS[0] ?? "#FEEA89")
         : toBookmark
@@ -357,9 +337,7 @@ export const NoteInspectorSection = ({
                   ? videoPatch?.color ?? VIDEO_NOTE_DEFAULTS.color
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.color
-                  : toEconomist
-                    ? ECONOMIST_NOTE_DEFAULTS.color
-                    : toJournal
+                  : toJournal
                       ? JOURNAL_NOTE_DEFAULTS.color
                       : toEisenhower
                         ? EISENHOWER_NOTE_DEFAULTS.color
@@ -378,9 +356,7 @@ export const NoteInspectorSection = ({
                   ? videoPatch?.textFont ?? selectedNote.textFont
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.textFont
-                  : toEconomist
-                    ? ECONOMIST_NOTE_DEFAULTS.textFont
-                    : toJournal
+                  : toJournal
                       ? JOURNAL_NOTE_DEFAULTS.textFont
                       : toEisenhower
                         ? EISENHOWER_NOTE_DEFAULTS.textFont
@@ -399,9 +375,7 @@ export const NoteInspectorSection = ({
                   ? videoPatch?.textColor ?? selectedNote.textColor
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.textColor
-                  : toEconomist
-                    ? ECONOMIST_NOTE_DEFAULTS.textColor
-                    : toJournal
+                  : toJournal
                       ? JOURNAL_NOTE_DEFAULTS.textColor
                       : toEisenhower
                         ? EISENHOWER_NOTE_DEFAULTS.textColor
@@ -420,9 +394,7 @@ export const NoteInspectorSection = ({
                   ? videoPatch?.textSizePx ?? selectedNote.textSizePx
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.textSizePx
-                  : toEconomist
-                    ? ECONOMIST_NOTE_DEFAULTS.textSizePx
-                    : toJournal
+                  : toJournal
                       ? JOURNAL_NOTE_DEFAULTS.textSizePx
                       : toEisenhower
                         ? EISENHOWER_NOTE_DEFAULTS.textSizePx
@@ -441,9 +413,7 @@ export const NoteInspectorSection = ({
                   ? videoPatch?.w ?? selectedNote.w
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.width
-                  : toEconomist
-                    ? ECONOMIST_NOTE_DEFAULTS.width
-                    : toEisenhower
+                  : toEisenhower
                       ? EISENHOWER_NOTE_DEFAULTS.width
                       : selectedNote.w,
       h: toStandard
@@ -460,9 +430,7 @@ export const NoteInspectorSection = ({
                   ? videoPatch?.h ?? selectedNote.h
                 : toPoetry
                   ? POETRY_NOTE_DEFAULTS.height
-                  : toEconomist
-                    ? ECONOMIST_NOTE_DEFAULTS.height
-                    : toEisenhower
+                  : toEisenhower
                       ? EISENHOWER_NOTE_DEFAULTS.height
                       : selectedNote.h,
       tags: toJournal
@@ -478,25 +446,11 @@ export const NoteInspectorSection = ({
                 : toAudio
                   ? ["audio"]
                   : toVideo
-                    ? ["video"]
+                  ? ["video"]
                   : toPoetry
                     ? [...new Set([...selectedNote.tags, "poetry", "poem"])]
-                    : toEconomist
-                      ? [economistSource.sourceId, "cover", "magazine"]
-                      : selectedNote.tags,
+                    : selectedNote.tags,
     });
-  };
-
-  const applyMagazineSource = (sourceId: string) => {
-    const source = getEconomistMagazineSource(sourceId);
-    onUpdateNote(selectedNote.id, {
-      text: formatEconomistNoteText({ sourceName: source.sourceName, displayLabel: "Latest cover", displayDate: "" }),
-      quoteAuthor: source.sourceUrl,
-      quoteSource: "Latest cover",
-      imageUrl: undefined,
-      tags: [source.sourceId, "cover", "magazine"],
-    });
-    onRefreshEconomist(selectedNote.id);
   };
 
   const normalizedPoetryQuery = normalizePoetrySearchQuery(poetrySearchQuery);
@@ -1015,55 +969,6 @@ export const NoteInspectorSection = ({
           </div>
         )}
 
-        {selectedNote.noteKind === "economist" && (
-          <div className={sectionBlockClass}>
-            <p className={sectionLabelClass}>Magazine Source</p>
-            <div className="grid gap-2">
-              <select
-                value={selectedMagazineSourceId}
-                onChange={(event) => applyMagazineSource(event.target.value)}
-                className={detailField}
-                disabled={isTimeLocked || isPrivateEnabled}
-                aria-label="Magazine cover source"
-              >
-                {ECONOMIST_MAGAZINE_SOURCES.map((source) => (
-                  <option key={`magazine-source-${source.sourceId}`} value={source.sourceId}>
-                    {source.sourceName}
-                  </option>
-                ))}
-              </select>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  value={selectedNote.economist?.year ?? ""}
-                  onChange={(event) =>
-                    onUpdateNote(selectedNote.id, {
-                      economist: {
-                        status: selectedNote.economist?.status ?? "ready",
-                        ...selectedNote.economist,
-                        year: event.target.value.trim() || undefined,
-                      },
-                    })
-                  }
-                  className={detailField}
-                  placeholder="Year (e.g. 2024)"
-                  disabled={isTimeLocked || isPrivateEnabled || selectedMagazineSourceId !== "economist"}
-                  aria-label="Magazine cover year"
-                />
-                <button
-                  type="button"
-                  onClick={() => onRefreshEconomist(selectedNote.id, selectedNote.economist?.year)}
-                  className={detailButton}
-                  disabled={isTimeLocked || isPrivateEnabled}
-                >
-                  Refresh Cover
-                </button>
-              </div>
-              <button type="button" onClick={() => onOpenBookmarkUrl(selectedNote.quoteAuthor ?? getEconomistMagazineSource(selectedMagazineSourceId).sourceUrl)} className={detailButton}>Open Source</button>
-            </div>
-          </div>
-        )}
-
         <div className={sectionBlockClass}>
           <p className={sectionLabelClass}>Backlinks</p>
           {backlinks.length === 0 ? (
@@ -1192,7 +1097,6 @@ export const NoteInspectorSection = ({
             <button type="button" onClick={() => setNoteKind("video")} className={typeButtonClass(selectedNote.noteKind === "video")} disabled={isTimeLocked || isPrivateEnabled}>Video</button>
             <button type="button" onClick={() => setNoteKind("apod")} className={typeButtonClass(selectedNote.noteKind === "apod")} disabled={isTimeLocked || isPrivateEnabled}>APOD</button>
             <button type="button" onClick={() => selectedNote.noteKind === "poetry" ? onRefreshPoetry(selectedNote.id) : setNoteKind("poetry")} className={typeButtonClass(selectedNote.noteKind === "poetry")} disabled={isTimeLocked || isPrivateEnabled}>{selectedNote.noteKind === "poetry" ? "Refresh Poetry" : "Poetry"}</button>
-            <button type="button" onClick={() => selectedNote.noteKind === "economist" ? onRefreshEconomist(selectedNote.id) : setNoteKind("economist")} className={typeButtonClass(selectedNote.noteKind === "economist")} disabled={isTimeLocked || isPrivateEnabled}>{selectedNote.noteKind === "economist" ? "Refresh Cover" : "Magazine Cover"}</button>
             <button type="button" onClick={() => onToggleOrRefreshJoker(selectedNote.id)} className={typeButtonClass(selectedNote.noteKind === "joker")} disabled={isTimeLocked || isPrivateEnabled}>
               {selectedNote.noteKind === "joker" || hasJokerNote ? "Refresh Joker" : "Joker"}
             </button>

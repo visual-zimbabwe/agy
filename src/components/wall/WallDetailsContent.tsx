@@ -62,7 +62,6 @@ type WallDetailsContentProps = {
   onToggleOrRefreshJokerSelectedNote: (noteId: string) => void;
   onToggleOrRefreshThroneSelectedNote: (noteId: string) => void;
   onRefreshPoetrySelectedNote: (noteId: string, options?: { force?: boolean; field?: import("@/features/wall/types").PoetrySearchField; query?: string; matchType?: import("@/features/wall/types").PoetrySearchMatchType }) => void;
-  onRefreshEconomistSelectedNote: (noteId: string, year?: string) => void;
   onStartLinkFromSelectedNote: (noteId: string) => void;
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -212,7 +211,6 @@ export const WallDetailsContent = ({
   onToggleOrRefreshJokerSelectedNote,
   onToggleOrRefreshThroneSelectedNote,
   onRefreshPoetrySelectedNote,
-  onRefreshEconomistSelectedNote,
   onStartLinkFromSelectedNote,
   onUpdateSelectedNote,
   onSubmitBookmarkUrl,
@@ -345,7 +343,6 @@ export const WallDetailsContent = ({
           />
           <NoteInspectorSection key={selectedNote.id}
             selectedNote={selectedNote}
-            notes={notes}
             hasJokerNote={hasJokerNote}
             hasThroneNote={hasThroneNote}
             isTimeLocked={isTimeLocked}
@@ -374,7 +371,6 @@ export const WallDetailsContent = ({
             onToggleOrRefreshJoker={onToggleOrRefreshJokerSelectedNote}
             onToggleOrRefreshThrone={onToggleOrRefreshThroneSelectedNote}
             onRefreshPoetry={onRefreshPoetrySelectedNote}
-            onRefreshEconomist={onRefreshEconomistSelectedNote}
             onStartLink={onStartLinkFromSelectedNote}
             onUpdateNote={onUpdateSelectedNote}
             onSubmitBookmarkUrl={onSubmitBookmarkUrl}

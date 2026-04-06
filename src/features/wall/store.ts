@@ -1,7 +1,5 @@
 import { create } from "zustand";
 
-import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
-import { ECONOMIST_NOTE_DEFAULTS } from "@/features/wall/economist";
 import { JOKER_NOTE_COLOR, POETRY_NOTE_COLOR, sanitizeStandardNoteColor, THRONE_NOTE_COLOR } from "@/features/wall/special-notes";
 import { mergeWallWindowIntoSnapshot } from "@/features/wall/windowing";
 
@@ -336,11 +334,7 @@ export const useWallStore = create<WallStore>((set) => ({
             ? THRONE_NOTE_COLOR
             : nextNoteKind === "poetry"
               ? POETRY_NOTE_COLOR
-              : nextNoteKind === "currency"
-                ? CURRENCY_NOTE_DEFAULTS.color
-                : nextNoteKind === "economist"
-                  ? ECONOMIST_NOTE_DEFAULTS.color
-                  : sanitizeStandardNoteColor(patch.color, sanitizeStandardNoteColor(current.color))
+              : sanitizeStandardNoteColor(patch.color, sanitizeStandardNoteColor(current.color))
         : current.color;
 
       return applyWithHistory(state, {
@@ -358,8 +352,7 @@ export const useWallStore = create<WallStore>((set) => ({
 
   removeNote: (noteId) =>
     set((state) => {
-      const current = state.notes[noteId];
-      if (!current || isCurrencyNote(current)) {
+      if (!state.notes[noteId]) {
         return state;
       }
       const rest = { ...state.notes };

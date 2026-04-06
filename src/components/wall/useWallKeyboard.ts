@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, type MutableRefObject } from "react";
 
-import { CURRENCY_NOTE_DEFAULTS } from "@/features/wall/currency";
 import { useWallStore } from "@/features/wall/store";
 import type { Note } from "@/features/wall/types";
 import { JOKER_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/joker";
@@ -60,7 +59,6 @@ type WallKeyboardOptions = {
   createQuoteNote: () => void;
   createApodNote: () => void;
   createPoetryNote: () => void;
-  createEconomistNote: () => void;
   createEisenhowerNote: () => void;
   createWordNote: () => void;
   openEditor: (noteId: string, text: string, focusField?: string) => void;
@@ -125,7 +123,6 @@ export const useWallKeyboard = ({
   createQuoteNote,
   createApodNote,
   createPoetryNote,
-  createEconomistNote,
   createEisenhowerNote,
   createWordNote,
   openEditor,
@@ -169,7 +166,7 @@ export const useWallKeyboard = ({
 
       for (const noteId of targetIds) {
         const note = notesMap[noteId];
-        patchNote(noteId, { color: note?.noteKind === "joker" ? JOKER_NOTE_COLOR : note?.noteKind === "currency" ? CURRENCY_NOTE_DEFAULTS.color : safeColor });
+        patchNote(noteId, { color: note?.noteKind === "joker" ? JOKER_NOTE_COLOR : safeColor });
       }
       setLastColor(safeColor);
     };
@@ -390,12 +387,6 @@ export const useWallKeyboard = ({
         return;
       }
 
-      if (!ctrlOrMeta && event.shiftKey && key === "m") {
-        event.preventDefault();
-        createEconomistNote();
-        return;
-      }
-
       if (!ctrlOrMeta && event.shiftKey && key === "j") {
         event.preventDefault();
         if (typeof createJournalNote === "function") {
@@ -565,7 +556,6 @@ export const useWallKeyboard = ({
     createQuoteNote,
     createApodNote,
     createPoetryNote,
-    createEconomistNote,
     createEisenhowerNote,
     createWordNote,
     deleteGroup,

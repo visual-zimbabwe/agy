@@ -173,7 +173,6 @@ export const buildPoetryNote = (id: string, x: number, y: number, existing?: Not
     quoteSource: existing?.quoteSource ?? POETRY_NOTE_SOURCE,
     canon: undefined,
     eisenhower: undefined,
-    currency: undefined,
     bookmark: undefined,
     apod: undefined,
     poetry,

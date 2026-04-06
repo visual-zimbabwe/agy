@@ -340,7 +340,7 @@ const tokenizeCodeLine = (line: string, language: CodeLanguage): CodeSegment[] =
 const shellStyle = ({ note, selected, tone }: Pick<WallNotePreviewProps, "note" | "selected" | "tone">): CSSProperties => ({
   width: "100%",
   height: "100%",
-  borderRadius: note.noteKind === "economist" ? 18 : note.noteKind === "standard" ? 18 : 16,
+  borderRadius: note.noteKind === "standard" ? 18 : 16,
   background: note.noteKind === "throne" ? "#31302d" : note.noteKind === "joker" ? "#ffdea5" : note.noteKind === "standard" ? "#ffffff" : atelier.paper,
   boxShadow: note.noteKind === "standard"
     ? tone === "detail"
@@ -371,53 +371,6 @@ const NoteShell = ({ children, note, width, height, selected, tone }: WallNotePr
 const MetaLabel = ({ children, color = atelier.quiet }: { children: ReactNode; color?: string }) => (
   <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color }}>{children}</p>
 );
-
-const formatCurrencyDisplayRate = (value: number) => value.toFixed(value >= 1 ? 2 : 4);
-
-const getCurrencyDisplayState = (baseCurrency?: string, usdRate?: number, previousUsdRate?: number) => {
-  const safeBaseCurrency = baseCurrency ?? "USD";
-  const safeUsdRate = typeof usdRate === "number" && Number.isFinite(usdRate) && usdRate > 0 ? usdRate : 1;
-  const displayRate = 1 / safeUsdRate;
-  const previousDisplayRate =
-    typeof previousUsdRate === "number" && Number.isFinite(previousUsdRate) && previousUsdRate > 0 ? 1 / previousUsdRate : undefined;
-  const changePercent = previousDisplayRate
-    ? ((displayRate - previousDisplayRate) / previousDisplayRate) * 100
-    : 0;
-
-  return {
-    pairLabel: `USD / ${safeBaseCurrency}`,
-    displayRate,
-    quoteLabel: `${safeBaseCurrency} per 1 USD`,
-    changePercent,
-  };
-};
-
-const formatCurrencyChangeBadge = (value: number) => {
-  const rounded = Math.round(value * 10) / 10;
-  const prefix = rounded > 0 ? "+" : "";
-  return `${prefix}${rounded.toFixed(1)}%`;
-};
-
-const formatCurrencyUpdatedAgo = (value?: number) => {
-  if (!value) {
-    return "Updated just now";
-  }
-
-  const elapsedMs = Date.now() - value;
-  if (elapsedMs < 60_000) {
-    return "Updated just now";
-  }
-  const elapsedMinutes = Math.round(elapsedMs / 60_000);
-  if (elapsedMinutes < 60) {
-    return `Updated ${elapsedMinutes}m ago`;
-  }
-  const elapsedHours = Math.round(elapsedMinutes / 60);
-  if (elapsedHours < 24) {
-    return `Updated ${elapsedHours}h ago`;
-  }
-  const elapsedDays = Math.round(elapsedHours / 24);
-  return `Updated ${elapsedDays}d ago`;
-};
 
 const PrivateRenderer = ({ note, width, height, tone }: RendererProps) => (
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
@@ -575,138 +528,6 @@ const VocabularyRenderer = ({ note, width, height, readableText, activeBackgroun
           <p className="whitespace-pre-wrap font-[Newsreader] text-[28px] italic leading-tight [overflow-wrap:anywhere]" style={{ color: readableText }}>{getBodyText(note)}</p>
         </div>
         <div className="mx-auto rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: activeBackground, color: activeText }}>{isBack ? "Back" : "Front"}</div>
-      </div>
-    </NoteShell>
-  );
-};
-
-const CurrencyRenderer = ({ note, width, height, tone }: Pick<RendererProps, "note" | "width" | "height" | "tone">) => {
-  const state = note.currency;
-  const display = getCurrencyDisplayState(state?.baseCurrency, state?.usdRate, state?.previousUsdRate);
-  const badgeX = Math.max(112, width - 88);
-  const chartPath = [
-    `M 18 ${136}`,
-    `C ${Math.max(34, width * 0.18)} ${132}, ${Math.max(54, width * 0.3)} ${142}, ${Math.max(84, width * 0.42)} ${122}`,
-    `S ${Math.max(146, width * 0.72)} ${102}, ${Math.max(208, width - 18)} ${132}`,
-  ].join(" ");
-
-  return (
-    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="relative h-full" style={{ background: atelier.paper }}>
-        <p
-          className="absolute"
-          style={{
-            left: 18,
-            top: 18,
-            width: Math.max(0, width - 36),
-            color: "rgba(140,124,114,0.75)",
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-          }}
-        >
-          CURRENCY PAIR
-        </p>
-
-        <p
-          className="absolute"
-          style={{
-            left: 18,
-            top: 36,
-            width: Math.max(0, width - 128),
-            color: atelier.ink,
-            fontSize: 20,
-            fontWeight: 700,
-            lineHeight: 1,
-          }}
-        >
-          {display.pairLabel}
-        </p>
-
-        <div
-          className="absolute flex items-center justify-center rounded-[6px]"
-          style={{
-            left: badgeX,
-            top: 34,
-            width: 52,
-            height: 18,
-            background: "#DCEEDD",
-          }}
-        >
-          <span style={{ color: atelier.forest, fontSize: 10, fontWeight: 700 }}>
-            {formatCurrencyChangeBadge(display.changePercent)}
-          </span>
-        </div>
-
-        <svg
-          aria-hidden
-          className="absolute"
-          viewBox="0 0 24 24"
-          style={{ left: Math.max(18, width - 38), top: 24, width: 26, height: 26 }}
-        >
-          <path d="M4 16l5-5 4 4 7-8" fill="none" stroke={atelier.forest} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M15 7h5v5" fill="none" stroke={atelier.forest} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-
-        <p
-          className="absolute"
-          style={{
-            left: 18,
-            top: 72,
-            width: Math.max(92, width - 132),
-            color: atelier.ink,
-            fontSize: 32,
-            fontWeight: 700,
-            lineHeight: 1,
-          }}
-        >
-          {formatCurrencyDisplayRate(display.displayRate)}
-        </p>
-
-        <p
-          className="absolute"
-          style={{
-            left: Math.min(width - 132, 112),
-            top: 85,
-            width: Math.max(0, width - 130),
-            color: atelier.muted,
-            fontSize: 11,
-            lineHeight: 1.1,
-          }}
-        >
-          {display.quoteLabel}
-        </p>
-
-        <svg aria-hidden className="absolute inset-x-0" style={{ top: 96, height: 64, width: "100%" }}>
-          <path d={chartPath} fill="none" stroke="#D5DBD7" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-
-        <p
-          className="absolute"
-          style={{
-            left: 18,
-            top: Math.max(18, height - 28),
-            width: Math.max(0, width - 142),
-            color: "rgba(140,124,114,0.72)",
-            fontSize: 9,
-            letterSpacing: "0.03em",
-          }}
-        >
-          {state?.rateSource === "default" ? "SOURCE: DEFAULT RATE" : "SOURCE: CURRENCY API"}
-        </p>
-
-        <p
-          className="absolute text-right"
-          style={{
-            left: Math.max(112, width - 116),
-            top: Math.max(18, height - 28),
-            width: 98,
-            color: "rgba(140,124,114,0.72)",
-            fontSize: 9,
-          }}
-        >
-          {formatCurrencyUpdatedAgo(state?.rateUpdatedAt)}
-        </p>
       </div>
     </NoteShell>
   );
@@ -915,37 +736,6 @@ const ThroneRenderer = ({ note, width, height, tone }: RendererProps) => {
   );
 };
 
-const EconomistRenderer = ({ note, width, height, tone }: RendererProps) => {
-  const lines = splitNoteText(note.text);
-  const masthead = lines[0] || "Magazine";
-  const subhead = note.economist?.mainStory?.trim() || "The Infinite Canvas: A New Era of Spatial Thinking";
-  const imageUrl = resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note })) ?? note.imageUrl;
-  return (
-    <div className="relative" style={{ width, height }}>
-      <div className="absolute inset-0 translate-x-3 rotate-[6deg] rounded-[16px] bg-[#ebe8e3] shadow-[0_12px_28px_rgba(28,28,25,0.12)]" />
-      <div className="absolute inset-0 -translate-x-1 rotate-[-3deg] rounded-[16px] bg-[#f6f3ee] shadow-[0_16px_34px_rgba(28,28,25,0.14)]" />
-      <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-        <div className="flex h-full flex-col">
-          <div className="relative h-[68%] bg-[#ddd6ce]">
-            {imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl} alt={masthead} className="h-full w-full object-cover" loading="lazy" />
-            ) : null}
-          </div>
-          <div className="flex flex-1 flex-col justify-between p-4" style={{ background: atelier.paper }}>
-            <div>
-              <p className="text-[15px] font-bold leading-tight" style={{ color: atelier.ink }}>{subhead}</p>
-            </div>
-            <div>
-              <p className="font-[Newsreader] text-[20px] font-black uppercase leading-none" style={{ color: atelier.ink }}>{masthead}</p>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.16em]" style={{ color: atelier.quiet }}>Source: Magazine API</p>
-            </div>
-          </div>
-        </div>
-      </NoteShell>
-    </div>
-  );
-};
 const CodeRenderer = ({ note, width, height, tone }: RendererProps) => {
   const parsed = parseCodeNote(note.text);
   const lines = parsed.body.split("\n").slice(0, tone === "detail" ? undefined : 9);
@@ -1149,7 +939,6 @@ const noteRenderers: Record<string, NoteRenderer> = {
   canon: CanonRenderer,
   journal: JournalRenderer,
   eisenhower: EisenhowerRenderer,
-  currency: CurrencyRenderer,
   "web-bookmark": WebBookmarkRenderer,
   apod: ApodRenderer,
   poetry: PoetryRenderer,
@@ -1157,7 +946,6 @@ const noteRenderers: Record<string, NoteRenderer> = {
   vocabulary: VocabularyRenderer,
   joker: JokerRenderer,
   throne: ThroneRenderer,
-  economist: EconomistRenderer,
   code: CodeRenderer,
   file: FileRenderer,
   audio: AudioRenderer,
@@ -1180,9 +968,6 @@ const resolveRendererKey = (note: Note) => {
   }
   if (note.noteKind === "throne") {
     return "throne";
-  }
-  if (note.noteKind === "economist") {
-    return "economist";
   }
   if (resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note }))) {
     return "image";
