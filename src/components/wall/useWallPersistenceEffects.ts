@@ -163,6 +163,16 @@ export const useWallPersistenceEffects = ({
     };
 
     const load = async () => {
+      // Published read-only snapshots have nothing to do with private local state.
+      // Exit immediately so we never touch IndexedDB, mutate the store, or record
+      // local-bootstrap telemetry on behalf of a public/shared viewer.
+      if (publishedReadOnly || cancelled) {
+        if (!cancelled) {
+          hydrateRef.current(emptyWallSnapshot);
+        }
+        return;
+      }
+
       const loadStartedAt = performance.now();
       recordWallStartupCheckpoint("local-bootstrap-started");
 
@@ -209,7 +219,7 @@ export const useWallPersistenceEffects = ({
         markHydrated(emptyWallSnapshot, { degraded: true, loadStartedAt, complete: false });
       }
 
-      if (publishedReadOnly || cancelled) {
+      if (cancelled) {
         return;
       }
 
