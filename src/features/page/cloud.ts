@@ -1,81 +1,137 @@
+import type { CloudPageDocument, PageOperation } from "@/features/page/operations";
 import type { PersistedPageState } from "@/features/page/types";
-import { getSupabaseBrowserUserSafely } from "@/lib/supabase/browser-auth";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-const getAuthedUserId = async (): Promise<string | null> => {
-  const { user, error } = await getSupabaseBrowserUserSafely();
-  if (error || !user) {
+const pageSyncMetaPrefix = "agy-page-sync-meta:";
+
+type StoredPageSyncMeta = {
+  revision: number;
+  snapshot: PersistedPageState;
+};
+
+const getDocUrl = (docId: string) => `/api/page/docs/${encodeURIComponent(docId)}`;
+
+const parseJson = async <T>(response: Response): Promise<T> => {
+  return (await response.json().catch(() => ({}))) as T;
+};
+
+export const loadCloudPageDocument = async (docId: string): Promise<CloudPageDocument | null> => {
+  const response = await fetch(getDocUrl(docId), { cache: "no-store" });
+  if (response.status === 401) {
     return null;
   }
-  return user.id;
+
+  const payload = await parseJson<{ error?: string; doc?: CloudPageDocument | null }>(response);
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Failed to load cloud page document.");
+  }
+
+  return payload.doc ?? null;
+};
+
+export const applyCloudPageOperations = async (
+  docId: string,
+  baseRevision: number,
+  operations: PageOperation[],
+): Promise<CloudPageDocument> => {
+  const response = await fetch(`${getDocUrl(docId)}/ops`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ baseRevision, operations }),
+  });
+
+  const payload = await parseJson<{ error?: string; doc?: CloudPageDocument | null }>(response);
+  if (!response.ok || !payload.doc) {
+    const error = new Error(payload.error ?? "Failed to apply cloud page operations.");
+    (error as Error & { status?: number; doc?: CloudPageDocument | null }).status = response.status;
+    (error as Error & { status?: number; doc?: CloudPageDocument | null }).doc = payload.doc ?? null;
+    throw error;
+  }
+
+  return payload.doc;
 };
 
 export const loadCloudPageSnapshot = async (docId: string): Promise<PersistedPageState | null> => {
-  const ownerId = await getAuthedUserId();
-  if (!ownerId) {
-    return null;
-  }
-
-  const supabase = createSupabaseBrowserClient();
-  const { data, error } = await supabase
-    .from("page_docs")
-    .select("snapshot")
-    .eq("owner_id", ownerId)
-    .eq("doc_id", docId)
-    .maybeSingle();
-  if (error) {
-    throw new Error(error.message || "Failed to load cloud page document.");
-  }
-  return (data?.snapshot as PersistedPageState | null) ?? null;
+  const doc = await loadCloudPageDocument(docId);
+  return doc?.snapshot ?? null;
 };
 
 export const saveCloudPageSnapshot = async (docId: string, snapshot: PersistedPageState): Promise<void> => {
-  const ownerId = await getAuthedUserId();
-  if (!ownerId) {
+  const response = await fetch(getDocUrl(docId), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ snapshot }),
+  });
+
+  const payload = await parseJson<{ error?: string }>(response);
+  if (response.status === 401) {
     return;
   }
-
-  const supabase = createSupabaseBrowserClient();
-  const { error } = await supabase.from("page_docs").upsert(
-    {
-      owner_id: ownerId,
-      doc_id: docId,
-      snapshot,
-    },
-    { onConflict: "owner_id,doc_id" },
-  );
-  if (error) {
-    throw new Error(error.message || "Failed to save cloud page document.");
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Failed to save cloud page document.");
   }
 };
 
 export const deleteCloudPageSnapshot = async (docId: string): Promise<void> => {
-  const ownerId = await getAuthedUserId();
-  if (!ownerId) {
+  const response = await fetch(getDocUrl(docId), { method: "DELETE" });
+  if (response.status === 401 || response.status === 404) {
     return;
   }
-
-  const supabase = createSupabaseBrowserClient();
-  const { error } = await supabase.from("page_docs").delete().eq("owner_id", ownerId).eq("doc_id", docId);
-  if (error) {
-    throw new Error(error.message || "Failed to delete cloud page document.");
+  if (!response.ok) {
+    const payload = await parseJson<{ error?: string }>(response);
+    throw new Error(payload.error ?? "Failed to delete cloud page document.");
   }
 };
 
 export const listCloudPageDocIds = async (): Promise<string[]> => {
-  const ownerId = await getAuthedUserId();
-  if (!ownerId) {
+  const response = await fetch("/api/page/docs", { cache: "no-store" });
+  if (response.status === 401) {
     return [];
   }
 
-  const supabase = createSupabaseBrowserClient();
-  const { data, error } = await supabase
-    .from("page_docs")
-    .select("doc_id")
-    .eq("owner_id", ownerId)
-    .order("updated_at", { ascending: false });
-  if (error) {
-    throw new Error(error.message || "Failed to list cloud page documents.");
+  const payload = await parseJson<{ error?: string; docs?: Array<{ docId: string }> }>(response);
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Failed to list cloud page documents.");
   }
-  return (data ?? []).map((doc) => doc.doc_id);
+  return (payload.docs ?? []).map((doc) => doc.docId);
+};
+
+const getMetaKey = (docId: string) => `${pageSyncMetaPrefix}${docId}`;
+
+export const readPageSyncMeta = (docId: string): StoredPageSyncMeta | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(getMetaKey(docId));
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as StoredPageSyncMeta;
+    if (typeof parsed?.revision !== "number" || !parsed?.snapshot) {
+      return null;
+    }
+    return {
+      revision: Math.max(0, Math.trunc(parsed.revision)),
+      snapshot: parsed.snapshot,
+    };
+  } catch {
+    return null;
+  }
+};
+
+export const writePageSyncMeta = (docId: string, meta: StoredPageSyncMeta) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(getMetaKey(docId), JSON.stringify(meta));
+};
+
+export const clearPageSyncMeta = (docId: string) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(getMetaKey(docId));
 };

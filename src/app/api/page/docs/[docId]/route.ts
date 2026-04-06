@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import {
+  buildStoredCloudPageSnapshot,
+  parseStoredCloudPageSnapshot,
+} from "@/features/page/operations";
 import { requireApiUser } from "@/lib/api/auth";
 
 const paramsSchema = z.object({
@@ -38,7 +42,8 @@ export async function GET(_: Request, context: { params: Promise<{ docId: string
     doc: data
       ? {
           docId: data.doc_id,
-          snapshot: data.snapshot,
+          snapshot: parseStoredCloudPageSnapshot(data.snapshot as never).snapshot,
+          revision: parseStoredCloudPageSnapshot(data.snapshot as never).revision,
           updatedAt: data.updated_at,
           createdAt: data.created_at,
         }
@@ -67,17 +72,31 @@ export async function PUT(request: Request, context: { params: Promise<{ docId: 
     );
   }
 
+  const existing = await auth.supabase
+    .from("page_docs")
+    .select("snapshot")
+    .eq("owner_id", auth.user.id)
+    .eq("doc_id", parsedParams.data.docId)
+    .maybeSingle();
+
+  if (existing.error) {
+    return NextResponse.json({ error: existing.error.message }, { status: 500 });
+  }
+
+  const parsedExisting = parseStoredCloudPageSnapshot(existing.data?.snapshot as never);
+  const nextRevision = parsedExisting.revision + 1;
+
   const { data, error } = await auth.supabase
     .from("page_docs")
     .upsert(
       {
         owner_id: auth.user.id,
         doc_id: parsedParams.data.docId,
-        snapshot: parsedBody.data.snapshot,
+        snapshot: buildStoredCloudPageSnapshot(parsedBody.data.snapshot as never, nextRevision),
       },
       { onConflict: "owner_id,doc_id" },
     )
-    .select("doc_id,updated_at")
+    .select("doc_id,updated_at,created_at")
     .single();
 
   if (error) {
@@ -87,7 +106,35 @@ export async function PUT(request: Request, context: { params: Promise<{ docId: 
   return NextResponse.json({
     doc: {
       docId: data.doc_id,
+      snapshot: parsedBody.data.snapshot,
+      revision: nextRevision,
       updatedAt: data.updated_at,
+      createdAt: data.created_at,
     },
   });
+}
+
+export async function DELETE(_: Request, context: { params: Promise<{ docId: string }> }) {
+  const auth = await requireApiUser();
+  if ("response" in auth) {
+    return auth.response;
+  }
+
+  const rawParams = await context.params;
+  const parsedParams = paramsSchema.safeParse(rawParams);
+  if (!parsedParams.success) {
+    return NextResponse.json({ error: "Invalid doc id." }, { status: 400 });
+  }
+
+  const { error } = await auth.supabase
+    .from("page_docs")
+    .delete()
+    .eq("owner_id", auth.user.id)
+    .eq("doc_id", parsedParams.data.docId);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

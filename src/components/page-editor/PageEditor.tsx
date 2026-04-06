@@ -20,7 +20,14 @@ import {
 
 import { createPageSnapshotSaver, defaultPageDocId, listPageDocIds, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
 import { fetchPageBookmarkPreview } from "@/features/page/bookmarks";
-import { listCloudPageDocIds, loadCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
+import {
+  applyCloudPageOperations,
+  listCloudPageDocIds,
+  loadCloudPageDocument,
+  readPageSyncMeta,
+  writePageSyncMeta,
+} from "@/features/page/cloud";
+import { derivePageOperations, type CloudPageDocument } from "@/features/page/operations";
 import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageCover, PageEmbedData, PageNumberedFormat, PageTableData, PersistedPageState } from "@/features/page/types";
 import { loadWallSnapshot, saveWallSnapshot } from "@/features/wall/storage";
 import { UnsplashPicker } from "@/components/media/UnsplashPicker";
@@ -68,6 +75,7 @@ type CommentPanelState = {
   deleteConfirmCommentId?: string;
   editingCommentId?: string;
 };
+type PageSyncState = "idle" | "pending" | "syncing" | "offline" | "error" | "conflict";
 
 const DOC_WIDTH = 680;
 const COVER_WIDTH = DOC_WIDTH + 96;
@@ -1425,6 +1433,13 @@ export function PageEditor() {
   const dirtyRevisionRef = useRef(0);
   const queuedPersistRevisionRef = useRef(0);
   const [persistRevision, setPersistRevision] = useState(0);
+  const cloudSnapshotRef = useRef<PersistedPageState | null>(null);
+  const cloudRevisionRef = useRef(0);
+  const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeDocIdRef = useRef(docId);
+  const replayLocalShadowRef = useRef<PersistedPageState | null>(null);
+  const [pageSyncState, setPageSyncState] = useState<PageSyncState>("idle");
+  const [pageSyncMessage, setPageSyncMessage] = useState("Cloud synced");
 
   const queuePersistRevision = useCallback(() => {
     dirtyRevisionRef.current += 1;
@@ -1464,50 +1479,119 @@ export function PageEditor() {
     });
   }, [queuePersistRevision]);
 
+  const markSyncState = useCallback((state: PageSyncState, message: string) => {
+    setPageSyncState(state);
+    setPageSyncMessage(message);
+  }, []);
+
+  const scheduleCloudSync = useCallback(async (targetDocId: string, snapshot: PersistedPageState) => {
+    const operations = derivePageOperations(cloudSnapshotRef.current, snapshot);
+    if (operations.length === 0) {
+      markSyncState("idle", "Cloud synced");
+      return;
+    }
+
+    markSyncState("syncing", "Syncing to cloud");
+    try {
+      const doc = await applyCloudPageOperations(targetDocId, cloudRevisionRef.current, operations);
+      if (activeDocIdRef.current !== targetDocId) {
+        return;
+      }
+      cloudSnapshotRef.current = doc.snapshot;
+      cloudRevisionRef.current = doc.revision;
+      await savePageSnapshot(doc.snapshot, targetDocId);
+      writePageSyncMeta(targetDocId, { revision: doc.revision, snapshot: doc.snapshot });
+      markSyncState("idle", "Cloud synced");
+    } catch (error) {
+      const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: number }).status) : 0;
+      const conflictingDoc =
+        typeof error === "object" && error && "doc" in error
+          ? ((error as { doc?: CloudPageDocument | null }).doc ?? null)
+          : null;
+
+      if (status === 409 && conflictingDoc?.snapshot) {
+        cloudSnapshotRef.current = conflictingDoc.snapshot;
+        cloudRevisionRef.current = conflictingDoc.revision;
+        await savePageSnapshot(conflictingDoc.snapshot, targetDocId);
+        writePageSyncMeta(targetDocId, { revision: conflictingDoc.revision, snapshot: conflictingDoc.snapshot });
+        setBlocks(conflictingDoc.snapshot.blocks);
+        setCover(conflictingDoc.snapshot.cover);
+        setCamera(conflictingDoc.snapshot.camera);
+        markSyncState("conflict", "Remote changes won. Local edits need to be reapplied.");
+        return;
+      }
+
+      if (status === 401 || (typeof navigator !== "undefined" && !navigator.onLine)) {
+        markSyncState("offline", "Offline. Local shadow retained.");
+        return;
+      }
+
+      markSyncState("error", error instanceof Error ? error.message : "Cloud sync failed");
+    }
+  }, [markSyncState]);
+
   const saveDocSnapshot = useCallback(
     async (snapshot: Parameters<typeof savePageSnapshot>[0], targetDocId: string) => {
       await savePageSnapshot(snapshot, targetDocId);
-      try {
-        await saveCloudPageSnapshot(targetDocId, snapshot);
-      } catch {
-        // Local persistence already succeeded.
+      markSyncState("pending", "Queued for cloud sync");
+      if (cloudSyncTimerRef.current) {
+        clearTimeout(cloudSyncTimerRef.current);
       }
+      cloudSyncTimerRef.current = setTimeout(() => {
+        void scheduleCloudSync(targetDocId, snapshot);
+      }, 420);
     },
-    [],
+    [markSyncState, scheduleCloudSync],
   );
 
   const loadDocSnapshot = useCallback(
     async (targetDocId: string) => {
       const localSnapshot = await loadPageSnapshot(targetDocId);
-      let cloudSnapshot: PersistedPageState | null = null;
+      const storedSyncMeta = readPageSyncMeta(targetDocId);
+      let cloudDoc: CloudPageDocument | null = null;
       try {
-        cloudSnapshot = await loadCloudPageSnapshot(targetDocId);
+        cloudDoc = await loadCloudPageDocument(targetDocId);
       } catch {
-        cloudSnapshot = null;
+        cloudDoc = null;
       }
 
-      const localUpdatedAt = localSnapshot?.updatedAt ?? 0;
-      const cloudUpdatedAt = cloudSnapshot?.updatedAt ?? 0;
+      if (cloudDoc?.snapshot) {
+        cloudSnapshotRef.current = cloudDoc.snapshot;
+        cloudRevisionRef.current = cloudDoc.revision;
+        writePageSyncMeta(targetDocId, { revision: cloudDoc.revision, snapshot: cloudDoc.snapshot });
 
-      if (cloudSnapshot && cloudUpdatedAt > localUpdatedAt) {
-        await savePageSnapshot(cloudSnapshot, targetDocId);
-        return cloudSnapshot;
+        const hasUnsyncedLocalShadow =
+          localSnapshot &&
+          storedSyncMeta &&
+          JSON.stringify(localSnapshot) !== JSON.stringify(storedSyncMeta.snapshot);
+
+        if (hasUnsyncedLocalShadow && storedSyncMeta.revision === cloudDoc.revision) {
+          replayLocalShadowRef.current = localSnapshot;
+          markSyncState("pending", "Replaying local changes to cloud");
+          return localSnapshot;
+        }
+
+        replayLocalShadowRef.current = null;
+        await savePageSnapshot(cloudDoc.snapshot, targetDocId);
+        markSyncState("idle", "Cloud synced");
+        return cloudDoc.snapshot;
       }
 
       if (localSnapshot) {
-        if (!cloudSnapshot || localUpdatedAt > cloudUpdatedAt) {
-          try {
-            await saveCloudPageSnapshot(targetDocId, localSnapshot);
-          } catch {
-            // Local snapshot remains the source of truth if cloud sync fails.
-          }
-        }
+        replayLocalShadowRef.current = localSnapshot;
+        cloudSnapshotRef.current = storedSyncMeta?.snapshot ?? null;
+        cloudRevisionRef.current = storedSyncMeta?.revision ?? 0;
+        markSyncState("offline", "Offline. Local shadow retained.");
         return localSnapshot;
       }
 
-      return cloudSnapshot;
+      replayLocalShadowRef.current = null;
+      cloudSnapshotRef.current = null;
+      cloudRevisionRef.current = 0;
+      markSyncState("offline", "Cloud unavailable. Editing local shadow.");
+      return null;
     },
-    [],
+    [markSyncState],
   );
 
   const refreshAvailableDocIds = useCallback(async () => {
@@ -1965,8 +2049,28 @@ export function PageEditor() {
   }, [viewport]);
 
   useEffect(() => {
+    activeDocIdRef.current = docId;
+  }, [docId]);
+
+  useEffect(() => {
     saverRef.current = createPageSnapshotSaver(260, docId, saveDocSnapshot);
   }, [docId, saveDocSnapshot]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      const snapshot = replayLocalShadowRef.current ?? {
+        blocks,
+        camera,
+        updatedAt: Date.now(),
+        cover,
+      };
+      markSyncState("pending", "Connection restored. Resuming sync");
+      void scheduleCloudSync(docId, snapshot);
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [blocks, camera, cover, docId, markSyncState, scheduleCloudSync]);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -2008,15 +2112,23 @@ export function PageEditor() {
         setCamera(nextCamera);
         loadedNonEmptyRef.current = safeBlocks.length > 0;
         hasLoadedRef.current = true;
+        if (replayLocalShadowRef.current) {
+          const snapshotToReplay = replayLocalShadowRef.current;
+          replayLocalShadowRef.current = null;
+          void scheduleCloudSync(docId, snapshotToReplay);
+        }
       } catch {
         hasLoadedRef.current = true;
       }
     })();
     return () => {
       cancelled = true;
+      if (cloudSyncTimerRef.current) {
+        clearTimeout(cloudSyncTimerRef.current);
+      }
       void saver.flush();
     };
-  }, [docId, loadDocSnapshot]);
+  }, [docId, loadDocSnapshot, scheduleCloudSync]);
 
   useEffect(() => {
     setBlocks((previous) => {
@@ -2335,6 +2447,14 @@ export function PageEditor() {
 
   const workspaceDocLabel = docId === defaultPageDocId ? "Main Canvas" : docId.replace(/^page_/, "Page ").replace(/[-_]+/g, " ").trim();
   const resolvedCoverUrl = cover?.externalUrl || (cover?.path ? signedUrls[cover.path] : undefined);
+  const syncBadgeTone =
+    pageSyncState === "idle"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : pageSyncState === "pending" || pageSyncState === "syncing"
+        ? "border-amber-200 bg-amber-50 text-amber-900"
+        : pageSyncState === "conflict"
+          ? "border-rose-200 bg-rose-50 text-rose-900"
+          : "border-slate-200 bg-slate-100 text-slate-700";
 
   const insertBlockAtViewportCenter = useCallback(
     (type: BlockType) => {
@@ -4626,7 +4746,11 @@ export function PageEditor() {
             })}
           </nav>
 
-          <div className="w-8 sm:w-16" aria-hidden="true" />
+          <div className="flex items-center justify-end gap-3 sm:w-56">
+            <div className={cn("rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]", syncBadgeTone)}>
+              {pageSyncMessage}
+            </div>
+          </div>
         </div>
       </header>
 
