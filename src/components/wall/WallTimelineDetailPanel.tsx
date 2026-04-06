@@ -1,6 +1,6 @@
 "use client";
 
-import { WallRenderedNote } from "@/components/wall/WallRenderedNote";
+import { WallNotePreview } from "@/components/wall/WallNotePreview";
 import { ControlTooltip, Icon } from "@/components/wall/WallControls";
 import { resolveWallPreviewDimensions } from "@/components/wall/wallNotePreviewSizing";
 import { formatTimelineDateTime } from "@/components/wall/wallTimelineViewHelpers";
@@ -43,7 +43,7 @@ export const WallTimelineDetailPanel = ({ note, timestamp, onReveal, onClose }: 
         </div>
 
         <div className="min-h-0 overflow-auto rounded-[32px] border border-[var(--timeline-panel-border)] bg-[var(--timeline-panel-alt)] p-4">
-          <WallRenderedNote note={note} width={previewDimensions.width} height={previewDimensions.height} showNoteTags={false} />
+          <WallNotePreview note={note} width={previewDimensions.width} height={previewDimensions.height} scale="large" tone="detail" />
 
           <div className="mt-4 space-y-3">
             <div>

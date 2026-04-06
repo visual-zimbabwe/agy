@@ -18,7 +18,7 @@ Current capabilities include:
 - rendering notes in chronological order using their created timestamps
 - grouping notes by day with centered date markers such as `Today`, `Yesterday`, or a full calendar date
 - alternating note placement across the central timeline rail while allowing pinned notes to sit centered in the stream
-- reusing the same note preview system as `/wall` so specialized note kinds keep their current dedicated shells in timeline view
+- reusing the lightweight DOM-based `WallNotePreview` component (the same system used by other timeline surfaces) so specialized note kinds keep their dedicated shells without the overhead of a full Konva canvas stage per card
 - preserving the wall note's stored width and height exactly in timeline previews so the timeline card is a direct copy of the wall note rather than a fitted or reduced preview
 
 Timeline is now intentionally view-only. Notes in this mode do not open details, do not reveal themselves back on the wall when clicked, and do not enter editing flows from the timeline surface.
