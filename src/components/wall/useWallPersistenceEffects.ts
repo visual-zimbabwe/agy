@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
-import { hasContent, hasMeaningfulContent, mergeSnapshotsLww } from "@/features/wall/cloud";
+import { hasContent, hasMeaningfulContent } from "@/features/wall/cloud";
 import { loadWallBootstrap, loadWallDelta, loadWallShell } from "@/features/wall/cloud-delta";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
-import { applyWallDeltaChanges, createSkippedRemoteSnapshotTracker } from "@/features/wall/sync";
+import { applyWallDeltaChanges, createSkippedRemoteSnapshotTracker, resolveWallBootstrapSnapshot } from "@/features/wall/sync";
 import { mergeWallWindowIntoSnapshot } from "@/features/wall/windowing";
 import {
   createSnapshotSaver,
@@ -188,6 +188,7 @@ export const useWallPersistenceEffects = ({
         recordWallStartupCheckpoint("cloud-bootstrap-started", degradedLocalBootstrap ? { detail: "degraded-local-bootstrap" } : undefined);
         let localBaselineSnapshot: PersistedWallState | null = null;
         let localSyncVersion = 0;
+        let fullLocalSnapshot: PersistedWallState | null = null;
         const preferredWallId = readStorageValue(lastCloudWallStorageKey);
         const listWalls = async () => {
           const listResponse = await fetch("/api/walls", { cache: "no-store" });
@@ -289,22 +290,22 @@ export const useWallPersistenceEffects = ({
 
         const fullLocalBootstrapResult = await fullLocalBootstrapTask;
         if (fullLocalBootstrapResult.status === "resolved") {
-          const [fullLocalSnapshot, loadedBaselineSnapshot, loadedSyncVersion] = fullLocalBootstrapResult.value;
+          const [loadedFullLocalSnapshot, loadedBaselineSnapshot, loadedSyncVersion] = fullLocalBootstrapResult.value;
+          fullLocalSnapshot = loadedFullLocalSnapshot;
           localBaselineSnapshot = loadedBaselineSnapshot;
           localSyncVersion = loadedSyncVersion;
 
-          const mergedLocalSnapshot = mergeSnapshotsLww(fullLocalSnapshot, selectPersistedSnapshot(useWallStore.getState()));
-          const mergedSerialized = JSON.stringify(mergedLocalSnapshot);
-          skippedRemoteSnapshotsRef.current.remember(mergedSerialized);
-          lastPersistedSerializedRef.current = mergedSerialized;
+          const localSerialized = JSON.stringify(loadedFullLocalSnapshot);
+          skippedRemoteSnapshotsRef.current.remember(localSerialized);
+          lastPersistedSerializedRef.current = localSerialized;
           persistenceReadyRef.current = true;
-          saver.markCommittedSnapshot(mergedLocalSnapshot);
-          timelineRecorder.markCommittedSnapshot(mergedLocalSnapshot);
-          useWallStore.getState().mergeHydratedSnapshot(fullLocalSnapshot, {
+          saver.markCommittedSnapshot(loadedFullLocalSnapshot);
+          timelineRecorder.markCommittedSnapshot(loadedFullLocalSnapshot);
+          useWallStore.getState().mergeHydratedSnapshot(loadedFullLocalSnapshot, {
             updateCamera: false,
             updateLastColor: true,
           });
-          snapshot = mergedLocalSnapshot;
+          snapshot = loadedFullLocalSnapshot;
         }
 
         if (preferredWallId) {
@@ -398,38 +399,39 @@ export const useWallPersistenceEffects = ({
 
         setCloudWallId(wallId);
         setCloudSyncVersion(serverSyncVersion);
-        await Promise.all([
-          saveWallSyncVersion(serverSyncVersion),
-          saveWallCloudBaselineSnapshot(serverSnapshot),
-        ]);
         writeStorageValue(lastCloudWallStorageKey, wallId);
         const migrationKey = `agy-cloud-imported-v1:${wallId}`;
         const legacyMigrationKey = `idea-wall-cloud-imported-v1:${wallId}`;
         const canPromptImport = typeof window !== "undefined" && !readStorageValue(migrationKey, [legacyMigrationKey]);
         const latestLocalSnapshot = selectPersistedSnapshot(useWallStore.getState());
-        let nextSnapshot = mergeSnapshotsLww(serverSnapshot, latestLocalSnapshot);
+        const { hasUnsyncedLocalShadow, nextSnapshot, replaySnapshot: initialReplaySnapshot } = resolveWallBootstrapSnapshot({
+          serverSnapshot,
+          fullLocalSnapshot,
+          localBaselineSnapshot,
+          latestLocalSnapshot,
+          localSyncVersion,
+          serverSyncVersion,
+        });
+        let replaySnapshot: PersistedWallState | null = initialReplaySnapshot;
 
-        if (hasContent(latestLocalSnapshot) && !hasContent(serverSnapshot) && canPromptImport && typeof window !== "undefined") {
+        setAcknowledgedCloudSnapshot(serverSnapshot);
+        await Promise.all([
+          saveWallSyncVersion(serverSyncVersion),
+          saveWallCloudBaselineSnapshot(serverSnapshot),
+        ]);
+
+        if (hasUnsyncedLocalShadow) {
+          writeStorageValue(migrationKey, "1");
+        } else if (hasContent(latestLocalSnapshot) && !hasContent(serverSnapshot) && canPromptImport && typeof window !== "undefined") {
           const importLocal = window.confirm("Import your existing local wall data to your cloud account now?");
           if (importLocal) {
-            nextSnapshot = latestLocalSnapshot;
-            setAcknowledgedCloudSnapshot(serverSnapshot);
-            await syncSnapshotToCloud(wallId, latestLocalSnapshot);
+            replaySnapshot = latestLocalSnapshot;
           }
           writeStorageValue(migrationKey, "1");
-        } else if (JSON.stringify(nextSnapshot) !== JSON.stringify(serverSnapshot)) {
-          setAcknowledgedCloudSnapshot(serverSnapshot);
-          await syncSnapshotToCloud(wallId, nextSnapshot);
-        } else {
-          setAcknowledgedCloudSnapshot(nextSnapshot);
-          await Promise.all([
-            saveWallSyncVersion(serverSyncVersion),
-            saveWallCloudBaselineSnapshot(nextSnapshot),
-          ]);
         }
 
         lastPersistedSerializedRef.current = JSON.stringify(nextSnapshot);
-        await saveWallSnapshot(nextSnapshot, latestLocalSnapshot);
+        await saveWallSnapshot(nextSnapshot, fullLocalSnapshot ?? latestLocalSnapshot);
         saver.markCommittedSnapshot(nextSnapshot);
         timelineRecorder.markCommittedSnapshot(nextSnapshot);
         const cloudBootstrapDurationMs = performance.now() - cloudBootstrapStartedAt;
@@ -445,6 +447,9 @@ export const useWallPersistenceEffects = ({
           hydrate(nextSnapshot);
           cloudReadyRef.current = true;
           setSyncError(null);
+          if (replaySnapshot) {
+            scheduleCloudSync(replaySnapshot);
+          }
         }
       } catch (error) {
         const detail = error instanceof Error ? error.message : "cloud-bootstrap-failed";

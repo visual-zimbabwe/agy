@@ -1,4 +1,4 @@
-import { mergeSnapshotsLww } from "@/features/wall/cloud";
+import { hasContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import type { DeltaLink, DeltaNote, DeltaNoteGroup, DeltaSyncRequest, DeltaZone, DeltaZoneGroup } from "@/features/wall/delta-sync";
 import type { Link, Note, NoteGroup, PersistedWallState, Zone, ZoneGroup } from "@/features/wall/types";
 import { filterLinksToVisibleNoteIds, filterNotesToWallBounds, filterZonesToWallBounds, type WallBounds } from "@/features/wall/windowing";
@@ -24,6 +24,9 @@ export const createSkippedRemoteSnapshotTracker = () => {
     },
   };
 };
+
+export const snapshotsEqual = (left: PersistedWallState | null | undefined, right: PersistedWallState | null | undefined) =>
+  JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
 
 export const shouldRejectWallSync = (expectedWallUpdatedAt?: string, currentWallUpdatedAt?: string | null) =>
   Boolean(expectedWallUpdatedAt && currentWallUpdatedAt && expectedWallUpdatedAt !== currentWallUpdatedAt);
@@ -288,3 +291,32 @@ export const takeNextQueuedWallSync = (queued: WallSyncRequest | null) => ({
 
 export const rebaseLocalWallSnapshot = (serverSnapshot: PersistedWallState, localSnapshot: PersistedWallState) =>
   mergeSnapshotsLww(serverSnapshot, localSnapshot);
+
+export const resolveWallBootstrapSnapshot = ({
+  serverSnapshot,
+  fullLocalSnapshot,
+  localBaselineSnapshot,
+  latestLocalSnapshot,
+  localSyncVersion,
+  serverSyncVersion,
+}: {
+  serverSnapshot: PersistedWallState;
+  fullLocalSnapshot: PersistedWallState | null;
+  localBaselineSnapshot: PersistedWallState | null;
+  latestLocalSnapshot: PersistedWallState;
+  localSyncVersion: number;
+  serverSyncVersion: number;
+}) => {
+  const hasUnsyncedLocalShadow =
+    fullLocalSnapshot !== null &&
+    hasContent(fullLocalSnapshot) &&
+    localSyncVersion === serverSyncVersion &&
+    !snapshotsEqual(fullLocalSnapshot, localBaselineSnapshot) &&
+    snapshotsEqual(latestLocalSnapshot, fullLocalSnapshot);
+
+  return {
+    hasUnsyncedLocalShadow,
+    nextSnapshot: hasUnsyncedLocalShadow ? latestLocalSnapshot : serverSnapshot,
+    replaySnapshot: hasUnsyncedLocalShadow ? latestLocalSnapshot : null,
+  };
+};
