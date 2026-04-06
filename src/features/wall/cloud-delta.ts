@@ -2,6 +2,8 @@ import type { DeltaSyncRequest } from "@/features/wall/delta-sync";
 import type { PersistedWallState, WallShellResponse, WallWindowBounds, WallWindowResponse } from "@/features/wall/types";
 import { authExpiredMessage } from "@/lib/api/client-auth";
 
+const inflightWallBootstrapRequests = new Map<string, Promise<{ snapshot: PersistedWallState; syncVersion: number }>>();
+const inflightWallShellRequests = new Map<string, Promise<WallShellResponse["shell"]>>();
 const inflightWallWindowRequests = new Map<string, Promise<WallWindowResponse>>();
 
 export type WallDeltaChange = {
@@ -15,33 +17,61 @@ export type WallDeltaChange = {
 };
 
 export const loadWallBootstrap = async (wallId: string): Promise<{ snapshot: PersistedWallState; syncVersion: number }> => {
-  const response = await fetch(`/api/walls/${wallId}`, { cache: "no-store" });
-  if (response.status === 401) {
-    throw new Error(authExpiredMessage);
-  }
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new Error(payload.error ?? "Unable to load wall bootstrap");
+  const inflightRequest = inflightWallBootstrapRequests.get(wallId);
+  if (inflightRequest) {
+    return inflightRequest;
   }
 
-  const payload = (await response.json()) as { snapshot: PersistedWallState; syncVersion?: number };
-  return {
-    snapshot: payload.snapshot,
-    syncVersion: payload.syncVersion ?? 0,
-  };
+  const request = (async () => {
+    const response = await fetch(`/api/walls/${wallId}`, { cache: "no-store" });
+    if (response.status === 401) {
+      throw new Error(authExpiredMessage);
+    }
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error ?? "Unable to load wall bootstrap");
+    }
+
+    const payload = (await response.json()) as { snapshot: PersistedWallState; syncVersion?: number };
+    return {
+      snapshot: payload.snapshot,
+      syncVersion: payload.syncVersion ?? 0,
+    };
+  })();
+
+  inflightWallBootstrapRequests.set(wallId, request);
+  request.finally(() => {
+    inflightWallBootstrapRequests.delete(wallId);
+  });
+
+  return request;
 };
 
 export const loadWallShell = async (wallId: string) => {
-  const response = await fetch(`/api/walls/${wallId}/shell`, { cache: "no-store" });
-  if (response.status === 401) {
-    throw new Error(authExpiredMessage);
-  }
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new Error(payload.error ?? "Unable to load wall shell");
+  const inflightRequest = inflightWallShellRequests.get(wallId);
+  if (inflightRequest) {
+    return inflightRequest;
   }
 
-  return ((await response.json()) as WallShellResponse).shell;
+  const request = (async () => {
+    const response = await fetch(`/api/walls/${wallId}/shell`, { cache: "no-store" });
+    if (response.status === 401) {
+      throw new Error(authExpiredMessage);
+    }
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error ?? "Unable to load wall shell");
+    }
+
+    return ((await response.json()) as WallShellResponse).shell;
+  })();
+
+  inflightWallShellRequests.set(wallId, request);
+  request.finally(() => {
+    inflightWallShellRequests.delete(wallId);
+  });
+
+  return request;
 };
 
 export const loadWallWindow = async (wallId: string, bounds: WallWindowBounds) => {

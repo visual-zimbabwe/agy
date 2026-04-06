@@ -33,8 +33,9 @@ Persisted wall state includes:
 - zone groups
 - note groups
 - links
-- camera
 - last color
+
+Active wall camera and viewport are client UI state. They can be restored from local metadata, but cloud bootstrap does not own the currently active viewport.
 
 Wall notes can also contain richer payloads such as:
 
@@ -70,7 +71,7 @@ The local wall layer also:
 
 - debounces snapshot writes
 - records timeline snapshots
-- stores camera and last color in meta records
+- stores camera and last color in meta records for client restore
 - normalizes old payloads through storage migration helpers
 - preserves the permanent currency note and its last wall position inside normal wall snapshots
 - keeps bookmark preview metadata in note payloads while a shared local cache avoids repeat metadata fetches for the same normalized URL during the 24 hour TTL window\n- uses a cache version bump to avoid reusing older domain-only bookmark preview entries after parser upgrades
@@ -82,12 +83,11 @@ Cloud wall state is stored through `/api/walls` routes and normalized via helper
 
 Important current behavior:
 
-- the app loads local wall state first
-- then loads or creates the remote wall record
-- when multiple cloud wall records exist, `/wall` prefers the last successfully opened wall and otherwise falls back to the first wall with non-system content instead of blindly loading the newest mostly-empty wall
-- then fetches the cloud snapshot
-- then merges local and server state with a last-write-wins strategy for entity maps
-- local camera wins during merge
+- the app restores local camera and local windowed content first
+- then loads or creates the remote wall record shell
+- then hydrates only the current remote window for the active viewport
+- then performs full cloud bootstrap in the background for sync baselines and local cache repair
+- server payloads hydrate content only and do not blindly overwrite the active client viewport
 - local last color wins when present
 - currency note exchange-rate fetches are lazy, cached in local storage, and fall back to stale cache/default USD when live requests fail
 - web bookmark preview fetches run through authenticated server routes that validate URLs, block private-network targets, follow a small redirect budget, and return only sanitized metadata JSON
@@ -169,7 +169,7 @@ Current rules:
 
 - notes, zones, zone groups, note groups, and links merge by `updatedAt`
 - the newer entity wins per id
-- local camera replaces server camera after merge
+- active client camera is preserved during remote merges
 - local last color overrides server last color when present
 
 ### Page
@@ -188,6 +188,7 @@ Page persistence does not currently expose the same explicit entity-level merge 
 - old local payloads may require normalization
 - remote schema drift can disable newer fields
 - local and cloud wall state can diverge and require merge or import decisions
+- a user can briefly interact with a windowed wall before the background cloud baseline finishes loading
 - page file signing or bucket availability failures can break media access even when page snapshots still load
 
 ## Related Docs
