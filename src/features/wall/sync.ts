@@ -8,6 +8,23 @@ export type WallSyncRequest = {
   snapshot: PersistedWallState;
 };
 
+export const createSkippedRemoteSnapshotTracker = () => {
+  const pendingSerializedSnapshots = new Set<string>();
+
+  return {
+    remember: (serializedSnapshot: string) => {
+      pendingSerializedSnapshots.add(serializedSnapshot);
+    },
+    consume: (serializedSnapshot: string) => {
+      if (!pendingSerializedSnapshots.has(serializedSnapshot)) {
+        return false;
+      }
+      pendingSerializedSnapshots.delete(serializedSnapshot);
+      return true;
+    },
+  };
+};
+
 export const snapshotsEqual = (left: PersistedWallState | null | undefined, right: PersistedWallState | null | undefined) =>
   JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
 

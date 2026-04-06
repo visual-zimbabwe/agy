@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createSkippedRemoteSnapshotTracker,
   hasRelevantWallDeltaChanges,
   rebaseLocalWallSnapshot,
   resolveWallBootstrapSnapshot,
@@ -81,6 +82,18 @@ describe("wall sync helpers", () => {
     expect(merged.notes.n1?.updatedAt).toBe(10);
     expect(merged.notes.n1?.text).toBe("note-10");
     expect(merged.notes.serverOnly?.text).toBe("server");
+  });
+
+  it("tracks multiple remote snapshots so burst hydrations do not look local", () => {
+    const tracker = createSkippedRemoteSnapshotTracker();
+
+    tracker.remember("snapshot-a");
+    tracker.remember("snapshot-b");
+
+    expect(tracker.consume("snapshot-a")).toBe(true);
+    expect(tracker.consume("snapshot-b")).toBe(true);
+    expect(tracker.consume("snapshot-a")).toBe(false);
+    expect(tracker.consume("snapshot-c")).toBe(false);
   });
 
   it("prefers the cloud snapshot during bootstrap when local cache is only an acknowledged baseline", () => {
