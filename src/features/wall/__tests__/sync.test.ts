@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   hasRelevantWallDeltaChanges,
   rebaseLocalWallSnapshot,
+  resolveWallBootstrapSnapshot,
   shouldRejectWallSync,
   sliceWallSnapshotToBounds,
   stageWallSyncRequest,
@@ -80,6 +81,43 @@ describe("wall sync helpers", () => {
     expect(merged.notes.n1?.updatedAt).toBe(10);
     expect(merged.notes.n1?.text).toBe("note-10");
     expect(merged.notes.serverOnly?.text).toBe("server");
+  });
+
+  it("prefers the cloud snapshot during bootstrap when local cache is only an acknowledged baseline", () => {
+    const serverSnapshot = makeSnapshot(20);
+    const localSnapshot = makeSnapshot(10);
+
+    const resolved = resolveWallBootstrapSnapshot({
+      serverSnapshot,
+      fullLocalSnapshot: localSnapshot,
+      localBaselineSnapshot: localSnapshot,
+      latestLocalSnapshot: localSnapshot,
+      localSyncVersion: 7,
+      serverSyncVersion: 7,
+    });
+
+    expect(resolved.hasUnsyncedLocalShadow).toBe(false);
+    expect(resolved.nextSnapshot).toBe(serverSnapshot);
+    expect(resolved.replaySnapshot).toBeNull();
+  });
+
+  it("replays a local shadow during bootstrap when it diverged from the acknowledged cloud baseline", () => {
+    const serverSnapshot = makeSnapshot(20);
+    const localBaselineSnapshot = makeSnapshot(20);
+    const fullLocalSnapshot = makeSnapshot(30);
+
+    const resolved = resolveWallBootstrapSnapshot({
+      serverSnapshot,
+      fullLocalSnapshot,
+      localBaselineSnapshot,
+      latestLocalSnapshot: fullLocalSnapshot,
+      localSyncVersion: 7,
+      serverSyncVersion: 7,
+    });
+
+    expect(resolved.hasUnsyncedLocalShadow).toBe(true);
+    expect(resolved.nextSnapshot).toBe(fullLocalSnapshot);
+    expect(resolved.replaySnapshot).toBe(fullLocalSnapshot);
   });
 
   it("slices snapshots down to the current viewport window", () => {
