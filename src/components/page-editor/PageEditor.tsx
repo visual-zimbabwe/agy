@@ -14,6 +14,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type SetStateAction,
   type SyntheticEvent,
 } from "react";
 
@@ -1421,6 +1422,47 @@ export function PageEditor() {
   const recoveringFromEmptyRef = useRef(false);
   const viewportRef = useRef(viewport);
   const saverRef = useRef(createPageSnapshotSaver(260, docId));
+  const dirtyRevisionRef = useRef(0);
+  const queuedPersistRevisionRef = useRef(0);
+  const [persistRevision, setPersistRevision] = useState(0);
+
+  const queuePersistRevision = useCallback(() => {
+    dirtyRevisionRef.current += 1;
+    const nextRevision = dirtyRevisionRef.current;
+    queueMicrotask(() => {
+      setPersistRevision(nextRevision);
+    });
+  }, []);
+
+  const updateBlocks = useCallback((value: SetStateAction<PageBlock[]>, options?: { markDirty?: boolean }) => {
+    setBlocks((previous) => {
+      const next = typeof value === "function" ? value(previous) : value;
+      if (options?.markDirty !== false && next !== previous) {
+        queuePersistRevision();
+      }
+      return next;
+    });
+  }, [queuePersistRevision]);
+
+  const updateCover = useCallback((value: SetStateAction<PageCover | undefined>, options?: { markDirty?: boolean }) => {
+    setCover((previous) => {
+      const next = typeof value === "function" ? value(previous) : value;
+      if (options?.markDirty !== false && next !== previous) {
+        queuePersistRevision();
+      }
+      return next;
+    });
+  }, [queuePersistRevision]);
+
+  const updateCamera = useCallback((value: SetStateAction<{ x: number; y: number; zoom: number }>, options?: { markDirty?: boolean }) => {
+    setCamera((previous) => {
+      const next = typeof value === "function" ? value(previous) : value;
+      if (options?.markDirty !== false && next !== previous) {
+        queuePersistRevision();
+      }
+      return next;
+    });
+  }, [queuePersistRevision]);
 
   const saveDocSnapshot = useCallback(
     async (snapshot: Parameters<typeof savePageSnapshot>[0], targetDocId: string) => {
@@ -1514,7 +1556,7 @@ export function PageEditor() {
   }, []);
 
   const setBlockHeight = useCallback((blockId: string, height: number) => {
-    setBlocks((previous) => {
+    updateBlocks((previous) => {
       const index = previous.findIndex((block) => block.id === blockId);
       if (index < 0) {
         return previous;
@@ -1538,7 +1580,7 @@ export function PageEditor() {
       }
       return next;
     });
-  }, []);
+  }, [updateBlocks]);
 
   const autoSizeTextarea = useCallback(
     (blockId: string, element: HTMLTextAreaElement, minHeight = LINE_HEIGHT) => {
@@ -1585,11 +1627,11 @@ export function PageEditor() {
   const addTextBlockAt = useCallback(
     (worldX: number, worldY: number) => {
       const created = newBlock("text", worldX, worldY);
-      setBlocks((previous) => [...previous, created]);
+      updateBlocks((previous) => [...previous, created]);
       queueFocus(created.id);
       return created.id;
     },
-    [queueFocus],
+    [queueFocus, updateBlocks],
   );
 
   const signFileUrl = useCallback(async (path: string) => {
@@ -1606,11 +1648,11 @@ export function PageEditor() {
 
 
   const applyPageCover = useCallback((nextCover: PageCover | undefined) => {
-    setCover(nextCover);
+    updateCover(nextCover);
     if (!nextCover || cover) {
       return;
     }
-    setBlocks((previous) => {
+    updateBlocks((previous) => {
       const minY = previous.reduce((lowest, block) => Math.min(lowest, block.y), Number.POSITIVE_INFINITY);
       if (!Number.isFinite(minY) || minY >= COVER_SHIFT) {
         return previous;
@@ -1618,7 +1660,7 @@ export function PageEditor() {
       const delta = COVER_SHIFT - minY;
       return previous.map((block) => ({ ...block, y: block.y + delta }));
     });
-  }, [cover]);
+  }, [cover, updateBlocks, updateCover]);
 
   const insertUnsplashImageBlock = useCallback(async (photo: UnsplashPhoto, worldX: number, worldY: number, afterBlockId?: string) => {
     await trackUnsplashDownload(photo.links.downloadLocation);
@@ -1642,13 +1684,13 @@ export function PageEditor() {
         attributionUrl: photo.user.profileUrl,
       },
     };
-    setBlocks((previous) => {
+    updateBlocks((previous) => {
       const appended = [...previous, created];
       if (!afterBlockId) return appended;
       const nextAfterY = created.y + Math.max(created.h + blockGapFor(created.type), LINE_HEIGHT + blockGapFor(created.type));
       return appended.map((item) => (item.id === afterBlockId ? { ...item, y: nextAfterY } : item));
     });
-  }, []);
+  }, [updateBlocks]);
 
   const insertUnsplashCover = useCallback(async (photo: UnsplashPhoto) => {
     await trackUnsplashDownload(photo.links.downloadLocation);
@@ -1706,7 +1748,7 @@ export function PageEditor() {
             source: "upload",
           },
         }));
-        setBlocks((previous) => {
+        updateBlocks((previous) => {
           const appended = [...previous, ...createdBlocks];
           if (!afterBlockId) return appended;
           const finalBlock = createdBlocks[createdBlocks.length - 1];
@@ -1724,7 +1766,7 @@ export function PageEditor() {
         setUploading(false);
       }
     },
-    [applyPageCover, signFileUrl],
+    [applyPageCover, signFileUrl, updateBlocks],
   );
 
   const triggerUploadPickerAt = useCallback((worldX: number, worldY: number, intent: FileInsertIntent = "file", afterBlockId?: string) => {
@@ -1765,7 +1807,7 @@ export function PageEditor() {
           h: 122,
           bookmark,
         };
-        setBlocks((previous) => {
+        updateBlocks((previous) => {
           const appended = [...previous, createdBookmark];
           if (!afterBlockId) return appended;
           const nextAfterY = createdBookmark.y + Math.max(createdBookmark.h + blockGapFor(createdBookmark.type), LINE_HEIGHT + blockGapFor(createdBookmark.type));
@@ -1799,20 +1841,20 @@ export function PageEditor() {
           externalUrl: url,
         },
       };
-      setBlocks((previous) => {
+      updateBlocks((previous) => {
         const appended = [...previous, created];
         if (!afterBlockId) return appended;
         const nextAfterY = created.y + Math.max(created.h + blockGapFor(created.type), LINE_HEIGHT + blockGapFor(created.type));
         return appended.map((item) => (item.id === afterBlockId ? { ...item, y: nextAfterY } : item));
       });
     },
-    [applyPageCover],
+    [applyPageCover, updateBlocks],
   );
 
   const requestBookmarkPreview = useCallback(async (blockId: string, url: string) => {
     try {
       const payload = await fetchPageBookmarkPreview(url);
-      setBlocks((previous) =>
+      updateBlocks((previous) =>
         previous.map((block) => {
           if (block.id !== blockId || block.type !== "bookmark" || !block.bookmark) {
             return block;
@@ -1835,7 +1877,7 @@ export function PageEditor() {
     } catch {
       // Keep fallback bookmark card if preview fetch fails.
     }
-  }, []);
+  }, [updateBlocks]);
 
   const submitBookmarkUrl = useCallback(
     (blockId: string, rawUrl: string) => {
@@ -1852,7 +1894,7 @@ export function PageEditor() {
         const bookmark = inferBookmarkDataFromUrl(parsed.toString());
         const cacheKey = `${blockId}:${bookmark.url}`;
         bookmarkPreviewRequestedRef.current.add(cacheKey);
-        setBlocks((previous) =>
+        updateBlocks((previous) =>
           previous.map((block) =>
             block.id === blockId && block.type === "bookmark"
               ? {
@@ -1868,7 +1910,7 @@ export function PageEditor() {
         window.alert("Please paste a valid URL.");
       }
     },
-    [requestBookmarkPreview],
+    [requestBookmarkPreview, updateBlocks],
   );
 
   const submitEmbedUrl = useCallback((blockId: string, rawUrl: string) => {
@@ -1887,7 +1929,7 @@ export function PageEditor() {
         window.alert("Unable to embed this URL.");
         return;
       }
-      setBlocks((previous) =>
+      updateBlocks((previous) =>
         previous.map((block) =>
           block.id === blockId && block.type === "embed"
             ? {
@@ -1902,7 +1944,7 @@ export function PageEditor() {
     } catch {
       window.alert("Please paste a valid URL.");
     }
-  }, []);
+  }, [updateBlocks]);
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -1916,7 +1958,7 @@ export function PageEditor() {
     });
     observer.observe(container);
     return () => observer.disconnect();
-  }, []);
+  }, [updateBlocks]);
 
   useEffect(() => {
     viewportRef.current = viewport;
@@ -2007,14 +2049,16 @@ export function PageEditor() {
   useEffect(() => {
     if (!hasLoadedRef.current) return;
     if (blocks.length === 0 && loadedNonEmptyRef.current) return;
+    if (persistRevision === 0 || persistRevision === queuedPersistRevisionRef.current) return;
+    queuedPersistRevisionRef.current = persistRevision;
     saverRef.current.schedule({ blocks, camera, updatedAt: Date.now(), cover });
-  }, [blocks, camera, cover]);
+  }, [blocks, camera, cover, persistRevision]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
     if (dragRef.current) return;
-    setBlocks((previous) => enforceNonOverlappingBlocks(previous));
-  }, [blocks]);
+    updateBlocks((previous) => enforceNonOverlappingBlocks(previous));
+  }, [blocks, updateBlocks]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
@@ -2164,12 +2208,12 @@ export function PageEditor() {
   }, [codeMenu.open]);
 
   const updateBlock = useCallback((blockId: string, patch: Partial<PageBlock>) => {
-    setBlocks((previous) => previous.map((block) => (block.id === blockId ? { ...block, ...patch } : block)));
-  }, []);
+    updateBlocks((previous) => previous.map((block) => (block.id === blockId ? { ...block, ...patch } : block)));
+  }, [updateBlocks]);
 
   const deleteBlocks = useCallback((targetIds: string[]) => {
     if (targetIds.length === 0) return;
-    setBlocks((previous) => {
+    updateBlocks((previous) => {
       const expanded = new Set(targetIds);
       for (const id of targetIds) {
         for (const childId of descendantIds(previous, id)) {
@@ -2179,11 +2223,11 @@ export function PageEditor() {
       setSelectedBlockIds((existing) => existing.filter((id) => !expanded.has(id)));
       return reflowAfterRemovingBlocks(previous, expanded);
     });
-  }, []);
+  }, [updateBlocks]);
 
   const duplicateBlock = useCallback(
     (blockId: string) => {
-      setBlocks((previous) => {
+      updateBlocks((previous) => {
         const index = previous.findIndex((block) => block.id === blockId);
         if (index < 0) return previous;
         const source = previous[index]!;
@@ -2203,11 +2247,11 @@ export function PageEditor() {
         return [...next.slice(0, index + 1), duplicate, ...next.slice(index + 1)];
       });
     },
-    [],
+    [updateBlocks],
   );
 
   const turnBlockInto = useCallback((blockId: string, nextType: BlockType) => {
-    setBlocks((previous) =>
+    updateBlocks((previous) =>
       previous.map((block) => {
         if (block.id !== blockId || block.type === "file") return block;
         const nextContent = nextType === "divider" || nextType === "table" || nextType === "bookmark" || nextType === "embed" ? "" : block.content;
@@ -2242,7 +2286,7 @@ export function PageEditor() {
         };
       }),
     );
-  }, []);
+  }, [updateBlocks]);
 
   const copyBlockLink = useCallback(
     async (blockId: string) => {
@@ -2296,13 +2340,13 @@ export function PageEditor() {
     (type: BlockType) => {
       const world = worldFromScreen(viewport.w / 2, viewport.h / 2);
       const created = newBlock(type, world.x - DOC_WIDTH / 2 + 42, world.y - 28);
-      setBlocks((previous) => [...previous, created]);
+      updateBlocks((previous) => [...previous, created]);
       setSelectedBlockIds([created.id]);
       if (type !== "divider") {
         queueFocus(created.id);
       }
     },
-    [queueFocus, viewport.h, viewport.w, worldFromScreen],
+    [queueFocus, updateBlocks, viewport.h, viewport.w, worldFromScreen],
   );
 
   const openInsertIntentAtViewportCenter = useCallback(
@@ -2396,11 +2440,11 @@ export function PageEditor() {
         uniqueTarget,
       );
 
-      setBlocks((previous) => previous.filter((block) => !movingSet.has(block.id)));
+      updateBlocks((previous) => previous.filter((block) => !movingSet.has(block.id)));
       setSelectedBlockIds((previous) => previous.filter((id) => !movingSet.has(id)));
       setAvailableDocIds((previous) => (previous.includes(uniqueTarget) ? previous : [uniqueTarget, ...previous]));
     },
-    [blocks, loadDocSnapshot, saveDocSnapshot],
+    [blocks, loadDocSnapshot, saveDocSnapshot, updateBlocks],
   );
 
   const nextWallNotePosition = useCallback(async () => {
@@ -2467,10 +2511,10 @@ export function PageEditor() {
         block.x,
         block.y,
       );
-      setBlocks((previous) => previous.map((entry) => (entry.id === blockId ? referenceBlock : entry)));
+      updateBlocks((previous) => previous.map((entry) => (entry.id === blockId ? referenceBlock : entry)));
       setSelectedBlockIds([referenceBlock.id]);
     },
-    [blocks, nextWallNotePosition],
+    [blocks, nextWallNotePosition, updateBlocks],
   );
 
   const turnBlockIntoPage = useCallback(
@@ -2496,12 +2540,12 @@ export function PageEditor() {
         h: LINE_HEIGHT + 8,
         pageId: pageDocId,
       };
-      setBlocks((previous) => [...previous, pageBlock]);
+      updateBlocks((previous) => [...previous, pageBlock]);
       const next = new URLSearchParams(searchParams.toString());
       next.set("doc", pageDocId);
       router.push(`${pathname}?${next.toString()}`);
     },
-    [blocks, moveBlocksToDoc, pathname, router, searchParams],
+    [blocks, moveBlocksToDoc, pathname, router, searchParams, updateBlocks],
   );
 
   const openCommentPanel = useCallback(
@@ -2528,7 +2572,7 @@ export function PageEditor() {
   const updateCommentInBlock = useCallback((blockId: string, commentId: string, nextText: string) => {
     const trimmed = nextText.trim();
     if (!trimmed) return;
-    setBlocks((previous) =>
+    updateBlocks((previous) =>
       previous.map((block) =>
         block.id === blockId
           ? {
@@ -2538,7 +2582,7 @@ export function PageEditor() {
           : block,
       ),
     );
-  }, []);
+  }, [updateBlocks]);
 
   const postComment = useCallback(() => {
     const blockId = commentPanel.blockId;
@@ -2559,7 +2603,7 @@ export function PageEditor() {
       return;
     }
     const mentions = Array.from(new Set((text.match(/@[\w.-]+/g) ?? []).map((token) => token.slice(1))));
-    setBlocks((previous) =>
+    updateBlocks((previous) =>
       previous.map((block) =>
         block.id === blockId
           ? {
@@ -2588,10 +2632,10 @@ export function PageEditor() {
       deleteConfirmCommentId: undefined,
       editingCommentId: undefined,
     }));
-  }, [commentAuthorName, commentPanel.attachments, commentPanel.blockId, commentPanel.draft, commentPanel.editingCommentId, updateCommentInBlock]);
+  }, [commentAuthorName, commentPanel.attachments, commentPanel.blockId, commentPanel.draft, commentPanel.editingCommentId, updateCommentInBlock, updateBlocks]);
 
   const deleteCommentFromBlock = useCallback((blockId: string, commentId: string) => {
-    setBlocks((previous) =>
+    updateBlocks((previous) =>
       previous.map((block) =>
         block.id === blockId
           ? {
@@ -2601,7 +2645,7 @@ export function PageEditor() {
           : block,
       ),
     );
-  }, []);
+  }, [updateBlocks]);
 
   const rememberSelection = useCallback((blockId: string, element: HTMLInputElement | HTMLTextAreaElement) => {
     selectionRangesRef.current[blockId] = {
@@ -2612,7 +2656,7 @@ export function PageEditor() {
 
   const turnSelectionIntoQuote = useCallback(
     (blockId: string) => {
-      setBlocks((previous) => {
+      updateBlocks((previous) => {
         const index = previous.findIndex((entry) => entry.id === blockId);
         if (index < 0) {
           return previous;
@@ -2687,7 +2731,7 @@ export function PageEditor() {
         return [...previous.slice(0, index), ...sequence, ...previous.slice(index + 1)];
       });
     },
-    [],
+    [updateBlocks],
   );
 
   const updateListIndent = useCallback(
@@ -2752,7 +2796,7 @@ export function PageEditor() {
       }));
       const focusTargetId = beforeContent.length > 0 ? todoDrafts[0]?.id : todoDrafts[0]?.id ?? block.id;
 
-      setBlocks((previous) => {
+      updateBlocks((previous) => {
         const index = previous.findIndex((entry) => entry.id === block.id);
         if (index < 0) {
           return previous;
@@ -2804,7 +2848,7 @@ export function PageEditor() {
       }
       return true;
     },
-    [queueFocus],
+    [queueFocus, updateBlocks],
   );
 
   const handleTextualChange = useCallback(
@@ -2951,7 +2995,7 @@ export function PageEditor() {
           : block.y;
         let afterBlockId: string | undefined;
         const estimatedInsertedHeight = insertedHeightForIntent(commandId);
-        setBlocks((previous) => {
+        updateBlocks((previous) => {
           const index = previous.findIndex((entry) => entry.id === block.id);
           if (index < 0) return previous;
           const sequence: PageBlock[] = [];
@@ -3006,7 +3050,7 @@ export function PageEditor() {
       }
 
       const insertedId = idFor();
-      setBlocks((previous) => {
+      updateBlocks((previous) => {
         const index = previous.findIndex((entry) => entry.id === block.id);
         if (index < 0) return previous;
         const sequence: PageBlock[] = [];
@@ -3050,13 +3094,13 @@ export function PageEditor() {
       setMenu(null);
       queueFocus(insertedId);
     },
-    [blocks, menu, openFileInsertAt, queueFocus, toScreenPoint, updateBlock],
+    [blocks, menu, openFileInsertAt, queueFocus, toScreenPoint, updateBlock, updateBlocks],
   );
 
   const insertBlockBelow = useCallback(
     (source: PageBlock, type: BlockType, initialContent = "") => {
       const insertedId = idFor();
-      setBlocks((previous) => {
+      updateBlocks((previous) => {
         const index = previous.findIndex((item) => item.id === source.id);
         const sourceBlock = index >= 0 ? previous[index] : undefined;
         const anchor = sourceBlock ?? source;
@@ -3088,12 +3132,12 @@ export function PageEditor() {
       });
       queueFocus(insertedId);
     },
-    [queueFocus],
+    [queueFocus, updateBlocks],
   );
 
   const removeBlockAndFocusNeighbor = useCallback(
     (blockId: string) => {
-      setBlocks((previous) => {
+      updateBlocks((previous) => {
         const index = previous.findIndex((item) => item.id === blockId);
         if (index < 0) {
           return previous;
@@ -3109,7 +3153,7 @@ export function PageEditor() {
         return reflowAfterRemovingBlocks(previous, targetSet);
       });
     },
-    [queueFocus],
+    [queueFocus, updateBlocks],
   );
 
   const onBlockKeyDown = useCallback(
@@ -3221,7 +3265,7 @@ export function PageEditor() {
 
       if ((event.metaKey || event.ctrlKey) && event.altKey && event.key.toLowerCase() === "t") {
         event.preventDefault();
-        setBlocks((previous) => {
+        updateBlocks((previous) => {
           const hasCollapsed = previous.some((entry) => entry.type === "toggle" && entry.expanded === false);
           return previous.map((entry) => (entry.type === "toggle" ? { ...entry, expanded: hasCollapsed } : entry));
         });
@@ -3366,7 +3410,7 @@ export function PageEditor() {
           event.preventDefault();
           let mergeTargetId: string | undefined;
           let mergeTargetCursor = 0;
-          setBlocks((previous) => {
+          updateBlocks((previous) => {
             const index = previous.findIndex((entry) => entry.id === block.id);
             if (index <= 0) return previous;
             let previousTextIndex = -1;
@@ -3416,6 +3460,7 @@ export function PageEditor() {
       queueFocus,
       removeBlockAndFocusNeighbor,
       updateBlock,
+      updateBlocks,
       updateListIndent,
     ],
   );
@@ -3436,7 +3481,7 @@ export function PageEditor() {
         const dx = moveEvent.clientX - pan.startX;
         const dy = moveEvent.clientY - pan.startY;
         if (Math.abs(dx) + Math.abs(dy) > 4) pan.moved = true;
-        setCamera((previous) => ({ ...previous, x: pan.cameraX + dx, y: pan.cameraY + dy }));
+        updateCamera((previous) => ({ ...previous, x: pan.cameraX + dx, y: pan.cameraY + dy }));
       };
 
       const onUp = (upEvent: PointerEvent) => {
@@ -3453,7 +3498,7 @@ export function PageEditor() {
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [addTextBlockAt, camera.x, camera.y, worldFromClient],
+    [addTextBlockAt, camera.x, camera.y, updateCamera, worldFromClient],
   );
 
   const beginDragBlock = useCallback(
@@ -3480,7 +3525,7 @@ export function PageEditor() {
         const nextLeadY = pointer.y - drag.offsetY;
         const deltaX = nextLeadX - leadStart.x;
         const deltaY = nextLeadY - leadStart.y;
-        setBlocks((previous) =>
+        updateBlocks((previous) =>
           previous.map((entry) =>
             startPositions.has(entry.id)
               ? {
@@ -3524,7 +3569,7 @@ export function PageEditor() {
         setDragPreview(null);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
-        setBlocks((previous) => {
+        updateBlocks((previous) => {
           const lead = previous.find((entry) => entry.id === leadBlock.id);
           if (!lead) return previous;
           const candidates = previous.filter((entry) => entry.id !== lead.id && !startPositions.has(entry.id));
@@ -3570,7 +3615,7 @@ export function PageEditor() {
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [blocks, worldFromClient],
+    [blocks, updateBlocks, worldFromClient],
   );
 
   const onCanvasPointerDown = useCallback(
@@ -3734,7 +3779,7 @@ export function PageEditor() {
   );
 
   const renameFileBlock = useCallback((blockId: string) => {
-    setBlocks((previous) => {
+    updateBlocks((previous) => {
       const current = previous.find((entry) => entry.id === blockId);
       if (!current?.file) return previous;
       const nextName = window.prompt("Rename file block title", current.file.displayName);
@@ -3751,14 +3796,14 @@ export function PageEditor() {
           : entry,
       );
     });
-  }, []);
+  }, [updateBlocks]);
 
   const deleteFileBlock = useCallback(
     async (blockId: string) => {
       const block = blocks.find((entry) => entry.id === blockId);
       if (!block?.file) return;
       if (block.file.externalUrl) {
-        setBlocks((previous) => previous.filter((entry) => entry.id !== blockId));
+        updateBlocks((previous) => previous.filter((entry) => entry.id !== blockId));
         return;
       }
       if (!block.file.path) return;
@@ -3770,12 +3815,12 @@ export function PageEditor() {
         });
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         if (!response.ok) throw new Error(payload.error ?? "Unable to delete file.");
-        setBlocks((previous) => previous.filter((entry) => entry.id !== blockId));
+        updateBlocks((previous) => previous.filter((entry) => entry.id !== blockId));
       } catch (error) {
         window.alert(error instanceof Error ? error.message : "Unable to delete file.");
       }
     },
-    [blocks],
+    [blocks, updateBlocks],
   );
 
   const updateFileCaption = useCallback((blockId: string) => {
@@ -3787,7 +3832,7 @@ export function PageEditor() {
   }, [blocks, updateBlock]);
 
   const updateCodeBlock = useCallback((blockId: string, patch: Partial<PageCodeData>) => {
-    setBlocks((previous) =>
+    updateBlocks((previous) =>
       previous.map((block) => {
         if (block.id !== blockId || block.type !== "code") {
           return block;
@@ -3802,7 +3847,7 @@ export function PageEditor() {
         };
       }),
     );
-  }, []);
+  }, [updateBlocks]);
 
   const copyCodeBlock = useCallback(
     async (blockId: string) => {
@@ -3840,7 +3885,7 @@ export function PageEditor() {
   }, []);
 
   const updateTableCell = useCallback((blockId: string, row: number, column: number, value: string) => {
-    setBlocks((previous) =>
+    updateBlocks((previous) =>
       previous.map((block) => {
         if (block.id !== blockId || block.type !== "table") {
           return block;
@@ -3860,10 +3905,10 @@ export function PageEditor() {
         };
       }),
     );
-  }, []);
+  }, [updateBlocks]);
 
   const appendTableRow = useCallback((blockId: string) => {
-    setBlocks((previous) =>
+    updateBlocks((previous) =>
       previous.map((block) => {
         if (block.id !== blockId || block.type !== "table") {
           return block;
@@ -3878,10 +3923,10 @@ export function PageEditor() {
         };
       }),
     );
-  }, []);
+  }, [updateBlocks]);
 
   const appendTableColumn = useCallback((blockId: string) => {
-    setBlocks((previous) =>
+    updateBlocks((previous) =>
       previous.map((block) => {
         if (block.id !== blockId || block.type !== "table") {
           return block;
@@ -3895,10 +3940,10 @@ export function PageEditor() {
         };
       }),
     );
-  }, []);
+  }, [updateBlocks]);
 
   const toggleTableHeader = useCallback((blockId: string, key: "headerRow" | "headerColumn") => {
-    setBlocks((previous) =>
+    updateBlocks((previous) =>
       previous.map((block) => {
         if (block.id !== blockId || block.type !== "table") {
           return block;
@@ -3913,7 +3958,7 @@ export function PageEditor() {
         };
       }),
     );
-  }, []);
+  }, [updateBlocks]);
 
   const handleWheel = useCallback(
     (event: React.WheelEvent<HTMLDivElement>) => {
@@ -3926,13 +3971,13 @@ export function PageEditor() {
         const pointerWorld = worldFromScreen(screenX, screenY);
         const zoomFactor = event.deltaY > 0 ? 0.92 : 1.08;
         const nextZoom = clamp(camera.zoom * zoomFactor, 0.28, 2.4);
-        setCamera({ x: screenX - pointerWorld.x * nextZoom, y: screenY - pointerWorld.y * nextZoom, zoom: nextZoom });
+        updateCamera({ x: screenX - pointerWorld.x * nextZoom, y: screenY - pointerWorld.y * nextZoom, zoom: nextZoom });
         return;
       }
 
-      setCamera((previous) => ({ ...previous, x: previous.x - event.deltaX, y: previous.y - event.deltaY }));
+      updateCamera((previous) => ({ ...previous, x: previous.x - event.deltaX, y: previous.y - event.deltaY }));
     },
-    [camera.zoom, worldFromScreen],
+    [camera.zoom, updateCamera, worldFromScreen],
   );
 
   const renderInput = (block: PageBlock) => {
