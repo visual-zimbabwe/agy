@@ -255,8 +255,6 @@ export const toVideoNotePatch = (video: VideoNote): Partial<Note> => ({
   canon: undefined,
   eisenhower: undefined,
   bookmark: undefined,
-  apod: undefined,
-  poetry: undefined,
   file: undefined,
   audio: undefined,
   video,

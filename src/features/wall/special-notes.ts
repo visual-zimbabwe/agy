@@ -1,11 +1,5 @@
 export const DEFAULT_STANDARD_NOTE_COLOR = "#FEEA89";
 
-export const JOKER_NOTE_COLOR = "#D6FF57";
-export const THRONE_NOTE_COLOR = "#FF2400";
-export const POETRY_NOTE_COLOR = "#B73A3A";
-
-const RESERVED_NOTE_COLORS = new Set([JOKER_NOTE_COLOR, THRONE_NOTE_COLOR, POETRY_NOTE_COLOR]);
-
 export const sanitizeStandardNoteColor = (color: string | undefined, fallback = DEFAULT_STANDARD_NOTE_COLOR) => {
   if (!color) {
     return fallback;
@@ -15,7 +9,5 @@ export const sanitizeStandardNoteColor = (color: string | undefined, fallback = 
   if (!trimmed) {
     return fallback;
   }
-
-  const normalized = trimmed.toUpperCase();
-  return RESERVED_NOTE_COLORS.has(normalized) ? fallback : trimmed;
+  return trimmed;
 };

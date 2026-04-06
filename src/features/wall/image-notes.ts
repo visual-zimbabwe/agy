@@ -46,8 +46,6 @@ export const toImageNotePatch = (image: FileNote, options?: { caption?: string; 
   canon: undefined,
   eisenhower: undefined,
   bookmark: undefined,
-  apod: undefined,
-  poetry: undefined,
   vocabulary: undefined,
   imageUrl: image.url,
   file: image,

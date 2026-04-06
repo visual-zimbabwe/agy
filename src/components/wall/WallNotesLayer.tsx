@@ -7,18 +7,14 @@ import type Konva from "konva";
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { parseCodeNote, tokenizeCodeLine } from "@/components/wall/codeNoteRendering";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
-import { getApodCaption, isApodNote } from "@/features/wall/apod";
 import { deriveWallAssetRecords, mergeWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
-import { getPoetryFooterHeight, getPoetryHeaderHeight } from "@/features/wall/poetry";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
-import { jokerLoadingText } from "@/features/wall/joker";
 import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
 import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
-import { throneLoadingText } from "@/features/wall/throne";
 import type { LinkType, Note, WallAssetMap } from "@/features/wall/types";
 import type { WallRenderBudget, WallRenderDetailLevel } from "@/features/wall/windowing";
 
@@ -37,12 +33,6 @@ const IMAGE_NOTE_CAPTION_FONT_SIZE = 12;
 const IMAGE_NOTE_CAPTION_LINE_HEIGHT = 1.28;
 const IMAGE_NOTE_CAPTION_MAX_LINES = 3;
 
-const THRONE_NOTE_BACKGROUND = "#35322f";
-const THRONE_NOTE_TEXT = "#f5f0e8";
-const THRONE_NOTE_MUTED = "rgba(245,240,232,0.42)";
-const THRONE_NOTE_RULE = "rgba(245,240,232,0.18)";
-const THRONE_NOTE_ACCENT = "#a67a10";
-const THRONE_SHIELD_POINTS = [7, 0, 14, 3, 14, 14, 7, 24, 0, 14, 0, 3];
 const defaultMaxLoadedWallImages = 72;
 
 const estimateImageCaptionHeight = (noteWidth: number, caption: string) => {
@@ -103,24 +93,7 @@ const getContainedImageLayout = (note: Pick<Note, "w" | "h">, caption: string, i
 
 const stripWikiLinkMarkup = (text: string) => text.replace(/\[\[([^\]\n]+?)\]\]/g, "$1");
 
-const splitJokerText = (text: string) => {
-  const stripped = stripWikiLinkMarkup(text);
-  const lines = stripped.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  return {
-    setup: lines[0] || stripped.trim() || "Why don't scientists trust atoms?",
-    punchline: lines.slice(1).join(" ") || "Because they make up everything!",
-  };
-};
-
-const resolveNoteFillColor = (note: Note) => {
-  if (note.noteKind === "joker") {
-    return "#D6FF57";
-  }
-  if (note.noteKind === "throne") {
-    return "#FF2400";
-  }
-  return sanitizeStandardNoteColor(note.color, DEFAULT_STANDARD_NOTE_COLOR);
-};
+const resolveNoteFillColor = (note: Note) => sanitizeStandardNoteColor(note.color, DEFAULT_STANDARD_NOTE_COLOR);
 
 const atelierPalette = {
   paper: "#FFFCF8",
@@ -207,9 +180,6 @@ const getWallNotePreviewTitle = (note: Note) => {
   if (note.noteKind === "file") {
     return getFileNoteTitle(note.file);
   }
-  if (note.noteKind === "poetry") {
-    return note.poetry?.title?.trim() || note.poetry?.author?.trim() || "Poetry";
-  }
   if (note.vocabulary?.word?.trim()) {
     return note.vocabulary.word.trim();
   }
@@ -228,9 +198,6 @@ const getWallNotePreviewMeta = (note: Note) => {
   }
   if (note.noteKind === "web-bookmark") {
     return note.bookmark?.metadata?.siteName?.trim() || note.bookmark?.metadata?.domain || "Link preview";
-  }
-  if (note.noteKind === "poetry") {
-    return note.poetry?.author?.trim() || "Poem";
   }
   if (note.tags.length > 0) {
     return `#${note.tags[0]}`;
@@ -542,7 +509,7 @@ export const WallNotesLayer = ({
         continue;
       }
 
-      const caption = isApodNote(note) ? getApodCaption(note) : note.text.trim();
+      const caption = note.text.trim();
       const signature = `${imageUrl}|${note.w}|${caption}|${image.naturalWidth}x${image.naturalHeight}`;
       nextSignatures[note.id] = signature;
       if (imageLayoutSignatureRef.current[note.id] === signature) {
@@ -604,7 +571,7 @@ export const WallNotesLayer = ({
             toggleVocabularyFlip(note.id);
             return;
           }
-          if (isApodNote(noteView) || noteView.noteKind === "poetry" || noteView.noteKind === "file" || noteView.noteKind === "image") {
+          if (noteView.noteKind === "file" || noteView.noteKind === "image") {
             openEditor(note.id, noteView.text);
             return;
           }
@@ -802,7 +769,7 @@ export const WallNotesLayer = ({
           const previewTitle = getWallNotePreviewTitle(noteView);
           const previewMeta = getWallNotePreviewMeta(noteView);
           const ambient = renderDetailLevel === "ambient";
-          const previewFill = isPrivateNote(noteView) ? "#F5F1EA" : noteView.noteKind === "joker" ? "#D6FF57" : noteView.noteKind === "throne" ? "#FF2400" : "#FFFCF8";
+          const previewFill = isPrivateNote(noteView) ? "#F5F1EA" : "#FFFCF8";
           const previewTextColor = getContrastTextColor(resolveNoteFillColor(noteView));
           const previewStroke = getNoteStrokeColor({ isSelected, isHovered, isHighlighted: Boolean(note.highlighted), accent: resolvedNoteColor });
           const previewBadge = noteView.noteKind ? noteView.noteKind.replaceAll("-", " ").toUpperCase() : "NOTE";
@@ -878,12 +845,8 @@ export const WallNotesLayer = ({
         const isCanon = noteView.noteKind === "canon";
         const isJournal = noteView.noteKind === "journal";
         const isEisenhower = noteView.noteKind === "eisenhower";
-        const isPoetry = noteView.noteKind === "poetry";
         const isPrivate = isPrivateNote(noteView);
-        const isJoker = noteView.noteKind === "joker";
-        const isThrone = noteView.noteKind === "throne";
         const isBookmark = noteView.noteKind === "web-bookmark";
-        const isApod = isApodNote(noteView);
         const isAudio = noteView.noteKind === "audio";
         const isVideo = noteView.noteKind === "video";
         const isStandardNote = !noteView.noteKind || noteView.noteKind === "standard";
@@ -898,19 +861,15 @@ export const WallNotesLayer = ({
           .filter(Boolean)
           .join("\n\n");
         const canonTitle = canon?.title?.trim();
-        const poetryAuthor = isPoetry ? noteView.poetry?.author?.trim() || noteView.quoteAuthor?.trim() || "Unknown Poet" : "";
         const quoteAttribution = noteView.quoteAuthor?.trim() ?? "";
         const quoteSource = noteView.quoteSource?.trim() ?? "";
         const quoteFooterLines = isQuote ? (quoteAttribution ? (quoteSource ? 2 : 1) : quoteSource ? 1 : 0) : 0;
         const quoteFooterHeight = isQuote ? (quoteFooterLines > 1 ? 40 : quoteFooterLines === 1 ? 24 : 0) : 0;
         const quoteBodyTopInset = isQuote ? 44 : 0;
         const canonTitleInset = isCanon && canonTitle ? 16 : 0;
-        const poetryHeaderInset = isPoetry ? getPoetryHeaderHeight() : 0;
-        const poetryFooterInset = isPoetry ? getPoetryFooterHeight(noteView.w, noteView.poetry) : 0;
         const journalHorizontalInset = 20;
-        const isApiQuoteNote = isJoker || isThrone;
-        const textX = isQuote ? 24 : isJournal ? journalHorizontalInset : isPoetry ? 26 : 12;
-        const textWidth = Math.max(0, noteView.w - (isQuote ? 50 : isJournal ? journalHorizontalInset * 2 : isPoetry ? 52 : 24));
+        const textX = isQuote ? 24 : isJournal ? journalHorizontalInset : 12;
+        const textWidth = Math.max(0, noteView.w - (isQuote ? 50 : isJournal ? journalHorizontalInset * 2 : 24));
         const imageUrl = resolveImageAssetUrl(noteView, resolvedAssetRecords);
         const bookmarkState = noteView.bookmark;
         const bookmarkMetadata = bookmarkState?.metadata;
@@ -921,14 +880,13 @@ export const WallNotesLayer = ({
         const bookmarkFavicon = bookmarkFaviconUrl ? loadedImagesByUrl[bookmarkFaviconUrl] : undefined;
         const noteImage = imageUrl ? loadedImagesByUrl[imageUrl] : undefined;
         const isImageNote = Boolean(imageUrl);
-        const isPaperShellNote = !isJoker && !isThrone;
-        const baseShellFill = isThrone ? THRONE_NOTE_BACKGROUND : isJoker ? "#F0CB88" : isStandardNote ? "#FFFFFF" : atelierPalette.paper;
+        const isPaperShellNote = true;
+        const baseShellFill = isStandardNote ? "#FFFFFF" : atelierPalette.paper;
         const defaultTextColor =
-          isQuote || isJournal || isBookmark || isApod || isImageNote || isPrivate || isPoetry || isAudio ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
+          isQuote || isJournal || isBookmark || isImageNote || isPrivate || isAudio ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
         const resolvedTextColor = noteView.textColor ?? defaultTextColor;
-        const paperTintOpacity = isPaperShellNote ? (isStandardNote ? 0.02 : isPoetry ? 0.04 : isQuote ? 0.06 : isVocabulary ? 0.14 : 0.1) : 0;
-        const isApodMediaCard = isApod;
-        const imageCaption = isApod ? getApodCaption(noteView) : noteView.text.trim();
+        const paperTintOpacity = isPaperShellNote ? (isStandardNote ? 0.02 : isQuote ? 0.06 : isVocabulary ? 0.14 : 0.1) : 0;
+        const imageCaption = noteView.text.trim();
         const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, imageCaption, noteImage) : null;
         const strippedNoteText = stripWikiLinkMarkup(noteView.text);
         const noteLines = strippedNoteText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -968,7 +926,7 @@ export const WallNotesLayer = ({
         const renderedCodeLines = parsedCodeNote?.body.split("\n").slice(0, 8) ?? [];
         const journalTitle = noteLines[0] ?? "Dear Wall,";
         const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
-        const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isVideo && !isImageNote && !isBookmark && !isApodMediaCard && !isEisenhower && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary && !isPoetry && !isJoker && !isThrone;
+        const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isVideo && !isImageNote && !isBookmark && !isEisenhower && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary;
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
@@ -976,12 +934,8 @@ export const WallNotesLayer = ({
           ? ""
           : isBookmark
           ? ""
-          : isApodMediaCard
-          ? imageCaption || noteView.apod?.error || noteView.apod?.title || "NASA APOD"
           : isImageNote
           ? imageCaption
-          : isJoker
-            ? strippedNoteText || jokerLoadingText
           : isAudio
             ? ""
           : isVocabulary
@@ -992,8 +946,6 @@ export const WallNotesLayer = ({
               ? canon?.mode === "list"
                 ? canonListPreview || "Add list items"
                 : canonSinglePreview || "Add statement"
-            : isPoetry
-              ? strippedNoteText || noteView.poetry?.error || "Loading poem..."
             : isQuote
               ? truncateNoteText(strippedNoteText, {
                   ...noteView,
@@ -1006,24 +958,10 @@ export const WallNotesLayer = ({
         const noteTags = noteView.tags.slice(0, visibleTagCount);
         const overflowTags = Math.max(0, note.tags.length - noteTags.length);
         const tagPalette = noteTagChipPalette(resolvedNoteColor);
-        const jokerText = isJoker ? splitJokerText(strippedNoteText || jokerLoadingText) : null;
-        const jokerQuestionY = 50;
-        const jokerRuleY = Math.max(90, Math.min(noteView.h - 54, Math.round(noteView.h * 0.56)));
-        const jokerPunchlineY = jokerRuleY + 12;
-        const textY = isApodMediaCard || isImageNote ? 0 : 12 + quoteBodyTopInset + canonTitleInset + poetryHeaderInset + (isJournal ? 56 : 0);
-        const textHeight = isApodMediaCard || isImageNote
+        const textY = isImageNote ? 0 : 12 + quoteBodyTopInset + canonTitleInset + (isJournal ? 56 : 0);
+        const textHeight = isImageNote
           ? 0
-          : Math.max(0, noteView.h - 56 - quoteFooterHeight - quoteBodyTopInset - canonTitleInset - poetryHeaderInset - poetryFooterInset - (isJournal ? 56 : 0) - wikiFooterHeight);
-        const throneQuoteText = isThrone
-          ? strippedNoteText === throneLoadingText
-            ? strippedNoteText
-            : `“${strippedNoteText || "A mind needs books as a sword needs a whetstone, if it is to keep its edge."}”`
-          : "";
-        const throneAuthorLabel = isThrone ? quoteAttribution || "Tyrion Lannister" : "";
-        const throneAuthorWidth = isThrone ? Math.max(88, Math.min(noteView.w - 96, 144)) : 0;
-        const throneAuthorX = isThrone ? (noteView.w - throneAuthorWidth) / 2 : 0;
-        const throneRuleY = isThrone ? Math.max(124, noteView.h - 30) : 0;
-        const throneQuoteHeight = isThrone ? Math.max(34, throneRuleY - 62) : 0;
+          : Math.max(0, noteView.h - 56 - quoteFooterHeight - quoteBodyTopInset - canonTitleInset - (isJournal ? 56 : 0) - wikiFooterHeight);
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
         const journalDateWidth = Math.max(0, noteView.w - journalHorizontalInset * 2);
         const journalDateX = journalHorizontalInset;
@@ -1170,141 +1108,6 @@ export const WallNotesLayer = ({
                   );
                 })()}
               </>
-            ) : isApodMediaCard ? (
-              <>
-                <Rect
-                  width={noteView.w}
-                  height={noteView.h}
-                  cornerRadius={IMAGE_NOTE_RADIUS}
-                  fill={atelierPalette.paper}
-                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: resolvedNoteColor })}
-                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
-                  shadowColor={atelierPalette.paperShadow}
-                  shadowBlur={isStandardNote ? (isFlashing ? 34 : isDragging ? 28 : 20) : isFlashing ? 28 : isDragging ? 24 : 16}
-                  shadowOpacity={isStandardNote ? (isFlashing ? 0.12 : isDragging ? 0.1 : 0.06) : isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
-                  shadowOffsetY={isDragging ? 7 : 3}
-                />
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={resolvedNoteColor} opacity={0.08} listening={false} />
-                {isImageNote && imageNoteLayout && noteImage ? (
-                  <KonvaImage
-                    x={imageNoteLayout.imageX}
-                    y={imageNoteLayout.imageY}
-                    width={imageNoteLayout.imageWidth}
-                    height={imageNoteLayout.imageHeight}
-                    image={noteImage}
-                    cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
-                    listening={false}
-                  />
-                ) : isImageNote && imageNoteLayout ? (
-                  <>
-                    <Rect
-                      x={IMAGE_NOTE_PADDING}
-                      y={IMAGE_NOTE_PADDING}
-                      width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
-                      height={Math.max(1, noteView.h - IMAGE_NOTE_PADDING * 2 - imageNoteLayout.captionHeight - (imageNoteLayout.captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0))}
-                      cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
-                      fill={colorWithAlpha(atelierPalette.text, 0.06)}
-                      stroke={colorWithAlpha(atelierPalette.paperStrokeStrong, 0.16)}
-                      strokeWidth={1}
-                      dash={[6, 4]}
-                      listening={false}
-                    />
-                    <Text
-                      x={18}
-                      y={Math.max(18, noteView.h / 2 - 8)}
-                      width={Math.max(0, noteView.w - 36)}
-                      align="center"
-                      fontSize={11}
-                      fill={colorWithAlpha(atelierPalette.mutedText, 0.88)}
-                      text={noteView.apod?.error || (imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image...")}
-                      listening={false}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Rect
-                      x={IMAGE_NOTE_PADDING}
-                      y={IMAGE_NOTE_PADDING}
-                      width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
-                      height={Math.max(1, noteView.h - 74)}
-                      cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
-                      fill="#31302D"
-                      listening={false}
-                    />
-                    <Rect x={18} y={18} width={Math.max(1, noteView.w - 36)} height={Math.max(1, noteView.h - 120)} cornerRadius={14} fill="rgba(255,255,255,0.04)" listening={false} />
-                    <Rect x={noteView.w / 2 - 32} y={Math.max(28, (noteView.h - 150) / 2)} width={64} height={64} cornerRadius={32} fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.26)" strokeWidth={1} listening={false} />
-                    <Text x={noteView.w / 2 - 8} y={Math.max(48, (noteView.h - 150) / 2 + 13)} width={16} align="center" fontSize={24} fontStyle="bold" fill="#FFFCF8" text="▶" listening={false} />
-                    <Rect x={18} y={Math.max(28, noteView.h - 92)} width={Math.max(1, noteView.w - 36)} height={6} cornerRadius={3} fill="rgba(255,255,255,0.18)" listening={false} />
-                    <Rect x={18} y={Math.max(28, noteView.h - 92)} width={Math.max(48, Math.min(noteView.w - 36, (noteView.w - 36) * 0.34))} height={6} cornerRadius={3} fill={atelierPalette.terracotta} listening={false} />
-                    <Text
-                      x={18}
-                      y={Math.max(18, noteView.h - 76)}
-                      width={Math.max(0, noteView.w - 92)}
-                      fontSize={14}
-                      fontStyle="bold"
-                      fill="#FFFCF8"
-                      text={noteView.apod?.title?.trim() || "NASA APOD"}
-                      ellipsis
-                      listening={false}
-                    />
-                    <Text
-                      x={Math.max(18, noteView.w - 70)}
-                      y={Math.max(18, noteView.h - 74)}
-                      width={52}
-                      align="right"
-                      fontSize={9}
-                      fill="rgba(255,252,248,0.58)"
-                      text={noteView.apod?.date?.trim() || "MEDIA"}
-                      ellipsis
-                      listening={false}
-                    />
-                    <Text
-                      x={18}
-                      y={Math.max(18, noteView.h - 52)}
-                      width={Math.max(0, noteView.w - 36)}
-                      fontSize={9}
-                      fontStyle="bold"
-                      fill={colorWithAlpha("#FFFCF8", 0.68)}
-                      text="SOURCE: MULTIMEDIA API"
-                      listening={false}
-                    />
-                  </>
-                )}
-                {imageCaption && (
-                  <>
-                    <Rect
-                      x={IMAGE_NOTE_PADDING}
-                      y={Math.max(IMAGE_NOTE_PADDING, noteView.h - 58)}
-                      width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
-                      height={Math.min(52, Math.max(30, noteView.h - Math.max(IMAGE_NOTE_PADDING, noteView.h - 58) - IMAGE_NOTE_PADDING))}
-                      cornerRadius={12}
-                      fill="#FFFFFF"
-                      opacity={0.94}
-                      listening={false}
-                    />
-                    <Text
-                      x={14}
-                      y={Math.max(11, noteView.h - 50)}
-                      width={Math.max(0, noteView.w - 28)}
-                      height={36}
-                      fontSize={IMAGE_NOTE_CAPTION_FONT_SIZE}
-                      fontFamily={isQuote || isPoetry ? "Newsreader" : noteTextFontFamily}
-                      lineHeight={IMAGE_NOTE_CAPTION_LINE_HEIGHT}
-                      fill="#475569"
-                      text={imageCaption}
-                      ellipsis
-                      onClick={(event) => {
-                        if (isTimeLocked) {
-                          return;
-                        }
-                        event.cancelBubble = true;
-                        selectSingleNote(note.id);
-                        openEditor(note.id, noteView.text);
-                      }}
-                    />
-                  </>
-                )}
-              </>
             ) : isImageNote && imageNoteLayout ? (
               <>
                 <Rect
@@ -1374,7 +1177,7 @@ export const WallNotesLayer = ({
                       width={Math.max(0, noteView.w - 28)}
                       height={Math.max(0, imageNoteLayout.captionHeight - 10)}
                       fontSize={IMAGE_NOTE_CAPTION_FONT_SIZE}
-                      fontFamily={isQuote || isPoetry ? "Newsreader" : noteTextFontFamily}
+                      fontFamily={isQuote ? "Newsreader" : noteTextFontFamily}
                       lineHeight={IMAGE_NOTE_CAPTION_LINE_HEIGHT}
                       fill="#475569"
                       text={imageCaption}
@@ -1543,7 +1346,7 @@ export const WallNotesLayer = ({
                   height={noteView.h}
                   cornerRadius={noteCornerRadius}
                   fill={baseShellFill}
-                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: isThrone ? atelierPalette.gold : isJoker ? atelierPalette.terracotta : resolvedNoteColor })}
+                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: resolvedNoteColor })}
                   strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
                   shadowColor={atelierPalette.paperShadow}
                   shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
@@ -1556,104 +1359,6 @@ export const WallNotesLayer = ({
                 {isQuote && (
                   <Rect x={0} y={0} width={4} height={noteView.h} cornerRadius={[noteCornerRadius, 0, 0, noteCornerRadius]} fill={atelierPalette.terracotta} listening={false} />
                 )}
-                {isPoetry && (
-                  <>
-                    <Text x={18} y={20} width={Math.max(0, noteView.w - 36)} align="center" fontSize={9} fontStyle="bold" fill={colorWithAlpha(atelierPalette.quietText, 0.54)} text="SOURCE: POETRY API" listening={false} />
-                    <Line points={[24, Math.max(24, noteView.h - poetryFooterInset), Math.max(24, noteView.w - 24), Math.max(24, noteView.h - poetryFooterInset)]} stroke={colorWithAlpha(atelierPalette.paperStrokeStrong, 0.16)} strokeWidth={1} listening={false} />
-                  </>
-                )}
-              </>
-            )}
-            {isApiQuoteNote && (
-              <>
-                {isJoker && (
-                  <>
-                    <Line
-                      points={[Math.max(18, noteView.w - 74), 18, Math.max(24, noteView.w - 68), 12, Math.max(30, noteView.w - 62), 18]}
-                      stroke={colorWithAlpha(atelierPalette.gold, 0.5)}
-                      strokeWidth={3.4}
-                      lineCap="round"
-                      lineJoin="round"
-                      listening={false}
-                    />
-                    <Line
-                      points={[Math.max(18, noteView.w - 46), 18, Math.max(24, noteView.w - 40), 12, Math.max(30, noteView.w - 34), 18]}
-                      stroke={colorWithAlpha(atelierPalette.gold, 0.5)}
-                      strokeWidth={3.4}
-                      lineCap="round"
-                      lineJoin="round"
-                      listening={false}
-                    />
-                    <Line
-                      points={[Math.max(18, noteView.w - 74), 34, Math.max(24, noteView.w - 64), 43, Math.max(30, noteView.w - 54), 46, Math.max(36, noteView.w - 44), 43, Math.max(42, noteView.w - 34), 34]}
-                      stroke={colorWithAlpha(atelierPalette.gold, 0.36)}
-                      strokeWidth={8}
-                      bezier
-                      lineCap="round"
-                      lineJoin="round"
-                      listening={false}
-                    />
-                  </>
-                )}
-                {isJoker && jokerText && (
-              <>
-                <Text
-                  x={16}
-                  y={jokerQuestionY}
-                  width={Math.max(0, noteView.w - 32)}
-                  height={Math.max(18, jokerRuleY - jokerQuestionY - 8)}
-                  fontSize={16}
-                  fontFamily={noteTextFontFamily}
-                  fill="#261900"
-                  lineHeight={1.65}
-                  text={truncateNoteText(jokerText.setup, { ...noteView, text: jokerText.setup, h: Math.max(jokerRuleY - jokerQuestionY, 36) }) || jokerText.setup}
-                  ellipsis
-                  listening={false}
-                />
-                <Line
-                  points={[16, jokerRuleY, Math.max(16, noteView.w - 16), jokerRuleY]}
-                  stroke="rgba(38,25,0,0.10)"
-                  strokeWidth={1}
-                  listening={false}
-                />
-                <Text
-                  x={16}
-                  y={jokerPunchlineY}
-                  width={Math.max(0, noteView.w - 32)}
-                  height={Math.max(18, noteView.h - jokerPunchlineY - 16)}
-                  fontSize={18}
-                  fontFamily={noteTextFontFamily}
-                  fontStyle="bold"
-                  fill="rgba(38,25,0,0.92)"
-                  lineHeight={1.55}
-                  text={truncateNoteText(jokerText.punchline, { ...noteView, text: jokerText.punchline, h: Math.max(noteView.h - jokerPunchlineY - 12, 36) }) || jokerText.punchline}
-                  ellipsis
-                  listening={false}
-                />
-              </>
-            )}
-            {isThrone && (
-                  <Line
-                    x={Math.max(18, noteView.w - 32)}
-                    y={14}
-                    points={THRONE_SHIELD_POINTS}
-                    closed
-                    fill={THRONE_NOTE_ACCENT}
-                    stroke={colorWithAlpha("#000000", 0.08)}
-                    strokeWidth={0.8}
-                    listening={false}
-                  />
-                )}
-                <Text
-                  x={16}
-                  y={16}
-                  width={Math.max(0, noteView.w - 32)}
-                  fontSize={9}
-                  fontStyle="bold"
-                  fill={isJoker ? colorWithAlpha("#5D4201", 0.72) : THRONE_NOTE_MUTED}
-                  text={isJoker ? "SOURCE: JOKES API" : "SOURCE: GOT API"}
-                  listening={false}
-                />
               </>
             )}
             {isHighlighted && (
@@ -1698,19 +1403,19 @@ export const WallNotesLayer = ({
                 opacity={colorWashOpacity}
               />
             )}
-            {!isPrivate && !isThrone && !isJoker && !isApodMediaCard && !isImageNote && !isEisenhower && !isBookmark && !isJournal && !isQuote && !isAudio && !isVideo && !looksLikeCode && !looksLikeFile && !isStandardNote && (
+            {!isPrivate && !isImageNote && !isEisenhower && !isBookmark && !isJournal && !isQuote && !isAudio && !isVideo && !looksLikeCode && !looksLikeFile && !isStandardNote && (
               <Text
                 x={textX}
                 y={textY}
                 width={textWidth}
                 height={textHeight}
                 fontSize={(isJournal ? Math.max(17, noteTextStyle.fontSize) : noteTextStyle.fontSize) * textSpringFactor}
-                fontFamily={isQuote || isPoetry ? "Newsreader" : noteTextFontFamily}
-                fontStyle={isQuote || isPoetry ? "italic" : isCanon ? "bold" : "normal"}
+                fontFamily={isQuote ? "Newsreader" : noteTextFontFamily}
+                fontStyle={isQuote ? "italic" : isCanon ? "bold" : "normal"}
                 fill={resolvedTextColor}
-                lineHeight={isJournal ? 1.72 : isPoetry ? 1.68 : noteTextStyle.lineHeight}
-                align={isVocabulary || isPoetry ? "center" : (noteView.textAlign ?? "left")}
-                verticalAlign={isPoetry ? "middle" : (noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign)}
+                lineHeight={isJournal ? 1.72 : noteTextStyle.lineHeight}
+                align={isVocabulary ? "center" : (noteView.textAlign ?? "left")}
+                verticalAlign={noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign}
                 text={noteTextContent}
                 onClick={(event) => {
                   if (isTimeLocked) {
@@ -1725,49 +1430,6 @@ export const WallNotesLayer = ({
                   }
                 }}
               />
-            )}
-            {isThrone && (
-              <>
-                <Text
-                  x={18}
-                  y={48}
-                  width={Math.max(0, noteView.w - 36)}
-                  height={throneQuoteHeight}
-                  fontSize={Math.max(19, Math.min(24, noteView.w / 10))}
-                  fontFamily="Cormorant Garamond"
-                  fontStyle={strippedNoteText === throneLoadingText ? "normal" : "italic"}
-                  fill={THRONE_NOTE_TEXT}
-                  lineHeight={1.28}
-                  text={throneQuoteText}
-                  ellipsis
-                  listening={false}
-                />
-                <Line
-                  points={[18, throneRuleY + 8, Math.max(18, throneAuthorX - 8), throneRuleY + 8]}
-                  stroke={THRONE_NOTE_RULE}
-                  strokeWidth={1}
-                  listening={false}
-                />
-                <Text
-                  x={throneAuthorX}
-                  y={throneRuleY}
-                  width={throneAuthorWidth}
-                  align="center"
-                  fontSize={14}
-                  fontFamily="Cormorant Garamond"
-                  fill="rgba(245,240,232,0.74)"
-                  text={throneAuthorLabel}
-                  wrap="none"
-                  ellipsis
-                  listening={false}
-                />
-                <Line
-                  points={[Math.min(noteView.w - 18, throneAuthorX + throneAuthorWidth + 8), throneRuleY + 8, Math.max(18, noteView.w - 18), throneRuleY + 8]}
-                  stroke={THRONE_NOTE_RULE}
-                  strokeWidth={1}
-                  listening={false}
-                />
-              </>
             )}
             {isJournal && (
               <>
@@ -1852,23 +1514,6 @@ export const WallNotesLayer = ({
                 ellipsis
                 listening={false}
               />
-            )}
-            {isPoetry && (
-              <>
-                <Text
-                  x={18}
-                  y={Math.max(18, noteView.h - poetryFooterInset + 28)}
-                  width={Math.max(0, noteView.w - 36)}
-                  align="center"
-                  fontSize={14}
-                  fontStyle="normal"
-                  fontFamily="Manrope"
-                  fill={colorWithAlpha(atelierPalette.terracotta, 0.78)}
-                  text={poetryAuthor}
-                  ellipsis
-                  listening={false}
-                />
-              </>
             )}
             {looksLikeCode && (
               <>
@@ -2151,7 +1796,7 @@ export const WallNotesLayer = ({
                 )}
               </>
             )}
-            {wikiLinks.length > 0 && !isApodMediaCard && !isImageNote && !isVocabulary && !isEisenhower && !isJoker && !isThrone && !isBookmark && !isPoetry && (
+            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isBookmark && (
               <>
                 {wikiLinks.slice(0, 4).map((wikiLink, index) => {
                   const column = index % 2;
@@ -2224,7 +1869,7 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isVideo &&
+            {showNoteTags && !isPrivate && !isImageNote && !isEisenhower && !isVideo &&
               noteTags.map((tag, index) => (
                 <Group key={`${note.id}-tag-${tag}`}>
                   <Rect
@@ -2249,7 +1894,7 @@ export const WallNotesLayer = ({
                   />
                 </Group>
               ))}
-            {showNoteTags && !isPrivate && !isApodMediaCard && !isImageNote && !isEisenhower && !isJoker && !isThrone && !isPoetry && !isVideo && overflowTags > 0 && (
+            {showNoteTags && !isPrivate && !isImageNote && !isEisenhower && !isVideo && overflowTags > 0 && (
               <Text
                 x={Math.max(12, noteView.w - 36)}
                 y={Math.max(12, noteView.h - 23)}

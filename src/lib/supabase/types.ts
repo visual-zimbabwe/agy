@@ -115,8 +115,6 @@ export type Database = {
           eisenhower: unknown;
           currency: unknown;
           bookmark: unknown;
-          apod: unknown;
-          poetry: unknown;
           file: unknown;
           image_url: string | null;
           text_align: string | null;
@@ -150,8 +148,6 @@ export type Database = {
           eisenhower?: unknown;
           currency?: unknown;
           bookmark?: unknown;
-          apod?: unknown;
-          poetry?: unknown;
           file?: unknown;
           image_url?: string | null;
           text_align?: string | null;
@@ -182,8 +178,6 @@ export type Database = {
           eisenhower?: unknown;
           currency?: unknown;
           bookmark?: unknown;
-          apod?: unknown;
-          poetry?: unknown;
           file?: unknown;
           image_url?: string | null;
           text_align?: string | null;

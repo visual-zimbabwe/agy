@@ -5,7 +5,6 @@ import { memo, type CSSProperties, type ReactNode } from "react";
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, truncateNoteText } from "@/components/wall/wall-canvas-helpers";
 import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
-import { getApodCaption } from "@/features/wall/apod";
 import { deriveWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
@@ -15,7 +14,6 @@ import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import type { Note } from "@/features/wall/types";
-import { getApodPlayback } from "@/lib/apod";
 
 type WallNotePreviewProps = {
   note: Note;
@@ -61,12 +59,6 @@ const atelier = {
   shadowDetail: "0 24px 56px rgba(28,28,25,0.16)",
 };
 
-const THRONE_CARD_BACKGROUND = "#35322f";
-const THRONE_CARD_TEXT = "#f5f0e8";
-const THRONE_CARD_MUTED = "rgba(245,240,232,0.42)";
-const THRONE_CARD_RULE = "rgba(245,240,232,0.18)";
-const THRONE_CARD_ACCENT = "#a67a10";
-
 const lineClampStyle = (lines: number): CSSProperties => ({
   display: "-webkit-box",
   WebkitLineClamp: lines,
@@ -77,14 +69,6 @@ const lineClampStyle = (lines: number): CSSProperties => ({
 const stripWikiLinkMarkup = (text: string) => text.replace(/\[\[([^\]\n]+?)\]\]/g, "$1");
 
 const splitNoteText = (text: string) => stripWikiLinkMarkup(text).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-
-const splitJokerText = (text: string) => {
-  const lines = splitNoteText(text);
-  return {
-    setup: lines[0] || text.trim() || "Why don't scientists trust atoms?",
-    punchline: lines.slice(1).join(" ") || "Because they make up everything!",
-  };
-};
 
 const getBodyText = (note: Note) => {
   const cleaned = stripWikiLinkMarkup(note.text);
@@ -341,7 +325,7 @@ const shellStyle = ({ note, selected, tone }: Pick<WallNotePreviewProps, "note" 
   width: "100%",
   height: "100%",
   borderRadius: note.noteKind === "standard" ? 18 : 16,
-  background: note.noteKind === "throne" ? "#31302d" : note.noteKind === "joker" ? "#ffdea5" : note.noteKind === "standard" ? "#ffffff" : atelier.paper,
+  background: note.noteKind === "standard" ? "#ffffff" : atelier.paper,
   boxShadow: note.noteKind === "standard"
     ? tone === "detail"
       ? "0 18px 42px rgba(28,28,25,0.10)"
@@ -562,72 +546,6 @@ const ImageRenderer = ({ note, width, height, tone }: RendererProps) => {
   );
 };
 
-const ApodRenderer = ({ note, width, height, readableText, mutedText, bodyClamp, tone }: RendererProps) => {
-  const caption = getApodCaption(note);
-  const playback = getApodPlayback(note.apod);
-  const isVideo = note.apod?.mediaType === "video";
-  const imageUrl = resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note })) ?? note.imageUrl;
-  return (
-    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="flex h-full flex-col overflow-hidden">
-        <div className="relative aspect-video bg-[#31302d]">
-          {isVideo && playback?.kind === "direct" ? (
-            <video src={playback.url} poster={imageUrl} className="h-full w-full object-cover opacity-85" controls muted loop playsInline preload="metadata" />
-          ) : isVideo && playback?.kind === "embed" ? (
-            <iframe
-              src={playback.url}
-              title={note.apod?.title || "NASA APOD video"}
-              className="h-full w-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          ) : imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt={note.apod?.title || "NASA APOD"} className="h-full w-full object-cover opacity-85" loading="lazy" />
-          ) : (
-            <div className="flex h-full items-center justify-center px-4 text-center text-[11px] text-white/80">{note.apod?.error || "Loading APOD"}</div>
-          )}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-white/18 text-3xl text-white backdrop-blur-md">▶</div>
-          </div>
-          <div className="absolute bottom-0 left-0 h-1.5 w-full bg-white/18"><div className="h-full w-1/3" style={{ background: atelier.terracotta }} /></div>
-        </div>
-        <div className="flex flex-1 flex-col p-4" style={{ background: atelier.paper }}>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-bold" style={{ color: atelier.ink }}>{note.apod?.title || "Fluid Dynamics Study v02"}</p>
-            <span className="text-[10px] uppercase tracking-[0.16em]" style={{ color: atelier.quiet }}>{note.apod?.date || "media"}</span>
-          </div>
-          {caption && <p className="mt-3 text-sm leading-6" style={{ ...lineClampStyle(tone === "detail" ? 999 : bodyClamp), color: readableText }}>{caption}</p>}
-          <div className="mt-auto pt-4 text-[10px] uppercase tracking-[0.18em]" style={{ color: mutedText }}>Source: Multimedia API</div>
-        </div>
-      </div>
-    </NoteShell>
-  );
-};
-
-const PoetryRenderer = ({ note, width, height, readableText, bodyClamp, tone }: RendererProps) => (
-  <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-    <div className="flex h-full flex-col px-6 pb-5 pt-5" style={{ background: "linear-gradient(180deg, rgba(246,243,238,0.62), rgba(255,255,255,0.98))" }}>
-      <div className="text-center">
-        <MetaLabel color="rgba(139,113,106,0.46)">Source: Poetry API</MetaLabel>
-      </div>
-      <div className="flex flex-1 items-center justify-center px-1">
-        <p
-          className="w-full whitespace-pre-wrap font-[Newsreader] text-[18px] italic leading-[1.58] [overflow-wrap:anywhere]"
-          style={{ ...lineClampStyle(tone === "detail" ? 999 : bodyClamp + 6), color: readableText, textAlign: "center" }}
-        >
-          {note.text.trim() || note.poetry?.error || "Loading poem..."}
-        </p>
-      </div>
-      <div className="mt-3 border-t pt-4" style={{ borderColor: "rgba(223,192,184,0.3)" }}>
-        <p className="text-center text-[18px] font-medium" style={{ color: "rgba(196,118,95,0.92)", fontFamily: "\"Manrope\", sans-serif" }}>
-          {note.poetry?.author?.trim() || note.quoteAuthor?.trim() || "Unknown Poet"}
-        </p>
-      </div>
-    </div>
-  </NoteShell>
-);
-
 const EisenhowerRenderer = ({ note, width, height, readableText, mutedText, softText, quadrantClamp, tone }: RendererProps) => {
   const matrix = normalizeEisenhowerNote(note.eisenhower, note.createdAt);
   return (
@@ -651,85 +569,6 @@ const EisenhowerRenderer = ({ note, width, height, readableText, mutedText, soft
               </div>
             );
           })}
-        </div>
-      </div>
-    </NoteShell>
-  );
-};
-
-const JokerRenderer = ({ note, width, height, tone }: RendererProps) => {
-  const { setup, punchline } = splitJokerText(note.text);
-  return (
-    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="relative h-full overflow-hidden px-5 pb-5 pt-4" style={{ background: "#ffdea5" }}>
-        <svg
-          className="pointer-events-none absolute right-2 top-1 h-[54px] w-[54px] opacity-[0.22]"
-          viewBox="0 0 64 64"
-          aria-hidden
-        >
-          <path d="M14 18l8-8 8 8" fill="none" stroke="rgba(117,87,23,0.55)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M42 18l8-8 8 8" fill="none" stroke="rgba(117,87,23,0.55)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M12 34c5 12 15 18 20 18s15-6 20-18" fill="rgba(117,87,23,0.42)" />
-        </svg>
-        <MetaLabel color="rgba(93,66,1,0.72)">Source: Jokes API</MetaLabel>
-        <p
-          className="relative z-10 mt-5"
-          style={{
-            ...lineClampStyle(tone === "detail" ? 999 : 3),
-            color: "#261900",
-            fontSize: 16,
-            lineHeight: 1.65,
-            fontWeight: 500,
-          }}
-        >
-          {setup}
-        </p>
-        <p
-          className="relative z-10 mt-4 border-t pt-4"
-          style={{
-            ...lineClampStyle(tone === "detail" ? 999 : 3),
-            borderColor: "rgba(38,25,0,0.10)",
-            color: "rgba(38,25,0,0.92)",
-            fontSize: 18,
-            lineHeight: 1.55,
-            fontWeight: 800,
-          }}
-        >
-          {punchline}
-        </p>
-      </div>
-    </NoteShell>
-  );
-};
-
-const ThroneRenderer = ({ note, width, height, tone }: RendererProps) => {
-  const throneText = stripWikiLinkMarkup(note.text);
-  const throneDisplayText = throneText === "Summoning a line from Westeros..."
-    ? throneText
-    : `“${throneText || "A mind needs books as a sword needs a whetstone, if it is to keep its edge."}”`;
-
-  return (
-    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="relative h-full px-5 pb-5 pt-6" style={{ background: THRONE_CARD_BACKGROUND, color: THRONE_CARD_TEXT }}>
-        <div
-          className="absolute right-5 top-4 h-6 w-[18px]"
-          style={{
-            background: THRONE_CARD_ACCENT,
-            clipPath: "polygon(50% 0%, 100% 16%, 100% 62%, 50% 100%, 0% 62%, 0% 16%)",
-            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.18))",
-          }}
-        />
-        <MetaLabel color={THRONE_CARD_MUTED}>Source: GoT API</MetaLabel>
-        <p
-          className="mt-7 whitespace-pre-wrap font-[Cormorant_Garamond] text-[31px] italic leading-[1.3] [overflow-wrap:anywhere]"
-          style={{ ...lineClampStyle(tone === "detail" ? 999 : 5), color: THRONE_CARD_TEXT }}
-        >
-          {throneDisplayText}
-        </p>
-        <div className="absolute bottom-8 left-5 right-5 flex items-center gap-3 text-center text-[13px]" style={{ color: "rgba(245,240,232,0.74)" }}>
-          <div className="h-px flex-1" style={{ background: THRONE_CARD_RULE }} />
-          <span className="font-[Cormorant_Garamond] text-[21px] leading-none">{note.quoteAuthor?.trim() || "Tyrion Lannister"}</span>
-          <div className="h-px flex-1" style={{ background: THRONE_CARD_RULE }} />
         </div>
       </div>
     </NoteShell>
@@ -940,12 +779,8 @@ const noteRenderers: Record<string, NoteRenderer> = {
   journal: JournalRenderer,
   eisenhower: EisenhowerRenderer,
   "web-bookmark": WebBookmarkRenderer,
-  apod: ApodRenderer,
-  poetry: PoetryRenderer,
   image: ImageRenderer,
   vocabulary: VocabularyRenderer,
-  joker: JokerRenderer,
-  throne: ThroneRenderer,
   code: CodeRenderer,
   file: FileRenderer,
   audio: AudioRenderer,
@@ -956,18 +791,6 @@ const noteRenderers: Record<string, NoteRenderer> = {
 const resolveRendererKey = (note: Note) => {
   if (isPrivateNote(note)) {
     return "private";
-  }
-  if (note.noteKind === "apod") {
-    return "apod";
-  }
-  if (note.noteKind === "poetry") {
-    return "poetry";
-  }
-  if (note.noteKind === "joker") {
-    return "joker";
-  }
-  if (note.noteKind === "throne") {
-    return "throne";
   }
   if (resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note }))) {
     return "image";

@@ -4,7 +4,7 @@ import { normalizeAudioNote } from "@/features/wall/audio-notes";
 import { normalizeFileNote } from "@/features/wall/file-notes";
 import { normalizeVideoNote } from "@/features/wall/video-notes";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import type { ApodNote, CanonNote, Link, Note, NoteGroup, PersistedWallState, PrivateNoteData, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
+import type { CanonNote, Link, Note, NoteGroup, PersistedWallState, PrivateNoteData, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -142,27 +142,6 @@ const normalizePrivateNote = (value: unknown): PrivateNoteData | undefined => {
   };
 };
 
-const normalizeApod = (value: unknown): ApodNote | undefined => {
-  if (!isRecord(value)) {
-    return undefined;
-  }
-
-  return {
-    status: value.status === "loading" || value.status === "ready" || value.status === "error" ? value.status : "idle",
-    date: asString(value.date) || undefined,
-    title: asString(value.title) || undefined,
-    explanation: asString(value.explanation) || undefined,
-    copyright: asString(value.copyright) || undefined,
-    mediaType: value.mediaType === "image" || value.mediaType === "video" ? value.mediaType : "other",
-    imageUrl: asString(value.imageUrl) || undefined,
-    fallbackImageUrl: asString(value.fallbackImageUrl) || undefined,
-    pageUrl: asString(value.pageUrl) || undefined,
-    fetchedAt: typeof value.fetchedAt === "number" ? asNumber(value.fetchedAt) : undefined,
-    lastSuccessAt: typeof value.lastSuccessAt === "number" ? asNumber(value.lastSuccessAt) : undefined,
-    error: asString(value.error) || undefined,
-  };
-};
-
 const normalizeNoteFont = (value: unknown) => {
   if (
     value === "newsreader" ||
@@ -255,11 +234,7 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     entry.noteKind === "canon" ||
     entry.noteKind === "journal" ||
     entry.noteKind === "eisenhower" ||
-    entry.noteKind === "joker" ||
-    entry.noteKind === "throne" ||
     entry.noteKind === "web-bookmark" ||
-    entry.noteKind === "apod" ||
-    entry.noteKind === "poetry" ||
     entry.noteKind === "image" ||
     entry.noteKind === "file" ||
     entry.noteKind === "audio" ||
@@ -276,31 +251,9 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     canon: normalizeCanon(entry.canon),
     eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(entry.eisenhower, asNumber(entry.createdAt, Date.now())) : undefined,
     bookmark: noteKind === "web-bookmark" ? normalizeBookmark(entry.bookmark) : undefined,
-    apod: noteKind === "apod" ? normalizeApod(entry.apod) : undefined,
     file: noteKind === "file" || noteKind === "image" ? normalizeFileNote(entry.file) : undefined,
     audio: noteKind === "audio" ? normalizeAudioNote(entry.audio ?? entry.file) : undefined,
     video: noteKind === "video" ? normalizeVideoNote(entry.video ?? entry.file) : undefined,
-    poetry:
-      noteKind === "poetry" && isRecord(entry.poetry)
-        ? {
-            status: entry.poetry.status === "loading" || entry.poetry.status === "ready" || entry.poetry.status === "error" ? entry.poetry.status : "idle",
-            dateKey: asString(entry.poetry.dateKey) || undefined,
-            title: asString(entry.poetry.title) || undefined,
-            author: asString(entry.poetry.author) || undefined,
-            lines: normalizeStringList(entry.poetry.lines),
-            lineCount: typeof entry.poetry.lineCount === "number" ? asNumber(entry.poetry.lineCount) : undefined,
-            sourceUrl: asString(entry.poetry.sourceUrl) || undefined,
-            searchField:
-              entry.poetry.searchField === "author" || entry.poetry.searchField === "title" || entry.poetry.searchField === "lines" || entry.poetry.searchField === "linecount"
-                ? entry.poetry.searchField
-                : "random",
-            searchQuery: asString(entry.poetry.searchQuery) || "",
-            matchType: entry.poetry.matchType === "exact" ? "exact" : "partial",
-            fetchedAt: typeof entry.poetry.fetchedAt === "number" ? asNumber(entry.poetry.fetchedAt) : undefined,
-            lastSuccessAt: typeof entry.poetry.lastSuccessAt === "number" ? asNumber(entry.poetry.lastSuccessAt) : undefined,
-            error: asString(entry.poetry.error) || undefined,
-          }
-        : undefined,
     imageUrl: asString(entry.imageUrl).trim() || undefined,
     textAlign: entry.textAlign === "center" || entry.textAlign === "right" ? entry.textAlign : "left",
     textVAlign: entry.textVAlign === "middle" || entry.textVAlign === "bottom" ? entry.textVAlign : NOTE_DEFAULTS.textVAlign,

@@ -314,13 +314,6 @@ export const pageBlocksFromWallNote = (note: Note): PageBlock[] => {
     h: Math.max(LINE_HEIGHT + 18, Math.min(220, note.h)),
   });
 
-  const sourceUrl = note.noteKind === "apod"
-    ? note.apod?.pageUrl
-      : undefined;
-  if (sourceUrl) {
-    push(buildPageReferenceBlock(sourceUrl, "Source", "Original source linked from the converted wall note.", x, y));
-  }
-
   return created;
 };
 

@@ -97,45 +97,6 @@ export type WebBookmarkNote = {
   error?: string;
 };
 
-export type ApodNoteStatus = "idle" | "loading" | "ready" | "error";
-
-export type ApodNoteMediaType = "image" | "video" | "other";
-
-export type ApodNote = {
-  status: ApodNoteStatus;
-  date?: string;
-  title?: string;
-  explanation?: string;
-  copyright?: string;
-  mediaType?: ApodNoteMediaType;
-  imageUrl?: string;
-  fallbackImageUrl?: string;
-  pageUrl?: string;
-  fetchedAt?: number;
-  lastSuccessAt?: number;
-  error?: string;
-};
-
-export type PoetryNoteStatus = "idle" | "loading" | "ready" | "error";
-export type PoetrySearchField = "random" | "author" | "title" | "lines" | "linecount";
-export type PoetrySearchMatchType = "partial" | "exact";
-
-export type PoetryNote = {
-  status: PoetryNoteStatus;
-  dateKey?: string;
-  title?: string;
-  author?: string;
-  lines: string[];
-  lineCount?: number;
-  sourceUrl?: string;
-  searchField?: PoetrySearchField;
-  searchQuery?: string;
-  matchType?: PoetrySearchMatchType;
-  fetchedAt?: number;
-  lastSuccessAt?: number;
-  error?: string;
-};
-
 export type FileNoteSource = "upload" | "link";
 
 export type FileNote = {
@@ -169,7 +130,7 @@ export type PrivateNoteData = {
 export type Note = {
   id: string;
   revision?: number;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "web-bookmark" | "apod" | "poetry" | "image" | "file" | "audio" | "video";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "web-bookmark" | "image" | "file" | "audio" | "video";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
@@ -177,8 +138,6 @@ export type Note = {
   canon?: CanonNote;
   eisenhower?: EisenhowerNote;
   bookmark?: WebBookmarkNote;
-  apod?: ApodNote;
-  poetry?: PoetryNote;
   file?: FileNote;
   audio?: AudioNote;
   video?: VideoNote;

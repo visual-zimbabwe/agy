@@ -8,8 +8,6 @@ export type PrivateNoteHiddenFields = {
   canon?: Note["canon"];
   eisenhower?: Note["eisenhower"];
   bookmark?: Note["bookmark"];
-  apod?: Note["apod"];
-  poetry?: Note["poetry"];
   file?: Note["file"];
   audio?: Note["audio"];
   video?: Note["video"];
@@ -81,8 +79,6 @@ const normalizePrivateNoteHiddenFields = (value: unknown): PrivateNoteHiddenFiel
     canon: raw.canon,
     eisenhower: raw.eisenhower,
     bookmark: raw.bookmark,
-    apod: raw.apod,
-    poetry: raw.poetry,
     file: raw.file,
     audio: raw.audio,
     video: raw.video,
@@ -131,7 +127,7 @@ export const isPrivateNote = (note?: Pick<Note, "privateNote"> | null): note is 
 export const canProtectNote = (note?: Pick<Note, "id"> | null) => Boolean(note);
 
 export const createPrivateNoteHiddenFields = (
-  note: Pick<Note, "noteKind" | "text" | "quoteAuthor" | "quoteSource" | "canon" | "eisenhower" | "bookmark" | "apod" | "poetry" | "file" | "audio" | "video" | "imageUrl" | "tags" | "vocabulary">,
+  note: Pick<Note, "noteKind" | "text" | "quoteAuthor" | "quoteSource" | "canon" | "eisenhower" | "bookmark" | "file" | "audio" | "video" | "imageUrl" | "tags" | "vocabulary">,
 ): PrivateNoteHiddenFields => ({
   noteKind: note.noteKind,
   text: note.text,
@@ -140,8 +136,6 @@ export const createPrivateNoteHiddenFields = (
   canon: note.canon,
   eisenhower: note.eisenhower,
   bookmark: note.bookmark,
-  apod: note.apod,
-  poetry: note.poetry,
   file: note.file,
   audio: note.audio,
   video: note.video,
@@ -152,7 +146,7 @@ export const createPrivateNoteHiddenFields = (
 
 export const createPrivateNoteShellPatch = (
   note: Pick<Note, "noteKind">,
-): Pick<Note, "noteKind" | "text" | "quoteAuthor" | "quoteSource" | "canon" | "eisenhower" | "bookmark" | "apod" | "poetry" | "file" | "audio" | "video" | "imageUrl" | "tags" | "vocabulary"> => ({
+): Pick<Note, "noteKind" | "text" | "quoteAuthor" | "quoteSource" | "canon" | "eisenhower" | "bookmark" | "file" | "audio" | "video" | "imageUrl" | "tags" | "vocabulary"> => ({
   noteKind: note.noteKind,
   text: "",
   quoteAuthor: undefined,
@@ -160,8 +154,6 @@ export const createPrivateNoteShellPatch = (
   canon: undefined,
   eisenhower: undefined,
   bookmark: undefined,
-  apod: undefined,
-  poetry: undefined,
   file: undefined,
   audio: undefined,
   video: undefined,
@@ -178,8 +170,6 @@ export const canInlineEditPrivateNote = (hidden: PrivateNoteHiddenFields) => {
     !hidden.canon &&
     !hidden.eisenhower &&
     !hidden.bookmark &&
-    !hidden.apod &&
-    !hidden.poetry &&
     !hidden.file &&
     !hidden.audio &&
     !hidden.video

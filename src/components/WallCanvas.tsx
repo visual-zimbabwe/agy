@@ -64,10 +64,6 @@ import { useWallViewportWindow } from "@/components/wall/useWallViewportWindow";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
 import { useWallEntityWindowCache } from "@/components/wall/useWallEntityWindowCache";
 import { useWallRemoteDeltaFeed } from "@/components/wall/useWallRemoteDeltaFeed";
-import { useApodNotes } from "@/components/wall/useApodNotes";
-import { usePoetryNotes } from "@/components/wall/usePoetryNotes";
-import { useJokerNotes } from "@/components/wall/useJokerNotes";
-import { useThroneNotes } from "@/components/wall/useThroneNotes";
 import { useWallBackupActions } from "@/components/wall/useWallBackupActions";
 import { useAnimatedCamera } from "@/components/wall/useAnimatedCamera";
 import { useWallTelemetry } from "@/components/wall/useWallTelemetry";
@@ -95,14 +91,10 @@ import {
   assignZoneToGroup,
   createNote,
   createCanonNote,
-  createApodNote,
   createAudioNote,
   createFileNote,
   createImageNote,
   createVideoNote,
-  createPoetryNote,
-  createOrRefreshJokerNote,
-  createOrRefreshThroneNote,
   createJournalNote,
   createQuoteNote,
   createWebBookmarkNote,
@@ -133,9 +125,7 @@ import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatc
 import { createImageNoteState, getImageNoteFilename, toImageNotePatch, IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
 import { cacheVideoPoster, createVideoNoteState, getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
-import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
-import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
-import { getPoetryNoteDimensions } from "@/features/wall/poetry";
+import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { readWallPageLinkState, writeWallPageLinkState, type WallPageLinkState } from "@/features/wall/page-links";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
@@ -451,8 +441,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     };
   }, [camera, inlinePlayingVideoNote]);
   const notes = useMemo(() => Object.values(renderSnapshot.notes), [renderSnapshot.notes]);
-  const hasJokerNote = useMemo(() => notes.some((note) => note.noteKind === "joker"), [notes]);
-  const hasThroneNote = useMemo(() => notes.some((note) => note.noteKind === "throne"), [notes]);
   const zones = useMemo(() => Object.values(renderSnapshot.zones), [renderSnapshot.zones]);
   const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
@@ -1268,11 +1256,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
       mergeRemoteWindowSnapshot(viewportSnapshot, { syncVersion });
     },
   });
-
-  const { refreshApodNote, downloadApodImage } = useApodNotes({ hydrated, publishedReadOnly });
-  const { refreshPoetryNote, downloadPoetryAsImage, downloadPoetryAsPdf } = usePoetryNotes({ hydrated, publishedReadOnly });
-  useJokerNotes({ hydrated, publishedReadOnly, loginKey: userEmail });
-  useThroneNotes({ hydrated, publishedReadOnly, loginKey: userEmail });
 
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
@@ -2435,33 +2418,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
   }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
-  const makeApodNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: APOD_NOTE_DEFAULTS.width, h: APOD_NOTE_DEFAULTS.height });
-    const id = createApodNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, "");
-    void refreshApodNote(id, { force: true });
-  }, [camera, isTimeLocked, openEditor, placeNewNote, refreshApodNote, selectNote, viewport.h, viewport.w]);
-
-  const makePoetryNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const poetrySize = getPoetryNoteDimensions();
-    const position = placeNewNote(world, { w: poetrySize.width, h: poetrySize.height });
-    const id = createPoetryNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, "");
-    void refreshPoetryNote(id, { force: true });
-  }, [camera, isTimeLocked, openEditor, placeNewNote, refreshPoetryNote, selectNote, viewport.h, viewport.w]);
-
   const makeWordNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
@@ -2479,34 +2435,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     selectNote(id);
     setReviewRevealMeaning(false);
   }, [camera, isTimeLocked, placeNewNote, selectNote, ui.lastColor, viewport.h, viewport.w]);
-
-  const makeJokerNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: JOKER_NOTE_DEFAULTS.width, h: JOKER_NOTE_DEFAULTS.height });
-    const id = createOrRefreshJokerNote({
-      x: position.x,
-      y: position.y,
-    });
-    setSelectedNoteIds([id]);
-    selectNote(id);
-  }, [camera, isTimeLocked, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeThroneNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: THRONE_NOTE_DEFAULTS.width, h: THRONE_NOTE_DEFAULTS.height });
-    const id = createOrRefreshThroneNote({
-      x: position.x,
-      y: position.y,
-    });
-    setSelectedNoteIds([id]);
-    selectNote(id);
-  }, [camera, isTimeLocked, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeQuoteNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
@@ -2652,8 +2580,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     createCanonNote: makeCanonNoteAtViewportCenter,
     createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
-    createApodNote: makeApodNoteAtViewportCenter,
-    createPoetryNote: makePoetryNoteAtViewportCenter,
     createEisenhowerNote: makeEisenhowerNoteAtViewportCenter,
     createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
@@ -3526,23 +3452,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         onSelect: makeQuoteNoteAtViewportCenter,
       },
       {
-        id: "new-apod-note",
-        label: "Create APOD note",
-        description: "Add the latest NASA Astronomy Picture of the Day as a note.",
-        shortcut: "Shift + A",
-        keywords: ["nasa", "space", "astronomy", "apod", "picture"],
-        disabled: isTimeLocked,
-        onSelect: makeApodNoteAtViewportCenter,
-      },
-      {
-        id: "new-poetry-note",
-        label: "Create Poetry note",
-        description: "Add a daily PoetryDB poem with refresh and export actions.",
-        keywords: ["poetry", "poem", "poet", "poetrydb", "verse"],
-        disabled: isTimeLocked,
-        onSelect: makePoetryNoteAtViewportCenter,
-      },
-      {
         id: "new-eisenhower-note",
         label: "Create Eisenhower Matrix note",
         description: "Add a four-quadrant priority note with editable sections.",
@@ -3846,8 +3755,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
       makeCanonNoteAtViewportCenter,
       makeJournalNoteAtViewportCenter,
       makeQuoteNoteAtViewportCenter,
-      makeApodNoteAtViewportCenter,
-      makePoetryNoteAtViewportCenter,
       makeEisenhowerNoteAtViewportCenter,
       makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
@@ -4051,8 +3958,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           <WallToolsPanel
             leftPanelOpen={leftPanelOpen}
             isTimeLocked={isTimeLocked}
-            hasJokerNote={hasJokerNote}
-            hasThroneNote={hasThroneNote}
             selectedNoteId={ui.selectedNoteId}
             linkingFromNoteId={ui.linkingFromNoteId}
             linkType={ui.linkType}
@@ -4073,11 +3978,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
             onCreateFileNote={makeFileNoteAtViewportCenter}
             onCreateAudioNote={makeAudioNoteAtViewportCenter}
             onCreateVideoNote={makeVideoNoteAtViewportCenter}
-            onCreateApodNote={makeApodNoteAtViewportCenter}
-            onCreatePoetryNote={makePoetryNoteAtViewportCenter}
             onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
-            onCreateOrRefreshJokerNote={makeJokerNoteAtViewportCenter}
-            onCreateOrRefreshThroneNote={makeThroneNoteAtViewportCenter}
             onCreateWordNote={makeWordNoteAtViewportCenter}
             onCreateZone={makeZoneAtViewportCenter}
             onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}
@@ -4406,17 +4307,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           onRenameVideoNote={renameVideoNote}
           onOpenVideoNote={openVideoNote}
           onDownloadVideoNote={downloadVideoNote}
-          onRefreshApodNote={(noteId) => { void refreshApodNote(noteId, { force: true }); }}
-          onDownloadApodImage={downloadApodImage}
-          onOpenApodSource={(noteId) => {
-            const apodUrl = renderSnapshot.notes[noteId]?.apod?.pageUrl || renderSnapshot.notes[noteId]?.imageUrl;
-            if (apodUrl) {
-              openBookmarkUrl(apodUrl);
-            }
-          }}
-          onRefreshPoetryNote={(noteId) => { void refreshPoetryNote(noteId, { force: true }); }}
-          onDownloadPoetryImage={downloadPoetryAsImage}
-          onDownloadPoetryPdf={downloadPoetryAsPdf}
         />
         )}
 
@@ -4459,8 +4349,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           selectedNote={primarySelectedNote}
           selectedNotePageReference={primarySelectedNote ? wallPageLinks.referencesByNoteId[primarySelectedNote.id] : undefined}
           selectedNotePageConversion={primarySelectedNote ? wallPageLinks.conversionsByNoteId[primarySelectedNote.id] : undefined}
-          hasJokerNote={hasJokerNote}
-          hasThroneNote={hasThroneNote}
           selectedNoteId={ui.selectedNoteId}
           selectedNoteIdsCount={activeSelectedNoteIds.length}
           displayedTags={displayedTags}
@@ -4525,25 +4413,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           onTogglePinSelectedNote={togglePinOnNote}
           onToggleHighlightSelectedNote={toggleHighlightOnNote}
           onToggleFocusSelectedNote={toggleFocusNote}
-          onToggleOrRefreshJokerSelectedNote={(noteId) => {
-            const selected = renderSnapshot.notes[noteId];
-            const id = createOrRefreshJokerNote({
-              noteId: selected?.noteKind === "joker" ? undefined : noteId,
-            });
-            setSelectedNoteIds([id]);
-            selectNote(id);
-          }}
-          onToggleOrRefreshThroneSelectedNote={(noteId) => {
-            const selected = renderSnapshot.notes[noteId];
-            const id = createOrRefreshThroneNote({
-              noteId: selected?.noteKind === "throne" ? undefined : noteId,
-            });
-            setSelectedNoteIds([id]);
-            selectNote(id);
-          }}
-          onRefreshPoetrySelectedNote={(noteId, options) => {
-            void refreshPoetryNote(noteId, options ?? { force: true });
-          }}
           onStartLinkFromSelectedNote={setLinkingFromNote}
           onUpdateSelectedNote={updateNote}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}

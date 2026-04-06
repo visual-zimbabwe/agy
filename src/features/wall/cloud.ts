@@ -4,7 +4,7 @@ import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { normalizeAudioNote } from "@/features/wall/audio-notes";
 import { normalizeFileNote } from "@/features/wall/file-notes";
 import { normalizeVideoNote } from "@/features/wall/video-notes";
-import type { ApodNote, CanonNote, PersistedWallState, PoetryNote, PrivateNoteData, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
+import type { CanonNote, PersistedWallState, PrivateNoteData, VocabularyNote, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote } from "@/features/wall/types";
 
 type WallRow = {
   camera_x: number;
@@ -33,8 +33,6 @@ type NoteRow = {
   canon?: unknown;
   eisenhower?: unknown;
   bookmark?: unknown;
-  apod?: unknown;
-  poetry?: unknown;
   file?: unknown;
   tags: unknown;
   text_size: string | null;
@@ -330,60 +328,6 @@ const parsePrivateNote = (raw: unknown): PrivateNoteData | undefined => {
   };
 };
 
-const parseApod = (raw: unknown): ApodNote | undefined => {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return undefined;
-  }
-
-  const value = raw as Record<string, unknown>;
-  const asString = (entry: unknown, fallback = "") => (typeof entry === "string" ? entry : fallback);
-  const asNumber = (entry: unknown) => (typeof entry === "number" && Number.isFinite(entry) ? entry : undefined);
-
-  return {
-    status: value.status === "loading" || value.status === "ready" || value.status === "error" ? value.status : "idle",
-    date: asString(value.date) || undefined,
-    title: asString(value.title) || undefined,
-    explanation: asString(value.explanation) || undefined,
-    copyright: asString(value.copyright) || undefined,
-    mediaType: value.mediaType === "image" || value.mediaType === "video" ? value.mediaType : "other",
-    imageUrl: asString(value.imageUrl) || undefined,
-    fallbackImageUrl: asString(value.fallbackImageUrl) || undefined,
-    pageUrl: asString(value.pageUrl) || undefined,
-    fetchedAt: asNumber(value.fetchedAt),
-    lastSuccessAt: asNumber(value.lastSuccessAt),
-    error: asString(value.error) || undefined,
-  };
-};
-
-const parsePoetry = (raw: unknown): PoetryNote | undefined => {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return undefined;
-  }
-
-  const value = raw as Record<string, unknown>;
-  const asString = (entry: unknown, fallback = "") => (typeof entry === "string" ? entry : fallback);
-  const asNumber = (entry: unknown) => (typeof entry === "number" && Number.isFinite(entry) ? entry : undefined);
-
-  return {
-    status: value.status === "loading" || value.status === "ready" || value.status === "error" ? value.status : "idle",
-    dateKey: asString(value.dateKey) || undefined,
-    title: asString(value.title) || undefined,
-    author: asString(value.author) || undefined,
-    lines: Array.isArray(value.lines) ? value.lines.filter((line): line is string => typeof line === "string") : [],
-    lineCount: asNumber(value.lineCount),
-    sourceUrl: asString(value.sourceUrl) || undefined,
-    searchField:
-      value.searchField === "author" || value.searchField === "title" || value.searchField === "lines" || value.searchField === "linecount"
-        ? value.searchField
-        : "random",
-    searchQuery: asString(value.searchQuery),
-    matchType: value.matchType === "exact" ? "exact" : "partial",
-    fetchedAt: asNumber(value.fetchedAt),
-    lastSuccessAt: asNumber(value.lastSuccessAt),
-    error: asString(value.error) || undefined,
-  };
-};
-
 export const rowsToSnapshot = (rows: {
   wall: WallRow;
   notes: NoteRow[];
@@ -399,11 +343,7 @@ export const rowsToSnapshot = (rows: {
         note.note_kind === "canon" ||
         note.note_kind === "journal" ||
         note.note_kind === "eisenhower" ||
-        note.note_kind === "joker" ||
-        note.note_kind === "throne" ||
         note.note_kind === "web-bookmark" ||
-        note.note_kind === "apod" ||
-        note.note_kind === "poetry" ||
         note.note_kind === "image" ||
         note.note_kind === "file" ||
         note.note_kind === "audio" ||
@@ -433,11 +373,9 @@ export const rowsToSnapshot = (rows: {
           canon: parseCanon(note.canon),
           eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(note.eisenhower, fromIso(note.created_at)) : undefined,
           bookmark: noteKind === "web-bookmark" ? parseBookmark(note.bookmark) : undefined,
-          apod: noteKind === "apod" ? parseApod(note.apod) : undefined,
           file: noteKind === "file" || noteKind === "image" ? normalizeFileNote(note.file) : undefined,
           audio: noteKind === "audio" ? normalizeAudioNote(note.file) : undefined,
           video: noteKind === "video" ? normalizeVideoNote(note.file) : undefined,
-          poetry: noteKind === "poetry" ? parsePoetry(note.poetry) : undefined,
           tags: Array.isArray(note.tags) ? (note.tags as string[]) : [],
           x: note.x,
           y: note.y,

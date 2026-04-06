@@ -4,7 +4,7 @@ import { useEffect, useRef, type MutableRefObject } from "react";
 
 import { useWallStore } from "@/features/wall/store";
 import type { Note } from "@/features/wall/types";
-import { JOKER_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/joker";
+import { sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 
 type Camera = { x: number; y: number; zoom: number };
@@ -57,8 +57,6 @@ type WallKeyboardOptions = {
   createCanonNote: () => void;
   createJournalNote: () => void;
   createQuoteNote: () => void;
-  createApodNote: () => void;
-  createPoetryNote: () => void;
   createEisenhowerNote: () => void;
   createWordNote: () => void;
   openEditor: (noteId: string, text: string, focusField?: string) => void;
@@ -121,8 +119,6 @@ export const useWallKeyboard = ({
   createCanonNote,
   createJournalNote,
   createQuoteNote,
-  createApodNote,
-  createPoetryNote,
   createEisenhowerNote,
   createWordNote,
   openEditor,
@@ -166,7 +162,7 @@ export const useWallKeyboard = ({
 
       for (const noteId of targetIds) {
         const note = notesMap[noteId];
-        patchNote(noteId, { color: note?.noteKind === "joker" ? JOKER_NOTE_COLOR : safeColor });
+        patchNote(noteId, { color: safeColor });
       }
       setLastColor(safeColor);
     };
@@ -351,7 +347,7 @@ export const useWallKeyboard = ({
         const createdNote = useWallStore.getState().notes[createdId];
         setSelectedNoteIds([createdId]);
         selectNote(createdId);
-        if (createdNote?.noteKind !== "joker") {
+        if (createdNote) {
           openEditor(createdId, createdNote?.text ?? "");
         }
         return;
@@ -372,18 +368,6 @@ export const useWallKeyboard = ({
       if (!ctrlOrMeta && event.shiftKey && key === "e") {
         event.preventDefault();
         createEisenhowerNote();
-        return;
-      }
-
-      if (!ctrlOrMeta && event.shiftKey && key === "a") {
-        event.preventDefault();
-        createApodNote();
-        return;
-      }
-
-      if (!ctrlOrMeta && event.shiftKey && key === "p") {
-        event.preventDefault();
-        createPoetryNote();
         return;
       }
 
@@ -554,8 +538,6 @@ export const useWallKeyboard = ({
     createCanonNote,
     createJournalNote,
     createQuoteNote,
-    createApodNote,
-    createPoetryNote,
     createEisenhowerNote,
     createWordNote,
     deleteGroup,
