@@ -70,33 +70,6 @@ export type EisenhowerNote = {
   quadrants: Record<EisenhowerQuadrantKey, EisenhowerQuadrant>;
 };
 
-export type CurrencyNoteStatus = "idle" | "locating" | "loading" | "ready" | "error";
-
-export type CurrencyNoteRateSource = "live" | "cache" | "default";
-
-export type CurrencyNoteDetectionSource = "geolocation" | "ip" | "manual" | "default";
-
-export type CurrencyNoteTrend = "up" | "down" | "flat";
-
-export type CurrencyNote = {
-  status: CurrencyNoteStatus;
-  detectedCountryCode?: string;
-  detectedCountryName?: string;
-  detectedCurrency?: string;
-  baseCurrency: string;
-  baseCurrencyMode: "auto" | "manual";
-  manualBaseCurrency?: string;
-  amountInput: string;
-  usdRate: number;
-  previousUsdRate?: number;
-  thousandValueUsd: number;
-  rateUpdatedAt?: number;
-  rateSource: CurrencyNoteRateSource;
-  detectionSource: CurrencyNoteDetectionSource;
-  trend: CurrencyNoteTrend;
-  error?: string;
-};
-
 export type WebBookmarkPreviewStatus = "idle" | "loading" | "ready" | "error";
 
 export type WebBookmarkKind = "article" | "video" | "repo" | "docs" | "product" | "post" | "paper" | "website";
@@ -163,19 +136,6 @@ export type PoetryNote = {
   error?: string;
 };
 
-export type EconomistNote = {
-  status: "idle" | "loading" | "ready" | "error";
-  year?: string;
-  sourceId?: string;
-  sourceUrl?: string;
-  coverUrl?: string;
-  issueDate?: string;
-  mainStory?: string;
-  fetchedAt?: number;
-  lastSuccessAt?: number;
-  error?: string;
-};
-
 export type FileNoteSource = "upload" | "link";
 
 export type FileNote = {
@@ -209,18 +169,16 @@ export type PrivateNoteData = {
 export type Note = {
   id: string;
   revision?: number;
-  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "currency" | "web-bookmark" | "apod" | "poetry" | "economist" | "image" | "file" | "audio" | "video";
+  noteKind?: "standard" | "quote" | "canon" | "journal" | "eisenhower" | "joker" | "throne" | "web-bookmark" | "apod" | "poetry" | "image" | "file" | "audio" | "video";
   text: string;
   quoteAuthor?: string;
   quoteSource?: string;
   privateNote?: PrivateNoteData;
   canon?: CanonNote;
   eisenhower?: EisenhowerNote;
-  currency?: CurrencyNote;
   bookmark?: WebBookmarkNote;
   apod?: ApodNote;
   poetry?: PoetryNote;
-  economist?: EconomistNote;
   file?: FileNote;
   audio?: AudioNote;
   video?: VideoNote;

@@ -31,8 +31,7 @@ const isMissingNoteFormattingColumnError = (message?: string) =>
         message.includes("column notes.private_note does not exist") ||
         message.includes("column notes.canon does not exist") ||
         message.includes("column notes.eisenhower does not exist") ||
-        message.includes("column notes.currency does not exist") ||
-        message.includes("column notes.bookmark does not exist") ||
+    message.includes("column notes.bookmark does not exist") ||
         message.includes("column notes.apod does not exist") ||
         message.includes("column notes.poetry does not exist") ||
         message.includes("column notes.file does not exist") ||
@@ -203,9 +202,9 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
   }
 
   const notesSelectWithFormatting =
-    "id,revision,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
+    "id,revision,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,vocabulary,canon,eisenhower,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
   const notesSelectWithoutVocabulary =
-    "id,revision,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,currency,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
+    "id,revision,note_kind,text,quote_author,quote_source,private_note,image_url,text_align,text_v_align,text_font,text_color,pinned,highlighted,canon,eisenhower,bookmark,apod,poetry,file,tags,text_size,x,y,w,h,color,created_at,updated_at";
   const notesSelectLegacy = "id,text,tags,text_size,x,y,w,h,color,created_at,updated_at,revision";
   const zonesSelectWithKind = "id,revision,label,kind,group_id,x,y,w,h,color,created_at,updated_at";
   const zonesSelectLegacy = "id,revision,label,group_id,x,y,w,h,color,created_at,updated_at";
@@ -274,7 +273,6 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
           vocabulary: null,
           canon: null,
           eisenhower: null,
-          currency: null,
           bookmark: null,
           apod: null,
           poetry: null,
@@ -331,7 +329,6 @@ export async function GET(_: Request, context: { params: Promise<{ wallId: strin
         vocabulary: null,
         canon: null,
         eisenhower: null,
-        currency: null,
         bookmark: null,
         apod: null,
           poetry: null,

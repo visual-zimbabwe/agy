@@ -7,7 +7,6 @@ export type PrivateNoteHiddenFields = {
   quoteSource?: string;
   canon?: Note["canon"];
   eisenhower?: Note["eisenhower"];
-  currency?: Note["currency"];
   bookmark?: Note["bookmark"];
   apod?: Note["apod"];
   poetry?: Note["poetry"];
@@ -81,7 +80,6 @@ const normalizePrivateNoteHiddenFields = (value: unknown): PrivateNoteHiddenFiel
     quoteSource: typeof raw.quoteSource === "string" ? raw.quoteSource : undefined,
     canon: raw.canon,
     eisenhower: raw.eisenhower,
-    currency: raw.currency,
     bookmark: raw.bookmark,
     apod: raw.apod,
     poetry: raw.poetry,
@@ -133,7 +131,7 @@ export const isPrivateNote = (note?: Pick<Note, "privateNote"> | null): note is 
 export const canProtectNote = (note?: Pick<Note, "id"> | null) => Boolean(note);
 
 export const createPrivateNoteHiddenFields = (
-  note: Pick<Note, "noteKind" | "text" | "quoteAuthor" | "quoteSource" | "canon" | "eisenhower" | "currency" | "bookmark" | "apod" | "poetry" | "file" | "audio" | "video" | "imageUrl" | "tags" | "vocabulary">,
+  note: Pick<Note, "noteKind" | "text" | "quoteAuthor" | "quoteSource" | "canon" | "eisenhower" | "bookmark" | "apod" | "poetry" | "file" | "audio" | "video" | "imageUrl" | "tags" | "vocabulary">,
 ): PrivateNoteHiddenFields => ({
   noteKind: note.noteKind,
   text: note.text,
@@ -141,7 +139,6 @@ export const createPrivateNoteHiddenFields = (
   quoteSource: note.quoteSource,
   canon: note.canon,
   eisenhower: note.eisenhower,
-  currency: note.currency,
   bookmark: note.bookmark,
   apod: note.apod,
   poetry: note.poetry,
@@ -155,14 +152,13 @@ export const createPrivateNoteHiddenFields = (
 
 export const createPrivateNoteShellPatch = (
   note: Pick<Note, "noteKind">,
-): Pick<Note, "noteKind" | "text" | "quoteAuthor" | "quoteSource" | "canon" | "eisenhower" | "currency" | "bookmark" | "apod" | "poetry" | "file" | "audio" | "video" | "imageUrl" | "tags" | "vocabulary"> => ({
+): Pick<Note, "noteKind" | "text" | "quoteAuthor" | "quoteSource" | "canon" | "eisenhower" | "bookmark" | "apod" | "poetry" | "file" | "audio" | "video" | "imageUrl" | "tags" | "vocabulary"> => ({
   noteKind: note.noteKind,
   text: "",
   quoteAuthor: undefined,
   quoteSource: undefined,
   canon: undefined,
   eisenhower: undefined,
-  currency: undefined,
   bookmark: undefined,
   apod: undefined,
   poetry: undefined,
@@ -181,7 +177,6 @@ export const canInlineEditPrivateNote = (hidden: PrivateNoteHiddenFields) => {
     !hidden.vocabulary &&
     !hidden.canon &&
     !hidden.eisenhower &&
-    !hidden.currency &&
     !hidden.bookmark &&
     !hidden.apod &&
     !hidden.poetry &&

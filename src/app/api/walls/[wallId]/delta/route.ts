@@ -181,7 +181,6 @@ export async function POST(request: Request, context: { params: Promise<{ wallId
             private_note: note.privateNote ?? null,
             canon: note.canon ?? null,
             eisenhower: note.eisenhower ?? null,
-            currency: note.currency ?? null,
             bookmark: note.bookmark ?? null,
             apod: note.apod ?? null,
             poetry: note.poetry ?? null,

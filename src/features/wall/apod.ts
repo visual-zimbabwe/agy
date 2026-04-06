@@ -34,7 +34,6 @@ export const buildApodNote = (id: string, x: number, y: number, existing?: Note)
     quoteSource: undefined,
     canon: undefined,
     eisenhower: undefined,
-    currency: undefined,
     bookmark: undefined,
     apod: defaultApodNoteState(existing?.apod),
     imageUrl: existing?.imageUrl ?? existing?.apod?.imageUrl ?? existing?.apod?.fallbackImageUrl,

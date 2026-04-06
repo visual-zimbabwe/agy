@@ -57,15 +57,6 @@ export const THRONE_NOTE_DEFAULTS = {
   textSizePx: 17,
 };
 
-export const CURRENCY_NOTE_DEFAULTS = {
-  color: "#4B3F72",
-  width: 332,
-  height: 224,
-  textColor: "#F8F7FF",
-  textFont: "work_sans" as const,
-  textSizePx: 15,
-};
-
 export const POETRY_NOTE_DEFAULTS = {
   color: "#B73A3A",
   width: 320,

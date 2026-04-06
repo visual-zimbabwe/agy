@@ -3,9 +3,8 @@ import { buildBookmarkFallbackMetadata, normalizeBookmarkUrl } from "@/features/
 import { normalizeAudioNote } from "@/features/wall/audio-notes";
 import { normalizeFileNote } from "@/features/wall/file-notes";
 import { normalizeVideoNote } from "@/features/wall/video-notes";
-import { defaultCurrencyNoteState, inferCurrencyTrend } from "@/features/wall/currency";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import type { ApodNote, CanonNote, CurrencyNote, Link, Note, NoteGroup, PersistedWallState, PrivateNoteData, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
+import type { ApodNote, CanonNote, Link, Note, NoteGroup, PersistedWallState, PrivateNoteData, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -71,42 +70,6 @@ const normalizeCanon = (value: unknown): CanonNote | undefined => {
     example: asString(value.example),
     source: asString(value.source),
     items: items.length > 0 ? items : [{ id: Math.random().toString(36).slice(2, 11), title: "", text: "", interpretation: "" }],
-  };
-};
-
-const normalizeCurrency = (value: unknown): CurrencyNote | undefined => {
-  if (!isRecord(value)) {
-    return undefined;
-  }
-
-  const defaults = defaultCurrencyNoteState();
-  const usdRate = Math.max(0, asNumber(value.usdRate, defaults.usdRate));
-  const previousUsdRate = typeof value.previousUsdRate === "number" ? Math.max(0, asNumber(value.previousUsdRate)) : undefined;
-  const inferredTrend = inferCurrencyTrend(usdRate, previousUsdRate);
-
-  return {
-    status:
-      value.status === "idle" || value.status === "locating" || value.status === "loading" || value.status === "ready" || value.status === "error"
-        ? value.status
-        : defaults.status,
-    detectedCountryCode: asString(value.detectedCountryCode).toUpperCase() || undefined,
-    detectedCountryName: asString(value.detectedCountryName) || undefined,
-    detectedCurrency: asString(value.detectedCurrency).toUpperCase() || undefined,
-    baseCurrency: asString(value.baseCurrency, defaults.baseCurrency).toUpperCase() || defaults.baseCurrency,
-    baseCurrencyMode: value.baseCurrencyMode === "manual" ? "manual" : "auto",
-    manualBaseCurrency: asString(value.manualBaseCurrency).toUpperCase() || undefined,
-    amountInput: asString(value.amountInput, defaults.amountInput),
-    usdRate,
-    previousUsdRate,
-    thousandValueUsd: Math.max(0, asNumber(value.thousandValueUsd, usdRate * 1000)),
-    rateUpdatedAt: typeof value.rateUpdatedAt === "number" ? asNumber(value.rateUpdatedAt) : undefined,
-    rateSource: value.rateSource === "live" || value.rateSource === "cache" || value.rateSource === "default" ? value.rateSource : defaults.rateSource,
-    detectionSource:
-      value.detectionSource === "geolocation" || value.detectionSource === "ip" || value.detectionSource === "manual" || value.detectionSource === "default"
-        ? value.detectionSource
-        : defaults.detectionSource,
-    trend: value.trend === "up" || value.trend === "down" || value.trend === "flat" ? value.trend : inferredTrend,
-    error: asString(value.error) || undefined,
   };
 };
 
@@ -294,11 +257,9 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     entry.noteKind === "eisenhower" ||
     entry.noteKind === "joker" ||
     entry.noteKind === "throne" ||
-    entry.noteKind === "currency" ||
     entry.noteKind === "web-bookmark" ||
     entry.noteKind === "apod" ||
     entry.noteKind === "poetry" ||
-    entry.noteKind === "economist" ||
     entry.noteKind === "image" ||
     entry.noteKind === "file" ||
     entry.noteKind === "audio" ||
@@ -314,7 +275,6 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     privateNote: normalizePrivateNote(entry.privateNote),
     canon: normalizeCanon(entry.canon),
     eisenhower: noteKind === "eisenhower" ? normalizeEisenhowerNote(entry.eisenhower, asNumber(entry.createdAt, Date.now())) : undefined,
-    currency: noteKind === "currency" ? normalizeCurrency(entry.currency) : undefined,
     bookmark: noteKind === "web-bookmark" ? normalizeBookmark(entry.bookmark) : undefined,
     apod: noteKind === "apod" ? normalizeApod(entry.apod) : undefined,
     file: noteKind === "file" || noteKind === "image" ? normalizeFileNote(entry.file) : undefined,
