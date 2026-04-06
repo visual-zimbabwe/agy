@@ -8,6 +8,23 @@ export type WallSyncRequest = {
   snapshot: PersistedWallState;
 };
 
+export const createSkippedRemoteSnapshotTracker = () => {
+  const pendingSerializedSnapshots = new Set<string>();
+
+  return {
+    remember: (serializedSnapshot: string) => {
+      pendingSerializedSnapshots.add(serializedSnapshot);
+    },
+    consume: (serializedSnapshot: string) => {
+      if (!pendingSerializedSnapshots.has(serializedSnapshot)) {
+        return false;
+      }
+      pendingSerializedSnapshots.delete(serializedSnapshot);
+      return true;
+    },
+  };
+};
+
 export const shouldRejectWallSync = (expectedWallUpdatedAt?: string, currentWallUpdatedAt?: string | null) =>
   Boolean(expectedWallUpdatedAt && currentWallUpdatedAt && expectedWallUpdatedAt !== currentWallUpdatedAt);
 

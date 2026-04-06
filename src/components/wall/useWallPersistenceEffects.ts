@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject, t
 import { hasContent, hasMeaningfulContent, mergeSnapshotsLww } from "@/features/wall/cloud";
 import { loadWallBootstrap, loadWallDelta, loadWallShell } from "@/features/wall/cloud-delta";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
-import { applyWallDeltaChanges } from "@/features/wall/sync";
+import { applyWallDeltaChanges, createSkippedRemoteSnapshotTracker } from "@/features/wall/sync";
 import { mergeWallWindowIntoSnapshot } from "@/features/wall/windowing";
 import {
   createSnapshotSaver,
@@ -93,7 +93,7 @@ export const useWallPersistenceEffects = ({
   getViewportWindowBounds,
 }: UseWallPersistenceEffectsOptions) => {
   const lastPersistedSerializedRef = useRef("");
-  const skippedRemoteSerializedRef = useRef<string | null>(null);
+  const skippedRemoteSnapshotsRef = useRef(createSkippedRemoteSnapshotTracker());
   const persistenceReadyRef = useRef(false);
   const inMemoryTimelineLimit = 120;
 
@@ -295,7 +295,7 @@ export const useWallPersistenceEffects = ({
 
           const mergedLocalSnapshot = mergeSnapshotsLww(fullLocalSnapshot, selectPersistedSnapshot(useWallStore.getState()));
           const mergedSerialized = JSON.stringify(mergedLocalSnapshot);
-          skippedRemoteSerializedRef.current = mergedSerialized;
+          skippedRemoteSnapshotsRef.current.remember(mergedSerialized);
           lastPersistedSerializedRef.current = mergedSerialized;
           persistenceReadyRef.current = true;
           saver.markCommittedSnapshot(mergedLocalSnapshot);
@@ -440,6 +440,7 @@ export const useWallPersistenceEffects = ({
         });
 
         if (!cancelled) {
+          skippedRemoteSnapshotsRef.current.remember(JSON.stringify(nextSnapshot));
           persistenceReadyRef.current = true;
           hydrate(nextSnapshot);
           cloudReadyRef.current = true;
@@ -468,15 +469,14 @@ export const useWallPersistenceEffects = ({
 
       const snapshot = selectPersistedSnapshot(state);
       const serialized = JSON.stringify(snapshot);
-        if (serialized === skippedRemoteSerializedRef.current) {
-          skippedRemoteSerializedRef.current = null;
-          lastPersistedSerializedRef.current = serialized;
-          if (persistenceReadyRef.current) {
-            saver.markCommittedSnapshot(snapshot);
-            timelineRecorder.markCommittedSnapshot(snapshot);
-          }
-          return;
+      if (skippedRemoteSnapshotsRef.current.consume(serialized)) {
+        lastPersistedSerializedRef.current = serialized;
+        if (persistenceReadyRef.current) {
+          saver.markCommittedSnapshot(snapshot);
+          timelineRecorder.markCommittedSnapshot(snapshot);
         }
+        return;
+      }
       if (!persistenceReadyRef.current) {
         lastPersistedSerializedRef.current = serialized;
         return;
@@ -539,7 +539,7 @@ export const useWallPersistenceEffects = ({
     (snapshot: PersistedWallState, options?: { syncVersion?: number; updatedAt?: string | null }) => {
       const state = useWallStore.getState();
       const nextSnapshot = mergeWallWindowIntoSnapshot(selectPersistedSnapshot(state), snapshot);
-      skippedRemoteSerializedRef.current = JSON.stringify(nextSnapshot);
+      skippedRemoteSnapshotsRef.current.remember(JSON.stringify(nextSnapshot));
       state.mergeHydratedSnapshot(snapshot, { updateCamera: false });
       if (typeof options?.syncVersion === "number") {
         setCloudSyncVersion(options.syncVersion);
