@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 
-import { WallRenderedNote } from "@/components/wall/WallRenderedNote";
+import { WallNotePreview } from "@/components/wall/WallNotePreview";
 import { resolveWallPreviewDimensions } from "@/components/wall/wallNotePreviewSizing";
 import { formatTimelineDateTime } from "@/components/wall/wallTimelineViewHelpers";
 import type { Note } from "@/features/wall/types";
@@ -44,8 +44,6 @@ const shellStyles = {
   shadow: "0 18px 42px rgba(28, 28, 25, 0.08)",
 };
 
-const desktopColumnWidth = 520;
-const mobileColumnWidth = 320;
 
 const dayKey = (timestamp: number) => {
   const date = new Date(timestamp);
@@ -232,7 +230,7 @@ export const WallTimelineView = ({
                       return (
                         <div key={entry.id} className="flex justify-center px-4">
                           <div className="max-w-full text-center">
-                            <WallRenderedNote note={entry.note} width={entry.mobile.width} height={entry.mobile.height} showNoteTags={false} />
+                            <WallNotePreview note={entry.note} width={entry.mobile.width} height={entry.mobile.height} scale="large" />
                             {commonTimeLabel}
                           </div>
                         </div>
@@ -244,10 +242,10 @@ export const WallTimelineView = ({
                         <div className={`flex ${entry.side === "left" ? "justify-end text-right" : "justify-start md:col-start-3"}`}>
                           <div className={`flex max-w-full flex-col ${entry.side === "left" ? "items-end text-right" : "items-start text-left"}`}>
                             <div className="md:hidden">
-                              <WallRenderedNote note={entry.note} width={entry.mobile.width} height={entry.mobile.height} showNoteTags={false} />
+                              <WallNotePreview note={entry.note} width={entry.mobile.width} height={entry.mobile.height} scale="large" />
                             </div>
                             <div className="hidden md:block">
-                              <WallRenderedNote note={entry.note} width={entry.desktop.width} height={entry.desktop.height} showNoteTags={false} />
+                              <WallNotePreview note={entry.note} width={entry.desktop.width} height={entry.desktop.height} scale="large" />
                             </div>
                             {commonTimeLabel}
                           </div>

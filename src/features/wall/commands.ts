@@ -69,38 +69,40 @@ const createStandardNote = (x: number, y: number, color?: string) => {
 
 export const createNote = (x: number, y: number, color?: string) => createStandardNote(x, y, color);
 
-export const createQuoteNote = (x: number, y: number, color?: string) => {
-  const noteId = createNote(x, y, color);
-  useWallStore.getState().patchNote(noteId, {
-    noteKind: "quote",
-    text: "",
-    quoteAuthor: "",
-    quoteSource: "",
-    vocabulary: undefined,
+export const createQuoteNote = (x: number, y: number, color?: string) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, color);
+    useWallStore.getState().patchNote(noteId, {
+      noteKind: "quote",
+      text: "",
+      quoteAuthor: "",
+      quoteSource: "",
+      vocabulary: undefined,
+    });
+    return noteId;
   });
-  return noteId;
-};
 
-export const createCanonNote = (x: number, y: number, color?: string) => {
-  const noteId = createNote(x, y, color);
-  useWallStore.getState().patchNote(noteId, {
-    noteKind: "canon",
-    text: "",
-    quoteAuthor: undefined,
-    quoteSource: undefined,
-    vocabulary: undefined,
-    canon: {
-      mode: "single",
-      title: "",
-      statement: "",
-      interpretation: "",
-      example: "",
-      source: "",
-      items: [{ id: makeId(), title: "", text: "", interpretation: "" }],
-    },
+export const createCanonNote = (x: number, y: number, color?: string) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, color);
+    useWallStore.getState().patchNote(noteId, {
+      noteKind: "canon",
+      text: "",
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      vocabulary: undefined,
+      canon: {
+        mode: "single",
+        title: "",
+        statement: "",
+        interpretation: "",
+        example: "",
+        source: "",
+        items: [{ id: makeId(), title: "", text: "", interpretation: "" }],
+      },
+    });
+    return noteId;
   });
-  return noteId;
-};
 
 const defaultJournalText = () =>
   [
@@ -109,95 +111,125 @@ const defaultJournalText = () =>
     "The artifacts we keep define the space we inhabit.",
   ].join("\n");
 
-export const createJournalNote = (x: number, y: number) => {
-  const noteId = createNote(x, y, JOURNAL_NOTE_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, {
-    noteKind: "journal",
-    text: defaultJournalText(),
-    quoteAuthor: undefined,
-    quoteSource: undefined,
-    vocabulary: undefined,
-    canon: undefined,
-    eisenhower: undefined,
-    textFont: JOURNAL_NOTE_DEFAULTS.textFont,
-    textColor: JOURNAL_NOTE_DEFAULTS.textColor,
-    textSizePx: JOURNAL_NOTE_DEFAULTS.textSizePx,
-    w: JOURNAL_NOTE_DEFAULTS.width,
-    h: JOURNAL_NOTE_DEFAULTS.height,
-    color: JOURNAL_NOTE_DEFAULTS.color,
-    tags: ["journal"],
+export const createJournalNote = (x: number, y: number) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, JOURNAL_NOTE_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, {
+      noteKind: "journal",
+      text: defaultJournalText(),
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      vocabulary: undefined,
+      canon: undefined,
+      eisenhower: undefined,
+      textFont: JOURNAL_NOTE_DEFAULTS.textFont,
+      textColor: JOURNAL_NOTE_DEFAULTS.textColor,
+      textSizePx: JOURNAL_NOTE_DEFAULTS.textSizePx,
+      w: JOURNAL_NOTE_DEFAULTS.width,
+      h: JOURNAL_NOTE_DEFAULTS.height,
+      color: JOURNAL_NOTE_DEFAULTS.color,
+      tags: ["journal"],
+    });
+    return noteId;
   });
-  return noteId;
-};
 
-export const createEisenhowerNote = (x: number, y: number) => {
-  const noteId = createNote(x, y, EISENHOWER_NOTE_DEFAULTS.color);
-  const now = Date.now();
-  useWallStore.getState().patchNote(noteId, {
-    noteKind: "eisenhower",
-    text: "",
-    quoteAuthor: undefined,
-    quoteSource: undefined,
-    vocabulary: undefined,
-    canon: undefined,
-    eisenhower: createEisenhowerNotePayload(now),
-    textFont: EISENHOWER_NOTE_DEFAULTS.textFont,
-    textColor: EISENHOWER_NOTE_DEFAULTS.textColor,
-    textSizePx: EISENHOWER_NOTE_DEFAULTS.textSizePx,
-    w: EISENHOWER_NOTE_DEFAULTS.width,
-    h: EISENHOWER_NOTE_DEFAULTS.height,
-    color: EISENHOWER_NOTE_DEFAULTS.color,
-    tags: ["matrix", "priority"],
-    createdAt: now,
+export const createEisenhowerNote = (x: number, y: number) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, EISENHOWER_NOTE_DEFAULTS.color);
+    const now = Date.now();
+    useWallStore.getState().patchNote(noteId, {
+      noteKind: "eisenhower",
+      text: "",
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      vocabulary: undefined,
+      canon: undefined,
+      eisenhower: createEisenhowerNotePayload(now),
+      textFont: EISENHOWER_NOTE_DEFAULTS.textFont,
+      textColor: EISENHOWER_NOTE_DEFAULTS.textColor,
+      textSizePx: EISENHOWER_NOTE_DEFAULTS.textSizePx,
+      w: EISENHOWER_NOTE_DEFAULTS.width,
+      h: EISENHOWER_NOTE_DEFAULTS.height,
+      color: EISENHOWER_NOTE_DEFAULTS.color,
+      tags: ["matrix", "priority"],
+      createdAt: now,
+    });
+    return noteId;
   });
-  return noteId;
-};
 
-export const createWebBookmarkNote = (x: number, y: number, url = "") => {
-  const noteId = createNote(x, y, WEB_BOOKMARK_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, {
-    noteKind: "web-bookmark",
-    text: "",
-    quoteAuthor: undefined,
-    quoteSource: undefined,
-    vocabulary: undefined,
-    canon: undefined,
-    eisenhower: undefined,
+export const createWebBookmarkNote = (x: number, y: number, url = "") =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, WEB_BOOKMARK_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, {
+      noteKind: "web-bookmark",
+      text: "",
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      vocabulary: undefined,
+      canon: undefined,
+      eisenhower: undefined,
       imageUrl: undefined,
-    bookmark: createBookmarkNoteState(url),
-    textFont: WEB_BOOKMARK_DEFAULTS.textFont,
-    textColor: WEB_BOOKMARK_DEFAULTS.textColor,
-    textSizePx: WEB_BOOKMARK_DEFAULTS.textSizePx,
-    w: WEB_BOOKMARK_DEFAULTS.width,
-    h: WEB_BOOKMARK_DEFAULTS.height,
-    color: WEB_BOOKMARK_DEFAULTS.color,
-    tags: ["bookmark", "link"],
+      bookmark: createBookmarkNoteState(url),
+      textFont: WEB_BOOKMARK_DEFAULTS.textFont,
+      textColor: WEB_BOOKMARK_DEFAULTS.textColor,
+      textSizePx: WEB_BOOKMARK_DEFAULTS.textSizePx,
+      w: WEB_BOOKMARK_DEFAULTS.width,
+      h: WEB_BOOKMARK_DEFAULTS.height,
+      color: WEB_BOOKMARK_DEFAULTS.color,
+      tags: ["bookmark", "link"],
+    });
+    return noteId;
   });
-  return noteId;
+
+export const createImageNote = (x: number, y: number, payload?: Partial<Note["file"]>, caption = "") =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, IMAGE_NOTE_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, toImageNotePatch(createImageNoteState(payload), { caption }));
+    return noteId;
+  });
+
+export const createFileNote = (x: number, y: number, payload?: Partial<Note["file"]>) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, FILE_NOTE_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, toFileNotePatch(createFileNoteState(payload)));
+    return noteId;
+  });
+
+export const createAudioNote = (x: number, y: number, payload?: Partial<Note["audio"]>) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, AUDIO_NOTE_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, toAudioNotePatch(createAudioNoteState(payload)));
+    return noteId;
+  });
+
+export const createVideoNote = (x: number, y: number, payload?: Partial<Note["video"]>) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, VIDEO_NOTE_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, toVideoNotePatch(createVideoNoteState(payload)));
+    return noteId;
+  });
+
+/** Delete multiple notes atomically as a single undo step. */
+export const bulkDeleteNotes = (noteIds: string[]) => {
+  if (noteIds.length === 0) return;
+  withHistoryGroup(() => {
+    const { removeNote } = useWallStore.getState();
+    for (const id of noteIds) {
+      removeNote(id);
+    }
+  });
 };
 
-export const createImageNote = (x: number, y: number, payload?: Partial<Note["file"]>, caption = "") => {
-  const noteId = createNote(x, y, IMAGE_NOTE_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, toImageNotePatch(createImageNoteState(payload), { caption }));
-  return noteId;
-};
-
-export const createFileNote = (x: number, y: number, payload?: Partial<Note["file"]>) => {
-  const noteId = createNote(x, y, FILE_NOTE_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, toFileNotePatch(createFileNoteState(payload)));
-  return noteId;
-};
-
-export const createAudioNote = (x: number, y: number, payload?: Partial<Note["audio"]>) => {
-  const noteId = createNote(x, y, AUDIO_NOTE_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, toAudioNotePatch(createAudioNoteState(payload)));
-  return noteId;
-};
-
-export const createVideoNote = (x: number, y: number, payload?: Partial<Note["video"]>) => {
-  const noteId = createNote(x, y, VIDEO_NOTE_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, toVideoNotePatch(createVideoNoteState(payload)));
-  return noteId;
+/** Recolor multiple notes atomically as a single undo step. */
+export const bulkRecolorNotes = (noteIds: string[], color: string) => {
+  if (noteIds.length === 0) return;
+  withHistoryGroup(() => {
+    const { patchNote, setLastColor } = useWallStore.getState();
+    for (const id of noteIds) {
+      patchNote(id, { color });
+    }
+    setLastColor(color);
+  });
 };
 
 export const updateNote = (noteId: string, patch: Partial<Note>) => {
