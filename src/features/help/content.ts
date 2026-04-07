@@ -127,7 +127,7 @@ export const helpArticles: HelpArticle[] = [
       {
         title: "Create from the wall",
         bullets: [
-          "Use the tools panel for explicit note types such as note, quote, canon, image, file, poetry, or bookmark.",
+          "Use the tools panel for explicit note types such as note, quote, canon, image, file, or bookmark.",
           "Use keyboard shortcuts when you already know the note type you want.",
           "Use quick capture when you want to turn several short lines into notes in one pass.",
         ],

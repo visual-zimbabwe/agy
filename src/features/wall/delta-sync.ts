@@ -47,25 +47,6 @@ const eisenhowerSchema = z.object({
   }),
 });
 
-const currencySchema = z.object({
-  status: z.enum(["idle", "locating", "loading", "ready", "error"]),
-  detectedCountryCode: z.string().optional(),
-  detectedCountryName: z.string().optional(),
-  detectedCurrency: z.string().optional(),
-  baseCurrency: z.string(),
-  baseCurrencyMode: z.enum(["auto", "manual"]),
-  manualBaseCurrency: z.string().optional(),
-  amountInput: z.string(),
-  usdRate: z.number(),
-  previousUsdRate: z.number().optional(),
-  thousandValueUsd: z.number(),
-  rateUpdatedAt: z.number().optional(),
-  rateSource: z.enum(["live", "cache", "default"]),
-  detectionSource: z.enum(["geolocation", "ip", "manual", "default"]),
-  trend: z.enum(["up", "down", "flat"]),
-  error: z.string().optional(),
-});
-
 const bookmarkMetadataSchema = z.object({
   url: z.string(),
   finalUrl: z.string(),
@@ -89,21 +70,6 @@ const bookmarkSchema = z.object({
   error: z.string().optional(),
 });
 
-const apodSchema = z.object({
-  status: z.enum(["idle", "loading", "ready", "error"]),
-  date: z.string().optional(),
-  title: z.string().optional(),
-  explanation: z.string().optional(),
-  copyright: z.string().optional(),
-  mediaType: z.enum(["image", "video", "other"]).optional(),
-  imageUrl: z.string().optional(),
-  fallbackImageUrl: z.string().optional(),
-  pageUrl: z.string().optional(),
-  fetchedAt: z.number().optional(),
-  lastSuccessAt: z.number().optional(),
-  error: z.string().optional(),
-});
-
 const privateNoteSchema = z.object({
   version: z.literal(1),
   salt: z.string(),
@@ -111,22 +77,6 @@ const privateNoteSchema = z.object({
   ciphertext: z.string(),
   protectedAt: z.number(),
   updatedAt: z.number(),
-});
-
-const poetrySchema = z.object({
-  status: z.enum(["idle", "loading", "ready", "error"]),
-  dateKey: z.string().optional(),
-  title: z.string().optional(),
-  author: z.string().optional(),
-  lines: z.array(z.string()),
-  lineCount: z.number().optional(),
-  sourceUrl: z.string().optional(),
-  searchField: z.enum(["random", "author", "title", "lines", "linecount"]).optional(),
-  searchQuery: z.string().optional(),
-  matchType: z.enum(["partial", "exact"]).optional(),
-  fetchedAt: z.number().optional(),
-  lastSuccessAt: z.number().optional(),
-  error: z.string().optional(),
 });
 
 const fileSchema = z.object({
@@ -155,7 +105,7 @@ const baseEntitySchema = z.object({
 });
 
 export const deltaNoteSchema = baseEntitySchema.extend({
-  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "joker", "throne", "currency", "web-bookmark", "apod", "poetry", "economist", "image", "file", "audio", "video"]).optional(),
+  noteKind: z.enum(["standard", "quote", "canon", "journal", "eisenhower", "web-bookmark", "image", "file", "audio", "video"]).optional(),
   text: z.string(),
   quoteAuthor: z.string().optional(),
   quoteSource: z.string().optional(),
@@ -180,10 +130,7 @@ export const deltaNoteSchema = baseEntitySchema.extend({
   vocabulary: vocabularySchema.optional(),
   canon: canonSchema.optional(),
   eisenhower: eisenhowerSchema.optional(),
-  currency: currencySchema.optional(),
   bookmark: bookmarkSchema.optional(),
-  apod: apodSchema.optional(),
-  poetry: poetrySchema.optional(),
   file: fileSchema.optional(),
   audio: audioSchema.optional(),
   video: videoSchema.optional(),

@@ -22,8 +22,6 @@ type WallDetailsSidebarProps = {
   selectedNote?: Note;
   selectedNotePageReference?: { docId: string; blockId: string };
   selectedNotePageConversion?: { docId: string };
-  hasJokerNote: boolean;
-  hasThroneNote: boolean;
   selectedNoteId?: string;
   selectedNoteIdsCount: number;
   displayedTags: string[];
@@ -48,10 +46,6 @@ type WallDetailsSidebarProps = {
   onTogglePinSelectedNote: (noteId: string) => void;
   onToggleHighlightSelectedNote: (noteId: string) => void;
   onToggleFocusSelectedNote: (noteId: string) => void;
-  onToggleOrRefreshJokerSelectedNote: (noteId: string) => void;
-  onToggleOrRefreshThroneSelectedNote: (noteId: string) => void;
-  onRefreshPoetrySelectedNote: (noteId: string, options?: { force?: boolean; field?: import("@/features/wall/types").PoetrySearchField; query?: string; matchType?: import("@/features/wall/types").PoetrySearchMatchType }) => void;
-  onRefreshEconomistSelectedNote: (noteId: string, year?: string) => void;
   onStartLinkFromSelectedNote: (noteId: string) => void;
   onUpdateSelectedNote: (noteId: string, patch: Partial<Note>) => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
@@ -159,8 +153,6 @@ export const WallDetailsSidebar = ({
   selectedNote,
   selectedNotePageReference,
   selectedNotePageConversion,
-  hasJokerNote,
-  hasThroneNote,
   selectedNoteId,
   selectedNoteIdsCount,
   displayedTags,
@@ -185,10 +177,6 @@ export const WallDetailsSidebar = ({
   onTogglePinSelectedNote,
   onToggleHighlightSelectedNote,
   onToggleFocusSelectedNote,
-  onToggleOrRefreshJokerSelectedNote,
-  onToggleOrRefreshThroneSelectedNote,
-  onRefreshPoetrySelectedNote,
-  onRefreshEconomistSelectedNote,
   onStartLinkFromSelectedNote,
   onUpdateSelectedNote,
   onSubmitBookmarkUrl,
@@ -299,8 +287,6 @@ export const WallDetailsSidebar = ({
         selectedNote={selectedNote}
         selectedNotePageReference={selectedNotePageReference}
         selectedNotePageConversion={selectedNotePageConversion}
-        hasJokerNote={hasJokerNote}
-        hasThroneNote={hasThroneNote}
         selectedNoteId={selectedNoteId}
         selectedNoteIdsCount={selectedNoteIdsCount}
         displayedTags={displayedTags}
@@ -325,10 +311,6 @@ export const WallDetailsSidebar = ({
         onTogglePinSelectedNote={onTogglePinSelectedNote}
         onToggleHighlightSelectedNote={onToggleHighlightSelectedNote}
         onToggleFocusSelectedNote={onToggleFocusSelectedNote}
-        onToggleOrRefreshJokerSelectedNote={onToggleOrRefreshJokerSelectedNote}
-        onToggleOrRefreshThroneSelectedNote={onToggleOrRefreshThroneSelectedNote}
-        onRefreshPoetrySelectedNote={onRefreshPoetrySelectedNote}
-        onRefreshEconomistSelectedNote={onRefreshEconomistSelectedNote}
         onStartLinkFromSelectedNote={onStartLinkFromSelectedNote}
         onUpdateSelectedNote={onUpdateSelectedNote}
         onSubmitBookmarkUrl={onSubmitBookmarkUrl}

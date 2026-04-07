@@ -39,42 +39,6 @@ export const EISENHOWER_NOTE_DEFAULTS = {
   textSizePx: 14,
 };
 
-export const JOKER_NOTE_DEFAULTS = {
-  color: "#D6FF57",
-  width: 240,
-  height: 184,
-  textColor: "#2E1065",
-  textFont: "nunito" as const,
-  textSizePx: 17,
-};
-
-export const THRONE_NOTE_DEFAULTS = {
-  color: "#FF2400",
-  width: 240,
-  height: 184,
-  textColor: "#FFF5E6",
-  textFont: "nunito" as const,
-  textSizePx: 17,
-};
-
-export const CURRENCY_NOTE_DEFAULTS = {
-  color: "#4B3F72",
-  width: 332,
-  height: 224,
-  textColor: "#F8F7FF",
-  textFont: "work_sans" as const,
-  textSizePx: 15,
-};
-
-export const POETRY_NOTE_DEFAULTS = {
-  color: "#B73A3A",
-  width: 320,
-  height: 260,
-  textColor: "#000000",
-  textFont: "merriweather" as const,
-  textSizePx: 14,
-};
-
 export const FILE_NOTE_DEFAULTS = {
   color: "#FFFFFF",
   width: 320,

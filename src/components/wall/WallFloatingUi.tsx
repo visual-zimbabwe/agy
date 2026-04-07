@@ -3,14 +3,10 @@
 import type { Dispatch, FocusEvent, SetStateAction } from "react";
 
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
-import { ApodNoteEditor } from "@/components/wall/ApodNoteEditor";
 import { AudioNoteEditor } from "@/components/wall/AudioNoteEditor";
 import { ImageNoteEditor } from "@/components/wall/ImageNoteEditor";
 import { VideoNoteEditor } from "@/components/wall/VideoNoteEditor";
-import { EconomistCoverEditor } from "@/components/wall/EconomistCoverEditor";
 import { FileNoteEditor } from "@/components/wall/FileNoteEditor";
-import { PoetryNoteEditor } from "@/components/wall/PoetryNoteEditor";
-import { CurrencyNoteEditor } from "@/components/wall/CurrencyNoteEditor";
 import { EisenhowerMatrixEditor } from "@/components/wall/EisenhowerMatrixEditor";
 import { NoteTextEditor } from "@/components/wall/NoteTextEditor";
 import { WebBookmarkEditor } from "@/components/wall/WebBookmarkEditor";
@@ -86,10 +82,6 @@ type WallFloatingUiProps = {
   onResetZoom: () => void;
   onZoomToFit: () => void;
   onZoomToSelection: () => void;
-  onRefreshCurrencyNote: () => void;
-  onCurrencyAmountChange: (value: string) => void;
-  onSetManualBaseCurrency: (value: string) => void;
-  onResetToDetectedCurrency: () => void;
   onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
   onOpenBookmarkUrl: (url: string) => void;
   onSelectImageNoteFile: (noteId: string, file: File) => Promise<void>;
@@ -112,14 +104,6 @@ type WallFloatingUiProps = {
   onRenameVideoNote: (noteId: string, name: string) => void;
   onOpenVideoNote: (noteId: string) => void;
   onDownloadVideoNote: (noteId: string) => void;
-  onRefreshApodNote: (noteId: string) => void;
-  onDownloadApodImage: (noteId: string) => void;
-  onOpenApodSource: (noteId: string) => void;
-  onRefreshPoetryNote: (noteId: string) => void;
-  onDownloadPoetryImage: (noteId: string) => void;
-  onDownloadPoetryPdf: (noteId: string) => void;
-  onRefreshEconomistNote: (noteId: string, year?: string) => void;
-  onOpenEconomistSource: (noteId: string) => void;
 };
 
 const noteEditorSectionClass =
@@ -190,10 +174,6 @@ export const WallFloatingUi = ({
   onResetZoom,
   onZoomToFit,
   onZoomToSelection,
-  onRefreshCurrencyNote,
-  onCurrencyAmountChange,
-  onSetManualBaseCurrency,
-  onResetToDetectedCurrency,
   onSubmitBookmarkUrl,
   onOpenBookmarkUrl,
   onSelectImageNoteFile,
@@ -216,14 +196,6 @@ export const WallFloatingUi = ({
   onRenameVideoNote,
   onOpenVideoNote,
   onDownloadVideoNote,
-  onRefreshApodNote,
-  onDownloadApodImage,
-  onOpenApodSource,
-  onRefreshPoetryNote,
-  onDownloadPoetryImage,
-  onDownloadPoetryPdf,
-  onRefreshEconomistNote,
-  onOpenEconomistSource,
 }: WallFloatingUiProps) => {
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
@@ -235,23 +207,11 @@ export const WallFloatingUi = ({
     <>
       {editing && editingNote && !isTimeLocked && (
         <>
-          {editingNote.noteKind === "currency" && (
-            <CurrencyNoteEditor
-              note={editingNote}
-              camera={camera}
-              toScreenPoint={toScreenPoint}
-              onClose={() => setEditing(null)}
-              onRefresh={onRefreshCurrencyNote}
-              onAmountChange={onCurrencyAmountChange}
-              onSetManualBaseCurrency={onSetManualBaseCurrency}
-              onResetToDetectedCurrency={onResetToDetectedCurrency}
-            />
-          )}
           {editingNote.noteKind === "web-bookmark" && (
             <WebBookmarkEditor
               key={editing.id}
               editing={editing}
-              editingNote={editingNote as Note & { noteKind: "poetry" }}
+              editingNote={editingNote}
               camera={camera}
               toScreenPoint={toScreenPoint}
               onClose={() => setEditing(null)}
@@ -315,43 +275,10 @@ export const WallFloatingUi = ({
               onDownloadVideo={onDownloadVideoNote}
             />
           )}
-          {editingNote.noteKind === "apod" && (
-            <ApodNoteEditor
-              editingNote={editingNote as Note & { noteKind: "poetry" }}
-              camera={camera}
-              toScreenPoint={toScreenPoint}
-              onClose={() => setEditing(null)}
-              onRefresh={() => onRefreshApodNote(editing.id)}
-              onDownload={() => onDownloadApodImage(editing.id)}
-              onOpenSource={() => onOpenApodSource(editing.id)}
-            />
-          )}
-          {editingNote.noteKind === "poetry" && (
-            <PoetryNoteEditor
-              editingNote={editingNote as Note & { noteKind: "poetry" }}
-              camera={camera}
-              toScreenPoint={toScreenPoint}
-              onClose={() => setEditing(null)}
-              onRefresh={() => onRefreshPoetryNote(editing.id)}
-              onDownloadImage={() => onDownloadPoetryImage(editing.id)}
-              onDownloadPdf={() => onDownloadPoetryPdf(editing.id)}
-            />
-          )}
-          {editingNote.noteKind === "economist" && (
-            <EconomistCoverEditor
-              note={editingNote as Note & { noteKind: "economist" }}
-              camera={camera}
-              toScreenPoint={toScreenPoint}
-              onClose={() => setEditing(null)}
-              onRefresh={(year) => onRefreshEconomistNote(editing.id, year)}
-              onOpenSource={() => onOpenEconomistSource(editing.id)}
-              onUpdateNote={updateNote}
-            />
-          )}
-          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "currency" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "image" && editingNote.noteKind !== "file" && editingNote.noteKind !== "audio" && editingNote.noteKind !== "video" && editingNote.noteKind !== "apod" && editingNote.noteKind !== "poetry" && editingNote.noteKind !== "economist" && (
+          {editingNote.noteKind !== "canon" && editingNote.noteKind !== "eisenhower" && editingNote.noteKind !== "web-bookmark" && editingNote.noteKind !== "image" && editingNote.noteKind !== "file" && editingNote.noteKind !== "audio" && editingNote.noteKind !== "video" && (
             <NoteTextEditor
               editing={editing}
-              editingNote={editingNote as Note & { noteKind: "poetry" }}
+              editingNote={editingNote}
               camera={camera}
               toScreenPoint={toScreenPoint}
               handleEditorBlur={handleEditorBlur}
@@ -536,7 +463,7 @@ export const WallFloatingUi = ({
           {editingNote.noteKind === "eisenhower" && editingNote.eisenhower && (
             <EisenhowerMatrixEditor
               editing={editing}
-              editingNote={editingNote as Note & { noteKind: "poetry" }}
+              editingNote={editingNote}
               camera={camera}
               toScreenPoint={toScreenPoint}
               setEditing={setEditing}

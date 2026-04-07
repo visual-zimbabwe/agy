@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, type MutableRefObject } from "react";
 
-import { CURRENCY_NOTE_DEFAULTS } from "@/features/wall/currency";
 import { useWallStore } from "@/features/wall/store";
+import { bulkDeleteNotes, bulkRecolorNotes } from "@/features/wall/commands";
 import type { Note } from "@/features/wall/types";
-import { JOKER_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/joker";
+import { sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import { readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 
 type Camera = { x: number; y: number; zoom: number };
@@ -58,9 +58,6 @@ type WallKeyboardOptions = {
   createCanonNote: () => void;
   createJournalNote: () => void;
   createQuoteNote: () => void;
-  createApodNote: () => void;
-  createPoetryNote: () => void;
-  createEconomistNote: () => void;
   createEisenhowerNote: () => void;
   createWordNote: () => void;
   openEditor: (noteId: string, text: string, focusField?: string) => void;
@@ -123,9 +120,6 @@ export const useWallKeyboard = ({
   createCanonNote,
   createJournalNote,
   createQuoteNote,
-  createApodNote,
-  createPoetryNote,
-  createEconomistNote,
   createEisenhowerNote,
   createWordNote,
   openEditor,
@@ -158,20 +152,16 @@ export const useWallKeyboard = ({
       if (isTimeLocked) {
         return;
       }
-      const { patchNote, setLastColor } = useWallStore.getState();
       const safeColor = sanitizeStandardNoteColor(color, ui.lastColor);
 
       const targetIds = selectedNoteIds.length > 0 ? selectedNoteIds : ui.selectedNoteId ? [ui.selectedNoteId] : [];
       if (targetIds.length === 0) {
-        setLastColor(safeColor);
+        useWallStore.getState().setLastColor(safeColor);
         return;
       }
 
-      for (const noteId of targetIds) {
-        const note = notesMap[noteId];
-        patchNote(noteId, { color: note?.noteKind === "joker" ? JOKER_NOTE_COLOR : note?.noteKind === "currency" ? CURRENCY_NOTE_DEFAULTS.color : safeColor });
-      }
-      setLastColor(safeColor);
+      // Use the bulk command so the entire recolor lands as one undo step.
+      bulkRecolorNotes(targetIds, safeColor);
     };
 
     const applyColorByIndex = (index: number) => {
@@ -354,7 +344,7 @@ export const useWallKeyboard = ({
         const createdNote = useWallStore.getState().notes[createdId];
         setSelectedNoteIds([createdId]);
         selectNote(createdId);
-        if (createdNote?.noteKind !== "joker") {
+        if (createdNote) {
           openEditor(createdId, createdNote?.text ?? "");
         }
         return;
@@ -375,24 +365,6 @@ export const useWallKeyboard = ({
       if (!ctrlOrMeta && event.shiftKey && key === "e") {
         event.preventDefault();
         createEisenhowerNote();
-        return;
-      }
-
-      if (!ctrlOrMeta && event.shiftKey && key === "a") {
-        event.preventDefault();
-        createApodNote();
-        return;
-      }
-
-      if (!ctrlOrMeta && event.shiftKey && key === "p") {
-        event.preventDefault();
-        createPoetryNote();
-        return;
-      }
-
-      if (!ctrlOrMeta && event.shiftKey && key === "m") {
-        event.preventDefault();
-        createEconomistNote();
         return;
       }
 
@@ -491,9 +463,8 @@ export const useWallKeyboard = ({
         if (selectedNoteIds.length > 1) {
           const ok = window.confirm(`Delete ${selectedNoteIds.length} selected notes?`);
           if (ok) {
-            for (const id of selectedNoteIds) {
-              deleteNote(id);
-            }
+            // Use bulk command so all deletes are a single undo step.
+            bulkDeleteNotes(selectedNoteIds);
             setSelectedNoteIds([]);
             selectNote(undefined);
           }
@@ -563,9 +534,6 @@ export const useWallKeyboard = ({
     createCanonNote,
     createJournalNote,
     createQuoteNote,
-    createApodNote,
-    createPoetryNote,
-    createEconomistNote,
     createEisenhowerNote,
     createWordNote,
     deleteGroup,

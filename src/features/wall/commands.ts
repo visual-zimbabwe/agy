@@ -1,19 +1,13 @@
-import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, FILE_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, POETRY_NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
-import { CURRENCY_NOTE_DEFAULTS, isCurrencyNote } from "@/features/wall/currency";
-import { buildEconomistNote, ECONOMIST_NOTE_DEFAULTS, isEconomistNote } from "@/features/wall/economist";
+import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, FILE_NOTE_DEFAULTS, GROUP_COLORS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS, ZONE_COLORS, ZONE_DEFAULTS, ZONE_KIND_DEFAULTS } from "@/features/wall/constants";
 import { createAudioNoteState, isAudioNote, toAudioNotePatch } from "@/features/wall/audio-notes";
 import { createFileNoteState, isFileNote, toFileNotePatch } from "@/features/wall/file-notes";
 import { createImageNoteState, IMAGE_NOTE_DEFAULTS, isImageNote, toImageNotePatch } from "@/features/wall/image-notes";
 import { createVideoNoteState, isVideoNote, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
-import type { EconomistCoverPayload } from "@/features/wall/economist";
-import { buildApodNote, isApodNote } from "@/features/wall/apod";
-import { buildPoetryNote, isPoetryNote } from "@/features/wall/poetry";
 import { createBookmarkNoteState, isWebBookmarkNote, WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
 import { isPrivateNote } from "@/features/wall/private-notes";
 import { createEisenhowerNotePayload } from "@/features/wall/eisenhower";
-import { buildJokerPlaceholderNote, fetchJokerJoke, formatJokerNoteText, hasJokerCardBeenActivated, isJokerNote, JOKER_NOTE_SOURCE, jokerErrorText, jokerLoadingText, markJokerCardActivated, sanitizeStandardNoteColor } from "@/features/wall/joker";
 import { useWallStore } from "@/features/wall/store";
-import { buildThronePlaceholderNote, fetchThroneQuote, formatThroneNoteText, isThroneNote, THRONE_NOTE_SOURCE, throneErrorText, throneLoadingText } from "@/features/wall/throne";
+import { sanitizeStandardNoteColor } from "@/features/wall/special-notes";
 import type { Link, LinkType, Note, NoteGroup, TemplateType, Zone, ZoneGroup, ZoneKind } from "@/features/wall/types";
 
 const makeId = () => {
@@ -73,221 +67,42 @@ const createStandardNote = (x: number, y: number, color?: string) => {
   return note.id;
 };
 
-const findJokerNote = () => Object.values(useWallStore.getState().notes).find((note) => isJokerNote(note));
-const findThroneNote = () => Object.values(useWallStore.getState().notes).find((note) => isThroneNote(note));
-
-const populateJokerNote = async (noteId: string) => {
-  try {
-    const joke = await fetchJokerJoke();
-    const note = useWallStore.getState().notes[noteId];
-    if (!note || !isJokerNote(note)) {
-      return;
-    }
-
-    useWallStore.getState().patchNote(noteId, {
-      text: formatJokerNoteText(joke),
-      quoteAuthor: JOKER_NOTE_SOURCE,
-      quoteSource: joke.category,
-      textColor: JOKER_NOTE_DEFAULTS.textColor,
-    });
-  } catch {
-    const note = useWallStore.getState().notes[noteId];
-    if (!note || !isJokerNote(note)) {
-      return;
-    }
-
-    useWallStore.getState().patchNote(noteId, {
-      text: jokerErrorText,
-      quoteAuthor: JOKER_NOTE_SOURCE,
-      quoteSource: "Unavailable",
-      textColor: JOKER_NOTE_DEFAULTS.textColor,
-    });
-  }
-};
-
-const populateThroneNote = async (noteId: string) => {
-  try {
-    const quote = await fetchThroneQuote();
-    const note = useWallStore.getState().notes[noteId];
-    if (!note || !isThroneNote(note)) {
-      return;
-    }
-
-    useWallStore.getState().patchNote(noteId, {
-      text: formatThroneNoteText(quote),
-      quoteAuthor: quote.character?.name?.trim() || THRONE_NOTE_SOURCE,
-      quoteSource: quote.character?.house?.name?.trim() || "Game of Thrones",
-      textColor: THRONE_NOTE_DEFAULTS.textColor,
-    });
-  } catch {
-    const note = useWallStore.getState().notes[noteId];
-    if (!note || !isThroneNote(note)) {
-      return;
-    }
-
-    useWallStore.getState().patchNote(noteId, {
-      text: throneErrorText,
-      quoteAuthor: THRONE_NOTE_SOURCE,
-      quoteSource: "Unavailable",
-      textColor: THRONE_NOTE_DEFAULTS.textColor,
-    });
-  }
-};
-
-export const refreshJokerNote = (noteId: string) => {
-  const note = useWallStore.getState().notes[noteId];
-  if (!note || !isJokerNote(note)) {
-    return;
-  }
-
-  useWallStore.getState().patchNote(noteId, {
-    text: jokerLoadingText,
-    quoteAuthor: JOKER_NOTE_SOURCE,
-    quoteSource: "Loading...",
-    textColor: JOKER_NOTE_DEFAULTS.textColor,
-  });
-  void populateJokerNote(noteId);
-};
-
-export const createJokerNote = (x: number, y: number, options?: { select?: boolean; markLifecycle?: boolean }) => {
-  const now = Date.now();
-  const note = buildJokerPlaceholderNote(makeId(), x, y, now);
-  const { upsertNote, selectNote } = useWallStore.getState();
-  upsertNote(note);
-  if (options?.select !== false) {
-    selectNote(note.id);
-  }
-  if (options?.markLifecycle !== false) {
-    markJokerCardActivated();
-  }
-  void populateJokerNote(note.id);
-  return note.id;
-};
-
-export const refreshThroneNote = (noteId: string) => {
-  const note = useWallStore.getState().notes[noteId];
-  if (!note || !isThroneNote(note)) {
-    return;
-  }
-
-  useWallStore.getState().patchNote(noteId, {
-    text: throneLoadingText,
-    quoteAuthor: THRONE_NOTE_SOURCE,
-    quoteSource: "Loading...",
-    textColor: THRONE_NOTE_DEFAULTS.textColor,
-  });
-  void populateThroneNote(noteId);
-};
-
-export const createThroneNote = (x: number, y: number, options?: { select?: boolean }) => {
-  const now = Date.now();
-  const note = buildThronePlaceholderNote(makeId(), x, y, now);
-  const { upsertNote, selectNote } = useWallStore.getState();
-  upsertNote(note);
-  if (options?.select !== false) {
-    selectNote(note.id);
-  }
-  void populateThroneNote(note.id);
-  return note.id;
-};
-
-export const createOrRefreshJokerNote = (options?: { noteId?: string; x?: number; y?: number; select?: boolean }) => {
-  const existing = findJokerNote();
-  if (existing) {
-    if (options?.select !== false) {
-      useWallStore.getState().selectNote(existing.id);
-    }
-    refreshJokerNote(existing.id);
-    return existing.id;
-  }
-
-  const sourceNote = options?.noteId ? useWallStore.getState().notes[options.noteId] : undefined;
-  if (sourceNote) {
-    const jokerNote = buildJokerPlaceholderNote(sourceNote.id, sourceNote.x, sourceNote.y, sourceNote.createdAt);
-    useWallStore.getState().upsertNote({
-      ...jokerNote,
-      createdAt: sourceNote.createdAt,
-      updatedAt: Date.now(),
-      pinned: sourceNote.pinned,
-      highlighted: sourceNote.highlighted,
-    });
-    if (options?.select !== false) {
-      useWallStore.getState().selectNote(sourceNote.id);
-    }
-    if (!hasJokerCardBeenActivated()) {
-      markJokerCardActivated();
-    }
-    void populateJokerNote(sourceNote.id);
-    return sourceNote.id;
-  }
-
-  return createJokerNote(options?.x ?? 0, options?.y ?? 0, { select: options?.select });
-};
-
-export const createOrRefreshThroneNote = (options?: { noteId?: string; x?: number; y?: number; select?: boolean }) => {
-  const existing = findThroneNote();
-  if (existing) {
-    if (options?.select !== false) {
-      useWallStore.getState().selectNote(existing.id);
-    }
-    refreshThroneNote(existing.id);
-    return existing.id;
-  }
-
-  const sourceNote = options?.noteId ? useWallStore.getState().notes[options.noteId] : undefined;
-  if (sourceNote) {
-    const throneNote = buildThronePlaceholderNote(sourceNote.id, sourceNote.x, sourceNote.y, sourceNote.createdAt);
-    useWallStore.getState().upsertNote({
-      ...throneNote,
-      createdAt: sourceNote.createdAt,
-      updatedAt: Date.now(),
-      pinned: sourceNote.pinned,
-      highlighted: sourceNote.highlighted,
-    });
-    if (options?.select !== false) {
-      useWallStore.getState().selectNote(sourceNote.id);
-    }
-    void populateThroneNote(sourceNote.id);
-    return sourceNote.id;
-  }
-
-  return createThroneNote(options?.x ?? 0, options?.y ?? 0, { select: options?.select });
-};
-
 export const createNote = (x: number, y: number, color?: string) => createStandardNote(x, y, color);
 
-export const createQuoteNote = (x: number, y: number, color?: string) => {
-  const noteId = createNote(x, y, color);
-  useWallStore.getState().patchNote(noteId, {
-    noteKind: "quote",
-    text: "",
-    quoteAuthor: "",
-    quoteSource: "",
-    vocabulary: undefined,
+export const createQuoteNote = (x: number, y: number, color?: string) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, color);
+    useWallStore.getState().patchNote(noteId, {
+      noteKind: "quote",
+      text: "",
+      quoteAuthor: "",
+      quoteSource: "",
+      vocabulary: undefined,
+    });
+    return noteId;
   });
-  return noteId;
-};
 
-export const createCanonNote = (x: number, y: number, color?: string) => {
-  const noteId = createNote(x, y, color);
-  useWallStore.getState().patchNote(noteId, {
-    noteKind: "canon",
-    text: "",
-    quoteAuthor: undefined,
-    quoteSource: undefined,
-    vocabulary: undefined,
-    canon: {
-      mode: "single",
-      title: "",
-      statement: "",
-      interpretation: "",
-      example: "",
-      source: "",
-      items: [{ id: makeId(), title: "", text: "", interpretation: "" }],
-    },
+export const createCanonNote = (x: number, y: number, color?: string) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, color);
+    useWallStore.getState().patchNote(noteId, {
+      noteKind: "canon",
+      text: "",
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      vocabulary: undefined,
+      canon: {
+        mode: "single",
+        title: "",
+        statement: "",
+        interpretation: "",
+        example: "",
+        source: "",
+        items: [{ id: makeId(), title: "", text: "", interpretation: "" }],
+      },
+    });
+    return noteId;
   });
-  return noteId;
-};
 
 const defaultJournalText = () =>
   [
@@ -296,213 +111,130 @@ const defaultJournalText = () =>
     "The artifacts we keep define the space we inhabit.",
   ].join("\n");
 
-export const createJournalNote = (x: number, y: number) => {
-  const noteId = createNote(x, y, JOURNAL_NOTE_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, {
-    noteKind: "journal",
-    text: defaultJournalText(),
-    quoteAuthor: undefined,
-    quoteSource: undefined,
-    vocabulary: undefined,
-    canon: undefined,
-    eisenhower: undefined,
-    textFont: JOURNAL_NOTE_DEFAULTS.textFont,
-    textColor: JOURNAL_NOTE_DEFAULTS.textColor,
-    textSizePx: JOURNAL_NOTE_DEFAULTS.textSizePx,
-    w: JOURNAL_NOTE_DEFAULTS.width,
-    h: JOURNAL_NOTE_DEFAULTS.height,
-    color: JOURNAL_NOTE_DEFAULTS.color,
-    tags: ["journal"],
+export const createJournalNote = (x: number, y: number) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, JOURNAL_NOTE_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, {
+      noteKind: "journal",
+      text: defaultJournalText(),
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      vocabulary: undefined,
+      canon: undefined,
+      eisenhower: undefined,
+      textFont: JOURNAL_NOTE_DEFAULTS.textFont,
+      textColor: JOURNAL_NOTE_DEFAULTS.textColor,
+      textSizePx: JOURNAL_NOTE_DEFAULTS.textSizePx,
+      w: JOURNAL_NOTE_DEFAULTS.width,
+      h: JOURNAL_NOTE_DEFAULTS.height,
+      color: JOURNAL_NOTE_DEFAULTS.color,
+      tags: ["journal"],
+    });
+    return noteId;
   });
-  return noteId;
-};
 
-export const createEisenhowerNote = (x: number, y: number) => {
-  const noteId = createNote(x, y, EISENHOWER_NOTE_DEFAULTS.color);
-  const now = Date.now();
-  useWallStore.getState().patchNote(noteId, {
-    noteKind: "eisenhower",
-    text: "",
-    quoteAuthor: undefined,
-    quoteSource: undefined,
-    vocabulary: undefined,
-    canon: undefined,
-    eisenhower: createEisenhowerNotePayload(now),
-    textFont: EISENHOWER_NOTE_DEFAULTS.textFont,
-    textColor: EISENHOWER_NOTE_DEFAULTS.textColor,
-    textSizePx: EISENHOWER_NOTE_DEFAULTS.textSizePx,
-    w: EISENHOWER_NOTE_DEFAULTS.width,
-    h: EISENHOWER_NOTE_DEFAULTS.height,
-    color: EISENHOWER_NOTE_DEFAULTS.color,
-    tags: ["matrix", "priority"],
-    createdAt: now,
+export const createEisenhowerNote = (x: number, y: number) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, EISENHOWER_NOTE_DEFAULTS.color);
+    const now = Date.now();
+    useWallStore.getState().patchNote(noteId, {
+      noteKind: "eisenhower",
+      text: "",
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      vocabulary: undefined,
+      canon: undefined,
+      eisenhower: createEisenhowerNotePayload(now),
+      textFont: EISENHOWER_NOTE_DEFAULTS.textFont,
+      textColor: EISENHOWER_NOTE_DEFAULTS.textColor,
+      textSizePx: EISENHOWER_NOTE_DEFAULTS.textSizePx,
+      w: EISENHOWER_NOTE_DEFAULTS.width,
+      h: EISENHOWER_NOTE_DEFAULTS.height,
+      color: EISENHOWER_NOTE_DEFAULTS.color,
+      tags: ["matrix", "priority"],
+      createdAt: now,
+    });
+    return noteId;
   });
-  return noteId;
-};
 
-export const createApodNote = (x: number, y: number) => {
-  const note = buildApodNote(makeId(), x, y);
-  const { upsertNote, selectNote } = useWallStore.getState();
-  upsertNote(note);
-  selectNote(note.id);
-  return note.id;
-};
-
-export const createPoetryNote = (x: number, y: number) => {
-  const note = buildPoetryNote(makeId(), x, y);
-  const { upsertNote, selectNote } = useWallStore.getState();
-  upsertNote(note);
-  selectNote(note.id);
-  return note.id;
-};
-
-export const createEconomistNote = (x: number, y: number, payload?: Partial<EconomistCoverPayload>, options?: { select?: boolean }) => {
-  const note = buildEconomistNote(makeId(), x, y, payload);
-  const { upsertNote, selectNote } = useWallStore.getState();
-  upsertNote(note);
-  if (options?.select !== false) {
-    selectNote(note.id);
-  }
-  return note.id;
-};
-
-export const createWebBookmarkNote = (x: number, y: number, url = "") => {
-  const noteId = createNote(x, y, WEB_BOOKMARK_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, {
-    noteKind: "web-bookmark",
-    text: "",
-    quoteAuthor: undefined,
-    quoteSource: undefined,
-    vocabulary: undefined,
-    canon: undefined,
-    eisenhower: undefined,
-    currency: undefined,
-    imageUrl: undefined,
-    bookmark: createBookmarkNoteState(url),
-    textFont: WEB_BOOKMARK_DEFAULTS.textFont,
-    textColor: WEB_BOOKMARK_DEFAULTS.textColor,
-    textSizePx: WEB_BOOKMARK_DEFAULTS.textSizePx,
-    w: WEB_BOOKMARK_DEFAULTS.width,
-    h: WEB_BOOKMARK_DEFAULTS.height,
-    color: WEB_BOOKMARK_DEFAULTS.color,
-    tags: ["bookmark", "link"],
+export const createWebBookmarkNote = (x: number, y: number, url = "") =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, WEB_BOOKMARK_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, {
+      noteKind: "web-bookmark",
+      text: "",
+      quoteAuthor: undefined,
+      quoteSource: undefined,
+      vocabulary: undefined,
+      canon: undefined,
+      eisenhower: undefined,
+      imageUrl: undefined,
+      bookmark: createBookmarkNoteState(url),
+      textFont: WEB_BOOKMARK_DEFAULTS.textFont,
+      textColor: WEB_BOOKMARK_DEFAULTS.textColor,
+      textSizePx: WEB_BOOKMARK_DEFAULTS.textSizePx,
+      w: WEB_BOOKMARK_DEFAULTS.width,
+      h: WEB_BOOKMARK_DEFAULTS.height,
+      color: WEB_BOOKMARK_DEFAULTS.color,
+      tags: ["bookmark", "link"],
+    });
+    return noteId;
   });
-  return noteId;
+
+export const createImageNote = (x: number, y: number, payload?: Partial<Note["file"]>, caption = "") =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, IMAGE_NOTE_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, toImageNotePatch(createImageNoteState(payload), { caption }));
+    return noteId;
+  });
+
+export const createFileNote = (x: number, y: number, payload?: Partial<Note["file"]>) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, FILE_NOTE_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, toFileNotePatch(createFileNoteState(payload)));
+    return noteId;
+  });
+
+export const createAudioNote = (x: number, y: number, payload?: Partial<Note["audio"]>) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, AUDIO_NOTE_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, toAudioNotePatch(createAudioNoteState(payload)));
+    return noteId;
+  });
+
+export const createVideoNote = (x: number, y: number, payload?: Partial<Note["video"]>) =>
+  withHistoryGroup(() => {
+    const noteId = createNote(x, y, VIDEO_NOTE_DEFAULTS.color);
+    useWallStore.getState().patchNote(noteId, toVideoNotePatch(createVideoNoteState(payload)));
+    return noteId;
+  });
+
+/** Delete multiple notes atomically as a single undo step. */
+export const bulkDeleteNotes = (noteIds: string[]) => {
+  if (noteIds.length === 0) return;
+  withHistoryGroup(() => {
+    const { removeNote } = useWallStore.getState();
+    for (const id of noteIds) {
+      removeNote(id);
+    }
+  });
 };
 
-export const createImageNote = (x: number, y: number, payload?: Partial<Note["file"]>, caption = "") => {
-  const noteId = createNote(x, y, IMAGE_NOTE_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, toImageNotePatch(createImageNoteState(payload), { caption }));
-  return noteId;
-};
-
-export const createFileNote = (x: number, y: number, payload?: Partial<Note["file"]>) => {
-  const noteId = createNote(x, y, FILE_NOTE_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, toFileNotePatch(createFileNoteState(payload)));
-  return noteId;
-};
-
-export const createAudioNote = (x: number, y: number, payload?: Partial<Note["audio"]>) => {
-  const noteId = createNote(x, y, AUDIO_NOTE_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, toAudioNotePatch(createAudioNoteState(payload)));
-  return noteId;
-};
-
-export const createVideoNote = (x: number, y: number, payload?: Partial<Note["video"]>) => {
-  const noteId = createNote(x, y, VIDEO_NOTE_DEFAULTS.color);
-  useWallStore.getState().patchNote(noteId, toVideoNotePatch(createVideoNoteState(payload)));
-  return noteId;
+/** Recolor multiple notes atomically as a single undo step. */
+export const bulkRecolorNotes = (noteIds: string[], color: string) => {
+  if (noteIds.length === 0) return;
+  withHistoryGroup(() => {
+    const { patchNote, setLastColor } = useWallStore.getState();
+    for (const id of noteIds) {
+      patchNote(id, { color });
+    }
+    setLastColor(color);
+  });
 };
 
 export const updateNote = (noteId: string, patch: Partial<Note>) => {
   const current = useWallStore.getState().notes[noteId];
   if (!current) {
-    return;
-  }
-
-  if (isCurrencyNote(current)) {
-    useWallStore.getState().patchNote(noteId, {
-      ...patch,
-      noteKind: "currency",
-      color: CURRENCY_NOTE_DEFAULTS.color,
-      textColor: current.textColor ?? CURRENCY_NOTE_DEFAULTS.textColor,
-      textFont: current.textFont ?? CURRENCY_NOTE_DEFAULTS.textFont,
-      w: CURRENCY_NOTE_DEFAULTS.width,
-      h: CURRENCY_NOTE_DEFAULTS.height,
-      tags: ["system", "currency"],
-      text: "",
-      quoteAuthor: undefined,
-      quoteSource: undefined,
-      canon: undefined,
-      eisenhower: undefined,
-      vocabulary: undefined,
-      imageUrl: undefined,
-    });
-    return;
-  }
-
-  if (isJokerNote(current)) {
-    useWallStore.getState().patchNote(noteId, {
-      ...patch,
-      noteKind: "joker",
-      color: JOKER_NOTE_DEFAULTS.color,
-      textColor: patch.textColor ?? current.textColor ?? JOKER_NOTE_DEFAULTS.textColor,
-      tags: ["joker"],
-    });
-    return;
-  }
-
-  if (isThroneNote(current)) {
-    useWallStore.getState().patchNote(noteId, {
-      ...patch,
-      noteKind: "throne",
-      color: THRONE_NOTE_DEFAULTS.color,
-      textColor: patch.textColor ?? current.textColor ?? THRONE_NOTE_DEFAULTS.textColor,
-      tags: ["throne", "quote"],
-    });
-    return;
-  }
-
-  if (isApodNote(current)) {
-    useWallStore.getState().patchNote(noteId, {
-      ...patch,
-      noteKind: "apod",
-      quoteAuthor: undefined,
-      quoteSource: undefined,
-      canon: undefined,
-      eisenhower: undefined,
-      currency: undefined,
-      bookmark: undefined,
-      apod: patch.apod ?? current.apod,
-      imageUrl: patch.imageUrl ?? current.imageUrl,
-      color: current.color,
-      textColor: patch.textColor ?? current.textColor,
-      textFont: patch.textFont ?? current.textFont,
-      textSizePx: patch.textSizePx ?? current.textSizePx,
-      tags: patch.tags ?? current.tags,
-    });
-    return;
-  }
-
-  if (isPoetryNote(current)) {
-    useWallStore.getState().patchNote(noteId, {
-      ...patch,
-      noteKind: "poetry",
-      quoteAuthor: patch.quoteAuthor ?? current.quoteAuthor,
-      quoteSource: patch.quoteSource ?? current.quoteSource ?? "PoetryDB",
-      canon: undefined,
-      eisenhower: undefined,
-      currency: undefined,
-      bookmark: undefined,
-      apod: undefined,
-      poetry: patch.poetry ?? current.poetry,
-      imageUrl: undefined,
-      color: POETRY_NOTE_DEFAULTS.color,
-      textColor: POETRY_NOTE_DEFAULTS.textColor,
-      textFont: patch.textFont ?? current.textFont ?? POETRY_NOTE_DEFAULTS.textFont,
-      textSizePx: patch.textSizePx ?? current.textSizePx ?? POETRY_NOTE_DEFAULTS.textSizePx,
-      tags: patch.tags ?? current.tags,
-    });
     return;
   }
 
@@ -532,7 +264,6 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       quoteSource: undefined,
       canon: undefined,
       eisenhower: undefined,
-      currency: undefined,
       vocabulary: undefined,
       imageUrl: undefined,
       color: WEB_BOOKMARK_DEFAULTS.color,
@@ -541,28 +272,6 @@ export const updateNote = (noteId: string, patch: Partial<Note>) => {
       textSizePx: patch.textSizePx ?? current.textSizePx ?? WEB_BOOKMARK_DEFAULTS.textSizePx,
       bookmark: patch.bookmark ?? current.bookmark,
       tags: patch.tags ?? current.tags,
-    });
-    return;
-  }
-
-  if (isEconomistNote(current)) {
-    useWallStore.getState().patchNote(noteId, {
-      ...patch,
-      noteKind: "economist",
-      canon: undefined,
-      eisenhower: undefined,
-      currency: undefined,
-      bookmark: undefined,
-      apod: undefined,
-      poetry: undefined,
-      audio: undefined,
-      video: undefined,
-      color: ECONOMIST_NOTE_DEFAULTS.color,
-      textColor: patch.textColor ?? current.textColor ?? ECONOMIST_NOTE_DEFAULTS.textColor,
-      textFont: patch.textFont ?? current.textFont ?? ECONOMIST_NOTE_DEFAULTS.textFont,
-      textSizePx: patch.textSizePx ?? current.textSizePx ?? ECONOMIST_NOTE_DEFAULTS.textSizePx,
-      tags: patch.tags ?? current.tags,
-      imageUrl: patch.imageUrl ?? current.imageUrl,
     });
     return;
   }
@@ -616,7 +325,7 @@ export const moveNote = (noteId: string, x: number, y: number) => {
 
 export const deleteNote = (noteId: string) => {
   const note = useWallStore.getState().notes[noteId];
-  if (!note || isCurrencyNote(note)) {
+  if (!note) {
     return;
   }
   useWallStore.getState().removeNote(noteId);
@@ -660,7 +369,7 @@ export const mergeNotes = (keepNoteId: string, mergeNoteId: string) => {
     const state = useWallStore.getState();
     const keep = state.notes[keepNoteId];
     const merge = state.notes[mergeNoteId];
-    if (!keep || !merge || isCurrencyNote(keep) || isCurrencyNote(merge) || isPrivateNote(keep) || isPrivateNote(merge)) {
+    if (!keep || !merge || isPrivateNote(keep) || isPrivateNote(merge)) {
       return;
     }
 
@@ -718,20 +427,19 @@ export const mergeNotes = (keepNoteId: string, mergeNoteId: string) => {
 export const duplicateNote = (noteId: string) => {
   const { notes, upsertNote, selectNote } = useWallStore.getState();
   const current = notes[noteId];
-  if (!current || isCurrencyNote(current)) {
+  if (!current) {
     return;
   }
 
   const now = Date.now();
-  const isSpecialGeneratedNote = isJokerNote(current) || isThroneNote(current);
   const duplicated: Note = {
     ...current,
     id: makeId(),
-    noteKind: isSpecialGeneratedNote ? "standard" : current.noteKind,
-    quoteAuthor: isSpecialGeneratedNote ? undefined : current.quoteAuthor,
-    quoteSource: isSpecialGeneratedNote ? undefined : current.quoteSource,
-    tags: isSpecialGeneratedNote ? [] : current.tags,
-    color: isSpecialGeneratedNote ? sanitizeStandardNoteColor(undefined) : current.color,
+    noteKind: current.noteKind,
+    quoteAuthor: current.quoteAuthor,
+    quoteSource: current.quoteSource,
+    tags: current.tags,
+    color: current.color,
     x: current.x + 24,
     y: current.y + 24,
     createdAt: now,
@@ -745,20 +453,19 @@ export const duplicateNote = (noteId: string) => {
 export const duplicateNoteAt = (noteId: string, x: number, y: number) => {
   const { notes, upsertNote, selectNote } = useWallStore.getState();
   const current = notes[noteId];
-  if (!current || isCurrencyNote(current)) {
+  if (!current) {
     return;
   }
 
   const now = Date.now();
-  const isSpecialGeneratedNote = isJokerNote(current) || isThroneNote(current);
   const duplicated: Note = {
     ...current,
     id: makeId(),
-    noteKind: isSpecialGeneratedNote ? "standard" : current.noteKind,
-    quoteAuthor: isSpecialGeneratedNote ? undefined : current.quoteAuthor,
-    quoteSource: isSpecialGeneratedNote ? undefined : current.quoteSource,
-    tags: isSpecialGeneratedNote ? [] : current.tags,
-    color: isSpecialGeneratedNote ? sanitizeStandardNoteColor(undefined) : current.color,
+    noteKind: current.noteKind,
+    quoteAuthor: current.quoteAuthor,
+    quoteSource: current.quoteSource,
+    tags: current.tags,
+    color: current.color,
     x,
     y,
     createdAt: now,

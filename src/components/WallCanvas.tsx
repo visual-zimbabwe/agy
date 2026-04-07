@@ -64,12 +64,6 @@ import { useWallViewportWindow } from "@/components/wall/useWallViewportWindow";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
 import { useWallEntityWindowCache } from "@/components/wall/useWallEntityWindowCache";
 import { useWallRemoteDeltaFeed } from "@/components/wall/useWallRemoteDeltaFeed";
-import { useApodNotes } from "@/components/wall/useApodNotes";
-import { useEconomistNotes } from "@/components/wall/useEconomistNotes";
-import { usePoetryNotes } from "@/components/wall/usePoetryNotes";
-import { useJokerNotes } from "@/components/wall/useJokerNotes";
-import { useThroneNotes } from "@/components/wall/useThroneNotes";
-import { useCurrencySystemNote } from "@/components/wall/useCurrencySystemNote";
 import { useWallBackupActions } from "@/components/wall/useWallBackupActions";
 import { useAnimatedCamera } from "@/components/wall/useAnimatedCamera";
 import { useWallTelemetry } from "@/components/wall/useWallTelemetry";
@@ -97,15 +91,10 @@ import {
   assignZoneToGroup,
   createNote,
   createCanonNote,
-  createApodNote,
   createAudioNote,
-  createEconomistNote,
   createFileNote,
   createImageNote,
   createVideoNote,
-  createPoetryNote,
-  createOrRefreshJokerNote,
-  createOrRefreshThroneNote,
   createJournalNote,
   createQuoteNote,
   createWebBookmarkNote,
@@ -136,20 +125,7 @@ import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatc
 import { createImageNoteState, getImageNoteFilename, toImageNotePatch, IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
 import { cacheVideoPoster, createVideoNoteState, getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
-import { APOD_NOTE_DEFAULTS } from "@/features/wall/apod";
-import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, JOKER_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, THRONE_NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
-import { isCurrencyNote } from "@/features/wall/currency";
-import {
-  defaultEconomistCoverPayload,
-  ECONOMIST_MAGAZINE_SOURCES,
-  ECONOMIST_NOTE_DEFAULTS,
-  getEconomistNoteSourceId,
-  isEconomistNote,
-  type EconomistCoverPayload,
-  type EconomistMagazineSource,
-  type EconomistSourceId,
-} from "@/features/wall/economist";
-import { getPoetryNoteDimensions } from "@/features/wall/poetry";
+import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
 import { readWallPageLinkState, writeWallPageLinkState, type WallPageLinkState } from "@/features/wall/page-links";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
@@ -465,8 +441,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     };
   }, [camera, inlinePlayingVideoNote]);
   const notes = useMemo(() => Object.values(renderSnapshot.notes), [renderSnapshot.notes]);
-  const hasJokerNote = useMemo(() => notes.some((note) => note.noteKind === "joker"), [notes]);
-  const hasThroneNote = useMemo(() => notes.some((note) => note.noteKind === "throne"), [notes]);
   const zones = useMemo(() => Object.values(renderSnapshot.zones), [renderSnapshot.zones]);
   const zoneGroups = useMemo(() => Object.values(renderSnapshot.zoneGroups), [renderSnapshot.zoneGroups]);
   const links = useMemo(() => Object.values(renderSnapshot.links), [renderSnapshot.links]);
@@ -1283,18 +1257,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     },
   });
 
-  const {
-    refreshCurrencyNote,
-    updateAmountInput: updateCurrencyAmountInput,
-    setManualBaseCurrency,
-    resetToDetectedCurrency,
-  } = useCurrencySystemNote({ hydrated, publishedReadOnly });
-  const { refreshApodNote, downloadApodImage } = useApodNotes({ hydrated, publishedReadOnly });
-  const { refreshEconomistNote } = useEconomistNotes({ hydrated, publishedReadOnly, loginKey: userEmail });
-  const { refreshPoetryNote, downloadPoetryAsImage, downloadPoetryAsPdf } = usePoetryNotes({ hydrated, publishedReadOnly });
-  useJokerNotes({ hydrated, publishedReadOnly, loginKey: userEmail });
-  useThroneNotes({ hydrated, publishedReadOnly, loginKey: userEmail });
-
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -1324,7 +1286,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     const node = noteNodeRefs.current[ui.selectedNoteId];
     if (node) {
       const selectedNote = renderSnapshot.notes[ui.selectedNoteId];
-      const disableResize = isTimeLocked || Boolean(selectedNote?.pinned) || Boolean(selectedNote && isCurrencyNote(selectedNote));
+  const disableResize = isTimeLocked || Boolean(selectedNote?.pinned);
       noteTransformerRef.current.enabledAnchors(
         disableResize
           ? []
@@ -2456,163 +2418,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
   }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
 
-  const makeApodNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: APOD_NOTE_DEFAULTS.width, h: APOD_NOTE_DEFAULTS.height });
-    const id = createApodNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, "");
-    void refreshApodNote(id, { force: true });
-  }, [camera, isTimeLocked, openEditor, placeNewNote, refreshApodNote, selectNote, viewport.h, viewport.w]);
-
-  const makePoetryNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const poetrySize = getPoetryNoteDimensions();
-    const position = placeNewNote(world, { w: poetrySize.width, h: poetrySize.height });
-    const id = createPoetryNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, "");
-    void refreshPoetryNote(id, { force: true });
-  }, [camera, isTimeLocked, openEditor, placeNewNote, refreshPoetryNote, selectNote, viewport.h, viewport.w]);
-
-  const makeEconomistNoteAtViewportCenter = useCallback(async () => {
-    if (isTimeLocked) {
-      return;
-    }
-
-    let sources: EconomistMagazineSource[] = ECONOMIST_MAGAZINE_SOURCES;
-    try {
-      const response = await fetch("/api/economist-cover/sources", { cache: "no-store" });
-      const payload = (await response.json()) as { sources?: EconomistMagazineSource[] };
-      if (response.ok && Array.isArray(payload.sources) && payload.sources.length > 0) {
-        sources = payload.sources;
-      }
-    } catch {
-      // Fall back to the local supported-source list if the docs endpoint is unavailable.
-    }
-
-    const existingSourceIds = new Set(
-      Object.values(useWallStore.getState().notes)
-        .filter(isEconomistNote)
-        .map(getEconomistNoteSourceId)
-        .filter((id): id is EconomistSourceId => Boolean(id)),
-    );
-
-    const sourcesToCreate = sources.filter((s) => !existingSourceIds.has(s.sourceId));
-
-    if (sourcesToCreate.length === 0) {
-      return;
-    }
-
-    const fetchedCoverGroups = await Promise.allSettled(
-      sourcesToCreate.map(async (source) => {
-        const params = new URLSearchParams({
-          source: source.sourceId,
-          refresh: "true",
-        });
-        const response = await fetch(`/api/economist-cover?${params.toString()}`, { cache: "no-store" });
-        const payload = (await response.json()) as Partial<EconomistCoverPayload> & { error?: string };
-
-        const mainCover = defaultEconomistCoverPayload({
-          sourceId: source.sourceId,
-          sourceName: payload.sourceName || source.sourceName,
-          displayDate: payload.displayDate,
-          displayLabel: payload.displayLabel || "Latest cover",
-          mainStory: payload.mainStory,
-          imageUrl: payload.imageUrl,
-          sourceUrl: payload.sourceUrl || source.sourceUrl,
-          year: payload.year,
-          fetchedAt: Date.now(),
-        });
-
-        const distinctCovers = [mainCover];
-        if (Array.isArray(payload.items)) {
-          for (const item of payload.items) {
-            const cover = defaultEconomistCoverPayload({
-              sourceId: source.sourceId,
-              sourceName: item.sourceName || payload.sourceName || source.sourceName,
-              displayDate: item.displayDate,
-              displayLabel: item.displayLabel || payload.displayLabel || "Latest cover",
-              mainStory: item.mainStory,
-              imageUrl: item.imageUrl,
-              sourceUrl: item.sourceUrl || payload.sourceUrl || source.sourceUrl,
-              year: item.year || payload.year,
-              fetchedAt: Date.now(),
-            });
-            if (cover.imageUrl && !distinctCovers.some((candidate) => candidate.imageUrl === cover.imageUrl)) {
-              distinctCovers.push(cover);
-            }
-          }
-        }
-
-        return distinctCovers;
-      }),
-    );
-
-    const notePayloads = fetchedCoverGroups.flatMap((result, index) => {
-      const source = sourcesToCreate[index];
-      if (!source) {
-        return [];
-      }
-      if (result.status === "fulfilled" && result.value.length > 0) {
-        return result.value;
-      }
-      return [
-        defaultEconomistCoverPayload({
-          sourceId: source.sourceId,
-          sourceName: source.sourceName,
-          sourceUrl: source.sourceUrl,
-          displayLabel: "Latest cover",
-          fetchedAt: Date.now(),
-        }),
-      ];
-    });
-
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const columns = Math.min(3, Math.max(1, notePayloads.length));
-    const rows = Math.ceil(notePayloads.length / columns);
-    const gapX = 40;
-    const gapY = 40;
-    const totalWidth = columns * ECONOMIST_NOTE_DEFAULTS.width + Math.max(0, columns - 1) * gapX;
-    const totalHeight = rows * ECONOMIST_NOTE_DEFAULTS.height + Math.max(0, rows - 1) * gapY;
-    const createdIds: string[] = [];
-    const occupiedRects = [...occupiedNoteRects];
-
-    runHistoryGroup(() => {
-      notePayloads.forEach((payload, index) => {
-        const column = index % columns;
-        const row = Math.floor(index / columns);
-        const preferredCenter = {
-          x: world.x - totalWidth / 2 + column * (ECONOMIST_NOTE_DEFAULTS.width + gapX) + ECONOMIST_NOTE_DEFAULTS.width / 2,
-          y: world.y - totalHeight / 2 + row * (ECONOMIST_NOTE_DEFAULTS.height + gapY) + ECONOMIST_NOTE_DEFAULTS.height / 2,
-        };
-        const position = placeNewNote(preferredCenter, { w: ECONOMIST_NOTE_DEFAULTS.width, h: ECONOMIST_NOTE_DEFAULTS.height }, occupiedRects);
-        const id = createEconomistNote(
-          position.x,
-          position.y,
-          payload,
-          { select: false },
-        );
-        createdIds.push(id);
-        occupiedRects.push({ x: position.x, y: position.y, w: ECONOMIST_NOTE_DEFAULTS.width, h: ECONOMIST_NOTE_DEFAULTS.height });
-      });
-    });
-
-    const firstId = createdIds[0];
-    if (firstId) {
-      setSelectedNoteIds([firstId]);
-      selectNote(firstId);
-    }
-  }, [camera, isTimeLocked, occupiedNoteRects, placeNewNote, runHistoryGroup, selectNote, viewport.h, viewport.w]);
-
   const makeWordNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
       return;
@@ -2630,34 +2435,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     selectNote(id);
     setReviewRevealMeaning(false);
   }, [camera, isTimeLocked, placeNewNote, selectNote, ui.lastColor, viewport.h, viewport.w]);
-
-  const makeJokerNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: JOKER_NOTE_DEFAULTS.width, h: JOKER_NOTE_DEFAULTS.height });
-    const id = createOrRefreshJokerNote({
-      x: position.x,
-      y: position.y,
-    });
-    setSelectedNoteIds([id]);
-    selectNote(id);
-  }, [camera, isTimeLocked, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeThroneNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: THRONE_NOTE_DEFAULTS.width, h: THRONE_NOTE_DEFAULTS.height });
-    const id = createOrRefreshThroneNote({
-      x: position.x,
-      y: position.y,
-    });
-    setSelectedNoteIds([id]);
-    selectNote(id);
-  }, [camera, isTimeLocked, placeNewNote, selectNote, viewport.h, viewport.w]);
 
   const makeQuoteNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
@@ -2803,9 +2580,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     createCanonNote: makeCanonNoteAtViewportCenter,
     createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
-    createApodNote: makeApodNoteAtViewportCenter,
-    createPoetryNote: makePoetryNoteAtViewportCenter,
-    createEconomistNote: makeEconomistNoteAtViewportCenter,
     createEisenhowerNote: makeEisenhowerNoteAtViewportCenter,
     createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
@@ -3678,31 +3452,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         onSelect: makeQuoteNoteAtViewportCenter,
       },
       {
-        id: "new-apod-note",
-        label: "Create APOD note",
-        description: "Add the latest NASA Astronomy Picture of the Day as a note.",
-        shortcut: "Shift + A",
-        keywords: ["nasa", "space", "astronomy", "apod", "picture"],
-        disabled: isTimeLocked,
-        onSelect: makeApodNoteAtViewportCenter,
-      },
-      {
-        id: "new-poetry-note",
-        label: "Create Poetry note",
-        description: "Add a daily PoetryDB poem with refresh and export actions.",
-        keywords: ["poetry", "poem", "poet", "poetrydb", "verse"],
-        disabled: isTimeLocked,
-        onSelect: makePoetryNoteAtViewportCenter,
-      },
-      {
-        id: "new-economist-note",
-        label: "Create magazine cover notes",
-        description: "Add one magazine-cover note for each source exposed by the local API.",
-        keywords: ["economist", "cover", "magazine", "issue", "barrons", "newyorker", "newsweek", "forbes"],
-        disabled: isTimeLocked,
-        onSelect: makeEconomistNoteAtViewportCenter,
-      },
-      {
         id: "new-eisenhower-note",
         label: "Create Eisenhower Matrix note",
         description: "Add a four-quadrant priority note with editable sections.",
@@ -4006,9 +3755,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
       makeCanonNoteAtViewportCenter,
       makeJournalNoteAtViewportCenter,
       makeQuoteNoteAtViewportCenter,
-      makeApodNoteAtViewportCenter,
-      makePoetryNoteAtViewportCenter,
-      makeEconomistNoteAtViewportCenter,
       makeEisenhowerNoteAtViewportCenter,
       makeWordNoteAtViewportCenter,
       makeZoneAtViewportCenter,
@@ -4212,8 +3958,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           <WallToolsPanel
             leftPanelOpen={leftPanelOpen}
             isTimeLocked={isTimeLocked}
-            hasJokerNote={hasJokerNote}
-            hasThroneNote={hasThroneNote}
             selectedNoteId={ui.selectedNoteId}
             linkingFromNoteId={ui.linkingFromNoteId}
             linkType={ui.linkType}
@@ -4234,12 +3978,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
             onCreateFileNote={makeFileNoteAtViewportCenter}
             onCreateAudioNote={makeAudioNoteAtViewportCenter}
             onCreateVideoNote={makeVideoNoteAtViewportCenter}
-            onCreateApodNote={makeApodNoteAtViewportCenter}
-            onCreatePoetryNote={makePoetryNoteAtViewportCenter}
-            onCreateEconomistNote={makeEconomistNoteAtViewportCenter}
             onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
-            onCreateOrRefreshJokerNote={makeJokerNoteAtViewportCenter}
-            onCreateOrRefreshThroneNote={makeThroneNoteAtViewportCenter}
             onCreateWordNote={makeWordNoteAtViewportCenter}
             onCreateZone={makeZoneAtViewportCenter}
             onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}
@@ -4546,10 +4285,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           onResetZoom={resetZoom}
           onZoomToFit={zoomToFitTracked}
           onZoomToSelection={zoomToSelection}
-          onRefreshCurrencyNote={() => { void refreshCurrencyNote({ force: true }); }}
-          onCurrencyAmountChange={updateCurrencyAmountInput}
-          onSetManualBaseCurrency={(value) => { void setManualBaseCurrency(value); }}
-          onResetToDetectedCurrency={() => { void resetToDetectedCurrency(); }}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
           onOpenBookmarkUrl={openBookmarkUrl}
           onSelectImageNoteFile={selectImageNoteFile}
@@ -4572,22 +4307,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           onRenameVideoNote={renameVideoNote}
           onOpenVideoNote={openVideoNote}
           onDownloadVideoNote={downloadVideoNote}
-          onRefreshApodNote={(noteId) => { void refreshApodNote(noteId, { force: true }); }}
-          onDownloadApodImage={downloadApodImage}
-          onOpenApodSource={(noteId) => {
-            const apodUrl = renderSnapshot.notes[noteId]?.apod?.pageUrl || renderSnapshot.notes[noteId]?.imageUrl;
-            if (apodUrl) {
-              openBookmarkUrl(apodUrl);
-            }
-          }}
-          onRefreshPoetryNote={(noteId) => { void refreshPoetryNote(noteId, { force: true }); }}
-          onDownloadPoetryImage={downloadPoetryAsImage}
-          onDownloadPoetryPdf={downloadPoetryAsPdf}
-          onRefreshEconomistNote={(noteId: string, year?: string) => { void refreshEconomistNote(noteId, { force: true, year }); }}
-          onOpenEconomistSource={(noteId) => {
-            const economistUrl = renderSnapshot.notes[noteId]?.quoteAuthor || "https://www.economist.com/printedition/covers";
-            openBookmarkUrl(economistUrl);
-          }}
         />
         )}
 
@@ -4630,8 +4349,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           selectedNote={primarySelectedNote}
           selectedNotePageReference={primarySelectedNote ? wallPageLinks.referencesByNoteId[primarySelectedNote.id] : undefined}
           selectedNotePageConversion={primarySelectedNote ? wallPageLinks.conversionsByNoteId[primarySelectedNote.id] : undefined}
-          hasJokerNote={hasJokerNote}
-          hasThroneNote={hasThroneNote}
           selectedNoteId={ui.selectedNoteId}
           selectedNoteIdsCount={activeSelectedNoteIds.length}
           displayedTags={displayedTags}
@@ -4696,28 +4413,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           onTogglePinSelectedNote={togglePinOnNote}
           onToggleHighlightSelectedNote={toggleHighlightOnNote}
           onToggleFocusSelectedNote={toggleFocusNote}
-          onToggleOrRefreshJokerSelectedNote={(noteId) => {
-            const selected = renderSnapshot.notes[noteId];
-            const id = createOrRefreshJokerNote({
-              noteId: selected?.noteKind === "joker" ? undefined : noteId,
-            });
-            setSelectedNoteIds([id]);
-            selectNote(id);
-          }}
-          onToggleOrRefreshThroneSelectedNote={(noteId) => {
-            const selected = renderSnapshot.notes[noteId];
-            const id = createOrRefreshThroneNote({
-              noteId: selected?.noteKind === "throne" ? undefined : noteId,
-            });
-            setSelectedNoteIds([id]);
-            selectNote(id);
-          }}
-          onRefreshPoetrySelectedNote={(noteId, options) => {
-            void refreshPoetryNote(noteId, options ?? { force: true });
-          }}
-          onRefreshEconomistSelectedNote={(noteId: string, year?: string) => {
-            void refreshEconomistNote(noteId, { force: true, year });
-          }}
           onStartLinkFromSelectedNote={setLinkingFromNote}
           onUpdateSelectedNote={updateNote}
           onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}

@@ -5,7 +5,6 @@ import { memo, type CSSProperties, type ReactNode } from "react";
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, truncateNoteText } from "@/components/wall/wall-canvas-helpers";
 import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
-import { getApodCaption } from "@/features/wall/apod";
 import { deriveWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
@@ -15,7 +14,6 @@ import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import type { Note } from "@/features/wall/types";
-import { getApodPlayback } from "@/lib/apod";
 
 type WallNotePreviewProps = {
   note: Note;
@@ -61,12 +59,6 @@ const atelier = {
   shadowDetail: "0 24px 56px rgba(28,28,25,0.16)",
 };
 
-const THRONE_CARD_BACKGROUND = "#35322f";
-const THRONE_CARD_TEXT = "#f5f0e8";
-const THRONE_CARD_MUTED = "rgba(245,240,232,0.42)";
-const THRONE_CARD_RULE = "rgba(245,240,232,0.18)";
-const THRONE_CARD_ACCENT = "#a67a10";
-
 const lineClampStyle = (lines: number): CSSProperties => ({
   display: "-webkit-box",
   WebkitLineClamp: lines,
@@ -77,14 +69,6 @@ const lineClampStyle = (lines: number): CSSProperties => ({
 const stripWikiLinkMarkup = (text: string) => text.replace(/\[\[([^\]\n]+?)\]\]/g, "$1");
 
 const splitNoteText = (text: string) => stripWikiLinkMarkup(text).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-
-const splitJokerText = (text: string) => {
-  const lines = splitNoteText(text);
-  return {
-    setup: lines[0] || text.trim() || "Why don't scientists trust atoms?",
-    punchline: lines.slice(1).join(" ") || "Because they make up everything!",
-  };
-};
 
 const getBodyText = (note: Note) => {
   const cleaned = stripWikiLinkMarkup(note.text);
@@ -340,8 +324,8 @@ const tokenizeCodeLine = (line: string, language: CodeLanguage): CodeSegment[] =
 const shellStyle = ({ note, selected, tone }: Pick<WallNotePreviewProps, "note" | "selected" | "tone">): CSSProperties => ({
   width: "100%",
   height: "100%",
-  borderRadius: note.noteKind === "economist" ? 18 : note.noteKind === "standard" ? 18 : 16,
-  background: note.noteKind === "throne" ? "#31302d" : note.noteKind === "joker" ? "#ffdea5" : note.noteKind === "standard" ? "#ffffff" : atelier.paper,
+  borderRadius: note.noteKind === "standard" ? 18 : 16,
+  background: note.noteKind === "standard" ? "#ffffff" : atelier.paper,
   boxShadow: note.noteKind === "standard"
     ? tone === "detail"
       ? "0 18px 42px rgba(28,28,25,0.10)"
@@ -371,53 +355,6 @@ const NoteShell = ({ children, note, width, height, selected, tone }: WallNotePr
 const MetaLabel = ({ children, color = atelier.quiet }: { children: ReactNode; color?: string }) => (
   <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color }}>{children}</p>
 );
-
-const formatCurrencyDisplayRate = (value: number) => value.toFixed(value >= 1 ? 2 : 4);
-
-const getCurrencyDisplayState = (baseCurrency?: string, usdRate?: number, previousUsdRate?: number) => {
-  const safeBaseCurrency = baseCurrency ?? "USD";
-  const safeUsdRate = typeof usdRate === "number" && Number.isFinite(usdRate) && usdRate > 0 ? usdRate : 1;
-  const displayRate = 1 / safeUsdRate;
-  const previousDisplayRate =
-    typeof previousUsdRate === "number" && Number.isFinite(previousUsdRate) && previousUsdRate > 0 ? 1 / previousUsdRate : undefined;
-  const changePercent = previousDisplayRate
-    ? ((displayRate - previousDisplayRate) / previousDisplayRate) * 100
-    : 0;
-
-  return {
-    pairLabel: `USD / ${safeBaseCurrency}`,
-    displayRate,
-    quoteLabel: `${safeBaseCurrency} per 1 USD`,
-    changePercent,
-  };
-};
-
-const formatCurrencyChangeBadge = (value: number) => {
-  const rounded = Math.round(value * 10) / 10;
-  const prefix = rounded > 0 ? "+" : "";
-  return `${prefix}${rounded.toFixed(1)}%`;
-};
-
-const formatCurrencyUpdatedAgo = (value?: number) => {
-  if (!value) {
-    return "Updated just now";
-  }
-
-  const elapsedMs = Date.now() - value;
-  if (elapsedMs < 60_000) {
-    return "Updated just now";
-  }
-  const elapsedMinutes = Math.round(elapsedMs / 60_000);
-  if (elapsedMinutes < 60) {
-    return `Updated ${elapsedMinutes}m ago`;
-  }
-  const elapsedHours = Math.round(elapsedMinutes / 60);
-  if (elapsedHours < 24) {
-    return `Updated ${elapsedHours}h ago`;
-  }
-  const elapsedDays = Math.round(elapsedHours / 24);
-  return `Updated ${elapsedDays}d ago`;
-};
 
 const PrivateRenderer = ({ note, width, height, tone }: RendererProps) => (
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
@@ -580,138 +517,6 @@ const VocabularyRenderer = ({ note, width, height, readableText, activeBackgroun
   );
 };
 
-const CurrencyRenderer = ({ note, width, height, tone }: Pick<RendererProps, "note" | "width" | "height" | "tone">) => {
-  const state = note.currency;
-  const display = getCurrencyDisplayState(state?.baseCurrency, state?.usdRate, state?.previousUsdRate);
-  const badgeX = Math.max(112, width - 88);
-  const chartPath = [
-    `M 18 ${136}`,
-    `C ${Math.max(34, width * 0.18)} ${132}, ${Math.max(54, width * 0.3)} ${142}, ${Math.max(84, width * 0.42)} ${122}`,
-    `S ${Math.max(146, width * 0.72)} ${102}, ${Math.max(208, width - 18)} ${132}`,
-  ].join(" ");
-
-  return (
-    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="relative h-full" style={{ background: atelier.paper }}>
-        <p
-          className="absolute"
-          style={{
-            left: 18,
-            top: 18,
-            width: Math.max(0, width - 36),
-            color: "rgba(140,124,114,0.75)",
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-          }}
-        >
-          CURRENCY PAIR
-        </p>
-
-        <p
-          className="absolute"
-          style={{
-            left: 18,
-            top: 36,
-            width: Math.max(0, width - 128),
-            color: atelier.ink,
-            fontSize: 20,
-            fontWeight: 700,
-            lineHeight: 1,
-          }}
-        >
-          {display.pairLabel}
-        </p>
-
-        <div
-          className="absolute flex items-center justify-center rounded-[6px]"
-          style={{
-            left: badgeX,
-            top: 34,
-            width: 52,
-            height: 18,
-            background: "#DCEEDD",
-          }}
-        >
-          <span style={{ color: atelier.forest, fontSize: 10, fontWeight: 700 }}>
-            {formatCurrencyChangeBadge(display.changePercent)}
-          </span>
-        </div>
-
-        <svg
-          aria-hidden
-          className="absolute"
-          viewBox="0 0 24 24"
-          style={{ left: Math.max(18, width - 38), top: 24, width: 26, height: 26 }}
-        >
-          <path d="M4 16l5-5 4 4 7-8" fill="none" stroke={atelier.forest} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M15 7h5v5" fill="none" stroke={atelier.forest} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-
-        <p
-          className="absolute"
-          style={{
-            left: 18,
-            top: 72,
-            width: Math.max(92, width - 132),
-            color: atelier.ink,
-            fontSize: 32,
-            fontWeight: 700,
-            lineHeight: 1,
-          }}
-        >
-          {formatCurrencyDisplayRate(display.displayRate)}
-        </p>
-
-        <p
-          className="absolute"
-          style={{
-            left: Math.min(width - 132, 112),
-            top: 85,
-            width: Math.max(0, width - 130),
-            color: atelier.muted,
-            fontSize: 11,
-            lineHeight: 1.1,
-          }}
-        >
-          {display.quoteLabel}
-        </p>
-
-        <svg aria-hidden className="absolute inset-x-0" style={{ top: 96, height: 64, width: "100%" }}>
-          <path d={chartPath} fill="none" stroke="#D5DBD7" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-
-        <p
-          className="absolute"
-          style={{
-            left: 18,
-            top: Math.max(18, height - 28),
-            width: Math.max(0, width - 142),
-            color: "rgba(140,124,114,0.72)",
-            fontSize: 9,
-            letterSpacing: "0.03em",
-          }}
-        >
-          {state?.rateSource === "default" ? "SOURCE: DEFAULT RATE" : "SOURCE: CURRENCY API"}
-        </p>
-
-        <p
-          className="absolute text-right"
-          style={{
-            left: Math.max(112, width - 116),
-            top: Math.max(18, height - 28),
-            width: 98,
-            color: "rgba(140,124,114,0.72)",
-            fontSize: 9,
-          }}
-        >
-          {formatCurrencyUpdatedAgo(state?.rateUpdatedAt)}
-        </p>
-      </div>
-    </NoteShell>
-  );
-};
-
 const WebBookmarkRenderer = ({ note, width, height, tone }: Pick<RendererProps, "note" | "width" | "height" | "tone">) => (
   <div style={{ width, height }}>
     <WebBookmarkCard note={note} tone={tone} />
@@ -740,72 +545,6 @@ const ImageRenderer = ({ note, width, height, tone }: RendererProps) => {
     </NoteShell>
   );
 };
-
-const ApodRenderer = ({ note, width, height, readableText, mutedText, bodyClamp, tone }: RendererProps) => {
-  const caption = getApodCaption(note);
-  const playback = getApodPlayback(note.apod);
-  const isVideo = note.apod?.mediaType === "video";
-  const imageUrl = resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note })) ?? note.imageUrl;
-  return (
-    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="flex h-full flex-col overflow-hidden">
-        <div className="relative aspect-video bg-[#31302d]">
-          {isVideo && playback?.kind === "direct" ? (
-            <video src={playback.url} poster={imageUrl} className="h-full w-full object-cover opacity-85" controls muted loop playsInline preload="metadata" />
-          ) : isVideo && playback?.kind === "embed" ? (
-            <iframe
-              src={playback.url}
-              title={note.apod?.title || "NASA APOD video"}
-              className="h-full w-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          ) : imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt={note.apod?.title || "NASA APOD"} className="h-full w-full object-cover opacity-85" loading="lazy" />
-          ) : (
-            <div className="flex h-full items-center justify-center px-4 text-center text-[11px] text-white/80">{note.apod?.error || "Loading APOD"}</div>
-          )}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-white/18 text-3xl text-white backdrop-blur-md">▶</div>
-          </div>
-          <div className="absolute bottom-0 left-0 h-1.5 w-full bg-white/18"><div className="h-full w-1/3" style={{ background: atelier.terracotta }} /></div>
-        </div>
-        <div className="flex flex-1 flex-col p-4" style={{ background: atelier.paper }}>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-bold" style={{ color: atelier.ink }}>{note.apod?.title || "Fluid Dynamics Study v02"}</p>
-            <span className="text-[10px] uppercase tracking-[0.16em]" style={{ color: atelier.quiet }}>{note.apod?.date || "media"}</span>
-          </div>
-          {caption && <p className="mt-3 text-sm leading-6" style={{ ...lineClampStyle(tone === "detail" ? 999 : bodyClamp), color: readableText }}>{caption}</p>}
-          <div className="mt-auto pt-4 text-[10px] uppercase tracking-[0.18em]" style={{ color: mutedText }}>Source: Multimedia API</div>
-        </div>
-      </div>
-    </NoteShell>
-  );
-};
-
-const PoetryRenderer = ({ note, width, height, readableText, bodyClamp, tone }: RendererProps) => (
-  <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-    <div className="flex h-full flex-col px-6 pb-5 pt-5" style={{ background: "linear-gradient(180deg, rgba(246,243,238,0.62), rgba(255,255,255,0.98))" }}>
-      <div className="text-center">
-        <MetaLabel color="rgba(139,113,106,0.46)">Source: Poetry API</MetaLabel>
-      </div>
-      <div className="flex flex-1 items-center justify-center px-1">
-        <p
-          className="w-full whitespace-pre-wrap font-[Newsreader] text-[18px] italic leading-[1.58] [overflow-wrap:anywhere]"
-          style={{ ...lineClampStyle(tone === "detail" ? 999 : bodyClamp + 6), color: readableText, textAlign: "center" }}
-        >
-          {note.text.trim() || note.poetry?.error || "Loading poem..."}
-        </p>
-      </div>
-      <div className="mt-3 border-t pt-4" style={{ borderColor: "rgba(223,192,184,0.3)" }}>
-        <p className="text-center text-[18px] font-medium" style={{ color: "rgba(196,118,95,0.92)", fontFamily: "\"Manrope\", sans-serif" }}>
-          {note.poetry?.author?.trim() || note.quoteAuthor?.trim() || "Unknown Poet"}
-        </p>
-      </div>
-    </div>
-  </NoteShell>
-);
 
 const EisenhowerRenderer = ({ note, width, height, readableText, mutedText, softText, quadrantClamp, tone }: RendererProps) => {
   const matrix = normalizeEisenhowerNote(note.eisenhower, note.createdAt);
@@ -836,116 +575,6 @@ const EisenhowerRenderer = ({ note, width, height, readableText, mutedText, soft
   );
 };
 
-const JokerRenderer = ({ note, width, height, tone }: RendererProps) => {
-  const { setup, punchline } = splitJokerText(note.text);
-  return (
-    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="relative h-full overflow-hidden px-5 pb-5 pt-4" style={{ background: "#ffdea5" }}>
-        <svg
-          className="pointer-events-none absolute right-2 top-1 h-[54px] w-[54px] opacity-[0.22]"
-          viewBox="0 0 64 64"
-          aria-hidden
-        >
-          <path d="M14 18l8-8 8 8" fill="none" stroke="rgba(117,87,23,0.55)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M42 18l8-8 8 8" fill="none" stroke="rgba(117,87,23,0.55)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M12 34c5 12 15 18 20 18s15-6 20-18" fill="rgba(117,87,23,0.42)" />
-        </svg>
-        <MetaLabel color="rgba(93,66,1,0.72)">Source: Jokes API</MetaLabel>
-        <p
-          className="relative z-10 mt-5"
-          style={{
-            ...lineClampStyle(tone === "detail" ? 999 : 3),
-            color: "#261900",
-            fontSize: 16,
-            lineHeight: 1.65,
-            fontWeight: 500,
-          }}
-        >
-          {setup}
-        </p>
-        <p
-          className="relative z-10 mt-4 border-t pt-4"
-          style={{
-            ...lineClampStyle(tone === "detail" ? 999 : 3),
-            borderColor: "rgba(38,25,0,0.10)",
-            color: "rgba(38,25,0,0.92)",
-            fontSize: 18,
-            lineHeight: 1.55,
-            fontWeight: 800,
-          }}
-        >
-          {punchline}
-        </p>
-      </div>
-    </NoteShell>
-  );
-};
-
-const ThroneRenderer = ({ note, width, height, tone }: RendererProps) => {
-  const throneText = stripWikiLinkMarkup(note.text);
-  const throneDisplayText = throneText === "Summoning a line from Westeros..."
-    ? throneText
-    : `“${throneText || "A mind needs books as a sword needs a whetstone, if it is to keep its edge."}”`;
-
-  return (
-    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="relative h-full px-5 pb-5 pt-6" style={{ background: THRONE_CARD_BACKGROUND, color: THRONE_CARD_TEXT }}>
-        <div
-          className="absolute right-5 top-4 h-6 w-[18px]"
-          style={{
-            background: THRONE_CARD_ACCENT,
-            clipPath: "polygon(50% 0%, 100% 16%, 100% 62%, 50% 100%, 0% 62%, 0% 16%)",
-            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.18))",
-          }}
-        />
-        <MetaLabel color={THRONE_CARD_MUTED}>Source: GoT API</MetaLabel>
-        <p
-          className="mt-7 whitespace-pre-wrap font-[Cormorant_Garamond] text-[31px] italic leading-[1.3] [overflow-wrap:anywhere]"
-          style={{ ...lineClampStyle(tone === "detail" ? 999 : 5), color: THRONE_CARD_TEXT }}
-        >
-          {throneDisplayText}
-        </p>
-        <div className="absolute bottom-8 left-5 right-5 flex items-center gap-3 text-center text-[13px]" style={{ color: "rgba(245,240,232,0.74)" }}>
-          <div className="h-px flex-1" style={{ background: THRONE_CARD_RULE }} />
-          <span className="font-[Cormorant_Garamond] text-[21px] leading-none">{note.quoteAuthor?.trim() || "Tyrion Lannister"}</span>
-          <div className="h-px flex-1" style={{ background: THRONE_CARD_RULE }} />
-        </div>
-      </div>
-    </NoteShell>
-  );
-};
-
-const EconomistRenderer = ({ note, width, height, tone }: RendererProps) => {
-  const lines = splitNoteText(note.text);
-  const masthead = lines[0] || "Magazine";
-  const subhead = note.economist?.mainStory?.trim() || "The Infinite Canvas: A New Era of Spatial Thinking";
-  const imageUrl = resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note })) ?? note.imageUrl;
-  return (
-    <div className="relative" style={{ width, height }}>
-      <div className="absolute inset-0 translate-x-3 rotate-[6deg] rounded-[16px] bg-[#ebe8e3] shadow-[0_12px_28px_rgba(28,28,25,0.12)]" />
-      <div className="absolute inset-0 -translate-x-1 rotate-[-3deg] rounded-[16px] bg-[#f6f3ee] shadow-[0_16px_34px_rgba(28,28,25,0.14)]" />
-      <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-        <div className="flex h-full flex-col">
-          <div className="relative h-[68%] bg-[#ddd6ce]">
-            {imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl} alt={masthead} className="h-full w-full object-cover" loading="lazy" />
-            ) : null}
-          </div>
-          <div className="flex flex-1 flex-col justify-between p-4" style={{ background: atelier.paper }}>
-            <div>
-              <p className="text-[15px] font-bold leading-tight" style={{ color: atelier.ink }}>{subhead}</p>
-            </div>
-            <div>
-              <p className="font-[Newsreader] text-[20px] font-black uppercase leading-none" style={{ color: atelier.ink }}>{masthead}</p>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.16em]" style={{ color: atelier.quiet }}>Source: Magazine API</p>
-            </div>
-          </div>
-        </div>
-      </NoteShell>
-    </div>
-  );
-};
 const CodeRenderer = ({ note, width, height, tone }: RendererProps) => {
   const parsed = parseCodeNote(note.text);
   const lines = parsed.body.split("\n").slice(0, tone === "detail" ? undefined : 9);
@@ -1149,15 +778,9 @@ const noteRenderers: Record<string, NoteRenderer> = {
   canon: CanonRenderer,
   journal: JournalRenderer,
   eisenhower: EisenhowerRenderer,
-  currency: CurrencyRenderer,
   "web-bookmark": WebBookmarkRenderer,
-  apod: ApodRenderer,
-  poetry: PoetryRenderer,
   image: ImageRenderer,
   vocabulary: VocabularyRenderer,
-  joker: JokerRenderer,
-  throne: ThroneRenderer,
-  economist: EconomistRenderer,
   code: CodeRenderer,
   file: FileRenderer,
   audio: AudioRenderer,
@@ -1168,21 +791,6 @@ const noteRenderers: Record<string, NoteRenderer> = {
 const resolveRendererKey = (note: Note) => {
   if (isPrivateNote(note)) {
     return "private";
-  }
-  if (note.noteKind === "apod") {
-    return "apod";
-  }
-  if (note.noteKind === "poetry") {
-    return "poetry";
-  }
-  if (note.noteKind === "joker") {
-    return "joker";
-  }
-  if (note.noteKind === "throne") {
-    return "throne";
-  }
-  if (note.noteKind === "economist") {
-    return "economist";
   }
   if (resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note }))) {
     return "image";
