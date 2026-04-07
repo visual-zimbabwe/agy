@@ -99,6 +99,7 @@ export const NoteInspectorSection = ({
   onToggleHighlight,
   onToggleFocus,
   onStartLink,
+  onUpdateNote,
   privateNoteSupported,
   isPrivateEnabled,
   isPrivateUnlocked,
@@ -193,6 +194,34 @@ export const NoteInspectorSection = ({
           </select>
         </label>
       </div>
+
+      {selectedNote.noteKind === "quote" ? (
+        <div className={sectionRow}>
+          <label className="grid gap-1">
+            <span className="text-xs font-medium text-[var(--color-text-muted)]">Author</span>
+            <input
+              className={detailField}
+              type="text"
+              value={selectedNote.quoteAuthor ?? ""}
+              placeholder="Author (optional)"
+              disabled={disabled}
+              onChange={(event) => onUpdateNote(selectedNote.id, { quoteAuthor: event.target.value })}
+            />
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-xs font-medium text-[var(--color-text-muted)]">Source</span>
+            <input
+              className={detailField}
+              type="text"
+              value={selectedNote.quoteSource ?? ""}
+              placeholder="Source (optional)"
+              disabled={disabled}
+              onChange={(event) => onUpdateNote(selectedNote.id, { quoteSource: event.target.value })}
+            />
+          </label>
+        </div>
+      ) : null}
 
       <div className={buttonRow}>
         <button type="button" className={detailButton} disabled={disabled} onClick={() => onDuplicate(selectedNote.id)}>Duplicate</button>
