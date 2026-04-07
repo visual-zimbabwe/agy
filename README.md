@@ -135,7 +135,7 @@ Install Windows login-time autostart with:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\install-agy-autostart.ps1
 ```
 
-That startup entry launches the local Supabase stack first, then `agy`, then the LocaltoNet tunnel.
+That startup entry launches the local Supabase stack first, then `agy`, then the LocaltoNet tunnel. The LocalXpose watchdog support remains available when you start with `-WithTunnel`.
 
 ## Validation
 

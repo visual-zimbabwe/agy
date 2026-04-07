@@ -7,6 +7,10 @@ const supabaseProxyTarget =
   process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 const nextConfig: NextConfig = {
+  output: outputMode,
+  turbopack: {
+    root: __dirname,
+  },
   allowedDevOrigins: [
     "http://127.0.0.1:3000",
     "http://localhost:3000",
@@ -28,7 +32,7 @@ const nextConfig: NextConfig = {
         "http://10.0.0.121:5000",
         "http://100.69.19.119:5000",
         "http://localhost:5000",
-        "http://127.0.0.1:5000"
+        "http://127.0.0.1:5000",
       ],
     },
   },

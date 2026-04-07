@@ -2,7 +2,6 @@ param(
     [switch]$NoMonitor,
     [switch]$ForceRestart
 )
-
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
