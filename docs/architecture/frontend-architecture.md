@@ -48,6 +48,7 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 ### Wall
 
 - `src/components/WallCanvas.tsx`: wall composition root and orchestration layer
+- `src/components/wall/session/`: wall session context scaffold (`WallSessionProvider`, interaction/sync/layout contexts) — see [`wall-ui-refactor-implementation-plan.md`](wall-ui-refactor-implementation-plan.md)
 - `src/components/wall/WallStage.tsx`: Konva stage and camera interaction surface
 - `src/components/wall/WallToolbar.tsx`, `WallHeaderBar.tsx`: command surfaces and route-adjacent controls
 - `src/components/wall/WallToolsPanel.tsx`, `WallDetailsSidebar.tsx`: left/right contextual panels
@@ -106,6 +107,7 @@ Avoid:
 - Extract large workspace files by responsibility instead of layering more logic into the root.
 - Convert repeated styling patterns into primitives or shared maps.
 - Keep route files thin; move UI logic into workspace components.
+- During the wall UI refactor, follow the guardrails in [`docs/contributing/development-workflow.md`](../contributing/development-workflow.md#wall-ui-refactor-guardrails) and [`wall-ui-refactor-implementation-plan.md`](wall-ui-refactor-implementation-plan.md).
 - Validate meaningful frontend changes with:
   - `npm run lint`
   - `npm run check:regressions`
@@ -115,6 +117,7 @@ Avoid:
 ## Related Docs
 
 - `docs/architecture/overview.md`
+- `docs/architecture/wall-ui-refactor-implementation-plan.md` (active structural refactor for wall UI; Phase 0 shipped)
 - `docs/features/decks.md`
 - `docs/features/timeline-view.md`
 

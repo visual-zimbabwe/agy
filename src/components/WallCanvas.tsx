@@ -74,6 +74,7 @@ import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
 import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
 import { useWallZoomControls } from "@/components/wall/useWallZoomControls";
 import { useWallProductTour } from "@/components/wall/useWallProductTour";
+import { WallSessionProvider } from "@/components/wall/session/WallSessionProvider";
 import {
   toolbarBtn,
   toolbarBtnActive,
@@ -3607,6 +3608,36 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     ],
   );
   return (
+    <WallSessionProvider
+      interaction={{
+        selectedNoteIds,
+        editingNoteId: editing?.id ?? null,
+        focusedNoteId,
+        hoveredNoteId,
+        draggingNoteId,
+        boxSelectMode,
+      }}
+      sync={{
+        cloudWallId,
+        isSyncing,
+        hasPendingSync,
+        syncError,
+        lastSyncedAt,
+        localSaveState,
+        publishedReadOnly,
+      }}
+      layout={{
+        layoutPrefs,
+        leftPanelOpen,
+        rightPanelOpen,
+        detailsSectionsOpen,
+        presentationMode,
+        readingMode,
+        timelineViewActive,
+        controlsMode,
+        spatialPrefs,
+      }}
+    >
     <div className="wall-atelier-shell flex h-screen flex-col text-[var(--color-text)]">
       {!readingMode && !timelineViewActive && (
         <WallHeaderBar
@@ -4372,5 +4403,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         userProfile={userProfile}
       />
     </div>
+    </WallSessionProvider>
   );
 };
