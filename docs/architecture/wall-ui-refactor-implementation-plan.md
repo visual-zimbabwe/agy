@@ -225,7 +225,7 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 **Goal:** `WallCanvas` becomes a thin shell (~800–1,200 lines).
 
-**Status:** In progress (2026-06-17) — Tasks 1–2 shipped structurally (`WallSpatialView`, `WallChromeShell`). Task 3 substantially advanced: `useWallSpatialBindings`, `useWallCommandPalette`, `useWallCloudSync`, `useWallClientPrefs`, `useWallPrivateNotes`, `useWallBookmarkOrchestration`, `useWallNoteCreation`, and `useWallMediaNoteHandlers` extracted from `WallCanvas`. `WallCanvas` ~2,140 lines (down from ~4,330); `eslint-disable` and ≤1,200-line target remain outstanding.
+**Status:** In progress (2026-06-17) — Tasks 1–2 shipped structurally (`WallSpatialView`, `WallChromeShell`). Task 3 substantially advanced: prior extractions plus `useWallImageInsert`, `useWallPresentationPaths`, `useWallSmartMerge`, `useWallNoteTagActions`, `useWallVocabularySession` / `useWallSessionClock`, and `useWallPanelChrome`. `WallCanvas` ~1,700 lines (down from ~4,330); `eslint-disable` and ≤1,200-line target remain outstanding.
 
 #### Tasks
 
@@ -243,7 +243,13 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
    - `useWallBookmarkOrchestration` — preview fetch + auto-upgrade on hydrate
    - `useWallNoteCreation` — viewport-centered note factories (all note kinds)
    - `useWallMediaNoteHandlers` — image/audio/video/file note submit, playback, open/download
-   - Remaining in `WallCanvas`: image-insert/moodboard orchestration, narrative-path handlers, smart-merge/recall wiring glue
+   - `useWallImageInsert` — image insert modal, clipboard paste, Unsplash/moodboard orchestration
+   - `useWallPresentationPaths` — narrative path CRUD, step camera sync, presentation index state
+   - `useWallSmartMerge` — merge suggestion preview/apply wiring for details panel
+   - `useWallNoteTagActions` — per-note tag add/remove/rename helpers
+   - `useWallVocabularySession` + `useWallSessionClock` — vocabulary review session + wall clock for derived data
+   - `useWallPanelChrome` — left/right panel state, tracked modal openers, details auto-open
+   - Remaining in `WallCanvas`: spatial/selection drag glue, session binding prop assembly, keyboard wiring
 4. Remove `eslint-disable complexity, max-lines` from `WallCanvas` when thresholds are met
 5. Relocate `wall-canvas-helpers.ts` junk-drawer contents: **(done 2026-06-17)**
    - `wall-coordinates.ts` — toWorld/toScreen, fit bounds, open-note placement, zone containment
