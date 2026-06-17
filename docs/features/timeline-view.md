@@ -30,6 +30,7 @@ Current capabilities include:
 - moving between filtered entries with header **Prev**/**Next** controls while keeping the selected card scrolled into view
 - showing readable primary labels and compact metadata for file and bookmark entries (user title or first line first, filename once, kind/size subtitle) instead of raw attachment theater
 - keeping attachment cards within the stream column without horizontal scrolling at default desktop widths
+- virtualizing the stream list so only visible day headers and note rows mount in the DOM while preserving smooth scroll and selection scroll-into-view behavior
 
 Timeline remains view-only for note content. Notes in this mode do not open the details panel, do not enter inline editing, and do not mutate note data from the timeline surface.
 
@@ -56,7 +57,6 @@ The current timeline layout is downstream of wall note state. Selection syncs wi
 
 - Timeline does not support inline editing from the stream surface.
 - Search and date jump operate on the current in-memory note set only; there is no server-side recall or saved stream scroll position yet.
-- Large note histories still render every matching card in the DOM; virtualization is planned as a follow-up.
 - The current implementation is part of the wall experience, not a standalone route or subsystem.
 
 ## Related Docs

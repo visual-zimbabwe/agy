@@ -341,3 +341,64 @@ export const resolveTimelineStreamSelection = (
   }
   return undefined;
 };
+
+export type TimelineStreamVirtualItem =
+  | { type: "group-header"; dayKey: string; label: string }
+  | { type: "entry"; entry: TimelineStreamEntry; dayKey: string };
+
+export const TIMELINE_STREAM_ROW_METRICS = {
+  groupHeader: { mobile: 110, desktop: 150 },
+  entrySpacing: { mobile: 48, desktop: 64 },
+  timeLabel: 28,
+  revealButton: 36,
+  centerPadding: 16,
+} as const;
+
+export const flattenTimelineStreamGroups = (groups: readonly TimelineStreamGroup[]): TimelineStreamVirtualItem[] => {
+  const items: TimelineStreamVirtualItem[] = [];
+
+  for (const group of groups) {
+    items.push({ type: "group-header", dayKey: group.key, label: group.label });
+    for (const entry of group.entries) {
+      items.push({ type: "entry", entry, dayKey: group.key });
+    }
+  }
+
+  return items;
+};
+
+export const getTimelineStreamVirtualEntryIndex = (items: readonly TimelineStreamVirtualItem[], noteId: string) =>
+  items.findIndex((item) => item.type === "entry" && item.entry.id === noteId);
+
+export const getTimelineStreamVirtualDayIndex = (items: readonly TimelineStreamVirtualItem[], dayKey: string) =>
+  items.findIndex((item) => item.type === "group-header" && item.dayKey === dayKey);
+
+export const getTimelineStreamEntryPreviewDimensions = (
+  entry: TimelineStreamEntry,
+  isDesktop: boolean,
+): ReturnType<typeof resolveWallPreviewDimensions> =>
+  isDesktop && entry.side !== "center" ? entry.desktop : entry.mobile;
+
+export const estimateTimelineStreamRowHeight = (
+  item: TimelineStreamVirtualItem,
+  options?: { isDesktop?: boolean; isSelected?: boolean },
+): number => {
+  const isDesktop = options?.isDesktop ?? false;
+
+  if (item.type === "group-header") {
+    return isDesktop
+      ? TIMELINE_STREAM_ROW_METRICS.groupHeader.desktop
+      : TIMELINE_STREAM_ROW_METRICS.groupHeader.mobile;
+  }
+
+  const dims = getTimelineStreamEntryPreviewDimensions(item.entry, isDesktop);
+  const spacing = isDesktop
+    ? TIMELINE_STREAM_ROW_METRICS.entrySpacing.desktop
+    : TIMELINE_STREAM_ROW_METRICS.entrySpacing.mobile;
+  const revealExtra =
+    options?.isSelected && !isDesktop ? TIMELINE_STREAM_ROW_METRICS.revealButton : 0;
+  const centerExtra =
+    item.entry.side === "center" ? TIMELINE_STREAM_ROW_METRICS.centerPadding : 0;
+
+  return dims.height + TIMELINE_STREAM_ROW_METRICS.timeLabel + spacing + revealExtra + centerExtra;
+};

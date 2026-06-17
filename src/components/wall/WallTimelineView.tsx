@@ -1,12 +1,18 @@
 "use client";
 
-import { memo, useEffect, type RefObject } from "react";
+import { useEffect, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
-import { WallNotePreview } from "@/components/wall/WallNotePreview";
+import { useIsDesktopTimelineLayout } from "@/components/wall/useIsDesktopTimelineLayout";
 import { useWallTimelineStream } from "@/components/wall/useWallTimelineStream";
 import { WallTimelineStreamHeader } from "@/components/wall/WallTimelineStreamHeader";
+import { WallTimelineVirtualRow } from "@/components/wall/WallTimelineVirtualRow";
 import { formatTimelineDateTime } from "@/components/wall/wallTimelineViewHelpers";
-import type { TimelineStreamEntry } from "@/components/wall/wallTimelineStreamHelpers";
+import {
+  estimateTimelineStreamRowHeight,
+  getTimelineStreamVirtualDayIndex,
+  getTimelineStreamVirtualEntryIndex,
+} from "@/components/wall/wallTimelineStreamHelpers";
 import type { Note } from "@/features/wall/types";
 
 type WallTimelineViewProps = {
@@ -16,16 +22,6 @@ type WallTimelineViewProps = {
   onSelectNote: (noteId: string) => void;
   onRevealNote: (noteId: string) => void;
   onExit: () => void;
-};
-
-type TimelineStreamCardProps = {
-  entry: TimelineStreamEntry;
-  selected: boolean;
-  cardRef: RefObject<HTMLDivElement | null> | null;
-  onSelect: () => void;
-  onReveal: () => void;
-  alignment: "left" | "right" | "center";
-  showDesktopPreview: boolean;
 };
 
 const shellStyles = {
@@ -42,109 +38,6 @@ const shellStyles = {
   selection: "#a33818",
 };
 
-const formatTimeLabel = (timestamp: number) =>
-  new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(timestamp);
-
-const RevealOnWallButton = memo(function RevealOnWallButton({
-  visible,
-  onReveal,
-}: {
-  visible: boolean;
-  onReveal: () => void;
-}) {
-  if (!visible) {
-    return null;
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={(event) => {
-        event.stopPropagation();
-        onReveal();
-      }}
-      className="pointer-events-auto mt-3 inline-flex items-center rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-white/70 md:mt-0 md:absolute md:right-3 md:top-3 md:shadow-sm"
-      style={{
-        borderColor: shellStyles.selection,
-        background: "rgba(255,255,255,0.92)",
-        color: shellStyles.selection,
-      }}
-    >
-      Reveal on Wall
-    </button>
-  );
-});
-
-const TimelineStreamCard = memo(function TimelineStreamCard({
-  entry,
-  selected,
-  cardRef,
-  onSelect,
-  onReveal,
-  alignment,
-  showDesktopPreview,
-}: TimelineStreamCardProps) {
-  const alignmentClass =
-    alignment === "center"
-      ? "items-center text-center"
-      : alignment === "left"
-        ? "items-end text-right"
-        : "items-start text-left";
-
-  return (
-    <div ref={cardRef ?? undefined} className={`relative flex max-w-full flex-col ${alignmentClass}`}>
-      <button
-        type="button"
-        onClick={onSelect}
-        onDoubleClick={onReveal}
-        aria-pressed={selected}
-        aria-label={`Select note from ${formatTimelineDateTime(entry.ts)}`}
-        className={`group relative max-w-full rounded-[24px] text-left transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818] ${
-          alignment === "center" ? "mx-auto" : ""
-        } ${selected ? "-translate-y-0.5" : "hover:-translate-y-1"}`}
-      >
-        <div className="md:hidden">
-          <WallNotePreview
-            note={entry.note}
-            width={entry.mobile.width}
-            height={entry.mobile.height}
-            scale="large"
-            surface="timeline-stream"
-            selected={selected}
-          />
-        </div>
-        {showDesktopPreview ? (
-          <div className="hidden max-w-full overflow-hidden md:block">
-            <WallNotePreview
-              note={entry.note}
-              width={entry.desktop.width}
-              height={entry.desktop.height}
-              scale="large"
-              surface="timeline-stream"
-              selected={selected}
-            />
-          </div>
-        ) : (
-          <div className="hidden max-w-full overflow-hidden md:block">
-            <WallNotePreview
-              note={entry.note}
-              width={entry.mobile.width}
-              height={entry.mobile.height}
-              scale="large"
-              surface="timeline-stream"
-              selected={selected}
-            />
-          </div>
-        )}
-        <RevealOnWallButton visible={selected} onReveal={onReveal} />
-      </button>
-    </div>
-  );
-});
-
 export const WallTimelineView = ({
   notes,
   selectedNoteId,
@@ -152,6 +45,8 @@ export const WallTimelineView = ({
   onRevealNote,
   onExit,
 }: WallTimelineViewProps) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDesktop = useIsDesktopTimelineLayout();
   const {
     searchQuery,
     setSearchQuery,
@@ -160,6 +55,7 @@ export const WallTimelineView = ({
     selectedDayKey,
     handleDayJump,
     groups,
+    flatItems,
     totalNoteCount,
     filteredNoteCount,
     hasActiveSearch,
@@ -168,16 +64,53 @@ export const WallTimelineView = ({
     moveSelection,
     canMovePrevious,
     canMoveNext,
-    selectedCardRef,
-    setEntryRef,
-    setGroupHeaderRef,
     dayOptions,
   } = useWallTimelineStream({ notes, selectedNoteId, onSelectNote });
+
+  const virtualizer = useVirtualizer({
+    count: flatItems.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (index) => {
+      const item = flatItems[index];
+      if (!item) {
+        return 0;
+      }
+      return estimateTimelineStreamRowHeight(item, {
+        isDesktop,
+        isSelected: item.type === "entry" && item.entry.id === effectiveSelectedId,
+      });
+    },
+    overscan: 5,
+  });
 
   const noteCountLabel =
     hasActiveSearch && filteredNoteCount !== totalNoteCount
       ? `Read-only review · ${filteredNoteCount} of ${totalNoteCount} notes`
       : `Read-only review · ${filteredNoteCount} note${filteredNoteCount === 1 ? "" : "s"}`;
+
+  useEffect(() => {
+    virtualizer.measure();
+  }, [flatItems, isDesktop, effectiveSelectedId]);
+
+  useEffect(() => {
+    if (!effectiveSelectedId) {
+      return;
+    }
+    const index = getTimelineStreamVirtualEntryIndex(flatItems, effectiveSelectedId);
+    if (index >= 0) {
+      virtualizer.scrollToIndex(index, { align: "auto", behavior: "smooth" });
+    }
+  }, [effectiveSelectedId, flatItems]);
+
+  useEffect(() => {
+    if (!selectedDayKey) {
+      return;
+    }
+    const index = getTimelineStreamVirtualDayIndex(flatItems, selectedDayKey);
+    if (index >= 0) {
+      virtualizer.scrollToIndex(index, { align: "start", behavior: "smooth" });
+    }
+  }, [flatItems, selectedDayKey]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -255,8 +188,11 @@ export const WallTimelineView = ({
         onExit={onExit}
       />
 
-      <div className="wall-timeline-scrollbar relative h-full overflow-x-hidden overflow-y-auto px-4 pb-24 pt-44 sm:px-6 sm:pt-48 lg:px-10">
-        <div className="relative mx-auto max-w-6xl pb-20">
+      <div
+        ref={scrollRef}
+        className="wall-timeline-scrollbar relative h-full overflow-x-hidden overflow-y-auto px-4 pb-24 pt-44 sm:px-6 sm:pt-48 lg:px-10"
+      >
+        <div className="relative mx-auto max-w-6xl pb-20" style={{ height: flatItems.length > 0 ? virtualizer.getTotalSize() : undefined }}>
           <div
             className="pointer-events-none absolute bottom-0 top-0 left-1/2 hidden -translate-x-1/2 md:block"
             style={{ width: "1px", background: `linear-gradient(180deg, transparent 0%, ${shellStyles.axis} 6%, ${shellStyles.axisSoft} 100%)` }}
@@ -277,87 +213,33 @@ export const WallTimelineView = ({
               </p>
             </div>
           ) : (
-            groups.map((group) => (
-              <section key={group.key} className="relative">
+            virtualizer.getVirtualItems().map((virtualRow) => {
+              const item = flatItems[virtualRow.index];
+              if (!item) {
+                return null;
+              }
+
+              const isSelected = item.type === "entry" && item.entry.id === effectiveSelectedId;
+
+              return (
                 <div
-                  ref={(node) => setGroupHeaderRef(group.key, node)}
-                  className="relative z-[1] mb-10 mt-10 flex scroll-mt-44 justify-center md:mb-16 md:mt-14 sm:scroll-mt-48"
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  className="absolute left-0 top-0 w-full"
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
                 >
-                  <span
-                    className="inline-flex rounded-full border px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-sm"
-                    style={{
-                      borderColor: shellStyles.chipBorder,
-                      background: shellStyles.chipBg,
-                      color: shellStyles.muted,
-                    }}
-                  >
-                    {group.label}
-                  </span>
+                  <WallTimelineVirtualRow
+                    item={item}
+                    isDesktop={isDesktop}
+                    isSelected={isSelected}
+                    shellStyles={shellStyles}
+                    onSelect={selectEntry}
+                    onReveal={onRevealNote}
+                  />
                 </div>
-
-                <div className="space-y-12 md:space-y-16">
-                  {group.entries.map((entry) => {
-                    const isSelected = entry.id === effectiveSelectedId;
-                    const cardRef = isSelected ? selectedCardRef : null;
-                    const commonTimeLabel = (
-                      <p className="mt-4 text-[10px] uppercase tracking-[0.24em]" style={{ color: shellStyles.quiet }}>
-                        {formatTimeLabel(entry.ts)}
-                      </p>
-                    );
-
-                    if (entry.side === "center") {
-                      return (
-                        <div
-                          key={entry.id}
-                          ref={(node) => setEntryRef(entry.id, node)}
-                          className="flex justify-center px-4"
-                        >
-                          <div className="max-w-full text-center">
-                            <TimelineStreamCard
-                              entry={entry}
-                              selected={isSelected}
-                              cardRef={cardRef}
-                              onSelect={() => selectEntry(entry.id)}
-                              onReveal={() => onRevealNote(entry.id)}
-                              alignment="center"
-                              showDesktopPreview={false}
-                            />
-                            {commonTimeLabel}
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div
-                        key={entry.id}
-                        ref={(node) => setEntryRef(entry.id, node)}
-                        className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] md:gap-10"
-                      >
-                        <div className={`flex ${entry.side === "left" ? "justify-end text-right" : "justify-start md:col-start-3"}`}>
-                          <div className={`flex max-w-full flex-col ${entry.side === "left" ? "items-end text-right" : "items-start text-left"}`}>
-                            <TimelineStreamCard
-                              entry={entry}
-                              selected={isSelected}
-                              cardRef={cardRef}
-                              onSelect={() => selectEntry(entry.id)}
-                              onReveal={() => onRevealNote(entry.id)}
-                              alignment={entry.side}
-                              showDesktopPreview
-                            />
-                            {commonTimeLabel}
-                          </div>
-                        </div>
-
-                        <div className="relative hidden items-start justify-center md:flex">
-                          <div className="mt-4 h-3 w-3 rounded-full border-2 bg-[#fcf9f4]" style={{ borderColor: shellStyles.axis }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            ))
+              );
+            })
           )}
         </div>
       </div>

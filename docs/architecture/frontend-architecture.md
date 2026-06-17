@@ -54,10 +54,12 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 - `src/components/wall/WallFloatingUi.tsx`, `WallGlobalModals.tsx`: floating editors, menus, and modal layer
 - `src/components/wall/useWall*.ts`: modular wall behavior hooks
 - Timeline stream (`V`):
-  - `src/components/wall/WallTimelineView.tsx`: vertical stream composition root
+  - `src/components/wall/WallTimelineView.tsx`: vertical stream composition root with `@tanstack/react-virtual` list virtualization
+  - `src/components/wall/WallTimelineVirtualRow.tsx`: virtual row renderer for day headers and note entries (single preview path per entry)
   - `src/components/wall/WallTimelineStreamHeader.tsx`: search, day jump, sort, and prev/next controls
-  - `src/components/wall/useWallTimelineStream.ts`: stream filter/sort/selection state and scroll refs
-  - `src/components/wall/wallTimelineStreamHelpers.ts`: grouping, search predicates, and selection helpers
+  - `src/components/wall/useWallTimelineStream.ts`: stream filter/sort/selection state and flattened virtual item list
+  - `src/components/wall/useIsDesktopTimelineLayout.ts`: breakpoint hook for desktop vs mobile stream layout
+  - `src/components/wall/wallTimelineStreamHelpers.ts`: grouping, search predicates, selection helpers, and row-height estimation
   - `src/components/wall/wallTimelineViewHelpers.ts`: shared date formatting and horizontal-layout helpers retained for legacy timeline canvas code
 
 ### Decks
