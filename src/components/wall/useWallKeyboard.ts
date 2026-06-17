@@ -35,6 +35,7 @@ type WallKeyboardOptions = {
   presentationMode: boolean;
   presentationLength: number;
   timelineEntriesLength: number;
+  timelineViewActive: boolean;
   timelineModeRef: MutableRefObject<boolean>;
   setIsSpaceDown: (value: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
@@ -97,6 +98,7 @@ export const useWallKeyboard = ({
   presentationMode,
   presentationLength,
   timelineEntriesLength,
+  timelineViewActive,
   timelineModeRef,
   setIsSpaceDown,
   setShortcutsOpen,
@@ -205,6 +207,9 @@ export const useWallKeyboard = ({
       }
 
       if (event.key === "Escape") {
+        if (timelineViewActive) {
+          return;
+        }
         setSearchOpen(false);
         setExportOpen(false);
         setShortcutsOpen(false);
@@ -295,6 +300,10 @@ export const useWallKeyboard = ({
           setSearchOpen(false);
           setExportOpen(false);
         }
+        return;
+      }
+
+      if (timelineViewActive) {
         return;
       }
 
@@ -573,6 +582,7 @@ export const useWallKeyboard = ({
     setTimelineMode,
     toggleTimelineView,
     timelineEntriesLength,
+    timelineViewActive,
     timelineModeRef,
     ui,
     undo,

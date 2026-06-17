@@ -2356,6 +2356,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     presentationMode,
     presentationLength: presentationLengthForKeyboard,
     timelineEntriesLength: timelineEntries.length,
+    timelineViewActive,
     timelineModeRef,
     setIsSpaceDown,
     setShortcutsOpen: setShortcutsOpenTracked,
