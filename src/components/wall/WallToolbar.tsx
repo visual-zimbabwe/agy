@@ -205,15 +205,15 @@ export const WallToolbar = ({
               <span>Present</span>
             </button>
           </ControlTooltip>
-          <ControlTooltip label="Toggle horizontal timeline view" shortcut="V" side="top">
+          <ControlTooltip label="Toggle Timeline" shortcut="V" side="top">
             <button
               type="button"
               onClick={onToggleTimelineView}
               className={timelineViewActive ? toolbarBtnActive : toolbarBtn}
-              title="Toggle horizontal timeline view (V)"
+              title="Toggle Timeline (V)"
             >
               <Icon name="timeline" />
-              <span>Timeline View</span>
+              <span>Timeline</span>
             </button>
           </ControlTooltip>
           {showSecondaryActions && (

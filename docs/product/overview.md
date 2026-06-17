@@ -33,7 +33,8 @@ Users can:
 - organize with tags, zones, and note groups
 - create directional links and wiki-style relationships
 - search, filter, and jump across content
-- review changes through timeline and heatmap-style views
+- review changes through Wall History replay and heatmap-style views
+- read the current note set chronologically in Timeline (`V`)
 - export to PNG, PDF, Markdown, JSON, or published read-only snapshots
 - open quick help without leaving the canvas
 
@@ -76,6 +77,15 @@ The current product is not just a sticky-note wall. It is a multi-surface worksp
 - a shared self-serve help layer
 
 The unifying idea is that the user can move between capture, organization, reflection, review, and recovery without leaving the product.
+
+## Time Modes Glossary
+
+The wall exposes two time-oriented surfaces that use different shortcuts and data:
+
+- **Timeline** (`V`): A vertical chronological stream of the **current** wall notes, sorted by creation time. Use it to review what is on the wall today without spatial navigation.
+- **Wall History** (`T`): A replay mode that scrubs through **persisted wall snapshots** recorded as the wall changes over time. Editing is locked while history is active.
+
+Both modes are read-only for note mutations. Timeline is the primary review surface linked from the top nav; Wall History is for rewinding to earlier persisted states.
 
 ## Known Boundaries
 
