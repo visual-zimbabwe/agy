@@ -273,9 +273,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   } = useWallCloudSync({ publishedReadOnly, hydrate });
   const {
     layoutPrefs,
-    setLayoutPrefs,
     controlsMode,
-    setControlsMode,
     spatialPrefs,
     setSpatialPrefs,
     savedRecallSearches,
@@ -432,7 +430,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     openPrivateModal,
     closePrivateModal,
     lockPrivateNote,
-    lockAllPrivateNotes,
     openEditor,
     commitEditedNoteText,
     handleEditorBlur: handlePrivateEditorBlur,
@@ -1473,7 +1470,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     setPresentationPaths((previous) => [path, ...previous]);
     setActivePresentationPathId(path.id);
     setPresentationIndex(0);
-  }, [presentationPaths, publishedReadOnly]);
+  }, [presentationPaths, publishedReadOnly, setPresentationPaths]);
 
   const addNarrativeStep = useCallback(() => {
     if (publishedReadOnly) {
@@ -1494,7 +1491,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
 
     const nextLength = activePresentationPath?.steps.length ?? 0;
     setPresentationIndex(nextLength);
-  }, [activePresentationPath, activePresentationPathId, camera, presentationPaths, publishedReadOnly]);
+  }, [activePresentationPath, activePresentationPathId, camera, presentationPaths, publishedReadOnly, setPresentationPaths]);
 
   const updateNarrativeTalkingPoints = useCallback(
     (value: string) => {
@@ -1514,7 +1511,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         }),
       );
     },
-    [activePresentationPathId, activePresentationStep, publishedReadOnly],
+    [activePresentationPathId, activePresentationStep, publishedReadOnly, setPresentationPaths],
   );
 
   const captureNarrativeStepCamera = useCallback(() => {
@@ -1533,7 +1530,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         };
       }),
     );
-  }, [activePresentationPathId, activePresentationStep, camera, publishedReadOnly]);
+  }, [activePresentationPathId, activePresentationStep, camera, publishedReadOnly, setPresentationPaths]);
 
   const deleteNarrativeStep = useCallback(() => {
     if (!activePresentationPathId || !activePresentationStep || publishedReadOnly) {
@@ -1554,7 +1551,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         .filter((path) => path.steps.length > 0 || path.id !== activePresentationPathId),
     );
     setPresentationIndex((previous) => Math.max(0, previous - 1));
-  }, [activePresentationPathId, activePresentationStep, publishedReadOnly]);
+  }, [activePresentationPathId, activePresentationStep, publishedReadOnly, setPresentationPaths]);
 
   const handleNarrativePathChange = useCallback((pathId: string) => {
     setActivePresentationPathId(pathId);
