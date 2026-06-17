@@ -47,7 +47,8 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 
 ### Wall
 
-- `src/components/WallCanvas.tsx`: wall composition root and orchestration layer (hooks + session bindings; JSX delegated to spatial/chrome shells)
+- `src/components/WallCanvas.tsx`: thin wall composition shell (~75 lines) — mounts `WallSessionProvider`, delegates orchestration to `useWallCanvasOrchestration`
+- `src/components/wall/useWallCanvasOrchestration.ts`: wall orchestration hook — composes domain/`useWall*` hooks and session/spatial binding assembly (interim owner; exceeds 400 lines by design until further split)
 - `src/components/wall/session/`: wall session context scaffold (`WallSessionProvider`, interaction/sync/layout contexts) — see [`wall-ui-refactor-implementation-plan.md`](wall-ui-refactor-implementation-plan.md)
 - `src/components/wall/spatial/WallSpatialView.tsx`: Konva canvas container — `WallStage`, dot matrix, notes, links/zones, overlays, inline video, floating UI
 - `src/components/wall/chrome/WallChromeShell.tsx`: wall chrome — `WallChromeHeader` (top bar) and `WallInCanvasChrome` (tools panel, timeline stream toggle, search dock, footer, details sidebar, product tour)

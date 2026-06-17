@@ -225,7 +225,7 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 **Goal:** `WallCanvas` becomes a thin shell (~800–1,200 lines).
 
-**Status:** In progress (2026-06-17) — Tasks 1–2 shipped structurally (`WallSpatialView`, `WallChromeShell`). Task 3 substantially advanced: prior extractions plus `useWallImageInsert`, `useWallPresentationPaths`, `useWallSmartMerge`, `useWallNoteTagActions`, `useWallVocabularySession` / `useWallSessionClock`, and `useWallPanelChrome`. `WallCanvas` ~1,700 lines (down from ~4,330); `eslint-disable` and ≤1,200-line target remain outstanding.
+**Status:** In progress (2026-06-17) — Tasks 1–2 shipped structurally (`WallSpatialView`, `WallChromeShell`). Task 3 substantially advanced: prior extractions plus focused hooks (`useWallRenderSnapshot`, `useWallDisplayLayer`, `useWallCanvasEffects`, `useWallTimelineHistory`, `useWallNoteQuickActions`, `useWallKeyboardBindings`) and `useWallCanvasOrchestration` (orchestration + session/spatial binding assembly). `WallCanvas.tsx` is now a ~70-line composition shell (down from ~4,330); `eslint-disable` removed from `WallCanvas`. `useWallCanvasOrchestration` (~1,390 lines) retains the disable until further split.
 
 #### Tasks
 
@@ -249,8 +249,15 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
    - `useWallNoteTagActions` — per-note tag add/remove/rename helpers
    - `useWallVocabularySession` + `useWallSessionClock` — vocabulary review session + wall clock for derived data
    - `useWallPanelChrome` — left/right panel state, tracked modal openers, details auto-open
-   - Remaining in `WallCanvas`: spatial/selection drag glue, session binding prop assembly, keyboard wiring
-4. Remove `eslint-disable complexity, max-lines` from `WallCanvas` when thresholds are met
+   - `useWallRenderSnapshot` — published/timeline render snapshot, wiki/backlink derivations, placement helpers
+   - `useWallDisplayLayer` — private-note display masking and focus-mode visibility filtering
+   - `useWallCanvasEffects` — viewport resize, transformer wiring, debounced edit commit, deep links, selection pruning
+   - `useWallTimelineHistory` — timeline history bootstrap from IndexedDB
+   - `useWallNoteQuickActions` — pin/highlight/focus and zone-group collapse helpers
+   - `useWallKeyboardBindings` — keyboard shortcut wiring for the spatial shell
+   - `useWallCanvasOrchestration` — composes all wall hooks and session/spatial binding assembly; consumed by `WallCanvas`
+   - Remaining in `WallCanvas`: session provider mount, spatial/chrome JSX composition, private-note modal shell
+4. Remove `eslint-disable complexity, max-lines` from `WallCanvas` when thresholds are met — **done on `WallCanvas` shell**; remains on `useWallCanvasOrchestration` until that module is split further
 5. Relocate `wall-canvas-helpers.ts` junk-drawer contents: **(done 2026-06-17)**
    - `wall-coordinates.ts` — toWorld/toScreen, fit bounds, open-note placement, zone containment
    - `wall-links-geometry.ts` — link points, stroke/color maps, link graph traversal
@@ -260,9 +267,9 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 #### Exit criteria
 
-- [ ] `WallCanvas.tsx` ≤ 1,200 lines
-- [ ] No `eslint-disable complexity, max-lines` on `WallCanvas`
-- [ ] Each extracted module ≤ ~400 lines OR has documented reason to exceed
+- [x] `WallCanvas.tsx` ≤ 1,200 lines (now ~75-line shell)
+- [x] No `eslint-disable complexity, max-lines` on `WallCanvas`
+- [ ] Each extracted module ≤ ~400 lines OR has documented reason to exceed (`useWallCanvasOrchestration` ~1,390 lines — interim orchestration owner; split in Phase 3+ or follow-up slice)
 
 #### Validation
 
