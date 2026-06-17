@@ -9,16 +9,14 @@ import {
   detailSectionHeading,
   detailSectionToggle,
 } from "@/components/wall/details/detailSectionStyles";
-import type { TagGroupsSectionProps } from "@/components/wall/details/DetailsSectionTypes";
+import { useWallChrome } from "@/components/wall/session/wall-chrome-context";
+import { useWallDetails } from "@/components/wall/session/wall-details-context";
+import { useWallLayout } from "@/components/wall/session/wall-layout-context";
 
-export const TagGroupsSection = ({
-  detailsSectionsOpen,
-  onToggleDetailsSection,
-  showAutoTagGroups,
-  onToggleAutoTagGroups,
-  autoTagGroups,
-  onFocusBounds,
-}: TagGroupsSectionProps) => {
+export const TagGroupsSection = () => {
+  const { detailsSectionsOpen } = useWallLayout();
+  const { onToggleDetailsSection } = useWallChrome();
+  const { showAutoTagGroups, onToggleAutoTagGroups, autoTagGroups, onFocusBounds } = useWallDetails();
   return (
     <div className={detailSectionCard}>
       <button

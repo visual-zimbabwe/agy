@@ -70,7 +70,8 @@ Active during the wall UI refactor ([`docs/architecture/wall-ui-refactor-impleme
 
 - **Do not add new business logic** to `src/components/WallCanvas.tsx` or `src/components/wall/WallNotesLayer.tsx`. Composition and wiring only.
 - **New wall behavior** belongs in `src/features/wall/`, existing or new `useWall*` hooks, or modules under `src/components/wall/session/`.
-- **Do not add new props** to `WallDetailsSidebar` or `WallFloatingUi` without a context migration plan (Phase 1). Prefer session context consumers instead.
+- **Do not add new props** to `WallDetailsSidebar` or `WallFloatingUi` without a context migration plan. Both are context-only as of Phase 1 (2026-06-17).
+- **New wall chrome state/actions** belong in `src/components/wall/session/` contexts or `useWallSessionBindings.ts`, not in `WallCanvas` JSX props.
 - **Do not add features** to `WallNotesLayer` before the Phase 3 renderer split unless fixing a critical bug.
 
 ## Validation

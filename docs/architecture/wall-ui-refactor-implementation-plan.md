@@ -2,7 +2,9 @@
 
 ## Status
 
-**Phase 0 shipped** (2026-06-17) — session context scaffold and guardrails landed. Phase 1+ not yet started.
+**Phase 0 shipped** (2026-06-17) — session context scaffold and guardrails landed.
+
+**Phase 1 shipped** (2026-06-17) — prop surfaces collapsed via session context; `WallFloatingUi` and `WallDetailsSidebar` are prop-less; detail sections consume context; modals split by domain.
 
 This plan supersedes the remaining structural goals in `docs/archive/legacy-plans/frontend-improvement-plan.md`. That document marked wall UI decomposition as complete; the current codebase still has central files far above maintainable size (see [Current State](#current-state)).
 
@@ -97,9 +99,18 @@ Quality gate remains: `npm run lint`, `npm run build`, manual `docs/qa.md`.
 src/components/wall/
   session/
     WallSessionProvider.tsx
+    useWallSession.ts
+    useWallSessionBindings.ts
     wall-interaction-context.tsx
     wall-sync-context.tsx
     wall-layout-context.tsx
+    wall-chrome-context.tsx
+    wall-details-context.tsx
+    wall-modal-context.tsx
+  modals/
+    WallExportModals.tsx
+    WallSettingsHelpModals.tsx
+    WallMediaInsertModals.tsx
   spatial/
     WallSpatialView.tsx          # Konva stack composition
     notes/                       # split from WallNotesLayer
@@ -174,6 +185,8 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 **Goal:** Replace 85–100 prop interfaces with context consumers.
 
+**Status:** Shipped (2026-06-17) — session contexts wired; chrome components consume `useWallSession()` slices.
+
 #### Priority order
 
 1. `WallFloatingUi` — editors, zoom, timeline/presentation docks
@@ -196,10 +209,10 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 #### Exit criteria
 
-- [ ] `WallFloatingUi` prop count reduced by ≥50%
-- [ ] `WallDetailsSidebar` prop count reduced by ≥50%
-- [ ] No new `DetailsSection*Props` types added for migrated sections
-- [ ] `WallCanvas` line count trending down (target: −500 lines minimum in this phase)
+- [x] `WallFloatingUi` prop count reduced by ≥50% (now 0 props — context-only)
+- [x] `WallDetailsSidebar` prop count reduced by ≥50% (now 0 props — context-only)
+- [x] No new `DetailsSection*Props` types added for migrated sections (`HistorySectionProps` removed; sections use context)
+- [ ] `WallCanvas` line count trending down (target: −500 lines minimum in this phase) — partial: JSX prop drilling removed; bindings live in `useWallSessionBindings.ts`; net `WallCanvas` reduction ~50 lines so far
 
 #### Validation
 

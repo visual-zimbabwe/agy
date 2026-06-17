@@ -11,25 +11,27 @@ import {
   detailSectionToggle,
   detailStatCard,
 } from "@/components/wall/details/detailSectionStyles";
-import type { VocabularySectionProps } from "@/components/wall/details/DetailsSectionTypes";
+import { useWallChrome } from "@/components/wall/session/wall-chrome-context";
+import { useWallDetails } from "@/components/wall/session/wall-details-context";
+import { useWallLayout } from "@/components/wall/session/wall-layout-context";
 
-export const VocabularySection = ({
-  detailsSectionsOpen,
-  onToggleDetailsSection,
-  isTimeLocked,
-  selectedNote,
-  isSelectedNoteVocabulary,
-  vocabularyDueCount,
-  vocabularyFocusCount,
-  reviewedTodayCount,
-  reviewRevealMeaning,
-  onToggleRevealMeaning,
-  onToggleFlipCard,
-  onCreateWordNote,
-  onFocusNextDueWord,
-  onUpdateVocabularyField,
-  onReviewSelectedWord,
-}: VocabularySectionProps) => {
+export const VocabularySection = () => {
+  const { detailsSectionsOpen } = useWallLayout();
+  const { onToggleDetailsSection, isTimeLocked } = useWallChrome();
+  const {
+    selectedNote,
+    isSelectedNoteVocabulary,
+    vocabularyDueCount,
+    vocabularyFocusCount,
+    reviewedTodayCount,
+    reviewRevealMeaning,
+    onToggleRevealMeaning,
+    onToggleFlipCard,
+    onCreateWordNote,
+    onFocusNextDueWord,
+    onUpdateVocabularyField,
+    onReviewSelectedWord,
+  } = useWallDetails();
   const vocabulary = selectedNote?.vocabulary;
   const contextLocked = isSelectedNoteVocabulary && !vocabulary?.ownSentence.trim();
 

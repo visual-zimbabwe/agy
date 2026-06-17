@@ -1273,3 +1273,21 @@ Expected:
 - Keyboard shortcuts remain available, but they are a subsection of help rather than the entire help experience.
 - Help actions are discoverable from both the profile menu and the wall omnibar.
 - The quick-help modal and `/help` route share the same article inventory and stay visually within the viewport.
+
+## Wall Session Context Migration (Phase 1, 2026-06-17)
+
+Smoke steps after context migration of floating UI, details panel, and global modals:
+
+1. Open `/wall` and create a standard note; double-click to edit inline — verify the floating text editor appears and commits on blur.
+2. Create an image note; verify the floating image editor opens with file/URL controls.
+3. Select a note with tags; verify tag editing chips appear in the floating editor footer.
+4. Open the details panel (`Details` toggle); verify overview metrics, inspector, templates, recall, vocabulary, zones, and smart merge sections render.
+5. In advanced controls mode, expand the **History** section; verify timeline/undo metrics and **Jump Stale** / **Jump Priority** buttons work.
+6. Toggle presentation mode; verify floating presentation dock and zoom controls still work; details/tools panels hide as before.
+7. Open **Export**, **Shortcuts**, **Help**, **Settings**, quick capture, and image insert modals — verify each opens and closes without console errors.
+8. Import/export JSON backup — verify no regression from modal cluster split.
+
+Expected:
+- `WallFloatingUi`, `WallDetailsSidebar`, and `WallGlobalModals` mount without props from `WallCanvas`.
+- Panel and editor behavior matches pre-migration flows.
+- No new props added to sidebar/floating UI during this phase.

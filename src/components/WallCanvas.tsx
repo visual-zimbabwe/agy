@@ -75,6 +75,7 @@ import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
 import { useWallZoomControls } from "@/components/wall/useWallZoomControls";
 import { useWallProductTour } from "@/components/wall/useWallProductTour";
 import { WallSessionProvider } from "@/components/wall/session/WallSessionProvider";
+import { useWallSessionBindings } from "@/components/wall/session/useWallSessionBindings";
 import {
   toolbarBtn,
   toolbarBtnActive,
@@ -3607,6 +3608,209 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
       tour.openTour,
     ],
   );
+
+  const {
+    chrome: wallSessionChrome,
+    details: wallSessionDetails,
+    modals: wallSessionModals,
+  } = useWallSessionBindings({
+    isTimeLocked,
+    camera,
+    renderSnapshotNotes: renderSnapshot.notes,
+    renderSnapshotLinks: renderSnapshot.links,
+    toScreenPoint,
+    editing,
+    setEditing,
+    handleEditorBlur,
+    editTagInput,
+    setEditTagInput,
+    editTagRenameFrom,
+    setEditTagRenameFrom,
+    addTagToNote,
+    removeTagFromNote,
+    renameTagOnNote,
+    updateNote,
+    openImageInsert,
+    wikiLinkOptions,
+    fetchBookmarkPreview,
+    openBookmarkUrl,
+    selectImageNoteFile,
+    submitImageNoteUrl,
+    renameImageNote,
+    openImageNote,
+    downloadImageNote,
+    selectFileNoteFile,
+    submitFileNoteUrl,
+    openFileNote,
+    downloadFileNote,
+    selectAudioNoteFile,
+    submitAudioNoteUrl,
+    renameAudioNote,
+    openAudioNote,
+    downloadAudioNote,
+    selectVideoNoteFile,
+    submitVideoNoteUrl,
+    renameVideoNote,
+    openVideoNote,
+    downloadVideoNote,
+    selectedNotesCount: selectedNotes.length,
+    showDetailsPanel: layoutPrefs.showDetailsPanel,
+    rightPanelOpen,
+    stepZoom,
+    resetZoom,
+    zoomToFitTracked,
+    zoomToSelection,
+    showHeatmap,
+    timelineEntries,
+    jumpToTimelineDay,
+    timelineMode,
+    timelineIndex,
+    isTimelinePlaying,
+    setIsTimelinePlaying,
+    setTimelineIndex,
+    presentationMode,
+    presentationIndex,
+    presentationLength,
+    presentationModeType,
+    narrativePathOptions,
+    activePresentationPathId,
+    activePresentationStepTalkingPoints: activePresentationStep?.talkingPoints ?? "",
+    createNarrativePath,
+    handleNarrativePathChange,
+    addNarrativeStep,
+    deleteNarrativeStep,
+    updateNarrativeTalkingPoints,
+    captureNarrativeStepCamera,
+    setPresentationIndex,
+    setPresentationMode,
+    linkMenu,
+    setLinkMenu,
+    deleteLink,
+    updateLinkType,
+    maxViewportWidth,
+    maxViewportHeight,
+    tagPreviewScreen,
+    tagPreviewNote,
+    tagPreviewPalette,
+    renderVisibleNotesCount: renderVisibleNotes.length,
+    historyUndoDepth,
+    historyRedoDepth,
+    notes,
+    jumpToStaleNote,
+    jumpToHighPriorityNote,
+    clearHistory,
+    toggleDetailsSection,
+    setRightPanelOpen,
+    ui: {
+      templateType: ui.templateType,
+      selectedNoteId: ui.selectedNoteId,
+      linkingFromNoteId: ui.linkingFromNoteId,
+      selectedZoneId: ui.selectedZoneId,
+      isExportOpen: ui.isExportOpen,
+      isShortcutsOpen: ui.isShortcutsOpen,
+      isFileConversionOpen: ui.isFileConversionOpen,
+    },
+    setTemplateType,
+    applySelectedTemplate,
+    tagInput,
+    setTagInput,
+    addTagToSelectedNote,
+    primarySelectedNote,
+    activeSelectedNoteIdsCount: activeSelectedNoteIds.length,
+    displayedTags,
+    removeTagFromSelectedNote,
+    focusedNoteId,
+    backlinksByNoteId,
+    focusNote,
+    duplicateNote,
+    togglePinOnNote,
+    toggleHighlightOnNote,
+    toggleFocusNote,
+    setLinkingFromNote,
+    selectedPrivateNoteSupported,
+    selectedPrivateNote,
+    isSelectedPrivateUnlocked,
+    openPrivateModal,
+    lockPrivateNote,
+    privateSessions,
+    syncWikiLinksForNote,
+    recallQuery,
+    setRecallQuery,
+    recallZoneId,
+    setRecallZoneId,
+    recallTag,
+    setRecallTag,
+    recallDateFilter,
+    setRecallDateFilter,
+    visibleZones,
+    availableRecallTags,
+    saveCurrentRecallSearch,
+    savedRecallSearches,
+    applySavedRecallSearch,
+    setSavedRecallSearches,
+    selectedVocabularyNote,
+    vocabularyDueNotesCount: vocabularyDueNotes.length,
+    vocabularyFocusNotesCount: vocabularyFocusNotes.length,
+    reviewedTodayCount,
+    reviewRevealMeaning,
+    setReviewRevealMeaning,
+    toggleVocabularyFlip,
+    makeWordNoteAtViewportCenter,
+    focusNextDueWord,
+    updateVocabularyField,
+    reviewSelectedWord,
+    groupLabelInput,
+    setGroupLabelInput,
+    selectedZone,
+    selectedGroup,
+    zoneGroups,
+    createGroupFromSelectedZone,
+    assignZoneToGroup,
+    selectGroup,
+    toggleGroupCollapse,
+    collapseAllZoneGroups,
+    expandAllZoneGroups,
+    deleteGroup,
+    clearNoteSelection,
+    showAutoTagGroups,
+    setShowAutoTagGroups,
+    autoTagGroups,
+    focusBounds,
+    smartMergeItems,
+    previewSmartMerge,
+    applySmartMerge,
+    quickCaptureOpen,
+    setQuickCaptureOpen,
+    captureNotes,
+    exportPng,
+    exportPdf,
+    exportMarkdown,
+    exportJson,
+    importJson,
+    publishReadOnlySnapshot,
+    backupReminderCadence,
+    setBackupReminderCadence,
+    helpOpen,
+    setHelpOpen,
+    openTour: tour.openTour,
+    preferredFileConversionMode,
+    setFileConversionOpen,
+    setPreferredFileConversionMode,
+    settingsOpen,
+    setSettingsOpen,
+    userEmail,
+    userProfile,
+    imageInsertState,
+    imageInsertTargetLabel,
+    closeImageInsert,
+    handleImageFileInsert,
+    handleImageUrlInsert,
+    handleUnsplashPhotoInsert,
+    handleUnsplashMoodboardInsert,
+    setExportOpenTracked,
+    setShortcutsOpenTracked,
+  });
+
   return (
     <WallSessionProvider
       interaction={{
@@ -3633,10 +3837,14 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         detailsSectionsOpen,
         presentationMode,
         readingMode,
+        isChromeHidden,
         timelineViewActive,
         controlsMode,
         spatialPrefs,
       }}
+      chrome={wallSessionChrome}
+      details={wallSessionDetails}
+      modals={wallSessionModals}
     >
     <div className="wall-atelier-shell flex h-screen flex-col text-[var(--color-text)]">
       {!readingMode && !timelineViewActive && (
@@ -4065,87 +4273,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         ) : null}
 
         {!readingMode && !timelineViewActive && (
-        <WallFloatingUi
-          editing={editing}
-          notesById={renderSnapshot.notes}
-          linksById={renderSnapshot.links}
-          camera={camera}
-          isTimeLocked={isTimeLocked}
-          editTagInput={editTagInput}
-          editTagRenameFrom={editTagRenameFrom}
-          setEditing={setEditing}
-          handleEditorBlur={handleEditorBlur}
-          setEditTagInput={setEditTagInput}
-          setEditTagRenameFrom={setEditTagRenameFrom}
-          addTagToNote={addTagToNote}
-          removeTagFromNote={removeTagFromNote}
-          renameTagOnNote={renameTagOnNote}
-          toScreenPoint={toScreenPoint}
-          tagPreviewScreen={tagPreviewScreen}
-          tagPreviewNote={tagPreviewNote}
-          tagPreviewPalette={tagPreviewPalette}
-          updateNote={updateNote}
-          openImageInsert={(noteId) => openImageInsert(noteId)}
-          wikiLinkOptions={wikiLinkOptions.filter((option) => option.noteId !== editing?.id)}
-          linkMenu={linkMenu}
-          maxViewportWidth={maxViewportWidth}
-          maxViewportHeight={maxViewportHeight}
-          setLinkMenu={setLinkMenu}
-          deleteLink={deleteLink}
-          updateLinkType={updateLinkType}
-          showHeatmap={showHeatmap}
-          timelineEntries={timelineEntries}
-          jumpToTimelineDay={jumpToTimelineDay}
-          timelineMode={timelineMode}
-          timelineIndex={timelineIndex}
-          isTimelinePlaying={isTimelinePlaying}
-          setIsTimelinePlaying={setIsTimelinePlaying}
-          setTimelineIndex={setTimelineIndex}
-          presentationMode={presentationMode}
-          presentationIndex={presentationIndex}
-          presentationLength={presentationLength}
-          presentationModeType={presentationModeType}
-          narrativePaths={narrativePathOptions}
-          activeNarrativePathId={activePresentationPathId}
-          activeStepTalkingPoints={activePresentationStep?.talkingPoints ?? ""}
-          onCreateNarrativePath={createNarrativePath}
-          onPathChange={handleNarrativePathChange}
-          onAddNarrativeStep={addNarrativeStep}
-          onDeleteNarrativeStep={deleteNarrativeStep}
-          onUpdateStepTalkingPoints={updateNarrativeTalkingPoints}
-          onCaptureNarrativeStepCamera={captureNarrativeStepCamera}
-          setPresentationIndex={setPresentationIndex}
-          setPresentationMode={setPresentationMode}
-          canZoomToSelection={selectedNotes.length > 0}
-          detailsPanelOpen={layoutPrefs.showDetailsPanel && rightPanelOpen}
-          onZoomIn={() => stepZoom("in")}
-          onZoomOut={() => stepZoom("out")}
-          onResetZoom={resetZoom}
-          onZoomToFit={zoomToFitTracked}
-          onZoomToSelection={zoomToSelection}
-          onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
-          onOpenBookmarkUrl={openBookmarkUrl}
-          onSelectImageNoteFile={selectImageNoteFile}
-          onSubmitImageNoteUrl={submitImageNoteUrl}
-          onRenameImageNote={renameImageNote}
-          onUpdateImageCaption={(noteId, caption) => { updateNote(noteId, { text: caption }); }}
-          onOpenImageNote={openImageNote}
-          onDownloadImageNote={downloadImageNote}
-          onSelectFileNoteFile={selectFileNoteFile}
-          onSubmitFileNoteUrl={submitFileNoteUrl}
-          onOpenFileNote={openFileNote}
-          onDownloadFileNote={downloadFileNote}
-          onSelectAudioNoteFile={selectAudioNoteFile}
-          onSubmitAudioNoteUrl={submitAudioNoteUrl}
-          onRenameAudioNote={renameAudioNote}
-          onOpenAudioNote={openAudioNote}
-          onDownloadAudioNote={downloadAudioNote}
-          onSelectVideoNoteFile={selectVideoNoteFile}
-          onSubmitVideoNoteUrl={submitVideoNoteUrl}
-          onRenameVideoNote={renameVideoNote}
-          onOpenVideoNote={openVideoNote}
-          onDownloadVideoNote={downloadVideoNote}
-        />
+        <WallFloatingUi />
         )}
 
         {!readingMode && !timelineViewActive && (
@@ -4172,189 +4300,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         />
 
         {!timelineViewActive && (
-        <WallDetailsSidebar
-          presentationMode={isChromeHidden}
-          showDetailsPanel={layoutPrefs.showDetailsPanel}
-          rightPanelOpen={rightPanelOpen}
-          onClose={() => setRightPanelOpen(false)}
-          templateType={ui.templateType}
-          isTimeLocked={isTimeLocked}
-          onTemplateTypeChange={(value) => setTemplateType(value)}
-          onApplyTemplate={applySelectedTemplate}
-          tagInput={tagInput}
-          onTagInputChange={setTagInput}
-          onAddTag={addTagToSelectedNote}
-          selectedNote={primarySelectedNote}
-          selectedNoteId={ui.selectedNoteId}
-          selectedNoteIdsCount={activeSelectedNoteIds.length}
-          displayedTags={displayedTags}
-          onRemoveTag={removeTagFromSelectedNote}
-          linkingFromNoteId={ui.linkingFromNoteId}
-          isSelectedNoteFocused={Boolean(primarySelectedNote && focusedNoteId === primarySelectedNote.id)}
-          backlinks={primarySelectedNote ? backlinksByNoteId[primarySelectedNote.id] ?? [] : []}
-          onNavigateLinkedNote={focusNote}
-          onTextFontChange={(font) => {
-            if (!primarySelectedNote || isTimeLocked) {
-              return;
-            }
-            updateNote(primarySelectedNote.id, { textFont: font });
-          }}
-          onTextSizeChange={(sizePx) => {
-            if (!primarySelectedNote || isTimeLocked) {
-              return;
-            }
-            updateNote(primarySelectedNote.id, { textSizePx: sizePx });
-          }}
-          onTextColorChange={(color) => {
-            if (!primarySelectedNote || isTimeLocked) {
-              return;
-            }
-            updateNote(primarySelectedNote.id, { textColor: color });
-          }}
-          onTextHorizontalAlignChange={(align) => {
-            if (!primarySelectedNote || isTimeLocked) {
-              return;
-            }
-            updateNote(primarySelectedNote.id, { textAlign: align });
-          }}
-          onTextVerticalAlignChange={(align) => {
-            if (!primarySelectedNote || isTimeLocked) {
-              return;
-            }
-            updateNote(primarySelectedNote.id, { textVAlign: align });
-          }}
-          onBackgroundColorChange={(color) => {
-            if (!primarySelectedNote || isTimeLocked) {
-              return;
-            }
-            updateNote(primarySelectedNote.id, { color });
-          }}
-          onDuplicateSelectedNote={duplicateNote}
-          onTogglePinSelectedNote={togglePinOnNote}
-          onToggleHighlightSelectedNote={toggleHighlightOnNote}
-          onToggleFocusSelectedNote={toggleFocusNote}
-          onStartLinkFromSelectedNote={setLinkingFromNote}
-          onUpdateSelectedNote={updateNote}
-          onSubmitBookmarkUrl={(noteId, url, options) => { void fetchBookmarkPreview(noteId, url, options); }}
-          onOpenBookmarkUrl={openBookmarkUrl}
-          onSelectImageNoteFile={selectImageNoteFile}
-          onSubmitImageNoteUrl={submitImageNoteUrl}
-          onRenameImageNote={renameImageNote}
-          onOpenImageNote={openImageNote}
-          onDownloadImageNote={downloadImageNote}
-          onSelectFileNoteFile={selectFileNoteFile}
-          onSubmitFileNoteUrl={submitFileNoteUrl}
-          onOpenFileNote={openFileNote}
-          onDownloadFileNote={downloadFileNote}
-          onSelectAudioNoteFile={selectAudioNoteFile}
-          onSubmitAudioNoteUrl={submitAudioNoteUrl}
-          onOpenAudioNote={openAudioNote}
-          onDownloadAudioNote={downloadAudioNote}
-          onSelectVideoNoteFile={selectVideoNoteFile}
-          onSubmitVideoNoteUrl={submitVideoNoteUrl}
-          onRenameVideoNote={renameVideoNote}
-          onOpenVideoNote={openVideoNote}
-          onDownloadVideoNote={downloadVideoNote}
-          privateNoteSupported={selectedPrivateNoteSupported}
-          isPrivateEnabled={Boolean(selectedPrivateNote)}
-          isPrivateUnlocked={isSelectedPrivateUnlocked}
-          onProtectPrivateNote={(noteId) => openPrivateModal("protect", noteId)}
-          onUnlockPrivateNote={(noteId) => openPrivateModal("unlock", noteId)}
-          onLockPrivateNote={lockPrivateNote}
-          onRemovePrivateProtection={(noteId) => {
-            const selected = renderSnapshot.notes[noteId];
-            const session = privateSessions[noteId];
-            if (!selected || !isPrivateNote(selected) || !session) {
-              return;
-            }
-            useWallStore.getState().patchNote(noteId, {
-              ...session.hidden,
-              noteKind: session.hidden.noteKind ?? selected.noteKind,
-              tags: session.hidden.tags.length > 0 ? session.hidden.tags : selected.tags,
-              privateNote: undefined,
-            });
-            syncWikiLinksForNote(noteId, session.hidden.text);
-            lockPrivateNote(noteId);
-          }}
-          detailsSectionsOpen={detailsSectionsOpen}
-          onToggleDetailsSection={toggleDetailsSection}
-          timelineEntriesCount={timelineEntries.length}
-          visibleNotesCount={renderVisibleNotes.length}
-          historyUndoDepth={historyUndoDepth}
-          historyRedoDepth={historyRedoDepth}
-          notes={notes}
-          onJumpStale={jumpToStaleNote}
-          onJumpPriority={jumpToHighPriorityNote}
-          onClearHistory={() => {
-            const hasHistory = historyUndoDepth > 0 || historyRedoDepth > 0;
-            if (!hasHistory) {
-              return;
-            }
-            const ok = window.confirm("Clear undo/redo history? This cannot be undone.");
-            if (ok) {
-              clearHistory();
-            }
-          }}
-          recallQuery={recallQuery}
-          onRecallQueryChange={setRecallQuery}
-          recallZoneId={recallZoneId}
-          onRecallZoneIdChange={setRecallZoneId}
-          recallTag={recallTag}
-          onRecallTagChange={setRecallTag}
-          recallDateFilter={recallDateFilter}
-          onRecallDateFilterChange={setRecallDateFilter}
-          visibleZones={visibleZones}
-          availableRecallTags={availableRecallTags}
-          onSaveRecallSearch={saveCurrentRecallSearch}
-          onClearRecallFilters={() => {
-            setRecallQuery("");
-            setRecallZoneId("");
-            setRecallTag("");
-            setRecallDateFilter("all");
-          }}
-          savedRecallSearches={savedRecallSearches}
-          onApplySavedRecallSearch={applySavedRecallSearch}
-          onDeleteSavedRecallSearch={(id) =>
-            setSavedRecallSearches((previous) => previous.filter((entry) => entry.id !== id))
-          }
-          isSelectedNoteVocabulary={Boolean(selectedVocabularyNote)}
-          vocabularyDueCount={vocabularyDueNotes.length}
-          vocabularyFocusCount={vocabularyFocusNotes.length}
-          reviewedTodayCount={reviewedTodayCount}
-          reviewRevealMeaning={reviewRevealMeaning}
-          onToggleRevealMeaning={() => setReviewRevealMeaning((previous) => !previous)}
-          onToggleFlipCard={() => {
-            if (selectedVocabularyNote) {
-              toggleVocabularyFlip(selectedVocabularyNote.id);
-            }
-          }}
-          onCreateWordNote={makeWordNoteAtViewportCenter}
-          onFocusNextDueWord={focusNextDueWord}
-          onUpdateVocabularyField={updateVocabularyField}
-          onReviewSelectedWord={reviewSelectedWord}
-          groupLabelInput={groupLabelInput}
-          onGroupLabelInputChange={setGroupLabelInput}
-          selectedZone={selectedZone}
-          selectedGroup={selectedGroup}
-          selectedZoneId={ui.selectedZoneId}
-          zoneGroups={zoneGroups}
-          onCreateGroupFromSelectedZone={createGroupFromSelectedZone}
-          onAssignZoneToGroup={assignZoneToGroup}
-          onSelectGroup={selectGroup}
-          onToggleGroupCollapse={toggleGroupCollapse}
-          onCollapseAllGroups={collapseAllZoneGroups}
-          onExpandAllGroups={expandAllZoneGroups}
-          onDeleteGroup={deleteGroup}
-          onClearNoteSelection={clearNoteSelection}
-          showAutoTagGroups={showAutoTagGroups}
-          onToggleAutoTagGroups={() => setShowAutoTagGroups((value) => !value)}
-          autoTagGroups={autoTagGroups}
-          onFocusBounds={focusBounds}
-          smartMergeSuggestions={smartMergeItems}
-          onPreviewSmartMerge={previewSmartMerge}
-          onMergeSmartSuggestion={applySmartMerge}
-          controlsMode={controlsMode}
-        />
+        <WallDetailsSidebar />
         )}
 
       </div>
@@ -4368,40 +4314,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         onSubmit={(password) => { void submitPrivateModal(password); }}
       />
 
-      <WallGlobalModals
-        quickCaptureOpen={quickCaptureOpen} isTimeLocked={isTimeLocked} onCloseQuickCapture={() => setQuickCaptureOpen(false)} onCapture={captureNotes}
-        isExportOpen={ui.isExportOpen} onCloseExport={() => setExportOpenTracked(false)}
-        onExportPng={(scope, pixelRatio) => { void exportPng(scope, pixelRatio); }}
-        onExportPdf={(scope) => { void exportPdf(scope); }}
-        onExportMarkdown={exportMarkdown} onExportJson={exportJson}
-        onImportJson={(file) => { void importJson(file); }}
-        onPublishSnapshot={() => { void publishReadOnlySnapshot(); }}
-        backupReminderCadence={backupReminderCadence} onBackupReminderCadenceChange={setBackupReminderCadence}
-        isShortcutsOpen={ui.isShortcutsOpen} onCloseShortcuts={() => setShortcutsOpenTracked(false)}
-        isHelpOpen={helpOpen}
-        onCloseHelp={() => setHelpOpen(false)}
-        onOpenHelpShortcuts={() => setShortcutsOpenTracked(true)}
-        onOpenHelpSettings={() => setSettingsOpen(true)}
-        onReplayTour={tour.openTour}
-        isFileConversionOpen={ui.isFileConversionOpen}
-        onCloseFileConversion={() => {
-          setFileConversionOpen(false);
-          setPreferredFileConversionMode(null);
-        }}
-        onOpenFileConversion={() => setFileConversionOpen(true)}
-        preferredFileConversionMode={preferredFileConversionMode}
-        imageInsertOpen={imageInsertState.open}
-        imageInsertTargetLabel={imageInsertTargetLabel}
-        onCloseImageInsert={closeImageInsert}
-        onSelectImageFile={(file) => handleImageFileInsert(file, imageInsertState)}
-        onSubmitImageUrl={(url) => handleImageUrlInsert(url, imageInsertState)}
-        onSelectUnsplashPhoto={(photo) => handleUnsplashPhotoInsert(photo, imageInsertState)}
-        onInsertUnsplashMoodboard={(photos) => handleUnsplashMoodboardInsert(photos, imageInsertState)}
-        isSettingsOpen={settingsOpen}
-        onCloseSettings={() => setSettingsOpen(false)}
-        userEmail={userEmail}
-        userProfile={userProfile}
-      />
+      <WallGlobalModals />
     </div>
     </WallSessionProvider>
   );
