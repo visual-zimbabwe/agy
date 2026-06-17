@@ -6,7 +6,7 @@ import { parseBackupJson, shouldPromptBackupReminder, type BackupReminderCadence
 import { replaceWallLocalState } from "@/features/wall/storage";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { PersistedWallState } from "@/features/wall/types";
-import { legacyBackupReminderLastPromptStorageKeys } from "@/components/wall/wall-canvas-helpers";
+import { legacyBackupReminderLastPromptStorageKeys } from "@/components/wall/wall-storage-keys";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 import { buildPublishedSnapshotUrl } from "@/lib/publish";
 

@@ -53,7 +53,7 @@ As of the review that produced this plan:
 
 | Covered | Not covered |
 |---------|-------------|
-| `wall-canvas-helpers`, preview sizing, timeline layout/stream helpers | `WallCanvas`, `WallNotesLayer`, `NoteTextEditor` |
+| `wall-coordinates` (open-note placement), preview sizing, timeline layout/stream helpers | `WallCanvas`, `WallNotesLayer`, `NoteTextEditor` |
 | `useWallPersistenceEffects`, `useWallRemoteDeltaFeed` (hook tests) | End-to-end create → edit → reload → sync flows |
 | | Playwright or RTL coverage for keyboard selection / edit commit |
 
@@ -225,6 +225,8 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 **Goal:** `WallCanvas` becomes a thin shell (~800–1,200 lines).
 
+**Status:** In progress (2026-06-17) — Task 5 (helper relocation) shipped. `wall-canvas-helpers.ts` junk-drawer split into `wall-coordinates.ts`, `wall-links-geometry.ts`, `wall-download.ts`, and `wall-storage-keys.ts`; the remaining file now holds only cohesive note-text/presentation helpers. All call sites repointed; `npm run lint` and `npm run build` green. The headline extractions (Tasks 1–3: `WallSpatialView`, `WallChromeShell`, orchestration controllers) and the ≤1,200-line target remain outstanding.
+
 #### Tasks
 
 1. Extract **`WallSpatialView`** — owns Konva layer stack:
@@ -236,11 +238,12 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
    - Recall/vocabulary UI state → details/session module
    - Bookmark fetch/cache orchestration → feature module or `useWallUiActions` extension
 4. Remove `eslint-disable complexity, max-lines` from `WallCanvas` when thresholds are met
-5. Relocate `wall-canvas-helpers.ts` junk-drawer contents:
-   - `wall-coordinates.ts` — toWorld/toScreen, fit bounds
-   - `wall-links-geometry.ts` — link points, stroke/color maps
-   - `wall-download.ts` — export download helpers
-   - `wall-storage-keys.ts` — localStorage key constants
+5. Relocate `wall-canvas-helpers.ts` junk-drawer contents: **(done 2026-06-17)**
+   - `wall-coordinates.ts` — toWorld/toScreen, fit bounds, open-note placement, zone containment
+   - `wall-links-geometry.ts` — link points, stroke/color maps, link graph traversal
+   - `wall-download.ts` — export download helpers + download id
+   - `wall-storage-keys.ts` — localStorage key constants + snap threshold
+   - `wall-canvas-helpers.ts` retains note-text/presentation helpers (text style/font/truncation, tag-chip palette, recency intensity, journal date label)
 
 #### Exit criteria
 

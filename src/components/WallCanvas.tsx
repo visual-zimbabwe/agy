@@ -18,38 +18,46 @@ import { WallSearchDock } from "@/components/wall/WallSearchDock";
 import { WallStatusFooter } from "@/components/wall/WallStatusFooter";
 import { WallTimelineView } from "@/components/wall/WallTimelineView";
 import {
+  getNoteTextStyle,
+  getNoteTextFontFamily,
+  noteTagChipPalette,
+  recencyIntensity,
+  tagGroupColor,
+  truncateNoteText,
+  waitForPaint,
+} from "@/components/wall/wall-canvas-helpers";
+import {
+  fitBoundsCamera,
+  findOpenNotePosition,
+  toScreenPoint,
+  toWorldPoint,
+  zoneContainsNote,
+} from "@/components/wall/wall-coordinates";
+import {
+  linkColorByType,
+  linkPoints,
+  linkStrokeByType,
+} from "@/components/wall/wall-links-geometry";
+import {
+  downloadDataUrl,
+  downloadJsonFile,
+  downloadTextFile,
+  makeDownloadId,
+} from "@/components/wall/wall-download";
+import {
   backupReminderCadenceStorageKey,
   backupReminderLastPromptStorageKey,
   controlsModeStorageKey,
+  dragSnapThreshold,
+  layoutPrefsStorageKey,
   legacyBackupReminderCadenceStorageKeys,
   legacyPresentationPathsStorageKeys,
   legacyRecallStorageKeys,
   legacySpatialPrefsStorageKeys,
-  downloadDataUrl,
-  downloadJsonFile,
-  downloadTextFile,
-  dragSnapThreshold,
-  fitBoundsCamera,
-  findOpenNotePosition,
-  getNoteTextStyle,
-  getNoteTextFontFamily,
-  layoutPrefsStorageKey,
-  linkColorByType,
-  linkPoints,
-  linkStrokeByType,
-  makeDownloadId,
-  noteTagChipPalette,
   presentationPathsStorageKey,
   recallStorageKey,
-  recencyIntensity,
   spatialPrefsStorageKey,
-  tagGroupColor,
-  toScreenPoint,
-  toWorldPoint,
-  truncateNoteText,
-  waitForPaint,
-  zoneContainsNote,
-} from "@/components/wall/wall-canvas-helpers";
+} from "@/components/wall/wall-storage-keys";
 import { WallLinksZonesLayer } from "@/components/wall/WallLinksZonesLayer";
 import { WallDotMatrixLayer } from "@/components/wall/WallDotMatrixLayer";
 import { WallNotesLayer } from "@/components/wall/WallNotesLayer";

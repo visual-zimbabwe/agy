@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 
-import { noteTagChipPalette, toScreenPoint } from "@/components/wall/wall-canvas-helpers";
+import { noteTagChipPalette } from "@/components/wall/wall-canvas-helpers";
+import { toScreenPoint } from "@/components/wall/wall-coordinates";
 import type { Note, NoteGroup, Zone, ZoneGroup } from "@/features/wall/types";
 
 type UseWallViewStateOptions = {

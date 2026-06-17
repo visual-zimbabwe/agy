@@ -4,7 +4,8 @@ import { useEffect, useMemo } from "react";
 import Fuse from "fuse.js";
 
 import type { RecallDateFilter } from "@/components/wall/details/DetailsSectionTypes";
-import { noteInAnyZone, graphPathLinks, zoneContainsNote } from "@/components/wall/wall-canvas-helpers";
+import { noteInAnyZone, zoneContainsNote } from "@/components/wall/wall-coordinates";
+import { graphPathLinks } from "@/components/wall/wall-links-geometry";
 import { isPrivateNote } from "@/features/wall/private-notes";
 import {
   matchesWallOmnibarNoteFilters,

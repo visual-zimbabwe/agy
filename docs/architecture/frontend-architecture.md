@@ -54,6 +54,12 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 - `src/components/wall/WallToolsPanel.tsx`, `WallDetailsSidebar.tsx`: left/right contextual panels
 - `src/components/wall/WallFloatingUi.tsx`, `WallGlobalModals.tsx`: floating editors, menus, and modal layer
 - `src/components/wall/useWall*.ts`: modular wall behavior hooks
+- Wall helper modules (relocated from the former `wall-canvas-helpers.ts` junk-drawer):
+  - `src/components/wall/wall-coordinates.ts`: screen/world transforms, fit-bounds camera, open-note placement, zone containment
+  - `src/components/wall/wall-links-geometry.ts`: link endpoint geometry, link color/stroke maps, link graph traversal
+  - `src/components/wall/wall-download.ts`: client-side file download helpers and download id generation
+  - `src/components/wall/wall-storage-keys.ts`: localStorage key constants (current + legacy) and snap thresholds
+  - `src/components/wall/wall-canvas-helpers.ts`: remaining note-text/presentation helpers (text style, font, truncation, tag-chip palette, recency intensity)
 - Timeline stream (`V`):
   - `src/components/wall/WallTimelineView.tsx`: vertical stream composition root with `@tanstack/react-virtual` list virtualization
   - `src/components/wall/WallTimelineVirtualRow.tsx`: virtual row renderer for day headers and note entries (single preview path per entry)
