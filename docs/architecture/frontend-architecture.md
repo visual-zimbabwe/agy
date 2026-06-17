@@ -47,13 +47,18 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 
 ### Wall
 
-- `src/components/WallCanvas.tsx`: wall composition root and orchestration layer
+- `src/components/WallCanvas.tsx`: wall composition root and orchestration layer (hooks + session bindings; JSX delegated to spatial/chrome shells)
 - `src/components/wall/session/`: wall session context scaffold (`WallSessionProvider`, interaction/sync/layout contexts) — see [`wall-ui-refactor-implementation-plan.md`](wall-ui-refactor-implementation-plan.md)
+- `src/components/wall/spatial/WallSpatialView.tsx`: Konva canvas container — `WallStage`, dot matrix, notes, links/zones, overlays, inline video, floating UI
+- `src/components/wall/chrome/WallChromeShell.tsx`: wall chrome — `WallChromeHeader` (top bar) and `WallInCanvasChrome` (tools panel, timeline stream toggle, search dock, footer, details sidebar, product tour)
 - `src/components/wall/WallStage.tsx`: Konva stage and camera interaction surface
 - `src/components/wall/WallToolbar.tsx`, `WallHeaderBar.tsx`: command surfaces and route-adjacent controls
 - `src/components/wall/WallToolsPanel.tsx`, `WallDetailsSidebar.tsx`: left/right contextual panels
 - `src/components/wall/WallFloatingUi.tsx`, `WallGlobalModals.tsx`: floating editors, menus, and modal layer
-- `src/components/wall/useWall*.ts`: modular wall behavior hooks
+- `src/components/wall/session/useWallSpatialBindings.ts`: assembles spatial + chrome shell prop bags for `WallCanvas` render
+- `src/components/wall/useWallCommandPalette.ts`: omnibar command registry
+- `src/components/wall/useWallCloudSync.ts`: cloud sync scheduling, delta push, and conflict rebase
+- `src/components/wall/useWall*.ts`: other modular wall behavior hooks
 - Wall helper modules (relocated from the former `wall-canvas-helpers.ts` junk-drawer):
   - `src/components/wall/wall-coordinates.ts`: screen/world transforms, fit-bounds camera, open-note placement, zone containment
   - `src/components/wall/wall-links-geometry.ts`: link endpoint geometry, link color/stroke maps, link graph traversal
