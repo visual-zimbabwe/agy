@@ -973,8 +973,12 @@ Expected:
 11. With a note selected, click **Reveal on Wall** (or double-click the note on desktop) and verify Timeline closes and the wall focuses/pans to that note.
 12. Reopen Timeline, select a note, press `Enter`, and verify the same reveal behavior.
 13. Reopen Timeline and use `J`/`K` or `↑`/`↓` to move selection across entries; verify the stream scrolls the selected note into view.
-14. Press `Escape` or click `Close` and verify the app exits Timeline.
-15. Resize to a mobile-sized viewport, tap a note to select it, tap **Reveal on Wall**, and verify the wall focuses that note without relying on double-click.
+14. Use the Timeline search field to filter by a known title fragment or tag; verify only matching notes remain and the empty-filter message appears when nothing matches.
+15. Choose a non-current day from **Jump to day** and verify the stream scrolls to that day section without manual scrolling.
+16. Click **Prev** and **Next** (or press `[` / `]`) and verify selection moves through the filtered list while keeping the card in view.
+17. Toggle **Updated** sorting and verify day grouping and entry order follow note update times instead of created times.
+18. Press `Escape` or click `Close` and verify the app exits Timeline.
+19. Resize to a mobile-sized viewport, tap a note to select it, tap **Reveal on Wall**, and verify the wall focuses that note without relying on double-click.
 
 Expected:
 - Timeline provides a read-only vertical chronological review surface rather than an inline editor or details browser.
@@ -982,6 +986,7 @@ Expected:
 - Timeline notes preserve the same wall note dimensions rather than shrinking into a smaller fitted timeline card.
 - The centered date rail, day chips, and timestamp labels remain fully visible on desktop and mobile-sized viewports.
 - Notes can be selected and revealed back on the wall, but cannot be edited from timeline view.
+- Timeline search, day jump, and prev/next navigation respect the active filter and sort mode.
 ## Wiki Links and Backlinks (`/wall`) (2026-03-16)
 1. Open `/wall`, create at least three notes with distinct first-line titles.
 2. Edit one note and type `[[`; verify a suggestion menu appears at the caret with existing note titles.

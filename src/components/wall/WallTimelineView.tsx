@@ -1,11 +1,12 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { memo, useEffect, type RefObject } from "react";
 
 import { WallNotePreview } from "@/components/wall/WallNotePreview";
-import { resolveWallPreviewDimensions } from "@/components/wall/wallNotePreviewSizing";
+import { useWallTimelineStream } from "@/components/wall/useWallTimelineStream";
+import { WallTimelineStreamHeader } from "@/components/wall/WallTimelineStreamHeader";
 import { formatTimelineDateTime } from "@/components/wall/wallTimelineViewHelpers";
-import { moveTimelineStreamSelection } from "@/components/wall/wallTimelineStreamHelpers";
+import type { TimelineStreamEntry } from "@/components/wall/wallTimelineStreamHelpers";
 import type { Note } from "@/features/wall/types";
 
 type WallTimelineViewProps = {
@@ -17,23 +18,8 @@ type WallTimelineViewProps = {
   onExit: () => void;
 };
 
-type TimelineEntry = {
-  id: string;
-  note: Note;
-  ts: number;
-  side: "left" | "right" | "center";
-  desktop: ReturnType<typeof resolveWallPreviewDimensions>;
-  mobile: ReturnType<typeof resolveWallPreviewDimensions>;
-};
-
-type TimelineGroup = {
-  key: string;
-  label: string;
-  entries: TimelineEntry[];
-};
-
 type TimelineStreamCardProps = {
-  entry: TimelineEntry;
+  entry: TimelineStreamEntry;
   selected: boolean;
   cardRef: RefObject<HTMLDivElement | null> | null;
   onSelect: () => void;
@@ -56,90 +42,11 @@ const shellStyles = {
   selection: "#a33818",
 };
 
-const dayKey = (timestamp: number) => {
-  const date = new Date(timestamp);
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-};
-
-const startOfDay = (timestamp: number) => {
-  const date = new Date(timestamp);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-};
-
-const formatDayLabel = (timestamp: number, latestDay: number) => {
-  const deltaDays = Math.round((latestDay - startOfDay(timestamp)) / 86_400_000);
-  if (deltaDays === 0) {
-    return "Today";
-  }
-  if (deltaDays === 1) {
-    return "Yesterday";
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(timestamp);
-};
-
 const formatTimeLabel = (timestamp: number) =>
   new Intl.DateTimeFormat(undefined, {
     hour: "numeric",
     minute: "2-digit",
   }).format(timestamp);
-
-const buildTimelineGroups = (notes: Note[]) => {
-  const sorted = [...notes]
-    .filter((note) => !note.deletedAt)
-    .sort((left, right) => {
-      const delta = right.createdAt - left.createdAt;
-      if (delta !== 0) {
-        return delta;
-      }
-      return right.updatedAt - left.updatedAt;
-    });
-
-  if (sorted.length === 0) {
-    return [] as TimelineGroup[];
-  }
-
-  const latestDay = startOfDay(sorted[0]!.createdAt);
-  let streamIndex = 0;
-  const groupMap = new Map<string, TimelineGroup>();
-
-  for (const note of sorted) {
-    const timestamp = note.createdAt;
-    const key = dayKey(timestamp);
-    const side = note.pinned ? "center" : streamIndex % 2 === 0 ? "left" : "right";
-
-    if (!note.pinned) {
-      streamIndex += 1;
-    }
-
-    const current = groupMap.get(key);
-    const entry: TimelineEntry = {
-      id: note.id,
-      note,
-      ts: timestamp,
-      side,
-      desktop: resolveWallPreviewDimensions(note, { surface: "timeline-stream" }),
-      mobile: resolveWallPreviewDimensions(note, { surface: "timeline-stream" }),
-    };
-
-    if (current) {
-      current.entries.push(entry);
-      continue;
-    }
-
-    groupMap.set(key, {
-      key,
-      label: formatDayLabel(timestamp, latestDay),
-      entries: [entry],
-    });
-  }
-
-  return [...groupMap.values()];
-};
 
 const RevealOnWallButton = memo(function RevealOnWallButton({
   visible,
@@ -242,46 +149,38 @@ export const WallTimelineView = ({
   onRevealNote,
   onExit,
 }: WallTimelineViewProps) => {
-  const groups = useMemo(() => buildTimelineGroups(notes), [notes]);
-  const entryIds = useMemo(() => groups.flatMap((group) => group.entries.map((entry) => entry.id)), [groups]);
-  const noteCount = entryIds.length;
-  const [localSelectedId, setLocalSelectedId] = useState<string | undefined>();
-  const entryRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const selectedCardRef = useRef<HTMLDivElement | null>(null);
+  const {
+    searchQuery,
+    setSearchQuery,
+    sortMode,
+    setSortMode,
+    selectedDayKey,
+    handleDayJump,
+    groups,
+    totalNoteCount,
+    filteredNoteCount,
+    hasActiveSearch,
+    effectiveSelectedId,
+    selectEntry,
+    moveSelection,
+    canMovePrevious,
+    canMoveNext,
+    selectedCardRef,
+    setEntryRef,
+    setGroupHeaderRef,
+    dayOptions,
+  } = useWallTimelineStream({ notes, selectedNoteId, onSelectNote });
 
-  const effectiveSelectedId = selectedNoteId ?? localSelectedId;
-
-  const selectEntry = useCallback(
-    (noteId: string) => {
-      setLocalSelectedId(noteId);
-      onSelectNote(noteId);
-    },
-    [onSelectNote],
-  );
-
-  const moveSelection = useCallback(
-    (direction: "next" | "previous") => {
-      const nextId = moveTimelineStreamSelection(entryIds, effectiveSelectedId, direction);
-      if (nextId) {
-        selectEntry(nextId);
-      }
-    },
-    [effectiveSelectedId, entryIds, selectEntry],
-  );
-
-  useEffect(() => {
-    if (!effectiveSelectedId) {
-      return;
-    }
-    const node = entryRefs.current[effectiveSelectedId] ?? selectedCardRef.current;
-    node?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [effectiveSelectedId]);
+  const noteCountLabel =
+    hasActiveSearch && filteredNoteCount !== totalNoteCount
+      ? `Read-only review · ${filteredNoteCount} of ${totalNoteCount} notes`
+      : `Read-only review · ${filteredNoteCount} note${filteredNoteCount === 1 ? "" : "s"}`;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const tagName = target?.tagName?.toLowerCase();
-      if (tagName === "input" || tagName === "textarea" || target?.isContentEditable) {
+      if (tagName === "input" || tagName === "textarea" || tagName === "select" || target?.isContentEditable) {
         return;
       }
 
@@ -308,16 +207,24 @@ export const WallTimelineView = ({
       if (event.key === "ArrowUp" || (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && key === "k")) {
         event.preventDefault();
         moveSelection("previous");
+        return;
+      }
+
+      if (event.key === "[" || (event.key === "PageUp" && !event.shiftKey)) {
+        event.preventDefault();
+        moveSelection("previous");
+        return;
+      }
+
+      if (event.key === "]" || (event.key === "PageDown" && !event.shiftKey)) {
+        event.preventDefault();
+        moveSelection("next");
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [effectiveSelectedId, moveSelection, onExit, onRevealNote]);
-
-  const setEntryRef = useCallback((noteId: string, node: HTMLDivElement | null) => {
-    entryRefs.current[noteId] = node;
-  }, []);
 
   return (
     <div
@@ -329,48 +236,50 @@ export const WallTimelineView = ({
     >
       <div className="pointer-events-none absolute inset-0 opacity-50" style={{ backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0))" }} />
 
-      <header className="absolute inset-x-0 top-0 z-10 border-b border-white/30 bg-[rgba(252,249,244,0.82)] px-4 py-5 backdrop-blur-xl sm:px-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <div>
-            <p className="font-[Newsreader] text-[28px] italic leading-none" style={{ color: shellStyles.text }}>Timeline</p>
-            <p className="mt-1 text-[11px] uppercase tracking-[0.24em]" style={{ color: shellStyles.quiet }}>
-              Read-only review · {noteCount} note{noteCount === 1 ? "" : "s"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onExit}
-            className="pointer-events-auto inline-flex items-center rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors hover:bg-white/60"
-            style={{
-              borderColor: shellStyles.chipBorder,
-              background: shellStyles.chipBg,
-              color: shellStyles.text,
-              boxShadow: shellStyles.shadow,
-            }}
-          >
-            Close
-          </button>
-        </div>
-      </header>
+      <WallTimelineStreamHeader
+        noteCountLabel={noteCountLabel}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        dayOptions={dayOptions}
+        selectedDayKey={selectedDayKey}
+        onDayJump={handleDayJump}
+        sortMode={sortMode}
+        onSortModeChange={setSortMode}
+        canMovePrevious={canMovePrevious}
+        canMoveNext={canMoveNext}
+        onMovePrevious={() => moveSelection("previous")}
+        onMoveNext={() => moveSelection("next")}
+        onExit={onExit}
+      />
 
-      <div className="wall-timeline-scrollbar relative h-full overflow-auto px-4 pb-24 pt-28 sm:px-6 lg:px-10">
+      <div className="wall-timeline-scrollbar relative h-full overflow-auto px-4 pb-24 pt-44 sm:px-6 sm:pt-48 lg:px-10">
         <div className="relative mx-auto max-w-6xl pb-20">
           <div
             className="pointer-events-none absolute bottom-0 top-0 left-1/2 hidden -translate-x-1/2 md:block"
             style={{ width: "1px", background: `linear-gradient(180deg, transparent 0%, ${shellStyles.axis} 6%, ${shellStyles.axisSoft} 100%)` }}
           />
 
-          {groups.length === 0 ? (
+          {groups.length === 0 && totalNoteCount === 0 ? (
             <div className="mx-auto mt-24 max-w-xl rounded-[28px] border border-dashed px-8 py-14 text-center shadow-[0_20px_40px_rgba(28,28,25,0.05)]" style={{ borderColor: shellStyles.chipBorder, background: "rgba(255,255,255,0.6)" }}>
               <p className="font-[Newsreader] text-3xl italic" style={{ color: shellStyles.text }}>Nothing on the timeline yet.</p>
               <p className="mt-4 text-sm leading-7" style={{ color: shellStyles.muted }}>
                 This view only renders existing wall notes. Create notes on the wall, then return here to review them chronologically.
               </p>
             </div>
+          ) : groups.length === 0 ? (
+            <div className="mx-auto mt-24 max-w-xl rounded-[28px] border border-dashed px-8 py-14 text-center shadow-[0_20px_40px_rgba(28,28,25,0.05)]" style={{ borderColor: shellStyles.chipBorder, background: "rgba(255,255,255,0.6)" }}>
+              <p className="font-[Newsreader] text-3xl italic" style={{ color: shellStyles.text }}>No matching notes.</p>
+              <p className="mt-4 text-sm leading-7" style={{ color: shellStyles.muted }}>
+                Try a different search term, switch back to Created sorting, or clear the search field to see the full timeline again.
+              </p>
+            </div>
           ) : (
             groups.map((group) => (
               <section key={group.key} className="relative">
-                <div className="relative z-[1] mb-10 mt-10 flex justify-center md:mb-16 md:mt-14">
+                <div
+                  ref={(node) => setGroupHeaderRef(group.key, node)}
+                  className="relative z-[1] mb-10 mt-10 flex scroll-mt-44 justify-center md:mb-16 md:mt-14 sm:scroll-mt-48"
+                >
                   <span
                     className="inline-flex rounded-full border px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] shadow-sm"
                     style={{
@@ -451,7 +360,7 @@ export const WallTimelineView = ({
       </div>
 
       <div className="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 rounded-full border px-5 py-2 text-[10px] uppercase tracking-[0.22em] opacity-70 md:inline-flex" style={{ borderColor: shellStyles.chipBorder, background: "rgba(252,249,244,0.66)", color: shellStyles.quiet }}>
-        Click to select · Enter or Reveal on Wall to return to canvas
+        Search or jump by day · Prev/Next or J/K · Enter to reveal
       </div>
 
       <span className="sr-only">{groups.length > 0 ? formatTimelineDateTime(groups[0]!.entries[0]!.ts) : "Timeline view"}</span>
