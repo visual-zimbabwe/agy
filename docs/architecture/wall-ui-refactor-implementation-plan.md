@@ -225,7 +225,7 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 **Goal:** `WallCanvas` becomes a thin shell (~800–1,200 lines).
 
-**Status:** In progress (2026-06-17) — Tasks 1–2 shipped structurally (`WallSpatialView`, `WallChromeShell`). Task 3 partial: `useWallSpatialBindings`, `useWallCommandPalette`, and `useWallCloudSync` extracted from `WallCanvas`. `WallCanvas` ~3,550 lines (down from ~4,330); `eslint-disable` and ≤1,200-line target remain outstanding.
+**Status:** In progress (2026-06-17) — Tasks 1–2 shipped structurally (`WallSpatialView`, `WallChromeShell`). Task 3 substantially advanced: `useWallSpatialBindings`, `useWallCommandPalette`, `useWallCloudSync`, `useWallClientPrefs`, `useWallPrivateNotes`, `useWallBookmarkOrchestration`, `useWallNoteCreation`, and `useWallMediaNoteHandlers` extracted from `WallCanvas`. `WallCanvas` ~2,140 lines (down from ~4,330); `eslint-disable` and ≤1,200-line target remain outstanding.
 
 #### Tasks
 
@@ -234,11 +234,16 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
    - Canvas container (drag/drop, loading, focus/reading badges, inline video, `WallFloatingUi`)
 2. Extract **`WallChromeShell`** — header, toolbar, tools panel, search dock, footer, timeline toggle: **(shipped 2026-06-17)**
    - `WallChromeHeader` + `WallInCanvasChrome` in `src/components/wall/chrome/WallChromeShell.tsx`
-3. Move remaining orchestration into focused controllers/hooks under `features/wall` or `wall/session/`: **(partial 2026-06-17)**
+3. Move remaining orchestration into focused controllers/hooks under `features/wall` or `wall/session/`: **(substantially advanced 2026-06-17)**
    - `useWallSpatialBindings` — spatial + chrome prop assembly
    - `useWallCommandPalette` — omnibar commands
    - `useWallCloudSync` — sync scheduling / delta push / rebase
-   - Remaining: note-creation handlers, bookmark orchestration, client prefs bootstrap, private-note session
+   - `useWallClientPrefs` — layout/spatial/recall/presentation-path localStorage bootstrap + persist
+   - `useWallPrivateNotes` — protect/unlock session, editor commit, wiki-link sync on edit
+   - `useWallBookmarkOrchestration` — preview fetch + auto-upgrade on hydrate
+   - `useWallNoteCreation` — viewport-centered note factories (all note kinds)
+   - `useWallMediaNoteHandlers` — image/audio/video/file note submit, playback, open/download
+   - Remaining in `WallCanvas`: image-insert/moodboard orchestration, narrative-path handlers, smart-merge/recall wiring glue
 4. Remove `eslint-disable complexity, max-lines` from `WallCanvas` when thresholds are met
 5. Relocate `wall-canvas-helpers.ts` junk-drawer contents: **(done 2026-06-17)**
    - `wall-coordinates.ts` — toWorld/toScreen, fit bounds, open-note placement, zone containment

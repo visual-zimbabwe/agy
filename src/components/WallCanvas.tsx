@@ -5,7 +5,7 @@ import { type FocusEvent, useCallback, useEffect, useMemo, useRef, useState } fr
 import type Konva from "konva";
 
 
-import type { DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
+import type { DetailsSectionState, RecallDateFilter } from "@/components/wall/details/DetailsSectionTypes";
 import { useWallActions } from "@/components/wall/useWallActions";
 import { WallInCanvasChrome, WallChromeHeader } from "@/components/wall/chrome/WallChromeShell";
 import { WallSpatialView } from "@/components/wall/spatial/WallSpatialView";
@@ -28,22 +28,17 @@ import {
   makeDownloadId,
 } from "@/components/wall/wall-download";
 import {
-  backupReminderCadenceStorageKey,
   backupReminderLastPromptStorageKey,
-  controlsModeStorageKey,
   dragSnapThreshold,
-  layoutPrefsStorageKey,
-  legacyBackupReminderCadenceStorageKeys,
-  legacyPresentationPathsStorageKeys,
-  legacyRecallStorageKeys,
-  legacySpatialPrefsStorageKeys,
-  presentationPathsStorageKey,
-  recallStorageKey,
-  spatialPrefsStorageKey,
 } from "@/components/wall/wall-storage-keys";
 import { useWallCameraNavigation } from "@/components/wall/useWallCameraNavigation";
 import { useWallCommandPalette } from "@/components/wall/useWallCommandPalette";
+import { useWallBookmarkOrchestration } from "@/components/wall/useWallBookmarkOrchestration";
+import { useWallClientPrefs } from "@/components/wall/useWallClientPrefs";
 import { useWallCloudSync } from "@/components/wall/useWallCloudSync";
+import { useWallMediaNoteHandlers } from "@/components/wall/useWallMediaNoteHandlers";
+import { useWallNoteCreation } from "@/components/wall/useWallNoteCreation";
+import { useWallPrivateNotes, type EditingState } from "@/components/wall/useWallPrivateNotes";
 import { useWallExport } from "@/components/wall/useWallExport";
 import { useWallSelection } from "@/components/wall/useWallSelection";
 import { useWallSnapping } from "@/components/wall/useWallSnapping";
@@ -76,17 +71,9 @@ import {
 import {
   applyTemplate,
   assignZoneToGroup,
-  createNote,
-  createCanonNote,
-  createAudioNote,
-  createFileNote,
   createImageNote,
-  createVideoNote,
-  createJournalNote,
-  createQuoteNote,
-  createWebBookmarkNote,
-  createEisenhowerNote,
   createLink,
+  createNote,
   createZone,
   createZoneGroup,
   deleteNoteGroup,
@@ -105,70 +92,38 @@ import {
   updateLinkType,
   updateZone,
 } from "@/features/wall/commands";
-import { createBookmarkNoteState, getBookmarkPreferredSize, isBookmarkCacheFresh, isBookmarkMetadataRich, readBookmarkCacheEntry, shouldAutoResizeBookmarkNote, WEB_BOOKMARK_DEFAULTS, writeBookmarkCacheEntry } from "@/features/wall/bookmarks";
 import { deriveWallAssetRecords, mergeWallAssetRecords } from "@/features/wall/asset-records";
-import { createAudioNoteState, toAudioNotePatch } from "@/features/wall/audio-notes";
-import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatch } from "@/features/wall/file-notes";
-import { createImageNoteState, getImageNoteFilename, toImageNotePatch, IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
-import { cacheVideoPoster, createVideoNoteState, getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
-import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
-import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS } from "@/features/wall/constants";
+import { createImageNoteState, toImageNotePatch, IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
+import { normalizeFileUrl } from "@/features/wall/file-notes";
+import { canProtectNote, isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
+import { NOTE_COLORS, NOTE_DEFAULTS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import { loadTimelineEntries, saveWallCloudBaselineSnapshot, saveWallSyncVersion } from "@/features/wall/storage";
-import type { Note, PersistedWallState, WallAssetMap, WebBookmarkMetadata } from "@/features/wall/types";
+import type { Note, PersistedWallState, WallAssetMap } from "@/features/wall/types";
 import { createViewportWallBounds } from "@/features/wall/windowing";
 import type { UnsplashPhoto } from "@/lib/unsplash";
-import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
-import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
+import { getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl } from "@/features/wall/video-notes";
+import { getNoteWikiTitle } from "@/features/wall/wiki-links";
+import { applyVocabularyReview, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
 import type { AppUserProfile } from "@/lib/profile";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
-import {
-  accountSettingsUpdatedEventName,
-  readStoredControlsMode,
-  readStoredWallLayoutPrefs,
-} from "@/lib/account-settings";
 import {
   addPresentationStep,
   clampPresentationIndex,
   createPresentationPath,
   makeDefaultPathTitle,
-  parsePresentationPathsPayload,
-  type PresentationPath,
 } from "@/lib/presentation-paths";
 import type { SmartMergeSuggestion } from "@/lib/smart-merge";
-import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
-import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 import { getImageFileFromClipboard, readImageFileAsDataUrl } from "@/lib/wall-image-upload";
 import { trackUnsplashDownload } from "@/lib/unsplash-client";
-
-type EditingState = {
-  id: string;
-  text: string;
-  focusField?: string;
-};
 
 type ImageInsertState = {
   open: boolean;
   noteId?: string;
   x?: number;
   y?: number;
-};
-
-type PrivateSession = {
-  password: string;
-  hidden: PrivateNoteHiddenFields;
-  lastActivityAt: number;
-};
-
-type PrivateModalState = {
-  open: boolean;
-  mode: "protect" | "unlock";
-  noteId?: string;
-  focusField?: string;
-  reopenEditor?: boolean;
-  error?: string;
 };
 
 type LinkContextMenuState = {
@@ -179,52 +134,18 @@ type LinkContextMenuState = {
 };
 
 type SelectionBox = { startX: number; startY: number; x: number; y: number; w: number; h: number };
-type LayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags";
-type LayoutPreferences = Record<LayoutPreferenceKey, boolean>;
-type SpatialPreferences = {
-  showDotMatrix: boolean;
-  snapToGuides: boolean;
-  snapToGrid: boolean;
-  dotGridSpacing: number;
-};
-type ControlsMode = "basic" | "advanced";
 type GuideLineState = {
   vertical?: { x: number; y1: number; y2: number; distance?: number };
   horizontal?: { y: number; x1: number; x2: number; distance?: number };
 };
 
 const flashDurationMs = 1200;
-const defaultLayoutPrefs: LayoutPreferences = {
-  showToolsPanel: true,
-  showDetailsPanel: true,
-  showContextBar: false,
-  showNoteTags: false,
-};
-const defaultSpatialPrefs: SpatialPreferences = {
-  showDotMatrix: false,
-  snapToGuides: true,
-  snapToGrid: false,
-  dotGridSpacing: 32,
-};
 const timelineHistoryLoadLimit = 120;
-const maxVideoPosterDimensionPx = 320;
-const videoPosterJpegQuality = 0.58;
 
 type WallCanvasProps = {
   userProfile?: AppUserProfile;
 };
 
-const CODE_NOTE_DEFAULTS = {
-  width: 320,
-  height: 220,
-  color: "#1F1F21",
-  textColor: "#D4D4D4",
-  textSizePx: 14,
-};
-
-const DEFAULT_CODE_NOTE_TEXT = `\`\`\`ts
-const idea = "";
-\`\`\``;
 export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const userEmail = userProfile?.email;
   const notesMap = useWallStore((state) => state.notes);
@@ -273,9 +194,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
 
   const [viewport, setViewport] = useState({ w: 1200, h: 800 });
   const [editing, setEditing] = useState<EditingState | null>(null);
-  const [privateSessions, setPrivateSessions] = useState<Record<string, PrivateSession>>({});
-  const privateSessionsRef = useRef<Record<string, PrivateSession>>({});
-  const [privateModal, setPrivateModal] = useState<PrivateModalState>({ open: false, mode: "unlock" });
   const [imageInsertState, setImageInsertState] = useState<ImageInsertState>({ open: false });
   const [isImageDragOver, setIsImageDragOver] = useState(false);
   const [isSpaceDown, setIsSpaceDown] = useState(false);
@@ -302,11 +220,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const [recallZoneId, setRecallZoneId] = useState("");
   const [recallTag, setRecallTag] = useState("");
   const [recallDateFilter, setRecallDateFilter] = useState<RecallDateFilter>("all");
-  const [savedRecallSearches, setSavedRecallSearches] = useState<SavedRecallSearch[]>([]);
-  const [layoutPrefs, setLayoutPrefs] = useState<LayoutPreferences>(defaultLayoutPrefs);
-  const [controlsMode, setControlsMode] = useState<ControlsMode>("basic");
-  const [spatialPrefs, setSpatialPrefs] = useState<SpatialPreferences>(defaultSpatialPrefs);
-  const [backupReminderCadence, setBackupReminderCadence] = useState<"off" | "daily" | "weekly">("off");
   const [detailsSectionsOpen, setDetailsSectionsOpen] = useState<DetailsSectionState>({
     history: false,
     recall: true,
@@ -321,23 +234,16 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
   const [preferredFileConversionMode, setPreferredFileConversionMode] = useState<"pdf_to_word" | "word_to_pdf" | null>(null);
   const [presentationIndex, setPresentationIndex] = useState(0);
-  const [presentationPaths, setPresentationPaths] = useState<PresentationPath[]>([]);
   const [activePresentationPathId, setActivePresentationPathId] = useState("");
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [playingAudioNoteId, setPlayingAudioNoteId] = useState<string | undefined>(undefined);
-  const [playingAudioCurrentTimeSeconds, setPlayingAudioCurrentTimeSeconds] = useState(0);
-  const [playingAudioDurationSeconds, setPlayingAudioDurationSeconds] = useState<number | undefined>(undefined);
   const [inlinePlayingVideoNoteId, setInlinePlayingVideoNoteId] = useState<string | undefined>(undefined);
-  const [clientPrefsLoaded, setClientPrefsLoaded] = useState(false);
   const previousSelectedNoteIdRef = useRef<string | undefined>(undefined);
   const detailsPanelAutoOpenedRef = useRef(false);
   const handledDeepLinkNoteRef = useRef<string | null>(null);
-  const wallAudioRef = useRef<HTMLAudioElement | null>(null);
   const wallInlineVideoRef = useRef<HTMLVideoElement | null>(null);
-  const playingAudioNoteIdRef = useRef<string | undefined>(undefined);
   const [publishedSnapshot] = useState<PersistedWallState | null>(() => {
     const encoded = readSnapshotParamFromLocation();
     if (!encoded) {
@@ -365,6 +271,18 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     syncNow,
     handleLocalSaveStateChange,
   } = useWallCloudSync({ publishedReadOnly, hydrate });
+  const {
+    layoutPrefs,
+    controlsMode,
+    spatialPrefs,
+    setSpatialPrefs,
+    savedRecallSearches,
+    setSavedRecallSearches,
+    presentationPaths,
+    setPresentationPaths,
+    backupReminderCadence,
+    setBackupReminderCadence,
+  } = useWallClientPrefs();
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [boxSelectMode, setBoxSelectMode] = useState(false);
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
@@ -375,7 +293,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const dragSelectionStartRef = useRef<Record<string, { x: number; y: number }> | null>(null);
   const dragAnchorRef = useRef<{ id: string; x: number; y: number } | null>(null);
   const dragSingleStartRef = useRef<{ id: string; x: number; y: number; altClone: boolean } | null>(null);
-  const bookmarkUpgradeRequestsRef = useRef<Record<string, string>>({});
   const lastTimelineRecordedAt = useRef(0);
   const lastTimelineSerialized = useRef("");
   const activeTimelineEntry = timelineMode
@@ -506,206 +423,34 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     setTimelineViewActive((previous) => !previous);
   }, []);
 
-  useEffect(() => {
-    privateSessionsRef.current = privateSessions;
-  }, [privateSessions]);
-
-  const setPrivateSession = useCallback((noteId: string, next: PrivateSession) => {
-    setPrivateSessions((previous) => ({ ...previous, [noteId]: next }));
-  }, []);
-
-  const clearPrivateSession = useCallback((noteId: string) => {
-    setPrivateSessions((previous) => {
-      if (!(noteId in previous)) {
-        return previous;
-      }
-      const next = { ...previous };
-      delete next[noteId];
-      return next;
-    });
-  }, []);
-
-  const lockPrivateNote = useCallback((noteId: string) => {
-    clearPrivateSession(noteId);
-    setEditing((current) => (current?.id === noteId ? null : current));
-  }, [clearPrivateSession]);
-
-  const lockAllPrivateNotes = useCallback(() => {
-    setPrivateSessions({});
-    setEditing((current) => (current && isPrivateNote(renderSnapshot.notes[current.id] ?? null) ? null : current));
-  }, [renderSnapshot.notes]);
-
-  const openPrivateModal = useCallback((mode: "protect" | "unlock", noteId: string, options?: { focusField?: string; reopenEditor?: boolean; error?: string }) => {
-    setPrivateModal({
-      open: true,
-      mode,
-      noteId,
-      focusField: options?.focusField,
-      reopenEditor: options?.reopenEditor,
-      error: options?.error,
-    });
-  }, []);
-
-  const closePrivateModal = useCallback(() => {
-    setPrivateModal({ open: false, mode: "unlock" });
-  }, []);
-
-  useEffect(() => {
-    if (!timelineViewActive) {
-      return;
-    }
-    lockAllPrivateNotes();
-    setEditing(null);
-    setQuickCaptureOpen(false);
-    setSearchOpen(false);
-    setExportOpen(false);
-    setIsTimelinePlaying(false);
-  }, [lockAllPrivateNotes, setExportOpen, setSearchOpen, timelineViewActive]);
-
-  const syncWikiLinksForNote = useCallback((sourceNoteId: string, text: string) => {
-    const existingSource = useWallStore.getState().notes[sourceNoteId];
-    if (!existingSource) {
-      return;
-    }
-
-    const desiredTitles = [...new Map(
-      extractWikiLinks(text)
-        .map((match) => [normalizeWikiTitle(match.title), match.title.trim()] as const)
-        .filter((entry) => Boolean(entry[0]) && Boolean(entry[1])),
-    ).values()];
-
-    const desiredTargets = new Map<string, string>();
-    let createdCount = 0;
-
-      for (const title of desiredTitles) {
-        let target = findNoteByWikiTitle(useWallStore.getState().notes, title, sourceNoteId);
-        if (!target) {
-          const source = useWallStore.getState().notes[sourceNoteId];
-          if (!source) {
-            continue;
-          }
-          const position = placeNewNote(
-            {
-              x: source.x + source.w + 96 + (createdCount % 2) * 28 + NOTE_DEFAULTS.width / 2,
-              y: source.y + createdCount * 42 + NOTE_DEFAULTS.height / 2,
-            },
-          );
-          const createdId = createNote(position.x, position.y, source.color);
-          updateNote(createdId, { text: title });
-          target = useWallStore.getState().notes[createdId];
-          createdCount += 1;
-        }
-        if (!target || target.id === sourceNoteId || desiredTargets.has(target.id)) {
-          continue;
-        }
-        desiredTargets.set(target.id, title);
-      }
-
-    const nextState = useWallStore.getState();
-    const existingWikiLinks = Object.values(nextState.links).filter((link) => link.fromNoteId === sourceNoteId && link.type === "wiki");
-
-    for (const [targetId, title] of desiredTargets) {
-        const existingLink = existingWikiLinks.find((link) => link.toNoteId === targetId);
-        if (existingLink) {
-          if (existingLink.label !== title) {
-            nextState.patchLink(existingLink.id, { label: title });
-          }
-          continue;
-        }
-        createLink(sourceNoteId, targetId, "wiki", title);
-      }
-
-    for (const link of existingWikiLinks) {
-        if (!desiredTargets.has(link.toNoteId)) {
-          nextState.removeLink(link.id);
-        }
-      }
-
-    nextState.selectNote(sourceNoteId);
-    setSelectedNoteIds([sourceNoteId]);
-  }, [placeNewNote, setSelectedNoteIds]);
-
-  const commitEditedNoteText = useCallback(async (noteId: string, rawText: string) => {
-    const current = renderSnapshot.notes[noteId];
-    if (!current) {
-      return;
-    }
-    const parsed = parseTaggedText(rawText);
-    const mergedTags = [...new Set([...current.tags, ...parsed.tags])];
-    const state = useWallStore.getState();
-    if (isPrivateNote(current)) {
-      const session = privateSessionsRef.current[noteId];
-      if (!session) {
-        return;
-      }
-      const hidden = {
-        ...session.hidden,
-        text: parsed.text,
-        tags: mergedTags,
-      };
-      const encrypted = await encryptPrivateNote(session.password, hidden);
-      state.beginHistoryGroup();
-      try {
-        state.patchNote(noteId, {
-          ...createPrivateNoteShellPatch(current),
-          privateNote: encrypted,
-        });
-        syncWikiLinksForNote(noteId, "");
-        setPrivateSession(noteId, {
-          ...session,
-          hidden,
-          lastActivityAt: Date.now(),
-        });
-      } finally {
-        useWallStore.getState().endHistoryGroup();
-      }
-      return;
-    }
-    state.beginHistoryGroup();
-    try {
-      updateNote(noteId, {
-        text: parsed.text,
-        tags: mergedTags,
-        vocabulary: current.vocabulary
-          ? {
-              ...current.vocabulary,
-              word: parsed.text.trim(),
-            }
-          : current.vocabulary,
-      });
-      syncWikiLinksForNote(noteId, parsed.text);
-    } finally {
-      useWallStore.getState().endHistoryGroup();
-    }
-  }, [renderSnapshot.notes, setPrivateSession, syncWikiLinksForNote]);
-
-  const openEditor = useCallback((noteId: string, text: string, focusField?: string) => {
-    const note = renderSnapshot.notes[noteId];
-    if (!note) {
-      return;
-    }
-    if (isPrivateNote(note)) {
-      const session = privateSessionsRef.current[noteId];
-      if (!session) {
-        openPrivateModal("unlock", noteId, { focusField, reopenEditor: true });
-        return;
-      }
-      setPrivateSession(noteId, {
-        ...session,
-        lastActivityAt: Date.now(),
-      });
-      if (!canInlineEditPrivateNote(session.hidden)) {
-        return;
-      }
-      setEditTagInput("");
-      setEditTagRenameFrom(null);
-      setEditing({ id: noteId, text: session.hidden.text, focusField });
-      return;
-    }
-    setEditTagInput("");
-    setEditTagRenameFrom(null);
-    setEditing({ id: noteId, text, focusField });
-  }, [openPrivateModal, renderSnapshot.notes, setPrivateSession]);
+  const {
+    privateSessions,
+    privateModal,
+    privateModalNote,
+    openPrivateModal,
+    closePrivateModal,
+    lockPrivateNote,
+    openEditor,
+    commitEditedNoteText,
+    handleEditorBlur: handlePrivateEditorBlur,
+    submitPrivateModal,
+    syncWikiLinksForNote,
+  } = useWallPrivateNotes({
+    renderSnapshotNotes: renderSnapshot.notes,
+    isTimeLocked,
+    timelineViewActive,
+    camera,
+    viewport,
+    occupiedNoteRects,
+    setEditing,
+    setEditTagInput,
+    setEditTagRenameFrom,
+    setSelectedNoteIds,
+    setQuickCaptureOpen,
+    setSearchOpen,
+    setExportOpen,
+    setIsTimelinePlaying,
+  });
 
   const normalizeTag = (raw: string) => raw.trim().replace(/^#/, "").toLowerCase();
 
@@ -755,123 +500,8 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   };
 
   const handleEditorBlur = (event: FocusEvent<HTMLTextAreaElement>) => {
-    const nextTarget = event.relatedTarget as HTMLElement | null;
-    if (nextTarget?.dataset?.noteEditTags === "true") {
-      return;
-    }
-    if (nextTarget?.closest?.('[data-note-edit-tools="true"]')) {
-      return;
-    }
-    if (!editing) {
-      return;
-    }
-    void commitEditedNoteText(editing.id, editing.text);
-    setEditing(null);
+    handlePrivateEditorBlur(event, editing);
   };
-
-  const submitPrivateModal = useCallback(async (password: string) => {
-    const noteId = privateModal.noteId;
-    if (!noteId) {
-      closePrivateModal();
-      return;
-    }
-    const note = renderSnapshot.notes[noteId];
-    if (!note) {
-      closePrivateModal();
-      return;
-    }
-    try {
-      if (privateModal.mode === "protect") {
-        if (!canProtectNote(note)) {
-          setPrivateModal((current) => ({ ...current, error: "This note cannot be protected right now." }));
-          return;
-        }
-        const hidden = createPrivateNoteHiddenFields(note);
-        const encrypted = await encryptPrivateNote(password, hidden);
-        useWallStore.getState().patchNote(noteId, {
-          ...createPrivateNoteShellPatch(note),
-          privateNote: encrypted,
-        });
-        syncWikiLinksForNote(noteId, "");
-        setPrivateSession(noteId, {
-          password,
-          hidden,
-          lastActivityAt: Date.now(),
-        });
-        closePrivateModal();
-        return;
-      }
-      if (!note.privateNote) {
-        closePrivateModal();
-        return;
-      }
-      const hidden = await decryptPrivateNote(password, note.privateNote);
-      setPrivateSession(noteId, {
-        password,
-        hidden,
-        lastActivityAt: Date.now(),
-      });
-      const reopenEditor = privateModal.reopenEditor && canInlineEditPrivateNote(hidden);
-      const focusField = privateModal.focusField;
-      closePrivateModal();
-      if (reopenEditor) {
-        setEditTagInput("");
-        setEditTagRenameFrom(null);
-        setEditing({ id: noteId, text: hidden.text, focusField });
-      }
-    } catch {
-      setPrivateModal((current) => ({
-        ...current,
-        error: privateModal.mode === "protect" ? "Could not protect this note right now." : "Password did not unlock this note.",
-      }));
-    }
-  }, [closePrivateModal, privateModal, renderSnapshot.notes, setPrivateSession, syncWikiLinksForNote]);
-
-  useEffect(() => {
-    if (isTimeLocked) {
-      lockAllPrivateNotes();
-    }
-  }, [isTimeLocked, lockAllPrivateNotes]);
-
-  useEffect(() => {
-    const lockStaleNotes = () => {
-      const now = Date.now();
-      const staleIds = Object.entries(privateSessionsRef.current)
-        .filter(([, session]) => now - session.lastActivityAt >= PRIVATE_NOTE_AUTO_LOCK_MS)
-        .map(([noteId]) => noteId);
-      if (staleIds.length === 0) {
-        return;
-      }
-      setPrivateSessions((previous) => {
-        const next = { ...previous };
-        for (const noteId of staleIds) {
-          delete next[noteId];
-        }
-        return next;
-      });
-      setEditing((current) => (current && staleIds.includes(current.id) ? null : current));
-    };
-
-    const timer = setInterval(lockStaleNotes, 30000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        lockAllPrivateNotes();
-      }
-    };
-    const handleBeforeUnload = () => {
-      lockAllPrivateNotes();
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [lockAllPrivateNotes]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -882,116 +512,9 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    try {
-      const recallRaw = readStorageValue(recallStorageKey, legacyRecallStorageKeys);
-      if (recallRaw) {
-        const parsed = JSON.parse(recallRaw) as SavedRecallSearch[];
-        if (Array.isArray(parsed)) {
-          setSavedRecallSearches(parsed);
-        }
-      }
-    } catch {
-      // Ignore malformed persisted recall payloads and keep defaults.
-    }
-
-    setLayoutPrefs(readStoredWallLayoutPrefs());
-    setControlsMode(readStoredControlsMode());
-
-    try {
-      const spatialRaw = readStorageValue(spatialPrefsStorageKey, legacySpatialPrefsStorageKeys);
-      if (spatialRaw) {
-        const parsed = JSON.parse(spatialRaw) as Partial<SpatialPreferences>;
-        const spacing = typeof parsed.dotGridSpacing === "number" ? parsed.dotGridSpacing : defaultSpatialPrefs.dotGridSpacing;
-        setSpatialPrefs({
-          showDotMatrix: parsed.showDotMatrix ?? defaultSpatialPrefs.showDotMatrix,
-          snapToGuides: parsed.snapToGuides ?? defaultSpatialPrefs.snapToGuides,
-          snapToGrid: parsed.snapToGrid ?? defaultSpatialPrefs.snapToGrid,
-          dotGridSpacing: Math.max(12, Math.min(64, spacing)),
-        });
-      }
-    } catch {
-      // Ignore malformed persisted spatial payloads and keep defaults.
-    }
-
-    try {
-      const narrativeRaw = readStorageValue(presentationPathsStorageKey, legacyPresentationPathsStorageKeys);
-      if (narrativeRaw) {
-        const parsedPaths = parsePresentationPathsPayload(narrativeRaw);
-        setPresentationPaths(parsedPaths);
-      }
-    } catch {
-      // Ignore malformed persisted narrative payloads and keep defaults.
-    }
-
-    const cadenceRaw = readStorageValue(backupReminderCadenceStorageKey, legacyBackupReminderCadenceStorageKeys);
-    setBackupReminderCadence(cadenceRaw === "daily" || cadenceRaw === "weekly" ? cadenceRaw : "off");
-
     setLeftPanelOpen(false);
     setRightPanelOpen(false);
-    setClientPrefsLoaded(true);
   }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const applyAccountSettings = () => {
-      setLayoutPrefs(readStoredWallLayoutPrefs());
-      setControlsMode(readStoredControlsMode());
-    };
-
-    window.addEventListener(accountSettingsUpdatedEventName, applyAccountSettings);
-    return () => {
-      window.removeEventListener(accountSettingsUpdatedEventName, applyAccountSettings);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !clientPrefsLoaded) {
-      return;
-    }
-    writeStorageValue(recallStorageKey, JSON.stringify(savedRecallSearches));
-  }, [clientPrefsLoaded, savedRecallSearches]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !clientPrefsLoaded) {
-      return;
-    }
-    writeStorageValue(layoutPrefsStorageKey, JSON.stringify(layoutPrefs));
-  }, [clientPrefsLoaded, layoutPrefs]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !clientPrefsLoaded) {
-      return;
-    }
-    writeStorageValue(controlsModeStorageKey, controlsMode);
-  }, [clientPrefsLoaded, controlsMode]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !clientPrefsLoaded) {
-      return;
-    }
-    writeStorageValue(spatialPrefsStorageKey, JSON.stringify(spatialPrefs));
-  }, [clientPrefsLoaded, spatialPrefs]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !clientPrefsLoaded) {
-      return;
-    }
-    writeStorageValue(presentationPathsStorageKey, JSON.stringify(presentationPaths));
-  }, [clientPrefsLoaded, presentationPaths]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !clientPrefsLoaded) {
-      return;
-    }
-    writeStorageValue(backupReminderCadenceStorageKey, backupReminderCadence);
-  }, [backupReminderCadence, clientPrefsLoaded]);
 
   useEffect(() => {
     if (!activePresentationPathId) {
@@ -1287,859 +810,71 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     ui.selectedNoteId,
   ]);
 
-  const openBookmarkUrl = useCallback((url: string) => {
-    const target = url.trim();
-    if (!target || typeof window === "undefined") {
-      return;
-    }
-    window.open(target, "_blank", "noopener,noreferrer");
-  }, []);
+  const { fetchBookmarkPreview, openBookmarkUrl } = useWallBookmarkOrchestration({
+    isTimeLocked,
+    hydrated,
+    publishedReadOnly,
+    notesMap,
+    renderSnapshotNotes: renderSnapshot.notes,
+  });
 
-  const readFileAsDataUrl = useCallback(
-    (file: File) =>
-      new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result ?? ""));
-        reader.onerror = () => reject(new Error(`Failed to read ${file.name}.`));
-        reader.readAsDataURL(file);
-      }),
-    [],
-  );
+  const {
+    playingAudioNoteId,
+    playingAudioCurrentTimeSeconds,
+    playingAudioDurationSeconds,
+    submitImageNoteUrl,
+    submitFileNoteUrl,
+    submitAudioNoteUrl,
+    submitVideoNoteUrl,
+    selectImageNoteFile,
+    selectFileNoteFile,
+    selectAudioNoteFile,
+    selectVideoNoteFile,
+    renameImageNote,
+    renameAudioNote,
+    renameVideoNote,
+    toggleAudioNotePlayback,
+    toggleInlineVideoPlayback,
+    openImageNote,
+    openFileNote,
+    openAudioNote,
+    openVideoNote,
+    downloadImageNote,
+    downloadFileNote,
+    downloadAudioNote,
+    downloadVideoNote,
+  } = useWallMediaNoteHandlers({
+    isTimeLocked,
+    renderSnapshotNotes: renderSnapshot.notes,
+    openBookmarkUrl,
+    setInlinePlayingVideoNoteId,
+    inlinePlayingVideoNoteId,
+    wallInlineVideoRef,
+  });
 
-  const readAudioDurationFromDataUrl = useCallback(
-    (dataUrl: string) =>
-      new Promise<number | undefined>((resolve) => {
-        if (typeof window === "undefined") {
-          resolve(undefined);
-          return;
-        }
-        const audio = document.createElement("audio");
-        const settle = (value?: number) => {
-          audio.removeAttribute("src");
-          audio.load();
-          resolve(typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined);
-        };
-        audio.preload = "metadata";
-        audio.onloadedmetadata = () => settle(audio.duration);
-        audio.onerror = () => settle(undefined);
-        audio.src = dataUrl;
-      }),
-    [],
-  );
-
-  const readVideoMediaFromUrl = useCallback(
-    (url: string) =>
-      new Promise<{ durationSeconds?: number; posterDataUrl?: string }>((resolve) => {
-        if (typeof window === "undefined") {
-          resolve({});
-          return;
-        }
-
-        const video = document.createElement("video");
-        let settled = false;
-        const settle = (value: { durationSeconds?: number; posterDataUrl?: string }) => {
-          if (settled) {
-            return;
-          }
-          settled = true;
-          video.pause();
-          video.removeAttribute("src");
-          video.load();
-          resolve(value);
-        };
-
-        video.preload = "metadata";
-        video.muted = true;
-        video.playsInline = true;
-        if (!url.startsWith("data:")) {
-          video.crossOrigin = "anonymous";
-        }
-
-        video.onloadeddata = () => {
-          const durationSeconds = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : undefined;
-          try {
-            const sourceWidth = Math.max(1, video.videoWidth || 960);
-            const sourceHeight = Math.max(1, video.videoHeight || 540);
-            const scale = Math.min(1, maxVideoPosterDimensionPx / Math.max(sourceWidth, sourceHeight));
-            const canvas = document.createElement("canvas");
-            canvas.width = Math.max(1, Math.round(sourceWidth * scale));
-            canvas.height = Math.max(1, Math.round(sourceHeight * scale));
-            const context = canvas.getContext("2d");
-            if (!context) {
-              settle({ durationSeconds });
-              return;
-            }
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const posterDataUrl = canvas.toDataURL("image/jpeg", videoPosterJpegQuality);
-            cacheVideoPoster(url, posterDataUrl);
-            settle({ durationSeconds, posterDataUrl });
-          } catch {
-            settle({ durationSeconds });
-          }
-        };
-        video.onerror = () => settle({});
-        video.src = url;
-      }),
-    [],
-  );
-
-  const submitImageNoteUrl = useCallback(
-    async (noteId: string, rawUrl: string) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const normalizedUrl = normalizeFileUrl(rawUrl);
-      if (!normalizedUrl) {
-        return;
-      }
-      updateNote(noteId, toImageNotePatch(createImageNoteState({ ...(renderSnapshot.notes[noteId]?.file ?? {}), source: "link", url: normalizedUrl }), {
-        caption: renderSnapshot.notes[noteId]?.text ?? "",
-        preserveSize: true,
-      }));
-    },
-    [isTimeLocked, renderSnapshot.notes],
-  );
-
-  const submitFileNoteUrl = useCallback(
-    (noteId: string, rawUrl: string) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const normalizedUrl = normalizeFileUrl(rawUrl);
-      if (!normalizedUrl) {
-        return;
-      }
-      updateNote(noteId, toFileNotePatch(createFileNoteState({ ...(renderSnapshot.notes[noteId]?.file ?? {}), source: "link", url: normalizedUrl })));
-    },
-    [isTimeLocked, renderSnapshot.notes],
-  );
-
-  const submitAudioNoteUrl = useCallback(
-    (noteId: string, rawUrl: string) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const normalizedUrl = normalizeFileUrl(rawUrl);
-      if (!normalizedUrl) {
-        return;
-      }
-      updateNote(noteId, toAudioNotePatch(createAudioNoteState({ ...(renderSnapshot.notes[noteId]?.audio ?? {}), source: "link", url: normalizedUrl })));
-    },
-    [isTimeLocked, renderSnapshot.notes],
-  );
-
-  const submitVideoNoteUrl = useCallback(
-    async (noteId: string, rawUrl: string) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const normalizedUrl = normalizeFileUrl(rawUrl);
-      if (!normalizedUrl) {
-        return;
-      }
-      const media = await readVideoMediaFromUrl(normalizedUrl);
-      updateNote(
-        noteId,
-        toVideoNotePatch(
-          createVideoNoteState({
-            ...(renderSnapshot.notes[noteId]?.video ?? {}),
-            source: "link",
-            url: normalizedUrl,
-            durationSeconds: media.durationSeconds,
-          }),
-        ),
-      );
-    },
-    [isTimeLocked, readVideoMediaFromUrl, renderSnapshot.notes],
-  );
-
-  const selectImageNoteFile = useCallback(
-    async (noteId: string, file: File) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const dataUrl = await readFileAsDataUrl(file);
-      updateNote(
-        noteId,
-        toImageNotePatch(
-          createImageNoteState({
-            source: "upload",
-            name: file.name,
-            url: dataUrl,
-            mimeType: file.type,
-            sizeBytes: file.size,
-            uploadedAt: Date.now(),
-          }),
-          {
-            caption: renderSnapshot.notes[noteId]?.text ?? "",
-            preserveSize: true,
-          },
-        ),
-      );
-    },
-    [isTimeLocked, readFileAsDataUrl, renderSnapshot.notes],
-  );
-
-  const selectFileNoteFile = useCallback(
-    async (noteId: string, file: File) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const dataUrl = await readFileAsDataUrl(file);
-      updateNote(
-        noteId,
-        toFileNotePatch(
-          createFileNoteState({
-            source: "upload",
-            name: file.name,
-            url: dataUrl,
-            mimeType: file.type,
-            sizeBytes: file.size,
-            uploadedAt: Date.now(),
-          }),
-        ),
-      );
-    },
-    [isTimeLocked, readFileAsDataUrl],
-  );
-
-  const selectAudioNoteFile = useCallback(
-    async (noteId: string, file: File) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const dataUrl = await readFileAsDataUrl(file);
-      const durationSeconds = await readAudioDurationFromDataUrl(dataUrl);
-      updateNote(
-        noteId,
-        toAudioNotePatch(
-          createAudioNoteState({
-            source: "upload",
-            name: file.name,
-            url: dataUrl,
-            mimeType: file.type,
-            sizeBytes: file.size,
-            uploadedAt: Date.now(),
-            durationSeconds,
-          }),
-        ),
-      );
-    },
-    [isTimeLocked, readAudioDurationFromDataUrl, readFileAsDataUrl],
-  );
-
-  const selectVideoNoteFile = useCallback(
-    async (noteId: string, file: File) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const dataUrl = await readFileAsDataUrl(file);
-      const media = await readVideoMediaFromUrl(dataUrl);
-      updateNote(
-        noteId,
-        toVideoNotePatch(
-          createVideoNoteState({
-            source: "upload",
-            name: file.name,
-            url: dataUrl,
-            mimeType: file.type,
-            sizeBytes: file.size,
-            uploadedAt: Date.now(),
-            durationSeconds: media.durationSeconds,
-          }),
-        ),
-      );
-    },
-    [isTimeLocked, readFileAsDataUrl, readVideoMediaFromUrl],
-  );
-
-  const renameImageNote = useCallback(
-    (noteId: string, name: string) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const current = renderSnapshot.notes[noteId];
-      if (!current) {
-        return;
-      }
-      updateNote(noteId, { file: createImageNoteState({ ...(current.file ?? {}), name }) });
-    },
-    [isTimeLocked, renderSnapshot.notes],
-  );
-
-  const renameAudioNote = useCallback(
-    (noteId: string, name: string) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const current = renderSnapshot.notes[noteId]?.audio;
-      updateNote(noteId, toAudioNotePatch(createAudioNoteState({ ...(current ?? {}), name })));
-    },
-    [isTimeLocked, renderSnapshot.notes],
-  );
-
-  const renameVideoNote = useCallback(
-    (noteId: string, name: string) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const current = renderSnapshot.notes[noteId]?.video;
-      updateNote(noteId, toVideoNotePatch(createVideoNoteState({ ...(current ?? {}), name })));
-    },
-    [isTimeLocked, renderSnapshot.notes],
-  );
-
-  const toggleAudioNotePlayback = useCallback(
-    async (noteId: string) => {
-      const audioNote = renderSnapshot.notes[noteId]?.audio;
-      const target = audioNote?.url?.trim();
-      if (!target || typeof window === "undefined") {
-        return;
-      }
-
-      let player = wallAudioRef.current;
-      if (!player) {
-        const nextPlayer = new Audio();
-        nextPlayer.preload = "metadata";
-        nextPlayer.addEventListener("timeupdate", () => {
-          setPlayingAudioCurrentTimeSeconds(nextPlayer.currentTime ?? 0);
-        });
-        nextPlayer.addEventListener("loadedmetadata", () => {
-          setPlayingAudioDurationSeconds(Number.isFinite(nextPlayer.duration) ? nextPlayer.duration : undefined);
-        });
-        nextPlayer.addEventListener("ended", () => {
-          setPlayingAudioNoteId(undefined);
-          playingAudioNoteIdRef.current = undefined;
-          setPlayingAudioCurrentTimeSeconds(0);
-          setPlayingAudioDurationSeconds(undefined);
-        });
-        wallAudioRef.current = nextPlayer;
-        player = nextPlayer;
-      }
-
-      if (playingAudioNoteIdRef.current === noteId && !player.paused) {
-        player.pause();
-        setPlayingAudioNoteId(undefined);
-        playingAudioNoteIdRef.current = undefined;
-        return;
-      }
-
-      if (player.src !== target) {
-        player.src = target;
-      }
-
-      try {
-        await player.play();
-        setPlayingAudioNoteId(noteId);
-        playingAudioNoteIdRef.current = noteId;
-        setPlayingAudioCurrentTimeSeconds(player.currentTime || 0);
-        setPlayingAudioDurationSeconds(Number.isFinite(player.duration) ? player.duration : audioNote?.durationSeconds);
-      } catch {
-        setPlayingAudioNoteId(undefined);
-        playingAudioNoteIdRef.current = undefined;
-      }
-    },
-    [renderSnapshot.notes],
-  );
-
-  useEffect(() => {
-    const playingId = playingAudioNoteIdRef.current;
-    if (!playingId) {
-      return;
-    }
-    const currentAudio = renderSnapshot.notes[playingId]?.audio;
-    if (!currentAudio?.url && wallAudioRef.current) {
-      wallAudioRef.current.pause();
-      wallAudioRef.current.removeAttribute("src");
-      setPlayingAudioNoteId(undefined);
-      playingAudioNoteIdRef.current = undefined;
-      setPlayingAudioCurrentTimeSeconds(0);
-      setPlayingAudioDurationSeconds(undefined);
-    }
-  }, [renderSnapshot.notes]);
-
-  useEffect(() => () => {
-    if (wallAudioRef.current) {
-      wallAudioRef.current.pause();
-      wallAudioRef.current.removeAttribute("src");
-      wallAudioRef.current.load();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!inlinePlayingVideoNoteId) {
-      return;
-    }
-
-    const current = renderSnapshot.notes[inlinePlayingVideoNoteId];
-    if (current?.noteKind === "video" && current.video?.url?.trim()) {
-      return;
-    }
-
-    setInlinePlayingVideoNoteId(undefined);
-  }, [inlinePlayingVideoNoteId, renderSnapshot.notes]);
-
-  useEffect(() => () => {
-    if (wallInlineVideoRef.current) {
-      wallInlineVideoRef.current.pause();
-      wallInlineVideoRef.current.removeAttribute("src");
-      wallInlineVideoRef.current.load();
-    }
-  }, []);
-
-  const toggleInlineVideoPlayback = useCallback(
-    (noteId: string) => {
-      if (isTimeLocked) {
-        return;
-      }
-
-      const target = renderSnapshot.notes[noteId]?.video?.url?.trim();
-      if (!target) {
-        return;
-      }
-
-      if (playingAudioNoteIdRef.current && wallAudioRef.current) {
-        wallAudioRef.current.pause();
-        setPlayingAudioNoteId(undefined);
-        playingAudioNoteIdRef.current = undefined;
-      }
-
-      setInlinePlayingVideoNoteId((current) => (current === noteId ? undefined : noteId));
-    },
-    [isTimeLocked, renderSnapshot.notes],
-  );
-
-  const openImageNote = useCallback(
-    (noteId: string) => {
-      const imageNote = renderSnapshot.notes[noteId];
-      const target = imageNote?.imageUrl?.trim();
-      if (!target || typeof window === "undefined") {
-        return;
-      }
-      if (imageNote?.file?.source === "link") {
-        openBookmarkUrl(target);
-        return;
-      }
-      window.open(target, "_blank", "noopener,noreferrer");
-    },
-    [openBookmarkUrl, renderSnapshot.notes],
-  );
-
-  const openFileNote = useCallback(
-    (noteId: string) => {
-      const fileNote = renderSnapshot.notes[noteId]?.file;
-      const target = fileNote?.url?.trim();
-      if (!target || typeof window === "undefined") {
-        return;
-      }
-      if (fileNote?.source === "link") {
-        openBookmarkUrl(target);
-        return;
-      }
-      window.open(target, "_blank", "noopener,noreferrer");
-    },
-    [openBookmarkUrl, renderSnapshot.notes],
-  );
-
-  const openAudioNote = useCallback(
-    (noteId: string) => {
-      const audioNote = renderSnapshot.notes[noteId]?.audio;
-      const target = audioNote?.url?.trim();
-      if (!target || typeof window === "undefined") {
-        return;
-      }
-      if (audioNote?.source === "link") {
-        openBookmarkUrl(target);
-        return;
-      }
-      window.open(target, "_blank", "noopener,noreferrer");
-    },
-    [openBookmarkUrl, renderSnapshot.notes],
-  );
-
-  const openVideoNote = useCallback(
-    (noteId: string) => {
-      const videoNote = renderSnapshot.notes[noteId]?.video;
-      const target = videoNote?.url?.trim();
-      if (!target || typeof window === "undefined") {
-        return;
-      }
-      if (videoNote?.source === "link") {
-        openBookmarkUrl(target);
-        return;
-      }
-      window.open(target, "_blank", "noopener,noreferrer");
-    },
-    [openBookmarkUrl, renderSnapshot.notes],
-  );
-
-  const downloadImageNote = useCallback(
-    (noteId: string) => {
-      const imageNote = renderSnapshot.notes[noteId];
-      const target = imageNote?.imageUrl?.trim();
-      if (!target || typeof document === "undefined") {
-        return;
-      }
-      const filename = getImageNoteFilename(imageNote?.file);
-      if (imageNote?.file?.source === "upload") {
-        downloadDataUrl(filename, target);
-        return;
-      }
-      const link = document.createElement("a");
-      link.href = target;
-      link.download = filename;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    },
-    [renderSnapshot.notes],
-  );
-
-  const downloadFileNote = useCallback(
-    (noteId: string) => {
-      const fileNote = renderSnapshot.notes[noteId]?.file;
-      const target = fileNote?.url?.trim();
-      if (!target || typeof document === "undefined") {
-        return;
-      }
-      const filename = getFileNoteTitle(fileNote);
-      if (fileNote?.source === "upload") {
-        downloadDataUrl(filename, target);
-        return;
-      }
-      const link = document.createElement("a");
-      link.href = target;
-      link.download = filename;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    },
-    [renderSnapshot.notes],
-  );
-
-  const downloadAudioNote = useCallback(
-    (noteId: string) => {
-      const audioNote = renderSnapshot.notes[noteId]?.audio;
-      const target = audioNote?.url?.trim();
-      if (!target || typeof document === "undefined") {
-        return;
-      }
-      const filename = audioNote?.name?.trim() || "audio-note";
-      if (audioNote?.source === "upload") {
-        downloadDataUrl(filename, target);
-        return;
-      }
-      const link = document.createElement("a");
-      link.href = target;
-      link.download = filename;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    },
-    [renderSnapshot.notes],
-  );
-
-  const downloadVideoNote = useCallback(
-    (noteId: string) => {
-      const videoNote = renderSnapshot.notes[noteId]?.video;
-      const target = videoNote?.url?.trim();
-      if (!target || typeof document === "undefined") {
-        return;
-      }
-      const filename = getVideoNoteTitle(videoNote);
-      if (videoNote?.source === "upload") {
-        downloadDataUrl(filename, target);
-        return;
-      }
-      const link = document.createElement("a");
-      link.href = target;
-      link.download = filename;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    },
-    [renderSnapshot.notes],
-  );
-
-  const fetchBookmarkPreview = useCallback(
-    async (noteId: string, rawUrl: string, options?: { force?: boolean }) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const normalizedUrl = createBookmarkNoteState(rawUrl).normalizedUrl;
-      if (!normalizedUrl) {
-        updateNote(noteId, {
-          bookmark: {
-            ...(renderSnapshot.notes[noteId]?.bookmark ?? createBookmarkNoteState(rawUrl)),
-            url: rawUrl,
-            normalizedUrl: "",
-            metadata: undefined,
-            status: "error",
-            fetchedAt: Date.now(),
-            error: "Enter a valid http(s) URL.",
-          },
-        });
-        return;
-      }
-
-      const cached = readBookmarkCacheEntry(normalizedUrl);
-      if (!options?.force && cached?.metadata && isBookmarkCacheFresh(cached) && isBookmarkMetadataRich(cached.metadata)) {
-        updateNote(noteId, {
-          bookmark: {
-            url: rawUrl,
-            normalizedUrl,
-            metadata: cached.metadata,
-            status: "ready",
-            fetchedAt: cached.fetchedAt,
-            lastSuccessAt: cached.lastSuccessAt ?? cached.fetchedAt,
-            error: undefined,
-          },
-        });
-        return;
-      }
-
-      updateNote(noteId, {
-        bookmark: {
-          url: rawUrl,
-          normalizedUrl,
-          metadata: cached?.metadata ?? renderSnapshot.notes[noteId]?.bookmark?.metadata,
-          status: "loading",
-          fetchedAt: Date.now(),
-          lastSuccessAt: renderSnapshot.notes[noteId]?.bookmark?.lastSuccessAt,
-          error: undefined,
-        },
-      });
-
-      try {
-        const response = await fetch(`/api/bookmarks/preview?url=${encodeURIComponent(normalizedUrl)}`);
-        const payload = (await response.json()) as {
-          error?: string;
-          normalizedUrl?: string;
-          metadata?: WebBookmarkMetadata;
-        };
-        if (!response.ok || !payload.metadata || !payload.normalizedUrl) {
-          throw new Error(payload.error || "Preview request failed.");
-        }
-        const fetchedAt = Date.now();
-        writeBookmarkCacheEntry(payload.normalizedUrl, {
-          metadata: payload.metadata,
-          fetchedAt,
-          lastSuccessAt: fetchedAt,
-        });
-        const currentNote = useWallStore.getState().notes[noteId];
-        const preferredSize = getBookmarkPreferredSize(payload.metadata);
-        updateNote(noteId, {
-          ...(currentNote && shouldAutoResizeBookmarkNote(currentNote)
-            ? {
-                w: preferredSize.w,
-                h: preferredSize.h,
-              }
-            : {}),
-          bookmark: {
-            url: rawUrl,
-            normalizedUrl: payload.normalizedUrl,
-            metadata: payload.metadata,
-            status: "ready",
-            fetchedAt,
-            lastSuccessAt: fetchedAt,
-            error: undefined,
-          },
-        });
-      } catch (error) {
-        updateNote(noteId, {
-          bookmark: {
-            url: rawUrl,
-            normalizedUrl,
-            metadata: cached?.metadata ?? renderSnapshot.notes[noteId]?.bookmark?.metadata,
-            status: "error",
-            fetchedAt: Date.now(),
-            lastSuccessAt: cached?.lastSuccessAt ?? renderSnapshot.notes[noteId]?.bookmark?.lastSuccessAt,
-            error: error instanceof Error ? error.message : "Preview request failed.",
-          },
-        });
-      }
-    },
-    [isTimeLocked, renderSnapshot.notes],
-  );
-
-  useEffect(() => {
-    if (!hydrated || isTimeLocked || publishedReadOnly) {
-      return;
-    }
-
-    for (const note of Object.values(notesMap)) {
-      if (note.noteKind !== "web-bookmark") {
-        continue;
-      }
-      const normalizedUrl = note.bookmark?.normalizedUrl;
-      if (!normalizedUrl || note.bookmark?.status === "loading" || isBookmarkMetadataRich(note.bookmark?.metadata)) {
-        continue;
-      }
-      if (bookmarkUpgradeRequestsRef.current[note.id] === normalizedUrl) {
-        continue;
-      }
-      bookmarkUpgradeRequestsRef.current[note.id] = normalizedUrl;
-      void fetchBookmarkPreview(note.id, normalizedUrl, { force: true });
-    }
-  }, [fetchBookmarkPreview, hydrated, isTimeLocked, notesMap, publishedReadOnly]);
-  const makeWebBookmarkNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: WEB_BOOKMARK_DEFAULTS.width, h: WEB_BOOKMARK_DEFAULTS.height });
-    const id = createWebBookmarkNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeImageNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: IMAGE_NOTE_DEFAULTS.width, h: IMAGE_NOTE_DEFAULTS.height });
-    const id = createImageNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
-  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeFileNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: 320, h: 112 });
-    const id = createFileNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
-  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeAudioNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: AUDIO_NOTE_DEFAULTS.width, h: AUDIO_NOTE_DEFAULTS.height });
-    const id = createAudioNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
-  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeVideoNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: VIDEO_NOTE_DEFAULTS.width, h: VIDEO_NOTE_DEFAULTS.height });
-    const id = createVideoNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
-  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeWordNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world);
-    const id = createNote(position.x, position.y, ui.lastColor ?? NOTE_COLORS[0]);
-    updateNote(id, {
-      text: "",
-      tags: ["vocab"],
-      textColor: "#FFFFFF",
-      vocabulary: createVocabularyNote(),
-    });
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    setReviewRevealMeaning(false);
-  }, [camera, isTimeLocked, placeNewNote, selectNote, ui.lastColor, viewport.h, viewport.w]);
-
-  const makeQuoteNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world);
-    const id = createQuoteNote(position.x, position.y);
-    updateNote(id, {
-      textColor: NOTE_DEFAULTS.textColor,
-    });
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeCodeNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: CODE_NOTE_DEFAULTS.width, h: CODE_NOTE_DEFAULTS.height });
-    const id = createNote(position.x, position.y, CODE_NOTE_DEFAULTS.color);
-    updateNote(id, {
-      noteKind: "standard",
-      text: DEFAULT_CODE_NOTE_TEXT,
-      color: CODE_NOTE_DEFAULTS.color,
-      textColor: CODE_NOTE_DEFAULTS.textColor,
-      textSizePx: CODE_NOTE_DEFAULTS.textSizePx,
-      w: CODE_NOTE_DEFAULTS.width,
-      h: CODE_NOTE_DEFAULTS.height,
-      tags: [...new Set([...(useWallStore.getState().notes[id]?.tags ?? []), "code"])],
-    });
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, DEFAULT_CODE_NOTE_TEXT);
-  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeCanonNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world);
-    const id = createCanonNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, "");
-  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeJournalNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: JOURNAL_NOTE_DEFAULTS.width, h: JOURNAL_NOTE_DEFAULTS.height });
-    const id = createJournalNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
-  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
-
-  const makeEisenhowerNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world, { w: EISENHOWER_NOTE_DEFAULTS.width, h: EISENHOWER_NOTE_DEFAULTS.height });
-    const id = createEisenhowerNote(position.x, position.y);
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    openEditor(id, "", "doFirst");
-  }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, viewport.h, viewport.w]);
+  const {
+    makeWebBookmarkNoteAtViewportCenter,
+    makeImageNoteAtViewportCenter,
+    makeFileNoteAtViewportCenter,
+    makeAudioNoteAtViewportCenter,
+    makeVideoNoteAtViewportCenter,
+    makeWordNoteAtViewportCenter,
+    makeQuoteNoteAtViewportCenter,
+    makeCodeNoteAtViewportCenter,
+    makeCanonNoteAtViewportCenter,
+    makeJournalNoteAtViewportCenter,
+    makeEisenhowerNoteAtViewportCenter,
+  } = useWallNoteCreation({
+    isTimeLocked,
+    camera,
+    viewport,
+    lastColor: ui.lastColor ?? NOTE_COLORS[0],
+    placeNewNote,
+    openEditor,
+    selectNote,
+    setSelectedNoteIds,
+    setReviewRevealMeaning,
+  });
 
   const toggleVocabularyFlip = useCallback(
     (noteId: string) => {
@@ -2735,7 +1470,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     setPresentationPaths((previous) => [path, ...previous]);
     setActivePresentationPathId(path.id);
     setPresentationIndex(0);
-  }, [presentationPaths, publishedReadOnly]);
+  }, [presentationPaths, publishedReadOnly, setPresentationPaths]);
 
   const addNarrativeStep = useCallback(() => {
     if (publishedReadOnly) {
@@ -2756,7 +1491,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
 
     const nextLength = activePresentationPath?.steps.length ?? 0;
     setPresentationIndex(nextLength);
-  }, [activePresentationPath, activePresentationPathId, camera, presentationPaths, publishedReadOnly]);
+  }, [activePresentationPath, activePresentationPathId, camera, presentationPaths, publishedReadOnly, setPresentationPaths]);
 
   const updateNarrativeTalkingPoints = useCallback(
     (value: string) => {
@@ -2776,7 +1511,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         }),
       );
     },
-    [activePresentationPathId, activePresentationStep, publishedReadOnly],
+    [activePresentationPathId, activePresentationStep, publishedReadOnly, setPresentationPaths],
   );
 
   const captureNarrativeStepCamera = useCallback(() => {
@@ -2795,7 +1530,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         };
       }),
     );
-  }, [activePresentationPathId, activePresentationStep, camera, publishedReadOnly]);
+  }, [activePresentationPathId, activePresentationStep, camera, publishedReadOnly, setPresentationPaths]);
 
   const deleteNarrativeStep = useCallback(() => {
     if (!activePresentationPathId || !activePresentationStep || publishedReadOnly) {
@@ -2816,7 +1551,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
         .filter((path) => path.steps.length > 0 || path.id !== activePresentationPathId),
     );
     setPresentationIndex((previous) => Math.max(0, previous - 1));
-  }, [activePresentationPathId, activePresentationStep, publishedReadOnly]);
+  }, [activePresentationPathId, activePresentationStep, publishedReadOnly, setPresentationPaths]);
 
   const handleNarrativePathChange = useCallback((pathId: string) => {
     setActivePresentationPathId(pathId);
@@ -2996,7 +1731,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const selectedPrivateNote = primarySelectedNote && isPrivateNote(primarySelectedNote) ? primarySelectedNote : undefined;
   const selectedPrivateNoteSupported = Boolean(primarySelectedNote && (isPrivateNote(primarySelectedNote) || canProtectNote(primarySelectedNote)));
   const isSelectedPrivateUnlocked = Boolean(selectedPrivateNote && privateSessions[selectedPrivateNote.id]);
-  const privateModalNote = privateModal.noteId ? renderSnapshot.notes[privateModal.noteId] : undefined;
 
   useEffect(() => {
     setReviewRevealMeaning(false);
