@@ -305,7 +305,6 @@ export function DecksDecksView() {
               <nav className="flex items-center gap-4">
                 <Link href="/wall" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Wall</Link>
                 <Link href="/page" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Page</Link>
-                <Link href="/media" className="text-sm text-black/60 transition-colors hover:text-[#a33818]">Media</Link>
               </nav>
             </div>
           </div>

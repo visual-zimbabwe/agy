@@ -23,7 +23,7 @@ import { fetchPageBookmarkPreview } from "@/features/page/bookmarks";
 import { listCloudPageDocIds, loadCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
 import type { BlockType, PageBlock, PageBookmarkData, PageCodeData, PageCover, PageEmbedData, PageNumberedFormat, PageTableData, PersistedPageState } from "@/features/page/types";
 import { loadWallSnapshot, saveWallSnapshot } from "@/features/wall/storage";
-import { UnsplashPicker } from "@/components/media/UnsplashPicker";
+import { UnsplashPicker } from "@/components/unsplash/UnsplashPicker";
 import { cn } from "@/lib/cn";
 import {
   buildWallNoteUrl,
