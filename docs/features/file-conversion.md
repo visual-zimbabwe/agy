@@ -73,6 +73,5 @@ The route currently returns:
 
 ## Related Docs
 
-- `docs/api/page.md`
 - `docs/architecture/overview.md`
 - `docs/qa.md`

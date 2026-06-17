@@ -10,6 +10,7 @@ import {
   persistAccountSettingsLocally,
 } from "@/lib/account-settings";
 import { applyPreferencesToDocument, persistLastVisitedPath, readLastVisitedPath, readStoredPreferences } from "@/lib/preferences";
+import { runRemovedWorkspacesMigration } from "@/lib/migrate-removed-workspaces";
 import { getSupabaseBrowserSessionSafely } from "@/lib/supabase/browser-auth";
 
 export const StartupRouteHandler = () => {
@@ -32,6 +33,7 @@ export const StartupRouteHandler = () => {
     const bootstrap = async () => {
       applyLatest();
       readLastVisitedPath();
+      void runRemovedWorkspacesMigration();
 
       const { session } = await getSupabaseBrowserSessionSafely();
       if (cancelled) {

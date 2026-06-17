@@ -28,14 +28,21 @@
 - Initial contributor workflow doc
 - Initial feature docs for wall notes, search/retrieval, settings, and help system
 
+### Removed
+
+- Standalone `/page` block editor workspace, including wall `Page Interchange` controls, page APIs, and page-editor persistence modules
+- Standalone `/media` workspace route (legacy bookmarks now redirect to `/wall`)
+
 ### Changed
 
+- `/page` and `/media` now server-redirect to `/wall`
+- Startup and last-visited path preferences migrate away from `/page` and `/media`
+- One-time boot migration clears local page-editor IndexedDB data, wall/page link localStorage, and best-effort authenticated cloud `page_docs` / `page-files` data without touching wall or decks storage
 - Removed the deprecated Electron desktop packaging subtree and its release workflow so the repository now reflects the current web-only product surface
 - Wall search now ships as a dock-first inline omnibar with grouped suggestions/actions/notes, shared `Ctrl/Cmd + K` focus behavior, and query tokens for `tag:`, `type:`, `is:`, and `tool:` filters
 - `Help / Docs` in the wall profile menu now opens a real help center, and the omnibar now exposes help actions including `tool:help`
 - `README.md` now reflects the current multi-surface product instead of describing only the wall workspace
 - Frontend architecture guidance moved into `docs/architecture/frontend-architecture.md`
-- Unsplash-powered image search now backs `/wall` image insertion and `/page` `/image` + `/cover` flows, including clustered wall moodboards and persisted page covers
 
 ### Fixed
 

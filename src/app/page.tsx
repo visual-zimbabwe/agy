@@ -108,12 +108,6 @@ export default function Home() {
                 Enter the Wall
               </Link>
               <Link
-                href="/page"
-                className="rounded-full bg-[var(--landing-surface-glass)] px-7 py-3.5 text-sm font-semibold text-[var(--landing-ink)] ring-1 ring-black/5 backdrop-blur-[14px] transition hover:bg-[var(--landing-surface)]"
-              >
-                Open Page
-              </Link>
-              <Link
                 href="/decks"
                 className="rounded-full bg-[var(--landing-surface-glass)] px-7 py-3.5 text-sm font-semibold text-[var(--landing-ink)] ring-1 ring-black/5 backdrop-blur-[14px] transition hover:bg-[var(--landing-surface)]"
               >

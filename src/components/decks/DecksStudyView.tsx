@@ -164,9 +164,6 @@ export function DecksStudyView() {
           <Link href="/wall" className="text-[#1c1c19]/60 hover:text-[#a33818]">
             Wall
           </Link>
-          <Link href="/page" className="text-[#1c1c19]/60 hover:text-[#a33818]">
-            Page
-          </Link>
         </nav>
         <select value={deckId} onChange={(event) => chooseDeck(event.target.value)} className="rounded-full bg-[#f0ede8] px-4 py-2 text-sm outline-none">{decks.map((deck) => <option key={deck.id} value={deck.id}>{deck.name}</option>)}</select>
       </header>

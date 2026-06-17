@@ -44,7 +44,6 @@ npm run dev
 Key routes during development:
 
 - `/wall`
-- `/page`
 - `/decks`
 - `/settings`
 

@@ -178,9 +178,6 @@ export function DecksBrowseView() {
           <Link href="/wall" className="text-[#1c1c19]/60 hover:text-[#a33818]">
             Wall
           </Link>
-          <Link href="/page" className="text-[#1c1c19]/60 hover:text-[#a33818]">
-            Page
-          </Link>
         </nav>
         <div className="flex items-center space-x-4"><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#58423c]/40">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void search(); }} className="w-64 rounded-full bg-[#f0ede8] py-1.5 pl-10 pr-4 text-sm outline-none" placeholder="Search the library..." /></div><button type="button" onClick={() => void search()} className="text-[#58423c]">⏎</button></div>
       </header>

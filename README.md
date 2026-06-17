@@ -5,7 +5,6 @@ Agy is a local-first visual thinking workspace built with Next.js, React, and Ty
 The current product includes:
 
 - `/wall`: infinite spatial canvas for notes, links, grouping, search, timeline review, export, and published snapshots
-- `/page`: block-based infinite document canvas for structured writing, embeds, uploads, and comments
 - `/decks`: study workspace for decks, cards, browsing, review sessions, and stats
 - `/settings`: account and workspace preferences
 - `/help`: route-based help library and support entry point
@@ -75,7 +74,6 @@ Open:
 
 - `http://localhost:3000/`
 - `http://localhost:3000/wall`
-- `http://localhost:3000/page`
 - `http://localhost:3000/decks`
 - `http://localhost:3000/settings`
 - `http://localhost:3000/help`
@@ -166,7 +164,6 @@ Key paths:
 - `src/app/`: Next.js app routes
 - `src/components/`: shared UI and workspace components
 - `src/features/wall/`: wall domain types, commands, storage, and sync helpers
-- `src/features/page/`: page editor state and persistence
 - `src/features/decks/`: deck study logic and data helpers
 - `src/lib/`: shared utilities
 - `docs/`: product, architecture, feature, API, runbook, and release documentation

@@ -1,148 +1,16 @@
 # Agy Manual QA Checklist
 
-## Block Page Editor (`/page`) (2026-03-05)
-1. Open `/page` and verify there is no fixed sidebar/top toolbar.
-2. Click empty canvas on the left, center, and right; verify a new editable block appears exactly where clicked.
-3. Confirm empty editable blocks show placeholder text `Type "/" for commands`.
-4. Hold and drag empty canvas to pan.
-5. Verify the dark workspace chrome appears around the canvas: slim top bar, left tool rail, and bottom status strip, while the canvas remains the main focus.
-6. Click `New Text`, `Upload`, `Fit View`, left-rail tool buttons, and bottom zoom controls; confirm they trigger the expected canvas/editor actions without blocking panning or block editing.
-5. Use `Ctrl/Cmd + mouse wheel` to zoom toward cursor.
-6. Use mouse wheel (without `Ctrl/Cmd`) to pan viewport.
-7. Drag any block to a new position and verify free placement on the infinite canvas.
-8. In a text block, type `/h1`, `/h2`, `/h3`, `/todo`, `/bullet` (or `/list`), `/table`, `/quote`, and `/code` (one at a time), then press `Enter` and verify block type changes.
-9. While slash menu is open, use `ArrowUp/ArrowDown` and `Enter` to select a command.
-10. Press `Esc` with slash menu open and verify it closes.
-11. In any text block, type `/file` then press `Enter`; verify file insert popover appears with `Upload` and `Paste URL` tabs.
-12. In `/file` popover `Upload` tab, click `Choose a file`, upload a document, and verify a file block appears with file name + size metadata.
-13. In `/file` popover `Paste URL` tab, paste a URL (PDF, Drive file, or Maps URL) and verify an embedded file block appears with inferred title and `External` size label.
-14. In any text block, type `/image` then press `Enter`; verify the image insert popover shows `Upload`, `Paste URL`, and `Unsplash` tabs.
-15. In `/image` > `Unsplash`, search for a term, choose one result, and verify an inline image block is inserted with preview and attribution text.
-16. In any text block, type `/cover` then press `Enter`; verify the cover insert popover opens with `Upload`, `Paste URL`, and `Unsplash` tabs.
-17. In `/cover` > `Unsplash`, search for a term, choose one result, and verify the page cover updates above the document blocks and persists after refresh.
-14. Type `/image`, `/video`, and `/audio` (one at a time), press `Enter`, and verify each opens the same two-option popover and inserts a specialized media block after upload/link.
-15. Hover a file/media block and verify toolbar actions appear: `Caption`, `Comment`, `Download`.
-16. Use hover toolbar `Caption`; verify caption is saved and shown under the file metadata.
-17. Use hover toolbar `Comment`; verify comment thread is added to the target block.
-18. Use hover toolbar `Download`; verify uploaded files download and embedded links open in a downloadable/openable target.
-19. Verify slash command menu visual parity: compact light menu, left-side command symbols, right-side trigger hints, and `Close menu / esc` footer.
-20. Open slash menu near each viewport edge and confirm it repositions (above/below and left/right) to stay visible while minimizing overlap with nearby canvas content.
-21. Right-click empty canvas and click `Upload files here`; choose at least 2 files and verify each becomes its own movable file block.
-22. Drag-and-drop multiple files from desktop onto canvas and verify each file inserts at drop area.
-23. Upload at least one image file and verify inline image preview appears in its block.
-24. Click a file block and verify it opens in a new tab.
-25. Right-click a file block and run `Rename title`; verify title changes without changing stored file.
-26. Right-click a file block and run `Delete file`; verify block is removed and backend delete succeeds.
-27. Refresh browser tab and verify blocks, camera position/zoom, and file blocks persist.
-28. Validate mobile viewport and desktop viewport: slash menu, file insert popover, and context menus are not clipped and remain usable.
-29. Create three `/todo` items, focus the second item, press `Tab`, and verify it indents as a subtask under the first item.
-30. With an indented `/todo` item focused, press `Shift + Tab` and verify it outdents back to the parent level.
-31. In a text block containing multiple lines, select at least 2 lines and press `Ctrl/Cmd + (Option or Shift) + 4`; verify each selected line converts into its own unchecked todo item.
-32. In a text block, type `- `, `* `, and `+ ` at the start of a line; verify each instantly converts to bulleted list style.
-33. Focus a block and press `Cmd/Ctrl + Shift + 5`; verify block converts to bulleted list.
-34. In a bulleted line, press `Enter`; verify a new bullet is created.
-35. In a bulleted line, press `Shift + Enter`; verify newline/paragraph is inserted within the same bullet instead of creating a new bullet.
-36. Create a parent bullet with two indented child bullets, drag/delete the parent, and verify child bullets move/delete with it.
-37. In a text block, type `1. ` at line start and verify it converts to a numbered list item.
-38. In a text block, type `a. ` and `i. ` at line start and verify both convert to numbered list items using alphabetic and roman markers.
-39. Focus a block and press `Cmd/Ctrl + Shift + 6` (or `Cmd/Ctrl + Option + 6`); verify block converts to numbered list.
-40. In block menu for a numbered item, open `List options`, switch among `1.`, `a.`, `i.`, and verify numbering style updates immediately.
-41. In `List options`, set `Start at` to a value > 1 and verify the first numbered item in that sequence starts at the configured index.
-42. In a numbered list item, press `Enter` in the middle of text and verify it splits into two numbered items at the caret.
-43. In an indented list item, press `Backspace` at cursor start and verify it outdents first (instead of immediately converting to text).
-44. Create a `/toggle` item and verify it renders with a collapse/expand chevron.
-45. In a text block, type `> ` at line start and verify it converts to a toggle list item.
-46. Focus a block and press `Cmd/Ctrl + Shift + 7` (or `Cmd/Ctrl + Option + 7`); verify block converts to toggle list.
-47. With a toggle item focused, press `Cmd/Ctrl + Enter`; verify that toggle opens/closes.
-48. Press `Cmd/Ctrl + Alt + T` and verify all toggle items expand when any are collapsed; press again and verify all collapse.
-49. Create a `/toggle` item with nested children, collapse it, and verify all indented descendants are hidden; expand and verify they return.
-50. Add inline markdown (`**bold**`, `*italic*`, `` `code` ``, links, `@mentions`) inside bulleted/numbered/toggle items and verify formatted preview appears when input is not focused.
-51. Drag a block slightly right and below another block to nest it; verify indent and parent linkage persist after refresh.
-52. Verify todo checkbox-to-text spacing is compact and consistent with Notion-style list density (no oversized gap).
-53. In a quote block, verify default styling is visually distinct (larger italic text, left border, and indentation).
-54. In a quote block, use `Ctrl/Cmd + B`, `Ctrl/Cmd + I`, and `Ctrl/Cmd + K`; verify bold/italic/link Markdown is inserted and quote preview reflects formatting.
-55. Focus a block and press `Cmd/Ctrl + Shift + 8` (or `Cmd/Ctrl + Option + 8`); verify block converts to quote.
-56. In quote text, include inline code and `@mention` tokens and verify quote preview renders both.
-57. Click a block six-dot handle, choose `Color`, and verify quote text color and quote background color both update.
-58. In a text block, type `"` followed by `Space` at the start of a new line and verify it converts to a quote block.
-59. Highlight existing text in a block, click the six-dot handle, run `Turn into > Quote`, and verify selected text becomes a quote block.
-60. With a quote block selected, press `Enter`; verify a standard text block appears immediately below with attribution starter (`-- `).
-61. In a text block, type `--- ` and verify it converts to a divider block.
-62. Type `/div` or `/divider` and press `Enter`; verify a divider block is inserted.
-63. Focus a divider and press `Enter`; verify a text block is created below it.
-64. Single-click a block six-dot handle and verify block menu opens immediately with actions: `Delete`, `Duplicate`, `Turn into`, `Turn into page`, `Copy link`, `Move to page`, `Comment`, and `Color`.
-65. Drag a block from the six-dot handle (moving pointer beyond small threshold) and verify drag starts reliably without requiring hold delay.
-66. Click the `+` icon next to the six-dot handle and verify an insert menu opens anchored near the block.
-67. From the `+` insert menu, add `Text`, `Bulleted list`, `Toggle`, and `Divider`; verify each inserts below the source block.
-68. From the `+` insert menu, choose `File`/`Image`/`Video`/`Audio`; verify file insert popover opens at the insertion point below the source block.
-69. Press `Cmd/Ctrl + /` with a selected/focused block and verify block action menu opens for that block.
-70. `Ctrl/Cmd`-click three block handles to multi-select, then hold and drag one selected handle; verify selected blocks move together.
-71. In block menu, run `Duplicate` and verify exact copy appears below original.
-72. In block menu, run `Delete` and verify block is removed.
-73. In block menu, run `Turn into` to convert a text block to `Heading 2`, `To-do list`, `Numbered list`, `Toggle`, `Quote`, and `Divider`; verify type changes each time.
-74. In block menu, run `Turn into page`; verify block is moved to a new `doc` route and a page-link block remains in the source page.
-75. In block menu, run `Copy link`, paste in browser address bar, and verify it navigates to and focuses the target block.
-76. In block menu, use `Move to page` search/typed id to move block to another doc; verify it is removed from source and appears in destination.
-76a. In block menu, run `Reference on wall`; open `/wall`, find the new bookmark note, and verify it deep-links back to the original `/page?doc=...#block` location.
-76b. In block menu, run `Turn into wall note`; verify the original block is replaced by a wall-link bookmark block, then open the wall link and confirm the converted wall note appears focused via the `note` query param.
-77. In block menu, run `Comment`; verify floating comment panel opens with composer (`Add a comment...`, attach, mention, send).
-78. In comment panel, type text and verify send icon becomes active (blue), then post and verify new card shows author preferred name + `Just now`.
-79. On posted comment, click the `...` menu and verify actions: `Mark as unread`, `Edit`, `Copy link`, `Mute replies`, `Delete`.
-80. In `...` menu, click `Delete`; verify confirmation modal appears with `Delete` and `Cancel`, and deleting removes the comment.
-81. Refresh browser and verify comments persist on their blocks.
-82. In block menu, apply text color and background color and verify entire block styling updates.
-83. Drag a block near another block's vertical lane and verify it snaps below (vertical rearrange behavior).
-84. Drag a block far left/right across another block and verify side-by-side column placement snap occurs.
-85. Drag a list block slightly right under another list block and verify it nests (indent increases).
-86. Type `/table` and press `Enter`; verify a simple table block appears with editable cells.
-87. In a table block, click `+ Row` and `+ Column`; verify row/column counts increase and new cells are editable.
-88. In a table block, toggle `Header row` and `Header column`; verify first row/column switches to emphasized header styling.
-89. Type `/code` and press `Enter`; verify a code block appears with language selector and `Wrap` toggle.
-90. In code block hover controls, click `Copy`; verify block content is copied to clipboard.
-91. In code block hover controls, click `Caption`, enter text, and verify caption appears under the code area and persists after refresh.
-92. In code block, disable wrap, enter a long line, and verify horizontal scrolling; enable wrap and verify long line wraps within block width.
-93. Type `/bookmark` (or `/web`) and press `Enter`; verify URL popover appears in link mode (no upload tab).
-94. Paste a valid URL in bookmark popover and submit; verify a bookmark preview block is inserted and opens URL on click.
-94a. After bookmark insertion, verify title/description/thumbnail metadata loads when available from target site.
-95. Type `/video`, paste a YouTube/Vimeo embed URL, and verify video renders as an embedded frame when direct media source is unavailable.
-96. Type `/audio`, paste an embeddable audio URL, and verify audio renders either native player (direct file URL) or embedded frame fallback.
-97. Type `/embed` and verify an inline composer appears with URL input and `Create embed`.
-98. Paste a YouTube or Vimeo URL into `/embed` composer, submit, and verify embedded preview renders with `Open original` link.
+## Removed Workspaces Redirect (`/page`, `/media`) (2026-06-17)
+1. Open `/page` directly and verify the browser lands on `/wall` without rendering a page editor.
+2. Open `/page?doc=example#block-id` and verify the redirect still lands on plain `/wall` without preserving query or hash.
+3. Open `/media` directly and verify the browser lands on `/wall`.
+4. With a signed-in account that previously used `/page` or `/media`, reload the app and verify startup/continue-last behavior no longer returns to those routes.
+5. Verify no workspace nav surfaces still expose `Page` or `Media` links in the wall header, decks header, help center, or landing CTAs.
 
 Expected:
-- `/page` is an infinite, pannable, zoomable canvas with no fixed sidebar chrome.
-- `/page` uses dark workspace chrome around the canvas with a top command bar, left tool rail, and bottom status strip that stay visible without obscuring core editing flows.
-- `Type "/" for commands` appears at the active insertion point, not fixed to left side.
-- Slash commands provide Notion-style block changes and keyboard navigation.
-- Bulleted lists support slash, markdown, and `Cmd/Ctrl + Shift + 5` creation flows with proper continuation/indent/outdent/end-list behaviors.
-- Numbered lists support markdown (`1. `), slash conversion, and caret-based split-on-enter behavior.
-- Numbered lists support markdown markers (`1.`, `a.`, `i.`), keyboard shortcut conversion (`Cmd/Ctrl + Shift/Option + 6`), list format switching, and custom start index.
-- `/table` creates a simple table block (non-database) with editable cells plus row/column and header toggles.
-- `/code` creates a code block with language selection, wrap toggle, and hover actions for copy/caption.
-- `Web bookmark` command inserts a link-preview style block from URL input and supports open/edit from block menu.
-- Bookmark previews should show site metadata (title/description/image) when retrievable, with graceful fallback when unavailable.
-- `/embed` creates an inline embed block that normalizes supported providers (YouTube/Vimeo/Figma/Docs) and renders iframe preview.
-- Toggle lists support slash/markdown/keyboard creation, collapse/expand shortcuts, and descendant visibility persistence.
-- Divider blocks support slash (`/div`/`/divider`) and markdown (`--- `) creation, and remain fixed to document block width on the infinite canvas.
-- Slash command menu is visually compact and symbol-driven; command popup stays in viewport with reduced canvas obstruction.
-- `/file`, `/video`, `/audio` open an insert popup with `Upload` and `Paste URL` flows.
-- `/image` on `/page` opens `Upload`, `Paste URL`, and `Unsplash`; `/cover` opens the same source options for the page cover.
-- Todo items support `Tab`/`Shift + Tab` nesting and un-nesting.
-- Multi-line text selection supports one-shot conversion to todo checkboxes via `Ctrl/Cmd + (Option or Shift) + 4`.
-- Quote blocks are visually distinct and support inline Markdown formatting shortcuts for bold/italic/link.
-- Block handle menu supports `Turn into > Quote` and quote color controls for text/background.
-- Quote conversion shortcut (`"` + `Space` at line start) works reliably.
-- Six-dot handle single-click opens block actions immediately; dragging past threshold starts drag-and-drop without hold delay.
-- Plus icon next to six-dot opens quick insert menu and inserts selected block types below the source block.
-- `Cmd/Ctrl + /` opens block actions for the selected/focused block.
-- Multi-selected blocks can be moved together from a handle drag.
-- Block menu supports delete/duplicate/turn-into/page conversion/link copying/move-to/comment/color actions.
-- Block menu also supports cross-surface wall reference and wall conversion actions, and internal wall links should focus the target note when opened.
-- File upload works via both picker and drag-drop, including multi-file insertion.
-- Uploaded image files preview inline; non-image files render as file cards.
-- File/media blocks support open/preview, download original, caption, comment, rename title, delete, and drag repositioning.
-- Comment threads use card UI with preferred-name author attribution, `...` action menu, delete confirmation modal, and attach/mention/send composer.
-- Page state (blocks + camera) persists after refresh.
+- `/page` and `/media` are removed workspaces that redirect to `/wall`.
+- Stored startup and last-visited paths migrate away from `/page` and `/media`.
+- Local page-editor IndexedDB data and page link state are cleaned up on boot without affecting wall or decks data.
 
 
 ## Web Bookmark Note (`/wall`) (2026-03-19)
@@ -165,25 +33,6 @@ Expected:
 - Bookmark previews cache by normalized URL and do not refetch on every render.
 - Compact, comfortable, and expanded card states remain polished on the wall and in preview surfaces.
 - Invalid, missing, or partial metadata degrades gracefully without clipping or unsafe HTML rendering.
-
-## Wall/Page Interchange (`/wall`, `/page`) (2026-04-02)
-1. Open `/wall`, select a standard text note, and use `Details > Page Interchange > Reference In Page`.
-2. Open `/page` and verify a new bookmark block appears in the default page workspace that links back to `/wall?note=<id>`.
-3. Click that bookmark block and verify `/wall` opens with the target note selected, flashed, and camera-focused.
-4. Back on `/wall`, verify the note itself still renders in its original note shell and that the only wall-side page controls are in `Details > Page Interchange` (`Open Page Ref`, `Undo Reference`).
-5. Use `Undo Reference` and verify the page-side bookmark block is removed from the default page workspace.
-6. Select a note with content and use `Details > Page Interchange > Convert To Page`.
-7. Verify the wall note keeps its original visual appearance, and that `Details > Page Interchange` now exposes `Open Converted Page` and `Undo Convert`.
-8. Open the converted page and confirm a new page document exists with converted content.
-9. Use `Undo Convert` and verify the converted page document is removed and the details panel reverts to the pre-conversion action state.
-10. From that new page document, open the converted block menu, run `Turn into wall note`, and verify the block becomes a wall-link bookmark while a converted wall note is created and focused from the link.
-
-Expected:
-- Wall notes can append page references without losing the source note.
-- Wall note conversion creates a new page document without changing the wall note into a visible link card.
-- Page block conversion creates a wall note and leaves behind a page-side wall reference.
-- Wall-side page links are managed only from the details panel, and both reference and conversion flows support undo.
-- Internal `/wall?note=...` and `/page?doc=...#block` links resolve to the intended content instead of generic workspace entry points.
 
 ## File Note (`/wall`) (2026-03-26)
 1. Open `/wall`, open `Tools`, and click `New File`.
@@ -382,7 +231,7 @@ Expected:
 ## Decks Route and Workflow (2026-03-03)
 1. Sign in and open `/decks` from landing and from `/wall` toolbar.
 2. In deck sidebar, create a root deck and one child deck.
-3. In the top decks header, verify `Decks`, `Browse`, `Stats`, and `Study` stay grouped on the left while `Wall`, `Page`, and `Media` are aligned at the top-right; click `Wall`, `Page`, and `Media` and verify each route opens directly without losing access to the decks workspace.
+3. In the top decks header, verify `Decks`, `Browse`, `Stats`, and `Study` stay grouped on the left while `Wall` is aligned at the top-right; click `Wall` and verify it opens directly without losing access to the decks workspace.
 4. On `/decks/decks`, verify the lower-left sidebar footer shows linked `Settings` and `Help` actions, and that each opens `/settings` and `/help` respectively.
 5. On `/decks/decks`, verify the header no longer shows duplicate `Add Note`, `Study`, settings, or nonfunctional `Search cards` controls, and that the nav-bar `Study` tab still opens the deck study surface.
 6. On `/decks/decks`, click the hero-section `Add Note`, choose a deck and note type, and create one note using each built-in note type (Basic, reversed, optional reversed, cloze).
@@ -401,7 +250,7 @@ Expected:
 
 Expected:
 - Decks route is reachable from both landing and wall.
-- Decks header provides direct route access to Wall, Page, and Media, and no longer relies on an unlabeled icon for study navigation.
+- Decks header provides direct route access to Wall and no longer relies on an unlabeled icon for study navigation.
 - Add Note/Browse/Stats/Study/Import flows work end-to-end, with settings/help reachable from the sidebar footer and no duplicate or nonfunctional header shortcuts.
 - Duplicate deck notes are rejected for both manual creation and import.
 - Parent study optionally includes children and supports exclusions.
@@ -1321,7 +1170,7 @@ Expected:
 
 ## Wall Atelier Frontend (`/wall`) (2026-03-26)
 1. Open `/wall` on desktop and verify the atelier chrome loads: floating top navigation, centered bottom omnibar dock, right-side zoom rail, and lower-left sync footer.
-2. Verify the top navigation shows `Wall`, `Decks`, `Page`, `Timeline`, and `Media`, with `Wall` highlighted in the default wall view.
+2. Verify the top navigation shows `Wall`, `Decks`, and `Timeline`, with `Wall` highlighted in the default wall view.
 3. Click into the bottom dock and verify it is a real inline input that expands in place above the dock instead of opening a separate modal search palette.
 4. Type plain note text and verify the omnibar shows grouped `Suggestions`, `Actions`, and `Notes`, and that the visible wall notes filter in sync with the query.
 5. Enter query tokens such as `tag:<existing-tag>`, `type:quote`, `is:pinned`, and `tool:details`; verify matching chips appear, wall visibility respects the note filters, and the action group prioritizes matching panel/tool actions.

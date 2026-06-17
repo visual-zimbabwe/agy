@@ -66,9 +66,6 @@ export const HelpCenter = () => {
               <Link href="/decks" className="text-sm font-medium text-[#5f554d] no-underline transition hover:text-[#a33818]">
                 Decks
               </Link>
-              <Link href="/page" className="text-sm font-medium text-[#5f554d] no-underline transition hover:text-[#a33818]">
-                Page
-              </Link>
               <Link href="/settings" className="text-sm font-medium text-[#5f554d] no-underline transition hover:text-[#a33818]">
                 Settings
               </Link>
@@ -183,7 +180,6 @@ export const HelpCenter = () => {
             <div className="mt-4 grid gap-2">
               {[
                 { href: "/wall", label: "Wall workspace" },
-                { href: "/page", label: "Page editor" },
                 { href: "/decks", label: "Decks" },
                 { href: "/settings", label: "Settings" },
               ].map((item) => (
