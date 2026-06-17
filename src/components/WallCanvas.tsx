@@ -36,9 +36,15 @@ import { useWallCommandPalette } from "@/components/wall/useWallCommandPalette";
 import { useWallBookmarkOrchestration } from "@/components/wall/useWallBookmarkOrchestration";
 import { useWallClientPrefs } from "@/components/wall/useWallClientPrefs";
 import { useWallCloudSync } from "@/components/wall/useWallCloudSync";
+import { useWallImageInsert } from "@/components/wall/useWallImageInsert";
 import { useWallMediaNoteHandlers } from "@/components/wall/useWallMediaNoteHandlers";
 import { useWallNoteCreation } from "@/components/wall/useWallNoteCreation";
+import { useWallNoteTagActions } from "@/components/wall/useWallNoteTagActions";
+import { useWallPanelChrome } from "@/components/wall/useWallPanelChrome";
+import { useWallPresentationPaths } from "@/components/wall/useWallPresentationPaths";
 import { useWallPrivateNotes, type EditingState } from "@/components/wall/useWallPrivateNotes";
+import { useWallSmartMerge } from "@/components/wall/useWallSmartMerge";
+import { useWallVocabularySession, useWallSessionClock } from "@/components/wall/useWallVocabularySession";
 import { useWallExport } from "@/components/wall/useWallExport";
 import { useWallSelection } from "@/components/wall/useWallSelection";
 import { useWallSnapping } from "@/components/wall/useWallSnapping";
@@ -71,7 +77,6 @@ import {
 import {
   applyTemplate,
   assignZoneToGroup,
-  createImageNote,
   createLink,
   createNote,
   createZone,
@@ -85,7 +90,6 @@ import {
   duplicateNoteAt,
   moveNote,
   moveZone,
-  mergeNotes,
   setAllGroupsCollapsed,
   toggleGroupCollapse,
   updateNote,
@@ -93,8 +97,6 @@ import {
   updateZone,
 } from "@/features/wall/commands";
 import { deriveWallAssetRecords, mergeWallAssetRecords } from "@/features/wall/asset-records";
-import { createImageNoteState, toImageNotePatch, IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
-import { normalizeFileUrl } from "@/features/wall/file-notes";
 import { canProtectNote, isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import { NOTE_COLORS, NOTE_DEFAULTS } from "@/features/wall/constants";
 import { useWallStore } from "@/features/wall/store";
@@ -102,29 +104,13 @@ import type { TimelineEntry } from "@/features/wall/storage";
 import { loadTimelineEntries, saveWallCloudBaselineSnapshot, saveWallSyncVersion } from "@/features/wall/storage";
 import type { Note, PersistedWallState, WallAssetMap } from "@/features/wall/types";
 import { createViewportWallBounds } from "@/features/wall/windowing";
-import type { UnsplashPhoto } from "@/lib/unsplash";
 import { getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl } from "@/features/wall/video-notes";
 import { getNoteWikiTitle } from "@/features/wall/wiki-links";
-import { applyVocabularyReview, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
+import { isVocabularyNote } from "@/features/wall/vocabulary";
 import type { AppUserProfile } from "@/lib/profile";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
-import {
-  addPresentationStep,
-  clampPresentationIndex,
-  createPresentationPath,
-  makeDefaultPathTitle,
-} from "@/lib/presentation-paths";
-import type { SmartMergeSuggestion } from "@/lib/smart-merge";
+import { clampPresentationIndex } from "@/lib/presentation-paths";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
-import { getImageFileFromClipboard, readImageFileAsDataUrl } from "@/lib/wall-image-upload";
-import { trackUnsplashDownload } from "@/lib/unsplash-client";
-
-type ImageInsertState = {
-  open: boolean;
-  noteId?: string;
-  x?: number;
-  y?: number;
-};
 
 type LinkContextMenuState = {
   open: boolean;
@@ -194,7 +180,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
 
   const [viewport, setViewport] = useState({ w: 1200, h: 800 });
   const [editing, setEditing] = useState<EditingState | null>(null);
-  const [imageInsertState, setImageInsertState] = useState<ImageInsertState>({ open: false });
   const [isImageDragOver, setIsImageDragOver] = useState(false);
   const [isSpaceDown, setIsSpaceDown] = useState(false);
   const [isMiddleDragging, setIsMiddleDragging] = useState(false);
@@ -214,7 +199,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const [timelineIndex, setTimelineIndex] = useState(0);
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const [wallClockTs, setWallClockTs] = useState(() => Date.now());
   const [wallAssets, setWallAssets] = useState<WallAssetMap>({});
   const [recallQuery, setRecallQuery] = useState("");
   const [recallZoneId, setRecallZoneId] = useState("");
@@ -232,16 +216,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
   const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
-  const [preferredFileConversionMode, setPreferredFileConversionMode] = useState<"pdf_to_word" | "word_to_pdf" | null>(null);
-  const [presentationIndex, setPresentationIndex] = useState(0);
-  const [activePresentationPathId, setActivePresentationPathId] = useState("");
-  const [leftPanelOpen, setLeftPanelOpen] = useState(false);
-  const [rightPanelOpen, setRightPanelOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [inlinePlayingVideoNoteId, setInlinePlayingVideoNoteId] = useState<string | undefined>(undefined);
-  const previousSelectedNoteIdRef = useRef<string | undefined>(undefined);
-  const detailsPanelAutoOpenedRef = useRef(false);
   const handledDeepLinkNoteRef = useRef<string | null>(null);
   const wallInlineVideoRef = useRef<HTMLVideoElement | null>(null);
   const [publishedSnapshot] = useState<PersistedWallState | null>(() => {
@@ -380,15 +355,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     }
     return grouped;
   }, [links, renderSnapshot.notes]);
-  const vocabularyNotes = useMemo(() => notes.filter((note) => isVocabularyNote(note)), [notes]);
-  const vocabularyDueNotes = useMemo(
-    () =>
-      [...vocabularyNotes]
-        .filter((note) => isVocabularyDue(note, wallClockTs))
-        .sort((left, right) => left.vocabulary.nextReviewAt - right.vocabulary.nextReviewAt),
-    [vocabularyNotes, wallClockTs],
-  );
-  const vocabularyFocusNotes = useMemo(() => vocabularyNotes.filter((note) => note.vocabulary.isFocus), [vocabularyNotes]);
   const occupiedNoteRects = useMemo(() => notes.map((note) => ({ x: note.x, y: note.y, w: note.w, h: note.h })), [notes]);
   const placeNewNote = useCallback(
     (preferredCenter: { x: number; y: number }, size = { w: NOTE_DEFAULTS.width, h: NOTE_DEFAULTS.height }, extraOccupiedRects: Array<{ x: number; y: number; w: number; h: number }> = []) =>
@@ -404,20 +370,36 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
       }),
     [camera, occupiedNoteRects, viewport],
   );
-  const reviewedTodayCount = useMemo(() => {
-    const start = dayStartTs(wallClockTs);
-    return vocabularyNotes.filter((note) => (note.vocabulary.lastReviewedAt ?? 0) >= start).length;
-  }, [vocabularyNotes, wallClockTs]);
   const isTimeLocked = timelineMode || timelineViewActive || publishedReadOnly || presentationMode || readingMode;
   const isChromeHidden = presentationMode || readingMode;
   timelineModeRef.current = timelineMode;
-  const activePresentationPath = useMemo(
-    () => presentationPaths.find((path) => path.id === activePresentationPathId),
-    [activePresentationPathId, presentationPaths],
-  );
-  const activePresentationSteps = activePresentationPath?.steps ?? [];
-  const hasNarrativePresentation = activePresentationSteps.length > 0;
-  const presentationLengthForKeyboard = hasNarrativePresentation ? activePresentationSteps.length : notes.length;
+  const wallClockTs = useWallSessionClock();
+
+  const {
+    presentationIndex,
+    setPresentationIndex,
+    activePresentationPathId,
+    hasNarrativePresentation,
+    presentationLengthForKeyboard,
+    presentationModeType,
+    activePresentationSteps,
+    activePresentationStep,
+    narrativePathOptions,
+    createNarrativePath,
+    addNarrativeStep,
+    updateNarrativeTalkingPoints,
+    captureNarrativeStepCamera,
+    deleteNarrativeStep,
+    handleNarrativePathChange,
+  } = useWallPresentationPaths({
+    publishedReadOnly,
+    presentationPaths,
+    setPresentationPaths,
+    camera,
+    setCamera,
+    presentationMode,
+    notesCount: notes.length,
+  });
 
   const toggleTimelineView = useCallback(() => {
     setTimelineViewActive((previous) => !previous);
@@ -452,8 +434,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     setIsTimelinePlaying,
   });
 
-  const normalizeTag = (raw: string) => raw.trim().replace(/^#/, "").toLowerCase();
-
   const runHistoryGroup = useCallback(
     (run: () => void) => {
       beginHistoryGroup();
@@ -466,67 +446,14 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     [beginHistoryGroup, endHistoryGroup],
   );
 
-  const addTagToNote = (noteId: string, rawTag: string) => {
-    const note = renderSnapshot.notes[noteId];
-    if (!note || isTimeLocked) {
-      return;
-    }
-    const tag = normalizeTag(rawTag);
-    if (!tag || note.tags.includes(tag)) {
-      return;
-    }
-    updateNote(noteId, { tags: [...note.tags, tag] });
-  };
-
-  const removeTagFromNote = (noteId: string, tag: string) => {
-    const note = renderSnapshot.notes[noteId];
-    if (!note || isTimeLocked) {
-      return;
-    }
-    updateNote(noteId, { tags: note.tags.filter((value) => value !== tag) });
-  };
-
-  const renameTagOnNote = (noteId: string, from: string, rawTo: string) => {
-    const note = renderSnapshot.notes[noteId];
-    if (!note || isTimeLocked) {
-      return;
-    }
-    const to = normalizeTag(rawTo);
-    if (!to) {
-      return;
-    }
-    const next = note.tags.map((tag) => (tag === from ? to : tag));
-    updateNote(noteId, { tags: [...new Set(next)] });
-  };
+  const { addTagToNote, removeTagFromNote, renameTagOnNote } = useWallNoteTagActions({
+    isTimeLocked,
+    renderSnapshotNotes: renderSnapshot.notes,
+  });
 
   const handleEditorBlur = (event: FocusEvent<HTMLTextAreaElement>) => {
     handlePrivateEditorBlur(event, editing);
   };
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setWallClockTs(Date.now());
-    }, 30000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    setLeftPanelOpen(false);
-    setRightPanelOpen(false);
-  }, []);
-
-  useEffect(() => {
-    if (!activePresentationPathId) {
-      return;
-    }
-    if (!activePresentationPath) {
-      setActivePresentationPathId("");
-      setPresentationIndex(0);
-      return;
-    }
-    setPresentationIndex((previous) => clampPresentationIndex(previous, activePresentationSteps.length || 1));
-  }, [activePresentationPath, activePresentationPathId, activePresentationSteps.length]);
 
   const getViewportWindowBounds = useCallback(
     (targetCamera: { x: number; y: number; zoom: number }) => createViewportWallBounds(targetCamera, viewport, 320),
@@ -671,6 +598,41 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     return () => clearTimeout(timer);
   }, [commitEditedNoteText, editing]);
 
+  const markOpenIntentRef = useRef<(metric: "toolsPanelOpenMs" | "detailsPanelOpenMs" | "searchOpenMs" | "exportOpenMs" | "shortcutsOpenMs") => void>(() => {});
+
+  const {
+    leftPanelOpen,
+    setLeftPanelOpen,
+    rightPanelOpen,
+    setRightPanelOpen,
+    settingsOpen,
+    setSettingsOpen,
+    helpOpen,
+    setHelpOpen,
+    preferredFileConversionMode,
+    setPreferredFileConversionMode,
+    setSearchOpenTracked,
+    setExportOpenTracked,
+    setShortcutsOpenTracked,
+    openHelpCenter,
+    openFileConversion,
+    toggleLeftPanel,
+    openLeftPanel,
+    closeLeftPanel,
+    toggleRightPanel,
+    openRightPanel,
+    closeRightPanel,
+  } = useWallPanelChrome({
+    showDetailsPanel: layoutPrefs.showDetailsPanel,
+    selectedNoteId: ui.selectedNoteId,
+    isChromeHidden,
+    markOpenIntent: (metric) => markOpenIntentRef.current(metric),
+    setSearchOpen,
+    setExportOpen,
+    setShortcutsOpen,
+    setFileConversionOpen,
+  });
+
   const { markOpenIntent } = useWallTelemetry({
     leftPanelOpen,
     rightPanelOpen,
@@ -678,94 +640,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     isExportOpen: ui.isExportOpen,
     isShortcutsOpen: ui.isShortcutsOpen,
   });
-
-  const setSearchOpenTracked = useCallback(
-    (open: boolean) => {
-      if (open) {
-        markOpenIntent("searchOpenMs");
-      }
-      setSearchOpen(open);
-    },
-    [markOpenIntent, setSearchOpen],
-  );
-
-  const setExportOpenTracked = useCallback(
-    (open: boolean) => {
-      if (open) {
-        markOpenIntent("exportOpenMs");
-      }
-      setExportOpen(open);
-    },
-    [markOpenIntent, setExportOpen],
-  );
-
-  const setShortcutsOpenTracked = useCallback(
-    (open: boolean) => {
-      if (open) {
-        markOpenIntent("shortcutsOpenMs");
-      }
-      setShortcutsOpen(open);
-    },
-    [markOpenIntent, setShortcutsOpen],
-  );
-
-  const openHelpCenter = useCallback(() => {
-    setHelpOpen(true);
-  }, []);
-
-  const openFileConversion = useCallback((conversionMode?: "pdf_to_word" | "word_to_pdf") => {
-    if (conversionMode) {
-      setPreferredFileConversionMode(conversionMode);
-    }
-    setFileConversionOpen(true);
-  }, [setFileConversionOpen]);
-
-  const toggleLeftPanel = useCallback(() => {
-    if (!leftPanelOpen) {
-      markOpenIntent("toolsPanelOpenMs");
-    }
-    setLeftPanelOpen((previous) => !previous);
-  }, [leftPanelOpen, markOpenIntent]);
-
-  const openLeftPanel = useCallback(() => {
-    if (leftPanelOpen) {
-      return;
-    }
-    markOpenIntent("toolsPanelOpenMs");
-    setLeftPanelOpen(true);
-  }, [leftPanelOpen, markOpenIntent]);
-
-  const closeLeftPanel = useCallback(() => {
-    if (!leftPanelOpen) {
-      return;
-    }
-    setLeftPanelOpen(false);
-  }, [leftPanelOpen]);
-
-  const toggleRightPanel = useCallback(() => {
-    detailsPanelAutoOpenedRef.current = false;
-    if (!rightPanelOpen) {
-      markOpenIntent("detailsPanelOpenMs");
-    }
-    setRightPanelOpen((previous) => !previous);
-  }, [markOpenIntent, rightPanelOpen]);
-
-  const openRightPanel = useCallback(() => {
-    detailsPanelAutoOpenedRef.current = false;
-    if (rightPanelOpen) {
-      return;
-    }
-    markOpenIntent("detailsPanelOpenMs");
-    setRightPanelOpen(true);
-  }, [markOpenIntent, rightPanelOpen]);
-
-  const closeRightPanel = useCallback(() => {
-    detailsPanelAutoOpenedRef.current = false;
-    if (!rightPanelOpen) {
-      return;
-    }
-    setRightPanelOpen(false);
-  }, [rightPanelOpen]);
+  markOpenIntentRef.current = markOpenIntent;
 
   const tour = useWallProductTour({
     enabled: !publishedReadOnly && !readingMode && !timelineViewActive && !presentationMode,
@@ -776,39 +651,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     selectedNoteId: ui.selectedNoteId,
     openLeftPanel,
   });
-
-  useEffect(() => {
-    if (isChromeHidden || !layoutPrefs.showDetailsPanel) {
-      previousSelectedNoteIdRef.current = ui.selectedNoteId;
-      return;
-    }
-
-    const selectedNow = Boolean(ui.selectedNoteId);
-    const selectedBefore = Boolean(previousSelectedNoteIdRef.current);
-
-    if (selectedNow && !selectedBefore && !rightPanelOpen) {
-      markOpenIntent("detailsPanelOpenMs");
-      setRightPanelOpen(true);
-      detailsPanelAutoOpenedRef.current = true;
-    }
-
-    if (!selectedNow && selectedBefore && detailsPanelAutoOpenedRef.current && rightPanelOpen) {
-      setRightPanelOpen(false);
-      detailsPanelAutoOpenedRef.current = false;
-    }
-
-    if (!selectedNow) {
-      detailsPanelAutoOpenedRef.current = false;
-    }
-
-    previousSelectedNoteIdRef.current = ui.selectedNoteId;
-  }, [
-    isChromeHidden,
-    layoutPrefs.showDetailsPanel,
-    markOpenIntent,
-    rightPanelOpen,
-    ui.selectedNoteId,
-  ]);
 
   const { fetchBookmarkPreview, openBookmarkUrl } = useWallBookmarkOrchestration({
     isTimeLocked,
@@ -876,24 +718,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     setReviewRevealMeaning,
   });
 
-  const toggleVocabularyFlip = useCallback(
-    (noteId: string) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const note = renderSnapshot.notes[noteId];
-      if (!note?.vocabulary) {
-        return;
-      }
-      updateNote(noteId, {
-        vocabulary: {
-          ...note.vocabulary,
-          flipped: !note.vocabulary.flipped,
-        },
-      });
-    },
-    [isTimeLocked, renderSnapshot.notes],
-  );
+  const toggleVocabularyFlipRef = useRef<(noteId: string) => void>(() => {});
 
   useWallKeyboard({
     camera,
@@ -955,7 +780,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     undo,
     setLinkingFromNote,
     duplicateNote,
-    toggleVocabularyFlip,
+    toggleVocabularyFlip: (noteId) => toggleVocabularyFlipRef.current(noteId),
     deleteNote,
     deleteZone,
     deleteLink,
@@ -1105,17 +930,9 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const renderVisibleZones = useMemo(() => (focusedNote ? [] : visibleZones), [focusedNote, visibleZones]);
   const renderVisibleLinks = useMemo(() => (focusedNote ? [] : visibleLinks), [focusedNote, visibleLinks]);
   const renderPathLinkIds = useMemo(() => (focusedNote ? new Set<string>() : pathLinkIds), [focusedNote, pathLinkIds]);
-  const presentationModeType: "notes" | "narrative" = hasNarrativePresentation ? "narrative" : "notes";
   const presentationLength = presentationModeType === "narrative" ? activePresentationSteps.length : presentationNotes.length;
-  const activePresentationStep =
-    presentationModeType === "narrative"
-      ? activePresentationSteps[clampPresentationIndex(presentationIndex, activePresentationSteps.length)]
-      : undefined;
   const maxViewportWidth = typeof window !== "undefined" ? window.innerWidth : viewport.w;
   const maxViewportHeight = typeof window !== "undefined" ? window.innerHeight : viewport.h;
-  const imageInsertTargetLabel = imageInsertState.noteId
-    ? renderSnapshot.notes[imageInsertState.noteId]?.text.trim() || "the selected note"
-    : "a new image note";
   const {
     activeSelectedNoteIds,
     activeSelectedNoteIdSet,
@@ -1171,154 +988,34 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     setGuideLines,
   });
 
-  const openImageInsert = useCallback((noteId?: string, point?: { x: number; y: number }) => {
-    if (noteId) {
-      syncPrimarySelection([noteId]);
-      selectNote(noteId);
-    }
-    setImageInsertState({ open: true, noteId, x: point?.x, y: point?.y });
-  }, [selectNote, syncPrimarySelection]);
-
-  const closeImageInsert = useCallback(() => {
-    setImageInsertState({ open: false });
-  }, []);
-
-  const findNoteAtWorldPoint = useCallback((x: number, y: number) => {
-    const ordered = [...renderVisibleNotes].reverse();
-    return ordered.find((note) => x >= note.x && x <= note.x + note.w && y >= note.y && y <= note.y + note.h);
-  }, [renderVisibleNotes]);
-
-  const insertImageSource = useCallback((source: string, target?: { noteId?: string; x?: number; y?: number }) => {
-    const sourceMode = normalizeFileUrl(source) ? "link" : "upload";
-    if (target?.noteId && renderSnapshot.notes[target.noteId]) {
-      const existing = renderSnapshot.notes[target.noteId];
-      if (!existing) {
-        return undefined;
-      }
-      updateNote(
-        target.noteId,
-        toImageNotePatch(createImageNoteState({ ...(existing.file ?? {}), source: sourceMode, url: source }), {
-          caption: existing.text ?? "",
-          preserveSize: true,
-        }),
-      );
-      syncPrimarySelection([target.noteId]);
-      selectNote(target.noteId);
-      return target.noteId;
-    }
-
-    const fallbackPoint = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const worldX = target?.x ?? fallbackPoint.x;
-    const worldY = target?.y ?? fallbackPoint.y;
-    const position = placeNewNote({ x: worldX, y: worldY }, { w: IMAGE_NOTE_DEFAULTS.width, h: IMAGE_NOTE_DEFAULTS.height });
-    const noteId = createImageNote(position.x, position.y, { source: sourceMode, url: source });
-    syncPrimarySelection([noteId]);
-    selectNote(noteId);
-    return noteId;
-  }, [camera, placeNewNote, renderSnapshot.notes, selectNote, syncPrimarySelection, viewport.h, viewport.w]);
-
-  const handleImageFileInsert = useCallback(async (file: File, target?: { noteId?: string; x?: number; y?: number }) => {
-    const dataUrl = await readImageFileAsDataUrl(file);
-    insertImageSource(dataUrl, target);
-  }, [insertImageSource]);
-
-  const handleImageUrlInsert = useCallback(async (url: string, target?: { noteId?: string; x?: number; y?: number }) => {
-    try {
-      new URL(url);
-    } catch {
-      throw new Error("Please paste a valid image URL.");
-    }
-    insertImageSource(url, target);
-  }, [insertImageSource]);
-
-  const handleUnsplashPhotoInsert = useCallback(async (photo: UnsplashPhoto, target?: { noteId?: string; x?: number; y?: number }) => {
-    await trackUnsplashDownload(photo.links.downloadLocation);
-    insertImageSource(photo.urls.regular, target);
-  }, [insertImageSource]);
-
-  const handleUnsplashMoodboardInsert = useCallback(async (photos: UnsplashPhoto[], target?: { noteId?: string; x?: number; y?: number }) => {
-    if (photos.length < 3 || photos.length > 10) {
-      throw new Error("Pick 3-10 images for a moodboard.");
-    }
-
-    const anchor = (() => {
-      if (target?.noteId) {
-        const note = renderSnapshot.notes[target.noteId];
-        if (note) {
-          return { x: note.x + note.w / 2, y: note.y + note.h / 2 };
-        }
-      }
-      if (typeof target?.x === "number" && typeof target?.y === "number") {
-        return { x: target.x, y: target.y };
-      }
-      return toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    })();
-
-    const columns = photos.length <= 4 ? 2 : photos.length <= 6 ? 3 : 4;
-    const gap = 28;
-    const createdIds: string[] = [];
-    const occupiedRects = [...occupiedNoteRects];
-    runHistoryGroup(() => {
-      photos.forEach((photo, index) => {
-        const aspectRatio = Math.max(0.65, Math.min(1.5, photo.height / Math.max(photo.width, 1)));
-        const width = columns >= 4 ? 180 : 220;
-        const height = Math.round(width * aspectRatio);
-        const row = Math.floor(index / columns);
-        const column = index % columns;
-        const rows = Math.ceil(photos.length / columns);
-        const offsetX = (column - (columns - 1) / 2) * (width + gap) + (row % 2 === 0 ? 0 : 18);
-        const offsetY = (row - (rows - 1) / 2) * (220 + gap) + (column % 2 === 0 ? 0 : 16);
-        const finalHeight = Math.max(150, Math.min(320, height));
-        const position = placeNewNote({ x: anchor.x + offsetX, y: anchor.y + offsetY }, { w: width, h: finalHeight }, occupiedRects);
-        const noteId = createImageNote(position.x, position.y, { source: "link", url: photo.urls.regular });
-        updateNote(noteId, { w: width, h: finalHeight });
-        occupiedRects.push({ x: position.x, y: position.y, w: width, h: finalHeight });
-        createdIds.push(noteId);
-      });
-    });
-
-    await Promise.all(photos.map((photo) => trackUnsplashDownload(photo.links.downloadLocation)));
-    if (createdIds.length > 0) {
-      syncPrimarySelection(createdIds);
-      selectNote(createdIds[0]);
-    }
-  }, [camera, occupiedNoteRects, placeNewNote, renderSnapshot.notes, runHistoryGroup, selectNote, syncPrimarySelection, viewport.h, viewport.w]);
-
-  useEffect(() => {
-    if (isTimeLocked) {
-      setImageInsertState({ open: false });
-    }
-  }, [isTimeLocked]);
-
-  useEffect(() => {
-    const onPaste = (event: ClipboardEvent) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const file = getImageFileFromClipboard(event.clipboardData);
-      if (!file) {
-        return;
-      }
-      event.preventDefault();
-      const targetNoteId = ui.selectedNoteId ?? activeSelectedNoteIds[0];
-      const fallbackPoint = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-      void handleImageFileInsert(file, targetNoteId ? { noteId: targetNoteId } : fallbackPoint);
-    };
-
-    window.addEventListener("paste", onPaste);
-    return () => window.removeEventListener("paste", onPaste);
-  }, [activeSelectedNoteIds, camera, handleImageFileInsert, isTimeLocked, ui.selectedNoteId, viewport.h, viewport.w]);
+  const {
+    imageInsertState,
+    imageInsertTargetLabel,
+    openImageInsert,
+    closeImageInsert,
+    findNoteAtWorldPoint,
+    handleImageFileInsert,
+    handleImageUrlInsert,
+    handleUnsplashPhotoInsert,
+    handleUnsplashMoodboardInsert,
+  } = useWallImageInsert({
+    isTimeLocked,
+    camera,
+    viewport,
+    renderSnapshotNotes: renderSnapshot.notes,
+    renderVisibleNotes,
+    occupiedNoteRects,
+    placeNewNote,
+    runHistoryGroup,
+    selectNote,
+    syncPrimarySelection,
+    selectedNoteId: ui.selectedNoteId,
+    activeSelectedNoteIds,
+  });
 
   useEffect(() => {
     setPresentationIndex((previous) => clampPresentationIndex(previous, presentationLength || 1));
-  }, [presentationLength]);
-
-  useEffect(() => {
-    if (!presentationMode || !activePresentationStep) {
-      return;
-    }
-    setCamera(activePresentationStep.camera);
-  }, [activePresentationStep, presentationMode, setCamera]);
+  }, [presentationLength, setPresentationIndex]);
 
   const selectSingleNote = (noteId: string) => {
     syncPrimarySelection([noteId]);
@@ -1447,172 +1144,15 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     },
     [focusNote],
   );
-  const narrativePathOptions = useMemo(
-    () =>
-      presentationPaths.map((path) => ({
-        id: path.id,
-        title: path.title,
-        stepsCount: path.steps.length,
-      })),
-    [presentationPaths],
-  );
 
-  const createNarrativePath = useCallback(() => {
-    if (publishedReadOnly) {
-      return;
-    }
-    const defaultTitle = makeDefaultPathTitle(presentationPaths);
-    const provided = window.prompt("Name this narrative path", defaultTitle);
-    if (provided === null) {
-      return;
-    }
-    const path = createPresentationPath(provided.trim() || defaultTitle);
-    setPresentationPaths((previous) => [path, ...previous]);
-    setActivePresentationPathId(path.id);
-    setPresentationIndex(0);
-  }, [presentationPaths, publishedReadOnly, setPresentationPaths]);
-
-  const addNarrativeStep = useCallback(() => {
-    if (publishedReadOnly) {
-      return;
-    }
-    const now = Date.now();
-    let targetPathId = activePresentationPathId;
-    if (!targetPathId) {
-      const created = createPresentationPath(makeDefaultPathTitle(presentationPaths), now);
-      setPresentationPaths((previous) => [created, ...previous]);
-      targetPathId = created.id;
-      setActivePresentationPathId(created.id);
-    }
-
-    setPresentationPaths((previous) =>
-      previous.map((path) => (path.id === targetPathId ? addPresentationStep(path, camera, now) : path)),
-    );
-
-    const nextLength = activePresentationPath?.steps.length ?? 0;
-    setPresentationIndex(nextLength);
-  }, [activePresentationPath, activePresentationPathId, camera, presentationPaths, publishedReadOnly, setPresentationPaths]);
-
-  const updateNarrativeTalkingPoints = useCallback(
-    (value: string) => {
-      if (!activePresentationPathId || !activePresentationStep || publishedReadOnly) {
-        return;
-      }
-      setPresentationPaths((previous) =>
-        previous.map((path) => {
-          if (path.id !== activePresentationPathId) {
-            return path;
-          }
-          return {
-            ...path,
-            updatedAt: Date.now(),
-            steps: path.steps.map((step) => (step.id === activePresentationStep.id ? { ...step, talkingPoints: value } : step)),
-          };
-        }),
-      );
-    },
-    [activePresentationPathId, activePresentationStep, publishedReadOnly, setPresentationPaths],
-  );
-
-  const captureNarrativeStepCamera = useCallback(() => {
-    if (!activePresentationPathId || !activePresentationStep || publishedReadOnly) {
-      return;
-    }
-    setPresentationPaths((previous) =>
-      previous.map((path) => {
-        if (path.id !== activePresentationPathId) {
-          return path;
-        }
-        return {
-          ...path,
-          updatedAt: Date.now(),
-          steps: path.steps.map((step) => (step.id === activePresentationStep.id ? { ...step, camera: { ...camera } } : step)),
-        };
-      }),
-    );
-  }, [activePresentationPathId, activePresentationStep, camera, publishedReadOnly, setPresentationPaths]);
-
-  const deleteNarrativeStep = useCallback(() => {
-    if (!activePresentationPathId || !activePresentationStep || publishedReadOnly) {
-      return;
-    }
-    setPresentationPaths((previous) =>
-      previous
-        .map((path) => {
-          if (path.id !== activePresentationPathId) {
-            return path;
-          }
-          return {
-            ...path,
-            updatedAt: Date.now(),
-            steps: path.steps.filter((step) => step.id !== activePresentationStep.id),
-          };
-        })
-        .filter((path) => path.steps.length > 0 || path.id !== activePresentationPathId),
-    );
-    setPresentationIndex((previous) => Math.max(0, previous - 1));
-  }, [activePresentationPathId, activePresentationStep, publishedReadOnly, setPresentationPaths]);
-
-  const handleNarrativePathChange = useCallback((pathId: string) => {
-    setActivePresentationPathId(pathId);
-    setPresentationIndex(0);
-  }, []);
-
-  const smartMergeItems = useMemo(
-    () =>
-      smartMergeSuggestions
-        .map((suggestion) => {
-          const keepNote = renderSnapshot.notes[suggestion.keepNoteId];
-          const mergeNote = renderSnapshot.notes[suggestion.mergeNoteId];
-          if (!keepNote || !mergeNote) {
-            return null;
-          }
-          return {
-            ...suggestion,
-            keepNoteText: keepNote.text,
-            mergeNoteText: mergeNote.text,
-          };
-        })
-        .filter((item): item is SmartMergeSuggestion & { keepNoteText: string; mergeNoteText: string } => Boolean(item)),
-    [renderSnapshot.notes, smartMergeSuggestions],
-  );
-
-  const previewSmartMerge = useCallback(
-    (suggestion: SmartMergeSuggestion) => {
-      const keepNote = renderSnapshot.notes[suggestion.keepNoteId];
-      const mergeNote = renderSnapshot.notes[suggestion.mergeNoteId];
-      if (!keepNote || !mergeNote) {
-        return;
-      }
-      syncPrimarySelection([keepNote.id, mergeNote.id]);
-      selectNote(keepNote.id);
-      const bounds = computeContentBounds([keepNote, mergeNote], []);
-      if (bounds) {
-        focusBounds(bounds);
-      }
-    },
-    [focusBounds, renderSnapshot.notes, selectNote, syncPrimarySelection],
-  );
-
-  const applySmartMerge = useCallback(
-    (suggestion: SmartMergeSuggestion) => {
-      if (isTimeLocked) {
-        return;
-      }
-      const keepNote = renderSnapshot.notes[suggestion.keepNoteId];
-      const mergeNote = renderSnapshot.notes[suggestion.mergeNoteId];
-      if (!keepNote || !mergeNote) {
-        return;
-      }
-      const ok = window.confirm("Merge these notes? The second note will be removed.");
-      if (!ok) {
-        return;
-      }
-      mergeNotes(suggestion.keepNoteId, suggestion.mergeNoteId);
-      syncPrimarySelection([suggestion.keepNoteId]);
-    },
-    [isTimeLocked, renderSnapshot.notes, syncPrimarySelection],
-  );
+  const { smartMergeItems, previewSmartMerge, applySmartMerge } = useWallSmartMerge({
+    isTimeLocked,
+    renderSnapshotNotes: renderSnapshot.notes,
+    smartMergeSuggestions,
+    syncPrimarySelection,
+    selectNote,
+    focusBounds,
+  });
 
   const { toggleDetailsSection, togglePresentationMode, toggleReadingMode, toggleTimelineMode, saveCurrentRecallSearch, applySavedRecallSearch } = useWallUiActions({
     readingMode, presentationMode, timelineEntriesLength: timelineEntries.length, timelineModeRef, setPresentationMode, setPresentationIndex, setReadingMode,
@@ -1732,53 +1272,23 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const selectedPrivateNoteSupported = Boolean(primarySelectedNote && (isPrivateNote(primarySelectedNote) || canProtectNote(primarySelectedNote)));
   const isSelectedPrivateUnlocked = Boolean(selectedPrivateNote && privateSessions[selectedPrivateNote.id]);
 
-  useEffect(() => {
-    setReviewRevealMeaning(false);
-  }, [selectedVocabularyNote?.id]);
-
-  const focusNextDueWord = useCallback(() => {
-    const nextDue = vocabularyDueNotes[0];
-    if (!nextDue) {
-      return;
-    }
-    setReviewRevealMeaning(false);
-    focusNote(nextDue.id);
-  }, [focusNote, vocabularyDueNotes]);
-
-  const updateVocabularyField = useCallback(
-    (field: "word" | "sourceContext" | "guessMeaning" | "meaning" | "ownSentence", value: string) => {
-      if (isTimeLocked || !selectedVocabularyNote?.vocabulary) {
-        return;
-      }
-      const nextVocabulary = {
-        ...selectedVocabularyNote.vocabulary,
-        [field]: value,
-      };
-      updateNote(selectedVocabularyNote.id, {
-        text: field === "word" ? value : selectedVocabularyNote.text,
-        vocabulary: nextVocabulary,
-      });
-    },
-    [isTimeLocked, selectedVocabularyNote],
-  );
-
-  const reviewSelectedWord = useCallback(
-    (outcome: "again" | "hard" | "good" | "easy") => {
-      if (isTimeLocked || !selectedVocabularyNote?.vocabulary) {
-        return;
-      }
-      const ownSentence = selectedVocabularyNote.vocabulary.ownSentence.trim();
-      if ((outcome === "good" || outcome === "easy") && !ownSentence) {
-        return;
-      }
-      const nextVocabulary = applyVocabularyReview(selectedVocabularyNote.vocabulary, outcome);
-      updateNote(selectedVocabularyNote.id, {
-        vocabulary: nextVocabulary,
-      });
-      setReviewRevealMeaning(false);
-    },
-    [isTimeLocked, selectedVocabularyNote],
-  );
+  const {
+    vocabularyDueNotes,
+    vocabularyFocusNotes,
+    reviewedTodayCount,
+    toggleVocabularyFlip,
+    focusNextDueWord,
+    updateVocabularyField,
+    reviewSelectedWord,
+  } = useWallVocabularySession({
+    isTimeLocked,
+    notes,
+    wallClockTs,
+    selectedVocabularyNote,
+    focusNote,
+    setReviewRevealMeaning,
+  });
+  toggleVocabularyFlipRef.current = toggleVocabularyFlip;
 
   const commandPaletteCommands = useWallCommandPalette({
     isTimeLocked,
