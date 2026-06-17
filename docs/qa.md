@@ -977,13 +977,16 @@ Expected:
 15. Choose a non-current day from **Jump to day** and verify the stream scrolls to that day section without manual scrolling.
 16. Click **Prev** and **Next** (or press `[` / `]`) and verify selection moves through the filtered list while keeping the card in view.
 17. Toggle **Updated** sorting and verify day grouping and entry order follow note update times instead of created times.
-18. Press `Escape` or click `Close` and verify the app exits Timeline.
-19. Resize to a mobile-sized viewport, tap a note to select it, tap **Reveal on Wall**, and verify the wall focuses that note without relying on double-click.
+18. Add or locate a PDF/file note and a web bookmark; verify Timeline shows a readable primary label (title or first line when present, otherwise filename once) with a compact kind/size or site/domain subtitle.
+19. Verify file and bookmark cards stay within the stream column at default desktop width without introducing a horizontal scrollbar.
+20. Press `Escape` or click `Close` and verify the app exits Timeline.
+21. Resize to a mobile-sized viewport, tap a note to select it, tap **Reveal on Wall**, and verify the wall focuses that note without relying on double-click.
 
 Expected:
 - Timeline provides a read-only vertical chronological review surface rather than an inline editor or details browser.
 - Timeline notes preserve the same note-type identity and visual treatment used on `/wall`.
-- Timeline notes preserve the same wall note dimensions rather than shrinking into a smaller fitted timeline card.
+- Narrative note kinds such as journal, quote, and image preserve the same wall note dimensions rather than shrinking into a smaller fitted timeline card.
+- File and bookmark entries use compact stream sizing and readable label/subtitle copy instead of oversized attachment shells.
 - The centered date rail, day chips, and timestamp labels remain fully visible on desktop and mobile-sized viewports.
 - Notes can be selected and revealed back on the wall, but cannot be edited from timeline view.
 - Timeline search, day jump, and prev/next navigation respect the active filter and sort mode.

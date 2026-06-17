@@ -4,6 +4,8 @@ import {
   buildTimelineStreamGroups,
   filterTimelineStreamNotes,
   formatTimelineStreamDayLabel,
+  getTimelineNoteLabel,
+  getTimelineNoteSubtitle,
   getTimelineStreamDayOptions,
   getTimelineStreamSearchHaystack,
   matchesTimelineStreamSearch,
@@ -209,5 +211,83 @@ describe("resolveTimelineStreamSelection", () => {
 
   it("returns undefined when nothing visible is selected", () => {
     expect(resolveTimelineStreamSelection(entryIds, "missing", undefined)).toBeUndefined();
+  });
+});
+
+describe("getTimelineNoteLabel", () => {
+  it("prefers a user-written first line over the attachment filename", () => {
+    const note = makeNote({
+      id: "file-note",
+      noteKind: "file",
+      text: "Quarterly review\nattached below",
+      file: { source: "upload", name: "quarterly-report.pdf", url: "https://example.com/report.pdf", mimeType: "application/pdf", sizeBytes: 2_048_000 },
+    });
+
+    expect(getTimelineNoteLabel(note)).toBe("Quarterly review");
+  });
+
+  it("falls back to the filename when no narrative title exists", () => {
+    const note = makeNote({
+      id: "file-note",
+      noteKind: "file",
+      text: "",
+      file: { source: "upload", name: "quarterly-report.pdf", url: "https://example.com/report.pdf" },
+    });
+
+    expect(getTimelineNoteLabel(note)).toBe("quarterly-report.pdf");
+  });
+
+  it("uses bookmark metadata titles before the raw URL", () => {
+    const note = makeNote({
+      id: "bookmark",
+      noteKind: "web-bookmark",
+      text: "",
+      bookmark: {
+        url: "https://example.com",
+        normalizedUrl: "https://example.com",
+        status: "ready",
+        metadata: {
+          url: "https://example.com",
+          finalUrl: "https://example.com",
+          title: "Example Article",
+          description: "",
+          siteName: "Example",
+          domain: "example.com",
+          kind: "article",
+        },
+      },
+    });
+
+    expect(getTimelineNoteLabel(note)).toBe("Example Article");
+  });
+});
+
+describe("getTimelineNoteSubtitle", () => {
+  it("shows compact file metadata for attachment notes", () => {
+    const note = makeNote({
+      id: "file-note",
+      noteKind: "file",
+      text: "Quarterly review",
+      file: {
+        source: "upload",
+        name: "quarterly-report.pdf",
+        url: "https://example.com/report.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 2_048_000,
+      },
+    });
+
+    expect(getTimelineNoteSubtitle(note)).toMatch(/PDF/i);
+    expect(getTimelineNoteSubtitle(note)).toMatch(/MB|KB/i);
+  });
+
+  it("shows a truncated second line or tag summary for text notes", () => {
+    const note = makeNote({
+      id: "text-note",
+      text: "Dear Wall\nThis is the second line of the journal entry.",
+      tags: ["journal"],
+    });
+
+    expect(getTimelineNoteSubtitle(note)).toBe("This is the second line of the journal entry.");
   });
 });
