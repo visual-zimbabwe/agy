@@ -34,7 +34,7 @@ As of the review that produced this plan:
 
 | Area | Location | Approx. size | Notes |
 |------|----------|--------------|-------|
-| Wall orchestrator | `src/components/WallCanvas.tsx` | ~4,100 lines | Top-level `eslint-disable complexity, max-lines`; ~34 `useState` |
+| Wall orchestrator | `src/components/WallCanvas.tsx` | ~3,550 lines | Top-level `eslint-disable complexity, max-lines`; JSX delegated to `spatial/` + `chrome/`; orchestration partially in `useWall*` hooks |
 | Konva note rendering | `src/components/wall/WallNotesLayer.tsx` | ~1,850 lines | All note types, interaction, and asset loading in one module |
 | Keyboard behavior | `src/components/wall/useWallKeyboard.ts` | ~535 lines | Large option surface; hook-shaped but monolithic |
 | Floating editors / docks | `src/components/wall/WallFloatingUi.tsx` | ~650 lines | ~85 props |
@@ -225,18 +225,20 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 **Goal:** `WallCanvas` becomes a thin shell (~800–1,200 lines).
 
-**Status:** In progress (2026-06-17) — Task 5 (helper relocation) shipped. `wall-canvas-helpers.ts` junk-drawer split into `wall-coordinates.ts`, `wall-links-geometry.ts`, `wall-download.ts`, and `wall-storage-keys.ts`; the remaining file now holds only cohesive note-text/presentation helpers. All call sites repointed; `npm run lint` and `npm run build` green. The headline extractions (Tasks 1–3: `WallSpatialView`, `WallChromeShell`, orchestration controllers) and the ≤1,200-line target remain outstanding.
+**Status:** In progress (2026-06-17) — Tasks 1–2 shipped structurally (`WallSpatialView`, `WallChromeShell`). Task 3 partial: `useWallSpatialBindings`, `useWallCommandPalette`, and `useWallCloudSync` extracted from `WallCanvas`. `WallCanvas` ~3,550 lines (down from ~4,330); `eslint-disable` and ≤1,200-line target remain outstanding.
 
 #### Tasks
 
-1. Extract **`WallSpatialView`** — owns Konva layer stack:
+1. Extract **`WallSpatialView`** — owns Konva layer stack: **(shipped 2026-06-17)**
    - `WallStage`, `WallDotMatrixLayer`, `WallNotesLayer`, `WallLinksZonesLayer`, `WallOverlaysLayer`
-2. Extract **`WallChromeShell`** — header, toolbar, tools panel, search dock, footer, timeline toggle
-3. Move remaining orchestration into focused controllers/hooks under `features/wall` or `wall/session/`:
-   - Sync scheduling → align with `useWallPersistenceEffects` / sync module
-   - Presentation/narrative → dedicated hook already partially in `useWallTimeline` / presentation helpers
-   - Recall/vocabulary UI state → details/session module
-   - Bookmark fetch/cache orchestration → feature module or `useWallUiActions` extension
+   - Canvas container (drag/drop, loading, focus/reading badges, inline video, `WallFloatingUi`)
+2. Extract **`WallChromeShell`** — header, toolbar, tools panel, search dock, footer, timeline toggle: **(shipped 2026-06-17)**
+   - `WallChromeHeader` + `WallInCanvasChrome` in `src/components/wall/chrome/WallChromeShell.tsx`
+3. Move remaining orchestration into focused controllers/hooks under `features/wall` or `wall/session/`: **(partial 2026-06-17)**
+   - `useWallSpatialBindings` — spatial + chrome prop assembly
+   - `useWallCommandPalette` — omnibar commands
+   - `useWallCloudSync` — sync scheduling / delta push / rebase
+   - Remaining: note-creation handlers, bookmark orchestration, client prefs bootstrap, private-note session
 4. Remove `eslint-disable complexity, max-lines` from `WallCanvas` when thresholds are met
 5. Relocate `wall-canvas-helpers.ts` junk-drawer contents: **(done 2026-06-17)**
    - `wall-coordinates.ts` — toWorld/toScreen, fit bounds, open-note placement, zone containment

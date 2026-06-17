@@ -2,28 +2,16 @@
 /* eslint-disable complexity, max-lines */
 
 import { type FocusEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Layer, Rect } from "react-konva";
 import type Konva from "konva";
 
-import type { CommandPaletteCommand } from "@/components/SearchPalette";
+
 import type { DetailsSectionState, RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import { useWallActions } from "@/components/wall/useWallActions";
-import { WallDetailsSidebar } from "@/components/wall/WallDetailsSidebar";
+import { WallInCanvasChrome, WallChromeHeader } from "@/components/wall/chrome/WallChromeShell";
+import { WallSpatialView } from "@/components/wall/spatial/WallSpatialView";
 import { PrivateNoteModal } from "@/components/wall/PrivateNoteModal";
-import { WallFloatingUi } from "@/components/wall/WallFloatingUi";
 import { WallGlobalModals } from "@/components/wall/WallGlobalModals";
-import { WallHeaderBar } from "@/components/wall/WallHeaderBar";
-import { WallProductTour } from "@/components/wall/WallProductTour";
-import { WallSearchDock } from "@/components/wall/WallSearchDock";
-import { WallStatusFooter } from "@/components/wall/WallStatusFooter";
-import { WallTimelineView } from "@/components/wall/WallTimelineView";
 import {
-  getNoteTextStyle,
-  getNoteTextFontFamily,
-  noteTagChipPalette,
-  recencyIntensity,
-  tagGroupColor,
-  truncateNoteText,
   waitForPaint,
 } from "@/components/wall/wall-canvas-helpers";
 import {
@@ -33,11 +21,6 @@ import {
   toWorldPoint,
   zoneContainsNote,
 } from "@/components/wall/wall-coordinates";
-import {
-  linkColorByType,
-  linkPoints,
-  linkStrokeByType,
-} from "@/components/wall/wall-links-geometry";
 import {
   downloadDataUrl,
   downloadJsonFile,
@@ -58,15 +41,12 @@ import {
   recallStorageKey,
   spatialPrefsStorageKey,
 } from "@/components/wall/wall-storage-keys";
-import { WallLinksZonesLayer } from "@/components/wall/WallLinksZonesLayer";
-import { WallDotMatrixLayer } from "@/components/wall/WallDotMatrixLayer";
-import { WallNotesLayer } from "@/components/wall/WallNotesLayer";
-import { WallOverlaysLayer } from "@/components/wall/WallOverlaysLayer";
 import { useWallCameraNavigation } from "@/components/wall/useWallCameraNavigation";
+import { useWallCommandPalette } from "@/components/wall/useWallCommandPalette";
+import { useWallCloudSync } from "@/components/wall/useWallCloudSync";
 import { useWallExport } from "@/components/wall/useWallExport";
 import { useWallSelection } from "@/components/wall/useWallSelection";
 import { useWallSnapping } from "@/components/wall/useWallSnapping";
-import { WallStage } from "@/components/wall/WallStage";
 import { useWallDerivedData } from "@/components/wall/useWallDerivedData";
 import { useWallViewportWindow } from "@/components/wall/useWallViewportWindow";
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
@@ -78,12 +58,12 @@ import { useWallTelemetry } from "@/components/wall/useWallTelemetry";
 import { useWallTimeline } from "@/components/wall/useWallTimeline";
 import { useWallUiActions } from "@/components/wall/useWallUiActions";
 import { useWallViewState } from "@/components/wall/useWallViewState";
-import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
 import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
 import { useWallZoomControls } from "@/components/wall/useWallZoomControls";
 import { useWallProductTour } from "@/components/wall/useWallProductTour";
 import { WallSessionProvider } from "@/components/wall/session/WallSessionProvider";
 import { useWallSessionBindings } from "@/components/wall/session/useWallSessionBindings";
+import { useWallSpatialBindings } from "@/components/wall/session/useWallSpatialBindings";
 import {
   toolbarBtn,
   toolbarBtnActive,
@@ -132,18 +112,15 @@ import { createFileNoteState, getFileNoteTitle, normalizeFileUrl, toFileNotePatc
 import { createImageNoteState, getImageNoteFilename, toImageNotePatch, IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
 import { cacheVideoPoster, createVideoNoteState, getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
-import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
-import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
+import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, NOTE_COLORS, NOTE_DEFAULTS } from "@/features/wall/constants";
+import { useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import { loadTimelineEntries, saveWallCloudBaselineSnapshot, saveWallSyncVersion } from "@/features/wall/storage";
-import { loadWallBootstrap, loadWallDelta, pushWallDelta } from "@/features/wall/cloud-delta";
-import { applyWallDeltaChanges, buildWallDeltaSyncRequest, hasWallDeltaChanges, rebaseLocalWallSnapshot, stageWallSyncRequest, takeNextQueuedWallSync, type WallSyncRequest } from "@/features/wall/sync";
 import type { Note, PersistedWallState, WallAssetMap, WebBookmarkMetadata } from "@/features/wall/types";
 import { createViewportWallBounds } from "@/features/wall/windowing";
 import type { UnsplashPhoto } from "@/lib/unsplash";
 import { extractWikiLinks, findNoteByWikiTitle, getNoteWikiTitle, normalizeWikiTitle } from "@/features/wall/wiki-links";
 import { applyVocabularyReview, createVocabularyNote, dayStartTs, isVocabularyDue, isVocabularyNote } from "@/features/wall/vocabulary";
-import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-auth";
 import type { AppUserProfile } from "@/lib/profile";
 import { decodeSnapshotFromUrl, readSnapshotParamFromLocation } from "@/lib/publish";
 import {
@@ -163,7 +140,7 @@ import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
-import { getImageFileFromClipboard, getImageFilesFromDataTransfer, readImageFileAsDataUrl } from "@/lib/wall-image-upload";
+import { getImageFileFromClipboard, readImageFileAsDataUrl } from "@/lib/wall-image-upload";
 import { trackUnsplashDownload } from "@/lib/unsplash-client";
 
 type EditingState = {
@@ -320,21 +297,7 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [wallClockTs, setWallClockTs] = useState(() => Date.now());
-  const [cloudWallId, setCloudWallId] = useState<string | null>(null);
   const [wallAssets, setWallAssets] = useState<WallAssetMap>({});
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [localSaveState, setLocalSaveState] = useState<"idle" | "saving" | "error">("idle");
-  const [hasPendingSync, setHasPendingSync] = useState(false);
-  const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cloudSyncInFlightRef = useRef(false);
-  const cloudReadyRef = useRef(false);
-  const queuedCloudSyncRef = useRef<WallSyncRequest | null>(null);
-  const cloudWallUpdatedAtRef = useRef<string | null>(null);
-  const acknowledgedCloudSnapshotRef = useRef<PersistedWallState | null>(null);
-  const cloudSyncVersionRef = useRef(0);
-  const lastCloudSyncedAtRef = useRef<number>(0);
   const [recallQuery, setRecallQuery] = useState("");
   const [recallZoneId, setRecallZoneId] = useState("");
   const [recallTag, setRecallTag] = useState("");
@@ -383,6 +346,27 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     return decodeSnapshotFromUrl(encoded);
   });
   const publishedReadOnly = Boolean(publishedSnapshot);
+  const {
+    cloudWallId,
+    setCloudWallId,
+    syncError,
+    setSyncError,
+    lastSyncedAt,
+    isSyncing,
+    localSaveState,
+    hasPendingSync,
+    cloudSyncTimerRef,
+    cloudSyncInFlightRef,
+    cloudReadyRef,
+    queuedCloudSyncRef,
+    cloudWallUpdatedAtRef,
+    acknowledgedCloudSnapshotRef,
+    cloudSyncVersionRef,
+    scheduleCloudSync,
+    syncSnapshotToCloud,
+    syncNow,
+    handleLocalSaveStateChange,
+  } = useWallCloudSync({ publishedReadOnly, hydrate });
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [boxSelectMode, setBoxSelectMode] = useState(false);
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
@@ -1022,172 +1006,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     }
     setPresentationIndex((previous) => clampPresentationIndex(previous, activePresentationSteps.length || 1));
   }, [activePresentationPath, activePresentationPathId, activePresentationSteps.length]);
-
-  const fetchLatestCloudSnapshot = useCallback(async (wallId: string) => {
-    if (acknowledgedCloudSnapshotRef.current && cloudSyncVersionRef.current > 0) {
-      try {
-        const deltaPayload = await loadWallDelta(wallId, cloudSyncVersionRef.current);
-        return {
-          snapshot: applyWallDeltaChanges(acknowledgedCloudSnapshotRef.current, deltaPayload.changes),
-          syncVersion: deltaPayload.currentVersion,
-        };
-      } catch (error) {
-        if (error instanceof Error && error.message === authExpiredMessage) {
-          throw error;
-        }
-      }
-    }
-
-    return await loadWallBootstrap(wallId);
-  }, []);
-
-  const syncSnapshotToCloud = useCallback(
-    async (wallId: string, snapshot: PersistedWallState) => {
-      if (publishedReadOnly) {
-        return;
-      }
-
-      const stagedRequest = stageWallSyncRequest({
-        inFlight: cloudSyncInFlightRef.current,
-        next: { wallId, snapshot },
-      });
-      if (!stagedRequest.active) {
-        queuedCloudSyncRef.current = stagedRequest.queued;
-        setHasPendingSync(true);
-        return;
-      }
-
-      cloudSyncInFlightRef.current = true;
-      setIsSyncing(true);
-      setSyncError(null);
-
-      try {
-        const delta = buildWallDeltaSyncRequest({
-          baseVersion: cloudSyncVersionRef.current,
-          baseline: acknowledgedCloudSnapshotRef.current,
-          current: snapshot,
-        });
-        if (!hasWallDeltaChanges(delta)) {
-          acknowledgedCloudSnapshotRef.current = snapshot;
-          await Promise.all([
-            saveWallSyncVersion(cloudSyncVersionRef.current),
-            saveWallCloudBaselineSnapshot(snapshot),
-          ]);
-          setHasPendingSync(false);
-          return;
-        }
-
-        const response = await pushWallDelta(wallId, delta);
-
-        if (response.status === 401) {
-          setSyncError(authExpiredMessage);
-          redirectToLoginForAuth("/wall");
-          return;
-        }
-
-        if (response.status === 409) {
-          const latestPayload = await fetchLatestCloudSnapshot(wallId);
-          cloudSyncVersionRef.current = latestPayload.syncVersion;
-          acknowledgedCloudSnapshotRef.current = latestPayload.snapshot;
-          await Promise.all([
-            saveWallSyncVersion(latestPayload.syncVersion),
-            saveWallCloudBaselineSnapshot(latestPayload.snapshot),
-          ]);
-
-          const latestLocalSnapshot = selectPersistedSnapshot(useWallStore.getState());
-          const rebasedSnapshot = rebaseLocalWallSnapshot(latestPayload.snapshot, latestLocalSnapshot);
-          const serverSerialized = JSON.stringify(latestPayload.snapshot);
-          const rebasedSerialized = JSON.stringify(rebasedSnapshot);
-
-          hydrate(rebasedSnapshot);
-
-          if (rebasedSerialized !== serverSerialized) {
-            queuedCloudSyncRef.current = { wallId, snapshot: rebasedSnapshot };
-            setHasPendingSync(true);
-          } else {
-            const syncedAt = Date.now();
-            lastCloudSyncedAtRef.current = syncedAt;
-            setLastSyncedAt(syncedAt);
-            setHasPendingSync(false);
-          }
-
-          setSyncError(null);
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error(response.payload.error ?? "Cloud sync failed");
-        }
-
-        cloudSyncVersionRef.current = response.payload.currentVersion ?? cloudSyncVersionRef.current;
-        acknowledgedCloudSnapshotRef.current = snapshot;
-        await Promise.all([
-          saveWallSyncVersion(cloudSyncVersionRef.current),
-          saveWallCloudBaselineSnapshot(snapshot),
-        ]);
-        const syncedAt = Date.now();
-        lastCloudSyncedAtRef.current = syncedAt;
-        setLastSyncedAt(syncedAt);
-        setHasPendingSync(false);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Cloud sync failed";
-        setSyncError(message);
-        if (message === authExpiredMessage) {
-          redirectToLoginForAuth("/wall");
-        }
-      } finally {
-        cloudSyncInFlightRef.current = false;
-        const queued = takeNextQueuedWallSync(queuedCloudSyncRef.current);
-        queuedCloudSyncRef.current = queued.queued;
-        if (queued.next) {
-          void syncSnapshotToCloud(queued.next.wallId, queued.next.snapshot);
-          return;
-        }
-        setIsSyncing(false);
-      }
-    },
-    [fetchLatestCloudSnapshot, hydrate, publishedReadOnly],
-  );
-
-  const scheduleCloudSync = useCallback(
-    (snapshot: PersistedWallState) => {
-      if (!cloudWallId || !cloudReadyRef.current || publishedReadOnly) {
-        return;
-      }
-
-      setHasPendingSync(true);
-      setSyncError(null);
-
-      if (cloudSyncTimerRef.current) {
-        clearTimeout(cloudSyncTimerRef.current);
-      }
-
-      cloudSyncTimerRef.current = setTimeout(() => {
-        void syncSnapshotToCloud(cloudWallId, snapshot);
-      }, 1400);
-    },
-    [cloudWallId, publishedReadOnly, syncSnapshotToCloud],
-  );
-
-  const syncNow = useCallback(() => {
-    if (!cloudWallId) {
-      return;
-    }
-    const snapshot = selectPersistedSnapshot(useWallStore.getState());
-    void syncSnapshotToCloud(cloudWallId, snapshot);
-  }, [cloudWallId, syncSnapshotToCloud]);
-
-  const handleLocalSaveStateChange = useCallback((state: "saving" | "saved" | "error") => {
-    if (state === "saving") {
-      setLocalSaveState("saving");
-      return;
-    }
-    if (state === "error") {
-      setLocalSaveState("error");
-      return;
-    }
-    setLocalSaveState("idle");
-  }, []);
 
   const getViewportWindowBounds = useCallback(
     (targetCamera: { x: number; y: number; zoom: number }) => createViewportWallBounds(targetCamera, viewport, 320),
@@ -3230,392 +3048,61 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     [isTimeLocked, selectedVocabularyNote],
   );
 
-  const commandPaletteCommands = useMemo<CommandPaletteCommand[]>(
-    () => [
-      {
-        id: "new-note",
-        label: "Create note",
-        description: "Add a note at viewport center and open editor.",
-        shortcut: "N",
-        keywords: ["add", "new", "sticky"],
-        disabled: isTimeLocked,
-        onSelect: makeNoteAtViewportCenter,
-      },
-      {
-        id: "new-journal-note",
-        label: "Create journal note",
-        description: "Add a handwritten notebook page entry with a dated header.",
-        shortcut: "Shift + J",
-        keywords: ["journal", "diary", "notebook", "handwritten"],
-        disabled: isTimeLocked,
-        onSelect: makeJournalNoteAtViewportCenter,
-      },
-      {
-        id: "new-canon-note",
-        label: "Create canon note",
-        description: "Capture a law/rule/theorem with single or list mode.",
-        shortcut: "Shift + G",
-        keywords: ["law", "rule", "theorem", "commandments", "canon"],
-        disabled: isTimeLocked,
-        onSelect: makeCanonNoteAtViewportCenter,
-      },
-      {
-        id: "new-quote-note",
-        label: "Create quote note",
-        description: "Add a quote card with attribution fields.",
-        shortcut: "Shift + Q",
-        keywords: ["quote", "citation", "author", "source"],
-        disabled: isTimeLocked,
-        onSelect: makeQuoteNoteAtViewportCenter,
-      },
-      {
-        id: "new-eisenhower-note",
-        label: "Create Eisenhower Matrix note",
-        description: "Add a four-quadrant priority note with editable sections.",
-        shortcut: "Shift + E",
-        keywords: ["matrix", "eisenhower", "priority", "urgent", "important"],
-        disabled: isTimeLocked,
-        onSelect: makeEisenhowerNoteAtViewportCenter,
-      },
-      {
-        id: "new-word-note",
-        label: "Create word note",
-        description: "Capture a vocabulary card with spaced-review fields.",
-        keywords: ["word", "vocabulary", "flashcard", "learn"],
-        disabled: isTimeLocked,
-        onSelect: makeWordNoteAtViewportCenter,
-      },
-      {
-        id: "review-next-word",
-        label: "Review next due word",
-        description: "Jump to the most overdue vocabulary card.",
-        keywords: ["review", "due", "spaced repetition", "focus word"],
-        disabled: vocabularyDueNotes.length === 0,
-        onSelect: focusNextDueWord,
-      },
-      {
-        id: "flip-word-card",
-        label: "Flip selected word card",
-        description: "Toggle front/back for the selected vocabulary flashcard.",
-        shortcut: "F",
-        keywords: ["flashcard", "flip", "word", "vocabulary"],
-        disabled: isTimeLocked || !selectedVocabularyNote,
-        onSelect: () => {
-          if (selectedVocabularyNote) {
-            toggleVocabularyFlip(selectedVocabularyNote.id);
-          }
-        },
-      },
-      {
-        id: "new-frame",
-        label: "Create frame zone",
-        description: "Add a frame zone at viewport center.",
-        keywords: ["zone", "container", "frame"],
-        disabled: isTimeLocked,
-        onSelect: () => makeZoneAtViewportCenter("frame"),
-      },
-      {
-        id: "new-column",
-        label: "Create column zone",
-        description: "Add a column zone at viewport center.",
-        keywords: ["zone", "column", "layout"],
-        disabled: isTimeLocked,
-        onSelect: () => makeZoneAtViewportCenter("column"),
-      },
-      {
-        id: "new-swimlane",
-        label: "Create swimlane zone",
-        description: "Add a swimlane zone at viewport center.",
-        keywords: ["zone", "lane", "layout"],
-        disabled: isTimeLocked,
-        onSelect: () => makeZoneAtViewportCenter("swimlane"),
-      },
-      {
-        id: "toggle-quick-capture",
-        label: quickCaptureOpen ? "Close quick capture" : "Open quick capture",
-        description: "Capture notes quickly from text input.",
-        shortcut: "Q",
-        keywords: ["capture", "quick"],
-        disabled: isTimeLocked,
-        onSelect: () => setQuickCaptureOpen((previous) => !previous),
-      },
-      {
-        id: "export",
-        label: "Open export panel",
-        description: "Export PNG, PDF, Markdown, JSON, or publish snapshot.",
-        keywords: ["download", "share", "backup"],
-        onSelect: () => setExportOpenTracked(true),
-      },
-      {
-        id: "convert-pdf-to-word",
-        label: "Open PDF to Word",
-        description: "Convert PDF documents into Word files.",
-        keywords: ["convert", "pdf", "word", "document"],
-        onSelect: () => openFileConversion("pdf_to_word"),
-      },
-      {
-        id: "convert-word-to-pdf",
-        label: "Open Word to PDF",
-        description: "Convert Word documents into PDF files.",
-        keywords: ["convert", "word", "pdf", "document"],
-        onSelect: () => openFileConversion("word_to_pdf"),
-      },
-      {
-        id: "undo",
-        label: "Undo",
-        description: "Revert the last change.",
-        shortcut: "Ctrl/Cmd + Z",
-        keywords: ["history", "back"],
-        disabled: !canUndo || isTimeLocked,
-        onSelect: undo,
-      },
-      {
-        id: "redo",
-        label: "Redo",
-        description: "Re-apply the last reverted change.",
-        shortcut: "Ctrl/Cmd + Shift + Z",
-        keywords: ["history", "forward"],
-        disabled: !canRedo || isTimeLocked,
-        onSelect: redo,
-      },
-      {
-        id: "toggle-reading",
-        label: readingMode ? "Exit reading mode" : "Enter reading mode",
-        description: "Hide wall chrome and focus on note content only.",
-        shortcut: "R",
-        keywords: ["read", "calm", "focus", "distraction-free"],
-        onSelect: toggleReadingMode,
-      },
-      {
-        id: "toggle-presentation",
-        label: presentationMode ? "Exit presentation mode" : "Enter presentation mode",
-        description: "Focus on sequential note walkthrough.",
-        shortcut: "P",
-        keywords: ["present", "slides"],
-        onSelect: togglePresentationMode,
-      },
-      {
-        id: "zoom-to-fit",
-        label: "Zoom to fit all content",
-        description: "Frame all visible notes and zones with padding.",
-        keywords: ["camera", "zoom", "fit", "frame", "board"],
-        onSelect: zoomToFitTracked,
-      },
-      {
-        id: "zoom-to-selection",
-        label: "Zoom to selection",
-        description: "Frame the selected notes.",
-        keywords: ["camera", "zoom", "selection", "focus", "frame"],
-        disabled: selectedNotes.length === 0,
-        onSelect: zoomToSelection,
-      },
-      {
-        id: "replay-product-tour",
-        label: "Replay product tour",
-        description: "Start the hybrid wall tour again from the beginning.",
-        keywords: ["tour", "onboarding", "help", "guide"],
-        onSelect: tour.openTour,
-      },
-      {
-        id: "toggle-timeline",
-        label: timelineMode ? "Exit wall history" : "Enter wall history",
-        description: "Replay persisted wall snapshots with the history scrubber.",
-        shortcut: "T",
-        keywords: ["history", "replay", "time", "wall history"],
-        onSelect: toggleTimelineMode,
-      },
-      {
-        id: "toggle-timeline-view",
-        label: timelineViewActive ? "Exit Timeline" : "Open Timeline",
-        description: "Review current notes in a vertical chronological stream.",
-        shortcut: "V",
-        keywords: ["timeline", "stream", "chronological", "story"],
-        onSelect: toggleTimelineView,
-      },
-      {
-        id: "toggle-heatmap",
-        label: showHeatmap ? "Hide recency heatmap" : "Show recency heatmap",
-        description: "Overlay recency heatmap calendar.",
-        shortcut: "H",
-        keywords: ["calendar", "activity"],
-        onSelect: () => setShowHeatmap((previous) => !previous),
-      },
-      {
-        id: "toggle-tools-panel",
-        label: leftPanelOpen ? "Hide tools panel" : "Show tools panel",
-        description: "Toggle the left tools panel.",
-        keywords: ["left", "panel", "tools", "show tools"],
-        onSelect: toggleLeftPanel,
-      },
-      {
-        id: "open-tools-panel",
-        label: "Show tools panel",
-        description: "Open the left tools panel.",
-        keywords: ["left", "panel", "tools", "show", "open"],
-        disabled: leftPanelOpen,
-        onSelect: openLeftPanel,
-      },
-      {
-        id: "close-tools-panel",
-        label: "Hide tools panel",
-        description: "Close the left tools panel.",
-        keywords: ["left", "panel", "tools", "hide", "close"],
-        disabled: !leftPanelOpen,
-        onSelect: closeLeftPanel,
-      },
-      {
-        id: "toggle-details-panel",
-        label: rightPanelOpen ? "Hide details panel" : "Show details panel",
-        description: "Toggle the right details panel.",
-        keywords: ["right", "panel", "details", "sidebar"],
-        onSelect: toggleRightPanel,
-      },
-      {
-        id: "open-details-panel",
-        label: "Open sidebar",
-        description: "Open the right details sidebar.",
-        keywords: ["right", "panel", "details", "sidebar", "open"],
-        disabled: rightPanelOpen,
-        onSelect: openRightPanel,
-      },
-      {
-        id: "close-details-panel",
-        label: "Close sidebar",
-        description: "Close the right details sidebar.",
-        keywords: ["right", "panel", "details", "sidebar", "close", "hide"],
-        disabled: !rightPanelOpen,
-        onSelect: closeRightPanel,
-      },
-      {
-        id: "toggle-box-select",
-        label: boxSelectMode ? "Disable box select mode" : "Enable box select mode",
-        description: "Switch drag behavior to marquee selection.",
-        keywords: ["multi-select", "selection", "marquee"],
-        onSelect: () => setBoxSelectMode((value) => !value),
-      },
-      {
-        id: "toggle-clusters",
-        label: ui.showClusters ? "Hide cluster overlays" : "Show cluster overlays",
-        description: "Toggle automatic cluster outlines.",
-        keywords: ["cluster", "insight", "overlay"],
-        onSelect: () => setShowClusters(!ui.showClusters),
-      },
-      {
-        id: "collapse-all-groups",
-        label: "Collapse all zone groups",
-        description: "Hide all grouped zones and grouped notes.",
-        keywords: ["groups", "collapse", "declutter"],
-        disabled: isTimeLocked || zoneGroups.every((group) => group.collapsed),
-        onSelect: collapseAllZoneGroups,
-      },
-      {
-        id: "expand-all-groups",
-        label: "Expand all zone groups",
-        description: "Show all grouped zones and grouped notes.",
-        keywords: ["groups", "expand", "restore"],
-        disabled: isTimeLocked || zoneGroups.every((group) => !group.collapsed),
-        onSelect: expandAllZoneGroups,
-      },
-      {
-        id: "toggle-dot-matrix",
-        label: spatialPrefs.showDotMatrix ? "Hide dot matrix" : "Show dot matrix",
-        description: "Toggle subtle dot-grid background helper.",
-        keywords: ["grid", "dot", "background"],
-        onSelect: () => setSpatialPrefs((previous) => ({ ...previous, showDotMatrix: !previous.showDotMatrix })),
-      },
-      {
-        id: "toggle-snap-guides",
-        label: spatialPrefs.snapToGuides ? "Disable snap guides" : "Enable snap guides",
-        description: "Toggle alignment guide snapping.",
-        keywords: ["snap", "guide", "align"],
-        onSelect: () => setSpatialPrefs((previous) => ({ ...previous, snapToGuides: !previous.snapToGuides })),
-      },
-      {
-        id: "toggle-snap-grid",
-        label: spatialPrefs.snapToGrid ? "Disable snap grid" : "Enable snap grid",
-        description: "Toggle grid snapping during drag.",
-        keywords: ["snap", "grid"],
-        onSelect: () => setSpatialPrefs((previous) => ({ ...previous, snapToGrid: !previous.snapToGrid })),
-      },
-      {
-        id: "open-help-center",
-        label: "Open help center",
-        description: "Show task guidance, troubleshooting, and product help.",
-        keywords: ["help", "docs", "support", "guide", "troubleshooting"],
-        onSelect: openHelpCenter,
-      },
-      {
-        id: "open-help-library",
-        label: "Open full help library",
-        description: "Browse the route-based help center.",
-        keywords: ["help", "docs", "library", "articles"],
-        onSelect: () => {
-          window.location.href = "/help";
-        },
-      },
-      {
-        id: "open-shortcuts",
-        label: "Open shortcuts help",
-        description: "Show keyboard shortcut reference.",
-        shortcut: "?",
-        keywords: ["help", "keys"],
-        onSelect: () => setShortcutsOpenTracked(true),
-      },
-    ],
-    [
-      boxSelectMode,
-      canRedo,
-      canUndo,
-      isTimeLocked,
-      leftPanelOpen,
-      makeNoteAtViewportCenter,
-      makeCanonNoteAtViewportCenter,
-      makeJournalNoteAtViewportCenter,
-      makeQuoteNoteAtViewportCenter,
-      makeEisenhowerNoteAtViewportCenter,
-      makeWordNoteAtViewportCenter,
-      makeZoneAtViewportCenter,
-      readingMode,
-      selectedVocabularyNote,
-      presentationMode,
-      quickCaptureOpen,
-      redo,
-      selectedNotes.length,
-      zoomToFitTracked,
-      zoomToSelection,
-      rightPanelOpen,
-      setExportOpenTracked,
-      openFileConversion,
-      openHelpCenter,
-      setShortcutsOpenTracked,
-      showHeatmap,
-      spatialPrefs.showDotMatrix,
-      spatialPrefs.snapToGrid,
-      spatialPrefs.snapToGuides,
-      timelineMode,
-      timelineViewActive,
-      toggleLeftPanel,
-      toggleReadingMode,
-      togglePresentationMode,
-      toggleRightPanel,
-      toggleTimelineMode,
-      toggleTimelineView,
-      openLeftPanel,
-      closeLeftPanel,
-      openRightPanel,
-      closeRightPanel,
-      collapseAllZoneGroups,
-      expandAllZoneGroups,
-      setShowClusters,
-      toggleVocabularyFlip,
-      ui.showClusters,
-      undo,
-      focusNextDueWord,
-      vocabularyDueNotes.length,
-      zoneGroups,
-      tour.openTour,
-    ],
-  );
+  const commandPaletteCommands = useWallCommandPalette({
+    isTimeLocked,
+    canUndo,
+    canRedo,
+    boxSelectMode,
+    readingMode,
+    presentationMode,
+    quickCaptureOpen,
+    showHeatmap,
+    leftPanelOpen,
+    rightPanelOpen,
+    timelineMode,
+    timelineViewActive,
+    showClusters: ui.showClusters,
+    spatialPrefs,
+    selectedNotesCount: selectedNotes.length,
+    vocabularyDueNotesCount: vocabularyDueNotes.length,
+    selectedVocabularyNote,
+    zoneGroups,
+    makeNoteAtViewportCenter,
+    makeCanonNoteAtViewportCenter,
+    makeJournalNoteAtViewportCenter,
+    makeQuoteNoteAtViewportCenter,
+    makeEisenhowerNoteAtViewportCenter,
+    makeWordNoteAtViewportCenter,
+    makeZoneAtViewportCenter,
+    focusNextDueWord,
+    toggleVocabularyFlip,
+    setQuickCaptureOpen,
+    setExportOpenTracked,
+    openFileConversion,
+    undo,
+    redo,
+    toggleReadingMode,
+    togglePresentationMode,
+    zoomToFitTracked,
+    zoomToSelection,
+    openTour: tour.openTour,
+    toggleTimelineMode,
+    toggleTimelineView,
+    setShowHeatmap,
+    toggleLeftPanel,
+    openLeftPanel,
+    closeLeftPanel,
+    toggleRightPanel,
+    openRightPanel,
+    closeRightPanel,
+    setBoxSelectMode,
+    setShowClusters,
+    collapseAllZoneGroups,
+    expandAllZoneGroups,
+    setSpatialPrefs,
+    openHelpCenter,
+    setShortcutsOpenTracked,
+  });
 
   const {
     chrome: wallSessionChrome,
@@ -3819,6 +3306,188 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     setShortcutsOpenTracked,
   });
 
+  const { showChromeHeader, spatialView, chromeHeader, inCanvasChrome } = useWallSpatialBindings({
+    containerRef,
+    stageRef,
+    noteTransformerRef,
+    zoneTransformerRef,
+    noteNodeRefs,
+    zoneNodeRefs,
+    dragSelectionStartRef,
+    dragAnchorRef,
+    dragSingleStartRef,
+    wallInlineVideoRef,
+    hydrated,
+    readingMode,
+    timelineViewActive,
+    isFocusMode,
+    isImageDragOver,
+    isTimeLocked,
+    isSpaceDown,
+    isMiddleDragging,
+    isLeftCanvasDragging,
+    boxSelectMode,
+    camera,
+    viewport,
+    spatialPrefs,
+    layoutPrefs,
+    setCamera,
+    setIsMiddleDragging,
+    setIsLeftCanvasDragging,
+    setIsImageDragOver,
+    setGuideLines,
+    setFocusedNoteId,
+    setInlinePlayingVideoNoteId,
+    setEditing,
+    setHoveredNoteId,
+    setDraggingNoteId,
+    setResizingNoteDrafts,
+    setLinkMenu,
+    selectionBox,
+    setSelectionBox,
+    guideLines,
+    showHeatmap,
+    heatmapReferenceTs: activeTimelineEntry?.ts ?? wallClockTs,
+    layerVisibleNotes,
+    layerVisibleZones,
+    layerVisibleLinks,
+    layerRenderDetailLevel,
+    layerRenderBudget,
+    resolvedWallAssets,
+    activeSelectedNoteIds,
+    displayNotesById,
+    renderSnapshotNotes: renderSnapshot.notes,
+    renderPathLinkIds,
+    clusterBounds,
+    autoTagGroups,
+    autoTagLabelLayout,
+    showAutoTagGroups,
+    wikiLinksByNoteId,
+    resizingNoteDrafts,
+    hoveredNoteId,
+    draggingNoteId,
+    inlinePlayingVideoNoteId,
+    inlinePlayingVideoScreenRect,
+    playingAudioNoteId,
+    playingAudioCurrentTimeSeconds,
+    playingAudioDurationSeconds,
+    selectedNoteId: ui.selectedNoteId,
+    selectedLinkId: ui.selectedLinkId,
+    selectedZoneId: ui.selectedZoneId,
+    flashNoteId: ui.flashNoteId,
+    linkingFromNoteId: ui.linkingFromNoteId,
+    linkType: ui.linkType,
+    editingId: editing?.id,
+    stopCameraAnimation,
+    resetSelection,
+    clearNoteSelection,
+    finalizeBoxSelection,
+    findNoteAtWorldPoint,
+    handleImageFileInsert,
+    syncPrimarySelection,
+    selectSingleNote,
+    toggleSelectNote,
+    selectLink,
+    selectZone,
+    selectGroup,
+    setLinkingFromNote,
+    openEditor,
+    openImageInsert,
+    resolveSnappedPosition,
+    runHistoryGroup,
+    moveNote,
+    updateNote,
+    moveZone,
+    updateZone,
+    createLink,
+    toggleVocabularyFlip,
+    duplicateNoteAt,
+    focusNote,
+    openBookmarkUrl,
+    downloadFileNote,
+    toggleAudioNotePlayback,
+    openAudioNote,
+    downloadAudioNote,
+    toggleInlineVideoPlayback,
+    downloadVideoNote,
+    showClusters: ui.showClusters,
+    presentationMode,
+    publishedReadOnly,
+    leftPanelOpen,
+    rightPanelOpen,
+    quickCaptureOpen,
+    hasContextActions,
+    showContextColor,
+    toolbarSurface,
+    toolbarLabel,
+    toolbarDivider,
+    selectedNotes,
+    selectedNote,
+    uiLastColor: ui.lastColor ?? NOTE_COLORS[0],
+    statusMessage,
+    userEmail,
+    userProfile,
+    cloudWallId,
+    isSyncing,
+    localSaveState,
+    hasPendingSync,
+    lastSyncedAt,
+    syncError,
+    onToggleLeftPanel: toggleLeftPanel,
+    onToggleRightPanel: toggleRightPanel,
+    onOpenCommandPalette: () => setSearchOpenTracked(true),
+    onToggleQuickCapture: () => setQuickCaptureOpen((previous) => !previous),
+    onToggleTimelineView: toggleTimelineView,
+    onTogglePresentationMode: togglePresentationMode,
+    onOpenShortcuts: () => setShortcutsOpenTracked(true),
+    onOpenHelp: openHelpCenter,
+    onOpenSettings: () => setSettingsOpen(true),
+    onApplyColorToSelection: applyColorToSelection,
+    onSyncNow: syncNow,
+    isChromeHidden,
+    hasNoteSelection,
+    controlsMode,
+    toolbarBtn,
+    toolbarBtnPrimary,
+    toolbarBtnActive,
+    toolbarSelect,
+    tourCoachmark: tour.activeCoachmark,
+    onTourNext: tour.nextSpineStep,
+    onTourSkip: tour.skipTour,
+    onTourDismissTip: tour.dismissCurrentTip,
+    onTourDismissComplete: tour.dismissCompletion,
+    notes,
+    visibleNotes,
+    recallQuery,
+    commandPaletteCommands,
+    availableRecallTags,
+    isSearchOpen: ui.isSearchOpen,
+    setLeftPanelOpen,
+    setBoxSelectMode,
+    setSpatialPrefs,
+    setLinkType,
+    setShowClusters,
+    setSearchOpenTracked,
+    setRecallQuery,
+    setTimelineViewActive,
+    selectNote,
+    revealNoteFromTimeline,
+    makeNoteAtViewportCenter,
+    makeCanonNoteAtViewportCenter,
+    makeJournalNoteAtViewportCenter,
+    makeQuoteNoteAtViewportCenter,
+    makeCodeNoteAtViewportCenter,
+    makeWebBookmarkNoteAtViewportCenter,
+    makeImageNoteAtViewportCenter,
+    makeFileNoteAtViewportCenter,
+    makeAudioNoteAtViewportCenter,
+    makeVideoNoteAtViewportCenter,
+    makeEisenhowerNoteAtViewportCenter,
+    makeWordNoteAtViewportCenter,
+    makeZoneAtViewportCenter,
+    openFileConversion,
+  });
+
   return (
     <WallSessionProvider
       interaction={{
@@ -3855,463 +3524,12 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
       modals={wallSessionModals}
     >
     <div className="wall-atelier-shell flex h-screen flex-col text-[var(--color-text)]">
-      {!readingMode && !timelineViewActive && (
-        <WallHeaderBar
-        presentationMode={presentationMode}
-        publishedReadOnly={publishedReadOnly}
-        timelineViewActive={timelineViewActive}
-        layoutPrefs={layoutPrefs}
-        leftPanelOpen={leftPanelOpen}
-        rightPanelOpen={rightPanelOpen}
-        quickCaptureOpen={quickCaptureOpen}
-        isTimeLocked={isTimeLocked}
-        hasContextActions={hasContextActions}
-        showContextColor={showContextColor}
-        toolbarSurface={toolbarSurface}
-        toolbarLabel={toolbarLabel}
-        toolbarDivider={toolbarDivider}
-        selectedNotes={selectedNotes}
-        selectedNote={selectedNote}
-        uiLastColor={ui.lastColor ?? NOTE_COLORS[0]}
-        statusMessage={statusMessage}
-        userEmail={userEmail}
-        userProfile={userProfile}
-        cloudWallId={cloudWallId}
-        isSyncing={isSyncing}
-        localSaveState={localSaveState}
-        hasPendingSync={hasPendingSync}
-        lastSyncedAt={lastSyncedAt}
-        syncError={syncError}
-        onToggleLeftPanel={toggleLeftPanel}
-        onToggleRightPanel={toggleRightPanel}
-        onOpenCommandPalette={() => setSearchOpenTracked(true)}
-        onToggleQuickCapture={() => setQuickCaptureOpen((previous) => !previous)}
-        onToggleTimelineView={toggleTimelineView}
-        onTogglePresentationMode={togglePresentationMode}
-        onOpenShortcuts={() => setShortcutsOpenTracked(true)}
-        onOpenHelp={openHelpCenter}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onApplyColorToSelection={applyColorToSelection}
-        onSyncNow={syncNow}
+      {showChromeHeader ? <WallChromeHeader {...chromeHeader} /> : null}
+
+      <WallSpatialView
+        {...spatialView}
+        chromeSlot={<WallInCanvasChrome {...inCanvasChrome} />}
       />
-      )}
-
-      <div
-        ref={containerRef}
-        data-tour-anchor="canvas"
-        className={`relative flex-1 overflow-hidden ${
-          timelineViewActive ? "cursor-default" : isSpaceDown || isMiddleDragging || isLeftCanvasDragging ? "cursor-grabbing" : "cursor-grab"
-        }`}
-        onDragOver={(event) => {
-          const files = getImageFilesFromDataTransfer(event.dataTransfer);
-          if (isTimeLocked || files.length === 0) {
-            return;
-          }
-          event.preventDefault();
-          setIsImageDragOver(true);
-        }}
-        onDragLeave={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-            setIsImageDragOver(false);
-          }
-        }}
-        onDrop={(event) => {
-          const files = getImageFilesFromDataTransfer(event.dataTransfer);
-          if (isTimeLocked || files.length === 0) {
-            return;
-          }
-          event.preventDefault();
-          setIsImageDragOver(false);
-          const bounds = containerRef.current?.getBoundingClientRect();
-          if (!bounds) {
-            return;
-          }
-          const droppedFile = files[0];
-          if (!droppedFile) {
-            return;
-          }
-          const world = toWorldPoint(event.clientX - bounds.left, event.clientY - bounds.top, camera);
-          const targetNote = findNoteAtWorldPoint(world.x, world.y);
-          void handleImageFileInsert(droppedFile, targetNote ? { noteId: targetNote.id } : world);
-        }}
-        onMouseUp={() => {
-          setIsMiddleDragging(false);
-          setIsLeftCanvasDragging(false);
-          setGuideLines({});
-          finalizeBoxSelection();
-        }}
-        onMouseLeave={() => {
-          setIsMiddleDragging(false);
-          setIsLeftCanvasDragging(false);
-          setGuideLines({});
-          finalizeBoxSelection();
-        }}
-        onContextMenu={(event) => {
-          event.preventDefault();
-        }}
-      >
-        {!hydrated && (
-          <div className="absolute inset-0 z-10 grid place-items-center bg-[color:rgb(24_32_44_/_0.12)] backdrop-blur-sm">
-            <p className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-sm)]">
-              Loading wall...
-            </p>
-          </div>
-        )}
-
-        {readingMode && (
-          <div className="pointer-events-auto absolute right-4 top-4 z-[45] rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)]">
-            Reading mode. Press R to exit.
-          </div>
-        )}
-
-        {isFocusMode && !readingMode && (
-          <button
-            type="button"
-            onClick={() => setFocusedNoteId(undefined)}
-            className="pointer-events-auto absolute right-4 top-4 z-[45] rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-3 py-1.5 text-[11px] text-[var(--color-text-muted)] shadow-[var(--shadow-sm)] backdrop-blur-[var(--blur-panel)] hover:bg-[var(--color-surface)]"
-          >
-            Focus mode. Click to exit.
-          </button>
-        )}
-
-        {isImageDragOver && !isTimeLocked && (
-          <div className="pointer-events-none absolute inset-6 z-[44] rounded-[32px] border-2 border-dashed border-[var(--color-accent-strong)] bg-[rgba(255,248,232,0.78)] shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur-sm">
-            <div className="grid h-full place-items-center text-center">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-text-muted)]">Drop Image</p>
-                <p className="mt-3 font-[Georgia] text-3xl text-[var(--color-text)]">Release to insert image</p>
-                <p className="mt-2 text-sm text-[var(--color-text-muted)]">Drop on empty canvas to create a new media card, or drop on a note to replace its image.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <WallProductTour
-          coachmark={tour.activeCoachmark}
-          onNext={tour.nextSpineStep}
-          onSkip={tour.skipTour}
-          onDismissTip={tour.dismissCurrentTip}
-          onDismissComplete={tour.dismissCompletion}
-        />
-
-        {timelineViewActive ? (
-          <WallTimelineView
-            notes={notes}
-            selectedNoteId={ui.selectedNoteId}
-            onSelectNote={(noteId) => {
-              syncPrimarySelection([noteId]);
-              selectNote(noteId);
-            }}
-            onClearSelection={clearNoteSelection}
-            onRevealNote={revealNoteFromTimeline}
-            onExit={() => setTimelineViewActive(false)}
-          />
-        ) : null}
-
-        {!timelineViewActive && !isChromeHidden && !publishedReadOnly && layoutPrefs.showToolsPanel && (hasNoteSelection || leftPanelOpen) && (
-          <WallToolsPanel
-            leftPanelOpen={leftPanelOpen}
-            isTimeLocked={isTimeLocked}
-            selectedNoteId={ui.selectedNoteId}
-            linkingFromNoteId={ui.linkingFromNoteId}
-            linkType={ui.linkType}
-            linkTypeOptions={LINK_TYPES}
-            showClusters={ui.showClusters}
-            toolbarBtn={toolbarBtn}
-            toolbarBtnPrimary={toolbarBtnPrimary}
-            toolbarBtnActive={toolbarBtnActive}
-            toolbarSelect={toolbarSelect}
-            onClose={() => setLeftPanelOpen(false)}
-            onCreateNote={makeNoteAtViewportCenter}
-            onCreateCanonNote={makeCanonNoteAtViewportCenter}
-            onCreateJournalNote={makeJournalNoteAtViewportCenter}
-            onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
-            onCreateCodeNote={makeCodeNoteAtViewportCenter}
-            onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
-            onCreateImageNote={makeImageNoteAtViewportCenter}
-            onCreateFileNote={makeFileNoteAtViewportCenter}
-            onCreateAudioNote={makeAudioNoteAtViewportCenter}
-            onCreateVideoNote={makeVideoNoteAtViewportCenter}
-            onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
-            onCreateWordNote={makeWordNoteAtViewportCenter}
-            onCreateZone={makeZoneAtViewportCenter}
-            onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}
-            boxSelectMode={boxSelectMode}
-            onStartLinking={() => {
-              if (isTimeLocked || !ui.selectedNoteId) {
-                return;
-              }
-              setLinkingFromNote(ui.selectedNoteId);
-            }}
-            onLinkTypeChange={(value) => setLinkType(value)}
-            onToggleClusters={() => setShowClusters(!ui.showClusters)}
-            showDotMatrix={spatialPrefs.showDotMatrix}
-            snapToGuides={spatialPrefs.snapToGuides}
-            snapToGrid={spatialPrefs.snapToGrid}
-            onToggleDotMatrix={() =>
-              setSpatialPrefs((previous) => ({ ...previous, showDotMatrix: !previous.showDotMatrix }))
-            }
-            onToggleSnapToGuides={() =>
-              setSpatialPrefs((previous) => ({ ...previous, snapToGuides: !previous.snapToGuides }))
-            }
-            onToggleSnapToGrid={() =>
-              setSpatialPrefs((previous) => ({ ...previous, snapToGrid: !previous.snapToGrid }))
-            }
-            controlsMode={controlsMode}
-            onOpenFileConversion={(conversionMode) => openFileConversion(conversionMode)}
-          />
-        )}
-
-        {!timelineViewActive && (
-        <WallStage
-          stageRef={stageRef}
-          viewport={viewport}
-          camera={camera}
-          setCamera={setCamera}
-          isSpaceDown={isSpaceDown}
-          isMiddleDragging={isMiddleDragging}
-          isLeftCanvasDragging={isLeftCanvasDragging}
-          setIsMiddleDragging={setIsMiddleDragging}
-          setIsLeftCanvasDragging={setIsLeftCanvasDragging}
-          boxSelectMode={boxSelectMode}
-          isTimeLocked={isTimeLocked}
-          selectionBox={selectionBox}
-          setSelectionBox={setSelectionBox}
-          toWorldPoint={toWorldPoint}
-          onUserCameraIntent={stopCameraAnimation}
-          onEmptyCanvasClick={() => {
-            resetSelection();
-            clearNoteSelection();
-            setEditing(null);
-            setFocusedNoteId(undefined);
-            setInlinePlayingVideoNoteId(undefined);
-          }}
-        >
-          <Layer listening={false}>
-            <WallDotMatrixLayer
-              showDotMatrix={spatialPrefs.showDotMatrix}
-              dotGridSpacing={spatialPrefs.dotGridSpacing}
-              camera={camera}
-              viewport={viewport}
-            />
-          </Layer>
-
-          <Layer>
-            <WallLinksZonesLayer
-              visibleLinks={layerVisibleLinks}
-              visibleZones={layerVisibleZones}
-              notesById={displayNotesById}
-              selectedLinkId={ui.selectedLinkId}
-              selectedNoteId={ui.selectedNoteId}
-              selectedZoneId={ui.selectedZoneId}
-              pathLinkIds={renderPathLinkIds}
-              linkColorByType={linkColorByType}
-              linkStrokeByType={linkStrokeByType}
-              linkPoints={linkPoints}
-              zoneNodeRefs={zoneNodeRefs}
-              isTimeLocked={isTimeLocked}
-              onSelectLink={(linkId) => {
-                setLinkMenu((previous) => ({ ...previous, open: false }));
-                clearNoteSelection();
-                selectLink(linkId);
-              }}
-              onOpenLinkMenu={(x, y, linkId) => {
-                clearNoteSelection();
-                selectLink(linkId);
-                setLinkMenu({
-                  open: true,
-                  x,
-                  y,
-                  linkId,
-                });
-              }}
-              onSelectZone={(zoneId, groupId) => {
-                clearNoteSelection();
-                selectZone(zoneId);
-                if (groupId) {
-                  selectGroup(groupId);
-                }
-              }}
-              onMoveZone={moveZone}
-              onResizeZone={updateZone}
-            />
-
-            {isFocusMode && (
-              <Rect
-                listening={false}
-                x={-camera.x / camera.zoom}
-                y={-camera.y / camera.zoom}
-                width={viewport.w / camera.zoom}
-                height={viewport.h / camera.zoom}
-                fill="rgb(15 23 42 / 0.26)"
-              />
-            )}
-
-            <WallNotesLayer
-              visibleNotes={layerVisibleNotes}
-              renderDetailLevel={layerRenderDetailLevel}
-              renderBudget={layerRenderBudget}
-              assetRecords={resolvedWallAssets}
-              activeSelectedNoteIds={activeSelectedNoteIds}
-              selectedNoteId={ui.selectedNoteId}
-              flashNoteId={ui.flashNoteId}
-              hoveredNoteId={hoveredNoteId}
-              draggingNoteId={draggingNoteId}
-              resizingNoteDrafts={resizingNoteDrafts}
-              notesById={renderSnapshot.notes}
-              linkingFromNoteId={ui.linkingFromNoteId}
-              linkType={ui.linkType}
-              isTimeLocked={isTimeLocked}
-              showHeatmap={showHeatmap}
-              heatmapReferenceTs={activeTimelineEntry?.ts ?? wallClockTs}
-              showNoteTags={layoutPrefs.showNoteTags}
-              noteNodeRefs={noteNodeRefs}
-              dragSelectionStartRef={dragSelectionStartRef}
-              dragAnchorRef={dragAnchorRef}
-              dragSingleStartRef={dragSingleStartRef}
-              setHoveredNoteId={setHoveredNoteId}
-              setDraggingNoteId={setDraggingNoteId}
-              setGuideLines={setGuideLines}
-              setResizingNoteDrafts={setResizingNoteDrafts}
-              syncPrimarySelection={syncPrimarySelection}
-              selectSingleNote={selectSingleNote}
-              toggleSelectNote={toggleSelectNote}
-              setLinkingFromNote={setLinkingFromNote}
-              setEditing={setEditing}
-              openEditor={openEditor}
-              createLink={createLink}
-              resolveSnappedPosition={resolveSnappedPosition}
-              runHistoryGroup={runHistoryGroup}
-              moveNote={moveNote}
-              updateNote={updateNote}
-              openImageInsert={(noteId) => openImageInsert(noteId)}
-              toggleVocabularyFlip={toggleVocabularyFlip}
-              duplicateNoteAt={duplicateNoteAt}
-              getNoteTextStyle={getNoteTextStyle}
-              getNoteTextFontFamily={getNoteTextFontFamily}
-              truncateNoteText={truncateNoteText}
-              noteTagChipPalette={noteTagChipPalette}
-              recencyIntensity={recencyIntensity}
-              wikiLinksByNoteId={wikiLinksByNoteId}
-              onNavigateWikiLink={focusNote}
-              editingId={editing?.id}
-              openExternalUrl={openBookmarkUrl}
-              onDownloadFileNote={downloadFileNote}
-              onToggleAudioPlayback={toggleAudioNotePlayback}
-              playingAudioNoteId={playingAudioNoteId}
-              playingAudioCurrentTimeSeconds={playingAudioCurrentTimeSeconds}
-              playingAudioDurationSeconds={playingAudioDurationSeconds}
-              onOpenAudioNote={openAudioNote}
-              onDownloadAudioNote={downloadAudioNote}
-              inlinePlayingVideoNoteId={inlinePlayingVideoNoteId}
-              onToggleInlineVideoPlayback={toggleInlineVideoPlayback}
-              onOpenVideoNote={(noteId) => {
-                const note = renderSnapshot.notes[noteId];
-                if (!note) {
-                  return;
-                }
-                openEditor(noteId, note.text);
-              }}
-              onDownloadVideoNote={downloadVideoNote}
-            />
-
-            <WallOverlaysLayer
-              showClusters={ui.showClusters}
-              clusterBounds={clusterBounds}
-              showAutoTagGroups={showAutoTagGroups}
-              autoTagGroups={autoTagGroups}
-              autoTagLabelLayout={autoTagLabelLayout}
-              tagGroupColor={tagGroupColor}
-              selectionBox={selectionBox}
-              guideLines={guideLines}
-              noteTransformerRef={noteTransformerRef}
-              zoneTransformerRef={zoneTransformerRef}
-              noteMinWidth={NOTE_DEFAULTS.minWidth}
-              noteMinHeight={NOTE_DEFAULTS.minHeight}
-              zoneMinWidth={ZONE_DEFAULTS.minWidth}
-              zoneMinHeight={ZONE_DEFAULTS.minHeight}
-            />
-          </Layer>
-        </WallStage>
-        )}
-
-        {!timelineViewActive && inlinePlayingVideoScreenRect ? (
-          <div className="pointer-events-none absolute inset-0 z-[18]">
-            <div
-              className="pointer-events-auto absolute overflow-hidden rounded-[20px] border border-black/10 bg-black shadow-[0_18px_50px_rgba(15,23,42,0.22)]"
-              style={{
-                left: inlinePlayingVideoScreenRect.left,
-                top: inlinePlayingVideoScreenRect.top,
-                width: inlinePlayingVideoScreenRect.width,
-                height: inlinePlayingVideoScreenRect.height,
-              }}
-            >
-              {inlinePlayingVideoScreenRect.playback.kind === "direct" ? (
-                <video
-                  ref={wallInlineVideoRef}
-                  key={`${inlinePlayingVideoNoteId ?? "video"}:${inlinePlayingVideoScreenRect.playback.url}`}
-                  className="h-full w-full bg-black object-contain"
-                  src={inlinePlayingVideoScreenRect.playback.url}
-                  poster={inlinePlayingVideoScreenRect.posterUrl}
-                  controls
-                  autoPlay
-                  playsInline
-                  preload="metadata"
-                />
-              ) : (
-                <iframe
-                  key={`${inlinePlayingVideoNoteId ?? "video"}:${inlinePlayingVideoScreenRect.playback.url}`}
-                  src={inlinePlayingVideoScreenRect.playback.url}
-                  title={inlinePlayingVideoScreenRect.title}
-                  className="h-full w-full border-0 bg-black"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              )}
-              <button
-                type="button"
-                onClick={() => setInlinePlayingVideoNoteId(undefined)}
-                className="absolute right-3 top-3 rounded-full border border-white/18 bg-black/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-white/88 backdrop-blur"
-                aria-label={`Close ${inlinePlayingVideoScreenRect.title} playback`}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {!readingMode && !timelineViewActive && (
-        <WallFloatingUi />
-        )}
-
-        {!readingMode && !timelineViewActive && (
-          <WallSearchDock
-            open={ui.isSearchOpen}
-            query={recallQuery}
-            notes={visibleNotes}
-            commands={commandPaletteCommands}
-            availableTags={availableRecallTags}
-            onOpenSearch={() => setSearchOpenTracked(true)}
-            onCloseSearch={() => setSearchOpenTracked(false)}
-            onQueryChange={setRecallQuery}
-            onSelectNote={focusNote}
-            hidden={isChromeHidden}
-          />
-        )}
-
-        <WallStatusFooter
-          publishedReadOnly={publishedReadOnly}
-          hasCloudWall={Boolean(cloudWallId)}
-          isSyncing={isSyncing}
-          hasPendingSync={hasPendingSync}
-          syncError={syncError}
-        />
-
-        {!timelineViewActive && (
-        <WallDetailsSidebar />
-        )}
-
-      </div>
 
       <PrivateNoteModal
         open={privateModal.open}
