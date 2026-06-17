@@ -112,26 +112,29 @@ const TimelineStreamCard = memo(function TimelineStreamCard({
             width={entry.mobile.width}
             height={entry.mobile.height}
             scale="large"
+            surface="timeline-stream"
             selected={selected}
           />
         </div>
         {showDesktopPreview ? (
-          <div className="hidden md:block">
+          <div className="hidden max-w-full overflow-hidden md:block">
             <WallNotePreview
               note={entry.note}
               width={entry.desktop.width}
               height={entry.desktop.height}
               scale="large"
+              surface="timeline-stream"
               selected={selected}
             />
           </div>
         ) : (
-          <div className="hidden md:block">
+          <div className="hidden max-w-full overflow-hidden md:block">
             <WallNotePreview
               note={entry.note}
               width={entry.mobile.width}
               height={entry.mobile.height}
               scale="large"
+              surface="timeline-stream"
               selected={selected}
             />
           </div>
@@ -252,7 +255,7 @@ export const WallTimelineView = ({
         onExit={onExit}
       />
 
-      <div className="wall-timeline-scrollbar relative h-full overflow-auto px-4 pb-24 pt-44 sm:px-6 sm:pt-48 lg:px-10">
+      <div className="wall-timeline-scrollbar relative h-full overflow-x-hidden overflow-y-auto px-4 pb-24 pt-44 sm:px-6 sm:pt-48 lg:px-10">
         <div className="relative mx-auto max-w-6xl pb-20">
           <div
             className="pointer-events-none absolute bottom-0 top-0 left-1/2 hidden -translate-x-1/2 md:block"

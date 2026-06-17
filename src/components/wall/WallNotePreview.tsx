@@ -5,6 +5,8 @@ import { memo, type CSSProperties, type ReactNode } from "react";
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, truncateNoteText } from "@/components/wall/wall-canvas-helpers";
 import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
+import { getTimelineNoteLabel, getTimelineNoteSubtitle } from "@/components/wall/wallTimelineStreamHelpers";
+import type { WallPreviewSurface } from "@/components/wall/wallNotePreviewSizing";
 import { deriveWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
@@ -21,6 +23,7 @@ type WallNotePreviewProps = {
   height: number;
   scale: "small" | "medium" | "large";
   tone?: "card" | "detail";
+  surface?: WallPreviewSurface;
   selected?: boolean;
 };
 
@@ -338,9 +341,9 @@ const shellStyle = ({ note, selected, tone }: Pick<WallNotePreviewProps, "note" 
   position: "relative",
 });
 
-const NoteShell = ({ children, note, width, height, selected, tone }: WallNotePreviewProps & { children: ReactNode }) => (
+const NoteShell = ({ children, note, width, height, selected, tone, surface }: WallNotePreviewProps & { children: ReactNode }) => (
   <div
-    className="relative"
+    className={`relative max-w-full ${surface === "timeline-stream" ? "overflow-hidden" : ""}`}
     style={{
       ...shellStyle({ note, selected, tone }),
       width,
@@ -517,9 +520,9 @@ const VocabularyRenderer = ({ note, width, height, readableText, activeBackgroun
   );
 };
 
-const WebBookmarkRenderer = ({ note, width, height, tone }: Pick<RendererProps, "note" | "width" | "height" | "tone">) => (
-  <div style={{ width, height }}>
-    <WebBookmarkCard note={note} tone={tone} />
+const WebBookmarkRenderer = ({ note, width, height, tone, surface }: Pick<RendererProps, "note" | "width" | "height" | "tone" | "surface">) => (
+  <div className="max-w-full overflow-hidden" style={{ width, height }}>
+    <WebBookmarkCard note={note} tone={tone} displaySizeOverride={surface === "timeline-stream" ? "compact" : undefined} />
   </div>
 );
 
@@ -641,20 +644,29 @@ const CodeRenderer = ({ note, width, height, tone }: RendererProps) => {
   );
 };
 
-const FileRenderer = ({ note, width, height, tone }: RendererProps) => {
+const FileRenderer = ({ note, width, height, tone, surface }: RendererProps) => {
+  const isTimelineStream = surface === "timeline-stream";
   const text = stripWikiLinkMarkup(note.text);
   const match = fileNameMatch(text);
-  const file = note.noteKind === "file" ? getFileNoteTitle(note.file) : match?.[1] ?? "Document";
-  const meta = note.noteKind === "file" ? getFileNoteMeta(note.file) : text.replace(file, "").trim() || "File note";
+  const file = isTimelineStream
+    ? getTimelineNoteLabel(note)
+    : note.noteKind === "file"
+      ? getFileNoteTitle(note.file)
+      : match?.[1] ?? "Document";
+  const meta = isTimelineStream
+    ? getTimelineNoteSubtitle(note) ?? "File note"
+    : note.noteKind === "file"
+      ? getFileNoteMeta(note.file)
+      : text.replace(file, "").trim() || "File note";
   return (
-    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="flex h-full items-center gap-4 p-5">
-        <div className="flex h-12 w-12 items-center justify-center rounded-[14px]" style={{ background: "rgba(163,56,24,0.10)", color: atelier.terracotta }}>▤</div>
+    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone} surface={surface}>
+      <div className="flex h-full items-center gap-4 overflow-hidden p-5">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]" style={{ background: "rgba(163,56,24,0.10)", color: atelier.terracotta }}>▤</div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold" style={{ color: atelier.ink }}>{file}</p>
+          <p className="truncate text-sm font-bold [overflow-wrap:anywhere]" style={{ color: atelier.ink }}>{file}</p>
           <p className="mt-1 truncate text-[11px] uppercase tracking-[0.14em]" style={{ color: atelier.quiet }}>{meta}</p>
         </div>
-        <div className="text-lg" style={{ color: "rgba(139,113,106,0.68)" }}>↓</div>
+        <div className="shrink-0 text-lg" style={{ color: "rgba(139,113,106,0.68)" }}>↓</div>
       </div>
     </NoteShell>
   );
@@ -820,14 +832,14 @@ const resolveRendererKey = (note: Note) => {
   return note.noteKind ? "fallback" : "standard";
 };
 
-export const WallNotePreview = memo(function WallNotePreview({ note, width, height, scale, tone = "card", selected = false }: WallNotePreviewProps) {
+export const WallNotePreview = memo(function WallNotePreview({ note, width, height, scale, tone = "card", surface = "wall", selected = false }: WallNotePreviewProps) {
   const colors = readCardColors(note);
   const textStyle = getNoteTextStyle(note.textSize, note.textSizePx);
   const config = previewConfig[scale];
   const renderNote = (noteRenderers[resolveRendererKey(note)] ?? noteRenderers.fallback) as NoteRenderer;
 
   return (
-    <div className="relative" data-note-kind={note.noteKind ?? "standard"}>
+    <div className="relative max-w-full overflow-hidden" data-note-kind={note.noteKind ?? "standard"}>
       {selected && <div className="pointer-events-none absolute -inset-1 rounded-[24px] border border-[#a33818] opacity-80" />}
       {renderNote({
         note,
@@ -835,6 +847,7 @@ export const WallNotePreview = memo(function WallNotePreview({ note, width, heig
         height,
         scale,
         tone,
+        surface,
         selected,
         readableText: colors.readableText || note.textColor || NOTE_DEFAULTS.textColor,
         mutedText: colors.mutedText,

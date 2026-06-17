@@ -21,13 +21,15 @@ Current capabilities include:
 - grouping notes by day with centered date markers such as `Today`, `Yesterday`, or a full calendar date
 - alternating note placement across the central timeline rail while allowing pinned notes to sit centered in the stream
 - reusing the lightweight DOM-based `WallNotePreview` component (the same system used by other timeline surfaces) so specialized note kinds keep their dedicated shells without the overhead of a full Konva canvas stage per card
-- preserving the wall note's stored width and height exactly in timeline previews so the timeline card is a direct copy of the wall note rather than a fitted or reduced preview
+- preserving the wall note's stored width and height for journal, quote, image, and other narrative note kinds while clamping oversized file and bookmark cards to a compact stream-friendly size
 - selecting a note in the stream to highlight it without entering edit mode
 - revealing the selected note back on the spatial wall via double-click, the **Reveal on Wall** action, or `Enter`
 - keyboard navigation across chronological entries with `↑`/`↓` or `J`/`K`, plus `[`/`]` or **Prev**/**Next** for filtered navigation, `Enter` to reveal, and `Escape` to exit
 - searching the stream client-side across note titles, first lines, tags, and file names
 - jumping directly to a day section from the header day picker
 - moving between filtered entries with header **Prev**/**Next** controls while keeping the selected card scrolled into view
+- showing readable primary labels and compact metadata for file and bookmark entries (user title or first line first, filename once, kind/size subtitle) instead of raw attachment theater
+- keeping attachment cards within the stream column without horizontal scrolling at default desktop widths
 
 Timeline remains view-only for note content. Notes in this mode do not open the details panel, do not enter inline editing, and do not mutate note data from the timeline surface.
 

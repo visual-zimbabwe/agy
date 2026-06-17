@@ -15,6 +15,7 @@ import type { Note } from "@/features/wall/types";
 type WebBookmarkCardProps = {
   note: Note;
   tone?: "wall" | "card" | "detail";
+  displaySizeOverride?: "compact" | "comfortable" | "expanded";
   interactive?: boolean;
   onOpen?: () => void;
   className?: string;
@@ -34,10 +35,10 @@ const actionLabelByStatus = {
   error: "Retry",
 } as const;
 
-export const WebBookmarkCard = ({ note, tone = "card", interactive = false, onOpen, className = "", style }: WebBookmarkCardProps) => {
+export const WebBookmarkCard = ({ note, tone = "card", displaySizeOverride, interactive = false, onOpen, className = "", style }: WebBookmarkCardProps) => {
   const bookmark = note.bookmark;
   const metadata = bookmark?.metadata;
-  const displaySize = resolveBookmarkDisplaySize(note);
+  const displaySize = displaySizeOverride ?? resolveBookmarkDisplaySize(note);
   const domain = bookmarkDomainLabel(metadata?.domain || bookmark?.normalizedUrl || bookmark?.url);
   const title = metadata?.title?.trim() || domain || "Paste a URL";
   const description = metadata?.description?.trim() || (bookmark?.status === "error" ? bookmark.error || "Preview could not be loaded." : "Save a webpage as a rich bookmark preview.");
