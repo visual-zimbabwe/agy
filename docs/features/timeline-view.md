@@ -22,8 +22,11 @@ Current capabilities include:
 - alternating note placement across the central timeline rail while allowing pinned notes to sit centered in the stream
 - reusing the lightweight DOM-based `WallNotePreview` component (the same system used by other timeline surfaces) so specialized note kinds keep their dedicated shells without the overhead of a full Konva canvas stage per card
 - preserving the wall note's stored width and height exactly in timeline previews so the timeline card is a direct copy of the wall note rather than a fitted or reduced preview
+- selecting a note in the stream to highlight it without entering edit mode
+- revealing the selected note back on the spatial wall via double-click, the **Reveal on Wall** action, or `Enter`
+- keyboard navigation across chronological entries with `↑`/`↓` or `J`/`K`, plus `Enter` to reveal and `Escape` to exit
 
-Timeline is intentionally view-only today. Notes in this mode do not open details, do not reveal themselves back on the wall when clicked, and do not enter editing flows from the timeline surface.
+Timeline remains view-only for note content. Notes in this mode do not open the details panel, do not enter inline editing, and do not mutate note data from the timeline surface.
 
 ## Data and State
 
@@ -36,7 +39,7 @@ Relevant wall concepts:
 - note pin state for centered presentation
 - note-kind-specific preview rendering shared with `/wall`
 
-The current timeline layout is downstream of wall note state. It does not own a separate editor, details panel, or reveal workflow.
+The current timeline layout is downstream of wall note state. Selection syncs with the wall's primary note selection, and reveal hands off to the existing wall focus/pan workflow.
 
 ## Edge Cases
 
@@ -47,7 +50,7 @@ The current timeline layout is downstream of wall note state. It does not own a 
 ## Limitations
 
 - Timeline ordering currently follows created time, not a user-selectable sort mode.
-- Timeline is intentionally non-interactive beyond scrolling and exiting the mode.
+- Timeline does not support inline editing, search, or date jump yet; those are planned follow-ups.
 - The current implementation is part of the wall experience, not a standalone route or subsystem.
 
 ## Related Docs

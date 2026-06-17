@@ -969,16 +969,19 @@ Expected:
 7. Verify pinned notes render centered in the timeline stream rather than joining the left-right alternation.
 8. Scroll through the timeline and verify each note shows a compact timestamp beneath the card without clipping or overlapping the surrounding layout.
 9. Resize the wall note larger, reopen timeline view, and verify the timeline copy grows with it at the same width and height as the wall note instead of shrinking into a fitted preview.
-10. Verify clicking a note does not open details, does not reveal the note on the wall, and does not enter any editor flow.
-11. Press `Escape` or click `Close` and verify the app exits Timeline.
-12. Resize to a mobile-sized viewport and verify Timeline collapses into a readable single-column stream while keeping date markers and timestamps visible.
+10. Click a note and verify it highlights with a terracotta selection ring without opening an editor or details panel.
+11. With a note selected, click **Reveal on Wall** (or double-click the note on desktop) and verify Timeline closes and the wall focuses/pans to that note.
+12. Reopen Timeline, select a note, press `Enter`, and verify the same reveal behavior.
+13. Reopen Timeline and use `J`/`K` or `↑`/`↓` to move selection across entries; verify the stream scrolls the selected note into view.
+14. Press `Escape` or click `Close` and verify the app exits Timeline.
+15. Resize to a mobile-sized viewport, tap a note to select it, tap **Reveal on Wall**, and verify the wall focuses that note without relying on double-click.
 
 Expected:
-- Timeline provides a read-only vertical chronological review surface rather than an interactive editor or detail browser.
+- Timeline provides a read-only vertical chronological review surface rather than an inline editor or details browser.
 - Timeline notes preserve the same note-type identity and visual treatment used on `/wall`.
 - Timeline notes preserve the same wall note dimensions rather than shrinking into a smaller fitted timeline card.
 - The centered date rail, day chips, and timestamp labels remain fully visible on desktop and mobile-sized viewports.
-- Notes cannot be opened, edited, or revealed from timeline view.
+- Notes can be selected and revealed back on the wall, but cannot be edited from timeline view.
 ## Wiki Links and Backlinks (`/wall`) (2026-03-16)
 1. Open `/wall`, create at least three notes with distinct first-line titles.
 2. Edit one note and type `[[`; verify a suggestion menu appears at the caret with existing note titles.
