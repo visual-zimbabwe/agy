@@ -9,11 +9,8 @@ import {
   normalizeAccountSettings,
   persistAccountSettingsLocally,
 } from "@/lib/account-settings";
-import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
-import { applyPreferencesToDocument, preferenceStorageKeys, readStoredPreferences } from "@/lib/preferences";
+import { applyPreferencesToDocument, persistLastVisitedPath, readLastVisitedPath, readStoredPreferences } from "@/lib/preferences";
 import { getSupabaseBrowserSessionSafely } from "@/lib/supabase/browser-auth";
-
-const allowedStartupPaths = new Set(["/wall", "/page", "/decks", "/media", "/settings", "/help"]);
 
 export const StartupRouteHandler = () => {
   const pathname = usePathname();
@@ -34,6 +31,7 @@ export const StartupRouteHandler = () => {
     let cancelled = false;
     const bootstrap = async () => {
       applyLatest();
+      readLastVisitedPath();
 
       const { session } = await getSupabaseBrowserSessionSafely();
       if (cancelled) {
@@ -92,9 +90,7 @@ export const StartupRouteHandler = () => {
     if (!pathname) {
       return;
     }
-    if (allowedStartupPaths.has(pathname)) {
-      writeStorageValue(preferenceStorageKeys.lastVisitedPath, pathname);
-    }
+    persistLastVisitedPath(pathname);
   }, [pathname]);
 
   useEffect(() => {
@@ -104,12 +100,8 @@ export const StartupRouteHandler = () => {
     handledHomeRedirectRef.current = true;
 
     const preferences = readStoredPreferences();
-    const lastVisitedPath = readStorageValue(preferenceStorageKeys.lastVisitedPath, []);
-    if (
-      preferences.startupBehavior === "continue_last" &&
-      lastVisitedPath &&
-      allowedStartupPaths.has(lastVisitedPath)
-    ) {
+    const lastVisitedPath = readLastVisitedPath();
+    if (preferences.startupBehavior === "continue_last" && lastVisitedPath) {
       router.replace(lastVisitedPath);
       return;
     }

@@ -5,6 +5,8 @@ export type ThemePreference = "system" | "light" | "dark";
 export type StartupBehavior = "default_page" | "continue_last";
 export type StartupPage = "/wall" | "/page" | "/decks" | "/settings";
 
+export const allowedStartupPaths = new Set<StartupPage | "/help">(["/wall", "/page", "/decks", "/settings", "/help"]);
+
 export type UserPreferences = {
   theme: ThemePreference;
   startupBehavior: StartupBehavior;
@@ -99,4 +101,47 @@ export const applyPreferencesToDocument = (preferences: UserPreferences) => {
   }
 
   document.documentElement.dataset.themePreference = preferences.theme;
+};
+
+const sanitizeLastVisitedPath = (value: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  if (value === "/media") {
+    return "/wall";
+  }
+
+  return allowedStartupPaths.has(value as StartupPage | "/help") ? value : null;
+};
+
+export const readLastVisitedPath = (): string | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = readStorageValue(preferenceStorageKeys.lastVisitedPath, [legacyPreferenceStorageKeys.lastVisitedPath]);
+  const sanitized = sanitizeLastVisitedPath(raw);
+
+  if (raw && sanitized !== raw) {
+    try {
+      writeStorageValue(preferenceStorageKeys.lastVisitedPath, sanitized ?? "/wall");
+    } catch {
+      // Ignore write failures (private mode/quota constraints).
+    }
+  }
+
+  return sanitized;
+};
+
+export const persistLastVisitedPath = (pathname: string) => {
+  if (typeof window === "undefined" || !allowedStartupPaths.has(pathname as StartupPage | "/help")) {
+    return;
+  }
+
+  try {
+    writeStorageValue(preferenceStorageKeys.lastVisitedPath, pathname);
+  } catch {
+    // Ignore write failures (private mode/quota constraints).
+  }
 };

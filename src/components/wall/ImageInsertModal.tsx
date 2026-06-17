@@ -2,7 +2,7 @@
 
 import { useRef, useState, type DragEvent } from "react";
 
-import { UnsplashPicker } from "@/components/media/UnsplashPicker";
+import { UnsplashPicker } from "@/components/unsplash/UnsplashPicker";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { Button } from "@/components/ui/Button";
 import type { UnsplashPhoto } from "@/lib/unsplash";
