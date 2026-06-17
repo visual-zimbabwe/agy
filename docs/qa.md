@@ -631,21 +631,21 @@ Expected:
 - History depth indicator is visible and updates correctly.
 - Clearing history requires confirmation and is irreversible.
 
-## Time-Based Views
+## Time-Based Views (Wall History)
 1. Make several edits over 1-2 minutes (create notes, move notes, change tags/colors).
-2. Toggle timeline mode (`T`) and verify timeline controls appear at the bottom.
-3. Drag timeline slider backward and confirm wall state rewinds.
+2. Toggle wall history replay (`T`) and verify history controls appear at the bottom.
+3. Drag the history slider backward and confirm wall state rewinds.
 4. Click `Play` and verify snapshots replay forward.
 5. Toggle heatmap (`H`) and confirm recently updated notes appear warmer/stronger.
-6. Verify GitHub-style calendar heatmap appears and click a highlighted day to jump timeline.
-7. Exit timeline mode and verify editing is enabled again.
+6. Verify GitHub-style calendar heatmap appears and click a highlighted day to jump wall history.
+7. Exit wall history and verify editing is enabled again.
 
 Expected:
-- Timeline mode is navigable with slider and playback.
+- Wall history is navigable with slider and playback.
 - Playback reflects historical snapshots in order.
 - Heatmap visually emphasizes recently changed notes.
-- Calendar heatmap mirrors GitHub-style day grid and supports day-based timeline jump.
-- Timeline mode is read-only for wall mutations.
+- Calendar heatmap mirrors GitHub-style day grid and supports day-based history jump.
+- Wall history is read-only for wall mutations.
 
 ## Share and Export Upgrades
 1. Open Export modal and export PDF for each scope (`Current view`, `Whole wall`, `Selected zone`, `Selected notes`).
@@ -959,9 +959,9 @@ Expected:
 - Backup export/import remains compatible with current and legacy-shaped snapshots.
 
 
-## Horizontal Timeline View
+## Timeline
 1. Open `/wall` and create or load several notes with different creation times, including at least one journal note, one quote note, one image note, and one pinned note.
-2. Click `Timeline View` in the top toolbar or press `V`.
+2. Click `Timeline` in the top toolbar or press `V`.
 3. Verify the timeline opens as a vertical editorial stream with a warm paper background, a centered timeline rail, and day markers such as `Today` or `Yesterday`.
 4. Verify notes render with the same specialized frontend shells used on `/wall` instead of generic cards, including readable journal, quote, image, and pinned-note treatments.
 5. Verify a note that fits on the wall keeps the same visible width and height in timeline view rather than shrinking into a smaller preview card.
@@ -970,11 +970,11 @@ Expected:
 8. Scroll through the timeline and verify each note shows a compact timestamp beneath the card without clipping or overlapping the surrounding layout.
 9. Resize the wall note larger, reopen timeline view, and verify the timeline copy grows with it at the same width and height as the wall note instead of shrinking into a fitted preview.
 10. Verify clicking a note does not open details, does not reveal the note on the wall, and does not enter any editor flow.
-11. Press `Escape` or click `Close` and verify the app exits timeline view.
-12. Resize to a mobile-sized viewport and verify the timeline collapses into a readable single-column stream while keeping date markers and timestamps visible.
+11. Press `Escape` or click `Close` and verify the app exits Timeline.
+12. Resize to a mobile-sized viewport and verify Timeline collapses into a readable single-column stream while keeping date markers and timestamps visible.
 
 Expected:
-- Timeline view provides a read-only chronological review surface rather than an interactive editor or detail browser.
+- Timeline provides a read-only vertical chronological review surface rather than an interactive editor or detail browser.
 - Timeline notes preserve the same note-type identity and visual treatment used on `/wall`.
 - Timeline notes preserve the same wall note dimensions rather than shrinking into a smaller fitted timeline card.
 - The centered date rail, day chips, and timestamp labels remain fully visible on desktop and mobile-sized viewports.
