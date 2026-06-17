@@ -4,6 +4,7 @@ import {
   buildTimelineStreamGroups,
   estimateTimelineStreamRowHeight,
   filterTimelineStreamNotes,
+  findTimelineStreamEntry,
   flattenTimelineStreamGroups,
   formatTimelineStreamDayLabel,
   getTimelineNoteLabel,
@@ -404,5 +405,18 @@ describe("estimateTimelineStreamRowHeight", () => {
     expect(estimateTimelineStreamRowHeight(entryItem, { isDesktop: false, isSelected: true })).toBe(
       baseHeight + TIMELINE_STREAM_ROW_METRICS.revealButton,
     );
+  });
+});
+
+describe("findTimelineStreamEntry", () => {
+  it("returns the matching entry across day groups", () => {
+    const groups = buildTimelineStreamGroups([
+      makeNote({ id: "older", text: "Older", createdAt: Date.UTC(2026, 2, 15, 12, 0, 0) }),
+      makeNote({ id: "newer", text: "Newer", createdAt: Date.UTC(2026, 2, 16, 12, 0, 0) }),
+    ]);
+
+    expect(findTimelineStreamEntry(groups, "newer")?.note.id).toBe("newer");
+    expect(findTimelineStreamEntry(groups, "missing")).toBeUndefined();
+    expect(findTimelineStreamEntry(groups)).toBeUndefined();
   });
 });

@@ -16,7 +16,7 @@ type WallTimelineDetailPanelProps = {
 export const WallTimelineDetailPanel = ({ note, timestamp, onReveal, onClose }: WallTimelineDetailPanelProps) => {
   if (!note || typeof timestamp !== "number") {
     return (
-      <aside className="hidden w-[360px] shrink-0 border-l border-[var(--timeline-panel-border)] bg-[var(--timeline-panel)]/88 p-4 backdrop-blur-xl xl:block">
+      <aside className="hidden h-full w-[360px] shrink-0 border-l border-[var(--timeline-panel-border)] bg-[var(--timeline-panel)]/88 p-4 backdrop-blur-xl xl:block">
         <div className="flex h-full flex-col items-center justify-center rounded-[28px] border border-dashed border-[var(--timeline-panel-border)] bg-[var(--timeline-panel-alt)] px-6 text-center">
           <p className="text-sm font-semibold text-[var(--timeline-text)]">Select a note</p>
           <p className="mt-2 text-sm text-[var(--timeline-text-muted)]">The detail panel keeps rich note content readable when smaller timeline cards need truncation.</p>
@@ -30,7 +30,7 @@ export const WallTimelineDetailPanel = ({ note, timestamp, onReveal, onClose }: 
   });
 
   return (
-    <aside className="hidden w-[380px] shrink-0 border-l border-[var(--timeline-panel-border)] bg-[var(--timeline-panel)]/92 p-4 backdrop-blur-xl xl:block">
+    <aside className="hidden h-full w-[380px] shrink-0 border-l border-[var(--timeline-panel-border)] bg-[var(--timeline-panel)]/92 p-4 backdrop-blur-xl xl:block">
       <div className="flex h-full flex-col gap-4 overflow-hidden">
         <div className="flex items-start justify-between gap-3">
           <div>

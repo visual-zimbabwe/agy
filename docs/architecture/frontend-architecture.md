@@ -60,7 +60,9 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
   - `src/components/wall/useWallTimelineStream.ts`: stream filter/sort/selection state and flattened virtual item list
   - `src/components/wall/useIsDesktopTimelineLayout.ts`: breakpoint hook for desktop vs mobile stream layout
   - `src/components/wall/wallTimelineStreamHelpers.ts`: grouping, search predicates, selection helpers, and row-height estimation
-  - `src/components/wall/wallTimelineViewHelpers.ts`: shared date formatting and horizontal-layout helpers retained for legacy timeline canvas code
+  - `src/components/wall/WallTimelineDetailPanel.tsx`: read-only selected-note detail rail on `xl+` stream viewports
+  - `src/components/wall/wallTimelineViewHelpers.ts`: shared date formatting helpers
+  - `src/components/wall/wallTimelineViewLayout.ts`: legacy horizontal canvas layout engine retained for tests only
 
 ### Decks
 

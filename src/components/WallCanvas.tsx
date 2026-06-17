@@ -3751,11 +3751,11 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           <WallTimelineView
             notes={notes}
             selectedNoteId={ui.selectedNoteId}
-            activeTimestamp={activeTimelineEntry?.ts}
             onSelectNote={(noteId) => {
               syncPrimarySelection([noteId]);
               selectNote(noteId);
             }}
+            onClearSelection={clearNoteSelection}
             onRevealNote={revealNoteFromTimeline}
             onExit={() => setTimelineViewActive(false)}
           />

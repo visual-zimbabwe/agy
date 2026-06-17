@@ -4,7 +4,7 @@
 
 ### Added
 
-- Wall `web-bookmark` notes with server-side metadata fetch, local URL-level caching, timeline/detail previews, and synced bookmark payload support
+- Timeline stream detail rail on `xl+` viewports with tags, timestamps, larger preview, and **Reveal on Wall** action
 - Wall `apod` notes backed by the NASA Astronomy Picture of the Day API, including daily refresh, backend download flow, and synced APOD payload support
 - Wall `poetry` notes backed by PoetryDB, including daily auto-refresh, details-sidebar poem search by PoetryDB fields, adaptive poem sizing, and PNG/PDF export actions
 - Wall `economist` cover notes backed by the local magazine-cover API, including multi-source creation for Economist/Barron's/New Yorker/Newsweek/Forbes/The Week, login-time refresh, details conversion, and floating source/refresh actions
@@ -35,6 +35,7 @@
 
 ### Changed
 
+- Timeline stream now ships search, day jump, prev/next navigation, attachment-friendly labels, virtualization, and a read-only detail rail; orphaned horizontal timeline canvas components were removed
 - `/page` and `/media` now server-redirect to `/wall`
 - Startup and last-visited path preferences migrate away from `/page` and `/media`
 - One-time boot migration clears local page-editor IndexedDB data, wall/page link localStorage, and best-effort authenticated cloud `page_docs` / `page-files` data without touching wall or decks storage

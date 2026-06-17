@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import {
   buildTimelineStreamGroups,
+  findTimelineStreamEntry,
   flattenTimelineStreamGroups,
   getTimelineStreamDayOptions,
   moveTimelineStreamSelection,
@@ -16,9 +17,10 @@ type UseWallTimelineStreamOptions = {
   notes: Note[];
   selectedNoteId?: string;
   onSelectNote: (noteId: string) => void;
+  onClearSelection?: () => void;
 };
 
-export const useWallTimelineStream = ({ notes, selectedNoteId, onSelectNote }: UseWallTimelineStreamOptions) => {
+export const useWallTimelineStream = ({ notes, selectedNoteId, onSelectNote, onClearSelection }: UseWallTimelineStreamOptions) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<TimelineStreamSortMode>("created");
   const [selectedDayKey, setSelectedDayKey] = useState("");
@@ -36,6 +38,10 @@ export const useWallTimelineStream = ({ notes, selectedNoteId, onSelectNote }: U
   const hasActiveSearch = searchQuery.trim().length > 0;
 
   const effectiveSelectedId = resolveTimelineStreamSelection(entryIds, selectedNoteId, localSelectedId);
+  const selectedEntry = useMemo(
+    () => findTimelineStreamEntry(groups, effectiveSelectedId),
+    [effectiveSelectedId, groups],
+  );
 
   const selectEntry = useCallback(
     (noteId: string) => {
@@ -66,6 +72,11 @@ export const useWallTimelineStream = ({ notes, selectedNoteId, onSelectNote }: U
     setSelectedDayKey(dayKey);
   }, []);
 
+  const clearSelection = useCallback(() => {
+    setLocalSelectedId(undefined);
+    onClearSelection?.();
+  }, [onClearSelection]);
+
   const canMovePrevious = Boolean(effectiveSelectedId && entryIds.indexOf(effectiveSelectedId) > 0);
   const canMoveNext = Boolean(
     effectiveSelectedId && entryIds.indexOf(effectiveSelectedId) >= 0 && entryIds.indexOf(effectiveSelectedId) < entryIds.length - 1,
@@ -86,7 +97,9 @@ export const useWallTimelineStream = ({ notes, selectedNoteId, onSelectNote }: U
     filteredNoteCount,
     hasActiveSearch,
     effectiveSelectedId,
+    selectedEntry,
     selectEntry,
+    clearSelection,
     moveSelection,
     canMovePrevious,
     canMoveNext,
