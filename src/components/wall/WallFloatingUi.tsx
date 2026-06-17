@@ -1,7 +1,5 @@
 "use client";
 
-import type { Dispatch, FocusEvent, SetStateAction } from "react";
-
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { AudioNoteEditor } from "@/components/wall/AudioNoteEditor";
 import { ImageNoteEditor } from "@/components/wall/ImageNoteEditor";
@@ -14,97 +12,8 @@ import { WallLinkContextMenu } from "@/components/wall/WallLinkContextMenu";
 import { WallPresentationDock } from "@/components/wall/WallPresentationDock";
 import { WallTimelineDock } from "@/components/wall/WallTimelineDock";
 import { WallZoomControls } from "@/components/wall/WallZoomControls";
+import { useWallChrome } from "@/components/wall/session/wall-chrome-context";
 import { sanitizeStandardNoteColor } from "@/features/wall/special-notes";
-import type { LinkType, Note } from "@/features/wall/types";
-
-type LinkContextMenuState = {
-  open: boolean;
-  x: number;
-  y: number;
-  linkId?: string;
-};
-
-type WallFloatingUiProps = {
-  editing: { id: string; text: string; focusField?: string } | null;
-  notesById: Record<string, Note>;
-  linksById: Record<string, { id: string }>;
-  camera: { x: number; y: number; zoom: number };
-  isTimeLocked: boolean;
-  editTagInput: string;
-  editTagRenameFrom: string | null;
-  setEditing: (value: { id: string; text: string } | null) => void;
-  handleEditorBlur: (event: FocusEvent<HTMLTextAreaElement>) => void;
-  setEditTagInput: (value: string) => void;
-  setEditTagRenameFrom: (value: string | null) => void;
-  addTagToNote: (noteId: string, tag: string) => void;
-  removeTagFromNote: (noteId: string, tag: string) => void;
-  renameTagOnNote: (noteId: string, fromTag: string, toTag: string) => void;
-  toScreenPoint: (worldX: number, worldY: number, camera: { x: number; y: number; zoom: number }) => { x: number; y: number };
-  tagPreviewScreen?: { x: number; y: number };
-  tagPreviewNote?: Note;
-  tagPreviewPalette?: { bg: string; border: string; text: string };
-  updateNote: (noteId: string, patch: Partial<Note>) => void;
-  openImageInsert: (noteId: string) => void;
-  wikiLinkOptions: Array<{ noteId: string; title: string }>;
-  linkMenu: LinkContextMenuState;
-  maxViewportWidth: number;
-  maxViewportHeight: number;
-  setLinkMenu: Dispatch<SetStateAction<LinkContextMenuState>>;
-  deleteLink: (linkId: string) => void;
-  updateLinkType: (linkId: string, type: LinkType) => void;
-  showHeatmap: boolean;
-  timelineEntries: Array<{ ts: number }>;
-  jumpToTimelineDay: (day: string) => void;
-  timelineMode: boolean;
-  timelineIndex: number;
-  isTimelinePlaying: boolean;
-  setIsTimelinePlaying: Dispatch<SetStateAction<boolean>>;
-  setTimelineIndex: Dispatch<SetStateAction<number>>;
-  presentationMode: boolean;
-  presentationIndex: number;
-  presentationLength: number;
-  presentationModeType: "notes" | "narrative";
-  narrativePaths: Array<{ id: string; title: string; stepsCount: number }>;
-  activeNarrativePathId: string;
-  activeStepTalkingPoints: string;
-  onCreateNarrativePath: () => void;
-  onPathChange: (pathId: string) => void;
-  onAddNarrativeStep: () => void;
-  onDeleteNarrativeStep: () => void;
-  onUpdateStepTalkingPoints: (value: string) => void;
-  onCaptureNarrativeStepCamera: () => void;
-  setPresentationIndex: Dispatch<SetStateAction<number>>;
-  setPresentationMode: Dispatch<SetStateAction<boolean>>;
-  canZoomToSelection: boolean;
-  detailsPanelOpen: boolean;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onResetZoom: () => void;
-  onZoomToFit: () => void;
-  onZoomToSelection: () => void;
-  onSubmitBookmarkUrl: (noteId: string, url: string, options?: { force?: boolean }) => void;
-  onOpenBookmarkUrl: (url: string) => void;
-  onSelectImageNoteFile: (noteId: string, file: File) => Promise<void>;
-  onSubmitImageNoteUrl: (noteId: string, url: string) => Promise<void> | void;
-  onRenameImageNote: (noteId: string, name: string) => void;
-  onUpdateImageCaption: (noteId: string, caption: string) => void;
-  onOpenImageNote: (noteId: string) => void;
-  onDownloadImageNote: (noteId: string) => void;
-  onSelectFileNoteFile: (noteId: string, file: File) => Promise<void>;
-  onSubmitFileNoteUrl: (noteId: string, url: string) => void;
-  onOpenFileNote: (noteId: string) => void;
-  onDownloadFileNote: (noteId: string) => void;
-  onSelectAudioNoteFile: (noteId: string, file: File) => Promise<void>;
-  onSubmitAudioNoteUrl: (noteId: string, url: string) => void;
-  onRenameAudioNote: (noteId: string, name: string) => void;
-  onOpenAudioNote: (noteId: string) => void;
-  onDownloadAudioNote: (noteId: string) => void;
-  onSelectVideoNoteFile: (noteId: string, file: File) => Promise<void>;
-  onSubmitVideoNoteUrl: (noteId: string, url: string) => Promise<void> | void;
-  onRenameVideoNote: (noteId: string, name: string) => void;
-  onOpenVideoNote: (noteId: string) => void;
-  onDownloadVideoNote: (noteId: string) => void;
-};
 
 const noteEditorSectionClass =
   "mt-2 rounded-xl border border-[var(--color-border-muted)] bg-[var(--color-surface-glass)] p-2 text-[var(--color-text)] shadow-[var(--shadow-md)] backdrop-blur-[var(--blur-panel)]";
@@ -116,92 +25,71 @@ const noteEditorTagChipClass =
 const noteEditorSecondaryButtonClass =
   "rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[11px] text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]";
 
-export const WallFloatingUi = ({
-  editing,
-  notesById,
-  linksById,
-  camera,
-  isTimeLocked,
-  editTagInput,
-  editTagRenameFrom,
-  setEditing,
-  handleEditorBlur,
-  setEditTagInput,
-  setEditTagRenameFrom,
-  addTagToNote,
-  removeTagFromNote,
-  renameTagOnNote,
-  toScreenPoint,
-  tagPreviewScreen,
-  tagPreviewNote,
-  tagPreviewPalette,
-  updateNote,
-  openImageInsert,
-  wikiLinkOptions,
-  linkMenu,
-  maxViewportWidth,
-  maxViewportHeight,
-  setLinkMenu,
-  deleteLink,
-  updateLinkType,
-  showHeatmap,
-  timelineEntries,
-  jumpToTimelineDay,
-  timelineMode,
-  timelineIndex,
-  isTimelinePlaying,
-  setIsTimelinePlaying,
-  setTimelineIndex,
-  presentationMode,
-  presentationIndex,
-  presentationLength,
-  presentationModeType,
-  narrativePaths,
-  activeNarrativePathId,
-  activeStepTalkingPoints,
-  onCreateNarrativePath,
-  onPathChange,
-  onAddNarrativeStep,
-  onDeleteNarrativeStep,
-  onUpdateStepTalkingPoints,
-  onCaptureNarrativeStepCamera,
-  setPresentationIndex,
-  setPresentationMode,
-  canZoomToSelection,
-  detailsPanelOpen,
-  onZoomIn,
-  onZoomOut,
-  onResetZoom,
-  onZoomToFit,
-  onZoomToSelection,
-  onSubmitBookmarkUrl,
-  onOpenBookmarkUrl,
-  onSelectImageNoteFile,
-  onSubmitImageNoteUrl,
-  onRenameImageNote,
-  onUpdateImageCaption,
-  onOpenImageNote,
-  onDownloadImageNote,
-  onSelectFileNoteFile,
-  onSubmitFileNoteUrl,
-  onOpenFileNote,
-  onDownloadFileNote,
-  onSelectAudioNoteFile,
-  onSubmitAudioNoteUrl,
-  onRenameAudioNote,
-  onOpenAudioNote,
-  onDownloadAudioNote,
-  onSelectVideoNoteFile,
-  onSubmitVideoNoteUrl,
-  onRenameVideoNote,
-  onOpenVideoNote,
-  onDownloadVideoNote,
-}: WallFloatingUiProps) => {
+export const WallFloatingUi = () => {
+  const {
+    isTimeLocked,
+    camera,
+    notesById,
+    linksById,
+    toScreenPoint,
+    editing: editingState,
+    mediaNoteActions,
+    zoom,
+    timeline,
+    presentation,
+    linkMenu: linkMenuState,
+    tagPreview,
+  } = useWallChrome();
+
+  const {
+    editing,
+    setEditing,
+    handleEditorBlur,
+    editTagInput,
+    setEditTagInput,
+    editTagRenameFrom,
+    setEditTagRenameFrom,
+    addTagToNote,
+    removeTagFromNote,
+    renameTagOnNote,
+    updateNote,
+    openImageInsert,
+    wikiLinkOptions,
+  } = editingState;
+
+  const {
+    onSubmitBookmarkUrl,
+    onOpenBookmarkUrl,
+    onSelectImageNoteFile,
+    onSubmitImageNoteUrl,
+    onRenameImageNote,
+    onUpdateImageCaption,
+    onOpenImageNote,
+    onDownloadImageNote,
+    onSelectFileNoteFile,
+    onSubmitFileNoteUrl,
+    onOpenFileNote,
+    onDownloadFileNote,
+    onSelectAudioNoteFile,
+    onSubmitAudioNoteUrl,
+    onRenameAudioNote,
+    onOpenAudioNote,
+    onDownloadAudioNote,
+    onSelectVideoNoteFile,
+    onSubmitVideoNoteUrl,
+    onRenameVideoNote,
+    onOpenVideoNote,
+    onDownloadVideoNote,
+  } = mediaNoteActions;
+
+  const { linkMenu, setLinkMenu, deleteLink, updateLinkType, maxViewportWidth, maxViewportHeight } = linkMenuState;
+  const { tagPreviewScreen, tagPreviewNote, tagPreviewPalette } = tagPreview;
+
   const zoomPercent = Math.round(camera.zoom * 100);
   const editingNote = editing ? notesById[editing.id] : undefined;
   const editingCanon = editingNote?.canon;
   const editingBackgroundColor = editingNote ? sanitizeStandardNoteColor(editingNote.color) : undefined;
-  const currentTimelineEntry = timelineEntries[Math.min(timelineIndex, timelineEntries.length - 1)];
+  const currentTimelineEntry = timeline.timelineEntries[Math.min(timeline.timelineIndex, timeline.timelineEntries.length - 1)];
 
   return (
     <>
@@ -607,62 +495,63 @@ export const WallFloatingUi = ({
         onClose={() => setLinkMenu((previous) => ({ ...previous, open: false }))}
       />
 
-      {showHeatmap && (
+      {timeline.showHeatmap && (
         <div className="pointer-events-auto absolute bottom-3 right-3 z-30">
-          <CalendarHeatmap timestamps={timelineEntries.map((entry) => entry.ts)} onSelectDay={jumpToTimelineDay} />
+          <CalendarHeatmap timestamps={timeline.timelineEntries.map((entry) => entry.ts)} onSelectDay={timeline.jumpToTimelineDay} />
         </div>
       )}
 
       <WallZoomControls
         zoomPercent={zoomPercent}
-        showHeatmap={showHeatmap}
-        canZoomToSelection={canZoomToSelection}
-        detailsPanelOpen={detailsPanelOpen}
-        onZoomIn={onZoomIn}
-        onZoomOut={onZoomOut}
-        onResetZoom={onResetZoom}
-        onZoomToFit={onZoomToFit}
-        onZoomToSelection={onZoomToSelection}
+        showHeatmap={timeline.showHeatmap}
+        canZoomToSelection={zoom.canZoomToSelection}
+        detailsPanelOpen={zoom.detailsPanelOpen}
+        onZoomIn={zoom.onZoomIn}
+        onZoomOut={zoom.onZoomOut}
+        onResetZoom={zoom.onResetZoom}
+        onZoomToFit={zoom.onZoomToFit}
+        onZoomToSelection={zoom.onZoomToSelection}
       />
 
-      {timelineMode && timelineEntries.length > 0 && currentTimelineEntry && (
+      {timeline.timelineMode && timeline.timelineEntries.length > 0 && currentTimelineEntry && (
         <WallTimelineDock
-          timelineEntriesLength={timelineEntries.length}
-          timelineIndex={timelineIndex}
-          isTimelinePlaying={isTimelinePlaying}
+          timelineEntriesLength={timeline.timelineEntries.length}
+          timelineIndex={timeline.timelineIndex}
+          isTimelinePlaying={timeline.isTimelinePlaying}
           currentTimestamp={currentTimelineEntry.ts}
-          onTogglePlay={() => setIsTimelinePlaying((value) => !value)}
-          onStart={() => setTimelineIndex(0)}
-          onLatest={() => setTimelineIndex(timelineEntries.length - 1)}
+          onTogglePlay={() => timeline.setIsTimelinePlaying((value) => !value)}
+          onStart={() => timeline.setTimelineIndex(0)}
+          onLatest={() => timeline.setTimelineIndex(timeline.timelineEntries.length - 1)}
           onSeek={(index) => {
-            setIsTimelinePlaying(false);
-            setTimelineIndex(index);
+            timeline.setIsTimelinePlaying(false);
+            timeline.setTimelineIndex(index);
           }}
         />
       )}
 
-      {presentationMode && (
+      {presentation.presentationMode && (
         <WallPresentationDock
-          mode={presentationModeType}
-          presentationIndex={presentationIndex}
-          presentationLength={presentationLength}
-          narrativePaths={narrativePaths}
-          activeNarrativePathId={activeNarrativePathId}
-          activeStepTalkingPoints={activeStepTalkingPoints}
-          onPrev={() => setPresentationIndex((previous) => Math.max(previous - 1, 0))}
-          onNext={() => setPresentationIndex((previous) => Math.min(previous + 1, Math.max(0, presentationLength - 1)))}
-          onCreateNarrativePath={onCreateNarrativePath}
-          onPathChange={onPathChange}
-          onAddStep={onAddNarrativeStep}
-          onDeleteStep={onDeleteNarrativeStep}
-          onUpdateTalkingPoints={onUpdateStepTalkingPoints}
-          onCaptureStepCamera={onCaptureNarrativeStepCamera}
-          onExit={() => setPresentationMode(false)}
+          mode={presentation.presentationModeType}
+          presentationIndex={presentation.presentationIndex}
+          presentationLength={presentation.presentationLength}
+          narrativePaths={presentation.narrativePaths}
+          activeNarrativePathId={presentation.activeNarrativePathId}
+          activeStepTalkingPoints={presentation.activeStepTalkingPoints}
+          onPrev={() => presentation.setPresentationIndex((previous) => Math.max(previous - 1, 0))}
+          onNext={() =>
+            presentation.setPresentationIndex((previous) =>
+              Math.min(previous + 1, Math.max(0, presentation.presentationLength - 1)),
+            )
+          }
+          onCreateNarrativePath={presentation.onCreateNarrativePath}
+          onPathChange={presentation.onPathChange}
+          onAddStep={presentation.onAddNarrativeStep}
+          onDeleteStep={presentation.onDeleteNarrativeStep}
+          onUpdateTalkingPoints={presentation.onUpdateStepTalkingPoints}
+          onCaptureStepCamera={presentation.onCaptureNarrativeStepCamera}
+          onExit={() => presentation.setPresentationMode(false)}
         />
       )}
     </>
   );
 };
-
-
-

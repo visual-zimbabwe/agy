@@ -10,27 +10,31 @@ import {
   detailSectionHeading,
   detailSectionToggle,
 } from "@/components/wall/details/detailSectionStyles";
-import type { RecallSectionProps } from "@/components/wall/details/DetailsSectionTypes";
+import { useWallChrome } from "@/components/wall/session/wall-chrome-context";
+import { useWallDetails } from "@/components/wall/session/wall-details-context";
+import { useWallLayout } from "@/components/wall/session/wall-layout-context";
 
-export const RecallSection = ({
-  detailsSectionsOpen,
-  onToggleDetailsSection,
-  recallQuery,
-  onRecallQueryChange,
-  recallZoneId,
-  onRecallZoneIdChange,
-  recallTag,
-  onRecallTagChange,
-  recallDateFilter,
-  onRecallDateFilterChange,
-  visibleZones,
-  availableRecallTags,
-  onSaveRecallSearch,
-  onClearRecallFilters,
-  savedRecallSearches,
-  onApplySavedRecallSearch,
-  onDeleteSavedRecallSearch,
-}: RecallSectionProps) => {
+export const RecallSection = () => {
+  const { detailsSectionsOpen } = useWallLayout();
+  const { onToggleDetailsSection } = useWallChrome();
+  const {
+    recallQuery,
+    onRecallQueryChange,
+    recallZoneId,
+    onRecallZoneIdChange,
+    recallTag,
+    onRecallTagChange,
+    recallDateFilter,
+    onRecallDateFilterChange,
+    visibleZones,
+    availableRecallTags,
+    onSaveRecallSearch,
+    onClearRecallFilters,
+    savedRecallSearches,
+    onApplySavedRecallSearch,
+    onDeleteSavedRecallSearch,
+  } = useWallDetails();
+
   return (
     <div className={detailSectionCard}>
       <button
@@ -40,88 +44,83 @@ export const RecallSection = ({
       >
         <div>
           <h3 className={detailSectionHeading}>Recall</h3>
-          <p className={detailSectionDescription}>Search by text, structure, and time. Save repeatable filter sets for fast retrieval.</p>
+          <p className={detailSectionDescription}>Search notes, filter by zone or tag, and save repeatable recall workflows.</p>
         </div>
         <span className={detailSectionToggle}>{detailsSectionsOpen.recall ? "Hide" : "Show"}</span>
       </button>
       {detailsSectionsOpen.recall && (
         <>
-          <input
-            value={recallQuery}
-            onChange={(event) => onRecallQueryChange(event.target.value)}
-            placeholder="Find text, phrase, or #tag"
-            className={`mt-3 ${detailField}`}
-          />
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <select
-              value={recallZoneId}
-              onChange={(event) => onRecallZoneIdChange(event.target.value)}
+          <div className="mt-3 grid gap-2">
+            <input
               className={detailField}
-            >
-              <option value="">All zones</option>
-              {visibleZones.map((zone) => (
-                <option key={`filter-zone-${zone.id}`} value={zone.id}>
-                  {zone.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={recallTag}
-              onChange={(event) => onRecallTagChange(event.target.value)}
-              className={detailField}
-            >
-              <option value="">All tags</option>
-              {availableRecallTags.map((tag) => (
-                <option key={`filter-tag-${tag}`} value={tag}>
-                  #{tag}
-                </option>
-              ))}
-            </select>
-            <select
-              value={recallDateFilter}
-              onChange={(event) => onRecallDateFilterChange(event.target.value as typeof recallDateFilter)}
-              className={`sm:col-span-2 ${detailField}`}
-            >
-              <option value="all">All dates</option>
+              type="search"
+              value={recallQuery}
+              onChange={(event) => onRecallQueryChange(event.target.value)}
+              placeholder="Search notes..."
+            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <select className={detailField} value={recallZoneId} onChange={(event) => onRecallZoneIdChange(event.target.value)}>
+                <option value="">All zones</option>
+                {visibleZones.map((zone) => (
+                  <option key={zone.id} value={zone.id}>
+                    {zone.label}
+                  </option>
+                ))}
+              </select>
+              <select className={detailField} value={recallTag} onChange={(event) => onRecallTagChange(event.target.value)}>
+                <option value="">All tags</option>
+                {availableRecallTags.map((tag) => (
+                  <option key={tag} value={tag}>
+                    #{tag}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <select className={detailField} value={recallDateFilter} onChange={(event) => onRecallDateFilterChange(event.target.value as typeof recallDateFilter)}>
+              <option value="all">Any time</option>
               <option value="today">Today</option>
-              <option value="7d">Last 7d</option>
-              <option value="30d">Last 30d</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
             </select>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={onSaveRecallSearch} className={detailButton}>
-              Save Search
+            <button type="button" className={detailButton} onClick={onSaveRecallSearch}>
+              Save search
             </button>
-            <button type="button" onClick={onClearRecallFilters} className={detailButton}>
-              Clear Filters
+            <button type="button" className={detailButton} onClick={onClearRecallFilters}>
+              Clear filters
             </button>
           </div>
-          <div className="mt-3 space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Saved Searches</p>
-              <span className="text-[10px] text-[var(--color-text-muted)]">{savedRecallSearches.length}</span>
-            </div>
-            {savedRecallSearches.length > 0 ? (
-              <div className="max-h-32 space-y-2 overflow-auto pr-1">
+          {savedRecallSearches.length > 0 ? (
+            <div className={detailMutedPanel}>
+              <p className="text-xs font-medium text-[var(--color-text-muted)]">Saved searches</p>
+              <div className="mt-2 space-y-2">
                 {savedRecallSearches.map((item) => (
-                  <div key={item.id} className={`${detailInsetCard} flex items-center gap-2`}>
-                    <button
-                      type="button"
-                      onClick={() => onApplySavedRecallSearch(item)}
-                      className="min-w-0 flex-1 truncate text-left text-[11px] font-medium text-[var(--color-text)]"
-                    >
-                      {item.name}
-                    </button>
-                    <button type="button" onClick={() => onDeleteSavedRecallSearch(item.id)} className="text-[10px] text-[var(--color-danger)]">
-                      Delete
-                    </button>
+                  <div key={item.id} className={detailInsetCard}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-[var(--color-text)]">{item.name}</p>
+                        <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                          {item.query || "All notes"}
+                          {item.zoneId ? ` · zone` : ""}
+                          {item.tag ? ` · #${item.tag}` : ""}
+                          {item.dateFilter !== "all" ? ` · ${item.dateFilter}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button type="button" className={detailButton} onClick={() => onApplySavedRecallSearch(item)}>
+                          Apply
+                        </button>
+                        <button type="button" className={detailButton} onClick={() => onDeleteSavedRecallSearch(item.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className={detailMutedPanel}>No saved searches yet. Save your current filter stack to make recurring recall workflows instant.</div>
-            )}
-          </div>
+            </div>
+          ) : null}
         </>
       )}
     </div>

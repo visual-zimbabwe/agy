@@ -9,7 +9,9 @@ import {
   detailSectionHeading,
   detailSectionToggle,
 } from "@/components/wall/details/detailSectionStyles";
-import type { SmartMergeSectionProps } from "@/components/wall/details/DetailsSectionTypes";
+import { useWallChrome } from "@/components/wall/session/wall-chrome-context";
+import { useWallDetails } from "@/components/wall/session/wall-details-context";
+import { useWallLayout } from "@/components/wall/session/wall-layout-context";
 
 const previewText = (value: string) => {
   const trimmed = value.trim();
@@ -19,14 +21,13 @@ const previewText = (value: string) => {
   return trimmed.length > 88 ? `${trimmed.slice(0, 85)}...` : trimmed;
 };
 
-export const SmartMergeSection = ({
-  detailsSectionsOpen,
-  onToggleDetailsSection,
-  isTimeLocked,
-  suggestions,
-  onPreview,
-  onMerge,
-}: SmartMergeSectionProps) => {
+export const SmartMergeSection = () => {
+  const { detailsSectionsOpen } = useWallLayout();
+  const { onToggleDetailsSection, isTimeLocked } = useWallChrome();
+  const { smartMergeSuggestions, onPreviewSmartMerge, onMergeSmartSuggestion } = useWallDetails();
+  const suggestions = smartMergeSuggestions;
+  const onPreview = onPreviewSmartMerge;
+  const onMerge = onMergeSmartSuggestion;
   return (
     <div className={detailSectionCard}>
       <button

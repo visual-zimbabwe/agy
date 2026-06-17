@@ -10,27 +10,29 @@ import {
   detailSectionHeading,
   detailSectionToggle,
 } from "@/components/wall/details/detailSectionStyles";
-import type { ZoneGroupsSectionProps } from "@/components/wall/details/DetailsSectionTypes";
+import { useWallChrome } from "@/components/wall/session/wall-chrome-context";
+import { useWallDetails } from "@/components/wall/session/wall-details-context";
+import { useWallLayout } from "@/components/wall/session/wall-layout-context";
 
-export const ZoneGroupsSection = ({
-  detailsSectionsOpen,
-  onToggleDetailsSection,
-  groupLabelInput,
-  onGroupLabelInputChange,
-  selectedZone,
-  selectedGroup,
-  selectedZoneId,
-  zoneGroups,
-  isTimeLocked,
-  onCreateGroupFromSelectedZone,
-  onAssignZoneToGroup,
-  onSelectGroup,
-  onToggleGroupCollapse,
-  onCollapseAllGroups,
-  onExpandAllGroups,
-  onDeleteGroup,
-  onClearNoteSelection,
-}: ZoneGroupsSectionProps) => {
+export const ZoneGroupsSection = () => {
+  const { detailsSectionsOpen } = useWallLayout();
+  const { onToggleDetailsSection, isTimeLocked } = useWallChrome();
+  const {
+    groupLabelInput,
+    onGroupLabelInputChange,
+    selectedZone,
+    selectedGroup,
+    selectedZoneId,
+    zoneGroups,
+    onCreateGroupFromSelectedZone,
+    onAssignZoneToGroup,
+    onSelectGroup,
+    onToggleGroupCollapse,
+    onCollapseAllGroups,
+    onExpandAllGroups,
+    onDeleteGroup,
+    onClearNoteSelection,
+  } = useWallDetails();
   return (
     <div className={detailSectionCard}>
       <button

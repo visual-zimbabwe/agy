@@ -23,6 +23,8 @@ export type WallLayoutContextValue = {
   detailsSectionsOpen: DetailsSectionState;
   presentationMode: boolean;
   readingMode: boolean;
+  /** True when presentation or reading mode hides chrome overlays. */
+  isChromeHidden: boolean;
   timelineViewActive: boolean;
   controlsMode: "basic" | "advanced";
   spatialPrefs: WallSpatialPreferences;
@@ -58,6 +60,7 @@ const defaultWallLayoutContext: WallLayoutContextValue = {
   detailsSectionsOpen: defaultDetailsSectionsOpen,
   presentationMode: false,
   readingMode: false,
+  isChromeHidden: false,
   timelineViewActive: false,
   controlsMode: "basic",
   spatialPrefs: defaultSpatialPrefs,

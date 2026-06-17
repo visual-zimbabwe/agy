@@ -8,20 +8,23 @@ import {
   detailSectionTitle,
   detailSectionToggle,
 } from "@/components/wall/details/detailSectionStyles";
-import type { HistorySectionProps } from "@/components/wall/details/DetailsSectionTypes";
+import { useWallChrome } from "@/components/wall/session/wall-chrome-context";
+import { useWallLayout } from "@/components/wall/session/wall-layout-context";
 
-export const HistorySection = ({
-  detailsSectionsOpen,
-  onToggleDetailsSection,
-  timelineEntriesCount,
-  visibleNotesCount,
-  historyUndoDepth,
-  historyRedoDepth,
-  notes,
-  onJumpStale,
-  onJumpPriority,
-  onClearHistory,
-}: HistorySectionProps) => {
+export const HistorySection = () => {
+  const { detailsSectionsOpen } = useWallLayout();
+  const { onToggleDetailsSection, history } = useWallChrome();
+  const {
+    timelineEntriesCount,
+    visibleNotesCount,
+    historyUndoDepth,
+    historyRedoDepth,
+    notes,
+    onJumpStale,
+    onJumpPriority,
+    onClearHistory,
+  } = history;
+
   return (
     <div className={detailSectionCard}>
       <button

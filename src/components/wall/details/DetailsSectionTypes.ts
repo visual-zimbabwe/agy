@@ -21,19 +21,6 @@ export type AutoTagGroup = {
   bounds: { x: number; y: number; w: number; h: number };
 };
 
-export type HistorySectionProps = {
-  detailsSectionsOpen: DetailsSectionState;
-  onToggleDetailsSection: (key: DetailsSectionKey) => void;
-  timelineEntriesCount: number;
-  visibleNotesCount: number;
-  historyUndoDepth: number;
-  historyRedoDepth: number;
-  notes: Note[];
-  onJumpStale: () => void;
-  onJumpPriority: () => void;
-  onClearHistory: () => void;
-};
-
 export type RecallSectionProps = {
   detailsSectionsOpen: DetailsSectionState;
   onToggleDetailsSection: (key: DetailsSectionKey) => void;
