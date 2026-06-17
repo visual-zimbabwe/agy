@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findOpenNotePosition } from "@/components/wall/wall-canvas-helpers";
+import { findOpenNotePosition } from "@/components/wall/wall-coordinates";
 
 const overlaps = (left: { x: number; y: number; w: number; h: number }, right: { x: number; y: number; w: number; h: number }, padding = 20) =>
   left.x < right.x + right.w + padding &&
