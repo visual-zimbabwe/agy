@@ -53,6 +53,12 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 - `src/components/wall/WallToolsPanel.tsx`, `WallDetailsSidebar.tsx`: left/right contextual panels
 - `src/components/wall/WallFloatingUi.tsx`, `WallGlobalModals.tsx`: floating editors, menus, and modal layer
 - `src/components/wall/useWall*.ts`: modular wall behavior hooks
+- Timeline stream (`V`):
+  - `src/components/wall/WallTimelineView.tsx`: vertical stream composition root
+  - `src/components/wall/WallTimelineStreamHeader.tsx`: search, day jump, sort, and prev/next controls
+  - `src/components/wall/useWallTimelineStream.ts`: stream filter/sort/selection state and scroll refs
+  - `src/components/wall/wallTimelineStreamHelpers.ts`: grouping, search predicates, and selection helpers
+  - `src/components/wall/wallTimelineViewHelpers.ts`: shared date formatting and horizontal-layout helpers retained for legacy timeline canvas code
 
 ### Decks
 
