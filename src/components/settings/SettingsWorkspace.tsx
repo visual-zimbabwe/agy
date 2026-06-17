@@ -994,7 +994,6 @@ export const SettingsWorkspace = ({
                         label="Default startup page"
                         options={[
                           { value: "/wall", label: "Wall" },
-                          { value: "/page", label: "Page" },
                           { value: "/decks", label: "Decks" },
                           { value: "/settings", label: "Settings" },
                         ]}

@@ -15,7 +15,6 @@ Agy is a Next.js App Router application with multiple authenticated and unauthen
 - landing page
 - auth routes
 - wall workspace
-- page editor workspace
 - decks workspace
 - settings workspace
 - server API routes under `src/app/api/`
@@ -39,7 +38,6 @@ Large UI surfaces live under `src/components/`.
 Current major workspaces:
 
 - `WallCanvas` and `src/components/wall/*`
-- `PageEditor`
 - `DecksWorkspace`
 - `SettingsWorkspace`
 
@@ -50,7 +48,6 @@ This layer handles user interaction, local view state, rendering, and orchestrat
 Feature-specific logic lives under `src/features/`.
 
 - `src/features/wall/`: canonical wall types, commands, storage, migrations, sync helpers, telemetry, and domain utilities
-- `src/features/page/`: page types, local persistence, and cloud persistence
 - `src/features/decks/`: note types and deck study logic
 
 ### Shared Library Layer
@@ -73,7 +70,6 @@ Agy is local-first in interaction and cloud-backed when signed in.
 ### Local Persistence
 
 - Wall data uses IndexedDB via Dexie-style storage helpers
-- Page state also has local snapshot storage
 - Preferences are partially stored locally for faster startup and UI continuity
 
 ### Cloud Persistence
@@ -83,7 +79,6 @@ Supabase is used for:
 - auth
 - wall records and snapshots
 - deck records, notes, cards, and stats
-- page files and signed access
 - account settings and profile state
 
 ## API Surface
@@ -95,7 +90,6 @@ Current major API groups:
 - `api/auth`
 - `api/walls`
 - `api/decks`
-- `api/page`
 - `api/account`
 - `api/convert`
 
@@ -114,9 +108,9 @@ The wall schema is no longer minimal. It includes:
 - canon note payloads
 - Eisenhower note payloads
 
-The page schema is block-based and supports media, embeds, tables, code, comments, and file metadata.
-
 The decks schema includes deck hierarchy, note types, cards, study state, and scheduler-related fields.
+
+Legacy page-editor storage (`agy-page-db`, `page_docs`, and `page-files`) may still exist in older environments but is no longer part of the shipped product surface.
 
 ## Constraints
 
@@ -129,7 +123,6 @@ The decks schema includes deck hierarchy, note types, cards, study state, and sc
 
 - Missing or outdated Supabase schema can disable newer fields or fallback paths.
 - Local and cloud snapshots can drift and require merge or recovery behavior.
-- Page file storage depends on bucket availability and signed file access.
 - Large workspace files can become difficult to maintain without enforced boundaries.
 
 ## Related Docs
@@ -137,7 +130,6 @@ The decks schema includes deck hierarchy, note types, cards, study state, and sc
 - `docs/architecture/frontend-architecture.md`
 - `docs/api/walls.md`
 - `docs/api/decks.md`
-- `docs/features/page-editor.md`
 - `docs/features/decks.md`
 - `docs/features/timeline-view.md`
 

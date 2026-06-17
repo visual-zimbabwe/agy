@@ -15,7 +15,8 @@ Use this runbook when local workspace state appears corrupted, stale, or unusabl
 1. Identify which local store is affected.
    Current local databases include:
    - wall: `agy-db`
-   - page: `agy-page-db`
+
+   Legacy page-editor databases (`agy-page-db`) are removed automatically by the boot migration in `src/lib/migrate-removed-workspaces.ts`.
 
 2. Determine whether the issue is local-only or also present in cloud-backed data.
    Check whether the same problem reproduces after sign-in on another machine or clean browser profile.
@@ -26,9 +27,7 @@ Use this runbook when local workspace state appears corrupted, stale, or unusabl
 4. Check whether the desired data exists remotely.
    Relevant cloud-backed areas include:
    - walls and wall snapshots
-   - page docs
    - account settings
-   - page file storage
 
 5. If the issue is wall-specific, inspect whether the problem may be timeline or merge related rather than raw local corruption.
    Wall local storage also includes timeline snapshots and meta records.
@@ -45,9 +44,6 @@ Use this runbook when local workspace state appears corrupted, stale, or unusabl
    - cloud wall should be fetched or created
    - sync errors should clear if the issue was local-only
 
-   For page:
-   - the editor should rebuild from cloud snapshot or start clean for the target doc id
-
 8. Re-apply settings only if needed.
    After the rename, some preferences may be transparently copied from legacy `idea-wall-*` browser keys into new `agy-*` keys on first read.
    Some preferences are locally cached even when account settings also exist remotely.
@@ -63,13 +59,12 @@ Escalate when:
 - local reset does not resolve the issue
 - the cloud snapshot appears wrong or corrupted
 - the user has unsynced local work that cannot be safely discarded
-- page files or account settings appear inconsistent with the restored content state
+- account settings appear inconsistent with the restored content state
 
 ## Related Docs
 
 - `docs/runbooks/sync-debugging.md`
 - `docs/architecture/state-and-storage.md`
 - `docs/api/walls.md`
-- `docs/api/page.md`
 
 

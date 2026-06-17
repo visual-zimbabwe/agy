@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document explains how Agy stores and moves state across the wall, page, and cloud-backed parts of the product.
+This document explains how Agy stores and moves state across the wall and cloud-backed parts of the product.
 
 ## Scope
 
@@ -13,12 +13,10 @@ This is a current-state architecture doc for persistence, normalization, merge b
 Agy currently uses multiple persistence layers:
 
 - local IndexedDB for wall state
-- local IndexedDB for page state
 - local browser storage for some preference and migration flags
 - local browser storage for currency note location/rate caches
 - local browser storage for wall bookmark metadata cache entries keyed by normalized URL
 - Supabase Postgres for cloud-backed records and snapshots
-- Supabase Storage for page file uploads
 
 These layers serve different purposes and should not be treated as interchangeable.
 
@@ -95,55 +93,15 @@ Important current behavior:
 
 If local content exists and the server is empty, the UI can prompt the user to import local data into the cloud account.
 
-## Page State
+## Removed Page Editor Storage
 
-Canonical page types live in `src/features/page/types.ts`.
+The standalone page editor was removed from the product. On boot, `src/lib/migrate-removed-workspaces.ts` performs a one-time cleanup that:
 
-Persisted page state includes:
+- deletes local page-editor Dexie databases (`agy-page-db` and legacy `idea-wall-page-db`)
+- clears wall/page link localStorage keys
+- best-effort deletes authenticated cloud `page_docs` rows and user-scoped `page-files` objects
 
-- `blocks`
-- `camera`
-- `updatedAt`
-
-Blocks can also carry:
-
-- rich text spans
-- numbering state
-- table data
-- code block settings
-- bookmark and embed metadata
-- file metadata
-- comments
-- hierarchy and indentation state
-
-### Local page storage
-
-Page local persistence is implemented in `src/features/page/storage.ts` using Dexie database `agy-page-db`.
-
-On first load after the Agy rename, the app can migrate existing local page data forward from the legacy `idea-wall-page-db` database when the new database is empty.
-
-The current local page table is:
-
-- `pageDocs`
-
-Each row stores:
-
-- `id`
-- `snapshot`
-- `updatedAt`
-
-The page layer normalizes blocks when loading persisted snapshots so older or malformed data can degrade into valid page state instead of crashing the editor.
-
-### Cloud page storage
-
-Page cloud persistence is implemented both through direct Supabase browser access in `src/features/page/cloud.ts` and through server routes under `src/app/api/page/`.
-
-The current cloud model stores page snapshots in `page_docs` keyed by:
-
-- `owner_id`
-- `doc_id`
-
-Page file uploads are stored separately in Supabase Storage bucket `page-files`.
+Wall and decks IndexedDB data is not touched by this migration.
 
 ## Preferences and Auxiliary State
 
@@ -157,7 +115,7 @@ Examples of non-document state include:
 - linked workspace state
 - one-time migration or import flags in local storage
 
-This state is operational UI state, not wall or page content state.
+This state is operational UI state, not wall content state.
 
 ## Merge and Normalization Rules
 
@@ -172,10 +130,6 @@ Current rules:
 - active client camera is preserved during remote merges
 - local last color overrides server last color when present
 
-### Page
-
-Page persistence does not currently expose the same explicit entity-level merge helper. Instead, snapshots are loaded and saved as whole document payloads.
-
 ## Constraints
 
 - IndexedDB schemas evolve through explicit versioning and migration helpers.
@@ -189,13 +143,11 @@ Page persistence does not currently expose the same explicit entity-level merge 
 - remote schema drift can disable newer fields
 - local and cloud wall state can diverge and require merge or import decisions
 - a user can briefly interact with a windowed wall before the background cloud baseline finishes loading
-- page file signing or bucket availability failures can break media access even when page snapshots still load
 
 ## Related Docs
 
 - `docs/architecture/overview.md`
 - `docs/api/walls.md`
-- `docs/api/page.md`
 - `docs/runbooks/sync-debugging.md`
 
 

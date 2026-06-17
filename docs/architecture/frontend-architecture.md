@@ -13,7 +13,7 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 ### `src/app/page.tsx`
 
 - Landing page for the product
-- Links into wall, page, and decks surfaces
+- Links into wall and decks surfaces
 - Uses shared route-shell styling and product framing
 
 ### `src/app/login/page.tsx` and `src/app/signup/page.tsx`
@@ -28,11 +28,10 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 - Supports published read-only snapshot mode through query params
 - Delegates workspace implementation to `WallCanvas`
 
-### `src/app/page/page.tsx`
+### `src/app/page/page.tsx` and `src/app/media/page.tsx`
 
-- Page editor mount point
-- Suspense-wrapped client workspace
-- Delegates interaction model to `PageEditor`
+- Legacy removed-workspace routes
+- Server-redirect to `/wall`
 
 ### `src/app/decks/page.tsx`
 
@@ -54,12 +53,6 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 - `src/components/wall/WallToolsPanel.tsx`, `WallDetailsSidebar.tsx`: left/right contextual panels
 - `src/components/wall/WallFloatingUi.tsx`, `WallGlobalModals.tsx`: floating editors, menus, and modal layer
 - `src/components/wall/useWall*.ts`: modular wall behavior hooks
-
-### Page
-
-- `src/components/page-editor/PageEditor.tsx`: page editor composition root
-- Owns slash commands, canvas behavior, block editing, uploads, comments, embeds, and block menus
-- Uses feature-layer page types and storage helpers under `src/features/page/`
 
 ### Decks
 
@@ -112,7 +105,6 @@ Avoid:
 ## Related Docs
 
 - `docs/architecture/overview.md`
-- `docs/features/page-editor.md`
 - `docs/features/decks.md`
 - `docs/features/timeline-view.md`
 

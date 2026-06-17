@@ -9,7 +9,7 @@ Agy needs to feel fast during capture, editing, movement, and review. The produc
 
 A cloud-only interaction model would put core workspace behavior behind network and backend availability. A purely local model would make signed-in continuity, recovery, and multi-device use much weaker.
 
-This tradeoff affects the wall, page editor, settings, and supporting storage model.
+This tradeoff affects the wall, settings, and supporting storage model.
 
 ## Decision
 

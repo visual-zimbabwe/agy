@@ -102,7 +102,6 @@ export const WallHeaderBar = ({
             {!timelineViewActive ? <span className="absolute inset-x-1 -bottom-0.5 h-[2px] rounded-full bg-[#a33818]" /> : null}
           </Link>
           <Link href="/decks" className={navLinkClassName}>Decks</Link>
-          <Link href="/page" className={navLinkClassName}>Page</Link>
           <button type="button" onClick={onToggleTimelineView} className={`${navLinkClassName} ${timelineViewActive ? "text-[#a33818]" : ""}`}>
             Timeline
             {timelineViewActive ? <span className="absolute inset-x-1 -bottom-0.5 h-[2px] rounded-full bg-[#a33818]" /> : null}

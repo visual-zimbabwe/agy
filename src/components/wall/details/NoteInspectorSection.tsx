@@ -28,14 +28,6 @@ type NoteInspectorSectionProps = {
   onTextVerticalAlignChange: (align: "top" | "middle" | "bottom") => void;
   onBackgroundColorChange: (color: string) => void;
   onDuplicate: (noteId: string) => void;
-  pageReference?: { docId: string; blockId: string };
-  pageConversion?: { docId: string };
-  onReferenceInPage: (noteId: string) => void;
-  onOpenPageReference: (noteId: string) => void;
-  onUndoPageReference: (noteId: string) => void;
-  onConvertToPage: (noteId: string) => void;
-  onOpenConvertedPage: (noteId: string) => void;
-  onUndoPageConversion: (noteId: string) => void;
   onTogglePin: (noteId: string) => void;
   onToggleHighlight: (noteId: string) => void;
   onToggleFocus: (noteId: string) => void;
@@ -87,14 +79,6 @@ export const NoteInspectorSection = ({
   onTextVerticalAlignChange,
   onBackgroundColorChange,
   onDuplicate,
-  pageReference,
-  pageConversion,
-  onReferenceInPage,
-  onOpenPageReference,
-  onUndoPageReference,
-  onConvertToPage,
-  onOpenConvertedPage,
-  onUndoPageConversion,
   onTogglePin,
   onToggleHighlight,
   onToggleFocus,
@@ -231,18 +215,6 @@ export const NoteInspectorSection = ({
         <button type="button" className={detailButton} disabled={disabled || linkingFromNoteId === selectedNote.id} onClick={() => onStartLink(selectedNote.id)}>
           {linkingFromNoteId === selectedNote.id ? "Linking..." : "Start Link"}
         </button>
-      </div>
-
-      <div className={detailInsetCard}>
-        <p className={detailSectionTitle}>Page Interchange</p>
-        <div className={buttonRow}>
-          <button type="button" className={detailButton} disabled={disabled} onClick={() => onReferenceInPage(selectedNote.id)}>Reference In Page</button>
-          <button type="button" className={detailButton} disabled={disabled} onClick={() => onConvertToPage(selectedNote.id)}>Convert To Page</button>
-          {pageReference ? <button type="button" className={detailButton} onClick={() => onOpenPageReference(selectedNote.id)}>Open Page Ref</button> : null}
-          {pageReference ? <button type="button" className={detailButton} disabled={disabled} onClick={() => onUndoPageReference(selectedNote.id)}>Undo Ref</button> : null}
-          {pageConversion ? <button type="button" className={detailButton} onClick={() => onOpenConvertedPage(selectedNote.id)}>Open Page</button> : null}
-          {pageConversion ? <button type="button" className={detailButton} disabled={disabled} onClick={() => onUndoPageConversion(selectedNote.id)}>Undo Convert</button> : null}
-        </div>
       </div>
 
       {privateNoteSupported ? (

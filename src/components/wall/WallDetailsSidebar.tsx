@@ -20,8 +20,6 @@ type WallDetailsSidebarProps = {
   onTagInputChange: (value: string) => void;
   onAddTag: () => void;
   selectedNote?: Note;
-  selectedNotePageReference?: { docId: string; blockId: string };
-  selectedNotePageConversion?: { docId: string };
   selectedNoteId?: string;
   selectedNoteIdsCount: number;
   displayedTags: string[];
@@ -37,12 +35,6 @@ type WallDetailsSidebarProps = {
   onTextVerticalAlignChange: (align: "top" | "middle" | "bottom") => void;
   onBackgroundColorChange: (color: string) => void;
   onDuplicateSelectedNote: (noteId: string) => void;
-  onReferenceSelectedNoteInPage: (noteId: string) => void;
-  onOpenSelectedNotePageReference: (noteId: string) => void;
-  onUndoSelectedNotePageReference: (noteId: string) => void;
-  onConvertSelectedNoteToPage: (noteId: string) => void;
-  onOpenSelectedNoteConvertedPage: (noteId: string) => void;
-  onUndoSelectedNotePageConversion: (noteId: string) => void;
   onTogglePinSelectedNote: (noteId: string) => void;
   onToggleHighlightSelectedNote: (noteId: string) => void;
   onToggleFocusSelectedNote: (noteId: string) => void;
@@ -151,8 +143,6 @@ export const WallDetailsSidebar = ({
   onTagInputChange,
   onAddTag,
   selectedNote,
-  selectedNotePageReference,
-  selectedNotePageConversion,
   selectedNoteId,
   selectedNoteIdsCount,
   displayedTags,
@@ -168,12 +158,6 @@ export const WallDetailsSidebar = ({
   onTextVerticalAlignChange,
   onBackgroundColorChange,
   onDuplicateSelectedNote,
-  onReferenceSelectedNoteInPage,
-  onOpenSelectedNotePageReference,
-  onUndoSelectedNotePageReference,
-  onConvertSelectedNoteToPage,
-  onOpenSelectedNoteConvertedPage,
-  onUndoSelectedNotePageConversion,
   onTogglePinSelectedNote,
   onToggleHighlightSelectedNote,
   onToggleFocusSelectedNote,
@@ -285,8 +269,6 @@ export const WallDetailsSidebar = ({
         onTagInputChange={onTagInputChange}
         onAddTag={onAddTag}
         selectedNote={selectedNote}
-        selectedNotePageReference={selectedNotePageReference}
-        selectedNotePageConversion={selectedNotePageConversion}
         selectedNoteId={selectedNoteId}
         selectedNoteIdsCount={selectedNoteIdsCount}
         displayedTags={displayedTags}
@@ -302,12 +284,6 @@ export const WallDetailsSidebar = ({
         onTextVerticalAlignChange={onTextVerticalAlignChange}
         onBackgroundColorChange={onBackgroundColorChange}
         onDuplicateSelectedNote={onDuplicateSelectedNote}
-        onReferenceSelectedNoteInPage={onReferenceSelectedNoteInPage}
-        onOpenSelectedNotePageReference={onOpenSelectedNotePageReference}
-        onUndoSelectedNotePageReference={onUndoSelectedNotePageReference}
-        onConvertSelectedNoteToPage={onConvertSelectedNoteToPage}
-        onOpenSelectedNoteConvertedPage={onOpenSelectedNoteConvertedPage}
-        onUndoSelectedNotePageConversion={onUndoSelectedNotePageConversion}
         onTogglePinSelectedNote={onTogglePinSelectedNote}
         onToggleHighlightSelectedNote={onToggleHighlightSelectedNote}
         onToggleFocusSelectedNote={onToggleFocusSelectedNote}

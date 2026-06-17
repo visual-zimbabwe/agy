@@ -74,9 +74,6 @@ import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
 import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
 import { useWallZoomControls } from "@/components/wall/useWallZoomControls";
 import { useWallProductTour } from "@/components/wall/useWallProductTour";
-import type { PageBlock } from "@/features/page/types";
-import { deleteCloudPageSnapshot, saveCloudPageSnapshot } from "@/features/page/cloud";
-import { defaultPageDocId, deletePageSnapshot, loadPageSnapshot, savePageSnapshot } from "@/features/page/storage";
 import {
   toolbarBtn,
   toolbarBtnActive,
@@ -126,7 +123,6 @@ import { createImageNoteState, getImageNoteFilename, toImageNotePatch, IMAGE_NOT
 import { cacheVideoPoster, createVideoNoteState, getVideoNoteTitle, getVideoPlayback, getVideoPosterUrl, toVideoNotePatch, VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import { PRIVATE_NOTE_AUTO_LOCK_MS, canInlineEditPrivateNote, canProtectNote, createPrivateNoteHiddenFields, createPrivateNoteShellPatch, decryptPrivateNote, encryptPrivateNote, isPrivateNote, privateNoteTitle, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
 import { AUDIO_NOTE_DEFAULTS, EISENHOWER_NOTE_DEFAULTS, JOURNAL_NOTE_DEFAULTS, LINK_TYPES, NOTE_COLORS, NOTE_DEFAULTS, ZONE_DEFAULTS } from "@/features/wall/constants";
-import { readWallPageLinkState, writeWallPageLinkState, type WallPageLinkState } from "@/features/wall/page-links";
 import { selectPersistedSnapshot, useWallStore } from "@/features/wall/store";
 import type { TimelineEntry } from "@/features/wall/storage";
 import { loadTimelineEntries, saveWallCloudBaselineSnapshot, saveWallSyncVersion } from "@/features/wall/storage";
@@ -157,10 +153,6 @@ import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 import { parseTaggedText } from "@/lib/tag-utils";
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
-import {
-  createPageReferenceForWallNote,
-  pageBlocksFromWallNote,
-} from "@/lib/content-interchange";
 import { getImageFileFromClipboard, getImageFilesFromDataTransfer, readImageFileAsDataUrl } from "@/lib/wall-image-upload";
 import { trackUnsplashDownload } from "@/lib/unsplash-client";
 
@@ -353,7 +345,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
   const [reviewRevealMeaning, setReviewRevealMeaning] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
-  const [wallPageLinks, setWallPageLinks] = useState<WallPageLinkState>(() => readWallPageLinkState());
   const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
   const [preferredFileConversionMode, setPreferredFileConversionMode] = useState<"pdf_to_word" | "word_to_pdf" | null>(null);
   const [presentationIndex, setPresentationIndex] = useState(0);
@@ -1477,191 +1468,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
     }
     window.open(target, "_blank", "noopener,noreferrer");
   }, []);
-
-  const appendBlocksToPageDoc = useCallback(async (docId: string, blocksToAppend: PageBlock[]) => {
-    const snapshot = (await loadPageSnapshot(docId)) ?? {
-      blocks: [],
-      camera: { x: 0, y: 0, zoom: 1 },
-      updatedAt: Date.now(),
-      cover: undefined,
-    };
-    const maxY = snapshot.blocks.reduce((value, block) => Math.max(value, block.y + block.h), 240);
-    const nextBlocks = blocksToAppend.map((block, index) => {
-      const offsetY = blocksToAppend.slice(0, index).reduce((total, entry) => total + entry.h + 18, 0);
-      return {
-        ...block,
-        y: maxY + 24 + offsetY,
-      };
-    });
-    await savePageSnapshot(
-      {
-        ...snapshot,
-        blocks: [...snapshot.blocks, ...nextBlocks],
-        updatedAt: Date.now(),
-      },
-      docId,
-    );
-    try {
-      await saveCloudPageSnapshot(docId, {
-        ...snapshot,
-        blocks: [...snapshot.blocks, ...nextBlocks],
-        updatedAt: Date.now(),
-      });
-    } catch {
-      // Local page persistence remains authoritative if cloud save fails.
-    }
-    return nextBlocks;
-  }, []);
-
-  const updateWallPageLinks = useCallback((updater: (state: WallPageLinkState) => WallPageLinkState) => {
-    setWallPageLinks((previous) => {
-      const next = updater(previous);
-      writeWallPageLinkState(next);
-      return next;
-    });
-  }, []);
-
-  const openPageDoc = useCallback((docId: string, blockId?: string) => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    const target = new URL("/page", window.location.origin);
-    if (docId !== defaultPageDocId) {
-      target.searchParams.set("doc", docId);
-    }
-    if (blockId) {
-      target.hash = blockId;
-    }
-    window.open(target.toString(), "_blank", "noopener,noreferrer");
-  }, []);
-
-  const referenceNoteInPage = useCallback(
-    async (noteId: string) => {
-      if (typeof window === "undefined") {
-        return;
-      }
-      const note = renderSnapshot.notes[noteId];
-      if (!note) {
-        return;
-      }
-      if (wallPageLinks.referencesByNoteId[noteId]) {
-        return;
-      }
-      const [createdBlock] = await appendBlocksToPageDoc(defaultPageDocId, [createPageReferenceForWallNote(note, window.location.origin)]);
-      if (!createdBlock) {
-        return;
-      }
-      updateWallPageLinks((previous) => ({
-        ...previous,
-        referencesByNoteId: {
-          ...previous.referencesByNoteId,
-          [noteId]: {
-            docId: defaultPageDocId,
-            blockId: createdBlock.id,
-            createdAt: Date.now(),
-          },
-        },
-      }));
-    },
-    [appendBlocksToPageDoc, renderSnapshot.notes, updateWallPageLinks, wallPageLinks.referencesByNoteId],
-  );
-
-  const convertNoteToPage = useCallback(
-    async (noteId: string) => {
-      if (typeof window === "undefined" || isTimeLocked) {
-        return;
-      }
-      const note = renderSnapshot.notes[noteId];
-      if (!note) {
-        return;
-      }
-      if (wallPageLinks.conversionsByNoteId[noteId]) {
-        return;
-      }
-
-      const pageDocId = `page_${Math.random().toString(36).slice(2, 8)}`;
-      const pageBlocks = pageBlocksFromWallNote(note);
-      const snapshot = {
-        blocks: pageBlocks,
-        camera: { x: 0, y: 0, zoom: 1 },
-        updatedAt: Date.now(),
-        cover: undefined,
-      };
-      await savePageSnapshot(snapshot, pageDocId);
-      try {
-        await saveCloudPageSnapshot(pageDocId, snapshot);
-      } catch {
-        // Local page persistence remains authoritative if cloud save fails.
-      }
-      updateWallPageLinks((previous) => ({
-        ...previous,
-        conversionsByNoteId: {
-          ...previous.conversionsByNoteId,
-          [noteId]: {
-            docId: pageDocId,
-            createdAt: Date.now(),
-          },
-        },
-      }));
-    },
-    [isTimeLocked, renderSnapshot.notes, updateWallPageLinks, wallPageLinks.conversionsByNoteId],
-  );
-
-  const undoPageReferenceForNote = useCallback(
-    async (noteId: string) => {
-      const reference = wallPageLinks.referencesByNoteId[noteId];
-      if (!reference) {
-        return;
-      }
-      const snapshot = await loadPageSnapshot(reference.docId);
-      if (snapshot) {
-        const nextSnapshot = {
-          ...snapshot,
-          blocks: snapshot.blocks.filter((block) => block.id !== reference.blockId),
-          updatedAt: Date.now(),
-        };
-        await savePageSnapshot(nextSnapshot, reference.docId);
-        try {
-          await saveCloudPageSnapshot(reference.docId, nextSnapshot);
-        } catch {
-          // Keep local state even if cloud cleanup fails.
-        }
-      }
-      updateWallPageLinks((previous) => {
-        const nextReferences = { ...previous.referencesByNoteId };
-        delete nextReferences[noteId];
-        return {
-          ...previous,
-          referencesByNoteId: nextReferences,
-        };
-      });
-    },
-    [updateWallPageLinks, wallPageLinks.referencesByNoteId],
-  );
-
-  const undoPageConversionForNote = useCallback(
-    async (noteId: string) => {
-      const conversion = wallPageLinks.conversionsByNoteId[noteId];
-      if (!conversion) {
-        return;
-      }
-      await deletePageSnapshot(conversion.docId);
-      try {
-        await deleteCloudPageSnapshot(conversion.docId);
-      } catch {
-        // Keep local cleanup even if cloud delete fails.
-      }
-      updateWallPageLinks((previous) => {
-        const nextConversions = { ...previous.conversionsByNoteId };
-        delete nextConversions[noteId];
-        return {
-          ...previous,
-          conversionsByNoteId: nextConversions,
-        };
-      });
-    },
-    [updateWallPageLinks, wallPageLinks.conversionsByNoteId],
-  );
 
   const readFileAsDataUrl = useCallback(
     (file: File) =>
@@ -4347,8 +4153,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
           onTagInputChange={setTagInput}
           onAddTag={addTagToSelectedNote}
           selectedNote={primarySelectedNote}
-          selectedNotePageReference={primarySelectedNote ? wallPageLinks.referencesByNoteId[primarySelectedNote.id] : undefined}
-          selectedNotePageConversion={primarySelectedNote ? wallPageLinks.conversionsByNoteId[primarySelectedNote.id] : undefined}
           selectedNoteId={ui.selectedNoteId}
           selectedNoteIdsCount={activeSelectedNoteIds.length}
           displayedTags={displayedTags}
@@ -4394,22 +4198,6 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
             updateNote(primarySelectedNote.id, { color });
           }}
           onDuplicateSelectedNote={duplicateNote}
-          onReferenceSelectedNoteInPage={(noteId) => { void referenceNoteInPage(noteId); }}
-          onOpenSelectedNotePageReference={(noteId) => {
-            const reference = wallPageLinks.referencesByNoteId[noteId];
-            if (reference) {
-              openPageDoc(reference.docId, reference.blockId);
-            }
-          }}
-          onUndoSelectedNotePageReference={(noteId) => { void undoPageReferenceForNote(noteId); }}
-          onConvertSelectedNoteToPage={(noteId) => { void convertNoteToPage(noteId); }}
-          onOpenSelectedNoteConvertedPage={(noteId) => {
-            const conversion = wallPageLinks.conversionsByNoteId[noteId];
-            if (conversion) {
-              openPageDoc(conversion.docId);
-            }
-          }}
-          onUndoSelectedNotePageConversion={(noteId) => { void undoPageConversionForNote(noteId); }}
           onTogglePinSelectedNote={togglePinOnNote}
           onToggleHighlightSelectedNote={toggleHighlightOnNote}
           onToggleFocusSelectedNote={toggleFocusNote}

@@ -149,9 +149,6 @@ export function DecksStatsView() {
             <Link href="/wall" className="text-[#1c1c19]/60 hover:text-[#a33818]">
               Wall
             </Link>
-            <Link href="/page" className="text-[#1c1c19]/60 hover:text-[#a33818]">
-              Page
-            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">

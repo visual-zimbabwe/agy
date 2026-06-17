@@ -7,7 +7,7 @@ import { requireApiUser } from "@/lib/api/auth";
 const settingsSchema = z.object({
   theme: z.enum(["system", "light", "dark"]),
   startupBehavior: z.enum(["default_page", "continue_last"]),
-  startupDefaultPage: z.enum(["/wall", "/page", "/decks", "/settings"]),
+  startupDefaultPage: z.enum(["/wall", "/decks", "/settings"]),
   autoTimezone: z.boolean(),
   manualTimezone: z.string().trim().min(1).max(120),
   keyboardColorSlots: z.array(z.string().nullable()).length(9),
@@ -40,18 +40,28 @@ export async function GET() {
     return NextResponse.json({ settings: null });
   }
 
-  return NextResponse.json({
-    settings: normalizeAccountSettings({
-      theme: data.theme,
-      startupBehavior: data.startup_behavior,
-      startupDefaultPage: data.startup_default_page,
-      autoTimezone: data.auto_timezone,
-      manualTimezone: data.manual_timezone,
-      keyboardColorSlots: data.keyboard_color_slots,
-      wallLayoutPrefs: data.wall_layout_prefs,
-      controlsMode: data.controls_mode,
-    }),
+  const settings = normalizeAccountSettings({
+    theme: data.theme,
+    startupBehavior: data.startup_behavior,
+    startupDefaultPage: data.startup_default_page,
+    autoTimezone: data.auto_timezone,
+    manualTimezone: data.manual_timezone,
+    keyboardColorSlots: data.keyboard_color_slots,
+    wallLayoutPrefs: data.wall_layout_prefs,
+    controlsMode: data.controls_mode,
   });
+
+  if (data.startup_default_page !== settings.startupDefaultPage) {
+    const { error: repairError } = await auth.supabase
+      .from("account_settings")
+      .update({ startup_default_page: settings.startupDefaultPage })
+      .eq("owner_id", auth.user.id);
+    if (repairError) {
+      console.warn("[agy] Failed to repair startup_default_page:", repairError.message);
+    }
+  }
+
+  return NextResponse.json({ settings });
 }
 
 export async function PUT(request: Request) {

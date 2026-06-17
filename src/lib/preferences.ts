@@ -3,9 +3,21 @@ import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 export type ThemePreference = "system" | "light" | "dark";
 export type StartupBehavior = "default_page" | "continue_last";
-export type StartupPage = "/wall" | "/page" | "/decks" | "/settings";
+export type StartupPage = "/wall" | "/decks" | "/settings";
 
-export const allowedStartupPaths = new Set<StartupPage | "/help">(["/wall", "/page", "/decks", "/settings", "/help"]);
+export const allowedStartupPaths = new Set<StartupPage | "/help">(["/wall", "/decks", "/settings", "/help"]);
+
+const removedStartupPaths = new Set(["/page", "/media"]);
+
+const normalizeStartupDefaultPage = (value: string | null): StartupPage => {
+  if (value && removedStartupPaths.has(value)) {
+    return "/wall";
+  }
+  if (value === "/decks" || value === "/settings") {
+    return value;
+  }
+  return "/wall";
+};
 
 export type UserPreferences = {
   theme: ThemePreference;
@@ -36,6 +48,8 @@ const legacyPreferenceStorageKeys = {
   lastVisitedPath: legacyKeyWithSlug("last-visited-path"),
 } as const;
 
+export { legacyPreferenceStorageKeys };
+
 const defaultPreferences: UserPreferences = {
   theme: "system",
   startupBehavior: "continue_last",
@@ -65,10 +79,11 @@ export const readStoredPreferences = (): UserPreferences => {
           : "continue_last",
       startupDefaultPage: (() => {
         const value = readStorageValue(preferenceStorageKeys.startupDefaultPage, [legacyPreferenceStorageKeys.startupDefaultPage]);
-        if (value === "/page" || value === "/decks" || value === "/settings") {
-          return value;
+        const normalized = normalizeStartupDefaultPage(value);
+        if (value && value !== normalized) {
+          writeStorageValue(preferenceStorageKeys.startupDefaultPage, normalized);
         }
-        return "/wall";
+        return normalized;
       })(),
       autoTimezone: readStorageValue(preferenceStorageKeys.autoTimezone, [legacyPreferenceStorageKeys.autoTimezone]) !== "false",
       manualTimezone:
@@ -108,7 +123,7 @@ const sanitizeLastVisitedPath = (value: string | null): string | null => {
     return null;
   }
 
-  if (value === "/media") {
+  if (value === "/media" || value === "/page") {
     return "/wall";
   }
 

@@ -12,10 +12,9 @@ This is a current-state overview. It explains the product shape and the major us
 
 ## Current Product Surface
 
-Agy currently has four primary surfaces:
+Agy currently has three primary workspaces:
 
 - `Wall`: spatial thinking and relationship mapping
-- `Page`: structured block editing on an infinite document canvas
 - `Decks`: study and repetition workflows
 - `Settings`: account, startup, appearance, and control preferences
 
@@ -39,20 +38,6 @@ Users can:
 - open quick help without leaving the canvas
 
 The wall supports both freeform brainstorming and more structured thinking workflows.
-
-## Page
-
-The page editor is a block-based workspace for structured writing and embedded media.
-
-Users can:
-
-- add text, headings, lists, toggles, tables, quotes, code, dividers, bookmarks, embeds, and file/media blocks
-- drag blocks on an infinite surface
-- nest and reorganize list and document structures
-- upload files and attach comments to blocks
-- save local and cloud-backed document snapshots
-
-This surface is closer to a spatial document editor than a traditional static page.
 
 ## Decks
 
@@ -86,7 +71,6 @@ Settings can be opened as a route and, in some cases, embedded in wall-adjacent 
 The current product is not just a sticky-note wall. It is a multi-surface workspace with:
 
 - a spatial canvas
-- a document canvas
 - a study system
 - account-backed preferences and sync
 - a shared self-serve help layer
@@ -95,7 +79,7 @@ The unifying idea is that the user can move between capture, organization, refle
 
 ## Known Boundaries
 
-- The wall, page editor, and decks surfaces have different interaction models and different persistence shapes.
+- The wall and decks surfaces have different interaction models and different persistence shapes.
 - Some features depend on signed-in Supabase-backed flows.
 - Published wall snapshots are intentionally read-only.
 
@@ -104,6 +88,5 @@ The unifying idea is that the user can move between capture, organization, refle
 - `docs/architecture/overview.md`
 - `docs/architecture/frontend-architecture.md`
 - `docs/features/timeline-view.md`
-- `docs/features/page-editor.md`
 - `docs/features/help-system.md`
 - `docs/features/decks.md`
