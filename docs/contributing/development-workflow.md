@@ -64,6 +64,15 @@ Key routes during development:
 - Prefer explicit domain types in `src/features/*/types.ts`.
 - Keep route files thin and move workspace logic into components.
 
+## Wall UI Refactor Guardrails
+
+Active during the wall UI refactor ([`docs/architecture/wall-ui-refactor-implementation-plan.md`](../architecture/wall-ui-refactor-implementation-plan.md)):
+
+- **Do not add new business logic** to `src/components/WallCanvas.tsx` or `src/components/wall/WallNotesLayer.tsx`. Composition and wiring only.
+- **New wall behavior** belongs in `src/features/wall/`, existing or new `useWall*` hooks, or modules under `src/components/wall/session/`.
+- **Do not add new props** to `WallDetailsSidebar` or `WallFloatingUi` without a context migration plan (Phase 1). Prefer session context consumers instead.
+- **Do not add features** to `WallNotesLayer` before the Phase 3 renderer split unless fixing a critical bug.
+
 ## Validation
 
 Minimum validation for meaningful changes:
@@ -140,6 +149,7 @@ The repo may contain unrelated local changes or experimental assets. Do not assu
 
 - `.codex/skills/idea-wall-documentation/SKILL.md`
 - `README.md`
+- `docs/architecture/wall-ui-refactor-implementation-plan.md`
 - `docs/releases/changelog.md`
 - `docs/qa.md`
 
