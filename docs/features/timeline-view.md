@@ -31,8 +31,9 @@ Current capabilities include:
 - showing readable primary labels and compact metadata for file and bookmark entries (user title or first line first, filename once, kind/size subtitle) instead of raw attachment theater
 - keeping attachment cards within the stream column without horizontal scrolling at default desktop widths
 - virtualizing the stream list so only visible day headers and note rows mount in the DOM while preserving smooth scroll and selection scroll-into-view behavior
+- showing a read-only detail rail on `xl+` viewports when a note is selected, with tags, created/updated timestamps, a larger preview, and a **Reveal on Wall** action
 
-Timeline remains view-only for note content. Notes in this mode do not open the details panel, do not enter inline editing, and do not mutate note data from the timeline surface.
+Timeline remains view-only for note content. Notes in this mode do not open the wall details sidebar or enter inline editing, and do not mutate note data from the timeline surface.
 
 ## Data and State
 
@@ -57,6 +58,7 @@ The current timeline layout is downstream of wall note state. Selection syncs wi
 
 - Timeline does not support inline editing from the stream surface.
 - Search and date jump operate on the current in-memory note set only; there is no server-side recall or saved stream scroll position yet.
+- The detail rail is hidden below the `xl` breakpoint; mobile and tablet users rely on stream cards and the inline **Reveal on Wall** action instead.
 - The current implementation is part of the wall experience, not a standalone route or subsystem.
 
 ## Related Docs

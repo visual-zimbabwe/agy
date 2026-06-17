@@ -1,5 +1,8 @@
 "use client";
 
+// Legacy horizontal timeline canvas layout engine. Retained for unit coverage and
+// future density/scrubber experiments; the shipped Timeline stream uses
+// wallTimelineStreamHelpers.ts instead.
 import { resolveWallPreviewDimensions, type WallPreviewScale } from "@/components/wall/wallNotePreviewSizing";
 import { makeBucketKey, type TimelineBucketMode } from "@/components/wall/wallTimelineViewHelpers";
 import type { Note } from "@/features/wall/types";

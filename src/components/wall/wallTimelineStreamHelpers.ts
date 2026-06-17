@@ -402,3 +402,18 @@ export const estimateTimelineStreamRowHeight = (
 
   return dims.height + TIMELINE_STREAM_ROW_METRICS.timeLabel + spacing + revealExtra + centerExtra;
 };
+
+export const findTimelineStreamEntry = (groups: TimelineStreamGroup[], noteId?: string) => {
+  if (!noteId) {
+    return undefined;
+  }
+
+  for (const group of groups) {
+    const entry = group.entries.find((candidate) => candidate.id === noteId);
+    if (entry) {
+      return entry;
+    }
+  }
+
+  return undefined;
+};

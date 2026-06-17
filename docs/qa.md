@@ -969,28 +969,30 @@ Expected:
 7. Verify pinned notes render centered in the timeline stream rather than joining the left-right alternation.
 8. Scroll through the timeline and verify each note shows a compact timestamp beneath the card without clipping or overlapping the surrounding layout.
 9. Resize the wall note larger, reopen timeline view, and verify the timeline copy grows with it at the same width and height as the wall note instead of shrinking into a fitted preview.
-10. Click a note and verify it highlights with a terracotta selection ring without opening an editor or details panel.
-11. With a note selected, click **Reveal on Wall** (or double-click the note on desktop) and verify Timeline closes and the wall focuses/pans to that note.
-12. Reopen Timeline, select a note, press `Enter`, and verify the same reveal behavior.
-13. Reopen Timeline and use `J`/`K` or `↑`/`↓` to move selection across entries; verify the stream scrolls the selected note into view.
-14. Use the Timeline search field to filter by a known title fragment or tag; verify only matching notes remain and the empty-filter message appears when nothing matches.
-15. Choose a non-current day from **Jump to day** and verify the stream scrolls to that day section without manual scrolling.
-16. Click **Prev** and **Next** (or press `[` / `]`) and verify selection moves through the filtered list while keeping the card in view.
-17. Toggle **Updated** sorting and verify day grouping and entry order follow note update times instead of created times.
-18. Add or locate a PDF/file note and a web bookmark; verify Timeline shows a readable primary label (title or first line when present, otherwise filename once) with a compact kind/size or site/domain subtitle.
-19. Verify file and bookmark cards stay within the stream column at default desktop width without introducing a horizontal scrollbar.
-20. Press `Escape` or click `Close` and verify the app exits Timeline.
-21. Resize to a mobile-sized viewport, tap a note to select it, tap **Reveal on Wall**, and verify the wall focuses that note without relying on double-click.
-22. With 50+ notes loaded, open browser devtools and inspect the timeline stream container; verify only a small subset of day headers and note rows are mounted at once (virtualized rendering) while scrolling still feels smooth.
-23. Scroll through a long timeline and verify selection, day jump, and prev/next navigation still scroll the target row into view.
+10. Click a note and verify it highlights with a terracotta selection ring without opening the wall editor or details sidebar.
+11. On an `xl+` desktop viewport, verify a right-rail detail panel appears for the selected note with tags, created/updated timestamps, and a **Reveal on Wall** button; click **Close** and verify the selection clears while Timeline stays open.
+12. With a note selected, click **Reveal on Wall** in the stream card, detail rail, or via double-click on desktop and verify Timeline closes and the wall focuses/pans to that note.
+13. Reopen Timeline, select a note, press `Enter`, and verify the same reveal behavior.
+14. Reopen Timeline and use `J`/`K` or `↑`/`↓` to move selection across entries; verify the stream scrolls the selected note into view and the detail rail updates on `xl+` viewports.
+15. Use the Timeline search field to filter by a known title fragment or tag; verify only matching notes remain and the empty-filter message appears when nothing matches.
+16. Choose a non-current day from **Jump to day** and verify the stream scrolls to that day section without manual scrolling.
+17. Click **Prev** and **Next** (or press `[` / `]`) and verify selection moves through the filtered list while keeping the card in view.
+18. Toggle **Updated** sorting and verify day grouping and entry order follow note update times instead of created times.
+19. Add or locate a PDF/file note and a web bookmark; verify Timeline shows a readable primary label (title or first line when present, otherwise filename once) with a compact kind/size or site/domain subtitle.
+20. Verify file and bookmark cards stay within the stream column at default desktop width without introducing a horizontal scrollbar.
+21. Press `Escape` or click `Close` and verify the app exits Timeline.
+22. Resize to a mobile-sized viewport, tap a note to select it, tap **Reveal on Wall**, and verify the wall focuses that note without relying on double-click or a detail rail.
+23. With 50+ notes loaded, open browser devtools and inspect the timeline stream container; verify only a small subset of day headers and note rows are mounted at once (virtualized rendering) while scrolling still feels smooth.
+24. Scroll through a long timeline and verify selection, day jump, and prev/next navigation still scroll the target row into view.
 
 Expected:
-- Timeline provides a read-only vertical chronological review surface rather than an inline editor or details browser.
+- Timeline provides a read-only vertical chronological review surface rather than an inline editor or wall details sidebar.
 - Timeline notes preserve the same note-type identity and visual treatment used on `/wall`.
 - Narrative note kinds such as journal, quote, and image preserve the same wall note dimensions rather than shrinking into a smaller fitted timeline card.
 - File and bookmark entries use compact stream sizing and readable label/subtitle copy instead of oversized attachment shells.
 - The centered date rail, day chips, and timestamp labels remain fully visible on desktop and mobile-sized viewports.
 - Notes can be selected and revealed back on the wall, but cannot be edited from timeline view.
+- On `xl+` viewports, the detail rail shows richer selected-note context without replacing the stream cards.
 - Timeline search, day jump, and prev/next navigation respect the active filter and sort mode.
 - Large note histories virtualize off-screen rows instead of mounting every matching card in the DOM.
 ## Wiki Links and Backlinks (`/wall`) (2026-03-16)
