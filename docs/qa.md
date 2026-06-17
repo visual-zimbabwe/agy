@@ -981,6 +981,8 @@ Expected:
 19. Verify file and bookmark cards stay within the stream column at default desktop width without introducing a horizontal scrollbar.
 20. Press `Escape` or click `Close` and verify the app exits Timeline.
 21. Resize to a mobile-sized viewport, tap a note to select it, tap **Reveal on Wall**, and verify the wall focuses that note without relying on double-click.
+22. With 50+ notes loaded, open browser devtools and inspect the timeline stream container; verify only a small subset of day headers and note rows are mounted at once (virtualized rendering) while scrolling still feels smooth.
+23. Scroll through a long timeline and verify selection, day jump, and prev/next navigation still scroll the target row into view.
 
 Expected:
 - Timeline provides a read-only vertical chronological review surface rather than an inline editor or details browser.
@@ -990,6 +992,7 @@ Expected:
 - The centered date rail, day chips, and timestamp labels remain fully visible on desktop and mobile-sized viewports.
 - Notes can be selected and revealed back on the wall, but cannot be edited from timeline view.
 - Timeline search, day jump, and prev/next navigation respect the active filter and sort mode.
+- Large note histories virtualize off-screen rows instead of mounting every matching card in the DOM.
 ## Wiki Links and Backlinks (`/wall`) (2026-03-16)
 1. Open `/wall`, create at least three notes with distinct first-line titles.
 2. Edit one note and type `[[`; verify a suggestion menu appears at the caret with existing note titles.

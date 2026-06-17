@@ -367,7 +367,7 @@ Required repo gates before merge (per `AGENTS.md`):
 
 1. Should top-nav **Timeline** open stream view with last scroll position preserved across sessions?
 2. Should history mode (`T`) gain a one-click “Open this day in Timeline stream” bridge?
-3. Is adding `@tanstack/react-virtual` acceptable, or should we stay dependency-free with `content-visibility`?
+3. Is adding `@tanstack/react-virtual` acceptable, or should we stay dependency-free with `content-visibility`? **Resolved in Phase 4:** `@tanstack/react-virtual` is now used for stream virtualization.
 
 ---
 

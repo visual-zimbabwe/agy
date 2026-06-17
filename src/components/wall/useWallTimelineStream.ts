@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
   buildTimelineStreamGroups,
+  flattenTimelineStreamGroups,
   getTimelineStreamDayOptions,
   moveTimelineStreamSelection,
   resolveTimelineStreamSelection,
@@ -22,15 +23,13 @@ export const useWallTimelineStream = ({ notes, selectedNoteId, onSelectNote }: U
   const [sortMode, setSortMode] = useState<TimelineStreamSortMode>("created");
   const [selectedDayKey, setSelectedDayKey] = useState("");
   const [localSelectedId, setLocalSelectedId] = useState<string | undefined>();
-  const entryRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const groupHeaderRefs = useRef<Record<string, HTMLElement | null>>({});
-  const selectedCardRef = useRef<HTMLDivElement | null>(null);
 
   const totalNoteCount = useMemo(() => notes.filter((note) => !note.deletedAt).length, [notes]);
   const groups = useMemo(
     () => buildTimelineStreamGroups(notes, { sortMode, searchQuery }),
     [notes, searchQuery, sortMode],
   );
+  const flatItems = useMemo(() => flattenTimelineStreamGroups(groups), [groups]);
   const entryIds = useMemo(() => groups.flatMap((group) => group.entries.map((entry) => entry.id)), [groups]);
   const dayOptions = useMemo(() => getTimelineStreamDayOptions(groups), [groups]);
   const filteredNoteCount = entryIds.length;
@@ -56,30 +55,6 @@ export const useWallTimelineStream = ({ notes, selectedNoteId, onSelectNote }: U
     [effectiveSelectedId, entryIds, selectEntry],
   );
 
-  const scrollToDay = useCallback((dayKey: string) => {
-    if (!dayKey) {
-      return;
-    }
-    const node = groupHeaderRefs.current[dayKey];
-    node?.scrollIntoView({ block: "start", behavior: "smooth" });
-  }, []);
-
-  const setEntryRef = useCallback((noteId: string, node: HTMLDivElement | null) => {
-    entryRefs.current[noteId] = node;
-  }, []);
-
-  const setGroupHeaderRef = useCallback((dayKey: string, node: HTMLElement | null) => {
-    groupHeaderRefs.current[dayKey] = node;
-  }, []);
-
-  useEffect(() => {
-    if (!effectiveSelectedId) {
-      return;
-    }
-    const node = entryRefs.current[effectiveSelectedId] ?? selectedCardRef.current;
-    node?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [effectiveSelectedId]);
-
   const visibleSelectedDayKey = useMemo(() => {
     if (!selectedDayKey) {
       return "";
@@ -87,13 +62,9 @@ export const useWallTimelineStream = ({ notes, selectedNoteId, onSelectNote }: U
     return dayOptions.some((option) => option.key === selectedDayKey) ? selectedDayKey : "";
   }, [dayOptions, selectedDayKey]);
 
-  const handleDayJump = useCallback(
-    (dayKey: string) => {
-      setSelectedDayKey(dayKey);
-      scrollToDay(dayKey);
-    },
-    [scrollToDay],
-  );
+  const handleDayJump = useCallback((dayKey: string) => {
+    setSelectedDayKey(dayKey);
+  }, []);
 
   const canMovePrevious = Boolean(effectiveSelectedId && entryIds.indexOf(effectiveSelectedId) > 0);
   const canMoveNext = Boolean(
@@ -108,6 +79,7 @@ export const useWallTimelineStream = ({ notes, selectedNoteId, onSelectNote }: U
     selectedDayKey: visibleSelectedDayKey,
     handleDayJump,
     groups,
+    flatItems,
     entryIds,
     dayOptions,
     totalNoteCount,
@@ -118,8 +90,5 @@ export const useWallTimelineStream = ({ notes, selectedNoteId, onSelectNote }: U
     moveSelection,
     canMovePrevious,
     canMoveNext,
-    selectedCardRef,
-    setEntryRef,
-    setGroupHeaderRef,
   };
 };

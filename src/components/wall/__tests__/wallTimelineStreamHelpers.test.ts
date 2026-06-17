@@ -2,17 +2,23 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildTimelineStreamGroups,
+  estimateTimelineStreamRowHeight,
   filterTimelineStreamNotes,
+  flattenTimelineStreamGroups,
   formatTimelineStreamDayLabel,
   getTimelineNoteLabel,
   getTimelineNoteSubtitle,
   getTimelineStreamDayOptions,
+  getTimelineStreamEntryPreviewDimensions,
   getTimelineStreamSearchHaystack,
+  getTimelineStreamVirtualDayIndex,
+  getTimelineStreamVirtualEntryIndex,
   matchesTimelineStreamSearch,
   moveTimelineStreamSelection,
   resolveTimelineStreamSelection,
   timelineStreamDayKey,
   timelineStreamStartOfDay,
+  TIMELINE_STREAM_ROW_METRICS,
 } from "@/components/wall/wallTimelineStreamHelpers";
 import type { Note } from "@/features/wall/types";
 
@@ -289,5 +295,114 @@ describe("getTimelineNoteSubtitle", () => {
     });
 
     expect(getTimelineNoteSubtitle(note)).toBe("This is the second line of the journal entry.");
+  });
+});
+
+describe("flattenTimelineStreamGroups", () => {
+  it("interleaves day headers before their entries", () => {
+    const notes = [
+      makeNote({ id: "today", text: "Today note", createdAt: Date.UTC(2026, 2, 16, 18, 0, 0) }),
+      makeNote({ id: "yesterday", text: "Yesterday note", createdAt: Date.UTC(2026, 2, 15, 10, 0, 0) }),
+    ];
+    const groups = buildTimelineStreamGroups(notes);
+    const flatItems = flattenTimelineStreamGroups(groups);
+
+    expect(flatItems.map((item) => (item.type === "group-header" ? `header:${item.label}` : item.entry.id))).toEqual([
+      "header:Today",
+      "today",
+      "header:Yesterday",
+      "yesterday",
+    ]);
+  });
+});
+
+describe("timeline stream virtual indices", () => {
+  it("finds entry and day header indices in the flattened list", () => {
+    const notes = [
+      makeNote({ id: "today", text: "Today note", createdAt: Date.UTC(2026, 2, 16, 18, 0, 0) }),
+      makeNote({ id: "yesterday", text: "Yesterday note", createdAt: Date.UTC(2026, 2, 15, 10, 0, 0) }),
+    ];
+    const flatItems = flattenTimelineStreamGroups(buildTimelineStreamGroups(notes));
+    const todayKey = timelineStreamDayKey(Date.UTC(2026, 2, 16, 18, 0, 0));
+
+    expect(getTimelineStreamVirtualEntryIndex(flatItems, "today")).toBe(1);
+    expect(getTimelineStreamVirtualDayIndex(flatItems, todayKey)).toBe(0);
+    expect(getTimelineStreamVirtualEntryIndex(flatItems, "missing")).toBe(-1);
+  });
+});
+
+describe("getTimelineStreamEntryPreviewDimensions", () => {
+  it("uses desktop dimensions for alternating entries on desktop layouts", () => {
+    const groups = buildTimelineStreamGroups([
+      makeNote({ id: "left-note", text: "Left note", createdAt: Date.UTC(2026, 2, 16, 18, 0, 0), w: 300, h: 220 }),
+    ]);
+    const entry = groups[0]!.entries[0]!;
+
+    expect(getTimelineStreamEntryPreviewDimensions(entry, true).width).toBe(300);
+    expect(getTimelineStreamEntryPreviewDimensions(entry, false).width).toBe(entry.mobile.width);
+  });
+
+  it("keeps centered pinned notes on the compact stream dimensions", () => {
+    const groups = buildTimelineStreamGroups([
+      makeNote({
+        id: "pinned",
+        text: "Pinned note",
+        pinned: true,
+        createdAt: Date.UTC(2026, 2, 16, 18, 0, 0),
+        w: 360,
+        h: 240,
+      }),
+    ]);
+    const entry = groups[0]!.entries[0]!;
+
+    expect(entry.side).toBe("center");
+    expect(getTimelineStreamEntryPreviewDimensions(entry, true)).toEqual(entry.mobile);
+  });
+});
+
+describe("estimateTimelineStreamRowHeight", () => {
+  it("returns fixed header heights by viewport mode", () => {
+    const header = { type: "group-header" as const, dayKey: "2026-2-16", label: "Today" };
+
+    expect(estimateTimelineStreamRowHeight(header, { isDesktop: false })).toBe(
+      TIMELINE_STREAM_ROW_METRICS.groupHeader.mobile,
+    );
+    expect(estimateTimelineStreamRowHeight(header, { isDesktop: true })).toBe(
+      TIMELINE_STREAM_ROW_METRICS.groupHeader.desktop,
+    );
+  });
+
+  it("estimates entry height from preview dimensions, spacing, and footer", () => {
+    const groups = buildTimelineStreamGroups([
+      makeNote({ id: "note", text: "Dear Wall", createdAt: Date.UTC(2026, 2, 16, 18, 0, 0), w: 280, h: 200 }),
+    ]);
+    const entryItem = {
+      type: "entry" as const,
+      dayKey: groups[0]!.key,
+      entry: groups[0]!.entries[0]!,
+    };
+    const dims = getTimelineStreamEntryPreviewDimensions(entryItem.entry, true);
+
+    expect(estimateTimelineStreamRowHeight(entryItem, { isDesktop: true })).toBe(
+      dims.height + TIMELINE_STREAM_ROW_METRICS.timeLabel + TIMELINE_STREAM_ROW_METRICS.entrySpacing.desktop,
+    );
+  });
+
+  it("adds mobile reveal-button allowance for selected entries", () => {
+    const groups = buildTimelineStreamGroups([
+      makeNote({ id: "note", text: "Dear Wall", createdAt: Date.UTC(2026, 2, 16, 18, 0, 0), w: 280, h: 200 }),
+    ]);
+    const entryItem = {
+      type: "entry" as const,
+      dayKey: groups[0]!.key,
+      entry: groups[0]!.entries[0]!,
+    };
+    const dims = getTimelineStreamEntryPreviewDimensions(entryItem.entry, false);
+    const baseHeight =
+      dims.height + TIMELINE_STREAM_ROW_METRICS.timeLabel + TIMELINE_STREAM_ROW_METRICS.entrySpacing.mobile;
+
+    expect(estimateTimelineStreamRowHeight(entryItem, { isDesktop: false, isSelected: true })).toBe(
+      baseHeight + TIMELINE_STREAM_ROW_METRICS.revealButton,
+    );
   });
 });
