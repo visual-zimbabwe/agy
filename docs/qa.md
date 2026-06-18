@@ -1291,3 +1291,17 @@ Expected:
 - `WallFloatingUi`, `WallDetailsSidebar`, and `WallGlobalModals` mount without props from `WallCanvas`.
 - Panel and editor behavior matches pre-migration flows.
 - No new props added to sidebar/floating UI during this phase.
+
+## Wall Notes Layer Refactor Smoke (`/wall`) (Phase 3, 2026-06-18)
+
+Run after changes to `WallNotesLayer`, `src/components/wall/spatial/notes/*`, or `src/features/wall/wall-note-view-model.ts`:
+
+1. Run `npm run test:unit -- src/components/wall/__tests__/noteLayout.test.ts src/features/wall/wall-note-view-model.test.ts`.
+2. Open `/wall` and zoom out until notes use compact/ambient rendering; verify standard, bookmark, file, audio, video, and private-note cards keep readable title/meta labels.
+3. Create or select an image note with a caption, resize it narrower and wider, and verify the image stays contained while the caption remains inside the card.
+4. Drag, select, multi-select, and delete a mix of standard and media notes to confirm the rendering extraction did not affect interaction behavior.
+
+Expected:
+- Image-note sizing and contained layout match the previous canvas behavior.
+- Compact note previews use the shared title/meta/privacy presentation policy.
+- Full-detail note rendering remains visually unchanged while Phase 3 renderer extraction continues.
