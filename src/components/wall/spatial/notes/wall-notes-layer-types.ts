@@ -1,0 +1,74 @@
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type Konva from "konva";
+
+import type { LinkType, Note, WallAssetMap } from "@/features/wall/types";
+import type { WallRenderBudget, WallRenderDetailLevel } from "@/features/wall/windowing";
+
+export type GuideLineState = {
+  vertical?: { x: number; y1: number; y2: number; distance?: number };
+  horizontal?: { y: number; x1: number; x2: number; distance?: number };
+};
+
+export type ResizeDraft = { x: number; y: number; w: number; h: number };
+
+export type WallNotesLayerProps = {
+  visibleNotes: Note[];
+  renderDetailLevel: WallRenderDetailLevel;
+  renderBudget: WallRenderBudget;
+  assetRecords?: WallAssetMap;
+  activeSelectedNoteIds: string[];
+  selectedNoteId?: string;
+  flashNoteId?: string;
+  hoveredNoteId?: string;
+  draggingNoteId?: string;
+  resizingNoteDrafts: Record<string, ResizeDraft>;
+  notesById: Record<string, Note>;
+  linkingFromNoteId?: string;
+  linkType: LinkType;
+  isTimeLocked: boolean;
+  showHeatmap: boolean;
+  heatmapReferenceTs: number;
+  showNoteTags: boolean;
+  noteNodeRefs: MutableRefObject<Record<string, Konva.Group | null>>;
+  dragSelectionStartRef: MutableRefObject<Record<string, { x: number; y: number }> | null>;
+  dragAnchorRef: MutableRefObject<{ id: string; x: number; y: number } | null>;
+  dragSingleStartRef: MutableRefObject<{ id: string; x: number; y: number; altClone: boolean } | null>;
+  setHoveredNoteId: Dispatch<SetStateAction<string | undefined>>;
+  setDraggingNoteId: Dispatch<SetStateAction<string | undefined>>;
+  setGuideLines: Dispatch<SetStateAction<GuideLineState>>;
+  setResizingNoteDrafts: Dispatch<SetStateAction<Record<string, ResizeDraft>>>;
+  syncPrimarySelection: (noteIds: string[]) => void;
+  selectSingleNote: (noteId: string) => void;
+  toggleSelectNote: (noteId: string) => void;
+  setLinkingFromNote: (noteId?: string) => void;
+  setEditing: Dispatch<SetStateAction<{ id: string; text: string } | null>>;
+  openEditor: (noteId: string, text: string, focusField?: string) => void;
+  createLink: (fromNoteId: string, toNoteId: string, linkType: LinkType) => void;
+  resolveSnappedPosition: (note: Note, candidateX: number, candidateY: number) => { x: number; y: number };
+  runHistoryGroup: (action: () => void) => void;
+  moveNote: (noteId: string, x: number, y: number) => void;
+  updateNote: (noteId: string, patch: Partial<Note>) => void;
+  openImageInsert: (noteId: string) => void;
+  toggleVocabularyFlip: (noteId: string) => void;
+  duplicateNoteAt: (noteId: string, x: number, y: number) => void;
+  getNoteTextStyle: (size?: Note["textSize"], textSizePx?: number) => { fontSize: number; lineHeight: number };
+  getNoteTextFontFamily: (font?: Note["textFont"]) => string;
+  truncateNoteText: (text: string, note: Note) => string;
+  noteTagChipPalette: (noteColor: string) => { bg: string; border: string; text: string };
+  recencyIntensity: (updatedAt: number, referenceTs: number, windowMs?: number) => number;
+  wikiLinksByNoteId: Record<string, Array<{ targetNoteId: string; title: string }>>;
+  onNavigateWikiLink: (noteId: string) => void;
+  editingId?: string;
+  openExternalUrl: (url: string) => void;
+  onDownloadFileNote: (noteId: string) => void;
+  onToggleAudioPlayback: (noteId: string) => void;
+  playingAudioNoteId?: string;
+  playingAudioCurrentTimeSeconds?: number;
+  playingAudioDurationSeconds?: number;
+  onOpenAudioNote: (noteId: string) => void;
+  onDownloadAudioNote: (noteId: string) => void;
+  inlinePlayingVideoNoteId?: string;
+  onToggleInlineVideoPlayback: (noteId: string) => void;
+  onOpenVideoNote: (noteId: string) => void;
+  onDownloadVideoNote: (noteId: string) => void;
+};

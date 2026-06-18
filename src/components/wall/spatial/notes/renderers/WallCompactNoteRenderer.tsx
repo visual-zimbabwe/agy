@@ -42,7 +42,7 @@ export const WallCompactNoteRenderer = ({
   const previewFill = isPrivateNote(note) ? "#F5F1EA" : "#FFFCF8";
   const previewTextColor = getContrastTextColor(resolvedNoteColor);
   const previewStroke = getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: resolvedNoteColor });
-  const previewBadge = note.noteKind ? note.noteKind.replaceAll("-", " ").toUpperCase() : "NOTE";
+  const previewBadge = preview.badge;
 
   return (
     <Group {...groupProps}>

@@ -5,17 +5,15 @@ import { memo, type CSSProperties, type ReactNode } from "react";
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, truncateNoteText } from "@/components/wall/wall-canvas-helpers";
 import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
-import { getTimelineNoteLabel, getTimelineNoteSubtitle } from "@/components/wall/wallTimelineStreamHelpers";
 import type { WallPreviewSurface } from "@/components/wall/wallNotePreviewSizing";
 import { deriveWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
-import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
-import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
-import { getImageNoteMeta, getImageNoteTitle } from "@/features/wall/image-notes";
-import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle, getVideoPlayback } from "@/features/wall/video-notes";
+import { AUDIO_WAVEFORM_BARS, formatAudioDuration } from "@/features/wall/audio-notes";
+import { formatVideoDuration, getVideoPlayback } from "@/features/wall/video-notes";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { EISENHOWER_QUADRANTS, countEisenhowerTasks, normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
+import { isPrivateNote } from "@/features/wall/private-notes";
 import type { Note } from "@/features/wall/types";
+import { getWallNoteViewModel, stripWikiLinkMarkup } from "@/features/wall/wall-note-view-model";
 
 type WallNotePreviewProps = {
   note: Note;
@@ -69,12 +67,10 @@ const lineClampStyle = (lines: number): CSSProperties => ({
   overflow: "hidden",
 });
 
-const stripWikiLinkMarkup = (text: string) => text.replace(/\[\[([^\]\n]+?)\]\]/g, "$1");
-
-const splitNoteText = (text: string) => stripWikiLinkMarkup(text).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+const stripWikiLinkMarkupLocal = stripWikiLinkMarkup;
 
 const getBodyText = (note: Note) => {
-  const cleaned = stripWikiLinkMarkup(note.text);
+  const cleaned = stripWikiLinkMarkupLocal(note.text);
   if (note.vocabulary) {
     return note.vocabulary.flipped
       ? note.vocabulary.meaning?.trim() || "Add meaning in Word Review"
@@ -255,7 +251,7 @@ const inferCodeLanguage = (body: string, fileName?: string, hintedLanguage?: str
 };
 
 const parseCodeNote = (text: string): ParsedCodeNote => {
-  const cleaned = stripWikiLinkMarkup(text).trim();
+  const cleaned = stripWikiLinkMarkupLocal(text).trim();
   const fenced = cleaned.match(/^\`\`\`([^\n`]*)\n([\s\S]*?)\n\`\`\`$/);
   const hintedLanguage = fenced?.[1]?.trim();
   const rawBody = fenced?.[2] ?? cleaned;
@@ -359,7 +355,9 @@ const MetaLabel = ({ children, color = atelier.quiet }: { children: ReactNode; c
   <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color }}>{children}</p>
 );
 
-const PrivateRenderer = ({ note, width, height, tone }: RendererProps) => (
+const PrivateRenderer = ({ note, width, height, tone }: RendererProps) => {
+  const viewModel = getWallNoteViewModel(note, { surface: "preview" });
+  return (
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
     <div
       className="flex h-full flex-col items-center justify-between overflow-hidden rounded-[24px] px-6 py-7 text-center"
@@ -378,8 +376,8 @@ const PrivateRenderer = ({ note, width, height, tone }: RendererProps) => (
           </div>
         </div>
         <div className="mt-6">
-          <p className="font-[Newsreader] text-[26px] italic leading-tight" style={{ color: atelier.ink }}>{privateNoteTitle(note)}</p>
-          <p className="mt-5 text-[12px] tracking-[0.28em]" style={{ color: "rgba(140,113,106,0.9)" }}>SECURED NODE</p>
+          <p className="font-[Newsreader] text-[26px] italic leading-tight" style={{ color: atelier.ink }}>{viewModel.title}</p>
+          <p className="mt-5 text-[12px] tracking-[0.28em]" style={{ color: "rgba(140,113,106,0.9)" }}>{viewModel.privacyMetaLabel?.toUpperCase() ?? "SECURED NODE"}</p>
         </div>
         <div className="mb-1 mt-7 inline-flex min-h-[42px] min-w-[164px] items-center justify-center rounded-full border border-[rgba(140,124,114,0.34)] bg-[rgba(255,255,255,0.72)] px-8 text-[13px] tracking-[0.26em]" style={{ color: atelier.ink }}>
           DECRYPT
@@ -387,12 +385,13 @@ const PrivateRenderer = ({ note, width, height, tone }: RendererProps) => (
       </div>
     </div>
   </NoteShell>
-);
+  );
+};
 
 const StandardRenderer = ({ note, width, height, readableText, textFontFamily, baseFontSize, bodyClamp, tone }: RendererProps) => {
-  const lines = splitNoteText(note.text);
-  const title = lines.length > 1 ? lines[0] : lines.length === 1 ? lines[0] : "Quick Thought";
-  const bodyText = lines.length > 1 ? lines.slice(1).join("\n") : lines.length === 1 ? "" : "Double-click or press Enter to edit";
+  const viewModel = getWallNoteViewModel(note, { surface: "preview" });
+  const title = viewModel.standardTitle;
+  const bodyText = viewModel.standardBody;
   const body = bodyText ? (tone === "detail" ? bodyText : truncateNoteText(bodyText, { ...note, w: width, h: height - 52 }) || bodyText) : "";
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
@@ -463,9 +462,9 @@ const QuoteRenderer = ({ note, width, height, readableText, mutedText, bodyClamp
 };
 
 const JournalRenderer = ({ note, width, height, readableText, bodyClamp, tone }: RendererProps) => {
-  const lines = splitNoteText(note.text);
-  const title = lines[0] || "Dear Wall,";
-  const body = lines.slice(1).join("\n") || stripWikiLinkMarkup(note.text) || "Start writing";
+  const viewModel = getWallNoteViewModel(note, { surface: "preview" });
+  const title = viewModel.journalTitle;
+  const body = viewModel.journalBody;
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="h-full p-6" style={{ background: "linear-gradient(180deg, rgba(246,243,238,0.82), rgba(255,255,255,0.98))" }}>
@@ -527,18 +526,17 @@ const WebBookmarkRenderer = ({ note, width, height, tone, surface }: Pick<Render
 );
 
 const ImageRenderer = ({ note, width, height, tone }: RendererProps) => {
-  const title = getImageNoteTitle(note.file);
-  const meta = getImageNoteMeta(note.file);
-  const caption = note.text.trim();
+  const viewModel = getWallNoteViewModel(note, { surface: "preview" });
+  const caption = viewModel.imageCaption;
   const imageUrl = resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note }));
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
       <div className="flex h-full flex-col bg-[linear-gradient(180deg,#fffdfa_0%,#fbf7f1_100%)] px-5 pb-6 pt-5">
-        {meta ? <MetaLabel>{meta}</MetaLabel> : null}
+        {viewModel.imageMeta ? <MetaLabel>{viewModel.imageMeta}</MetaLabel> : null}
         <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-[6px] bg-[#ece6df] shadow-[0_12px_28px_rgba(28,28,25,0.08)]">
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt={caption || title} className="h-full w-full object-cover" loading="lazy" />
+            <img src={imageUrl} alt={caption || viewModel.title} className="h-full w-full object-cover" loading="lazy" />
           ) : (
             <div className="flex h-full items-center justify-center text-[11px]" style={{ color: atelier.quiet }}>No image</div>
           )}
@@ -645,26 +643,14 @@ const CodeRenderer = ({ note, width, height, tone }: RendererProps) => {
 };
 
 const FileRenderer = ({ note, width, height, tone, surface }: RendererProps) => {
-  const isTimelineStream = surface === "timeline-stream";
-  const text = stripWikiLinkMarkup(note.text);
-  const match = fileNameMatch(text);
-  const file = isTimelineStream
-    ? getTimelineNoteLabel(note)
-    : note.noteKind === "file"
-      ? getFileNoteTitle(note.file)
-      : match?.[1] ?? "Document";
-  const meta = isTimelineStream
-    ? getTimelineNoteSubtitle(note) ?? "File note"
-    : note.noteKind === "file"
-      ? getFileNoteMeta(note.file)
-      : text.replace(file, "").trim() || "File note";
+  const viewModel = getWallNoteViewModel(note, { surface: surface === "timeline-stream" ? "timeline" : "preview" });
   return (
     <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone} surface={surface}>
       <div className="flex h-full items-center gap-4 overflow-hidden p-5">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]" style={{ background: "rgba(163,56,24,0.10)", color: atelier.terracotta }}>▤</div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold [overflow-wrap:anywhere]" style={{ color: atelier.ink }}>{file}</p>
-          <p className="mt-1 truncate text-[11px] uppercase tracking-[0.14em]" style={{ color: atelier.quiet }}>{meta}</p>
+          <p className="truncate text-sm font-bold [overflow-wrap:anywhere]" style={{ color: atelier.ink }}>{viewModel.title}</p>
+          <p className="mt-1 truncate text-[11px] uppercase tracking-[0.14em]" style={{ color: atelier.quiet }}>{viewModel.meta}</p>
         </div>
         <div className="shrink-0 text-lg" style={{ color: "rgba(139,113,106,0.68)" }}>↓</div>
       </div>
@@ -673,9 +659,8 @@ const FileRenderer = ({ note, width, height, tone, surface }: RendererProps) => 
 };
 
 const AudioRenderer = ({ note, width, height, tone }: RendererProps) => {
+  const viewModel = getWallNoteViewModel(note, { surface: "preview" });
   const audio = note.audio;
-  const title = getAudioNoteTitle(audio);
-  const meta = getAudioNoteMeta(audio);
   const duration = formatAudioDuration(audio?.durationSeconds);
   const progress = audio?.durationSeconds ? formatAudioDuration(Math.max(0, Math.min(audio.durationSeconds, Math.round(audio.durationSeconds * 0.35)))) : "00:00";
   return (
@@ -689,8 +674,8 @@ const AudioRenderer = ({ note, width, height, tone }: RendererProps) => {
           </div>
         </div>
         <div className="mt-7">
-          <p className="font-[Newsreader] text-[clamp(26px,5vw,34px)] italic leading-[1.08]" style={{ color: atelier.ink }}>{title}</p>
-          {meta ? <p className="mt-2 text-[11px] uppercase tracking-[0.16em]" style={{ color: atelier.quiet }}>{meta}</p> : null}
+          <p className="font-[Newsreader] text-[clamp(26px,5vw,34px)] italic leading-[1.08]" style={{ color: atelier.ink }}>{viewModel.title}</p>
+          {viewModel.meta ? <p className="mt-2 text-[11px] uppercase tracking-[0.16em]" style={{ color: atelier.quiet }}>{viewModel.meta}</p> : null}
         </div>
         <div className="mt-auto pt-8">
           <div className="flex h-[72px] items-center gap-2">
@@ -721,9 +706,8 @@ const AudioRenderer = ({ note, width, height, tone }: RendererProps) => {
 };
 
 const VideoRenderer = ({ note, width, height, tone }: RendererProps) => {
+  const viewModel = getWallNoteViewModel(note, { surface: "preview" });
   const video = note.video;
-  const title = getVideoNoteTitle(video);
-  const meta = getVideoNoteMeta(video);
   const duration = formatVideoDuration(video?.durationSeconds);
   const progress = formatVideoDuration(video?.durationSeconds ? Math.max(0, Math.round(video.durationSeconds * 0.35)) : 0);
   const playback = getVideoPlayback(video);
@@ -738,14 +722,14 @@ const VideoRenderer = ({ note, width, height, tone }: RendererProps) => {
           ) : playback?.kind === "embed" ? (
             <iframe
               src={playback.url}
-              title={title}
+              title={viewModel.title}
               className="h-full w-full border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
           ) : posterUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={posterUrl} alt={title} className="h-full w-full object-cover" loading="lazy" />
+            <img src={posterUrl} alt={viewModel.title} className="h-full w-full object-cover" loading="lazy" />
           ) : null}
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02),rgba(0,0,0,0.24))]" />
           <div className="absolute inset-0 flex items-center justify-center">
@@ -759,8 +743,8 @@ const VideoRenderer = ({ note, width, height, tone }: RendererProps) => {
         </div>
         <div className="flex flex-1 items-start gap-3 px-5 pb-5 pt-4">
           <div className="min-w-0 flex-1">
-            <p className="truncate font-[Newsreader] text-[clamp(24px,4.4vw,34px)] italic leading-[1.02]" style={{ color: atelier.ink }}>{title}</p>
-            {meta ? <p className="mt-2 truncate text-[11px] uppercase tracking-[0.18em]" style={{ color: atelier.quiet }}>{meta}</p> : null}
+            <p className="truncate font-[Newsreader] text-[clamp(24px,4.4vw,34px)] italic leading-[1.02]" style={{ color: atelier.ink }}>{viewModel.title}</p>
+            {viewModel.meta ? <p className="mt-2 truncate text-[11px] uppercase tracking-[0.18em]" style={{ color: atelier.quiet }}>{viewModel.meta}</p> : null}
           </div>
           <div className="flex items-center gap-2 pt-2 text-[18px]" style={{ color: "rgba(91,70,63,0.8)" }}>
             <span>↓</span>
@@ -776,7 +760,7 @@ const FallbackRenderer = ({ note, width, height, readableText, mutedText, textFo
   <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
     <div className="flex h-full flex-col p-4">
       <MetaLabel color={mutedText}>Unknown note type</MetaLabel>
-      <p className="mt-3 whitespace-pre-wrap [overflow-wrap:anywhere]" style={{ ...lineClampStyle(tone === "detail" ? 999 : bodyClamp), color: readableText, fontFamily: textFontFamily }}>{stripWikiLinkMarkup(note.text) || "No preview available"}</p>
+      <p className="mt-3 whitespace-pre-wrap [overflow-wrap:anywhere]" style={{ ...lineClampStyle(tone === "detail" ? 999 : bodyClamp), color: readableText, fontFamily: textFontFamily }}>{stripWikiLinkMarkupLocal(note.text) || "No preview available"}</p>
     </div>
   </NoteShell>
 );
@@ -810,7 +794,7 @@ const resolveRendererKey = (note: Note) => {
   if (note.vocabulary) {
     return "vocabulary";
   }
-  const cleaned = stripWikiLinkMarkup(note.text);
+  const cleaned = stripWikiLinkMarkupLocal(note.text);
   if ((!note.noteKind || note.noteKind === "standard") && (/^\`\`\`[\w-]*\n[\s\S]*\n\`\`\`$/.test(cleaned.trim()) || looksLikeCode(cleaned) || Boolean(codeFileNameMatch(cleaned)))) {
     return "code";
   }

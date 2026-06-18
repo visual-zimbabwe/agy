@@ -5,8 +5,8 @@ import {
   colorWithAlpha,
   getNoteStrokeColor,
 } from "@/components/wall/spatial/notes/note-style";
-import { privateNoteTitle } from "@/features/wall/private-notes";
 import type { Note } from "@/features/wall/types";
+import { getWallNoteViewModel } from "@/features/wall/wall-note-view-model";
 
 type WallPrivateNoteRendererProps = {
   note: Note;
@@ -33,6 +33,7 @@ export const WallPrivateNoteRenderer = ({
   selectSingleNote,
   openEditor,
 }: WallPrivateNoteRendererProps) => {
+  const viewModel = getWallNoteViewModel(note, { surface: "canvas-full", uppercaseMeta: true });
   const decryptButtonWidth = Math.min(184, Math.max(128, note.w * 0.56));
   const decryptButtonX = Math.max(26, note.w / 2 - decryptButtonWidth / 2);
   const decryptButtonY = Math.max(note.h - 74, note.h * 0.72);
@@ -126,7 +127,7 @@ export const WallPrivateNoteRenderer = ({
         fontFamily="Newsreader"
         fontStyle="italic"
         fill={atelierPalette.text}
-        text={privateNoteTitle(note)}
+        text={viewModel.title}
         listening={false}
       />
       <Text
@@ -137,7 +138,7 @@ export const WallPrivateNoteRenderer = ({
         fontSize={Math.max(10, Math.min(12, note.w * 0.05))}
         letterSpacing={2.2}
         fill={colorWithAlpha(atelierPalette.quietText, 0.9)}
-        text="SECURED NODE"
+        text={viewModel.privacyMetaLabel?.toUpperCase() ?? "SECURED NODE"}
         listening={false}
       />
       <Rect

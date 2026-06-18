@@ -280,7 +280,7 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 ### Phase 3 — Split `WallNotesLayer` (2–3 weeks)
 
-**Status:** In progress (2026-06-18) — shared layout/styling helpers, `WallNoteViewModel` (compact previews), `note-interaction.ts` (drag/resize/select wiring), `WallNoteChromeOverlays`, and per-kind canvas renderers now cover compact/ambient cards plus full-detail image, bookmark, file, audio, video, private, journal, code, quote, and standard notes. `useWallKeyboard` is split into navigation/editing/selection handlers under `keyboard/`. `WallNotesLayer` remains the composer for asset loading, derived presentation state, and renderer dispatch.
+**Status:** Shipped (2026-06-18) — shared layout/styling helpers, `WallNoteViewModel` (compact previews), `note-interaction.ts` (drag/resize/select wiring), `WallNoteChromeOverlays`, per-kind canvas renderers, keyboard sub-hooks, and a thin `WallNotesLayer` composer (~226 lines) with extracted asset loading, style animations, presentation derivation, and full-detail dispatch modules under `wall/spatial/notes/`.
 
 **Goal:** Note rendering and interaction scalable per note type.
 
@@ -318,7 +318,7 @@ wall/spatial/notes/renderers/
    - Used by both Konva renderers and `WallNotePreview` (Phase 4)
    - **Started 2026-06-18:** `src/features/wall/wall-note-view-model.ts` now owns compact title/meta/privacy labels used by low-detail canvas note previews. Preview dimensions and full `WallNotePreview` consumption remain Phase 4 work.
 3. Thin `WallNotesLayer` composes renderers + windowing props only.
-   - **Advanced 2026-06-18:** compact/ambient rendering in `WallCompactNoteRenderer`; full-detail renderers under `wall/spatial/notes/renderers/` for image, bookmark, file, audio, video, private, journal, code, quote, and standard notes; shared chrome overlays in `WallNoteChromeOverlays`; drag/resize/select wiring in `note-interaction.ts`. `WallNotesLayer` still owns asset loading, derived presentation state, and renderer dispatch.
+   - **Shipped 2026-06-18:** compact/ambient rendering in `WallCompactNoteRenderer`; full-detail renderers under `wall/spatial/notes/renderers/` for image, bookmark, file, audio, video, private, journal, code, quote, and standard notes; shared chrome overlays in `WallNoteChromeOverlays`; drag/resize/select wiring in `note-interaction.ts`. Composer extractions: `useWallNoteAssets`, `useWallNoteStyleAnimations`, `buildWallNotePresentation`, `WallFullNoteRenderer`, `open-note-editor`, and `wall-notes-layer-types`. `WallNotesLayer` is ~226 lines.
 4. Split `useWallKeyboard` into scoped hooks:
    - `useWallKeyboardNavigation` (`keyboard/useWallKeyboardNavigation.ts`)
    - `useWallKeyboardEditing` (`keyboard/useWallKeyboardEditing.ts`)
@@ -327,9 +327,9 @@ wall/spatial/notes/renderers/
 
 #### Exit criteria
 
-- [ ] `WallNotesLayer.tsx` (composer) ≤ ~300 lines
-- [ ] No single renderer file ≥ ~500 lines without follow-up split plan
-- [ ] `useWallKeyboard.ts` ≤ ~200 lines per sub-hook
+- [x] `WallNotesLayer.tsx` (composer) ≤ ~300 lines (now ~226)
+- [x] No single renderer file ≥ ~500 lines without follow-up split plan
+- [x] `useWallKeyboard.ts` ≤ ~200 lines per sub-hook
 
 #### Validation
 
@@ -339,6 +339,8 @@ wall/spatial/notes/renderers/
 ---
 
 ### Phase 4 — Unify dual rendering (2 weeks)
+
+**Status:** Shipped (2026-06-18) — `getWallNoteViewModel(note, context)` is the shared presentation boundary; `WallNotePreview`, full-detail canvas derivation, compact canvas cards, private renderer, and timeline stream labels consume it for title/meta/privacy/media metadata. Fixture-backed unit tests and a Vitest snapshot baseline guard per-kind presentation output.
 
 **Goal:** Stop timeline/canvas presentation drift.
 
@@ -353,9 +355,9 @@ wall/spatial/notes/renderers/
 
 #### Exit criteria
 
-- [ ] View model unit tests for each note kind
-- [ ] `WallNotePreview` does not duplicate title/subtitle logic found in view model
-- [ ] Documented mapping: view model field → Konva node / HTML element
+- [x] View model unit tests for each note kind
+- [x] `WallNotePreview` does not duplicate title/subtitle logic found in view model
+- [x] Documented mapping: view model field → Konva node / HTML element
 
 #### Validation
 
