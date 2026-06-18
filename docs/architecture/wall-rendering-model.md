@@ -83,6 +83,7 @@ Shared note presentation policy is beginning to move out of the layer as part of
 
 - `src/components/wall/spatial/notes/note-layout.ts` owns image-note caption sizing, automatic image-card height, and contained image layout.
 - `src/components/wall/spatial/notes/note-style.ts` owns shared canvas note palette, contrast, stroke, fill, and corner-radius helpers.
+- `src/components/wall/spatial/notes/renderers/WallCompactNoteRenderer.tsx` owns compact and ambient canvas cards used when viewport windowing lowers note detail.
 - `src/features/wall/wall-note-view-model.ts` owns the first pure title/meta/privacy-mask view model used by compact canvas previews.
 
 Full-detail note-kind renderers still live inside `WallNotesLayer`; future Phase 3 slices should move them into `src/components/wall/spatial/notes/renderers/` by note kind.
