@@ -1,5 +1,30 @@
 # Agy Manual QA Checklist
 
+## Automated Wall P0 Coverage (2026-06-18)
+
+Run before merging wall refactors or sync/persistence changes:
+
+```bash
+npm run test:wall:p0
+```
+
+Optional Playwright smoke (requires dev server; CI-friendly when app env is available):
+
+```bash
+npm run test:e2e:wall-smoke
+```
+
+Covered flows:
+
+| Priority | Flow | Command / test file |
+|----------|------|---------------------|
+| P0 | Local save debounce → reload restores note | `wall-p0-local-persistence.integration.test.ts` |
+| P0 | Cloud bootstrap + delta apply + rebase | `wall-p0-sync.integration.test.ts`, `useWallPersistenceEffects.test.tsx`, `useWallRemoteDeltaFeed.test.tsx` |
+| P0 | Private note protect → unlock → edit → lock | `private-notes.integration.test.ts` |
+| P2 | Published wall smoke + login redirect | `e2e/wall-smoke.spec.ts` (`@wall-smoke`) |
+
+Manual QA below remains required for visual/interaction gaps (keyboard editing, timeline stream navigation, per-note-type canvas checks).
+
 ## Removed Workspaces Redirect (`/page`, `/media`) (2026-06-17)
 1. Open `/page` directly and verify the browser lands on `/wall` without rendering a page editor.
 2. Open `/page?doc=example#block-id` and verify the redirect still lands on plain `/wall` without preserving query or hash.

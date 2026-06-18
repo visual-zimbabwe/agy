@@ -368,6 +368,8 @@ wall/spatial/notes/renderers/
 
 ### Phase 5 — Correctness and test harness (2–3 weeks, can overlap Phase 2–4)
 
+**Status:** Shipped (2026-06-18) — fixture snapshots under `src/features/wall/__fixtures__/`, P0 hook/integration tests for local persistence, cloud delta/rebase, and private-note round-trip; extended persistence/delta hook tests; `@wall-smoke` Playwright spec; CI runs `npm run test:wall:p0`; QA and contributor docs reference automated P0 coverage.
+
 **Goal:** Test the flows that lose user trust when broken.
 
 #### Minimum test suite
@@ -391,9 +393,9 @@ wall/spatial/notes/renderers/
 
 #### Exit criteria
 
-- [ ] P0 tests green in CI
-- [ ] No refactor phase merges without running P0 suite
-- [ ] `docs/contributing/development-workflow.md` lists wall test commands
+- [x] P0 tests green in CI
+- [x] No refactor phase merges without running P0 suite
+- [x] `docs/contributing/development-workflow.md` lists wall test commands
 
 ---
 
