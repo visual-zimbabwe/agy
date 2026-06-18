@@ -1299,9 +1299,10 @@ Run after changes to `WallNotesLayer`, `src/components/wall/spatial/notes/*`, or
 1. Run `npm run test:unit -- src/components/wall/__tests__/noteLayout.test.ts src/features/wall/wall-note-view-model.test.ts`.
 2. Open `/wall` and zoom out until notes use compact/ambient rendering; verify standard, bookmark, file, audio, video, and private-note cards keep readable title/meta labels.
 3. Create or select an image note with a caption, resize it narrower and wider, and verify the image stays contained while the caption remains inside the card.
-4. Drag, select, multi-select, and delete a mix of standard and media notes to confirm the rendering extraction did not affect interaction behavior.
+4. Create or select file and audio notes, then verify the file download affordance, audio play/pause, audio open, and audio download controls still respond without changing note selection unexpectedly.
+5. Drag, select, multi-select, and delete a mix of standard and media notes to confirm the rendering extraction did not affect interaction behavior.
 
 Expected:
 - Image-note sizing and contained layout match the previous canvas behavior.
 - Compact note previews use the shared title/meta/privacy presentation policy.
-- Full-detail note rendering remains visually unchanged while Phase 3 renderer extraction continues.
+- Full-detail image, bookmark, file, and audio note rendering remains visually unchanged while Phase 3 renderer extraction continues.

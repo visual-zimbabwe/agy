@@ -83,9 +83,14 @@ Shared note presentation policy is beginning to move out of the layer as part of
 
 - `src/components/wall/spatial/notes/note-layout.ts` owns image-note caption sizing, automatic image-card height, and contained image layout.
 - `src/components/wall/spatial/notes/note-style.ts` owns shared canvas note palette, contrast, stroke, fill, and corner-radius helpers.
+- `src/components/wall/spatial/notes/renderers/WallCompactNoteRenderer.tsx` owns compact and ambient canvas cards used when viewport windowing lowers note detail.
+- `src/components/wall/spatial/notes/renderers/WallImageNoteRenderer.tsx` owns the full-detail canvas image card, including loading/error placeholders and caption editing.
+- `src/components/wall/spatial/notes/renderers/WallBookmarkNoteRenderer.tsx` owns the full-detail canvas web-bookmark card, including preview thumbnail, favicon/source footer, and open-link affordance.
+- `src/components/wall/spatial/notes/renderers/WallFileNoteRenderer.tsx` owns the full-detail canvas file/document card and its download affordance.
+- `src/components/wall/spatial/notes/renderers/WallAudioNoteRenderer.tsx` owns the full-detail canvas audio card, including playback, open/download controls, and waveform display.
 - `src/features/wall/wall-note-view-model.ts` owns the first pure title/meta/privacy-mask view model used by compact canvas previews.
 
-Full-detail note-kind renderers still live inside `WallNotesLayer`; future Phase 3 slices should move them into `src/components/wall/spatial/notes/renderers/` by note kind.
+Many full-detail note-kind renderers still live inside `WallNotesLayer`; future Phase 3 slices should continue moving them into `src/components/wall/spatial/notes/renderers/` by note kind.
 
 ## Specialized Rendering Behavior
 
