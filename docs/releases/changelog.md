@@ -35,6 +35,7 @@
 
 ### Changed
 
+- Wall UI refactor documentation aligned with shipped architecture: session model, spatial/notes layer split, view-model presentation contract, and Digital Atelier palette tokens (`docs/product/ux-rules.md`, ADR 0003)
 - Timeline stream now ships search, day jump, prev/next navigation, attachment-friendly labels, virtualization, and a read-only detail rail; orphaned horizontal timeline canvas components were removed
 - `/page` and `/media` now server-redirect to `/wall`
 - Startup and last-visited path preferences migrate away from `/page` and `/media`

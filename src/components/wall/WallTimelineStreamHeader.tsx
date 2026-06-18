@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 
+import { timelineStreamHeaderStyles as shellStyles } from "@/components/wall/atelier-palette";
 import type { TimelineStreamDayOption, TimelineStreamSortMode } from "@/components/wall/wallTimelineStreamHelpers";
 
 type WallTimelineStreamHeaderProps = {
@@ -18,16 +19,6 @@ type WallTimelineStreamHeaderProps = {
   onMovePrevious: () => void;
   onMoveNext: () => void;
   onExit: () => void;
-};
-
-const shellStyles = {
-  background: "rgba(252,249,244,0.82)",
-  chipBg: "rgba(246, 243, 238, 0.94)",
-  chipBorder: "rgba(223, 192, 184, 0.36)",
-  text: "#1c1c19",
-  muted: "rgba(77, 99, 86, 0.82)",
-  quiet: "rgba(139, 113, 106, 0.72)",
-  shadow: "0 18px 42px rgba(28, 28, 25, 0.08)",
 };
 
 const controlClassName =

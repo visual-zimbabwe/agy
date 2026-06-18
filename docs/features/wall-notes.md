@@ -39,6 +39,26 @@ The wall also maintains one permanent system note: currency. It is seeded automa
 
 These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands. Code notes are available from both the Tools panel and `Details > Note Type`, so users can either create a fresh code card at the viewport center or convert the current selection into the snippet shell without introducing a separate persisted note-kind enum. When a new wall note is created from viewport-centered creation flows, the wall now places it in the nearest collision-free space that still fits inside the user's current frame instead of stacking it on top of an existing note.
 
+## Presentation Contract
+
+Shared note labels and metadata use a single view-model boundary (Phase 4, 2026-06-18):
+
+- **Entry point:** `getWallNoteViewModel(note, context)` in `src/features/wall/wall-note-view-model.ts`
+- **Surfaces:** Konva compact cards, full-detail canvas renderers (`buildWallNotePresentation`), HTML `WallNotePreview`, timeline stream labels (`getTimelineNoteLabel`, `getTimelineNoteSubtitle`)
+- **Context options:** `surface` (`canvas-compact` | `canvas-full` | `preview` | `timeline`), `uppercaseMeta` for stream/meta casing
+
+View-model fields and their consumers are documented in `docs/architecture/wall-rendering-model.md#view-model-field-mapping`.
+
+**Not in the view model** (surface-specific renderers own these):
+
+- Code syntax highlighting and traffic-light chrome
+- Eisenhower quadrant layout
+- Quote typography and spine treatment
+- Image/bookmark/video layout geometry (uses view model for title/meta only)
+- Note-kind reserved color slots (Poetry, Economist, Throne, etc.)
+
+HTML preview and timeline stream share the Digital Atelier palette via `src/components/wall/atelier-palette.ts` (see `docs/product/ux-rules.md`).
+
 Web bookmark notes create a rich preview card from a URL using a server-side metadata fetch route. The parser prioritizes Open Graph tags, then Twitter card tags, then document title and meta description, and resolves preview images plus favicons into safe absolute URLs. Provider-aware enrichment now upgrades common video links such as YouTube when raw page scraping is weak, so the wall can still show a real title and thumbnail. The default non-edit bookmark note now renders as a compact horizontal link card instead of a tall note shell. The card stores the original URL, normalized URL, sanitized metadata, fetch timestamps, and status so the wall can render cached previews without re-requesting metadata on every render. v2 cache entries skip earlier domain-only fallback results so upgraded walls refetch richer previews instead of reusing weak metadata.
 
 File notes are now first-class wall notes instead of a filename-shaped standard note fallback. They use a compact white document card with a file tile, strong filename row, muted uppercase metadata line, and a right-edge download affordance. Users can create them directly from `Tools > New File` or convert the current note through `Details > Note Type > File`. File notes support two source modes: local-device upload, which stores a data URL plus name, MIME type, extension, size, and upload timestamp for local-first persistence, and link-backed files, which normalize the URL and derive a readable title or extension when possible. Both flows are editable again from the floating file editor and from the details sidebar.
@@ -144,8 +164,8 @@ This makes notes the core unit of wall content, but not the only structural elem
 
 ## Limitations
 
-- Wall note behavior spans multiple UI layers and feature helpers, so there is not yet a single implementation module for every note interaction.
-- Canvas note presentation is being decomposed incrementally. Shared image layout helpers, the title/meta/privacy view model (`getWallNoteViewModel`), compact canvas renderers, full-detail Konva renderers, and HTML `WallNotePreview` now share title/subtitle/media metadata derivation. Specialized layout (code highlighting, Eisenhower quadrants, quote typography) still lives in surface-specific renderers.
+- Wall note behavior spans multiple UI layers and feature helpers; orchestration is centralized in `useWallCanvasOrchestration` with session context for chrome.
+- Shared title/meta/privacy/media metadata flow through `getWallNoteViewModel`. Specialized layout (code highlighting, Eisenhower quadrants, quote typography) remains in surface-specific renderers under `wall/spatial/notes/renderers/` and `WallNotePreview`.
 - Some note workflows, such as vocabulary review and canon editing, still need deeper dedicated docs as they grow.
 
 ## Related Docs
@@ -154,3 +174,5 @@ This makes notes the core unit of wall content, but not the only structural elem
 - `docs/architecture/state-and-storage.md`
 - `docs/features/search-and-retrieval.md`
 - `docs/features/timeline-view.md`
+- `docs/architecture/wall-rendering-model.md`
+- `docs/product/ux-rules.md`

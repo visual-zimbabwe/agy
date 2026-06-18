@@ -65,21 +65,9 @@ This layer also owns important selection and drag behavior for zones.
 
 ### Notes Layer
 
-`WallNotesLayer` renders note bodies and much of note-adjacent interaction state.
+`WallNotesLayer` is a thin composer (~226 lines) that maps visible notes, builds interaction group props, and dispatches compact or full-detail renderers. Eisenhower matrix notes still render through `EisenhowerMatrixNote`.
 
-Current responsibilities include:
-
-- note body rendering
-- resizing drafts
-- hover and selection behavior
-- drag interactions
-- visual reactions to style changes
-- wiki footer rendering
-- note previews for specialized note types
-
-This is one of the densest rendering components in the wall codebase.
-
-Shared note presentation policy is beginning to move out of the layer as part of the Phase 3 refactor:
+Per-kind and shared rendering modules under `src/components/wall/spatial/notes/`:
 
 - `src/components/wall/spatial/notes/note-layout.ts` owns image-note caption sizing, automatic image-card height, and contained image layout.
 - `src/components/wall/spatial/notes/note-style.ts` owns shared canvas note palette, contrast, stroke, fill, and corner-radius helpers.
@@ -101,11 +89,11 @@ Shared note presentation policy is beginning to move out of the layer as part of
 - `src/components/wall/spatial/notes/useWallNoteAssets.ts` owns decoded image loading, LRU eviction, and automatic image-note height adjustment.
 - `src/components/wall/spatial/notes/useWallNoteStyleAnimations.ts` owns color-wash and text-size pulse reactions when note style changes.
 - `src/components/wall/spatial/notes/open-note-editor.ts` owns double-click / open-editor routing by note kind.
-- `src/features/wall/wall-note-view-model.ts` owns the shared title/meta/privacy-mask view model used by compact canvas previews, full-detail canvas derivation, HTML previews, and timeline stream labels.
+- `src/features/wall/wall-note-view-model.ts`: `getWallNoteViewModel(note, context)` — shared title/meta/privacy-mask view model for compact canvas previews, full-detail canvas derivation, HTML previews, and timeline stream labels
 
 **Phase 4 (2026-06-18):** `getWallNoteViewModel(note, context)` is the single presentation boundary for note titles, subtitles, privacy masking, and media metadata. See [View model field mapping](#view-model-field-mapping).
 
-`WallNotesLayer` is the thin composer (~226 lines): it maps visible notes, builds interaction group props, and dispatches compact or full-detail renderers. Eisenhower matrix notes still render through `EisenhowerMatrixNote`.
+**Phase 3 (2026-06-18):** Note rendering split by kind under `wall/spatial/notes/renderers/`; interaction wiring in `note-interaction.ts`; keyboard handlers split under `wall/keyboard/`.
 
 ## View model field mapping
 
@@ -141,13 +129,15 @@ Current specialized note rendering includes:
 - image notes can cause bad layout if intrinsic image data is missing or unstable
 - over-dense grid or layer output can pressure performance
 - complex note rendering paths increase regression risk for interaction and sizing behavior
-- canvas and HTML preview labels can drift until the shared view model is adopted by `WallNotePreview` in a later phase
+- specialized layout (code syntax tinting, Eisenhower quadrants, quote typography) can still drift between surfaces if changed without checking all three consumers (Konva renderer, `WallNotePreview`, timeline stream)
 
-**Update (Phase 4, 2026-06-18):** Canvas compact/full-detail renderers, `WallNotePreview`, and timeline stream labels now consume `getWallNoteViewModel` for shared title/meta/privacy presentation. Specialized layout (code syntax tinting, Eisenhower quadrants, quote typography) remains in surface-specific renderers.
+Canvas compact/full-detail renderers, `WallNotePreview`, and timeline stream labels consume `getWallNoteViewModel` for shared title/meta/privacy presentation (Phase 4, 2026-06-18).
 
 ## Related Docs
 
 - `docs/architecture/frontend-architecture.md`
+- `docs/architecture/wall-ui-refactor-implementation-plan.md`
 - `docs/features/wall-notes.md`
 - `docs/features/published-snapshots.md`
+- `docs/product/ux-rules.md`
 - `docs/qa.md`

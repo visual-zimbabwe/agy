@@ -1,5 +1,7 @@
 # Frontend Improvement Plan
 
+> **Superseded (2026-06-18).** Structural wall UI work continues in [`docs/architecture/wall-ui-refactor-implementation-plan.md`](../../architecture/wall-ui-refactor-implementation-plan.md). Phases 0–6 of that plan shipped the session context model, `WallCanvas` decomposition, `WallNotesLayer` split, view-model unification, and P0 test harness. Claims below that wall decomposition is "Done" reflected an earlier milestone, not the current architecture.
+
 Using `frontend-design`: the biggest frontend win is to separate visual system work from `WallCanvas` decomposition, then redesign key surfaces around one strong, consistent aesthetic.
 
 ## Recommended Direction
@@ -18,7 +20,7 @@ Using `frontend-design`: the biggest frontend win is to separate visual system w
 - Standardize typography stack (display + body + mono), and remove ad-hoc per-component font decisions.
 - Normalize overlays/modals (`SearchPalette`, `ExportModal`, `ShortcutsHelp`, `QuickCaptureBar`) to one shared shell and interaction model.
 
-3. **Wall UI Decomposition (Week 1-2)** (Done)
+3. **Wall UI Decomposition (Week 1-2)** (Superseded — see wall-ui-refactor-implementation-plan.md)
 - Break `src/components/WallCanvas.tsx` (3846 lines) into focused modules:
   - `WallStage` (Konva drawing + camera),
   - `WallToolbar`,

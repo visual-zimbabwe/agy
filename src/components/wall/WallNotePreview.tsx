@@ -2,6 +2,7 @@
 
 import { memo, type CSSProperties, type ReactNode } from "react";
 
+import { atelierPalette as atelier } from "@/components/wall/atelier-palette";
 import { formatJournalDateLabel, getNoteTextFontFamily, getNoteTextStyle, truncateNoteText } from "@/components/wall/wall-canvas-helpers";
 import { WebBookmarkCard } from "@/components/wall/WebBookmarkCard";
 import { readCardColors } from "@/components/wall/wallTimelineViewHelpers";
@@ -44,21 +45,6 @@ const previewConfig = {
   medium: { bodyClamp: 7, quadrantClamp: 3 },
   large: { bodyClamp: 10, quadrantClamp: 4 },
 } as const;
-
-const atelier = {
-  paper: "#fffdfa",
-  warm: "#fcf9f4",
-  wash: "#f6f3ee",
-  terracotta: "#a33818",
-  forest: "#4d6356",
-  gold: "#755717",
-  ink: "#1c1c19",
-  muted: "#5b463f",
-  quiet: "#8b716a",
-  line: "rgba(223,192,184,0.6)",
-  shadow: "0 18px 42px rgba(28,28,25,0.12)",
-  shadowDetail: "0 24px 56px rgba(28,28,25,0.16)",
-};
 
 const lineClampStyle = (lines: number): CSSProperties => ({
   display: "-webkit-box",
