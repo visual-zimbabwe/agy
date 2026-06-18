@@ -2,11 +2,19 @@
 
 ## Status
 
-**Phase 0 shipped** (2026-06-17) — session context scaffold and guardrails landed.
+**Phases 0–6 shipped** (2026-06-18). Wall UI refactor complete.
 
-**Phase 1 shipped** (2026-06-17) — prop surfaces collapsed via session context; `WallFloatingUi` and `WallDetailsSidebar` are prop-less; detail sections consume context; modals split by domain.
+| Phase | Summary |
+|-------|---------|
+| 0 | Session scaffold, guardrails, responsibility inventory |
+| 1 | Context migration; chrome prop-less |
+| 2 | `WallCanvas` thin shell; `WallSpatialView` + `WallChromeShell` |
+| 3 | `WallNotesLayer` split; keyboard sub-hooks |
+| 4 | `getWallNoteViewModel` dual-render boundary |
+| 5 | P0 correctness tests + `@wall-smoke` |
+| 6 | Docs, atelier palette tokens, ADR 0003 |
 
-This plan supersedes the remaining structural goals in `docs/archive/legacy-plans/frontend-improvement-plan.md`. That document marked wall UI decomposition as complete; the current codebase still has central files far above maintainable size (see [Current State](#current-state)).
+This plan supersedes `docs/archive/legacy-plans/frontend-improvement-plan.md`, which incorrectly marked wall UI decomposition as complete before the refactor finished.
 
 ## Purpose
 
@@ -401,6 +409,8 @@ wall/spatial/notes/renderers/
 
 ### Phase 6 — Polish and documentation (1 week)
 
+**Status:** Shipped (2026-06-18) — canonical architecture docs updated; Digital Atelier palette centralized in `atelier-palette.ts` + CSS vars; legacy plan annotated; ADR 0003 for session context.
+
 **Goal:** Align docs, tokens, and modal structure with the new architecture.
 
 #### Tasks
@@ -416,9 +426,9 @@ wall/spatial/notes/renderers/
 
 #### Exit criteria
 
-- [ ] Architecture docs match shipped structure
-- [ ] No stale “decomposition complete” claims elsewhere
-- [ ] Changelog entry when user-visible stability improves (optional)
+- [x] Architecture docs match shipped structure
+- [x] No stale “decomposition complete” claims elsewhere
+- [x] Changelog entry when user-visible stability improves (optional)
 
 ---
 

@@ -2,6 +2,8 @@
 
 import { memo } from "react";
 
+import type { TimelineStreamShellStyles } from "@/components/wall/atelier-palette";
+import { atelierPalette } from "@/components/wall/atelier-palette";
 import { WallNotePreview } from "@/components/wall/WallNotePreview";
 import { formatTimelineDateTime } from "@/components/wall/wallTimelineViewHelpers";
 import {
@@ -9,15 +11,6 @@ import {
   type TimelineStreamEntry,
   type TimelineStreamVirtualItem,
 } from "@/components/wall/wallTimelineStreamHelpers";
-
-export type TimelineStreamShellStyles = {
-  axis: string;
-  chipBg: string;
-  chipBorder: string;
-  muted: string;
-  quiet: string;
-  selection: string;
-};
 
 type WallTimelineVirtualRowProps = {
   item: TimelineStreamVirtualItem;
@@ -185,7 +178,7 @@ export const WallTimelineVirtualRow = memo(function WallTimelineVirtualRow({
       </div>
 
       <div className="relative hidden items-start justify-center md:flex">
-        <div className="mt-4 h-3 w-3 rounded-full border-2 bg-[#fcf9f4]" style={{ borderColor: shellStyles.axis }} />
+        <div className="mt-4 h-3 w-3 rounded-full border-2" style={{ borderColor: shellStyles.axis, background: atelierPalette.warm }} />
       </div>
     </div>
   );

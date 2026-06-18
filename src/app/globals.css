@@ -656,15 +656,25 @@ html[data-theme-preference="light"] .wall-timeline-shell {
 }
 
 .wall-atelier-shell {
+  --atelier-paper: #fffdfa;
+  --atelier-warm: #fcf9f4;
+  --atelier-wash: #f6f3ee;
+  --atelier-terracotta: #a33818;
+  --atelier-forest: #4d6356;
+  --atelier-gold: #755717;
+  --atelier-ink: #1c1c19;
+  --atelier-muted: #5b463f;
+  --atelier-quiet: #8b716a;
+  --atelier-line: rgb(223 192 184 / 0.6);
   position: relative;
   isolation: isolate;
   min-height: 100vh;
   overflow: hidden;
-  color: #1c1c19;
+  color: var(--atelier-ink);
   background:
     radial-gradient(circle at 14% -8%, rgb(234 214 188 / 0.52) 0, transparent 30%),
     radial-gradient(circle at 88% 6%, rgb(239 231 216 / 0.78) 0, transparent 28%),
-    linear-gradient(180deg, #fdfaf6 0%, #fcf9f4 100%);
+    linear-gradient(180deg, #fdfaf6 0%, var(--atelier-warm) 100%);
 }
 
 .wall-atelier-shell::before {

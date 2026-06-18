@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
+import { timelineStreamShellStyles as shellStyles } from "@/components/wall/atelier-palette";
 import { useIsDesktopTimelineLayout } from "@/components/wall/useIsDesktopTimelineLayout";
 import { useWallTimelineStream } from "@/components/wall/useWallTimelineStream";
 import { WallTimelineDetailPanel } from "@/components/wall/WallTimelineDetailPanel";
@@ -23,20 +24,6 @@ type WallTimelineViewProps = {
   onClearSelection?: () => void;
   onRevealNote: (noteId: string) => void;
   onExit: () => void;
-};
-
-const shellStyles = {
-  background: "#fcf9f4",
-  backgroundImage: "radial-gradient(circle at 50% 18%, rgba(255,255,255,0.9) 0%, rgba(252,249,244,1) 42%, rgba(240,237,232,0.84) 100%)",
-  axis: "rgba(223, 192, 184, 0.55)",
-  axisSoft: "rgba(223, 192, 184, 0.24)",
-  chipBg: "rgba(246, 243, 238, 0.94)",
-  chipBorder: "rgba(223, 192, 184, 0.36)",
-  text: "#1c1c19",
-  muted: "rgba(77, 99, 86, 0.82)",
-  quiet: "rgba(139, 113, 106, 0.72)",
-  shadow: "0 18px 42px rgba(28, 28, 25, 0.08)",
-  selection: "#a33818",
 };
 
 export const WallTimelineView = ({

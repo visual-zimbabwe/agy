@@ -47,35 +47,99 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 
 ### Wall
 
-- `src/components/WallCanvas.tsx`: thin wall composition shell (~75 lines) — mounts `WallSessionProvider`, delegates orchestration to `useWallCanvasOrchestration`
-- `src/components/wall/useWallCanvasOrchestration.ts`: wall orchestration hook — composes domain/`useWall*` hooks and session/spatial binding assembly (interim owner; exceeds 400 lines by design until further split)
-- `src/components/wall/session/`: wall session context scaffold (`WallSessionProvider`, interaction/sync/layout contexts) — see [`wall-ui-refactor-implementation-plan.md`](wall-ui-refactor-implementation-plan.md)
+Wall UI refactor Phases 0–6 shipped (2026-06-18). See [`wall-ui-refactor-implementation-plan.md`](wall-ui-refactor-implementation-plan.md) for phase history.
+
+#### Composition shell
+
+- `src/components/WallCanvas.tsx`: thin wall composition shell (~75 lines) — mounts `WallSessionProvider`, delegates orchestration to `useWallCanvasOrchestration`, renders `WallSpatialView` + `WallChromeShell`
+- `src/components/wall/useWallCanvasOrchestration.ts`: interim orchestration hook — composes domain/`useWall*` hooks and session/spatial binding assembly (exceeds 400 lines; further splits are optional follow-up)
+
+#### Session model
+
+Session contexts live in `src/components/wall/session/` (ADR: [`0003-wall-session-context.md`](../decisions/0003-wall-session-context.md)):
+
+| Module | Role |
+|--------|------|
+| `WallSessionProvider.tsx` | Composes all session providers |
+| `useWallSession.ts` | Composed read API for chrome (`interaction`, `sync`, `layout`, `chrome`, `details`, `modals`) |
+| `useWallSessionBindings.ts` | Binds orchestration state/handlers into context values |
+| `wall-interaction-context.tsx` | Selection, editing, linking, camera intent |
+| `wall-sync-context.tsx` | Cloud id, sync status, pending/error (read-mostly) |
+| `wall-layout-context.tsx` | Panel open state, layout prefs, reading/presentation/focus modes |
+| `wall-chrome-context.tsx` | Header, toolbar, search dock bindings |
+| `wall-details-context.tsx` | Inspector sections, recall, vocabulary, merge wiring |
+| `wall-modal-context.tsx` | Modal openers (export, settings/help, media insert) |
+| `useWallSpatialBindings.ts` | Spatial + chrome shell prop assembly for Konva/HTML subsystems |
+
+Chrome components (`WallFloatingUi`, `WallDetailsSidebar`, details sections) consume context; no prop firehose from `WallCanvas`.
+
+#### Spatial shell
+
 - `src/components/wall/spatial/WallSpatialView.tsx`: Konva canvas container — `WallStage`, dot matrix, notes, links/zones, overlays, inline video, floating UI
-- `src/components/wall/chrome/WallChromeShell.tsx`: wall chrome — `WallChromeHeader` (top bar) and `WallInCanvasChrome` (tools panel, timeline stream toggle, search dock, footer, details sidebar, product tour)
-- `src/components/wall/WallStage.tsx`: Konva stage and camera interaction surface
-- `src/components/wall/WallToolbar.tsx`, `WallHeaderBar.tsx`: command surfaces and route-adjacent controls
-- `src/components/wall/WallToolsPanel.tsx`, `WallDetailsSidebar.tsx`: left/right contextual panels
-- `src/components/wall/WallFloatingUi.tsx`, `WallGlobalModals.tsx`: floating editors, menus, and modal layer
-- `src/components/wall/session/useWallSpatialBindings.ts`: assembles spatial + chrome shell prop bags for `WallCanvas` render
-- `src/components/wall/useWallCommandPalette.ts`: omnibar command registry
-- `src/components/wall/useWallCloudSync.ts`: cloud sync scheduling, delta push, and conflict rebase
-- `src/components/wall/useWall*.ts`: other modular wall behavior hooks
-- Wall helper modules (relocated from the former `wall-canvas-helpers.ts` junk-drawer):
-  - `src/components/wall/wall-coordinates.ts`: screen/world transforms, fit-bounds camera, open-note placement, zone containment
-  - `src/components/wall/wall-links-geometry.ts`: link endpoint geometry, link color/stroke maps, link graph traversal
-  - `src/components/wall/wall-download.ts`: client-side file download helpers and download id generation
-  - `src/components/wall/wall-storage-keys.ts`: localStorage key constants (current + legacy) and snap thresholds
-  - `src/components/wall/wall-canvas-helpers.ts`: remaining note-text/presentation helpers (text style, font, truncation, tag-chip palette, recency intensity)
-- Timeline stream (`V`):
-  - `src/components/wall/WallTimelineView.tsx`: vertical stream composition root with `@tanstack/react-virtual` list virtualization
-  - `src/components/wall/WallTimelineVirtualRow.tsx`: virtual row renderer for day headers and note entries (single preview path per entry)
-  - `src/components/wall/WallTimelineStreamHeader.tsx`: search, day jump, sort, and prev/next controls
-  - `src/components/wall/useWallTimelineStream.ts`: stream filter/sort/selection state and flattened virtual item list
-  - `src/components/wall/useIsDesktopTimelineLayout.ts`: breakpoint hook for desktop vs mobile stream layout
-  - `src/components/wall/wallTimelineStreamHelpers.ts`: grouping, search predicates, selection helpers, and row-height estimation
-  - `src/components/wall/WallTimelineDetailPanel.tsx`: read-only selected-note detail rail on `xl+` stream viewports
-  - `src/components/wall/wallTimelineViewHelpers.ts`: shared date formatting helpers
-  - `src/components/wall/wallTimelineViewLayout.ts`: legacy horizontal canvas layout engine retained for tests only
+- `src/components/wall/spatial/notes/WallNotesLayer.tsx`: thin notes composer (~226 lines)
+- `src/components/wall/spatial/notes/renderers/*`: per-kind Konva renderers + `WallCompactNoteRenderer`, `WallFullNoteRenderer`, `WallNoteChromeOverlays`
+- `src/components/wall/spatial/notes/note-layout.ts`, `note-style.ts`, `note-interaction.ts`: shared layout, palette, and interaction wiring
+- `src/components/wall/spatial/notes/build-wall-note-presentation.ts`: full-detail canvas presentation derivation (consumes view model)
+- `src/components/wall/spatial/notes/useWallNoteAssets.ts`, `useWallNoteStyleAnimations.ts`: asset loading and style animations
+
+#### Chrome shell
+
+- `src/components/wall/chrome/WallChromeShell.tsx`: `WallChromeHeader` (top bar) + `WallInCanvasChrome` (tools panel, timeline stream toggle, search dock, footer, details sidebar, product tour)
+- `src/components/wall/WallFloatingUi.tsx`, `WallDetailsSidebar.tsx`: context-only chrome (0 props)
+- `src/components/wall/modals/WallExportModals.tsx`, `WallSettingsHelpModals.tsx`, `WallMediaInsertModals.tsx`: domain-split modal clusters (composed by `WallGlobalModals`)
+
+#### Presentation boundary
+
+- `src/features/wall/wall-note-view-model.ts`: `getWallNoteViewModel(note, context)` — shared title/meta/privacy/media metadata for canvas, HTML preview, and timeline stream
+
+#### Keyboard
+
+- `src/components/wall/keyboard/useWallKeyboardNavigation.ts`, `useWallKeyboardEditing.ts`, `useWallKeyboardSelection.ts`: scoped keyboard handlers
+- `src/components/wall/useWallKeyboard.ts`: composer re-export
+
+#### Orchestration hooks (selected)
+
+- `useWallCloudSync.ts`: cloud sync scheduling, delta push, rebase
+- `useWallPersistenceEffects.ts`: local + cloud bootstrap
+- `useWallPrivateNotes.ts`, `useWallBookmarkOrchestration.ts`, `useWallNoteCreation.ts`, `useWallMediaNoteHandlers.ts`, `useWallImageInsert.ts`, `useWallPresentationPaths.ts`, `useWallCommandPalette.ts`, `useWallClientPrefs.ts`, and other focused `useWall*` slices
+
+#### Helper modules
+
+- `src/components/wall/wall-coordinates.ts`, `wall-links-geometry.ts`, `wall-download.ts`, `wall-storage-keys.ts`, `wall-canvas-helpers.ts`
+- `src/components/wall/atelier-palette.ts`: Digital Atelier palette for HTML stream/preview surfaces (see `docs/product/ux-rules.md`)
+
+#### File tree (wall components)
+
+```text
+src/components/wall/
+  session/           # WallSessionProvider + split contexts + bindings
+  spatial/
+    WallSpatialView.tsx
+    notes/
+      WallNotesLayer.tsx
+      renderers/       # per-kind Konva renderers
+      note-layout.ts, note-style.ts, note-interaction.ts
+      build-wall-note-presentation.ts
+  chrome/
+    WallChromeShell.tsx
+  modals/            # export, settings/help, media insert clusters
+  keyboard/          # scoped keyboard sub-hooks
+  details/           # inspector section components
+  atelier-palette.ts # HTML stream/preview palette
+  useWall*.ts        # orchestration and behavior hooks
+```
+
+#### Timeline stream (`V`)
+
+- `src/components/wall/WallTimelineView.tsx`: vertical stream composition root with `@tanstack/react-virtual` list virtualization
+- `src/components/wall/WallTimelineVirtualRow.tsx`: virtual row renderer for day headers and note entries (single preview path per entry)
+- `src/components/wall/WallTimelineStreamHeader.tsx`: search, day jump, sort, and prev/next controls
+- `src/components/wall/useWallTimelineStream.ts`: stream filter/sort/selection state and flattened virtual item list
+- `src/components/wall/useIsDesktopTimelineLayout.ts`: breakpoint hook for desktop vs mobile stream layout
+- `src/components/wall/wallTimelineStreamHelpers.ts`: grouping, search predicates, selection helpers, and row-height estimation
+- `src/components/wall/WallTimelineDetailPanel.tsx`: read-only selected-note detail rail on `xl+` stream viewports
+- `src/components/wall/wallTimelineViewHelpers.ts`: shared date formatting helpers
+- `src/components/wall/wallTimelineViewLayout.ts`: legacy horizontal canvas layout engine retained for tests only
 
 ### Decks
 
@@ -108,11 +172,13 @@ Use:
 
 - CSS variables for colors, radii, shadows, and motion
 - shared wall chrome classes where those abstractions already exist
+- `src/components/wall/atelier-palette.ts` and `.wall-atelier-shell` CSS vars for wall HTML preview and timeline stream surfaces (see `docs/product/ux-rules.md`)
 
 Avoid:
 
 - route-local color systems that diverge from product tokens
 - duplicated style maps inside large workspace files
+- reintroducing prop drilling into context-migrated wall chrome components
 
 ## Growth Guardrails
 
@@ -129,7 +195,9 @@ Avoid:
 ## Related Docs
 
 - `docs/architecture/overview.md`
-- `docs/architecture/wall-ui-refactor-implementation-plan.md` (active structural refactor for wall UI; Phase 0 shipped)
+- `docs/architecture/wall-ui-refactor-implementation-plan.md` (wall UI refactor — Phases 0–6 shipped)
+- `docs/decisions/0003-wall-session-context.md`
+- `docs/product/ux-rules.md`
 - `docs/features/decks.md`
 - `docs/features/timeline-view.md`
 
