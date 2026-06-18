@@ -7,12 +7,6 @@ import type Konva from "konva";
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { parseCodeNote, tokenizeCodeLine } from "@/components/wall/codeNoteRendering";
 import {
-  IMAGE_NOTE_CAPTION_FONT_SIZE,
-  IMAGE_NOTE_CAPTION_GAP,
-  IMAGE_NOTE_CAPTION_LINE_HEIGHT,
-  IMAGE_NOTE_PADDING,
-  IMAGE_NOTE_RADIUS,
-  getContainedImageLayout,
   getImageNoteAutoHeight,
 } from "@/components/wall/spatial/notes/note-layout";
 import {
@@ -23,10 +17,11 @@ import {
   getNoteStrokeColor,
   resolveNoteFillColor,
 } from "@/components/wall/spatial/notes/note-style";
+import { WallBookmarkNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallBookmarkNoteRenderer";
 import { WallCompactNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallCompactNoteRenderer";
+import { WallImageNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallImageNoteRenderer";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { deriveWallAssetRecords, mergeWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
-import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import { stripWikiLinkMarkup } from "@/features/wall/wall-note-view-model";
@@ -659,7 +654,6 @@ export const WallNotesLayer = ({
         const imageUrl = resolveImageAssetUrl(noteView, resolvedAssetRecords);
         const bookmarkState = noteView.bookmark;
         const bookmarkMetadata = bookmarkState?.metadata;
-        const bookmarkDisplaySize = resolveBookmarkDisplaySize(noteView);
         const bookmarkImageUrl = bookmarkMetadata?.imageUrl?.trim();
         const bookmarkFaviconUrl = bookmarkMetadata?.faviconUrl?.trim();
         const bookmarkImage = bookmarkImageUrl ? loadedImagesByUrl[bookmarkImageUrl] : undefined;
@@ -673,7 +667,6 @@ export const WallNotesLayer = ({
         const resolvedTextColor = noteView.textColor ?? defaultTextColor;
         const paperTintOpacity = isPaperShellNote ? (isStandardNote ? 0.02 : isQuote ? 0.06 : isVocabulary ? 0.14 : 0.1) : 0;
         const imageCaption = noteView.text.trim();
-        const imageNoteLayout = isImageNote ? getContainedImageLayout(noteView, imageCaption, noteImage) : null;
         const strippedNoteText = stripWikiLinkMarkup(noteView.text);
         const noteLines = strippedNoteText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
         const standardTitle = isStandardNote
@@ -772,214 +765,35 @@ export const WallNotesLayer = ({
                 shadowOffsetY={isDragging ? 7 : 3}
               />
             ) : isBookmark ? (
-              <>
-                <Rect
-                  width={noteView.w}
-                  height={noteView.h}
-                  cornerRadius={18}
-                  fill={atelierPalette.paper}
-                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.forest })}
-                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
-                  shadowColor={atelierPalette.paperShadow}
-                  shadowBlur={isStandardNote ? (isFlashing ? 34 : isDragging ? 28 : 20) : isFlashing ? 28 : isDragging ? 24 : 16}
-                  shadowOpacity={isStandardNote ? (isFlashing ? 0.12 : isDragging ? 0.1 : 0.06) : isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
-                  shadowOffsetY={isDragging ? 7 : 3}
-                />
-                {(() => {
-                  const hasThumb = Boolean(bookmarkImage) && bookmarkDisplaySize !== "compact";
-                  const thumbWidth = bookmarkDisplaySize === "expanded" ? 178 : 156;
-                  const thumbHeight = bookmarkDisplaySize === "expanded" ? Math.max(92, noteView.h - 28) : Math.max(78, noteView.h - 34);
-                  const thumbX = hasThumb ? Math.max(16, noteView.w - thumbWidth - 16) : 0;
-                  const thumbY = hasThumb ? Math.max(14, (noteView.h - thumbHeight) / 2) : 0;
-                  const contentWidth = Math.max(0, noteView.w - (hasThumb ? thumbWidth + 48 : 32));
-                  const titleY = 24;
-                  const descriptionY = 52;
-                  const footerY = Math.max(16, noteView.h - 28);
-                  const targetUrl = bookmarkMetadata?.finalUrl || bookmarkState?.normalizedUrl || bookmarkState?.url;
-                  const sourceLabel = bookmarkUrlLabel(bookmarkState?.url || bookmarkState?.normalizedUrl || bookmarkMetadata?.finalUrl || "") || bookmarkMetadata?.siteName?.trim() || bookmarkMetadata?.domain || "Website";
-
-                  return (
-                    <>
-                      <Group
-                        x={Math.max(16, noteView.w - 84)}
-                        y={14}
-                        onClick={(event) => {
-                          if (isTimeLocked) {
-                            return;
-                          }
-                          event.cancelBubble = true;
-                          if (targetUrl) {
-                            openExternalUrl(targetUrl);
-                          }
-                        }}
-                        onTap={(event) => {
-                          if (isTimeLocked) {
-                            return;
-                          }
-                          event.cancelBubble = true;
-                          if (targetUrl) {
-                            openExternalUrl(targetUrl);
-                          }
-                        }}
-                      >
-                        <Rect width={68} height={24} cornerRadius={12} fill="rgba(0,71,83,0.08)" stroke="rgba(0,71,83,0.16)" strokeWidth={1} />
-                        <Text x={0} y={7} width={68} align="center" fontSize={10} fontStyle="bold" fill="#0B3F49" text="OPEN" />
-                      </Group>
-                      <Text
-                        x={16}
-                        y={titleY}
-                        width={contentWidth}
-                        fontSize={bookmarkDisplaySize === "compact" ? 14 : 17}
-                        fontStyle="bold"
-                        fill="#122C34"
-                        text={bookmarkMetadata?.title?.trim() || bookmarkMetadata?.domain || "Paste a URL"}
-                        ellipsis
-                        lineHeight={1.16}
-                        listening={false}
-                      />
-                      {bookmarkDisplaySize !== "compact" && (
-                        <Text
-                          x={16}
-                          y={descriptionY}
-                          width={contentWidth}
-                          height={Math.max(24, noteView.h - 84)}
-                          fontSize={12}
-                          lineHeight={1.32}
-                          fill="rgba(18,44,52,0.72)"
-                          text={bookmarkMetadata?.description?.trim() || bookmarkState?.error || "Bookmark preview is still loading metadata."}
-                          ellipsis
-                          listening={false}
-                        />
-                      )}
-                      {hasThumb ? (
-                        <>
-                          <Rect x={thumbX} y={thumbY} width={thumbWidth} height={thumbHeight} cornerRadius={14} fill="rgba(0,71,83,0.06)" stroke="rgba(0,71,83,0.10)" strokeWidth={1} listening={false} />
-                          {bookmarkImage ? (
-                            <KonvaImage x={thumbX} y={thumbY} width={thumbWidth} height={thumbHeight} image={bookmarkImage} cornerRadius={14} listening={false} />
-                          ) : null}
-                          {!bookmarkImage ? (
-                            <Text
-                              x={thumbX + 12}
-                              y={thumbY + thumbHeight / 2 - 8}
-                              width={Math.max(0, thumbWidth - 24)}
-                              align="center"
-                              fontSize={11}
-                              fontStyle="bold"
-                              fill="rgba(0,71,83,0.58)"
-                              text={bookmarkMetadata?.siteName?.trim() || bookmarkMetadata?.domain || "Preview"}
-                              ellipsis
-                              listening={false}
-                            />
-                          ) : null}
-                        </>
-                      ) : null}
-                      <Group x={16} y={footerY} listening={false}>
-                        {bookmarkFavicon ? (
-                          <KonvaImage x={0} y={0} width={16} height={16} image={bookmarkFavicon} cornerRadius={4} listening={false} />
-                        ) : (
-                          <Rect x={0} y={0} width={16} height={16} cornerRadius={4} fill={WEB_BOOKMARK_ACCENT} listening={false} />
-                        )}
-                        <Text
-                          x={24}
-                          y={1}
-                          width={Math.max(0, noteView.w - (hasThumb ? thumbWidth + 144 : 150))}
-                          fontSize={11}
-                          fill="rgba(18,44,52,0.72)"
-                          text={sourceLabel}
-                          ellipsis
-                          listening={false}
-                        />
-                      </Group>
-                    </>
-                  );
-                })()}
-              </>
-            ) : isImageNote && imageNoteLayout ? (
-              <>
-                <Rect
-                  width={noteView.w}
-                  height={noteView.h}
-                  cornerRadius={IMAGE_NOTE_RADIUS}
-                  fill={atelierPalette.paper}
-                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: resolvedNoteColor })}
-                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
-                  shadowColor={atelierPalette.paperShadow}
-                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
-                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
-                  shadowOffsetY={isDragging ? 7 : 3}
-                />
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={IMAGE_NOTE_RADIUS} fill={resolvedNoteColor} opacity={0.08} listening={false} />
-                {noteImage ? (
-                  <KonvaImage
-                    x={imageNoteLayout.imageX}
-                    y={imageNoteLayout.imageY}
-                    width={imageNoteLayout.imageWidth}
-                    height={imageNoteLayout.imageHeight}
-                    image={noteImage}
-                    cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
-                    listening={false}
-                  />
-                ) : (
-                  <>
-                    <Rect
-                      x={IMAGE_NOTE_PADDING}
-                      y={IMAGE_NOTE_PADDING}
-                      width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
-                      height={Math.max(1, noteView.h - IMAGE_NOTE_PADDING * 2 - imageNoteLayout.captionHeight - (imageNoteLayout.captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0))}
-                      cornerRadius={Math.max(IMAGE_NOTE_RADIUS - 2, 12)}
-                      fill={colorWithAlpha(atelierPalette.text, 0.06)}
-                      stroke={colorWithAlpha(atelierPalette.paperStrokeStrong, 0.16)}
-                      strokeWidth={1}
-                      dash={[6, 4]}
-                      listening={false}
-                    />
-                    <Text
-                      x={18}
-                      y={Math.max(18, noteView.h / 2 - 8)}
-                      width={Math.max(0, noteView.w - 36)}
-                      align="center"
-                      fontSize={11}
-                      fill={colorWithAlpha(atelierPalette.mutedText, 0.88)}
-                      text={imageUrl && failedImagesByUrl[imageUrl] ? "Image failed to load" : "Loading image..."}
-                      listening={false}
-                    />
-                  </>
-                )}
-                {imageCaption && (
-                  <>
-                    <Rect
-                      x={IMAGE_NOTE_PADDING}
-                      y={noteView.h - IMAGE_NOTE_PADDING - imageNoteLayout.captionHeight - 2}
-                      width={Math.max(1, noteView.w - IMAGE_NOTE_PADDING * 2)}
-                      height={imageNoteLayout.captionHeight + 2}
-                      cornerRadius={12}
-                      fill="#FFFFFF"
-                      opacity={0.94}
-                      listening={false}
-                    />
-                    <Text
-                      x={14}
-                      y={noteView.h - IMAGE_NOTE_PADDING - imageNoteLayout.captionHeight + 5}
-                      width={Math.max(0, noteView.w - 28)}
-                      height={Math.max(0, imageNoteLayout.captionHeight - 10)}
-                      fontSize={IMAGE_NOTE_CAPTION_FONT_SIZE}
-                      fontFamily={isQuote ? "Newsreader" : noteTextFontFamily}
-                      lineHeight={IMAGE_NOTE_CAPTION_LINE_HEIGHT}
-                      fill="#475569"
-                      text={imageCaption}
-                      ellipsis
-                      onClick={(event) => {
-                        if (isTimeLocked) {
-                          return;
-                        }
-                        event.cancelBubble = true;
-                        selectSingleNote(note.id);
-                        openEditor(note.id, noteView.text);
-                      }}
-                    />
-                  </>
-                )}
-              </>
+              <WallBookmarkNoteRenderer
+                note={noteView}
+                bookmarkImage={bookmarkImage}
+                bookmarkFavicon={bookmarkFavicon}
+                isSelected={isSelected}
+                isHovered={isHovered}
+                isHighlighted={isHighlighted}
+                isFlashing={isFlashing}
+                isDragging={isDragging}
+                isTimeLocked={isTimeLocked}
+                openExternalUrl={openExternalUrl}
+              />
+            ) : isImageNote ? (
+              <WallImageNoteRenderer
+                note={noteView}
+                imageUrl={imageUrl}
+                image={noteImage}
+                imageLoadFailed={Boolean(imageUrl && failedImagesByUrl[imageUrl])}
+                captionFontFamily={isQuote ? "Newsreader" : noteTextFontFamily}
+                accentColor={resolvedNoteColor}
+                isSelected={isSelected}
+                isHovered={isHovered}
+                isHighlighted={isHighlighted}
+                isFlashing={isFlashing}
+                isDragging={isDragging}
+                isTimeLocked={isTimeLocked}
+                selectSingleNote={selectSingleNote}
+                openEditor={openEditor}
+              />
             ) : isEisenhower ? (
               <EisenhowerMatrixNote
                 note={noteView}
