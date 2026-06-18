@@ -1,16 +1,10 @@
 import { resolveWallPreviewDimensions, isBareAttachmentNote } from "@/components/wall/wallNotePreviewSizing";
-import { getAudioNoteTitle } from "@/features/wall/audio-notes";
-import { bookmarkDomainLabel } from "@/features/wall/bookmarks";
-import { getFileNoteMeta, getFileNoteTitle } from "@/features/wall/file-notes";
-import { getImageNoteTitle, isImageNote } from "@/features/wall/image-notes";
-import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
-import { getVideoNoteTitle } from "@/features/wall/video-notes";
-import { getNoteWikiTitle, isUntitledWikiTitle } from "@/features/wall/wiki-links";
+import { getFileNoteTitle } from "@/features/wall/file-notes";
+import { getImageNoteTitle } from "@/features/wall/image-notes";
+import { getWallNoteViewModel, stripWikiLinkMarkup } from "@/features/wall/wall-note-view-model";
+import { getNoteWikiTitle } from "@/features/wall/wiki-links";
 import type { Note } from "@/features/wall/types";
 
-const BARE_ATTACHMENT_PATTERN = /([\w-]+\.(pdf|docx?|txt|png|jpe?g|gif|webp|zip|csv|md|xlsx?|pptx?))/i;
-
-const stripWikiLinkMarkup = (text: string) => text.replace(/\[\[([^\]\n]+?)\]\]/g, "$1");
 
 const getNoteTextLines = (note: Pick<Note, "text">) =>
   stripWikiLinkMarkup(note.text)
@@ -20,77 +14,7 @@ const getNoteTextLines = (note: Pick<Note, "text">) =>
 
 export { isBareAttachmentNote } from "@/components/wall/wallNotePreviewSizing";
 
-const getStructuredUserTitle = (note: Note) => {
-  if (note.canon?.title?.trim()) {
-    return note.canon.title.trim();
-  }
-  if (note.bookmark?.metadata?.title?.trim()) {
-    return note.bookmark.metadata.title.trim();
-  }
-  if (note.noteKind === "audio" && note.audio) {
-    return getAudioNoteTitle(note.audio);
-  }
-  if (note.noteKind === "video" && note.video) {
-    return getVideoNoteTitle(note.video);
-  }
-  if (note.vocabulary?.word?.trim()) {
-    return note.vocabulary.word.trim();
-  }
-  if (isPrivateNote(note)) {
-    return privateNoteTitle(note);
-  }
-  return undefined;
-};
-
-const getAttachmentFilename = (note: Note) => {
-  if (note.noteKind === "file" || note.file?.name) {
-    return getFileNoteTitle(note.file);
-  }
-  if (isImageNote(note)) {
-    return getImageNoteTitle(note.file);
-  }
-  const match = stripWikiLinkMarkup(note.text).match(BARE_ATTACHMENT_PATTERN);
-  return match?.[1];
-};
-
-const isFilenameOnlyFirstLine = (note: Note, firstLine: string) => {
-  const filename = getAttachmentFilename(note);
-  if (!filename) {
-    return false;
-  }
-  return firstLine.toLowerCase() === filename.toLowerCase();
-};
-
-export const getTimelineNoteLabel = (note: Note) => {
-  const userTitle = getStructuredUserTitle(note);
-  if (userTitle) {
-    return userTitle;
-  }
-
-  const [firstLine] = getNoteTextLines(note);
-  if (firstLine && !isFilenameOnlyFirstLine(note, firstLine)) {
-    return firstLine;
-  }
-
-  const wikiTitle = getNoteWikiTitle(note);
-  if (!isUntitledWikiTitle(wikiTitle)) {
-    return wikiTitle;
-  }
-
-  if (note.noteKind === "file" || note.file?.name) {
-    return getFileNoteTitle(note.file);
-  }
-  if (isImageNote(note)) {
-    return getImageNoteTitle(note.file);
-  }
-
-  const bareFilename = getAttachmentFilename(note);
-  if (bareFilename) {
-    return bareFilename;
-  }
-
-  return firstLine || wikiTitle || "Untitled note";
-};
+export const getTimelineNoteLabel = (note: Note) => getWallNoteViewModel(note, { surface: "timeline" }).title;
 
 const truncateTimelineSubtitle = (value: string, maxLength = 96) => {
   const trimmed = value.trim();
@@ -100,35 +24,28 @@ const truncateTimelineSubtitle = (value: string, maxLength = 96) => {
   return `${trimmed.slice(0, maxLength - 1).trimEnd()}…`;
 };
 
-const formatTimelineTagSummary = (tags: readonly string[]) =>
-  tags
-    .slice(0, 3)
-    .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`))
-    .join(" ");
-
 export const getTimelineNoteSubtitle = (note: Note) => {
+  const viewModel = getWallNoteViewModel(note, { surface: "timeline" });
+
   if (note.noteKind === "file" || (isBareAttachmentNote(note) && !note.noteKind)) {
-    const meta = getFileNoteMeta(note.file);
-    return meta || undefined;
+    return viewModel.meta || undefined;
   }
 
   if (note.noteKind === "web-bookmark") {
-    const metadata = note.bookmark?.metadata;
-    const siteName = metadata?.siteName?.trim();
-    const domain = bookmarkDomainLabel(metadata?.domain || note.bookmark?.normalizedUrl || note.bookmark?.url);
-    const summary = [siteName, domain].filter(Boolean).join(" · ");
-    return summary || note.bookmark?.url || undefined;
+    return viewModel.meta || note.bookmark?.url || undefined;
   }
 
   const lines = getNoteTextLines(note);
-  const label = getTimelineNoteLabel(note);
-  const secondaryLine = lines.find((line) => line !== label);
+  const secondaryLine = lines.find((line) => line !== viewModel.title);
   if (secondaryLine) {
     return truncateTimelineSubtitle(secondaryLine);
   }
 
   if (note.tags.length > 0) {
-    return formatTimelineTagSummary(note.tags);
+    return note.tags
+      .slice(0, 3)
+      .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`))
+      .join(" ");
   }
 
   return undefined;

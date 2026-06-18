@@ -340,6 +340,8 @@ wall/spatial/notes/renderers/
 
 ### Phase 4 — Unify dual rendering (2 weeks)
 
+**Status:** Shipped (2026-06-18) — `getWallNoteViewModel(note, context)` is the shared presentation boundary; `WallNotePreview`, full-detail canvas derivation, compact canvas cards, private renderer, and timeline stream labels consume it for title/meta/privacy/media metadata. Fixture-backed unit tests and a Vitest snapshot baseline guard per-kind presentation output.
+
 **Goal:** Stop timeline/canvas presentation drift.
 
 #### Tasks
@@ -353,9 +355,9 @@ wall/spatial/notes/renderers/
 
 #### Exit criteria
 
-- [ ] View model unit tests for each note kind
-- [ ] `WallNotePreview` does not duplicate title/subtitle logic found in view model
-- [ ] Documented mapping: view model field → Konva node / HTML element
+- [x] View model unit tests for each note kind
+- [x] `WallNotePreview` does not duplicate title/subtitle logic found in view model
+- [x] Documented mapping: view model field → Konva node / HTML element
 
 #### Validation
 

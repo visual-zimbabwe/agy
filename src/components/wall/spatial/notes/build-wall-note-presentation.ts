@@ -1,12 +1,11 @@
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { atelierPalette, getContrastTextColor, getNoteCornerRadius, resolveNoteFillColor } from "@/components/wall/spatial/notes/note-style";
 import { resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
-import { formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
-import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
+import { formatAudioDuration } from "@/features/wall/audio-notes";
 import { isPrivateNote } from "@/features/wall/private-notes";
 import type { Note, WallAssetMap } from "@/features/wall/types";
-import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
-import { stripWikiLinkMarkup } from "@/features/wall/wall-note-view-model";
+import { formatVideoDuration } from "@/features/wall/video-notes";
+import { getWallNoteViewModel, stripWikiLinkMarkup } from "@/features/wall/wall-note-view-model";
 
 export type WallNotePresentation = {
   resolvedNoteColor: string;
@@ -143,42 +142,30 @@ export const buildWallNotePresentation = ({
     isQuote || isJournal || isBookmark || isImageNote || isPrivate || isAudio ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
   const resolvedTextColor = noteView.textColor ?? defaultTextColor;
   const paperTintOpacity = isStandardNote ? 0.02 : isQuote ? 0.06 : isVocabulary ? 0.14 : 0.1;
-  const imageCaption = noteView.text.trim();
+  const noteViewModel = getWallNoteViewModel(noteView, { surface: "canvas-full", uppercaseMeta: true });
+  const imageCaption = noteViewModel.imageCaption;
   const strippedNoteText = stripWikiLinkMarkup(noteView.text);
-  const noteLines = strippedNoteText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const standardTitle = isStandardNote
-    ? noteLines.length > 1
-      ? noteLines[0] ?? "Quick Thought"
-      : noteLines.length === 1
-        ? noteLines[0] ?? ""
-        : "Quick Thought"
-    : "";
-  const standardBody = isStandardNote
-    ? noteLines.length > 1
-      ? noteLines.slice(1).join("\n")
-      : noteLines.length === 1
-        ? ""
-        : "Double-click or press Enter to edit"
-    : strippedNoteText;
+  const standardTitle = isStandardNote ? noteViewModel.standardTitle : "";
+  const standardBody = isStandardNote ? noteViewModel.standardBody : strippedNoteText;
   const looksLikeCode = /(^|\n)\s*(def |const |let |function |class |import |from |<\w)|=>|\{\s*$|console\.|return\s+/m.test(strippedNoteText);
   const fileNameMatch = strippedNoteText.match(/([\w-]+\.(pdf|docx?|txt|png|jpe?g|zip|csv|md))/i);
   const looksLikeFile = !isAudio && !isVideo && (noteView.noteKind === "file" || Boolean(fileNameMatch));
-  const fileLabel = noteView.noteKind === "file" ? getFileNoteTitle(noteView.file) : fileNameMatch?.[1] ?? "Document";
-  const fileMeta = noteView.noteKind === "file" ? getFileNoteMetaCaps(noteView.file) : strippedNoteText.replace(fileLabel, "").trim() || "File note";
-  const audioTitle = getAudioNoteTitle(noteView.audio);
-  const audioMeta = getAudioNoteMeta(noteView.audio).toUpperCase();
+  const fileLabel = looksLikeFile ? noteViewModel.title : "Document";
+  const fileMeta = looksLikeFile ? noteViewModel.metaDisplay : "File note";
+  const audioTitle = noteViewModel.title;
+  const audioMeta = noteViewModel.metaDisplay;
   const isAudioPlaying = isAudio && playingAudioNoteId === note.id;
   const audioDurationSeconds = isAudioPlaying ? playingAudioDurationSeconds ?? noteView.audio?.durationSeconds : noteView.audio?.durationSeconds;
   const audioCurrentTime = formatAudioDuration(isAudioPlaying ? playingAudioCurrentTimeSeconds : 0);
   const audioDuration = formatAudioDuration(audioDurationSeconds);
   const isInlineVideoPlaying = isVideo && inlinePlayingVideoNoteId === note.id;
-  const videoTitle = getVideoNoteTitle(noteView.video);
-  const videoMeta = getVideoNoteMeta(noteView.video).toUpperCase();
+  const videoTitle = noteViewModel.title;
+  const videoMeta = noteViewModel.metaDisplay;
   const videoDuration = formatVideoDuration(noteView.video?.durationSeconds);
   const videoCurrentTime = formatVideoDuration(noteView.video?.durationSeconds ? Math.max(0, Math.round(noteView.video.durationSeconds * 0.35)) : 0);
   const videoPoster = resolveVideoPosterAssetUrl(noteView, resolvedAssetRecords);
-  const journalTitle = noteLines[0] ?? "Dear Wall,";
-  const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
+  const journalTitle = noteViewModel.journalTitle;
+  const journalBody = noteViewModel.journalBody;
   const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isVideo && !isImageNote && !isBookmark && !isEisenhower && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary;
   const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
   const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;

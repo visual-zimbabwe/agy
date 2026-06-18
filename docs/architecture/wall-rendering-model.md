@@ -101,9 +101,23 @@ Shared note presentation policy is beginning to move out of the layer as part of
 - `src/components/wall/spatial/notes/useWallNoteAssets.ts` owns decoded image loading, LRU eviction, and automatic image-note height adjustment.
 - `src/components/wall/spatial/notes/useWallNoteStyleAnimations.ts` owns color-wash and text-size pulse reactions when note style changes.
 - `src/components/wall/spatial/notes/open-note-editor.ts` owns double-click / open-editor routing by note kind.
-- `src/features/wall/wall-note-view-model.ts` owns the first pure title/meta/privacy-mask view model used by compact canvas previews.
+- `src/features/wall/wall-note-view-model.ts` owns the shared title/meta/privacy-mask view model used by compact canvas previews, full-detail canvas derivation, HTML previews, and timeline stream labels.
+
+**Phase 4 (2026-06-18):** `getWallNoteViewModel(note, context)` is the single presentation boundary for note titles, subtitles, privacy masking, and media metadata. See [View model field mapping](#view-model-field-mapping).
 
 `WallNotesLayer` is the thin composer (~226 lines): it maps visible notes, builds interaction group props, and dispatches compact or full-detail renderers. Eisenhower matrix notes still render through `EisenhowerMatrixNote`.
+
+## View model field mapping
+
+| View model field | Konva consumer | HTML / timeline consumer |
+|------------------|----------------|---------------------------|
+| `title` | `WallCompactNoteRenderer` title `Text`; full-detail audio/video/file/private renderers | `WallNotePreview` media/private/file title rows; `getTimelineNoteLabel` |
+| `meta` / `metaDisplay` | `WallCompactNoteRenderer` footer `Text`; `buildWallNotePresentation` media meta passed to full renderers | `WallNotePreview` media meta rows; timeline file/bookmark subtitles via `getTimelineNoteSubtitle` |
+| `privacyMaskLabel` / `privacyMetaLabel` | `WallPrivateNoteRenderer` secured label | `WallNotePreview` private card |
+| `standardTitle` / `standardBody` | `buildWallNotePresentation` → `WallStandardNoteRenderer` | `WallNotePreview` standard card |
+| `journalTitle` / `journalBody` | `buildWallNotePresentation` → `WallJournalNoteRenderer` | `WallNotePreview` journal card |
+| `imageCaption` / `imageMeta` | `buildWallNotePresentation` image caption + `WallImageNoteRenderer` | `WallNotePreview` image card |
+| `badge` | `WallCompactNoteRenderer` kind pill | — |
 
 ## Specialized Rendering Behavior
 
@@ -128,6 +142,8 @@ Current specialized note rendering includes:
 - over-dense grid or layer output can pressure performance
 - complex note rendering paths increase regression risk for interaction and sizing behavior
 - canvas and HTML preview labels can drift until the shared view model is adopted by `WallNotePreview` in a later phase
+
+**Update (Phase 4, 2026-06-18):** Canvas compact/full-detail renderers, `WallNotePreview`, and timeline stream labels now consume `getWallNoteViewModel` for shared title/meta/privacy presentation. Specialized layout (code syntax tinting, Eisenhower quadrants, quote typography) remains in surface-specific renderers.
 
 ## Related Docs
 
