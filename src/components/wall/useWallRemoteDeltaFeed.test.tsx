@@ -1,7 +1,12 @@
-import { act, render } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useWallRemoteDeltaFeed } from "@/components/wall/useWallRemoteDeltaFeed";
+import {
+  wallDeltaChangeFixtures,
+  wallSnapshotFixtures,
+  wallSnapshotNoteFixtures,
+} from "@/features/wall/__fixtures__/wall-snapshot-fixtures";
 import type { PersistedWallState } from "@/features/wall/types";
 
 const loadWallDeltaMock = vi.fn();
@@ -106,5 +111,59 @@ describe("useWallRemoteDeltaFeed", () => {
     expect(loadWallDeltaMock).toHaveBeenCalledTimes(1);
 
     view.unmount();
+  });
+
+  it("applies remote delta changes and forwards the rebased baseline snapshot", async () => {
+    const onRemoteSnapshot = vi.fn();
+    loadWallDeltaMock.mockResolvedValue({
+      currentVersion: 2,
+      changes: [wallDeltaChangeFixtures.noteUpdate()],
+    });
+
+    render(
+      <HookHarness
+        getBaselineSnapshot={() => wallSnapshotFixtures.withSingleNote}
+        getSyncVersion={() => 1}
+        getViewportBounds={() => bounds}
+        onRemoteSnapshot={onRemoteSnapshot}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onRemoteSnapshot).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onRemoteSnapshot).toHaveBeenCalledWith({
+      baselineSnapshot: expect.objectContaining({
+        notes: expect.objectContaining({
+          [wallSnapshotNoteFixtures.standard.id]: expect.objectContaining({
+            text: wallSnapshotNoteFixtures.remoteUpdated.text,
+          }),
+        }),
+      }),
+      viewportSnapshot: null,
+      syncVersion: 2,
+    });
+  });
+
+  it("ignores stale delta versions that do not advance sync state", async () => {
+    const onRemoteSnapshot = vi.fn();
+    loadWallDeltaMock.mockResolvedValue({
+      currentVersion: 1,
+      changes: [wallDeltaChangeFixtures.noteUpdate()],
+    });
+
+    render(
+      <HookHarness
+        getBaselineSnapshot={() => wallSnapshotFixtures.withSingleNote}
+        getSyncVersion={() => 1}
+        getViewportBounds={() => bounds}
+        onRemoteSnapshot={onRemoteSnapshot}
+      />,
+    );
+
+    await act(async () => {});
+
+    expect(onRemoteSnapshot).not.toHaveBeenCalled();
   });
 });

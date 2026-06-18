@@ -88,9 +88,32 @@ Additional checks when relevant:
 ```bash
 npm run check:types
 npm run test:unit
+npm run test:wall:p0
+npm run test:e2e:wall-smoke
 npm run check:styles:duplicates
 npm run check:regressions
 npm run baseline:capture
+```
+
+### Wall refactor test commands
+
+During the wall UI refactor ([`docs/architecture/wall-ui-refactor-implementation-plan.md`](../architecture/wall-ui-refactor-implementation-plan.md)), run the P0 correctness suite before merging structural changes:
+
+```bash
+npm run test:wall:p0
+```
+
+Playwright smoke for published/read-only wall paths:
+
+```bash
+npm run test:e2e:wall-smoke
+```
+
+Full unit and e2e suites:
+
+```bash
+npm run test:unit
+npm run test:e2e
 ```
 
 Manual validation should use `docs/qa.md`.

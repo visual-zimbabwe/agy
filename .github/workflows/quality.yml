@@ -29,5 +29,8 @@ jobs:
       - name: Regression checks
         run: npm run check:regressions
 
+      - name: Unit tests
+        run: npm run test:wall:p0
+
       - name: Build
         run: npm run build

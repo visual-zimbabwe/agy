@@ -12,7 +12,9 @@
     "check:styles:duplicates": "node ./scripts/check-duplicate-wall-classes.mjs",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
+    "test:wall:p0": "vitest run src/features/wall/__tests__/wall-p0-local-persistence.integration.test.ts src/features/wall/__tests__/wall-p0-sync.integration.test.ts src/features/wall/__tests__/private-notes.integration.test.ts src/components/wall/useWallPersistenceEffects.test.tsx src/components/wall/useWallRemoteDeltaFeed.test.tsx",
     "test:e2e": "playwright test",
+    "test:e2e:wall-smoke": "playwright test e2e/wall-smoke.spec.ts",
     "check:regressions": "eslint src/components/QuickCaptureBar.tsx src/components/WallCanvas.tsx --max-warnings=0 --rule \"react-hooks/set-state-in-effect:error\" --rule \"react-hooks/refs:error\"",
     "baseline:capture": "powershell -ExecutionPolicy Bypass -File ./scripts/capture-ux-baselines.ps1"
   },
@@ -43,6 +45,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^28.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",

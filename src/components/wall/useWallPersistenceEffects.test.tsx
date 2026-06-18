@@ -3,7 +3,14 @@ import { useRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useWallPersistenceEffects } from "@/components/wall/useWallPersistenceEffects";
+import {
+  wallDeltaChangeFixtures,
+  wallSnapshotFixtures,
+  wallSnapshotNoteFixtures,
+} from "@/features/wall/__fixtures__/wall-snapshot-fixtures";
 import type { PersistedWallState } from "@/features/wall/types";
+
+const loadWallDeltaMock = vi.fn();
 
 const loadWallBootstrapMock = vi.fn();
 const loadWallShellMock = vi.fn();
@@ -24,7 +31,7 @@ vi.mock("@/features/wall/cloud", () => ({
 
 vi.mock("@/features/wall/cloud-delta", () => ({
   loadWallBootstrap: (...args: unknown[]) => loadWallBootstrapMock(...args),
-  loadWallDelta: vi.fn(),
+  loadWallDelta: (...args: unknown[]) => loadWallDeltaMock(...args),
   loadWallShell: (...args: unknown[]) => loadWallShellMock(...args),
   loadWallWindow: (...args: unknown[]) => loadWallWindowMock(...args),
 }));
@@ -179,6 +186,10 @@ describe("useWallPersistenceEffects", () => {
       snapshot: emptySnapshot,
       syncVersion: 3,
     });
+    loadWallDeltaMock.mockResolvedValue({
+      currentVersion: 4,
+      changes: [wallDeltaChangeFixtures.noteUpdate()],
+    });
     saveWallSnapshotMock.mockResolvedValue(undefined);
     saveWallCloudBaselineSnapshotMock.mockResolvedValue(undefined);
     saveWallSyncVersionMock.mockResolvedValue(undefined);
@@ -287,6 +298,57 @@ describe("useWallPersistenceEffects", () => {
       1,
       expect.objectContaining({
         camera: { x: 250, y: 400, zoom: 1.8 },
+      }),
+    );
+  });
+
+  it("applies stored cloud deltas during bootstrap when a local baseline exists", async () => {
+    const baselineSnapshot = wallSnapshotFixtures.withSingleNote;
+    const mergedSnapshot = {
+      ...baselineSnapshot,
+      notes: {
+        [wallSnapshotNoteFixtures.standard.id]: wallSnapshotNoteFixtures.remoteUpdated,
+      },
+    };
+
+    loadWallLocalStateWithRepairMock.mockResolvedValue({
+      snapshot: baselineSnapshot,
+      cloudBaselineSnapshot: baselineSnapshot,
+      syncVersion: 3,
+    });
+    loadWallBootstrapMock.mockResolvedValue({
+      snapshot: mergedSnapshot,
+      syncVersion: 4,
+    });
+    loadWallDeltaMock.mockResolvedValue({
+      currentVersion: 4,
+      changes: [wallDeltaChangeFixtures.noteUpdate()],
+    });
+
+    render(
+      <HookHarness
+        hydrate={vi.fn()}
+        scheduleCloudSync={vi.fn()}
+        setAcknowledgedCloudSnapshot={vi.fn()}
+        setCloudSyncVersion={vi.fn()}
+        setCloudWallUpdatedAt={vi.fn()}
+        setSyncError={vi.fn()}
+        getViewportWindowBounds={() => ({ minX: -100, minY: -100, maxX: 100, maxY: 100 })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(loadWallDeltaMock).toHaveBeenCalledWith("wall-1", 3);
+    });
+
+    expect(loadWallBootstrapMock).not.toHaveBeenCalled();
+    expect(saveWallCloudBaselineSnapshotMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notes: expect.objectContaining({
+          [wallSnapshotNoteFixtures.standard.id]: expect.objectContaining({
+            text: wallSnapshotNoteFixtures.remoteUpdated.text,
+          }),
+        }),
       }),
     );
   });
