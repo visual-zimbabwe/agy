@@ -280,7 +280,7 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 ### Phase 3 — Split `WallNotesLayer` (2–3 weeks)
 
-**Status:** In progress (2026-06-18) — first vertical slices shipped shared image-note layout helpers, shared note styling helpers, an initial pure `WallNoteViewModel` for compact canvas previews, `WallCompactNoteRenderer` for compact/ambient canvas cards, and full-detail image/bookmark/file/audio canvas renderers. `WallNotesLayer` still owns most remaining full-detail Konva rendering and interaction, so note-kind renderer extraction remains open.
+**Status:** In progress (2026-06-18) — shared layout/styling helpers, `WallNoteViewModel` (compact previews), `note-interaction.ts` (drag/resize/select wiring), `WallNoteChromeOverlays`, and per-kind canvas renderers now cover compact/ambient cards plus full-detail image, bookmark, file, audio, video, private, journal, code, quote, and standard notes. `useWallKeyboard` is split into navigation/editing/selection handlers under `keyboard/`. `WallNotesLayer` remains the composer for asset loading, derived presentation state, and renderer dispatch.
 
 **Goal:** Note rendering and interaction scalable per note type.
 
@@ -318,12 +318,12 @@ wall/spatial/notes/renderers/
    - Used by both Konva renderers and `WallNotePreview` (Phase 4)
    - **Started 2026-06-18:** `src/features/wall/wall-note-view-model.ts` now owns compact title/meta/privacy labels used by low-detail canvas note previews. Preview dimensions and full `WallNotePreview` consumption remain Phase 4 work.
 3. Thin `WallNotesLayer` composes renderers + windowing props only.
-   - **Started 2026-06-18:** compact/ambient canvas rendering now lives in `src/components/wall/spatial/notes/renderers/WallCompactNoteRenderer.tsx`; full-detail image, web-bookmark, file, and audio branches now live in dedicated renderer files. `WallNotesLayer` still owns interaction wiring and the remaining full-detail note-kind rendering.
+   - **Advanced 2026-06-18:** compact/ambient rendering in `WallCompactNoteRenderer`; full-detail renderers under `wall/spatial/notes/renderers/` for image, bookmark, file, audio, video, private, journal, code, quote, and standard notes; shared chrome overlays in `WallNoteChromeOverlays`; drag/resize/select wiring in `note-interaction.ts`. `WallNotesLayer` still owns asset loading, derived presentation state, and renderer dispatch.
 4. Split `useWallKeyboard` into scoped hooks:
-   - `useWallKeyboardNavigation`
-   - `useWallKeyboardEditing`
-   - `useWallKeyboardSelection`
-   - Composer hook re-exports for `WallCanvas` / spatial shell
+   - `useWallKeyboardNavigation` (`keyboard/useWallKeyboardNavigation.ts`)
+   - `useWallKeyboardEditing` (`keyboard/useWallKeyboardEditing.ts`)
+   - `useWallKeyboardSelection` (`keyboard/useWallKeyboardSelection.ts`)
+   - Composer hook re-exports for `WallCanvas` / spatial shell — **shipped 2026-06-18** (`useWallKeyboard.ts` composes the three handlers)
 
 #### Exit criteria
 
