@@ -145,7 +145,7 @@ This makes notes the core unit of wall content, but not the only structural elem
 ## Limitations
 
 - Wall note behavior spans multiple UI layers and feature helpers, so there is not yet a single implementation module for every note interaction.
-- Canvas note presentation is being decomposed incrementally. Shared image layout helpers, the first title/meta/privacy view model, compact canvas renderer, and full-detail image/bookmark canvas renderers now exist, but many full-detail Konva renderers and the HTML `WallNotePreview` path are not fully unified yet.
+- Canvas note presentation is being decomposed incrementally. Shared image layout helpers, the first title/meta/privacy view model, compact canvas renderer, and full-detail image/bookmark/file/audio canvas renderers now exist, but many full-detail Konva renderers and the HTML `WallNotePreview` path are not fully unified yet.
 - Some note workflows, such as vocabulary review and canon editing, still need deeper dedicated docs as they grow.
 
 ## Related Docs

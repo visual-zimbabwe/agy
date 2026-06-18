@@ -17,15 +17,17 @@ import {
   getNoteStrokeColor,
   resolveNoteFillColor,
 } from "@/components/wall/spatial/notes/note-style";
+import { WallAudioNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallAudioNoteRenderer";
 import { WallBookmarkNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallBookmarkNoteRenderer";
 import { WallCompactNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallCompactNoteRenderer";
+import { WallFileNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallFileNoteRenderer";
 import { WallImageNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallImageNoteRenderer";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { deriveWallAssetRecords, mergeWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
 import { stripWikiLinkMarkup } from "@/features/wall/wall-note-view-model";
-import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
+import { formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
 import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
 import type { LinkType, Note, WallAssetMap } from "@/features/wall/types";
@@ -1180,59 +1182,19 @@ export const WallNotesLayer = ({
               </>
             )}
             {isAudio && (
-              <>
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={18} fill={atelierPalette.paper} stroke={colorWithAlpha(atelierPalette.quietText, 0.16)} strokeWidth={1} listening={false} />
-                <Rect x={24} y={24} width={58} height={58} cornerRadius={16} fill={colorWithAlpha(atelierPalette.forest, 0.1)} listening={false} />
-                <Text x={24} y={38} width={58} align="center" fontSize={26} fill={atelierPalette.forest} text="♪" listening={false} />
-                <Group
-                  x={Math.max(24, noteView.w / 2 - 28)}
-                  y={24}
-                  onMouseDown={(event) => {
-                    event.cancelBubble = true;
-                  }}
-                  onTouchStart={(event) => {
-                    event.cancelBubble = true;
-                  }}
-                  onClick={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    event.cancelBubble = true;
-                    onToggleAudioPlayback(note.id);
-                  }}
-                  onTap={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    event.cancelBubble = true;
-                    onToggleAudioPlayback(note.id);
-                  }}
-                >
-                  <Rect width={56} height={22} cornerRadius={11} fill={colorWithAlpha(atelierPalette.terracotta, 0.1)} stroke={colorWithAlpha(atelierPalette.terracotta, 0.18)} strokeWidth={1} />
-                  <Text x={0} y={6} width={56} align="center" fontSize={11} fontStyle="bold" fill={colorWithAlpha(atelierPalette.terracotta, 0.82)} text={isAudioPlaying ? "PAUSE" : "PLAY"} listening={false} />
-                </Group>
-                <Group x={Math.max(20, noteView.w - 86)} y={26} onClick={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadAudioNote(note.id); }} onTap={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadAudioNote(note.id); }}>
-                  <Text x={0} y={0} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.8)} text="↓" listening={false} />
-                </Group>
-                <Group x={Math.max(44, noteView.w - 48)} y={26} onClick={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onOpenAudioNote(note.id); }} onTap={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onOpenAudioNote(note.id); }}>
-                  <Text x={0} y={0} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.8)} text="↗" listening={false} />
-                </Group>
-                <Text x={24} y={96} width={Math.max(0, noteView.w - 48)} fontSize={Math.max(24, Math.min(34, noteView.w / 11))} fontFamily="Newsreader" fontStyle="italic" fill={atelierPalette.text} text={audioTitle} ellipsis listening={false} />
-                {audioMeta ? <Text x={24} y={132} width={Math.max(0, noteView.w - 48)} fontSize={10} letterSpacing={1.2} fill={colorWithAlpha(atelierPalette.quietText, 0.78)} text={audioMeta} ellipsis listening={false} /> : null}
-                {AUDIO_WAVEFORM_BARS.map((value, index) => {
-                  const barWidth = Math.max(8, Math.floor((noteView.w - 76) / AUDIO_WAVEFORM_BARS.length));
-                  const x = 24 + index * (barWidth + 2);
-                  const pulseOffset = isAudioPlaying ? ((index + Math.floor((playingAudioCurrentTimeSeconds ?? 0) * 8)) % 3) * 2 : 0;
-                  const barHeight = Math.max(10, Math.round(40 * value) - pulseOffset);
-                  const active = isAudioPlaying ? index >= 3 && index <= 5 : index >= 4 && index <= 5;
-                  return (
-                    <Rect key={`${note.id}-audio-wave-${index}`} x={x} y={Math.max(160, noteView.h - 80 - barHeight)} width={barWidth} height={barHeight} cornerRadius={barWidth / 2} fill={active ? atelierPalette.terracotta : colorWithAlpha('#DFC0B8', 0.44)} listening={false} />
-                  );
-                })}
-                <Text x={24} y={Math.max(180, noteView.h - 28)} width={72} fontSize={12} fontFamily="JetBrains Mono" fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text={audioCurrentTime} listening={false} />
-                <Text x={Math.max(0, noteView.w / 2 - 40)} y={Math.max(180, noteView.h - 29)} width={80} align="center" fontSize={10} fontStyle="bold" letterSpacing={1.3} fill={colorWithAlpha(atelierPalette.terracotta, 0.66)} text={isAudioPlaying ? "PLAYING" : "READY"} listening={false} />
-                <Text x={Math.max(24, noteView.w - 96)} y={Math.max(180, noteView.h - 28)} width={72} align="right" fontSize={12} fontFamily="JetBrains Mono" fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text={audioDuration} listening={false} />
-              </>
+              <WallAudioNoteRenderer
+                note={noteView}
+                title={audioTitle}
+                meta={audioMeta}
+                currentTime={audioCurrentTime}
+                duration={audioDuration}
+                isPlaying={isAudioPlaying}
+                playingCurrentTimeSeconds={playingAudioCurrentTimeSeconds}
+                isTimeLocked={isTimeLocked}
+                onToggleAudioPlayback={onToggleAudioPlayback}
+                onOpenAudioNote={onOpenAudioNote}
+                onDownloadAudioNote={onDownloadAudioNote}
+              />
             )}
             {isVideo && (
               <>
@@ -1304,33 +1266,13 @@ export const WallNotesLayer = ({
               </>
             )}
             {looksLikeFile && (
-              <>
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={14} fill={atelierPalette.paper} stroke={colorWithAlpha(atelierPalette.quietText, 0.16)} strokeWidth={1} listening={false} />
-                <Rect x={18} y={Math.max(16, noteView.h / 2 - 30)} width={46} height={46} cornerRadius={12} fill={colorWithAlpha(atelierPalette.terracotta, 0.10)} listening={false} />
-                <Text x={18} y={Math.max(25, noteView.h / 2 - 21)} width={46} align="center" fontSize={22} fill={atelierPalette.terracotta} text="▤" listening={false} />
-                <Text x={78} y={Math.max(18, noteView.h / 2 - 24)} width={Math.max(0, noteView.w - 120)} fontSize={13} fontStyle="bold" fill={atelierPalette.text} text={fileLabel} ellipsis listening={false} />
-                <Text x={78} y={Math.max(38, noteView.h / 2 - 4)} width={Math.max(0, noteView.w - 120)} fontSize={10} fill={colorWithAlpha(atelierPalette.quietText, 0.8)} text={fileMeta.toUpperCase()} ellipsis listening={false} />
-                <Group
-                  x={Math.max(18, noteView.w - 42)}
-                  y={Math.max(26, noteView.h / 2 - 18)}
-                  onClick={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    event.cancelBubble = true;
-                    onDownloadFileNote(note.id);
-                  }}
-                  onTap={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    event.cancelBubble = true;
-                    onDownloadFileNote(note.id);
-                  }}
-                >
-                  <Text x={0} y={0} width={18} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.58)} text="↓" listening={false} />
-                </Group>
-              </>
+              <WallFileNoteRenderer
+                note={noteView}
+                label={fileLabel}
+                meta={fileMeta}
+                isTimeLocked={isTimeLocked}
+                onDownloadFileNote={onDownloadFileNote}
+              />
             )}
             {showStandardTextCard && (
               <>
