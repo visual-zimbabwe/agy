@@ -96,9 +96,14 @@ Shared note presentation policy is beginning to move out of the layer as part of
 - `src/components/wall/spatial/notes/renderers/WallQuoteNoteRenderer.tsx` owns quote body and attribution/source footer rendering.
 - `src/components/wall/spatial/notes/renderers/WallStandardNoteRenderer.tsx` owns the title/body layout for standard text notes.
 - `src/components/wall/spatial/notes/renderers/WallNoteChromeOverlays.tsx` owns shared pin, heatmap, highlight, tag, wiki-link, and vocabulary-flip overlays.
+- `src/components/wall/spatial/notes/renderers/WallFullNoteRenderer.tsx` owns full-detail note dispatch and composes the per-kind renderers above for viewport-full detail.
+- `src/components/wall/spatial/notes/build-wall-note-presentation.ts` owns pure per-note presentation derivation (text labels, media metadata, layout insets) for full-detail canvas rendering.
+- `src/components/wall/spatial/notes/useWallNoteAssets.ts` owns decoded image loading, LRU eviction, and automatic image-note height adjustment.
+- `src/components/wall/spatial/notes/useWallNoteStyleAnimations.ts` owns color-wash and text-size pulse reactions when note style changes.
+- `src/components/wall/spatial/notes/open-note-editor.ts` owns double-click / open-editor routing by note kind.
 - `src/features/wall/wall-note-view-model.ts` owns the first pure title/meta/privacy-mask view model used by compact canvas previews.
 
-`WallNotesLayer` remains the composer: it loads media assets, derives per-note presentation state, and dispatches the renderer components above. Eisenhower matrix notes still render through `EisenhowerMatrixNote`.
+`WallNotesLayer` is the thin composer (~226 lines): it maps visible notes, builds interaction group props, and dispatches compact or full-detail renderers. Eisenhower matrix notes still render through `EisenhowerMatrixNote`.
 
 ## Specialized Rendering Behavior
 

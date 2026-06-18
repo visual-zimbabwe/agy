@@ -1305,4 +1305,4 @@ Run after changes to `WallNotesLayer`, `src/components/wall/spatial/notes/*`, or
 Expected:
 - Image-note sizing and contained layout match the previous canvas behavior.
 - Compact note previews use the shared title/meta/privacy presentation policy.
-- Full-detail image, bookmark, file, and audio note rendering remains visually unchanged while Phase 3 renderer extraction continues.
+- Full-detail image, bookmark, file, audio, video, private, journal, code, quote, and standard note rendering remains visually unchanged after the `WallNotesLayer` composer split.
