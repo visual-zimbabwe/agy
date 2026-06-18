@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
-import { Circle, Group, Image as KonvaImage, Line, Rect, Text } from "react-konva";
+import { Group, Rect, Text } from "react-konva";
 import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
-import { parseCodeNote, tokenizeCodeLine } from "@/components/wall/codeNoteRendering";
 import {
   getImageNoteAutoHeight,
 } from "@/components/wall/spatial/notes/note-layout";
+import { buildWallNoteGroupProps } from "@/components/wall/spatial/notes/note-interaction";
 import {
   atelierPalette,
-  colorWithAlpha,
   getContrastTextColor,
   getNoteCornerRadius,
   getNoteStrokeColor,
@@ -19,13 +18,20 @@ import {
 } from "@/components/wall/spatial/notes/note-style";
 import { WallAudioNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallAudioNoteRenderer";
 import { WallBookmarkNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallBookmarkNoteRenderer";
+import { WallCodeNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallCodeNoteRenderer";
 import { WallCompactNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallCompactNoteRenderer";
 import { WallFileNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallFileNoteRenderer";
 import { WallImageNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallImageNoteRenderer";
+import { WallJournalNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallJournalNoteRenderer";
+import { WallNoteChromeOverlays } from "@/components/wall/spatial/notes/renderers/WallNoteChromeOverlays";
+import { WallPrivateNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallPrivateNoteRenderer";
+import { WallQuoteNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallQuoteNoteRenderer";
+import { WallStandardNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallStandardNoteRenderer";
+import { WallVideoNoteRenderer } from "@/components/wall/spatial/notes/renderers/WallVideoNoteRenderer";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { deriveWallAssetRecords, mergeWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
-import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
+import { isPrivateNote } from "@/features/wall/private-notes";
 import { stripWikiLinkMarkup } from "@/features/wall/wall-note-view-model";
 import { formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
@@ -389,17 +395,6 @@ export const WallNotesLayer = ({
         const resolvedNoteColor = resolveNoteFillColor(noteView);
         const noteCornerRadius = getNoteCornerRadius(noteView);
 
-        const handleSelect = (multiSelect: boolean) => {
-          if (multiSelect) {
-            toggleSelectNote(note.id);
-          } else {
-            selectSingleNote(note.id);
-          }
-          if (editingId !== note.id) {
-            setEditing(null);
-          }
-        };
-
         const openNoteEditor = () => {
           if (isTimeLocked) {
             return;
@@ -420,188 +415,38 @@ export const WallNotesLayer = ({
           openEditor(note.id, note.text);
         };
 
-        const groupProps = {
-          ref: (node: Konva.Group | null) => {
-            noteNodeRefs.current[note.id] = node;
-          },
-          x: noteView.x,
-          y: noteView.y,
-          width: noteView.w,
-          height: noteView.h,
-          draggable: !isTimeLocked && !isPinned,
-          onMouseEnter: () => setHoveredNoteId(note.id),
-          onMouseLeave: () => setHoveredNoteId((previous) => (previous === note.id ? undefined : previous)),
-          onClick: (event: Konva.KonvaEventObject<MouseEvent>) => {
-            if (isTimeLocked) {
-              selectSingleNote(note.id);
-              return;
-            }
-            if (linkingFromNoteId && linkingFromNoteId !== note.id) {
-              createLink(linkingFromNoteId, note.id, linkType);
-              setLinkingFromNote(undefined);
-              return;
-            }
-            handleSelect(Boolean(event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey));
-          },
-          onTap: (event: Konva.KonvaEventObject<Event>) => {
-            if (isTimeLocked) {
-              selectSingleNote(note.id);
-              return;
-            }
-            const nativeEvent = event.evt as Event & { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean };
-            if (linkingFromNoteId && linkingFromNoteId !== note.id) {
-              createLink(linkingFromNoteId, note.id, linkType);
-              setLinkingFromNote(undefined);
-              return;
-            }
-            handleSelect(Boolean(nativeEvent.shiftKey || nativeEvent.ctrlKey || nativeEvent.metaKey));
-          },
-          onDblClick: openNoteEditor,
-          onDragStart: (event: Konva.KonvaEventObject<DragEvent>) => {
-            if (isTimeLocked || isPinned) {
-              return;
-            }
-            setDraggingNoteId(note.id);
-            setGuideLines({});
-            if (!activeSelectedNoteIds.includes(note.id)) {
-              syncPrimarySelection([note.id]);
-            }
-            const activeIds = activeSelectedNoteIds.includes(note.id) ? activeSelectedNoteIds : [note.id];
-            dragSingleStartRef.current = {
-              id: note.id,
-              x: note.x,
-              y: note.y,
-              altClone: event.evt.altKey,
-            };
-            if (activeIds.length > 1) {
-              dragSelectionStartRef.current = Object.fromEntries(
-                activeIds.flatMap((id) => {
-                  const entry = notesById[id];
-                  if (!entry || entry.pinned) {
-                    return [];
-                  }
-                  return [[entry.id, { x: entry.x, y: entry.y }] as const];
-                }),
-              );
-              dragAnchorRef.current = { id: note.id, x: event.target.x(), y: event.target.y() };
-            }
-          },
-          onDragMove: (event: Konva.KonvaEventObject<DragEvent>) => {
-            if (isTimeLocked || isPinned) {
-              return;
-            }
-            const start = dragSingleStartRef.current;
-            const pointerX = event.target.x();
-            const pointerY = event.target.y();
-            let candidateX = pointerX;
-            let candidateY = pointerY;
-            if (start && event.evt.shiftKey) {
-              const dx = Math.abs(pointerX - start.x);
-              const dy = Math.abs(pointerY - start.y);
-              if (dx > dy) {
-                candidateY = start.y;
-              } else {
-                candidateX = start.x;
-              }
-            }
-            const snapped = resolveSnappedPosition(note, candidateX, candidateY);
-            event.target.position(snapped);
-
-            const anchor = dragAnchorRef.current;
-            const startMap = dragSelectionStartRef.current;
-            if (!anchor || !startMap) {
-              return;
-            }
-            const dx = snapped.x - anchor.x;
-            const dy = snapped.y - anchor.y;
-            let movedPeers = false;
-            for (const [id, startPos] of Object.entries(startMap)) {
-              if (id === note.id || notesById[id]?.pinned) {
-                continue;
-              }
-              const peerNode = noteNodeRefs.current[id];
-              if (!peerNode) {
-                continue;
-              }
-              peerNode.position({ x: startPos.x + dx, y: startPos.y + dy });
-              movedPeers = true;
-            }
-            if (movedPeers) {
-              event.target.getLayer()?.batchDraw();
-            }
-          },
-          onDragEnd: (event: Konva.KonvaEventObject<DragEvent>) => {
-            if (isTimeLocked || isPinned) {
-              return;
-            }
-            const snapped = resolveSnappedPosition(note, event.target.x(), event.target.y());
-            event.target.position(snapped);
-            const anchor = dragAnchorRef.current;
-            const startMap = dragSelectionStartRef.current;
-            if (anchor && startMap) {
-              runHistoryGroup(() => {
-                moveNote(note.id, snapped.x, snapped.y);
-                const dx = snapped.x - anchor.x;
-                const dy = snapped.y - anchor.y;
-                for (const [id, startPos] of Object.entries(startMap)) {
-                  if (id === note.id || notesById[id]?.pinned) {
-                    continue;
-                  }
-                  updateNote(id, { x: startPos.x + dx, y: startPos.y + dy });
-                }
-              });
-            } else {
-              moveNote(note.id, snapped.x, snapped.y);
-            }
-            const dragStart = dragSingleStartRef.current;
-            if (dragStart?.id === note.id && dragStart.altClone) {
-              updateNote(note.id, { x: dragStart.x, y: dragStart.y });
-              duplicateNoteAt(note.id, snapped.x, snapped.y);
-              syncPrimarySelection([note.id]);
-            }
-            setDraggingNoteId(undefined);
-            setGuideLines({});
-            dragSelectionStartRef.current = null;
-            dragAnchorRef.current = null;
-            dragSingleStartRef.current = null;
-          },
-          onTransform: (event: Konva.KonvaEventObject<Event>) => {
-            if (isTimeLocked || isPinned) {
-              return;
-            }
-            const node = event.target;
-            const width = Math.max(NOTE_DEFAULTS.minWidth, node.width() * node.scaleX());
-            const height = Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
-            node.scaleX(1);
-            node.scaleY(1);
-            setResizingNoteDrafts((previous) => ({
-              ...previous,
-              [note.id]: { x: node.x(), y: node.y(), w: width, h: height },
-            }));
-          },
-          onTransformEnd: (event: Konva.KonvaEventObject<Event>) => {
-            if (isTimeLocked || isPinned) {
-              return;
-            }
-            const node = event.target;
-            const draftEntry = resizingNoteDrafts[note.id];
-            const width = draftEntry?.w ?? Math.max(NOTE_DEFAULTS.minWidth, node.width() * node.scaleX());
-            const height = draftEntry?.h ?? Math.max(NOTE_DEFAULTS.minHeight, node.height() * node.scaleY());
-            const x = draftEntry?.x ?? node.x();
-            const y = draftEntry?.y ?? node.y();
-            node.scaleX(1);
-            node.scaleY(1);
-            updateNote(note.id, { x, y, w: width, h: height });
-            setResizingNoteDrafts((previous) => {
-              if (!previous[note.id]) {
-                return previous;
-              }
-              const next = { ...previous };
-              delete next[note.id];
-              return next;
-            });
-          },
-        };
+        const groupProps = buildWallNoteGroupProps({
+          note,
+          noteView,
+          isTimeLocked,
+          isPinned,
+          activeSelectedNoteIds,
+          linkingFromNoteId,
+          linkType,
+          editingId,
+          notesById,
+          resizingNoteDrafts,
+          noteNodeRefs,
+          dragSelectionStartRef,
+          dragAnchorRef,
+          dragSingleStartRef,
+          setHoveredNoteId,
+          setDraggingNoteId,
+          setGuideLines,
+          setResizingNoteDrafts,
+          syncPrimarySelection,
+          selectSingleNote,
+          toggleSelectNote,
+          setLinkingFromNote,
+          setEditing,
+          createLink,
+          resolveSnappedPosition,
+          runHistoryGroup,
+          moveNote,
+          updateNote,
+          duplicateNoteAt,
+          openNoteEditor,
+        });
 
         if (renderDetailLevel !== "full") {
           return (
@@ -703,14 +548,20 @@ export const WallNotesLayer = ({
         const videoCurrentTime = formatVideoDuration(noteView.video?.durationSeconds ? Math.max(0, Math.round(noteView.video.durationSeconds * 0.35)) : 0);
         const videoPoster = resolveVideoPosterAssetUrl(noteView, resolvedAssetRecords);
         const loadedVideoPoster = videoPoster ? loadedImagesByUrl[videoPoster] : undefined;
-        const parsedCodeNote = looksLikeCode ? parseCodeNote(noteView.text) : null;
-        const renderedCodeLines = parsedCodeNote?.body.split("\n").slice(0, 8) ?? [];
         const journalTitle = noteLines[0] ?? "Dear Wall,";
         const journalBody = noteLines.slice(1).join("\n") || strippedNoteText;
         const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isVideo && !isImageNote && !isBookmark && !isEisenhower && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary;
         const wikiLinks = wikiLinksByNoteId[note.id] ?? [];
         const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
         const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
+        const quoteBodyText = isQuote
+          ? truncateNoteText(strippedNoteText, {
+              ...noteView,
+              text: strippedNoteText,
+              w: textWidth + 16,
+              h: Math.max(40, noteView.h - quoteFooterHeight - quoteBodyTopInset - 18 - wikiFooterHeight),
+            }) || "Add quote text"
+          : "";
         const noteTextContent = isPrivate
           ? ""
           : isBookmark
@@ -728,12 +579,7 @@ export const WallNotesLayer = ({
                 ? canonListPreview || "Add list items"
                 : canonSinglePreview || "Add statement"
             : isQuote
-              ? truncateNoteText(strippedNoteText, {
-                  ...noteView,
-                  text: strippedNoteText,
-                  w: textWidth + 16,
-                  h: Math.max(40, noteView.h - quoteFooterHeight - quoteBodyTopInset - 18 - wikiFooterHeight),
-                }) || "Add quote text"
+              ? quoteBodyText
               : truncateNoteText(strippedNoteText, { ...noteView, text: strippedNoteText, h: Math.max(noteView.h - wikiFooterHeight, 40) }) || "Double-click or press Enter to edit";
         const visibleTagCount = noteView.w < 180 ? 1 : noteView.w < 240 ? 2 : 3;
         const noteTags = noteView.tags.slice(0, visibleTagCount);
@@ -744,27 +590,21 @@ export const WallNotesLayer = ({
           ? 0
           : Math.max(0, noteView.h - 56 - quoteFooterHeight - quoteBodyTopInset - canonTitleInset - (isJournal ? 56 : 0) - wikiFooterHeight);
         const journalDateLabel = isJournal ? formatJournalDateLabel(noteView.createdAt) : "";
-        const journalDateWidth = Math.max(0, noteView.w - journalHorizontalInset * 2);
-        const journalDateX = journalHorizontalInset;
-        const decryptButtonWidth = Math.min(184, Math.max(128, noteView.w * 0.56));
-        const decryptButtonX = Math.max(26, noteView.w / 2 - decryptButtonWidth / 2);
-        const decryptButtonY = Math.max(noteView.h - 74, noteView.h * 0.72);
-
 
         return (
           <Group key={note.id} {...groupProps}>
             {isJournal ? (
-              <Rect
-                width={noteView.w}
-                height={noteView.h}
+              <WallJournalNoteRenderer
+                note={noteView}
                 cornerRadius={noteCornerRadius}
-                fill={atelierPalette.paper}
-                stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.terracotta })}
-                strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
-                shadowColor={atelierPalette.paperShadow}
-                shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
-                shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
-                shadowOffsetY={isDragging ? 7 : 3}
+                dateLabel={journalDateLabel}
+                title={journalTitle}
+                body={journalBody}
+                isSelected={isSelected}
+                isHovered={isHovered}
+                isHighlighted={isHighlighted}
+                isFlashing={isFlashing}
+                isDragging={isDragging}
               />
             ) : isBookmark ? (
               <WallBookmarkNoteRenderer
@@ -811,136 +651,18 @@ export const WallNotesLayer = ({
                 isTimeLocked={isTimeLocked}
               />
             ) : isPrivate ? (
-              <>
-                <Rect
-                  width={noteView.w}
-                  height={noteView.h}
-                  cornerRadius={noteCornerRadius}
-                  fill={atelierPalette.paper}
-                  fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-                  fillLinearGradientEndPoint={{ x: noteView.w, y: noteView.h }}
-                  fillLinearGradientColorStops={[0, "#FFFDF9", 0.55, "#FBF8F2", 1, "#F5F1EA"]}
-                  stroke={getNoteStrokeColor({ isSelected, isHovered, isHighlighted, accent: atelierPalette.forest })}
-                  strokeWidth={isHighlighted ? 2.4 : isSelected ? 2 : isHovered ? 1.3 : 0.9}
-                  shadowColor={atelierPalette.paperShadow}
-                  shadowBlur={isFlashing ? 28 : isDragging ? 24 : 16}
-                  shadowOpacity={isFlashing ? 0.18 : isDragging ? 0.14 : 0.08}
-                  shadowOffsetY={isDragging ? 7 : 3}
-                />
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={colorWithAlpha("#FFFFFF", 0.68)} listening={false} />
-                <Rect
-                  x={noteView.w * 0.08}
-                  y={noteView.h * 0.06}
-                  width={noteView.w * 0.84}
-                  height={noteView.h * 0.88}
-                  cornerRadius={Math.min(30, noteCornerRadius + 8)}
-                  stroke={colorWithAlpha(atelierPalette.quietText, 0.08)}
-                  strokeWidth={1}
-                  listening={false}
-                />
-                <Rect
-                  x={Math.max(24, noteView.w / 2 - 38)}
-                  y={Math.max(18, noteView.h * 0.11)}
-                  width={76}
-                  height={76}
-                  cornerRadius={24}
-                  fill="rgba(246, 241, 234, 0.96)"
-                  stroke="rgba(140,124,114,0.12)"
-                  strokeWidth={1}
-                  shadowColor={atelierPalette.paperShadow}
-                  shadowBlur={12}
-                  shadowOpacity={0.06}
-                  shadowOffsetY={3}
-                  listening={false}
-                />
-                <Line
-                  points={[
-                    noteView.w / 2 - 12,
-                    Math.max(36, noteView.h * 0.11 + 23),
-                    noteView.w / 2 - 12,
-                    Math.max(28, noteView.h * 0.11 + 16),
-                    noteView.w / 2 + 12,
-                    Math.max(28, noteView.h * 0.11 + 16),
-                    noteView.w / 2 + 12,
-                    Math.max(36, noteView.h * 0.11 + 23),
-                  ]}
-                  stroke={atelierPalette.mutedText}
-                  strokeWidth={5}
-                  lineCap="round"
-                  lineJoin="round"
-                  listening={false}
-                />
-                <Rect
-                  x={noteView.w / 2 - 15}
-                  y={Math.max(36, noteView.h * 0.11 + 23)}
-                  width={30}
-                  height={28}
-                  cornerRadius={6}
-                  fill={atelierPalette.mutedText}
-                  listening={false}
-                />
-                <Circle x={noteView.w / 2} y={Math.max(48, noteView.h * 0.11 + 40)} radius={4.5} fill={atelierPalette.paper} listening={false} />
-                <Text
-                  x={22}
-                  y={Math.max(108, noteView.h * 0.11 + 88)}
-                  width={Math.max(0, noteView.w - 44)}
-                  align="center"
-                  fontSize={Math.max(18, Math.min(24, noteView.w * 0.11))}
-                  fontFamily="Newsreader"
-                  fontStyle="italic"
-                  fill={atelierPalette.text}
-                  text={privateNoteTitle(noteView)}
-                  listening={false}
-                />
-                <Text
-                  x={28}
-                  y={Math.max(150, noteView.h * 0.11 + 134)}
-                  width={Math.max(0, noteView.w - 56)}
-                  align="center"
-                  fontSize={Math.max(10, Math.min(12, noteView.w * 0.05))}
-                  letterSpacing={2.2}
-                  fill={colorWithAlpha(atelierPalette.quietText, 0.9)}
-                  text="SECURED NODE"
-                  listening={false}
-                />
-                <Rect
-                  x={decryptButtonX}
-                  y={decryptButtonY}
-                  width={decryptButtonWidth}
-                  height={40}
-                  cornerRadius={20}
-                  fill={colorWithAlpha("#FFFFFF", 0.74)}
-                  stroke={colorWithAlpha(atelierPalette.quietText, 0.34)}
-                  strokeWidth={1.6}
-                  onClick={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    event.cancelBubble = true;
-                    selectSingleNote(note.id);
-                    openEditor(note.id, note.text);
-                  }}
-                  onTap={(event) => {
-                    if (isTimeLocked) {
-                      return;
-                    }
-                    event.cancelBubble = true;
-                    selectSingleNote(note.id);
-                    openEditor(note.id, note.text);
-                  }}
-                />
-                <Text
-                  x={decryptButtonX}
-                  y={decryptButtonY + 12}
-                  width={decryptButtonWidth}
-                  align="center"
-                  fontSize={Math.max(11, Math.min(16, noteView.w * 0.07))}
-                  letterSpacing={2.4}
-                  fill={atelierPalette.text}
-                  text="DECRYPT"
-                  listening={false}
-                />
-              </>
+              <WallPrivateNoteRenderer
+                note={noteView}
+                cornerRadius={noteCornerRadius}
+                isSelected={isSelected}
+                isHovered={isHovered}
+                isHighlighted={isHighlighted}
+                isFlashing={isFlashing}
+                isDragging={isDragging}
+                isTimeLocked={isTimeLocked}
+                selectSingleNote={selectSingleNote}
+                openEditor={openEditor}
+              />
             ) : (
               <>
                 <Rect
@@ -963,59 +685,42 @@ export const WallNotesLayer = ({
                 )}
               </>
             )}
-            {isHighlighted && (
-              <Rect
-                width={noteView.w}
-                height={noteView.h}
-                cornerRadius={noteCornerRadius}
-                stroke="#fbbf24"
-                strokeWidth={1.2}
-                opacity={0.8}
-                dash={[7, 4]}
-              />
-            )}
-            {isPinned && (
-              <Text
-                x={Math.max(12, noteView.w - 42)}
-                y={10}
-                width={30}
-                align="right"
-                fontSize={10}
-                fontStyle="bold"
-                fill="#334155"
-                text="PIN"
-              />
-            )}
-            {showHeatmap && (
-              <Rect
-                width={noteView.w}
-                height={noteView.h}
-                cornerRadius={noteCornerRadius}
-                fill="#ef4444"
-                opacity={0.08 + recencyIntensity(noteView.updatedAt, heatmapReferenceTs) * 0.35}
-              />
-            )}
-
-            {colorWashOpacity > 0 && (
-              <Rect
-                width={noteView.w}
-                height={noteView.h}
-                cornerRadius={noteCornerRadius}
-                fill="#ffffff"
-                opacity={colorWashOpacity}
-              />
-            )}
+            <WallNoteChromeOverlays
+              note={noteView}
+              cornerRadius={noteCornerRadius}
+              isHighlighted={isHighlighted}
+              isPinned={isPinned}
+              showHeatmap={showHeatmap}
+              heatmapReferenceTs={heatmapReferenceTs}
+              colorWashOpacity={colorWashOpacity}
+              showNoteTags={showNoteTags}
+              isPrivate={isPrivate}
+              isImageNote={isImageNote}
+              isEisenhower={isEisenhower}
+              isVideo={isVideo}
+              isBookmark={isBookmark}
+              isVocabulary={isVocabulary}
+              isVocabularyBack={isVocabularyBack}
+              wikiLinks={wikiLinks}
+              noteTags={noteTags}
+              overflowTags={overflowTags}
+              tagPalette={tagPalette}
+              isTimeLocked={isTimeLocked}
+              recencyIntensity={recencyIntensity}
+              onNavigateWikiLink={onNavigateWikiLink}
+              onToggleVocabularyFlip={toggleVocabularyFlip}
+            />
             {!isPrivate && !isImageNote && !isEisenhower && !isBookmark && !isJournal && !isQuote && !isAudio && !isVideo && !looksLikeCode && !looksLikeFile && !isStandardNote && (
               <Text
                 x={textX}
                 y={textY}
                 width={textWidth}
                 height={textHeight}
-                fontSize={(isJournal ? Math.max(17, noteTextStyle.fontSize) : noteTextStyle.fontSize) * textSpringFactor}
-                fontFamily={isQuote ? "Newsreader" : noteTextFontFamily}
-                fontStyle={isQuote ? "italic" : isCanon ? "bold" : "normal"}
+                fontSize={noteTextStyle.fontSize * textSpringFactor}
+                fontFamily={noteTextFontFamily}
+                fontStyle={isCanon ? "bold" : "normal"}
                 fill={resolvedTextColor}
-                lineHeight={isJournal ? 1.72 : noteTextStyle.lineHeight}
+                lineHeight={noteTextStyle.lineHeight}
                 align={isVocabulary ? "center" : (noteView.textAlign ?? "left")}
                 verticalAlign={noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign}
                 text={noteTextContent}
@@ -1033,76 +738,16 @@ export const WallNotesLayer = ({
                 }}
               />
             )}
-            {isJournal && (
-              <>
-                <Text
-                  x={journalDateX}
-                  y={20}
-                  width={journalDateWidth}
-                  fontSize={10}
-                  fontFamily="Newsreader"
-                  fontStyle="italic"
-                  fill={colorWithAlpha(atelierPalette.mutedText, 0.62)}
-                  letterSpacing={1.8}
-                  text={journalDateLabel.toUpperCase()}
-                  listening={false}
-                />
-                <Text
-                  x={journalHorizontalInset}
-                  y={52}
-                  width={Math.max(0, noteView.w - journalHorizontalInset * 2)}
-                  fontSize={23}
-                  fontFamily="Newsreader"
-                  fontStyle="italic"
-                  fill={atelierPalette.text}
-                  text={journalTitle}
-                  ellipsis
-                  listening={false}
-                />
-                <Text
-                  x={journalHorizontalInset}
-                  y={92}
-                  width={Math.max(0, noteView.w - journalHorizontalInset * 2)}
-                  height={Math.max(0, noteView.h - 114)}
-                  fontSize={18}
-                  fontFamily="Newsreader"
-                  lineHeight={1.58}
-                  fill={colorWithAlpha(atelierPalette.text, 0.82)}
-                  text={journalBody}
-                  ellipsis
-                  listening={false}
-                />
-              </>
-            )}
-            {isQuote && !isEisenhower && (
-              <>
-                <Text
-                  x={Math.max(24, noteView.w - 54)}
-                  y={14}
-                  width={34}
-                  align="right"
-                  fontSize={38}
-                  fontFamily="Newsreader"
-                  fill={colorWithAlpha(atelierPalette.terracotta, 0.18)}
-                  text="””"
-                  listening={false}
-                />
-                <Text
-                  x={24}
-                  y={34}
-                  width={Math.max(0, noteView.w - 50)}
-                  height={Math.max(24, noteView.h - quoteFooterHeight - 64)}
-                  fontSize={Math.max(20, Math.min(30, Math.min(noteView.w / 6.6, noteView.h / 4.6)))}
-                  fontFamily="Newsreader"
-                  fontStyle="italic"
-                  fill={resolvedTextColor}
-                  lineHeight={1.18}
-                  text={noteTextContent}
-                  ellipsis
-                  listening={false}
-                />
-              </>
-            )}
+            {isQuote && !isEisenhower ? (
+              <WallQuoteNoteRenderer
+                note={noteView}
+                body={quoteBodyText}
+                attribution={quoteAttribution}
+                source={quoteSource}
+                footerLines={quoteFooterLines}
+                textColor={resolvedTextColor}
+              />
+            ) : null}
             {isCanon && canonTitle && !isEisenhower && (
               <Text
                 x={12}
@@ -1117,70 +762,7 @@ export const WallNotesLayer = ({
                 listening={false}
               />
             )}
-            {looksLikeCode && (
-              <>
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={18} fill="#1E1E1E" listening={false} />
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={18} stroke="rgba(255,255,255,0.06)" strokeWidth={1} listening={false} />
-                <Rect x={18} y={18} width={10} height={10} cornerRadius={5} fill="#FF5F56" listening={false} />
-                <Rect x={34} y={18} width={10} height={10} cornerRadius={5} fill="#FFBD2E" listening={false} />
-                <Rect x={50} y={18} width={10} height={10} cornerRadius={5} fill="#27C93F" listening={false} />
-                <Text
-                  x={Math.max(108, noteView.w - 144)}
-                  y={18}
-                  width={92}
-                  align="right"
-                  fontSize={9}
-                  fontFamily="JetBrains Mono"
-                  fontStyle="bold"
-                  letterSpacing={1.1}
-                  fill="rgba(255,255,255,0.42)"
-                  text={(parsedCodeNote?.fileName ?? "main.py").toUpperCase()}
-                  ellipsis
-                  listening={false}
-                />
-                <Group x={Math.max(18, noteView.w - 48)} y={16} listening={false}>
-                  <Rect x={6} y={2} width={12} height={14} cornerRadius={2} fill="rgba(255,255,255,0.14)" />
-                  <Rect x={2} y={6} width={12} height={14} cornerRadius={2} fill="rgba(255,255,255,0.24)" />
-                </Group>
-                {renderedCodeLines.map((line, lineIndex) => {
-                  const segments = tokenizeCodeLine(line, parsedCodeNote?.language ?? "plain");
-                  let cursorX = 22;
-                  const baseY = 64 + lineIndex * 26;
-                  return (
-                    <Group key={`${note.id}-code-line-${lineIndex}`} listening={false}>
-                      {segments.map((segment, segmentIndex) => {
-                        const fill =
-                          segment.tone === "keyword" ? "#c586c0" :
-                            segment.tone === "string" ? "#ce9178" :
-                              segment.tone === "comment" ? "#6a9955" :
-                                segment.tone === "number" ? "#b5cea8" :
-                                  segment.tone === "function" ? "#dcdcaa" :
-                                    segment.tone === "variable" ? "#9cdcfe" :
-                                      segment.tone === "property" ? "#7fc7ff" :
-                                        segment.tone === "command" ? "#4fc1ff" :
-                                          "#d4d4d4";
-                        const text = segment.text.replace(/\t/g, "  ");
-                        const widthEstimate = text.length * 7.2;
-                        const node = (
-                          <Text
-                            key={`${note.id}-code-line-${lineIndex}-segment-${segmentIndex}`}
-                            x={cursorX}
-                            y={baseY}
-                            fontSize={12}
-                            fontFamily="JetBrains Mono"
-                            lineHeight={1.45}
-                            fill={fill}
-                            text={text}
-                          />
-                        );
-                        cursorX += widthEstimate;
-                        return node;
-                      })}
-                    </Group>
-                  );
-                })}
-              </>
-            )}
+            {looksLikeCode ? <WallCodeNoteRenderer note={noteView} text={noteView.text} /> : null}
             {isAudio && (
               <WallAudioNoteRenderer
                 note={noteView}
@@ -1196,75 +778,21 @@ export const WallNotesLayer = ({
                 onDownloadAudioNote={onDownloadAudioNote}
               />
             )}
-            {isVideo && (
-              <>
-                <Rect width={noteView.w} height={noteView.h} cornerRadius={22} fill={atelierPalette.paper} stroke={colorWithAlpha(atelierPalette.quietText, 0.14)} strokeWidth={1} listening={false} />
-                <Group x={18} y={18}>
-                  <Rect
-                    width={Math.max(0, noteView.w - 36)}
-                    height={Math.max(0, noteView.h - 124)}
-                    cornerRadius={18}
-                    fill="rgba(0,0,0,0.001)"
-                    onMouseDown={(event) => {
-                      event.cancelBubble = true;
-                    }}
-                    onTouchStart={(event) => {
-                      event.cancelBubble = true;
-                    }}
-                    onClick={(event) => {
-                      if (isTimeLocked) {
-                        return;
-                      }
-                      event.cancelBubble = true;
-                      onToggleInlineVideoPlayback(note.id);
-                    }}
-                    onTap={(event) => {
-                      if (isTimeLocked) {
-                        return;
-                      }
-                      event.cancelBubble = true;
-                      onToggleInlineVideoPlayback(note.id);
-                    }}
-                  />
-                  <Rect width={Math.max(0, noteView.w - 36)} height={Math.max(0, noteView.h - 124)} cornerRadius={18} fill="#11120f" listening={false} />
-                  {loadedVideoPoster ? (
-                    <KonvaImage
-                      image={loadedVideoPoster}
-                      x={0}
-                      y={0}
-                      width={Math.max(0, noteView.w - 36)}
-                      height={Math.max(0, noteView.h - 124)}
-                      cornerRadius={18}
-                      listening={false}
-                    />
-                  ) : null}
-                  <Rect width={Math.max(0, noteView.w - 36)} height={Math.max(0, noteView.h - 124)} cornerRadius={18} fill={isInlineVideoPlaying ? "rgba(17,18,15,0.08)" : "rgba(17,18,15,0.16)"} listening={false} />
-                  {!isInlineVideoPlaying ? (
-                    <>
-                      <Rect x={Math.max(18, (noteView.w - 102) / 2)} y={Math.max(18, (noteView.h - 124) / 2 - 26)} width={66} height={66} cornerRadius={20} fill={colorWithAlpha(atelierPalette.terracotta, 0.9)} shadowColor="rgba(0,0,0,0.24)" shadowBlur={14} shadowOffsetY={6} listening={false} />
-                      <Line points={[Math.max(43, (noteView.w - 102) / 2 + 26), Math.max(33, (noteView.h - 124) / 2 - 8), Math.max(43, (noteView.w - 102) / 2 + 26), Math.max(33, (noteView.h - 124) / 2 + 20), Math.max(67, (noteView.w - 102) / 2 + 48), Math.max(33, (noteView.h - 124) / 2 + 6)]} closed fill="#fffaf4" listening={false} />
-                    </>
-                  ) : (
-                    <>
-                      <Rect x={20} y={20} width={74} height={24} cornerRadius={12} fill="rgba(17,18,15,0.56)" listening={false} />
-                      <Text x={20} y={27} width={74} align="center" fontSize={10} fontStyle="bold" letterSpacing={1.4} fill="rgba(255,250,244,0.92)" text="PLAYING" listening={false} />
-                    </>
-                  )}
-                  <Text x={20} y={Math.max(18, noteView.h - 120)} width={72} fontSize={12} fontFamily="JetBrains Mono" fill="rgba(255,250,244,0.88)" text={videoCurrentTime} listening={false} />
-                  <Rect x={Math.max(92, noteView.w * 0.22)} y={Math.max(18, noteView.h - 115)} width={Math.max(56, noteView.w - 184)} height={6} cornerRadius={3} fill="rgba(255,255,255,0.24)" listening={false} />
-                  <Rect x={Math.max(92, noteView.w * 0.22)} y={Math.max(18, noteView.h - 115)} width={Math.max(28, Math.max(56, noteView.w - 184) * 0.36)} height={6} cornerRadius={3} fill={atelierPalette.terracotta} listening={false} />
-                  <Text x={Math.max(0, noteView.w - 108)} y={Math.max(18, noteView.h - 120)} width={72} align="right" fontSize={12} fontFamily="JetBrains Mono" fill="rgba(255,250,244,0.88)" text={videoDuration} listening={false} />
-                </Group>
-                <Text x={22} y={Math.max(0, noteView.h - 84)} width={Math.max(0, noteView.w - 92)} fontSize={Math.max(18, Math.min(25, noteView.w / 11.5))} fontFamily="Newsreader" fontStyle="italic" fill={atelierPalette.text} text={videoTitle} ellipsis listening={false} />
-                {videoMeta ? <Text x={22} y={Math.max(0, noteView.h - 50)} width={Math.max(0, noteView.w - 96)} fontSize={10} letterSpacing={1.2} fill={colorWithAlpha(atelierPalette.quietText, 0.76)} text={videoMeta} ellipsis listening={false} /> : null}
-                <Group x={Math.max(18, noteView.w - 54)} y={Math.max(0, noteView.h - 56)} onClick={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadVideoNote(note.id); }} onTap={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onDownloadVideoNote(note.id); }}>
-                  <Text x={0} y={0} width={16} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text="↓" listening={false} />
-                </Group>
-                <Group x={Math.max(42, noteView.w - 30)} y={Math.max(0, noteView.h - 56)} onClick={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onOpenVideoNote(note.id); }} onTap={(event) => { if (isTimeLocked) { return; } event.cancelBubble = true; onOpenVideoNote(note.id); }}>
-                  <Text x={0} y={0} width={16} align="center" fontSize={16} fill={colorWithAlpha(atelierPalette.quietText, 0.82)} text="↗" listening={false} />
-                </Group>
-              </>
-            )}
+            {isVideo ? (
+              <WallVideoNoteRenderer
+                note={noteView}
+                title={videoTitle}
+                meta={videoMeta}
+                currentTime={videoCurrentTime}
+                duration={videoDuration}
+                poster={loadedVideoPoster}
+                isPlaying={isInlineVideoPlaying}
+                isTimeLocked={isTimeLocked}
+                onToggleInlineVideoPlayback={onToggleInlineVideoPlayback}
+                onOpenVideoNote={onOpenVideoNote}
+                onDownloadVideoNote={onDownloadVideoNote}
+              />
+            ) : null}
             {looksLikeFile && (
               <WallFileNoteRenderer
                 note={noteView}
@@ -1274,179 +802,15 @@ export const WallNotesLayer = ({
                 onDownloadFileNote={onDownloadFileNote}
               />
             )}
-            {showStandardTextCard && (
-              <>
-                <Text
-                  x={20}
-                  y={20}
-                  width={Math.max(0, noteView.w - 40)}
-                  fontSize={16}
-                  fontFamily={noteTextFontFamily}
-                  fontStyle="bold"
-                  fill={atelierPalette.text}
-                  text={standardTitle}
-                  ellipsis
-                  listening={false}
-                />
-                {standardBody && (
-                  <Text
-                    x={20}
-                    y={50}
-                    width={Math.max(0, noteView.w - 40)}
-                    height={Math.max(0, noteView.h - 70 - wikiFooterHeight)}
-                    fontSize={15}
-                    fontFamily={noteTextFontFamily}
-                    lineHeight={1.58}
-                    fill={atelierPalette.mutedText}
-                    text={standardBody}
-                    ellipsis
-                    listening={false}
-                  />
-                )}
-              </>
-            )}
-            {isQuote && (quoteAttribution || quoteSource) && !isEisenhower && (
-              <>
-                {quoteAttribution && (
-                  <Text
-                    x={24}
-                    y={Math.max(12, noteView.h - (quoteFooterLines > 1 ? 38 : 24))}
-                    width={Math.max(0, noteView.w - 48)}
-                    fontSize={10}
-                    fontStyle="bold"
-                    fill={colorWithAlpha(atelierPalette.forest, 0.82)}
-                    letterSpacing={1.6}
-                    text={`- ${quoteAttribution.toUpperCase()}`}
-                    wrap="none"
-                    ellipsis
-                    listening={false}
-                  />
-                )}
-                {quoteSource && (
-                  <Text
-                    x={24}
-                    y={Math.max(12, noteView.h - 20)}
-                    width={Math.max(0, noteView.w - 48)}
-                    fontSize={9}
-                    fill={colorWithAlpha(atelierPalette.mutedText, 0.68)}
-                    letterSpacing={1.1}
-                    text={quoteSource.toUpperCase()}
-                    wrap="none"
-                    ellipsis
-                    listening={false}
-                  />
-                )}
-              </>
-            )}
-            {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isBookmark && (
-              <>
-                {wikiLinks.slice(0, 4).map((wikiLink, index) => {
-                  const column = index % 2;
-                  const row = Math.floor(index / 2);
-                  const chipWidth = Math.max(74, Math.min((noteView.w - 30) / 2, 112));
-                  const x = 12 + column * (chipWidth + 8);
-                  const y = Math.max(12, noteView.h - 28 - row * 20 - (showNoteTags ? 20 : 0));
-                  return (
-                    <Group
-                      key={`${note.id}-wiki-${wikiLink.targetNoteId}`}
-                      onClick={(event) => {
-                        if (isTimeLocked) {
-                          return;
-                        }
-                        event.cancelBubble = true;
-                        onNavigateWikiLink(wikiLink.targetNoteId);
-                      }}
-                      onTap={(event) => {
-                        if (isTimeLocked) {
-                          return;
-                        }
-                        event.cancelBubble = true;
-                        onNavigateWikiLink(wikiLink.targetNoteId);
-                      }}
-                    >
-                      <Rect
-                        x={x}
-                        y={y}
-                        width={chipWidth}
-                        height={16}
-                        cornerRadius={8}
-                        fill="rgba(248,250,252,0.9)"
-                        stroke="rgba(100,116,139,0.55)"
-                        strokeWidth={0.8}
-                      />
-                      <Text
-                        x={x + 7}
-                        y={y + 2}
-                        width={chipWidth - 14}
-                        fontSize={10}
-                        fontStyle="bold"
-                        fill="#475569"
-                        text={wikiLink.title}
-                        wrap="none"
-                        ellipsis
-                      />
-                    </Group>
-                  );
-                })}
-              </>
-            )}
-
-
-            {isVocabulary && (
-              <Text
-                x={12}
-                y={Math.max(10, noteView.h - 23)}
-                width={Math.max(0, noteView.w - 24)}
-                align="center"
-                fontSize={10}
-                fontStyle="bold"
-                fill="#FFFFFF"
-                text={isVocabularyBack ? "Back • Tap to flip" : "Front • Tap to flip"}
-                onClick={(event) => {
-                  if (isTimeLocked) {
-                    return;
-                  }
-                  event.cancelBubble = true;
-                  toggleVocabularyFlip(note.id);
-                }}
+            {showStandardTextCard ? (
+              <WallStandardNoteRenderer
+                note={noteView}
+                title={standardTitle}
+                body={standardBody}
+                fontFamily={noteTextFontFamily}
+                wikiFooterHeight={wikiFooterHeight}
               />
-            )}
-            {showNoteTags && !isPrivate && !isImageNote && !isEisenhower && !isVideo &&
-              noteTags.map((tag, index) => (
-                <Group key={`${note.id}-tag-${tag}`}>
-                  <Rect
-                    x={12 + index * 64}
-                    y={Math.max(10, noteView.h - 25)}
-                    width={60}
-                    height={16}
-                    cornerRadius={8}
-                    fill={tagPalette.bg}
-                    stroke={tagPalette.border}
-                    strokeWidth={0.8}
-                  />
-                  <Text
-                    x={16 + index * 64}
-                    y={Math.max(12, noteView.h - 23)}
-                    width={52}
-                    fontSize={10}
-                    fill={tagPalette.text}
-                    text={`#${tag}`}
-                    wrap="none"
-                    ellipsis
-                  />
-                </Group>
-              ))}
-            {showNoteTags && !isPrivate && !isImageNote && !isEisenhower && !isVideo && overflowTags > 0 && (
-              <Text
-                x={Math.max(12, noteView.w - 36)}
-                y={Math.max(12, noteView.h - 23)}
-                width={24}
-                align="right"
-                fontSize={10}
-                fill={tagPalette.text}
-                text={`+${overflowTags}`}
-              />
-            )}
+            ) : null}
           </Group>
         );
       })}
