@@ -280,6 +280,8 @@ Each row maps a concern currently owned (fully or partially) by `WallCanvas.tsx`
 
 ### Phase 3 — Split `WallNotesLayer` (2–3 weeks)
 
+**Status:** In progress (2026-06-18) — first vertical slice shipped shared image-note layout helpers, shared note styling helpers, and an initial pure `WallNoteViewModel` for compact canvas previews. `WallNotesLayer` still owns most full-detail Konva rendering and interaction, so renderer extraction remains open.
+
 **Goal:** Note rendering and interaction scalable per note type.
 
 #### Recommended split strategy
@@ -308,12 +310,13 @@ wall/spatial/notes/renderers/
 
 #### Tasks
 
-1. Extract shared layout helpers currently inline in `WallNotesLayer` (image caption estimation, contained layout, etc.).
+1. Extract shared layout helpers currently inline in `WallNotesLayer` (image caption estimation, contained layout, etc.). **Started 2026-06-18:** image caption estimation, auto-height, and contained image layout now live in `src/components/wall/spatial/notes/note-layout.ts`.
 2. Introduce **`WallNoteViewModel`** (pure functions in `features/wall` or `wall/note-presentation/`):
    - title, subtitle, privacy mask label
    - preview dimensions policy
    - muted/disabled states
    - Used by both Konva renderers and `WallNotePreview` (Phase 4)
+   - **Started 2026-06-18:** `src/features/wall/wall-note-view-model.ts` now owns compact title/meta/privacy labels used by low-detail canvas note previews. Preview dimensions and full `WallNotePreview` consumption remain Phase 4 work.
 3. Thin `WallNotesLayer` composes renderers + windowing props only.
 4. Split `useWallKeyboard` into scoped hooks:
    - `useWallKeyboardNavigation`

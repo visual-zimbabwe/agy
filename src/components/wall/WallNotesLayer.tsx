@@ -6,12 +6,29 @@ import type Konva from "konva";
 
 import { EisenhowerMatrixNote } from "@/components/wall/EisenhowerMatrixNote";
 import { parseCodeNote, tokenizeCodeLine } from "@/components/wall/codeNoteRendering";
+import {
+  IMAGE_NOTE_CAPTION_FONT_SIZE,
+  IMAGE_NOTE_CAPTION_GAP,
+  IMAGE_NOTE_CAPTION_LINE_HEIGHT,
+  IMAGE_NOTE_PADDING,
+  IMAGE_NOTE_RADIUS,
+  getContainedImageLayout,
+  getImageNoteAutoHeight,
+} from "@/components/wall/spatial/notes/note-layout";
+import {
+  atelierPalette,
+  colorWithAlpha,
+  getContrastTextColor,
+  getNoteCornerRadius,
+  getNoteStrokeColor,
+  resolveNoteFillColor,
+} from "@/components/wall/spatial/notes/note-style";
 import { formatJournalDateLabel } from "@/components/wall/wall-canvas-helpers";
 import { deriveWallAssetRecords, mergeWallAssetRecords, resolveImageAssetUrl, resolveVideoPosterAssetUrl } from "@/features/wall/asset-records";
 import { bookmarkUrlLabel, resolveBookmarkDisplaySize, WEB_BOOKMARK_ACCENT } from "@/features/wall/bookmarks";
 import { NOTE_DEFAULTS } from "@/features/wall/constants";
 import { isPrivateNote, privateNoteTitle } from "@/features/wall/private-notes";
-import { DEFAULT_STANDARD_NOTE_COLOR, sanitizeStandardNoteColor } from "@/features/wall/special-notes";
+import { getWallNoteViewModel, stripWikiLinkMarkup } from "@/features/wall/wall-note-view-model";
 import { AUDIO_WAVEFORM_BARS, formatAudioDuration, getAudioNoteMeta, getAudioNoteTitle } from "@/features/wall/audio-notes";
 import { getFileNoteMetaCaps, getFileNoteTitle } from "@/features/wall/file-notes";
 import { formatVideoDuration, getVideoNoteMeta, getVideoNoteTitle } from "@/features/wall/video-notes";
@@ -26,184 +43,7 @@ type GuideLineState = {
 type ResizeDraft = { x: number; y: number; w: number; h: number };
 
 
-const IMAGE_NOTE_PADDING = 6;
-const IMAGE_NOTE_RADIUS = 16;
-const IMAGE_NOTE_CAPTION_GAP = 8;
-const IMAGE_NOTE_CAPTION_FONT_SIZE = 12;
-const IMAGE_NOTE_CAPTION_LINE_HEIGHT = 1.28;
-const IMAGE_NOTE_CAPTION_MAX_LINES = 3;
-
 const defaultMaxLoadedWallImages = 72;
-
-const estimateImageCaptionHeight = (noteWidth: number, caption: string) => {
-  const trimmed = caption.trim();
-  if (!trimmed) {
-    return 0;
-  }
-  const innerWidth = Math.max(72, noteWidth - 24);
-  const approxCharsPerLine = Math.max(16, Math.floor(innerWidth / 7));
-  const lines = Math.min(IMAGE_NOTE_CAPTION_MAX_LINES, Math.max(1, Math.ceil(trimmed.length / approxCharsPerLine)));
-  return Math.ceil(lines * IMAGE_NOTE_CAPTION_FONT_SIZE * IMAGE_NOTE_CAPTION_LINE_HEIGHT + 18);
-};
-
-const getImageNoteAutoHeight = (note: Pick<Note, "w">, caption: string, image?: HTMLImageElement) => {
-  const availableWidth = Math.max(1, note.w - IMAGE_NOTE_PADDING * 2);
-  const captionHeight = estimateImageCaptionHeight(note.w, caption);
-  const captionGap = captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0;
-  const fallbackHeight = availableWidth * 0.7;
-
-  if (!image || !image.naturalWidth || !image.naturalHeight) {
-    return Math.max(NOTE_DEFAULTS.minHeight, Math.round(IMAGE_NOTE_PADDING * 2 + fallbackHeight + captionGap + captionHeight));
-  }
-
-  const intrinsicHeight = image.naturalHeight * (availableWidth / image.naturalWidth);
-  return Math.max(NOTE_DEFAULTS.minHeight, Math.round(IMAGE_NOTE_PADDING * 2 + intrinsicHeight + captionGap + captionHeight));
-};
-
-const getContainedImageLayout = (note: Pick<Note, "w" | "h">, caption: string, image?: HTMLImageElement) => {
-  const captionHeight = estimateImageCaptionHeight(note.w, caption);
-  const captionGap = captionHeight > 0 ? IMAGE_NOTE_CAPTION_GAP : 0;
-  const availableWidth = Math.max(1, note.w - IMAGE_NOTE_PADDING * 2);
-  const availableHeight = Math.max(1, note.h - IMAGE_NOTE_PADDING * 2 - captionHeight - captionGap);
-
-  if (!image || !image.naturalWidth || !image.naturalHeight) {
-    return {
-      captionHeight,
-      imageX: IMAGE_NOTE_PADDING,
-      imageY: IMAGE_NOTE_PADDING,
-      imageWidth: availableWidth,
-      imageHeight: availableHeight,
-    };
-  }
-
-  const widthRatio = availableWidth / image.naturalWidth;
-  const heightRatio = availableHeight / image.naturalHeight;
-  const scale = Math.min(widthRatio, heightRatio);
-  const imageWidth = Math.max(1, image.naturalWidth * scale);
-  const imageHeight = Math.max(1, image.naturalHeight * scale);
-
-  return {
-    captionHeight,
-    imageX: IMAGE_NOTE_PADDING + (availableWidth - imageWidth) / 2,
-    imageY: IMAGE_NOTE_PADDING + (availableHeight - imageHeight) / 2,
-    imageWidth,
-    imageHeight,
-  };
-};
-
-const stripWikiLinkMarkup = (text: string) => text.replace(/\[\[([^\]\n]+?)\]\]/g, "$1");
-
-const resolveNoteFillColor = (note: Note) => sanitizeStandardNoteColor(note.color, DEFAULT_STANDARD_NOTE_COLOR);
-
-const atelierPalette = {
-  paper: "#FFFCF8",
-  paperShadow: "#1C1C19",
-  paperStroke: "rgba(223,192,184,0.58)",
-  paperStrokeStrong: "#A33818",
-  text: "#1C1C19",
-  mutedText: "#5A4B43",
-  quietText: "#8C7C72",
-  terracotta: "#A33818",
-  forest: "#4D6356",
-  gold: "#755717",
-  glass: "rgba(252,249,244,0.72)",
-};
-
-const hexToRgb = (hex: string) => {
-  const normalized = hex.replace("#", "").trim();
-  if (![3, 6].includes(normalized.length)) {
-    return { r: 28, g: 28, b: 25 };
-  }
-  const expanded = normalized.length === 3 ? normalized.split("").map((value) => `${value}${value}`).join("") : normalized;
-  const intValue = Number.parseInt(expanded, 16);
-  return {
-    r: (intValue >> 16) & 255,
-    g: (intValue >> 8) & 255,
-    b: intValue & 255,
-  };
-};
-
-const colorWithAlpha = (hex: string, alpha: number) => {
-  const { r, g, b } = hexToRgb(hex);
-  return `rgba(${r},${g},${b},${alpha})`;
-};
-
-const getContrastTextColor = (hex: string) => {
-  const { r, g, b } = hexToRgb(hex);
-  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  return luminance > 0.56 ? atelierPalette.text : "#FFFCF8";
-};
-
-const getNoteStrokeColor = ({
-  isSelected,
-  isHovered,
-  isHighlighted,
-  accent,
-}: {
-  isSelected: boolean;
-  isHovered: boolean;
-  isHighlighted: boolean;
-  accent: string;
-}) => {
-  if (isHighlighted) {
-    return "#F59E0B";
-  }
-  if (isSelected) {
-    return atelierPalette.paperStrokeStrong;
-  }
-  if (isHovered) {
-    return colorWithAlpha(accent, 0.48);
-  }
-  return atelierPalette.paperStroke;
-};
-
-const getNoteCornerRadius = (note: Note) => {
-  if (note.noteKind === "standard") {
-    return 18;
-  }
-  if (note.noteKind === "quote" || note.noteKind === "journal") {
-    return 16;
-  }
-  return 14;
-};
-
-const getWallNotePreviewTitle = (note: Note) => {
-  if (note.noteKind === "web-bookmark") {
-    return note.bookmark?.metadata?.title?.trim() || note.bookmark?.metadata?.domain || note.bookmark?.url || "Bookmark";
-  }
-  if (note.noteKind === "audio") {
-    return getAudioNoteTitle(note.audio);
-  }
-  if (note.noteKind === "video") {
-    return getVideoNoteTitle(note.video);
-  }
-  if (note.noteKind === "file") {
-    return getFileNoteTitle(note.file);
-  }
-  if (note.vocabulary?.word?.trim()) {
-    return note.vocabulary.word.trim();
-  }
-  return stripWikiLinkMarkup(note.text).split(/\r?\n/).map((line) => line.trim()).find(Boolean) || "Untitled note";
-};
-
-const getWallNotePreviewMeta = (note: Note) => {
-  if (note.noteKind === "audio") {
-    return getAudioNoteMeta(note.audio);
-  }
-  if (note.noteKind === "video") {
-    return getVideoNoteMeta(note.video);
-  }
-  if (note.noteKind === "file") {
-    return getFileNoteMetaCaps(note.file);
-  }
-  if (note.noteKind === "web-bookmark") {
-    return note.bookmark?.metadata?.siteName?.trim() || note.bookmark?.metadata?.domain || "Link preview";
-  }
-  if (note.tags.length > 0) {
-    return `#${note.tags[0]}`;
-  }
-  return note.noteKind ? note.noteKind.replaceAll("-", " ") : "standard note";
-};
 
 type WallNotesLayerProps = {
   visibleNotes: Note[];
@@ -766,8 +606,9 @@ export const WallNotesLayer = ({
         };
 
         if (renderDetailLevel !== "full") {
-          const previewTitle = getWallNotePreviewTitle(noteView);
-          const previewMeta = getWallNotePreviewMeta(noteView);
+          const preview = getWallNoteViewModel(noteView);
+          const previewTitle = preview.title;
+          const previewMeta = preview.meta;
           const ambient = renderDetailLevel === "ambient";
           const previewFill = isPrivateNote(noteView) ? "#F5F1EA" : "#FFFCF8";
           const previewTextColor = getContrastTextColor(resolveNoteFillColor(noteView));

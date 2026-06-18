@@ -70,7 +70,6 @@ This layer also owns important selection and drag behavior for zones.
 Current responsibilities include:
 
 - note body rendering
-- image note layout
 - resizing drafts
 - hover and selection behavior
 - drag interactions
@@ -79,6 +78,14 @@ Current responsibilities include:
 - note previews for specialized note types
 
 This is one of the densest rendering components in the wall codebase.
+
+Shared note presentation policy is beginning to move out of the layer as part of the Phase 3 refactor:
+
+- `src/components/wall/spatial/notes/note-layout.ts` owns image-note caption sizing, automatic image-card height, and contained image layout.
+- `src/components/wall/spatial/notes/note-style.ts` owns shared canvas note palette, contrast, stroke, fill, and corner-radius helpers.
+- `src/features/wall/wall-note-view-model.ts` owns the first pure title/meta/privacy-mask view model used by compact canvas previews.
+
+Full-detail note-kind renderers still live inside `WallNotesLayer`; future Phase 3 slices should move them into `src/components/wall/spatial/notes/renderers/` by note kind.
 
 ## Specialized Rendering Behavior
 
@@ -102,6 +109,7 @@ Current specialized note rendering includes:
 - image notes can cause bad layout if intrinsic image data is missing or unstable
 - over-dense grid or layer output can pressure performance
 - complex note rendering paths increase regression risk for interaction and sizing behavior
+- canvas and HTML preview labels can drift until the shared view model is adopted by `WallNotePreview` in a later phase
 
 ## Related Docs
 
