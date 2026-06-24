@@ -39,7 +39,6 @@ Wall notes can also contain richer payloads such as:
 
 - quote metadata
 - canon payloads
-- vocabulary review state
 - Eisenhower payloads
 - Joker card metadata via `noteKind`, note body text, and source fields
 - Throne note metadata via `noteKind`, note body text, and source fields

@@ -34,7 +34,7 @@ The full `/help` route is the longer-form help library. It supports:
 - related-reading links
 - route links back into key product surfaces
 
-Keyboard shortcuts still exist as a dedicated modal, but they are no longer the only thing behind the product's help entry.
+Keyboard shortcuts are documented in the Help center. `?` or `Shift+/` opens the shortcuts section. The dedicated shortcuts-only modal was merged into Help in the unified refactor.
 
 ## Data and State
 

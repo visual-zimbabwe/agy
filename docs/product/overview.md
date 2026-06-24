@@ -4,7 +4,7 @@
 
 This document describes the current product surface of Agy.
 
-Agy is brain RAM: a visual system for capturing, organizing, and interacting with ideas across spatial, document, and review-oriented workspaces.
+Agy is brain RAM: a visual system for capturing, organizing, and interacting with ideas across spatial, timeline, and study-oriented workspaces.
 
 ## Scope
 
@@ -12,15 +12,18 @@ This is a current-state overview. It explains the product shape and the major us
 
 ## Current Product Surface
 
-Agy currently has three primary workspaces:
+Agy is a **light-only** product with one unified design system across routes.
+
+Primary workspaces:
 
 - `Wall`: spatial thinking and relationship mapping
-- `Decks`: study and repetition workflows
-- `Settings`: account, startup, appearance, and control preferences
+- `Decks`: standalone spaced-repetition study
+- `Settings`: account, startup, and workspace preferences
+- `Help`: route-based help library and wall quick-help modal
 
-The landing page links directly into these surfaces.
+The landing page (`/`) links into Wall and Decks.
 
-A support layer now spans the product through a wall quick-help modal and the route-based `/help` library.
+Timeline is a **Wall overlay** (`V` or header **Timeline**), not a separate top-level product route.
 
 ## Wall
 
@@ -28,55 +31,59 @@ The wall is the main spatial workspace.
 
 Users can:
 
-- create and edit notes
+- create and edit notes via omnibar (`Ctrl/Cmd+K`), shortcuts, and the Structure menu
 - move, resize, group, and color notes
 - organize with tags, zones, and note groups
 - create directional links and wiki-style relationships
-- search, filter, and jump across content
+- search and filter with omnibar tokens (`tag:`, `type:`, `is:`, `tool:`)
 - review changes through Wall History replay and heatmap-style views
 - read the current note set chronologically in Timeline (`V`)
 - export to PNG, PDF, Markdown, JSON, or published read-only snapshots
-- open quick help without leaving the canvas
+- open Help and Settings without leaving the canvas
 
-The wall supports both freeform brainstorming and more structured thinking workflows.
+Wall chrome is simplified:
+
+- **Details panel** — selection inspector only; collapsed by default (pin in Workspace settings)
+- **Context bar** — on by default when a note is selected
+- **No** Tools left rail, Smart Merge, vocabulary/word review, or Wall→Decks integration
 
 ## Decks
 
-The decks workspace is a study environment built around note types, cards, review flows, and deck hierarchy.
+Decks is a **standalone** study workspace. It shares auth, header navigation, design tokens, Settings, and Help with Wall but does not import from or sync with wall notes.
 
 Users can:
 
-- create nested decks
-- browse notes and cards
-- study due material
-- run custom study sessions
-- inspect deck stats
-- import notes and configure note types
-
-Decks is a separate route, but it is also integrated into the wall workflow through shared navigation and related tooling.
+- create nested decks and sub-decks
+- browse cards, inspect stats, and run study sessions
+- run custom study with filters and limits
+- import deck-native content and configure note types
+- use FSRS scheduling when enabled per deck
 
 ## Settings
 
-Settings controls:
+Settings use a shared `SettingsShell`:
 
-- profile and account state
-- theme and appearance preferences
-- startup route preferences
-- keyboard color slots
-- wall chrome and control density preferences
+- **Wall** — header gear opens a modal overlay
+- **Decks and deep links** — full `/settings` route with the same content
 
-Settings can be opened as a route and, in some cases, embedded in wall-adjacent UI.
+Tabs:
+
+- **Account** — profile, email, password, MFA
+- **Preferences** — startup route, timezone, keyboard color slots
+- **Workspace** — context bar, tags on cards, pin details panel, replay tour
+
+Theme and Basic/Advanced controls mode were removed in the unified refactor.
 
 ## Product Model
 
-The current product is not just a sticky-note wall. It is a multi-surface workspace with:
+The current product is a multi-surface workspace with:
 
-- a spatial canvas
-- a study system
+- a spatial canvas (Wall)
+- a standalone study system (Decks)
 - account-backed preferences and sync
 - a shared self-serve help layer
 
-The unifying idea is that the user can move between capture, organization, reflection, review, and recovery without leaving the product.
+Wall and Decks are intentionally separate data models and workflows.
 
 ## Time Modes Glossary
 
@@ -85,11 +92,11 @@ The wall exposes two time-oriented surfaces that use different shortcuts and dat
 - **Timeline** (`V`): A vertical chronological stream of the **current** wall notes, sorted by creation time. Use it to review what is on the wall today without spatial navigation.
 - **Wall History** (`T`): A replay mode that scrubs through **persisted wall snapshots** recorded as the wall changes over time. Editing is locked while history is active.
 
-Both modes are read-only for note mutations. Timeline is the primary review surface linked from the top nav; Wall History is for rewinding to earlier persisted states.
+Both modes are read-only for note mutations. Timeline is linked from the top nav; Wall History is for rewinding to earlier persisted states.
 
 ## Known Boundaries
 
-- The wall and decks surfaces have different interaction models and different persistence shapes.
+- Wall and Decks have different interaction models and different persistence shapes.
 - Some features depend on signed-in Supabase-backed flows.
 - Published wall snapshots are intentionally read-only.
 
@@ -100,3 +107,4 @@ Both modes are read-only for note mutations. Timeline is the primary review surf
 - `docs/features/timeline-view.md`
 - `docs/features/help-system.md`
 - `docs/features/decks.md`
+- `docs/decisions/0004-unified-light-refactor.md`

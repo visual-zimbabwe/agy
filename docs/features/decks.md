@@ -2,65 +2,66 @@
 
 ## Purpose
 
-The decks workspace gives Agy a structured study and review surface for notes, cards, and spaced repetition workflows.
+The decks workspace gives Agy a standalone structured study and review surface for spaced repetition. Decks shares auth, header navigation, settings, and design tokens with Wall but does not import from or sync with wall notes.
 
 ## Scope
 
-This document covers the current `/decks` product surface and the major workflows visible in the codebase. It does not fully specify every deck API contract.
+This document covers the `/decks` product surface and major workflows visible in the codebase.
 
 ## Behavior
 
-The decks workspace is mounted at `/decks` and requires an authenticated user.
+The decks workspace is mounted at `/decks` (redirects to `/decks/decks`) and requires an authenticated user.
 
-Current workspace areas include:
+### Navigation
 
-- deck list and hierarchy management
-- add-note creation from the `/decks` overview
-- browse view
-- stats view
-- study view
-- custom study sessions
-- note-type and import flows
+- **Header:** Shared Agy chrome with Wall · Decks · Timeline links, settings gear, and profile menu (Help, Settings, Sign out).
+- **View tabs:** Decks · Browse · Stats · Study — each is a route under `/decks/*`.
+- **Library sidebar:** Nested deck tree with create-deck controls on all main views.
 
-The workspace supports nested decks, filtered study, due counts, tags, and import presets.
+Settings open in a modal from the header gear (same `SettingsWorkspace` content as `/settings`). Help opens from the profile menu.
 
-The decks header keeps the local Decks/Browse/Stats/Study tabs grouped on the left while direct route links back into `Wall`, `Page`, and `Media` sit at the top-right edge of the same bar. The deck overview header does not keep separate duplicate `Study` or decorative search controls; persistent `Settings` and `Help` route links live together in the lower-left sidebar footer.
+### Workflows
 
-On `/decks`, the main deck overview includes a single in-content `Add Note` entry point in the hero actions. That modal lets the user choose a deck, choose a note type, fill the note fields, add comma-separated tags, and create the note. Card generation still happens note-first through the note type template system rather than by creating raw cards directly.
+| Area | Route | Behavior |
+|------|-------|----------|
+| Deck overview | `/decks/decks` | Counts, sub-deck table, launch study/browse/stats |
+| Browse | `/decks/browse` | Search, inspect cards, flag/suspend, bulk actions |
+| Stats | `/decks/stats` | Forecast, maturity, retention summaries |
+| Study | `/decks/study` | Due queue, reveal answer, Again/Hard/Good/Easy ratings |
+| Custom study | Study view modal | Filtered sessions, tag filters, limit overrides |
+| Add note | Header action | Note-type template, tags, deck placement |
+| Import | Header action | CSV/TXT import with column mapping and presets |
 
-Deck note creation blocks exact duplicates within the same deck and note type. The duplicate check compares normalized field content only: field order does not matter, leading and trailing whitespace is ignored, and Windows versus Unix line endings are treated as equivalent. Tags do not participate in duplicate detection, so changing tags alone does not make a note unique.
+Deck note creation blocks exact duplicates within the same deck and note type (normalized field content; tags excluded from duplicate detection).
 
-The wall toolbar can also open decks, which makes decks part of the broader product flow rather than a disconnected side project.
+Study uses the existing deck APIs including FSRS scheduling when enabled per deck (Options modal on Study overview).
+
+### Standalone rules
+
+- No import from Wall or wall `note_id` coupling in UI.
+- No BroadcastChannel or cross-window presence with Wall.
+- Existing `deck_cards` rows are kept; wall provenance is not shown.
 
 ## Data and State
 
-Deck-related behavior uses:
+Deck behavior uses server APIs (`/api/decks/*`) for decks, note types, cards, stats, custom study, and scheduling (`scheduler_mode`, `fsrs_params`).
 
-- decks
-- note types
-- cards
-- stats payloads
-- custom study payloads
-- scheduler-related fields such as `scheduler_mode`, `fsrs_params`, and optimization timestamps
-
-The workspace relies heavily on server APIs rather than a purely local-only state model.
+Client state is per-view with shared deck library context from `DecksChrome`.
 
 ## Edge Cases
 
-- The deck APIs include compatibility handling for missing scheduler columns, which means the frontend must tolerate partial schema rollout.
-- Nested decks change study semantics because parent deck sessions can include or exclude child decks.
-- Browse and bulk operations need careful selection behavior to avoid accidental destructive actions.
-- Duplicate prevention is enforced in the shared note-creation API, so both manual add and file import reject exact duplicate notes in the same deck and note-type scope.
+- Deck APIs tolerate partial scheduler schema rollout (`fsrsAvailable` flag).
+- Nested decks affect study when `includeChildren` is used (default on browse/study).
+- Custom study with `preview_new` does not reschedule cards unless explicitly enabled.
 
 ## Limitations
 
-- The repo does not yet have a dedicated architecture doc for the decks data model.
-- There is still discovery/planning history in `docs/decks-feature-discovery.md`; the canonical current-state source should move to this file going forward.
+- Stats activity lattice is illustrative until review-history heatmap data is wired.
+- No dedicated `docs/architecture/decks-data-model.md` yet.
 
 ## Related Docs
 
 - `docs/product/overview.md`
-- `docs/architecture/overview.md`
 - `docs/api/decks.md`
 - `docs/qa.md`
-
+- `docs/product/unified-agy-refactor-plan.md`

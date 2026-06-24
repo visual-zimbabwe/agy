@@ -10,34 +10,23 @@ This covers current note kinds, creation surfaces, related organization primitiv
 
 ## Behavior
 
-Wall notes are not limited to plain sticky-note text. The current frontend uses a shared Digital Atelier visual language: warm paper surfaces, serif-led editorial typography, restrained terracotta/forest/gold accents, and note-kind-specific compositions instead of one generic card shell. A fresh wall now seeds one Joker card that fetches a joke from JokeAPI. If that card is deleted, the wall does not silently repurpose the next standard note. Instead, users can explicitly create a new Joker note from the Tools panel or convert the currently selected standard note by choosing `Joker` in the note-type controls. If a Joker note already exists, those same actions refresh it with a new joke instead of creating duplicates.
+Wall notes are not limited to plain sticky-note text. The current frontend uses a shared Digital Atelier visual language: warm paper surfaces, serif-led editorial typography, restrained terracotta/forest/gold accents, and note-kind-specific compositions instead of one generic card shell. A fresh wall now seeds one Joker card that fetches a joke from JokeAPI. If that card is deleted, the wall does not silently repurpose the next standard note. Instead, users can explicitly create a new Joker note from the Structure menu, omnibar `tool:` actions, or shortcuts, or convert the currently selected standard note by choosing `Joker` in the note-type controls. If a Joker note already exists, those same actions refresh it with a new joke instead of creating duplicates.
 
 Standard wall notes now use the current default note shell: a clean white card, the `Quick Thought` title fallback, Manrope-led title/body typography, and softer body copy spacing instead of the older generic sticky treatment. In `Details > Note Type`, `Default` is the first option and converts specialized notes back to the standard shell while clearing note-type-specific payloads.
 
-The wall also supports one dedicated Throne note. It is created explicitly from the Tools panel or by converting the currently selected standard note with `Throne` in the note-type controls. Once a Throne note exists, those same actions refresh the existing note with a new Game of Thrones quote instead of creating duplicates. The current Throne shell uses a dark stone card, a small gold shield accent, and centered attribution styling while the Throne color slot remains reserved for that note type and is not reused by normal notes.
+The wall also supports one dedicated Throne note. It is created explicitly from the Structure menu, omnibar, or shortcuts, or by converting the currently selected standard note with `Throne` in the note-type controls. Once a Throne note exists, those same actions refresh the existing note with a new Game of Thrones quote instead of creating duplicates. The current Throne shell uses a dark stone card, a small gold shield accent, and centered attribution styling while the Throne color slot remains reserved for that note type and is not reused by normal notes.
 
 Current note creation entry points include:
 
 The wall also maintains one permanent system note: currency. It is seeded automatically, cannot be deleted or duplicated, can be repositioned, and uses location plus exchange-rate lookups to keep a USD conversion widget on the canvas.
 
+- standard note creation (`N`, omnibar)
+- journal, quote, canon, Eisenhower, code, and other kind-specific shortcuts
+- web bookmark, image, file, audio, and video note creation
+- NASA APOD, Poetry, and magazine cover note creation
+- Structure menu and omnibar `tool:` actions for zones, templates, and specialized inserts
 
-- standard note creation
-- vocabulary word note creation
-- journal note creation
-- quote note creation
-- Eisenhower Matrix note creation
-- canon note creation
-- web bookmark note creation
-- image note creation
-- file note creation
-- audio note creation
-- video note creation
-- NASA APOD note creation
-- Poetry note creation
-- Code note creation
-- Magazine cover note creation through the Economist note shell
-
-These actions are available from the wall tools panel, and some note transformations also flow through in-note editing commands. Code notes are available from both the Tools panel and `Details > Note Type`, so users can either create a fresh code card at the viewport center or convert the current selection into the snippet shell without introducing a separate persisted note-kind enum. When a new wall note is created from viewport-centered creation flows, the wall now places it in the nearest collision-free space that still fits inside the user's current frame instead of stacking it on top of an existing note.
+These actions are available from the Structure menu, omnibar, and keyboard shortcuts. Code notes are also available from `Details > Note Type`, so users can either create a fresh code card at the viewport center or convert the current selection into the snippet shell without introducing a separate persisted note-kind enum. When a new wall note is created from viewport-centered creation flows, the wall now places it in the nearest collision-free space that still fits inside the user's current frame instead of stacking it on top of an existing note.
 
 ## Presentation Contract
 
@@ -104,8 +93,6 @@ The current note frontend gives every supported note kind its own dedicated wall
 - `file`
 - `audio`
 - `video`
-In addition to explicit `noteKind`, notes can also carry vocabulary review payloads, which makes vocabulary notes a meaningful note workflow even when not represented as a separate `noteKind` enum value.
-
 ## Note Fields
 
 The current wall note model supports more than text and position.
@@ -129,7 +116,6 @@ Important fields include:
 - file payload for source mode, file name, URL or data URL, MIME type, extension, size, and upload timestamp
 - audio payload for source mode, title metadata, URL or data URL, MIME type, extension, size, upload timestamp, and optional duration
 - video payload for source mode, title metadata, URL or data URL, MIME type, extension, size, upload timestamp, optional duration, and optional generated poster image
-- vocabulary payload
 - image URL
 - Unsplash-sourced image URLs
 - text alignment and vertical alignment
@@ -166,7 +152,7 @@ This makes notes the core unit of wall content, but not the only structural elem
 
 - Wall note behavior spans multiple UI layers and feature helpers; orchestration is centralized in `useWallCanvasOrchestration` with session context for chrome.
 - Shared title/meta/privacy/media metadata flow through `getWallNoteViewModel`. Specialized layout (code highlighting, Eisenhower quadrants, quote typography) remains in surface-specific renderers under `wall/spatial/notes/renderers/` and `WallNotePreview`.
-- Some note workflows, such as vocabulary review and canon editing, still need deeper dedicated docs as they grow.
+- Some note workflows, such as canon editing, still need deeper dedicated docs as they grow.
 
 ## Related Docs
 
