@@ -10,14 +10,16 @@ Covers shared product tokens, the wall Digital Atelier palette, typography expec
 
 ## Token Layers
 
-Agy uses two related but distinct token layers:
+Agy uses one **unified light** product token layer in `:root` (`src/app/globals.css`: `--background`, `--color-surface*`, `--color-text*`, `--radius-*`, `--motion-*`, `--shadow-*`). Landing, auth, settings, Decks, Timeline overlay chrome, and shared UI primitives all consume these tokens.
+
+Wall note cards and HTML previews still use the **Digital Atelier** palette for editorial card surfaces:
 
 | Layer | Source | Used by |
 |-------|--------|---------|
-| Product tokens | `:root` in `src/app/globals.css` (`--color-*`, `--radius-*`, `--motion-*`) | Landing, auth, settings, shared UI primitives |
-| Digital Atelier palette | `src/components/wall/atelier-palette.ts` + `.wall-atelier-shell` CSS vars | Wall HTML preview cards, timeline stream shell, atelier page background |
+| Product tokens | `:root` in `globals.css` | Landing, auth, settings, Decks shell, timeline chrome, shared primitives |
+| Digital Atelier palette | `atelier-palette.ts` + `.wall-atelier-shell` CSS vars | Wall HTML preview cards, Konva note accents |
 
-Konva canvas notes use the related values in `src/components/wall/spatial/notes/note-style.ts` (`atelierPalette`). Values are intentionally aligned with the HTML palette but may use canvas-specific casing or alpha helpers.
+Konva canvas notes use aligned values in `note-style.ts` (`atelierPalette`). Terracotta `#a33818` is the primary CTA and active-nav accent across product chrome.
 
 ## Digital Atelier Palette
 
@@ -38,8 +40,9 @@ The wall workspace uses a warm editorial palette distinct from generic product t
 
 ### Intentional divergence
 
-- Timeline stream chrome uses the same unified product tokens as wall settings and shared UI (`--color-*`, `--background`) via `.wall-timeline-shell` and `timelineStreamShellStyles` in `atelier-palette.ts`. HTML note previews still use the Digital Atelier palette for card surfaces.
-- Note-kind reserved colors (Poetry `#B73A3A`, Economist `#F6EFE2`, Throne dark stone, code charcoal) stay in note-specific renderers and are documented in `docs/features/wall-notes.md`.
+- Timeline stream **chrome** (search, day jump, detail rail) uses unified product tokens via `.wall-timeline-shell`. Stream note previews still use Digital Atelier card surfaces where they mirror wall renderers.
+- Note-kind reserved colors (Poetry `#B73A3A`, Economist `#F6EFE2`, Throne stone, code charcoal) stay in note-specific renderers and are documented in `docs/features/wall-notes.md`.
+- Dark mode and route-specific dark shells were removed; `html { color-scheme: light; }` is fixed.
 
 ## Typography
 

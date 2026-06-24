@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — Phase 2 implemented on branch `refactor/phase-2-timeline-tokens`.** Phase 1 on `refactor/phase-1-wall-unified`. Tunnel verification and PR pending.
+**In progress — Phase 4 implemented on branch `refactor/phase-4-landing-docs`.** Phase 3 on `refactor/phase-3-decks-rebuild`. Phase 2 on `refactor/phase-2-timeline-tokens`. Phase 1 on `refactor/phase-1-wall-unified`. Tunnel verification and PR pending.
 
 ## Purpose
 
@@ -564,13 +564,13 @@ Edge cases (locked defaults):
 
 ## Phase 4 — Landing + documentation
 
-- [ ] Align `src/app/page.tsx` (landing) to unified tokens; remove dark references
-- [ ] Update `README.md` — light-only, simplified chrome map, no vocabulary/smart merge
-- [ ] Update canonical docs listed in Related docs
-- [ ] Archive `docs/features/vocabulary-review.md` → `docs/archive/`
-- [ ] Add ADR `docs/decisions/0004-unified-light-refactor.md` summarizing decisions
-- [ ] Update `docs/qa.md` with Phase 1–3 checklists
-- [ ] Changelog entry in `docs/releases/changelog.md`
+- [x] Align `src/app/page.tsx` (landing) to unified tokens; remove dark references
+- [x] Update `README.md` — light-only, simplified chrome map, no vocabulary/smart merge
+- [x] Update canonical docs listed in Related docs
+- [x] Archive `docs/features/vocabulary-review.md` → `docs/archive/` (already archived)
+- [x] Add ADR `docs/decisions/0004-unified-light-refactor.md` summarizing decisions
+- [x] Update `docs/qa.md` with Phase 1–3 checklists
+- [x] Changelog entry in `docs/releases/changelog.md`
 
 **Tunnel** — verify `/` landing and entry links on **https://xy3ywehn9o.localto.net/**
 

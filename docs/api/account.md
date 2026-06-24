@@ -14,22 +14,20 @@ This is a current-state summary for routes under `src/app/api/account/`. It cove
 
 #### `GET /api/account/settings`
 
-Returns the authenticated user’s stored account settings.
+Returns the authenticated user's stored account settings.
 
 Current response:
 
 - `settings: null` when no settings row exists
 - or normalized `settings` with:
-  - `theme`
   - `startupBehavior`
   - `startupDefaultPage`
   - `autoTimezone`
   - `manualTimezone`
   - `keyboardColorSlots`
   - `wallLayoutPrefs`
-  - `controlsMode`
 
-The read path normalizes settings before returning them.
+The read path normalizes settings before returning them. Legacy `theme` and `controls_mode` columns may still exist in the database but are no longer exposed in the API after the unified light refactor.
 
 #### `PUT /api/account/settings`
 
@@ -37,20 +35,19 @@ Upserts account settings for the authenticated user.
 
 Accepted body includes:
 
-- `theme`
 - `startupBehavior`
 - `startupDefaultPage`
 - `autoTimezone`
 - `manualTimezone`
 - `keyboardColorSlots`
 - `wallLayoutPrefs`
-- `controlsMode`
 
 Current constraints:
 
-- `startupDefaultPage` is currently `/wall` or `/decks`
+- `startupDefaultPage` is `/wall` or `/decks`
 - `keyboardColorSlots` must be an array of length 9
-- `controlsMode` is `basic` or `advanced`
+
+`theme` and `controlsMode` are **not** accepted. Saves succeed without them.
 
 ### Avatar Upload
 
@@ -98,5 +95,4 @@ All current account routes require an authenticated user.
 ## Related Docs
 
 - `docs/features/settings.md`
-- `docs/contributing/development-workflow.md`
-- `docs/architecture/state-and-storage.md`
+- `docs/decisions/0004-unified-light-refactor.md`

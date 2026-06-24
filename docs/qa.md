@@ -76,6 +76,51 @@ Expected:
 
 - Timeline visually matches unified light Wall; stream navigation behavior unchanged.
 
+## Phase 3 — Decks Rebuild (2026-06-24)
+
+Run after Phase 3 refactor changes:
+
+```bash
+npm run lint
+npm run build
+```
+
+Tunnel verification: **https://xy3ywehn9o.localto.net/decks**
+
+1. `/decks` redirects to `/decks/decks`; warm light paper/glass layout (no rust-gradient sidebar or emoji settings).
+2. Header matches Wall: Agy nav (Wall · Decks · Timeline), settings gear, profile menu (Help, Settings, Sign out).
+3. Library sidebar: nested decks, create deck/sub-deck.
+4. **Browse** (`/decks/browse`): search cards, flag/suspend, bulk actions.
+5. **Stats** (`/decks/stats`): forecast and maturity summaries load.
+6. **Study** (`/decks/study`): due queue, reveal answer, Again/Hard/Good/Easy ratings complete a card.
+7. Custom study modal: filtered session launches without Wall open.
+8. Import and add-note header actions work; no "import from Wall" UI.
+9. Settings gear opens same `SettingsShell` as Wall; Help from profile menu.
+
+Expected:
+
+- Decks feature parity on unified tokens; fully standalone from Wall data/workflows.
+
+## Phase 4 — Landing + Documentation (2026-06-24)
+
+Run after Phase 4 changes:
+
+```bash
+npm run lint
+npm run build
+```
+
+Tunnel verification: **https://xy3ywehn9o.localto.net/**
+
+1. Landing `/` uses warm unified tokens (`route-shell`, product `--color-*` vars); no external-only theme or dark-mode toggle.
+2. **Enter Wall** and **Open Decks** CTAs navigate correctly.
+3. Spot-check `/wall` and `/decks` still load with unified chrome after landing changes.
+4. Canonical docs match shipped behavior (no vocabulary, Smart Merge, theme, or Wall→Decks references in active docs).
+
+Expected:
+
+- Landing aligned with Wall/Decks visual system; documentation and QA reflect Phases 1–3.
+
 ## Removed Workspaces Redirect (`/page`, `/media`) (2026-06-17)
 1. Open `/page` directly and verify the browser lands on `/wall` without rendering a page editor.
 2. Open `/page?doc=example#block-id` and verify the redirect still lands on plain `/wall` without preserving query or hash.

@@ -35,8 +35,9 @@ This document covers route surfaces, workspace ownership, shared UI primitives, 
 
 ### `src/app/decks/page.tsx`
 
-- Auth-gated decks workspace route
-- Delegates full decks experience to `DecksWorkspace`
+- Auth-gated decks workspace route (layout wraps all `/decks/*` pages)
+- Redirects index to `/decks/decks`
+- `DecksChrome` provides shared header, view tabs, settings/help modals, and deck library context
 
 ### `src/app/settings/page.tsx`
 
@@ -67,7 +68,7 @@ Session contexts live in `src/components/wall/session/` (ADR: [`0003-wall-sessio
 | `wall-sync-context.tsx` | Cloud id, sync status, pending/error (read-mostly) |
 | `wall-layout-context.tsx` | Panel open state, layout prefs, reading/presentation/focus modes |
 | `wall-chrome-context.tsx` | Header, toolbar, search dock bindings |
-| `wall-details-context.tsx` | Inspector sections, recall, vocabulary, merge wiring |
+| `wall-details-context.tsx` | Slim selection inspector wiring |
 | `wall-modal-context.tsx` | Modal openers (export, settings/help, media insert) |
 | `useWallSpatialBindings.ts` | Spatial + chrome shell prop assembly for Konva/HTML subsystems |
 
@@ -84,7 +85,7 @@ Chrome components (`WallFloatingUi`, `WallDetailsSidebar`, details sections) con
 
 #### Chrome shell
 
-- `src/components/wall/chrome/WallChromeShell.tsx`: `WallChromeHeader` (top bar) + `WallInCanvasChrome` (tools panel, timeline stream toggle, search dock, footer, details sidebar, product tour)
+- `src/components/wall/chrome/WallChromeShell.tsx`: `WallChromeHeader` (top bar) + `WallInCanvasChrome` (Structure menu, timeline stream toggle, search dock, footer, details sidebar, product tour)
 - `src/components/wall/WallFloatingUi.tsx`, `WallDetailsSidebar.tsx`: context-only chrome (0 props)
 - `src/components/wall/modals/WallExportModals.tsx`, `WallSettingsHelpModals.tsx`, `WallMediaInsertModals.tsx`: domain-split modal clusters (composed by `WallGlobalModals`)
 
@@ -143,7 +144,7 @@ src/components/wall/
 
 ### Decks
 
-- `src/components/decks/DecksWorkspace.tsx`: decks workspace composition root
+- `src/components/decks/DecksChrome.tsx`: decks layout shell (header, tabs, settings/help, library context)
 - Owns decks, browse, stats, and study views
 - Talks to deck APIs for deck management, study, tags, browse, note types, import presets, and scheduling
 

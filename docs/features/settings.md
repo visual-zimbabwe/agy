@@ -64,7 +64,7 @@ The account API no longer accepts `theme` or `controls_mode`; existing rows are 
 
 ## Limitations
 
-- Decks still uses legacy chrome until Phase 3 rebuild; workspace settings apply primarily to Wall.
+- Workspace settings apply primarily to Wall chrome (context bar, details pin, tags on cards).
 
 ## Related Docs
 

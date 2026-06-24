@@ -38,7 +38,7 @@ Large UI surfaces live under `src/components/`.
 Current major workspaces:
 
 - `WallCanvas` and `src/components/wall/*`
-- `DecksWorkspace`
+- `DecksChrome` and `src/components/decks/*`
 - `SettingsWorkspace`
 
 This layer handles user interaction, local view state, rendering, and orchestration of domain modules.
@@ -104,7 +104,6 @@ The wall schema is no longer minimal. It includes:
 - note groups
 - links
 - richer formatting state
-- vocabulary review payloads
 - canon note payloads
 - Eisenhower note payloads
 

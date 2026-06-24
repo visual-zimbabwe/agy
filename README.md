@@ -1,13 +1,20 @@
 # Agy
 
-Agy is a local-first visual thinking workspace built with Next.js, React, and TypeScript.
+Agy is a local-first visual thinking workspace built with Next.js, React, and TypeScript. The product is **light-only** with one unified design system across Wall, Timeline, Decks, landing, settings, and auth.
 
-The current product includes:
+## Product surfaces
 
-- `/wall`: infinite spatial canvas for notes, links, grouping, search, timeline review, export, and published snapshots
-- `/decks`: study workspace for decks, cards, browsing, review sessions, and stats
-- `/settings`: account and workspace preferences
-- `/help`: route-based help library and support entry point
+| Route | Purpose |
+|-------|---------|
+| `/` | Landing — entry to Wall and Decks |
+| `/wall` | Infinite spatial canvas: notes, links, zones, omnibar search, Timeline overlay, export |
+| `/decks` | Standalone spaced-repetition study (library, browse, stats, study) |
+| `/settings` | Account, Preferences, and Workspace settings (`SettingsShell`) |
+| `/help` | Help library and keyboard shortcuts reference |
+
+Wall and Decks share auth, header navigation, tokens, Settings, and Help. They do **not** share note data or Wall→Decks import flows.
+
+Wall chrome (post-refactor): omnibar + Structure menu, context bar, slim Details inspector (collapsed by default), header gear settings. Removed: dark theme, Tools left rail, vocabulary/word review, Smart Merge, Basic/Advanced mode, Wall→Decks integration.
 
 Local state is stored in IndexedDB with Dexie. Signed-in and cloud-backed flows use Supabase for authentication, storage, and account-scoped data.
 
@@ -183,6 +190,7 @@ npm run start
 Use the docs folder as the canonical source of truth for product and engineering detail:
 
 - `docs/product/overview.md`: current product surface
+- `docs/decisions/0004-unified-light-refactor.md`: unified light refactor ADR
 - `docs/architecture/overview.md`: system overview
 - `docs/architecture/frontend-architecture.md`: frontend structure and responsibilities
 - `docs/architecture/state-and-storage.md`: persistence and data flow
