@@ -154,14 +154,8 @@ export const WallTimelineView = ({
   }, [effectiveSelectedId, moveSelection, onExit, onRevealNote]);
 
   return (
-    <div
-      className="absolute inset-0 z-20 flex overflow-hidden"
-      style={{
-        background: shellStyles.background,
-        backgroundImage: shellStyles.backgroundImage,
-      }}
-    >
-      <div className="pointer-events-none absolute inset-0 opacity-50" style={{ backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0))" }} />
+    <div className="wall-timeline-shell absolute inset-0 z-20 flex overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 opacity-40" style={{ backgroundImage: "linear-gradient(180deg, rgb(255 255 255 / 0.16), transparent)" }} />
 
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <WallTimelineStreamHeader
@@ -191,14 +185,14 @@ export const WallTimelineView = ({
             />
 
             {groups.length === 0 && totalNoteCount === 0 ? (
-              <div className="mx-auto mt-24 max-w-xl rounded-[28px] border border-dashed px-8 py-14 text-center shadow-[0_20px_40px_rgba(28,28,25,0.05)]" style={{ borderColor: shellStyles.chipBorder, background: "rgba(255,255,255,0.6)" }}>
+              <div className="mx-auto mt-24 max-w-xl rounded-[28px] border border-dashed px-8 py-14 text-center shadow-[var(--shadow-sm)]" style={{ borderColor: shellStyles.chipBorder, background: shellStyles.chipBg }}>
                 <p className="font-[Newsreader] text-3xl italic" style={{ color: shellStyles.text }}>Nothing on the timeline yet.</p>
                 <p className="mt-4 text-sm leading-7" style={{ color: shellStyles.muted }}>
                   This view only renders existing wall notes. Create notes on the wall, then return here to review them chronologically.
                 </p>
               </div>
             ) : groups.length === 0 ? (
-              <div className="mx-auto mt-24 max-w-xl rounded-[28px] border border-dashed px-8 py-14 text-center shadow-[0_20px_40px_rgba(28,28,25,0.05)]" style={{ borderColor: shellStyles.chipBorder, background: "rgba(255,255,255,0.6)" }}>
+              <div className="mx-auto mt-24 max-w-xl rounded-[28px] border border-dashed px-8 py-14 text-center shadow-[var(--shadow-sm)]" style={{ borderColor: shellStyles.chipBorder, background: shellStyles.chipBg }}>
                 <p className="font-[Newsreader] text-3xl italic" style={{ color: shellStyles.text }}>No matching notes.</p>
                 <p className="mt-4 text-sm leading-7" style={{ color: shellStyles.muted }}>
                   Try a different search term, switch back to Created sorting, or clear the search field to see the full timeline again.
@@ -236,7 +230,7 @@ export const WallTimelineView = ({
           </div>
         </div>
 
-        <div className="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 rounded-full border px-5 py-2 text-[10px] uppercase tracking-[0.22em] opacity-70 md:inline-flex xl:left-[calc(50%-190px)]" style={{ borderColor: shellStyles.chipBorder, background: "rgba(252,249,244,0.66)", color: shellStyles.quiet }}>
+        <div className="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 rounded-full border px-5 py-2 text-[10px] uppercase tracking-[0.22em] opacity-70 md:inline-flex xl:left-[calc(50%-190px)]" style={{ borderColor: shellStyles.chipBorder, background: shellStyles.chipBg, color: shellStyles.quiet }}>
           Search or jump by day · Prev/Next or J/K · Enter to reveal
         </div>
 
