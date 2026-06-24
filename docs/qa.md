@@ -25,6 +25,34 @@ Covered flows:
 
 Manual QA below remains required for visual/interaction gaps (keyboard editing, timeline stream navigation, per-note-type canvas checks).
 
+## Phase 1 — Unified Light Wall (2026-06-24)
+
+Run after Phase 1 refactor changes:
+
+```bash
+npm run lint
+npm run build
+npm run test:wall:p0
+```
+
+Tunnel verification (signed-in account, ~141 notes): **https://xy3ywehn9o.localto.net/wall**
+
+1. Hard-refresh `/wall`; verify warm light chrome only (no dark/system theme artifacts).
+2. Edit a note → wait for `Synced` → hard reload → change persisted.
+3. Select a note: context bar visible by default; Details panel opens on selection (collapsed by default unless pinned in Workspace settings).
+4. Details panel shows inspector fields only (no Recall, Word Review, Zones bulk, Smart Merge, Templates bulk).
+5. Open **Structure** menu (wall chrome); verify zone, link, box select, snap, clusters, dot matrix, template, presentation, reading, heatmap, history, file conversion actions work.
+6. Omnibar (`Ctrl/Cmd+K`): search, `tag:`, `type:`, `is:`, `tool:` filters work; no vocabulary, deck, or merge actions.
+7. No Tools left rail; no deck badge or “Open decks” in wall toolbar (header **Decks** link still navigates to `/decks`).
+8. `?` or profile → Help center shortcuts; header gear opens settings modal with Account / Preferences / Workspace tabs.
+9. Vocabulary notes migrated on boot: no notes retain `vocabulary` payload after reload.
+
+Expected:
+
+- Light-only UI across wall chrome and settings modal.
+- Slim details inspector; Structure menu + omnibar own advanced actions.
+- Vocabulary and Smart Merge fully removed from Wall; vocabulary content preserved as standard note text.
+
 ## Removed Workspaces Redirect (`/page`, `/media`) (2026-06-17)
 1. Open `/page` directly and verify the browser lands on `/wall` without rendering a page editor.
 2. Open `/page?doc=example#block-id` and verify the redirect still lands on plain `/wall` without preserving query or hash.

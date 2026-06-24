@@ -21,8 +21,6 @@ type WallNoteChromeOverlaysProps = {
   isEisenhower: boolean;
   isVideo: boolean;
   isBookmark: boolean;
-  isVocabulary: boolean;
-  isVocabularyBack: boolean;
   wikiLinks: WikiLinkChip[];
   noteTags: string[];
   overflowTags: number;
@@ -30,7 +28,6 @@ type WallNoteChromeOverlaysProps = {
   isTimeLocked: boolean;
   recencyIntensity: (updatedAt: number, referenceTs: number, windowMs?: number) => number;
   onNavigateWikiLink: (noteId: string) => void;
-  onToggleVocabularyFlip: (noteId: string) => void;
 };
 
 export const WallNoteChromeOverlays = ({
@@ -47,8 +44,6 @@ export const WallNoteChromeOverlays = ({
   isEisenhower,
   isVideo,
   isBookmark,
-  isVocabulary,
-  isVocabularyBack,
   wikiLinks,
   noteTags,
   overflowTags,
@@ -56,7 +51,6 @@ export const WallNoteChromeOverlays = ({
   isTimeLocked,
   recencyIntensity,
   onNavigateWikiLink,
-  onToggleVocabularyFlip,
 }: WallNoteChromeOverlaysProps) => (
   <>
     {isHighlighted ? (
@@ -94,7 +88,7 @@ export const WallNoteChromeOverlays = ({
     {colorWashOpacity > 0 ? (
       <Rect width={note.w} height={note.h} cornerRadius={cornerRadius} fill="#ffffff" opacity={colorWashOpacity} />
     ) : null}
-    {wikiLinks.length > 0 && !isImageNote && !isVocabulary && !isEisenhower && !isBookmark
+    {wikiLinks.length > 0 && !isImageNote && !isEisenhower && !isBookmark
       ? wikiLinks.slice(0, 4).map((wikiLink, index) => {
           const column = index % 2;
           const row = Math.floor(index / 2);
@@ -145,25 +139,6 @@ export const WallNoteChromeOverlays = ({
           );
         })
       : null}
-    {isVocabulary ? (
-      <Text
-        x={12}
-        y={Math.max(10, note.h - 23)}
-        width={Math.max(0, note.w - 24)}
-        align="center"
-        fontSize={10}
-        fontStyle="bold"
-        fill="#FFFFFF"
-        text={isVocabularyBack ? "Back • Tap to flip" : "Front • Tap to flip"}
-        onClick={(event) => {
-          if (isTimeLocked) {
-            return;
-          }
-          event.cancelBubble = true;
-          onToggleVocabularyFlip(note.id);
-        }}
-      />
-    ) : null}
     {showNoteTags && !isPrivate && !isImageNote && !isEisenhower && !isVideo
       ? noteTags.map((tag, index) => (
           <Group key={`${note.id}-tag-${tag}`}>

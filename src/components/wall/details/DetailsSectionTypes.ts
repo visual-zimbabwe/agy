@@ -1,5 +1,4 @@
-import type { Note, VocabularyReviewOutcome, Zone, ZoneGroup } from "@/features/wall/types";
-import type { SmartMergeSuggestion } from "@/lib/smart-merge";
+import type { Note, Zone, ZoneGroup } from "@/features/wall/types";
 
 export type RecallDateFilter = "all" | "today" | "7d" | "30d";
 
@@ -12,7 +11,7 @@ export type SavedRecallSearch = {
   dateFilter: RecallDateFilter;
 };
 
-export type DetailsSectionKey = "history" | "recall" | "vocabulary" | "zoneGroups" | "tagGroups" | "smartMerge";
+export type DetailsSectionKey = "history" | "recall" | "zoneGroups" | "tagGroups";
 export type DetailsSectionState = Record<DetailsSectionKey, boolean>;
 
 export type AutoTagGroup = {
@@ -39,27 +38,6 @@ export type RecallSectionProps = {
   savedRecallSearches: SavedRecallSearch[];
   onApplySavedRecallSearch: (item: SavedRecallSearch) => void;
   onDeleteSavedRecallSearch: (id: string) => void;
-};
-
-export type VocabularySectionProps = {
-  detailsSectionsOpen: DetailsSectionState;
-  onToggleDetailsSection: (key: DetailsSectionKey) => void;
-  isTimeLocked: boolean;
-  selectedNote?: Note;
-  isSelectedNoteVocabulary: boolean;
-  vocabularyDueCount: number;
-  vocabularyFocusCount: number;
-  reviewedTodayCount: number;
-  reviewRevealMeaning: boolean;
-  onToggleRevealMeaning: () => void;
-  onToggleFlipCard: () => void;
-  onCreateWordNote: () => void;
-  onFocusNextDueWord: () => void;
-  onUpdateVocabularyField: (
-    field: "word" | "sourceContext" | "guessMeaning" | "meaning" | "ownSentence",
-    value: string,
-  ) => void;
-  onReviewSelectedWord: (outcome: VocabularyReviewOutcome) => void;
 };
 
 export type ZoneGroupsSectionProps = {
@@ -89,18 +67,4 @@ export type TagGroupsSectionProps = {
   onToggleAutoTagGroups: () => void;
   autoTagGroups: AutoTagGroup[];
   onFocusBounds: (bounds: { x: number; y: number; w: number; h: number }) => void;
-};
-
-export type SmartMergeSectionItem = SmartMergeSuggestion & {
-  keepNoteText: string;
-  mergeNoteText: string;
-};
-
-export type SmartMergeSectionProps = {
-  detailsSectionsOpen: DetailsSectionState;
-  onToggleDetailsSection: (key: DetailsSectionKey) => void;
-  isTimeLocked: boolean;
-  suggestions: SmartMergeSectionItem[];
-  onPreview: (suggestion: SmartMergeSuggestion) => void;
-  onMerge: (suggestion: SmartMergeSuggestion) => void;
 };

@@ -4,7 +4,7 @@ import { createContext, useContext, type ReactNode } from "react";
 
 import type { DetailsSectionState } from "@/components/wall/details/DetailsSectionTypes";
 
-export type WallLayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags";
+export type WallLayoutPreferenceKey = "showDetailsPanel" | "showContextBar" | "showNoteTags";
 
 export type WallLayoutPreferences = Record<WallLayoutPreferenceKey, boolean>;
 
@@ -18,7 +18,6 @@ export type WallSpatialPreferences = {
 /** Panel visibility, layout prefs, and view-mode flags for wall chrome. */
 export type WallLayoutContextValue = {
   layoutPrefs: WallLayoutPreferences;
-  leftPanelOpen: boolean;
   rightPanelOpen: boolean;
   detailsSectionsOpen: DetailsSectionState;
   presentationMode: boolean;
@@ -26,14 +25,12 @@ export type WallLayoutContextValue = {
   /** True when presentation or reading mode hides chrome overlays. */
   isChromeHidden: boolean;
   timelineViewActive: boolean;
-  controlsMode: "basic" | "advanced";
   spatialPrefs: WallSpatialPreferences;
 };
 
 const defaultLayoutPrefs: WallLayoutPreferences = {
-  showToolsPanel: true,
-  showDetailsPanel: true,
-  showContextBar: false,
+  showDetailsPanel: false,
+  showContextBar: true,
   showNoteTags: false,
 };
 
@@ -47,22 +44,18 @@ const defaultSpatialPrefs: WallSpatialPreferences = {
 const defaultDetailsSectionsOpen: DetailsSectionState = {
   history: false,
   recall: true,
-  vocabulary: true,
   zoneGroups: true,
   tagGroups: false,
-  smartMerge: true,
 };
 
 const defaultWallLayoutContext: WallLayoutContextValue = {
   layoutPrefs: defaultLayoutPrefs,
-  leftPanelOpen: false,
   rightPanelOpen: false,
   detailsSectionsOpen: defaultDetailsSectionsOpen,
   presentationMode: false,
   readingMode: false,
   isChromeHidden: false,
   timelineViewActive: false,
-  controlsMode: "basic",
   spatialPrefs: defaultSpatialPrefs,
 };
 

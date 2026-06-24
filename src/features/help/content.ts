@@ -36,7 +36,6 @@ export const wallShortcutRows = [
   ["N or Ctrl/Cmd + N", "New note"],
   ["Shift + G", "New canon note"],
   ["Shift + Q", "New quote note"],
-  ["Shift + W", "New word note"],
   ["Q or Ctrl/Cmd + J", "Toggle quick capture bar"],
   ["P", "Toggle presentation mode"],
   ["R", "Toggle reading mode"],
@@ -44,7 +43,6 @@ export const wallShortcutRows = [
   ["Enter", "Edit selected note text"],
   ["Ctrl/Cmd + K", "Focus the omnibar"],
   ["Ctrl/Cmd + L", "Start link from selected note"],
-  ["F", "Flip selected word flashcard"],
   ["C then 1-9", "Apply a palette color by index"],
   ["Shift + C", "Cycle selected note color"],
   ["Ctrl/Cmd + A", "Select all visible notes"],
@@ -119,16 +117,16 @@ export const helpArticles: HelpArticle[] = [
   {
     id: "create-and-edit-notes",
     title: "Create, edit, and organize notes",
-    summary: "Use the tools panel, direct canvas actions, and details sidebar to build and refine a wall quickly.",
+    summary: "Use the Structure menu, omnibar, and details inspector to build and refine a wall quickly.",
     category: "workflows",
-    keywords: ["create", "edit", "notes", "tools", "details", "tags", "organize"],
+    keywords: ["create", "edit", "notes", "structure", "details", "tags", "organize"],
     contexts: ["wall"],
     readTime: "3 min",
     sections: [
       {
         title: "Create from the wall",
         bullets: [
-          "Use the tools panel for explicit note types such as note, quote, canon, image, file, or bookmark.",
+          "Use the Structure menu for zones, linking, templates, and view modes.",
           "Use keyboard shortcuts when you already know the note type you want.",
           "Use quick capture when you want to turn several short lines into notes in one pass.",
         ],
@@ -272,7 +270,7 @@ export const helpArticles: HelpArticle[] = [
       {
         title: "When to inspect settings",
         bullets: [
-          "Open settings to confirm account identity, appearance preferences, and startup behavior.",
+          "Open settings to confirm account identity, preferences, and workspace layout.",
           "If sync looks stale, verify that you are signed in to the expected account before deeper recovery work.",
         ],
       },
@@ -283,9 +281,9 @@ export const helpArticles: HelpArticle[] = [
   {
     id: "settings-and-preferences",
     title: "Manage settings and startup preferences",
-    summary: "Control appearance, startup routing, and workspace behavior from the settings workspace or embedded wall settings modal.",
+    summary: "Control startup routing, keyboard colors, and workspace behavior from the settings workspace or embedded wall settings modal.",
     category: "account",
-    keywords: ["settings", "preferences", "theme", "startup", "appearance", "account"],
+    keywords: ["settings", "preferences", "startup", "workspace", "account"],
     contexts: ["settings", "wall"],
     readTime: "2 min",
     sections: [
@@ -293,8 +291,8 @@ export const helpArticles: HelpArticle[] = [
         title: "What settings controls",
         bullets: [
           "Profile and account details.",
-          "Theme and appearance preferences.",
-          "Startup route behavior and wall chrome preferences.",
+          "Startup, timezone, and keyboard color preferences.",
+          "Workspace chrome: context bar, tags on cards, and details panel pin.",
         ],
       },
       {

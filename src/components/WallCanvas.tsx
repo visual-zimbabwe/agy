@@ -37,14 +37,12 @@ export const WallCanvas = ({ userProfile }: WallCanvasProps) => {
       }}
       layout={{
         layoutPrefs: wall.layoutPrefs,
-        leftPanelOpen: wall.leftPanelOpen,
         rightPanelOpen: wall.rightPanelOpen,
         detailsSectionsOpen: wall.detailsSectionsOpen,
         presentationMode: wall.presentationMode,
         readingMode: wall.readingMode,
         isChromeHidden: wall.isChromeHidden,
         timelineViewActive: wall.timelineViewActive,
-        controlsMode: wall.controlsMode,
         spatialPrefs: wall.spatialPrefs,
       }}
       chrome={wall.chrome}

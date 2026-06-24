@@ -7,7 +7,6 @@ type BuildOpenNoteEditorOptions = {
   resolvedAssetRecords: WallAssetMap;
   isTimeLocked: boolean;
   selectSingleNote: (noteId: string) => void;
-  toggleVocabularyFlip: (noteId: string) => void;
   openEditor: (noteId: string, text: string, focusField?: string) => void;
   openImageInsert: (noteId: string) => void;
 };
@@ -18,7 +17,6 @@ export const buildOpenNoteEditor = ({
   resolvedAssetRecords,
   isTimeLocked,
   selectSingleNote,
-  toggleVocabularyFlip,
   openEditor,
   openImageInsert,
 }: BuildOpenNoteEditorOptions) => () => {
@@ -26,10 +24,6 @@ export const buildOpenNoteEditor = ({
     return;
   }
   selectSingleNote(note.id);
-  if (note.vocabulary) {
-    toggleVocabularyFlip(note.id);
-    return;
-  }
   if (noteView.noteKind === "file" || noteView.noteKind === "image") {
     openEditor(note.id, noteView.text);
     return;

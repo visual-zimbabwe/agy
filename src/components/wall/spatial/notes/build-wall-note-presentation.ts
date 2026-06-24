@@ -12,7 +12,6 @@ export type WallNotePresentation = {
   noteCornerRadius: number;
   noteTextStyle: { fontSize: number; lineHeight: number };
   noteTextFontFamily: string;
-  isVocabulary: boolean;
   isQuote: boolean;
   isCanon: boolean;
   isJournal: boolean;
@@ -22,7 +21,6 @@ export type WallNotePresentation = {
   isAudio: boolean;
   isVideo: boolean;
   isStandardNote: boolean;
-  isVocabularyBack: boolean;
   canonTitle?: string;
   quoteAttribution: string;
   quoteSource: string;
@@ -101,8 +99,6 @@ export const buildWallNotePresentation = ({
   const resolvedNoteColor = resolveNoteFillColor(noteView);
   const noteTextStyle = getNoteTextStyle(noteView.textSize, noteView.textSizePx);
   const noteTextFontFamily = getNoteTextFontFamily(noteView.textFont);
-  const vocabulary = noteView.vocabulary;
-  const isVocabulary = Boolean(vocabulary);
   const isQuote = noteView.noteKind === "quote";
   const isCanon = noteView.noteKind === "canon";
   const isJournal = noteView.noteKind === "journal";
@@ -113,7 +109,6 @@ export const buildWallNotePresentation = ({
   const isVideo = noteView.noteKind === "video";
   const isStandardNote = !noteView.noteKind || noteView.noteKind === "standard";
   const canon = noteView.canon;
-  const isVocabularyBack = Boolean(vocabulary?.flipped);
   const canonListPreview = canon?.items
     .filter((item) => item.title.trim() || item.text.trim())
     .map((item, index) => `${index + 1}. ${item.title.trim() || item.text.trim() || "Item"}`)
@@ -141,7 +136,7 @@ export const buildWallNotePresentation = ({
   const defaultTextColor =
     isQuote || isJournal || isBookmark || isImageNote || isPrivate || isAudio ? getContrastTextColor(resolvedNoteColor) : atelierPalette.text;
   const resolvedTextColor = noteView.textColor ?? defaultTextColor;
-  const paperTintOpacity = isStandardNote ? 0.02 : isQuote ? 0.06 : isVocabulary ? 0.14 : 0.1;
+  const paperTintOpacity = isStandardNote ? 0.02 : isQuote ? 0.06 : 0.1;
   const noteViewModel = getWallNoteViewModel(noteView, { surface: "canvas-full", uppercaseMeta: true });
   const imageCaption = noteViewModel.imageCaption;
   const strippedNoteText = stripWikiLinkMarkup(noteView.text);
@@ -166,7 +161,7 @@ export const buildWallNotePresentation = ({
   const videoPoster = resolveVideoPosterAssetUrl(noteView, resolvedAssetRecords);
   const journalTitle = noteViewModel.journalTitle;
   const journalBody = noteViewModel.journalBody;
-  const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isVideo && !isImageNote && !isBookmark && !isEisenhower && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote && !isVocabulary;
+  const showStandardTextCard = !isPrivate && isStandardNote && !isAudio && !isVideo && !isImageNote && !isBookmark && !isEisenhower && !looksLikeCode && !looksLikeFile && !isJournal && !isQuote;
   const wikiFooterRows = wikiLinks.length > 2 ? 2 : wikiLinks.length > 0 ? 1 : 0;
   const wikiFooterHeight = wikiFooterRows > 0 ? 28 + (wikiFooterRows - 1) * 20 : 0;
   const quoteBodyText = isQuote
@@ -185,11 +180,7 @@ export const buildWallNotePresentation = ({
         ? imageCaption
         : isAudio
           ? ""
-          : isVocabulary
-            ? isVocabularyBack
-              ? vocabulary?.meaning?.trim() || "Add meaning in Word Review"
-              : vocabulary?.word?.trim() || "Add word in Word Review"
-            : isCanon
+          : isCanon
               ? canon?.mode === "list"
                 ? canonListPreview || "Add list items"
                 : canonSinglePreview || "Add statement"
@@ -210,7 +201,6 @@ export const buildWallNotePresentation = ({
     noteCornerRadius: getNoteCornerRadius(noteView),
     noteTextStyle,
     noteTextFontFamily,
-    isVocabulary,
     isQuote,
     isCanon,
     isJournal,
@@ -220,7 +210,6 @@ export const buildWallNotePresentation = ({
     isAudio,
     isVideo,
     isStandardNote,
-    isVocabularyBack,
     canonTitle,
     quoteAttribution,
     quoteSource,

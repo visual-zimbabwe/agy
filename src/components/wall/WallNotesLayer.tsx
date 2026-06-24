@@ -50,7 +50,6 @@ export const WallNotesLayer = ({
   moveNote,
   updateNote,
   openImageInsert,
-  toggleVocabularyFlip,
   duplicateNoteAt,
   getNoteTextStyle,
   getNoteTextFontFamily,
@@ -104,7 +103,6 @@ export const WallNotesLayer = ({
           resolvedAssetRecords,
           isTimeLocked,
           selectSingleNote,
-          toggleVocabularyFlip,
           openEditor,
           openImageInsert,
         });
@@ -206,7 +204,6 @@ export const WallNotesLayer = ({
             tagPalette={tagPalette}
             selectSingleNote={selectSingleNote}
             openEditor={openEditor}
-            toggleVocabularyFlip={toggleVocabularyFlip}
             openExternalUrl={openExternalUrl}
             onDownloadFileNote={onDownloadFileNote}
             onToggleAudioPlayback={onToggleAudioPlayback}

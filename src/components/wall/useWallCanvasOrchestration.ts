@@ -1,6 +1,6 @@
 "use client";
 
-import { type FocusEvent, useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
 import type Konva from "konva";
 
 
@@ -17,7 +17,7 @@ import {
 } from "@/components/wall/wall-coordinates";
 import { useWallCanvasEffects } from "@/components/wall/useWallCanvasEffects";
 import { useWallDisplayLayer } from "@/components/wall/useWallDisplayLayer";
-import { useWallKeyboardBindings, useWallKeyboardVocabularyRef } from "@/components/wall/useWallKeyboardBindings";
+import { useWallKeyboardBindings } from "@/components/wall/useWallKeyboardBindings";
 import { useWallNoteQuickActions } from "@/components/wall/useWallNoteQuickActions";
 import { useWallRenderSnapshot } from "@/components/wall/useWallRenderSnapshot";
 import { useWallTimelineHistory } from "@/components/wall/useWallTimelineHistory";
@@ -43,8 +43,6 @@ import { useWallNoteTagActions } from "@/components/wall/useWallNoteTagActions";
 import { useWallPanelChrome } from "@/components/wall/useWallPanelChrome";
 import { useWallPresentationPaths } from "@/components/wall/useWallPresentationPaths";
 import { useWallPrivateNotes, type EditingState } from "@/components/wall/useWallPrivateNotes";
-import { useWallSmartMerge } from "@/components/wall/useWallSmartMerge";
-import { useWallVocabularySession, useWallSessionClock } from "@/components/wall/useWallVocabularySession";
 import { useWallExport } from "@/components/wall/useWallExport";
 import { useWallSelection } from "@/components/wall/useWallSelection";
 import { useWallSnapping } from "@/components/wall/useWallSnapping";
@@ -98,8 +96,8 @@ import type { TimelineEntry } from "@/features/wall/storage";
 import { saveWallCloudBaselineSnapshot, saveWallSyncVersion } from "@/features/wall/storage";
 import type { WallAssetMap } from "@/features/wall/types";
 import { createViewportWallBounds } from "@/features/wall/windowing";
-import { isVocabularyNote } from "@/features/wall/vocabulary";
 import type { AppUserProfile } from "@/lib/profile";
+
 import { computeContentBounds, notesToMarkdown } from "@/lib/wall-utils";
 
 import type { LinkContextMenuState } from "@/components/wall/session/wall-chrome-context";
@@ -188,12 +186,9 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
   const [detailsSectionsOpen, setDetailsSectionsOpen] = useState<DetailsSectionState>({
     history: false,
     recall: true,
-    vocabulary: true,
     zoneGroups: true,
     tagGroups: false,
-    smartMerge: true,
   });
-  const [reviewRevealMeaning, setReviewRevealMeaning] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
   const [readingMode, setReadingMode] = useState(false);
   const [focusedNoteId, setFocusedNoteId] = useState<string | undefined>(undefined);
@@ -251,7 +246,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
   } = useWallCloudSync({ publishedReadOnly, hydrate });
   const {
     layoutPrefs,
-    controlsMode,
     spatialPrefs,
     setSpatialPrefs,
     savedRecallSearches,
@@ -276,7 +270,11 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
   const isTimeLocked = timelineMode || timelineViewActive || publishedReadOnly || presentationMode || readingMode;
   const isChromeHidden = presentationMode || readingMode;
   timelineModeRef.current = timelineMode;
-  const wallClockTs = useWallSessionClock();
+  const [wallClockTs, setWallClockTs] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setWallClockTs(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const {
     presentationIndex,
@@ -529,7 +527,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     makeFileNoteAtViewportCenter,
     makeAudioNoteAtViewportCenter,
     makeVideoNoteAtViewportCenter,
-    makeWordNoteAtViewportCenter,
     makeQuoteNoteAtViewportCenter,
     makeCodeNoteAtViewportCenter,
     makeCanonNoteAtViewportCenter,
@@ -544,10 +541,7 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     openEditor,
     selectNote,
     setSelectedNoteIds,
-    setReviewRevealMeaning,
   });
-
-  const toggleVocabularyFlipRef = useWallKeyboardVocabularyRef();
 
   const { jumpToTimelineDay } = useWallTimeline({
     timelineMode,
@@ -574,7 +568,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     autoTagLabelLayout,
     clusterBounds,
     pathLinkIds,
-    smartMergeSuggestions,
   } = useWallDerivedData({
     notes,
     zones,
@@ -799,12 +792,10 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     redo,
     undo,
     setLinkingFromNote,
-    toggleVocabularyFlipRef,
     makeCanonNoteAtViewportCenter,
     makeJournalNoteAtViewportCenter,
     makeQuoteNoteAtViewportCenter,
     makeEisenhowerNoteAtViewportCenter,
-    makeWordNoteAtViewportCenter,
     placeNewNote,
   });
 
@@ -822,15 +813,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     },
     [focusNote],
   );
-
-  const { smartMergeItems, previewSmartMerge, applySmartMerge } = useWallSmartMerge({
-    isTimeLocked,
-    renderSnapshotNotes: renderSnapshot.notes,
-    smartMergeSuggestions,
-    syncPrimarySelection,
-    selectNote,
-    focusBounds,
-  });
 
   const { toggleDetailsSection, togglePresentationMode, toggleReadingMode, toggleTimelineMode, saveCurrentRecallSearch, applySavedRecallSearch } = useWallUiActions({
     readingMode, presentationMode, timelineEntriesLength: timelineEntries.length, timelineModeRef, setPresentationMode, setPresentationIndex, setReadingMode,
@@ -935,28 +917,9 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     camera,
     publishedReadOnly,
   });
-  const selectedVocabularyNote = selectedNote && isVocabularyNote(selectedNote) ? selectedNote : undefined;
   const selectedPrivateNote = primarySelectedNote && isPrivateNote(primarySelectedNote) ? primarySelectedNote : undefined;
   const selectedPrivateNoteSupported = Boolean(primarySelectedNote && (isPrivateNote(primarySelectedNote) || canProtectNote(primarySelectedNote)));
   const isSelectedPrivateUnlocked = Boolean(selectedPrivateNote && privateSessions[selectedPrivateNote.id]);
-
-  const {
-    vocabularyDueNotes,
-    vocabularyFocusNotes,
-    reviewedTodayCount,
-    toggleVocabularyFlip,
-    focusNextDueWord,
-    updateVocabularyField,
-    reviewSelectedWord,
-  } = useWallVocabularySession({
-    isTimeLocked,
-    notes,
-    wallClockTs,
-    selectedVocabularyNote,
-    focusNote,
-    setReviewRevealMeaning,
-  });
-  toggleVocabularyFlipRef.current = toggleVocabularyFlip;
 
   const commandPaletteCommands = useWallCommandPalette({
     isTimeLocked,
@@ -967,25 +930,19 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     presentationMode,
     quickCaptureOpen,
     showHeatmap,
-    leftPanelOpen,
     rightPanelOpen,
     timelineMode,
     timelineViewActive,
     showClusters: ui.showClusters,
     spatialPrefs,
     selectedNotesCount: selectedNotes.length,
-    vocabularyDueNotesCount: vocabularyDueNotes.length,
-    selectedVocabularyNote,
     zoneGroups,
     makeNoteAtViewportCenter,
     makeCanonNoteAtViewportCenter,
     makeJournalNoteAtViewportCenter,
     makeQuoteNoteAtViewportCenter,
     makeEisenhowerNoteAtViewportCenter,
-    makeWordNoteAtViewportCenter,
     makeZoneAtViewportCenter,
-    focusNextDueWord,
-    toggleVocabularyFlip,
     setQuickCaptureOpen,
     setExportOpenTracked,
     openFileConversion,
@@ -999,9 +956,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     toggleTimelineMode,
     toggleTimelineView,
     setShowHeatmap,
-    toggleLeftPanel,
-    openLeftPanel,
-    closeLeftPanel,
     toggleRightPanel,
     openRightPanel,
     closeRightPanel,
@@ -1153,17 +1107,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     savedRecallSearches,
     applySavedRecallSearch,
     setSavedRecallSearches,
-    selectedVocabularyNote,
-    vocabularyDueNotesCount: vocabularyDueNotes.length,
-    vocabularyFocusNotesCount: vocabularyFocusNotes.length,
-    reviewedTodayCount,
-    reviewRevealMeaning,
-    setReviewRevealMeaning,
-    toggleVocabularyFlip,
-    makeWordNoteAtViewportCenter,
-    focusNextDueWord,
-    updateVocabularyField,
-    reviewSelectedWord,
     groupLabelInput,
     setGroupLabelInput,
     selectedZone,
@@ -1177,13 +1120,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     expandAllZoneGroups,
     deleteGroup,
     clearNoteSelection,
-    showAutoTagGroups,
-    setShowAutoTagGroups,
-    autoTagGroups,
-    focusBounds,
-    smartMergeItems,
-    previewSmartMerge,
-    applySmartMerge,
     quickCaptureOpen,
     setQuickCaptureOpen,
     captureNotes,
@@ -1310,7 +1246,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     moveZone,
     updateZone,
     createLink,
-    toggleVocabularyFlip,
     duplicateNoteAt,
     focusNote,
     openBookmarkUrl,
@@ -1323,7 +1258,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     showClusters: ui.showClusters,
     presentationMode,
     publishedReadOnly,
-    leftPanelOpen,
     rightPanelOpen,
     quickCaptureOpen,
     hasContextActions,
@@ -1343,7 +1277,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     hasPendingSync,
     lastSyncedAt,
     syncError,
-    onToggleLeftPanel: toggleLeftPanel,
     onToggleRightPanel: toggleRightPanel,
     onOpenCommandPalette: () => setSearchOpenTracked(true),
     onToggleQuickCapture: () => setQuickCaptureOpen((previous) => !previous),
@@ -1356,7 +1289,6 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     onSyncNow: syncNow,
     isChromeHidden,
     hasNoteSelection,
-    controlsMode,
     toolbarBtn,
     toolbarBtnPrimary,
     toolbarBtnActive,
@@ -1372,7 +1304,8 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     commandPaletteCommands,
     availableRecallTags,
     isSearchOpen: ui.isSearchOpen,
-    setLeftPanelOpen,
+    timelineMode,
+    templateType: ui.templateType,
     setBoxSelectMode,
     setSpatialPrefs,
     setLinkType,
@@ -1382,20 +1315,13 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     setTimelineViewActive,
     selectNote,
     revealNoteFromTimeline,
-    makeNoteAtViewportCenter,
-    makeCanonNoteAtViewportCenter,
-    makeJournalNoteAtViewportCenter,
-    makeQuoteNoteAtViewportCenter,
-    makeCodeNoteAtViewportCenter,
-    makeWebBookmarkNoteAtViewportCenter,
-    makeImageNoteAtViewportCenter,
-    makeFileNoteAtViewportCenter,
-    makeAudioNoteAtViewportCenter,
-    makeVideoNoteAtViewportCenter,
-    makeEisenhowerNoteAtViewportCenter,
-    makeWordNoteAtViewportCenter,
     makeZoneAtViewportCenter,
     openFileConversion,
+    onTemplateTypeChange: setTemplateType,
+    onApplyTemplate: applySelectedTemplate,
+    onToggleReadingMode: toggleReadingMode,
+    onToggleHeatmap: () => setShowHeatmap((previous) => !previous),
+    onToggleTimelineMode: toggleTimelineMode,
   });
 
   return {
@@ -1413,14 +1339,12 @@ export const useWallCanvasOrchestration = ({ userProfile }: WallCanvasProps) => 
     localSaveState,
     publishedReadOnly,
     layoutPrefs,
-    leftPanelOpen,
     rightPanelOpen,
     detailsSectionsOpen,
     presentationMode,
     readingMode,
     isChromeHidden,
     timelineViewActive,
-    controlsMode,
     spatialPrefs,
     chrome: wallSessionChrome,
     details: wallSessionDetails,

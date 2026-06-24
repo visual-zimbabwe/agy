@@ -1,7 +1,5 @@
 "use client";
 
-import { useRef, type MutableRefObject } from "react";
-
 import { useWallKeyboard } from "@/components/wall/useWallKeyboard";
 import { toWorldPoint } from "@/components/wall/wall-coordinates";
 import {
@@ -15,6 +13,7 @@ import {
 } from "@/features/wall/commands";
 import { NOTE_COLORS } from "@/features/wall/constants";
 import type { Note } from "@/features/wall/types";
+import type { MutableRefObject } from "react";
 
 type EditingState = {
   id: string;
@@ -68,12 +67,10 @@ type UseWallKeyboardBindingsOptions = {
   redo: () => void;
   undo: () => void;
   setLinkingFromNote: (noteId?: string) => void;
-  toggleVocabularyFlipRef: MutableRefObject<(noteId: string) => void>;
   makeCanonNoteAtViewportCenter: () => void;
   makeJournalNoteAtViewportCenter: () => void;
   makeQuoteNoteAtViewportCenter: () => void;
   makeEisenhowerNoteAtViewportCenter: () => void;
-  makeWordNoteAtViewportCenter: () => void;
   placeNewNote: (
     preferredCenter: { x: number; y: number },
     size?: { w: number; h: number },
@@ -119,12 +116,10 @@ export const useWallKeyboardBindings = ({
   redo,
   undo,
   setLinkingFromNote,
-  toggleVocabularyFlipRef,
   makeCanonNoteAtViewportCenter,
   makeJournalNoteAtViewportCenter,
   makeQuoteNoteAtViewportCenter,
   makeEisenhowerNoteAtViewportCenter,
-  makeWordNoteAtViewportCenter,
   placeNewNote,
 }: UseWallKeyboardBindingsOptions) => {
   useWallKeyboard({
@@ -181,13 +176,11 @@ export const useWallKeyboardBindings = ({
     createJournalNote: makeJournalNoteAtViewportCenter,
     createQuoteNote: makeQuoteNoteAtViewportCenter,
     createEisenhowerNote: makeEisenhowerNoteAtViewportCenter,
-    createWordNote: makeWordNoteAtViewportCenter,
     openEditor,
     redo,
     undo,
     setLinkingFromNote,
     duplicateNote,
-    toggleVocabularyFlip: (noteId) => toggleVocabularyFlipRef.current(noteId),
     deleteNote,
     deleteZone,
     deleteLink,
@@ -195,5 +188,3 @@ export const useWallKeyboardBindings = ({
     deleteNoteGroup,
   });
 };
-
-export const useWallKeyboardVocabularyRef = () => useRef<(noteId: string) => void>(() => {});

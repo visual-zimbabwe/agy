@@ -27,7 +27,6 @@ import { WEB_BOOKMARK_DEFAULTS } from "@/features/wall/bookmarks";
 import { IMAGE_NOTE_DEFAULTS } from "@/features/wall/image-notes";
 import { VIDEO_NOTE_DEFAULTS } from "@/features/wall/video-notes";
 import { useWallStore } from "@/features/wall/store";
-import { createVocabularyNote } from "@/features/wall/vocabulary";
 
 const CODE_NOTE_DEFAULTS = {
   width: 320,
@@ -54,7 +53,6 @@ type UseWallNoteCreationOptions = {
   openEditor: (noteId: string, text: string, focusField?: string) => void;
   selectNote: (noteId?: string) => void;
   setSelectedNoteIds: (value: string[] | ((previous: string[]) => string[])) => void;
-  setReviewRevealMeaning: (value: boolean) => void;
 };
 
 export const useWallNoteCreation = ({
@@ -66,7 +64,6 @@ export const useWallNoteCreation = ({
   openEditor,
   selectNote,
   setSelectedNoteIds,
-  setReviewRevealMeaning,
 }: UseWallNoteCreationOptions) => {
   const makeWebBookmarkNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
@@ -127,24 +124,6 @@ export const useWallNoteCreation = ({
     selectNote(id);
     openEditor(id, useWallStore.getState().notes[id]?.text ?? "");
   }, [camera, isTimeLocked, openEditor, placeNewNote, selectNote, setSelectedNoteIds, viewport.h, viewport.w]);
-
-  const makeWordNoteAtViewportCenter = useCallback(() => {
-    if (isTimeLocked) {
-      return;
-    }
-    const world = toWorldPoint(viewport.w / 2, viewport.h / 2, camera);
-    const position = placeNewNote(world);
-    const id = createNote(position.x, position.y, lastColor ?? NOTE_COLORS[0]);
-    updateNote(id, {
-      text: "",
-      tags: ["vocab"],
-      textColor: "#FFFFFF",
-      vocabulary: createVocabularyNote(),
-    });
-    setSelectedNoteIds([id]);
-    selectNote(id);
-    setReviewRevealMeaning(false);
-  }, [camera, isTimeLocked, lastColor, placeNewNote, selectNote, setReviewRevealMeaning, setSelectedNoteIds, viewport.h, viewport.w]);
 
   const makeQuoteNoteAtViewportCenter = useCallback(() => {
     if (isTimeLocked) {
@@ -225,7 +204,6 @@ export const useWallNoteCreation = ({
     makeFileNoteAtViewportCenter,
     makeAudioNoteAtViewportCenter,
     makeVideoNoteAtViewportCenter,
-    makeWordNoteAtViewportCenter,
     makeQuoteNoteAtViewportCenter,
     makeCodeNoteAtViewportCenter,
     makeCanonNoteAtViewportCenter,
