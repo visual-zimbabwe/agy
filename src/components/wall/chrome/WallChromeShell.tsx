@@ -8,14 +8,12 @@ import { WallHeaderBar } from "@/components/wall/WallHeaderBar";
 import { WallProductTour, type TourCoachmark } from "@/components/wall/WallProductTour";
 import { WallSearchDock } from "@/components/wall/WallSearchDock";
 import { WallStatusFooter } from "@/components/wall/WallStatusFooter";
+import { WallStructureMenu } from "@/components/wall/WallStructureMenu";
 import { WallTimelineView } from "@/components/wall/WallTimelineView";
-import { WallToolsPanel } from "@/components/wall/WallToolsPanel";
-import { LINK_TYPES } from "@/features/wall/constants";
-import type { LinkType, Note } from "@/features/wall/types";
+import type { LinkType, Note, TemplateType } from "@/features/wall/types";
 import type { AppUserProfile } from "@/lib/profile";
 
 type LayoutPreferences = {
-  showToolsPanel: boolean;
   showDetailsPanel: boolean;
   showContextBar: boolean;
   showNoteTags: boolean;
@@ -28,14 +26,11 @@ type SpatialPreferences = {
   dotGridSpacing: number;
 };
 
-type ControlsMode = "basic" | "advanced";
-
 export type WallChromeHeaderProps = {
   presentationMode: boolean;
   publishedReadOnly: boolean;
   timelineViewActive: boolean;
   layoutPrefs: LayoutPreferences;
-  leftPanelOpen: boolean;
   rightPanelOpen: boolean;
   quickCaptureOpen: boolean;
   isTimeLocked: boolean;
@@ -56,7 +51,6 @@ export type WallChromeHeaderProps = {
   hasPendingSync: boolean;
   lastSyncedAt: number | null;
   syncError: string | null;
-  onToggleLeftPanel: () => void;
   onToggleRightPanel: () => void;
   onOpenCommandPalette: () => void;
   onToggleQuickCapture: () => void;
@@ -76,10 +70,10 @@ export const WallChromeHeader = (props: WallChromeHeaderProps) => (
 export type WallInCanvasChromeProps = {
   readingMode: boolean;
   timelineViewActive: boolean;
+  timelineMode: boolean;
   isChromeHidden: boolean;
   publishedReadOnly: boolean;
   layoutPrefs: LayoutPreferences;
-  leftPanelOpen: boolean;
   hasNoteSelection: boolean;
   isTimeLocked: boolean;
   selectedNoteId?: string;
@@ -88,7 +82,9 @@ export type WallInCanvasChromeProps = {
   showClusters: boolean;
   boxSelectMode: boolean;
   spatialPrefs: SpatialPreferences;
-  controlsMode: ControlsMode;
+  templateType: TemplateType;
+  presentationMode: boolean;
+  showHeatmap: boolean;
   toolbarBtn: string;
   toolbarBtnPrimary: string;
   toolbarBtnActive: string;
@@ -107,7 +103,6 @@ export type WallInCanvasChromeProps = {
   isSyncing: boolean;
   hasPendingSync: boolean;
   syncError: string | null;
-  setLeftPanelOpen: Dispatch<SetStateAction<boolean>>;
   setBoxSelectMode: Dispatch<SetStateAction<boolean>>;
   setSpatialPrefs: Dispatch<SetStateAction<SpatialPreferences>>;
   setLinkingFromNote: (noteId: string | undefined) => void;
@@ -122,30 +117,23 @@ export type WallInCanvasChromeProps = {
   clearNoteSelection: () => void;
   focusNote: (noteId: string) => void;
   revealNoteFromTimeline: (noteId: string) => void;
-  makeNoteAtViewportCenter: () => void;
-  makeCanonNoteAtViewportCenter: () => void;
-  makeJournalNoteAtViewportCenter: () => void;
-  makeQuoteNoteAtViewportCenter: () => void;
-  makeCodeNoteAtViewportCenter: () => void;
-  makeWebBookmarkNoteAtViewportCenter: () => void;
-  makeImageNoteAtViewportCenter: () => void;
-  makeFileNoteAtViewportCenter: () => void;
-  makeAudioNoteAtViewportCenter: () => void;
-  makeVideoNoteAtViewportCenter: () => void;
-  makeEisenhowerNoteAtViewportCenter: () => void;
-  makeWordNoteAtViewportCenter: () => void;
   makeZoneAtViewportCenter: () => void;
   openFileConversion: (conversionMode?: "pdf_to_word" | "word_to_pdf") => void;
+  onTemplateTypeChange: (value: TemplateType) => void;
+  onApplyTemplate: () => void;
+  onTogglePresentationMode: () => void;
+  onToggleReadingMode: () => void;
+  onToggleHeatmap: () => void;
+  onToggleTimelineMode: () => void;
 };
 
 export const WallInCanvasChrome = ({
   readingMode,
   timelineViewActive,
+  timelineMode,
   isChromeHidden,
   publishedReadOnly,
   layoutPrefs,
-  leftPanelOpen,
-  hasNoteSelection,
   isTimeLocked,
   selectedNoteId,
   linkingFromNoteId,
@@ -153,9 +141,10 @@ export const WallInCanvasChrome = ({
   showClusters,
   boxSelectMode,
   spatialPrefs,
-  controlsMode,
+  templateType,
+  presentationMode,
+  showHeatmap,
   toolbarBtn,
-  toolbarBtnPrimary,
   toolbarBtnActive,
   toolbarSelect,
   tourCoachmark,
@@ -172,7 +161,6 @@ export const WallInCanvasChrome = ({
   isSyncing,
   hasPendingSync,
   syncError,
-  setLeftPanelOpen,
   setBoxSelectMode,
   setSpatialPrefs,
   setLinkingFromNote,
@@ -187,20 +175,14 @@ export const WallInCanvasChrome = ({
   clearNoteSelection,
   focusNote,
   revealNoteFromTimeline,
-  makeNoteAtViewportCenter,
-  makeCanonNoteAtViewportCenter,
-  makeJournalNoteAtViewportCenter,
-  makeQuoteNoteAtViewportCenter,
-  makeCodeNoteAtViewportCenter,
-  makeWebBookmarkNoteAtViewportCenter,
-  makeImageNoteAtViewportCenter,
-  makeFileNoteAtViewportCenter,
-  makeAudioNoteAtViewportCenter,
-  makeVideoNoteAtViewportCenter,
-  makeEisenhowerNoteAtViewportCenter,
-  makeWordNoteAtViewportCenter,
   makeZoneAtViewportCenter,
   openFileConversion,
+  onTemplateTypeChange,
+  onApplyTemplate,
+  onTogglePresentationMode,
+  onToggleReadingMode,
+  onToggleHeatmap,
+  onToggleTimelineMode,
 }: WallInCanvasChromeProps) => (
   <>
     <WallProductTour
@@ -225,59 +207,52 @@ export const WallInCanvasChrome = ({
       />
     ) : null}
 
-    {!timelineViewActive && !isChromeHidden && !publishedReadOnly && layoutPrefs.showToolsPanel && (hasNoteSelection || leftPanelOpen) && (
-      <WallToolsPanel
-        leftPanelOpen={leftPanelOpen}
-        isTimeLocked={isTimeLocked}
-        selectedNoteId={selectedNoteId}
-        linkingFromNoteId={linkingFromNoteId}
-        linkType={linkType}
-        linkTypeOptions={LINK_TYPES}
-        showClusters={showClusters}
-        toolbarBtn={toolbarBtn}
-        toolbarBtnPrimary={toolbarBtnPrimary}
-        toolbarBtnActive={toolbarBtnActive}
-        toolbarSelect={toolbarSelect}
-        onClose={() => setLeftPanelOpen(false)}
-        onCreateNote={makeNoteAtViewportCenter}
-        onCreateCanonNote={makeCanonNoteAtViewportCenter}
-        onCreateJournalNote={makeJournalNoteAtViewportCenter}
-        onCreateQuoteNote={makeQuoteNoteAtViewportCenter}
-        onCreateCodeNote={makeCodeNoteAtViewportCenter}
-        onCreateWebBookmarkNote={makeWebBookmarkNoteAtViewportCenter}
-        onCreateImageNote={makeImageNoteAtViewportCenter}
-        onCreateFileNote={makeFileNoteAtViewportCenter}
-        onCreateAudioNote={makeAudioNoteAtViewportCenter}
-        onCreateVideoNote={makeVideoNoteAtViewportCenter}
-        onCreateEisenhowerNote={makeEisenhowerNoteAtViewportCenter}
-        onCreateWordNote={makeWordNoteAtViewportCenter}
-        onCreateZone={makeZoneAtViewportCenter}
-        onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}
-        boxSelectMode={boxSelectMode}
-        onStartLinking={() => {
-          if (isTimeLocked || !selectedNoteId) {
-            return;
-          }
-          setLinkingFromNote(selectedNoteId);
-        }}
-        onLinkTypeChange={(value) => setLinkType(value)}
-        onToggleClusters={() => setShowClusters(!showClusters)}
-        showDotMatrix={spatialPrefs.showDotMatrix}
-        snapToGuides={spatialPrefs.snapToGuides}
-        snapToGrid={spatialPrefs.snapToGrid}
-        onToggleDotMatrix={() =>
-          setSpatialPrefs((previous) => ({ ...previous, showDotMatrix: !previous.showDotMatrix }))
+    <WallStructureMenu
+      isTimeLocked={isTimeLocked}
+      publishedReadOnly={publishedReadOnly}
+      isChromeHidden={isChromeHidden}
+      timelineViewActive={timelineViewActive}
+      selectedNoteId={selectedNoteId}
+      linkingFromNoteId={linkingFromNoteId}
+      linkType={linkType}
+      boxSelectMode={boxSelectMode}
+      showClusters={showClusters}
+      spatialPrefs={spatialPrefs}
+      templateType={templateType}
+      presentationMode={presentationMode}
+      readingMode={readingMode}
+      showHeatmap={showHeatmap}
+      timelineMode={timelineMode}
+      toolbarBtn={toolbarBtn}
+      toolbarBtnActive={toolbarBtnActive}
+      toolbarSelect={toolbarSelect}
+      onCreateZone={makeZoneAtViewportCenter}
+      onStartLinking={() => {
+        if (isTimeLocked || !selectedNoteId) {
+          return;
         }
-        onToggleSnapToGuides={() =>
-          setSpatialPrefs((previous) => ({ ...previous, snapToGuides: !previous.snapToGuides }))
-        }
-        onToggleSnapToGrid={() =>
-          setSpatialPrefs((previous) => ({ ...previous, snapToGrid: !previous.snapToGrid }))
-        }
-        controlsMode={controlsMode}
-        onOpenFileConversion={(conversionMode) => openFileConversion(conversionMode)}
-      />
-    )}
+        setLinkingFromNote(selectedNoteId);
+      }}
+      onLinkTypeChange={(value) => setLinkType(value)}
+      onToggleBoxSelect={() => setBoxSelectMode((value) => !value)}
+      onToggleSnapToGrid={() =>
+        setSpatialPrefs((previous) => ({ ...previous, snapToGrid: !previous.snapToGrid }))
+      }
+      onToggleSnapToGuides={() =>
+        setSpatialPrefs((previous) => ({ ...previous, snapToGuides: !previous.snapToGuides }))
+      }
+      onToggleClusters={() => setShowClusters(!showClusters)}
+      onToggleDotMatrix={() =>
+        setSpatialPrefs((previous) => ({ ...previous, showDotMatrix: !previous.showDotMatrix }))
+      }
+      onTemplateTypeChange={onTemplateTypeChange}
+      onApplyTemplate={onApplyTemplate}
+      onTogglePresentationMode={onTogglePresentationMode}
+      onToggleReadingMode={onToggleReadingMode}
+      onToggleHeatmap={onToggleHeatmap}
+      onToggleTimelineMode={onToggleTimelineMode}
+      onOpenFileConversion={(conversionMode) => openFileConversion(conversionMode)}
+    />
 
     {!readingMode && !timelineViewActive && (
       <WallSearchDock

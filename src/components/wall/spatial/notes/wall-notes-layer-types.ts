@@ -49,7 +49,6 @@ export type WallNotesLayerProps = {
   moveNote: (noteId: string, x: number, y: number) => void;
   updateNote: (noteId: string, patch: Partial<Note>) => void;
   openImageInsert: (noteId: string) => void;
-  toggleVocabularyFlip: (noteId: string) => void;
   duplicateNoteAt: (noteId: string, x: number, y: number) => void;
   getNoteTextStyle: (size?: Note["textSize"], textSizePx?: number) => { fontSize: number; lineHeight: number };
   getNoteTextFontFamily: (font?: Note["textFont"]) => string;

@@ -8,7 +8,6 @@ import type { Note } from "@/features/wall/types";
 import type { AppUserProfile } from "@/lib/profile";
 
 type LayoutPrefs = {
-  showToolsPanel: boolean;
   showDetailsPanel: boolean;
   showContextBar: boolean;
   showNoteTags: boolean;
@@ -19,7 +18,6 @@ type WallHeaderBarProps = {
   publishedReadOnly: boolean;
   timelineViewActive: boolean;
   layoutPrefs: LayoutPrefs;
-  leftPanelOpen: boolean;
   rightPanelOpen: boolean;
   quickCaptureOpen: boolean;
   isTimeLocked: boolean;
@@ -40,7 +38,6 @@ type WallHeaderBarProps = {
   hasPendingSync: boolean;
   lastSyncedAt: number | null;
   syncError: string | null;
-  onToggleLeftPanel: () => void;
   onToggleRightPanel: () => void;
   onOpenCommandPalette: () => void;
   onToggleQuickCapture: () => void;

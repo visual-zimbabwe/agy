@@ -23,9 +23,7 @@ export const handleWallKeyboardEditingKey: WallKeyboardKeyHandler = (event, cont
     createJournalNote,
     createQuoteNote,
     createEisenhowerNote,
-    createWordNote,
     openEditor,
-    toggleVocabularyFlip,
   } = context;
 
   const typing = isTypingInField(event);
@@ -62,12 +60,6 @@ export const handleWallKeyboardEditingKey: WallKeyboardKeyHandler = (event, cont
   const key = event.key.toLowerCase();
   const ctrlOrMeta = event.ctrlKey || event.metaKey;
 
-  if (!ctrlOrMeta && key === "f" && ui.selectedNoteId && context.notesMap[ui.selectedNoteId]?.vocabulary) {
-    event.preventDefault();
-    toggleVocabularyFlip(ui.selectedNoteId);
-    return true;
-  }
-
   if (readingMode || timelineViewActive) {
     return false;
   }
@@ -99,12 +91,6 @@ export const handleWallKeyboardEditingKey: WallKeyboardKeyHandler = (event, cont
     if (createdNote) {
       openEditor(createdId, createdNote?.text ?? "");
     }
-    return true;
-  }
-
-  if (!ctrlOrMeta && event.shiftKey && key === "w") {
-    event.preventDefault();
-    createWordNote();
     return true;
   }
 
@@ -144,11 +130,7 @@ export const handleWallKeyboardEditingKey: WallKeyboardKeyHandler = (event, cont
     const selected = renderNotesById[ui.selectedNoteId];
     if (selected) {
       event.preventDefault();
-      if (selected.vocabulary) {
-        toggleVocabularyFlip(selected.id);
-      } else {
-        openEditor(selected.id, selected.text);
-      }
+      openEditor(selected.id, selected.text);
       return true;
     }
   }

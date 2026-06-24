@@ -5,19 +5,16 @@ import { normalizeAccountSettings } from "@/lib/account-settings";
 import { requireApiUser } from "@/lib/api/auth";
 
 const settingsSchema = z.object({
-  theme: z.enum(["system", "light", "dark"]),
   startupBehavior: z.enum(["default_page", "continue_last"]),
   startupDefaultPage: z.enum(["/wall", "/decks", "/settings"]),
   autoTimezone: z.boolean(),
   manualTimezone: z.string().trim().min(1).max(120),
   keyboardColorSlots: z.array(z.string().nullable()).length(9),
   wallLayoutPrefs: z.object({
-    showToolsPanel: z.boolean(),
     showDetailsPanel: z.boolean(),
     showContextBar: z.boolean(),
     showNoteTags: z.boolean(),
   }),
-  controlsMode: z.enum(["basic", "advanced"]),
 });
 
 export async function GET() {
@@ -28,7 +25,7 @@ export async function GET() {
 
   const { data, error } = await auth.supabase
     .from("account_settings")
-    .select("theme,startup_behavior,startup_default_page,auto_timezone,manual_timezone,keyboard_color_slots,wall_layout_prefs,controls_mode")
+    .select("startup_behavior,startup_default_page,auto_timezone,manual_timezone,keyboard_color_slots,wall_layout_prefs")
     .eq("owner_id", auth.user.id)
     .maybeSingle();
 
@@ -41,14 +38,12 @@ export async function GET() {
   }
 
   const settings = normalizeAccountSettings({
-    theme: data.theme,
     startupBehavior: data.startup_behavior,
     startupDefaultPage: data.startup_default_page,
     autoTimezone: data.auto_timezone,
     manualTimezone: data.manual_timezone,
     keyboardColorSlots: data.keyboard_color_slots,
     wallLayoutPrefs: data.wall_layout_prefs,
-    controlsMode: data.controls_mode,
   });
 
   if (data.startup_default_page !== settings.startupDefaultPage) {
@@ -80,14 +75,14 @@ export async function PUT(request: Request) {
   const { error } = await auth.supabase.from("account_settings").upsert(
     {
       owner_id: auth.user.id,
-      theme: payload.theme,
+      theme: "light",
       startup_behavior: payload.startupBehavior,
       startup_default_page: payload.startupDefaultPage,
       auto_timezone: payload.autoTimezone,
       manual_timezone: payload.manualTimezone,
       keyboard_color_slots: payload.keyboardColorSlots,
       wall_layout_prefs: payload.wallLayoutPrefs,
-      controls_mode: payload.controlsMode,
+      controls_mode: "basic",
     },
     { onConflict: "owner_id" },
   );

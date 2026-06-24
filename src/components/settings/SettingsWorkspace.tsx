@@ -6,11 +6,11 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { ModalShell } from "@/components/ui/ModalShell";
-import { normalizeAccountSettings, persistAccountSettingsLocally, readStoredControlsMode, readStoredWallLayoutPrefs, type ControlsMode, type WallLayoutPrefs } from "@/lib/account-settings";
+import { normalizeAccountSettings, persistAccountSettingsLocally, readStoredWallLayoutPrefs, type WallLayoutPrefs } from "@/lib/account-settings";
 import { authExpiredMessage, redirectToLoginForAuth } from "@/lib/api/client-auth";
 import { appName, profileUpdatedEventName } from "@/lib/brand";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
-import { readStoredPreferences, type StartupBehavior, type StartupPage, type ThemePreference } from "@/lib/preferences";
+import { readStoredPreferences, type StartupBehavior, type StartupPage } from "@/lib/preferences";
 import type { AppUserProfile } from "@/lib/profile";
 import { readUserProfile } from "@/lib/profile";
 import { getBrowserAuthErrorMessage, getSupabaseBrowserUserSafely } from "@/lib/supabase/browser-auth";
@@ -23,13 +23,12 @@ type SettingsWorkspaceProps = {
   onReplayTour?: () => void;
 };
 
-type SettingsSectionId = "general" | "appearance" | "keyboard" | "advanced";
+type SettingsSectionId = "account" | "preferences" | "workspace";
 
 const settingsSections: Array<{ id: SettingsSectionId; label: string; description: string }> = [
-  { id: "general", label: "My account", description: "Profile and workspace identity." },
-  { id: "appearance", label: "My settings", description: "Appearance, startup, and date/time behavior." },
-  { id: "keyboard", label: "Keyboard", description: "Shortcut color slots." },
-  { id: "advanced", label: "Workspace", description: "Wall chrome and control density." },
+  { id: "account", label: "Account", description: "Profile, security, and account actions." },
+  { id: "preferences", label: "Preferences", description: "Startup, timezone, and keyboard colors." },
+  { id: "workspace", label: "Workspace", description: "Wall chrome and panel behavior." },
 ];
 
 const commonTimezones = [
@@ -290,15 +289,13 @@ export const SettingsWorkspace = ({
   onReplayTour,
 }: SettingsWorkspaceProps) => {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState<SettingsSectionId>("general");
-  const [theme, setTheme] = useState<ThemePreference>(() => readStoredPreferences().theme);
+  const [activeSection, setActiveSection] = useState<SettingsSectionId>("account");
   const [startupBehavior, setStartupBehavior] = useState<StartupBehavior>(() => readStoredPreferences().startupBehavior);
   const [startupDefaultPage, setStartupDefaultPage] = useState<StartupPage>(() => readStoredPreferences().startupDefaultPage);
   const [autoTimezone, setAutoTimezone] = useState(() => readStoredPreferences().autoTimezone);
   const [manualTimezone, setManualTimezone] = useState(() => readStoredPreferences().manualTimezone);
   const [keyboardColorSlots, setKeyboardColorSlots] = useState<Array<string | null>>(() => readKeyboardColorSlots());
   const [wallLayoutPrefs, setWallLayoutPrefs] = useState<WallLayoutPrefs>(() => readStoredWallLayoutPrefs());
-  const [controlsMode, setControlsMode] = useState<ControlsMode>(() => readStoredControlsMode());
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
@@ -321,8 +318,8 @@ export const SettingsWorkspace = ({
   const [avatarCropPanY, setAvatarCropPanY] = useState(0);
 
   const preferenceState = useMemo(
-    () => ({ theme, startupBehavior, startupDefaultPage, autoTimezone, manualTimezone }),
-    [autoTimezone, manualTimezone, startupBehavior, startupDefaultPage, theme],
+    () => ({ startupBehavior, startupDefaultPage, autoTimezone, manualTimezone }),
+    [autoTimezone, manualTimezone, startupBehavior, startupDefaultPage],
   );
 
   const onSavePreferences = async () => {
@@ -332,7 +329,6 @@ export const SettingsWorkspace = ({
       ...preferenceState,
       keyboardColorSlots,
       wallLayoutPrefs,
-      controlsMode,
     };
 
     try {
@@ -372,16 +368,8 @@ export const SettingsWorkspace = ({
   };
 
   const activeSectionMeta = settingsSections.find((section) => section.id === activeSection);
-  const controlsModeLabel = controlsMode === "advanced" ? "Advanced" : "Basic";
   const detectedTimezone = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
   const effectiveTimezone = autoTimezone ? detectedTimezone : manualTimezone;
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    document.documentElement.dataset.themePreference = theme;
-  }, [theme]);
 
   useEffect(() => {
     setSavedAt((current) => current ?? Date.now());
@@ -405,14 +393,12 @@ export const SettingsWorkspace = ({
           return;
         }
         const settings = normalizeAccountSettings(payload.settings);
-        setTheme(settings.theme);
         setStartupBehavior(settings.startupBehavior);
         setStartupDefaultPage(settings.startupDefaultPage);
         setAutoTimezone(settings.autoTimezone);
         setManualTimezone(settings.manualTimezone);
         setKeyboardColorSlots(settings.keyboardColorSlots);
         setWallLayoutPrefs(settings.wallLayoutPrefs);
-        setControlsMode(settings.controlsMode);
       } catch {
         // Keep local settings when cloud load is unavailable.
       }
@@ -789,7 +775,7 @@ export const SettingsWorkspace = ({
           </header>
 
           <section className="mt-5 max-w-3xl">
-            {activeSection === "general" && (
+            {activeSection === "account" && (
               <>
                 <section className="border-b border-[var(--color-border-muted)] py-4">
                   <h2 className="text-sm font-semibold text-[#111827]">Profile Basics</h2>
@@ -950,24 +936,8 @@ export const SettingsWorkspace = ({
               </>
             )}
 
-            {activeSection === "appearance" && (
+            {activeSection === "preferences" && (
               <>
-                <SettingRow
-                  title="Appearance"
-                  description="Choose Light, Dark, or System theme."
-                  control={
-                    <SelectControl
-                      value={theme}
-                      onChange={(value) => setTheme(value as ThemePreference)}
-                      label="Theme preference"
-                      options={[
-                        { value: "system", label: "System" },
-                        { value: "light", label: "Light" },
-                        { value: "dark", label: "Dark" },
-                      ]}
-                    />
-                  }
-                />
                 <SettingRow
                   title="On startup"
                   description="Choose what opens when the app launches."
@@ -1032,82 +1002,6 @@ export const SettingsWorkspace = ({
                     Time Zone set: <span className="font-medium text-[var(--color-text)]">{effectiveTimezone}</span>
                   </p>
                 </article>
-              </>
-            )}
-
-            {activeSection === "advanced" && (
-              <>
-                <SettingRow
-                  title="Show Tools panel controls"
-                  description="Display quick controls for tools in wall mode."
-                  control={
-                    <ToggleControl
-                      checked={wallLayoutPrefs.showToolsPanel}
-                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showToolsPanel: checked }))}
-                    />
-                  }
-                />
-                <SettingRow
-                  title="Show Details panel controls"
-                  description="Display quick controls for details panel behavior."
-                  control={
-                    <ToggleControl
-                      checked={wallLayoutPrefs.showDetailsPanel}
-                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showDetailsPanel: checked }))}
-                    />
-                  }
-                />
-                <SettingRow
-                  title="Show context bar"
-                  description="Show contextual actions near selected content."
-                  control={
-                    <ToggleControl
-                      checked={wallLayoutPrefs.showContextBar}
-                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showContextBar: checked }))}
-                    />
-                  }
-                />
-                <SettingRow
-                  title="Show note tags on cards"
-                  description="Render tag chips directly on note cards."
-                  control={
-                    <ToggleControl
-                      checked={wallLayoutPrefs.showNoteTags}
-                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showNoteTags: checked }))}
-                    />
-                  }
-                />
-                <SettingRow
-                  title="Wall controls density"
-                  description="Choose between basic and advanced controls."
-                  control={
-                    <SelectControl
-                      value={controlsMode}
-                      onChange={(value) => setControlsMode(value as ControlsMode)}
-                      label="Wall controls density"
-                      options={[
-                        { value: "basic", label: "Basic" },
-                        { value: "advanced", label: "Advanced" },
-                      ]}
-                    />
-                  }
-                />
-                {onReplayTour ? (
-                  <SettingRow
-                    title="Replay wall tour"
-                    description="Restart the guided wall walkthrough from step 1."
-                    control={
-                      <Button type="button" size="sm" variant="secondary" onClick={onReplayTour}>
-                        Replay tour
-                      </Button>
-                    }
-                  />
-                ) : null}
-              </>
-            )}
-
-            {activeSection === "keyboard" && (
-              <>
                 <section className="border-b border-[var(--color-border-muted)] py-4">
                   <h2 className="text-sm font-medium text-[var(--color-text)]">Keyboard color slots</h2>
                   <p className="mt-1 text-xs text-[var(--color-text-muted)]">Press `C`, then `1-9` to quick switch note color slots.</p>
@@ -1153,13 +1047,58 @@ export const SettingsWorkspace = ({
               </>
             )}
 
+            {activeSection === "workspace" && (
+              <>
+                <SettingRow
+                  title="Show context bar"
+                  description="Show contextual actions near selected content."
+                  control={
+                    <ToggleControl
+                      checked={wallLayoutPrefs.showContextBar}
+                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showContextBar: checked }))}
+                    />
+                  }
+                />
+                <SettingRow
+                  title="Show note tags on cards"
+                  description="Render tag chips directly on note cards."
+                  control={
+                    <ToggleControl
+                      checked={wallLayoutPrefs.showNoteTags}
+                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showNoteTags: checked }))}
+                    />
+                  }
+                />
+                <SettingRow
+                  title="Pin details panel"
+                  description="Show the details panel toggle in the wall toolbar."
+                  control={
+                    <ToggleControl
+                      checked={wallLayoutPrefs.showDetailsPanel}
+                      onChange={(checked) => setWallLayoutPrefs((previous) => ({ ...previous, showDetailsPanel: checked }))}
+                    />
+                  }
+                />
+                {onReplayTour ? (
+                  <SettingRow
+                    title="Replay wall tour"
+                    description="Restart the guided wall walkthrough from step 1."
+                    control={
+                      <Button type="button" size="sm" variant="secondary" onClick={onReplayTour}>
+                        Replay tour
+                      </Button>
+                    }
+                  />
+                ) : null}
+              </>
+            )}
+
             <footer className="pt-5 text-xs text-[var(--color-text-muted)]">
               {settingsStatus ??
                 (savedAt
                   ? `Last saved ${new Date(savedAt).toLocaleTimeString()}.`
                   : "Settings ready.")}
             </footer>
-            <p className="mt-1 text-xs text-[var(--color-text-muted)]">Current controls mode: {controlsModeLabel}.</p>
           </section>
         </article>
       </section>

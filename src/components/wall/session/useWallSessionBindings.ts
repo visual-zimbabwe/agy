@@ -3,23 +3,19 @@
 import { useMemo, type Dispatch, type FocusEvent, type SetStateAction } from "react";
 
 import type {
-  AutoTagGroup,
   RecallDateFilter,
   SavedRecallSearch,
-  SmartMergeSectionItem,
 } from "@/components/wall/details/DetailsSectionTypes";
 import type { DetailsSectionKey } from "@/components/wall/details/DetailsSectionTypes";
 import type { LinkContextMenuState } from "@/components/wall/session/wall-chrome-context";
 import type { WallChromeContextValue } from "@/components/wall/session/wall-chrome-context";
 import type { WallDetailsContextValue } from "@/components/wall/session/wall-details-context";
 import type { WallModalContextValue } from "@/components/wall/session/wall-modal-context";
-import type { LinkType, Note, NoteTextFont, TemplateType, VocabularyReviewOutcome, Zone, ZoneGroup } from "@/features/wall/types";
+import type { LinkType, Note, NoteTextFont, TemplateType, Zone, ZoneGroup } from "@/features/wall/types";
 import { isPrivateNote, type PrivateNoteHiddenFields } from "@/features/wall/private-notes";
 import { useWallStore } from "@/features/wall/store";
 import type { AppUserProfile } from "@/lib/profile";
-import type { SmartMergeSuggestion } from "@/lib/smart-merge";
 import type { UnsplashPhoto } from "@/lib/unsplash";
-import type { Bounds } from "@/features/wall/types";
 
 type EditingState = {
   id: string;
@@ -177,20 +173,6 @@ export type UseWallSessionBindingsOptions = {
   savedRecallSearches: SavedRecallSearch[];
   applySavedRecallSearch: (item: SavedRecallSearch) => void;
   setSavedRecallSearches: Dispatch<SetStateAction<SavedRecallSearch[]>>;
-  selectedVocabularyNote?: Note;
-  vocabularyDueNotesCount: number;
-  vocabularyFocusNotesCount: number;
-  reviewedTodayCount: number;
-  reviewRevealMeaning: boolean;
-  setReviewRevealMeaning: Dispatch<SetStateAction<boolean>>;
-  toggleVocabularyFlip: (noteId: string) => void;
-  makeWordNoteAtViewportCenter: () => void;
-  focusNextDueWord: () => void;
-  updateVocabularyField: (
-    field: "word" | "sourceContext" | "guessMeaning" | "meaning" | "ownSentence",
-    value: string,
-  ) => void;
-  reviewSelectedWord: (outcome: VocabularyReviewOutcome) => void;
   groupLabelInput: string;
   setGroupLabelInput: (value: string) => void;
   selectedZone?: Zone;
@@ -204,13 +186,6 @@ export type UseWallSessionBindingsOptions = {
   expandAllZoneGroups: () => void;
   deleteGroup: (groupId: string) => void;
   clearNoteSelection: () => void;
-  showAutoTagGroups: boolean;
-  setShowAutoTagGroups: Dispatch<SetStateAction<boolean>>;
-  autoTagGroups: AutoTagGroup[];
-  focusBounds: (bounds: Bounds) => void;
-  smartMergeItems: SmartMergeSectionItem[];
-  previewSmartMerge: (suggestion: SmartMergeSuggestion) => void;
-  applySmartMerge: (suggestion: SmartMergeSuggestion) => void;
   quickCaptureOpen: boolean;
   setQuickCaptureOpen: (open: boolean) => void;
   captureNotes: (items: Array<{ text: string; tags: string[] }>) => void;
@@ -339,15 +314,7 @@ export const useWallSessionBindings = (options: UseWallSessionBindingsOptions): 
     toggleDetailsSection,
     setRightPanelOpen,
     ui,
-    setTemplateType,
-    applySelectedTemplate,
-    tagInput,
-    setTagInput,
-    addTagToSelectedNote,
     primarySelectedNote,
-    activeSelectedNoteIdsCount,
-    displayedTags,
-    removeTagFromSelectedNote,
     focusedNoteId,
     backlinksByNoteId,
     focusNote,
@@ -363,51 +330,6 @@ export const useWallSessionBindings = (options: UseWallSessionBindingsOptions): 
     lockPrivateNote,
     privateSessions,
     syncWikiLinksForNote,
-    recallQuery,
-    setRecallQuery,
-    recallZoneId,
-    setRecallZoneId,
-    recallTag,
-    setRecallTag,
-    recallDateFilter,
-    setRecallDateFilter,
-    visibleZones,
-    availableRecallTags,
-    saveCurrentRecallSearch,
-    savedRecallSearches,
-    applySavedRecallSearch,
-    setSavedRecallSearches,
-    selectedVocabularyNote,
-    vocabularyDueNotesCount,
-    vocabularyFocusNotesCount,
-    reviewedTodayCount,
-    reviewRevealMeaning,
-    setReviewRevealMeaning,
-    toggleVocabularyFlip,
-    makeWordNoteAtViewportCenter,
-    focusNextDueWord,
-    updateVocabularyField,
-    reviewSelectedWord,
-    groupLabelInput,
-    setGroupLabelInput,
-    selectedZone,
-    selectedGroup,
-    zoneGroups,
-    createGroupFromSelectedZone,
-    assignZoneToGroup,
-    selectGroup,
-    toggleGroupCollapse,
-    collapseAllZoneGroups,
-    expandAllZoneGroups,
-    deleteGroup,
-    clearNoteSelection,
-    showAutoTagGroups,
-    setShowAutoTagGroups,
-    autoTagGroups,
-    focusBounds,
-    smartMergeItems,
-    previewSmartMerge,
-    applySmartMerge,
     quickCaptureOpen,
     setQuickCaptureOpen,
     captureNotes,
@@ -654,17 +576,8 @@ export const useWallSessionBindings = (options: UseWallSessionBindingsOptions): 
 
   const details = useMemo(
     (): Partial<WallDetailsContextValue> => ({
-      templateType: ui.templateType,
-      onTemplateTypeChange: (value: typeof ui.templateType) => setTemplateType(value),
-      onApplyTemplate: applySelectedTemplate,
-      tagInput,
-      onTagInputChange: setTagInput,
-      onAddTag: addTagToSelectedNote,
       selectedNote: primarySelectedNote,
       selectedNoteId: ui.selectedNoteId,
-      selectedNoteIdsCount: activeSelectedNoteIdsCount,
-      displayedTags,
-      onRemoveTag: removeTagFromSelectedNote,
       linkingFromNoteId: ui.linkingFromNoteId,
       isSelectedNoteFocused: Boolean(primarySelectedNote && focusedNoteId === primarySelectedNote.id),
       backlinks: primarySelectedNote ? backlinksByNoteId[primarySelectedNote.id] ?? [] : [],
@@ -732,73 +645,10 @@ export const useWallSessionBindings = (options: UseWallSessionBindingsOptions): 
         syncWikiLinksForNote(noteId, session.hidden.text);
         lockPrivateNote(noteId);
       },
-      recallQuery,
-      onRecallQueryChange: setRecallQuery,
-      recallZoneId,
-      onRecallZoneIdChange: setRecallZoneId,
-      recallTag,
-      onRecallTagChange: setRecallTag,
-      recallDateFilter,
-      onRecallDateFilterChange: setRecallDateFilter,
-      visibleZones,
-      availableRecallTags,
-      onSaveRecallSearch: saveCurrentRecallSearch,
-      onClearRecallFilters: () => {
-        setRecallQuery("");
-        setRecallZoneId("");
-        setRecallTag("");
-        setRecallDateFilter("all");
-      },
-      savedRecallSearches,
-      onApplySavedRecallSearch: applySavedRecallSearch,
-      onDeleteSavedRecallSearch: (id: string) =>
-        setSavedRecallSearches((previous) => previous.filter((entry) => entry.id !== id)),
-      isSelectedNoteVocabulary: Boolean(selectedVocabularyNote),
-      vocabularyDueCount: vocabularyDueNotesCount,
-      vocabularyFocusCount: vocabularyFocusNotesCount,
-      reviewedTodayCount,
-      reviewRevealMeaning,
-      onToggleRevealMeaning: () => setReviewRevealMeaning((previous) => !previous),
-      onToggleFlipCard: () => {
-        if (selectedVocabularyNote) {
-          toggleVocabularyFlip(selectedVocabularyNote.id);
-        }
-      },
-      onCreateWordNote: makeWordNoteAtViewportCenter,
-      onFocusNextDueWord: focusNextDueWord,
-      onUpdateVocabularyField: updateVocabularyField,
-      onReviewSelectedWord: reviewSelectedWord,
-      groupLabelInput,
-      onGroupLabelInputChange: setGroupLabelInput,
-      selectedZone,
-      selectedGroup,
-      selectedZoneId: ui.selectedZoneId,
-      zoneGroups,
-      onCreateGroupFromSelectedZone: createGroupFromSelectedZone,
-      onAssignZoneToGroup: assignZoneToGroup,
-      onSelectGroup: selectGroup,
-      onToggleGroupCollapse: toggleGroupCollapse,
-      onCollapseAllGroups: collapseAllZoneGroups,
-      onExpandAllGroups: expandAllZoneGroups,
-      onDeleteGroup: deleteGroup,
-      onClearNoteSelection: clearNoteSelection,
-      showAutoTagGroups,
-      onToggleAutoTagGroups: () => setShowAutoTagGroups((value) => !value),
-      autoTagGroups,
-      onFocusBounds: focusBounds,
-      smartMergeSuggestions: smartMergeItems,
-      onPreviewSmartMerge: previewSmartMerge,
-      onMergeSmartSuggestion: applySmartMerge,
     }),
     [
       ui,
-      applySelectedTemplate,
-      tagInput,
-      addTagToSelectedNote,
       primarySelectedNote,
-      activeSelectedNoteIdsCount,
-      displayedTags,
-      removeTagFromSelectedNote,
       focusedNoteId,
       backlinksByNoteId,
       focusNote,
@@ -817,53 +667,6 @@ export const useWallSessionBindings = (options: UseWallSessionBindingsOptions): 
       renderSnapshotNotes,
       privateSessions,
       syncWikiLinksForNote,
-      recallQuery,
-      recallZoneId,
-      recallTag,
-      recallDateFilter,
-      visibleZones,
-      availableRecallTags,
-      saveCurrentRecallSearch,
-      savedRecallSearches,
-      applySavedRecallSearch,
-      selectedVocabularyNote,
-      vocabularyDueNotesCount,
-      vocabularyFocusNotesCount,
-      reviewedTodayCount,
-      reviewRevealMeaning,
-      toggleVocabularyFlip,
-      makeWordNoteAtViewportCenter,
-      focusNextDueWord,
-      updateVocabularyField,
-      reviewSelectedWord,
-      groupLabelInput,
-      selectedZone,
-      selectedGroup,
-      zoneGroups,
-      createGroupFromSelectedZone,
-      assignZoneToGroup,
-      selectGroup,
-      toggleGroupCollapse,
-      collapseAllZoneGroups,
-      expandAllZoneGroups,
-      deleteGroup,
-      clearNoteSelection,
-      showAutoTagGroups,
-      autoTagGroups,
-      focusBounds,
-      smartMergeItems,
-      previewSmartMerge,
-      applySmartMerge,
-      setTemplateType,
-      setTagInput,
-      setRecallQuery,
-      setRecallZoneId,
-      setRecallTag,
-      setRecallDateFilter,
-      setSavedRecallSearches,
-      setReviewRevealMeaning,
-      setShowAutoTagGroups,
-      setGroupLabelInput,
     ],
   );
 

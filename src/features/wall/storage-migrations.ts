@@ -4,7 +4,8 @@ import { normalizeAudioNote } from "@/features/wall/audio-notes";
 import { normalizeFileNote } from "@/features/wall/file-notes";
 import { normalizeVideoNote } from "@/features/wall/video-notes";
 import { normalizeEisenhowerNote } from "@/features/wall/eisenhower";
-import type { CanonNote, Link, Note, NoteGroup, PersistedWallState, PrivateNoteData, VocabularyReviewOutcome, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
+import { migrateVocabularyNotesInState } from "@/features/wall/migrate-vocabulary-notes";
+import type { CanonNote, Link, Note, NoteGroup, PersistedWallState, PrivateNoteData, WebBookmarkMetadata, WebBookmarkNote, Zone, ZoneGroup } from "@/features/wall/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -14,36 +15,6 @@ const asString = (value: unknown, fallback = "") => (typeof value === "string" ?
 
 const normalizeStringList = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
-
-const normalizeVocabulary = (value: unknown) => {
-  if (!isRecord(value)) {
-    return undefined;
-  }
-
-  const nextReviewAt = asNumber(value.nextReviewAt, Date.now());
-  const intervalDays = Math.max(0, asNumber(value.intervalDays, 0));
-  const lapses = Math.max(0, asNumber(value.lapses, 0));
-  const lastOutcome: VocabularyReviewOutcome | undefined =
-    value.lastOutcome === "again" || value.lastOutcome === "hard" || value.lastOutcome === "good" || value.lastOutcome === "easy"
-      ? value.lastOutcome
-      : undefined;
-
-  return {
-    word: asString(value.word),
-    sourceContext: asString(value.sourceContext),
-    guessMeaning: asString(value.guessMeaning),
-    meaning: asString(value.meaning),
-    ownSentence: asString(value.ownSentence),
-    flipped: Boolean(value.flipped),
-    nextReviewAt,
-    lastReviewedAt: typeof value.lastReviewedAt === "number" ? asNumber(value.lastReviewedAt) : undefined,
-    intervalDays,
-    reviewsCount: Math.max(0, asNumber(value.reviewsCount, 0)),
-    lapses,
-    isFocus: typeof value.isFocus === "boolean" ? value.isFocus : lapses >= 3,
-    lastOutcome,
-  };
-};
 
 const normalizeCanon = (value: unknown): CanonNote | undefined => {
   if (!isRecord(value)) {
@@ -272,7 +243,6 @@ const normalizeNote = (entry: Record<string, unknown>, fallbackId: string): Note
     color: asString(entry.color),
     createdAt: asNumber(entry.createdAt),
     updatedAt: asNumber(entry.updatedAt),
-    vocabulary: normalizeVocabulary(entry.vocabulary),
   };
 };
 
@@ -353,11 +323,13 @@ export const normalizePersistedWallState = (value: unknown): PersistedWallState 
     return null;
   }
 
-  const notes = normalizeEntityRecord(value.notes, normalizeNote);
+  const rawNotes = normalizeEntityRecord(value.notes, normalizeNote);
   const zones = normalizeEntityRecord(value.zones, normalizeZone);
-  if (!notes || !zones) {
+  if (!rawNotes || !zones) {
     return null;
   }
+
+  const { notes } = migrateVocabularyNotesInState(rawNotes);
 
   const zoneGroups = normalizeEntityRecord(value.zoneGroups ?? {}, normalizeZoneGroup) ?? {};
   const noteGroups = normalizeEntityRecord(value.noteGroups ?? {}, normalizeNoteGroup) ?? {};

@@ -56,7 +56,6 @@ type GuideLineState = {
 type ResizeDraft = { x: number; y: number; w: number; h: number };
 
 type LayoutPreferences = {
-  showToolsPanel: boolean;
   showDetailsPanel: boolean;
   showContextBar: boolean;
   showNoteTags: boolean;
@@ -173,7 +172,6 @@ export type WallSpatialViewProps = {
   moveZone: (zoneId: string, x: number, y: number) => void;
   updateZone: (zoneId: string, patch: Partial<Zone>) => void;
   createLink: (fromNoteId: string, toNoteId: string, type: LinkType) => void;
-  toggleVocabularyFlip: (noteId: string) => void;
   duplicateNoteAt: (noteId: string, x: number, y: number) => void;
   focusNote: (noteId: string) => void;
   openBookmarkUrl: (url: string) => void;
@@ -281,7 +279,6 @@ export const WallSpatialView = ({
   moveZone,
   updateZone,
   createLink,
-  toggleVocabularyFlip,
   duplicateNoteAt,
   focusNote,
   openBookmarkUrl,
@@ -509,7 +506,6 @@ export const WallSpatialView = ({
             moveNote={moveNote}
             updateNote={updateNote}
             openImageInsert={(noteId) => openImageInsert(noteId)}
-            toggleVocabularyFlip={toggleVocabularyFlip}
             duplicateNoteAt={duplicateNoteAt}
             getNoteTextStyle={getNoteTextStyle}
             getNoteTextFontFamily={getNoteTextFontFamily}

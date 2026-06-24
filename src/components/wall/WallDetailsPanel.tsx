@@ -14,7 +14,7 @@ export const WallDetailsPanel = ({
   rightPanelOpen,
   onClose,
   title = "Details",
-  description = "Selection context, recall, review, structure, and maintenance in one place.",
+  description = "Inspect the selected note — type, tags, styling, and actions.",
   children,
 }: WallDetailsPanelProps) => {
   return (
@@ -28,7 +28,7 @@ export const WallDetailsPanel = ({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8d8277]">{title}</p>
-              <p className="mt-1 font-[Newsreader] text-[1.55rem] italic leading-none text-[#1c1c19]">Workspace Inspector</p>
+              <p className="mt-1 text-sm font-semibold text-[#1c1c19]">Note inspector</p>
               <p className="mt-2 max-w-[28ch] text-[12px] leading-5 text-[#675d55]">{description}</p>
             </div>
             <button type="button" onClick={onClose} className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7f7468] transition hover:bg-[#1c1c19]/[0.05] hover:text-[#1c1c19]">

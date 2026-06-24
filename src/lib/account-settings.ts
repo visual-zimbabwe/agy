@@ -1,7 +1,6 @@
 import {
   type StartupBehavior,
   type StartupPage,
-  type ThemePreference,
   applyPreferencesToDocument,
   persistPreferences,
   readStoredPreferences,
@@ -18,29 +17,22 @@ import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
 export const accountSettingsUpdatedEventName = `${appSlug}-account-settings-updated`;
 export const accountLayoutPrefsStorageKey = `${appSlug}-layout-prefs`;
-export const accountControlsModeStorageKey = `${appSlug}-controls-mode`;
 const legacyAccountLayoutPrefsStorageKey = `${legacyAppSlug}-layout-prefs`;
-const legacyAccountControlsModeStorageKey = `${legacyAppSlug}-controls-mode`;
 
 export type WallLayoutPrefs = {
-  showToolsPanel: boolean;
   showDetailsPanel: boolean;
   showContextBar: boolean;
   showNoteTags: boolean;
 };
 
-export type ControlsMode = "basic" | "advanced";
-
 export type AccountSettings = UserPreferences & {
   keyboardColorSlots: Array<string | null>;
   wallLayoutPrefs: WallLayoutPrefs;
-  controlsMode: ControlsMode;
 };
 
 export const defaultWallLayoutPrefs: WallLayoutPrefs = {
-  showToolsPanel: true,
-  showDetailsPanel: true,
-  showContextBar: false,
+  showDetailsPanel: false,
+  showContextBar: true,
   showNoteTags: false,
 };
 
@@ -48,11 +40,7 @@ export const defaultAccountSettings = (): AccountSettings => ({
   ...readStoredPreferences(),
   keyboardColorSlots: readKeyboardColorSlots(),
   wallLayoutPrefs: readStoredWallLayoutPrefs(),
-  controlsMode: readStoredControlsMode(),
 });
-
-export const normalizeThemePreference = (value: unknown): ThemePreference =>
-  value === "light" || value === "dark" || value === "system" ? value : "system";
 
 export const normalizeStartupBehavior = (value: unknown): StartupBehavior =>
   value === "default_page" ? "default_page" : "continue_last";
@@ -66,9 +54,6 @@ export const normalizeStartupPage = (value: unknown): StartupPage => {
   }
   return "/wall";
 };
-
-export const normalizeControlsMode = (value: unknown): ControlsMode =>
-  value === "advanced" ? "advanced" : "basic";
 
 const normalizeBoolean = (value: unknown, fallback: boolean) => (typeof value === "boolean" ? value : fallback);
 
@@ -99,9 +84,8 @@ export const normalizeKeyboardColorSlots = (value: unknown) =>
   });
 
 export const normalizeWallLayoutPrefs = (value: unknown): WallLayoutPrefs => {
-  const parsed = value && typeof value === "object" && !Array.isArray(value) ? (value as Partial<WallLayoutPrefs>) : {};
+  const parsed = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
   return {
-    showToolsPanel: normalizeBoolean(parsed.showToolsPanel, defaultWallLayoutPrefs.showToolsPanel),
     showDetailsPanel: normalizeBoolean(parsed.showDetailsPanel, defaultWallLayoutPrefs.showDetailsPanel),
     showContextBar: normalizeBoolean(parsed.showContextBar, defaultWallLayoutPrefs.showContextBar),
     showNoteTags: normalizeBoolean(parsed.showNoteTags, defaultWallLayoutPrefs.showNoteTags),
@@ -111,14 +95,12 @@ export const normalizeWallLayoutPrefs = (value: unknown): WallLayoutPrefs => {
 export const normalizeAccountSettings = (value: unknown): AccountSettings => {
   const parsed = value && typeof value === "object" && !Array.isArray(value) ? (value as Partial<AccountSettings>) : {};
   return {
-    theme: normalizeThemePreference(parsed.theme),
     startupBehavior: normalizeStartupBehavior(parsed.startupBehavior),
     startupDefaultPage: normalizeStartupPage(parsed.startupDefaultPage),
     autoTimezone: normalizeBoolean(parsed.autoTimezone, true),
     manualTimezone: normalizeTimezone(parsed.manualTimezone),
     keyboardColorSlots: normalizeKeyboardColorSlots(parsed.keyboardColorSlots),
     wallLayoutPrefs: normalizeWallLayoutPrefs(parsed.wallLayoutPrefs),
-    controlsMode: normalizeControlsMode(parsed.controlsMode),
   };
 };
 
@@ -133,13 +115,6 @@ export const readStoredWallLayoutPrefs = (): WallLayoutPrefs => {
   }
 };
 
-export const readStoredControlsMode = (): ControlsMode => {
-  if (typeof window === "undefined") {
-    return "basic";
-  }
-  return normalizeControlsMode(readStorageValue(accountControlsModeStorageKey, [legacyAccountControlsModeStorageKey]));
-};
-
 export const persistAccountSettingsLocally = (settings: AccountSettings) => {
   if (typeof window === "undefined") {
     return;
@@ -147,9 +122,8 @@ export const persistAccountSettingsLocally = (settings: AccountSettings) => {
 
   const normalized = normalizeAccountSettings(settings);
   persistPreferences(normalized);
-  applyPreferencesToDocument(normalized);
+  applyPreferencesToDocument();
   writeKeyboardColorSlots(normalized.keyboardColorSlots);
   writeStorageValue(accountLayoutPrefsStorageKey, JSON.stringify(normalized.wallLayoutPrefs));
-  writeStorageValue(accountControlsModeStorageKey, normalized.controlsMode);
   window.dispatchEvent(new CustomEvent(accountSettingsUpdatedEventName));
 };

@@ -57,11 +57,6 @@ const stripWikiLinkMarkupLocal = stripWikiLinkMarkup;
 
 const getBodyText = (note: Note) => {
   const cleaned = stripWikiLinkMarkupLocal(note.text);
-  if (note.vocabulary) {
-    return note.vocabulary.flipped
-      ? note.vocabulary.meaning?.trim() || "Add meaning in Word Review"
-      : note.vocabulary.word?.trim() || "Add word in Word Review";
-  }
   if (note.noteKind === "canon") {
     const canon = note.canon;
     if (!canon) {
@@ -490,21 +485,6 @@ const CanonRenderer = ({ note, width, height, readableText, textFontFamily, base
   </NoteShell>
 );
 
-const VocabularyRenderer = ({ note, width, height, readableText, activeBackground, activeText, tone }: RendererProps) => {
-  const isBack = Boolean(note.vocabulary?.flipped);
-  return (
-    <NoteShell note={note} width={width} height={height} selected={false} scale="medium" tone={tone}>
-      <div className="flex h-full flex-col justify-between p-5 text-center" style={{ background: "linear-gradient(180deg, rgba(163,56,24,0.06), rgba(255,255,255,0.98))" }}>
-        <MetaLabel color={atelier.terracotta}>{isBack ? "Meaning" : "Word"}</MetaLabel>
-        <div className="flex-1 content-center">
-          <p className="whitespace-pre-wrap font-[Newsreader] text-[28px] italic leading-tight [overflow-wrap:anywhere]" style={{ color: readableText }}>{getBodyText(note)}</p>
-        </div>
-        <div className="mx-auto rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: activeBackground, color: activeText }}>{isBack ? "Back" : "Front"}</div>
-      </div>
-    </NoteShell>
-  );
-};
-
 const WebBookmarkRenderer = ({ note, width, height, tone, surface }: Pick<RendererProps, "note" | "width" | "height" | "tone" | "surface">) => (
   <div className="max-w-full overflow-hidden" style={{ width, height }}>
     <WebBookmarkCard note={note} tone={tone} displaySizeOverride={surface === "timeline-stream" ? "compact" : undefined} />
@@ -762,7 +742,6 @@ const noteRenderers: Record<string, NoteRenderer> = {
   eisenhower: EisenhowerRenderer,
   "web-bookmark": WebBookmarkRenderer,
   image: ImageRenderer,
-  vocabulary: VocabularyRenderer,
   code: CodeRenderer,
   file: FileRenderer,
   audio: AudioRenderer,
@@ -776,9 +755,6 @@ const resolveRendererKey = (note: Note) => {
   }
   if (resolveImageAssetUrl(note, deriveWallAssetRecords({ [note.id]: note }))) {
     return "image";
-  }
-  if (note.vocabulary) {
-    return "vocabulary";
   }
   const cleaned = stripWikiLinkMarkupLocal(note.text);
   if ((!note.noteKind || note.noteKind === "standard") && (/^\`\`\`[\w-]*\n[\s\S]*\n\`\`\`$/.test(cleaned.trim()) || looksLikeCode(cleaned) || Boolean(codeFileNameMatch(cleaned)))) {

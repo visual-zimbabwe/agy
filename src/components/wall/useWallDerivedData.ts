@@ -12,7 +12,6 @@ import {
   parseWallOmnibarQuery,
 } from "@/features/wall/omnibar";
 import type { Link, Note, Zone, ZoneGroup } from "@/features/wall/types";
-import { findSmartMergeSuggestions, type SmartMergeSuggestion } from "@/lib/smart-merge";
 import { clamp, computeContentBounds, detectClusters } from "@/lib/wall-utils";
 
 type Bounds = { x: number; y: number; w: number; h: number };
@@ -90,9 +89,6 @@ export const useWallDerivedData = ({
           "canon.items.text",
           "canon.items.interpretation",
           "tags",
-          "vocabulary.word",
-          "vocabulary.meaning",
-          "vocabulary.sourceContext",
         ],
         threshold: 0.35,
         ignoreLocation: true,
@@ -244,7 +240,6 @@ export const useWallDerivedData = ({
   }, [autoTagGroups]);
   const clusterBounds = useMemo(() => detectClusters(visibleNotes), [visibleNotes]);
   const pathLinkIds = useMemo(() => graphPathLinks(selectedNoteId, visibleLinks), [selectedNoteId, visibleLinks]);
-  const smartMergeSuggestions = useMemo<SmartMergeSuggestion[]>(() => findSmartMergeSuggestions(visibleNotes), [visibleNotes]);
 
   return {
     visibleZones,
@@ -256,6 +251,5 @@ export const useWallDerivedData = ({
     autoTagLabelLayout,
     clusterBounds,
     pathLinkIds,
-    smartMergeSuggestions,
   };
 };

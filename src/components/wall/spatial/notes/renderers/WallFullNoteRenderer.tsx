@@ -43,7 +43,6 @@ type WallFullNoteRendererProps = {
   tagPalette: { bg: string; border: string; text: string };
   selectSingleNote: (noteId: string) => void;
   openEditor: (noteId: string, text: string, focusField?: string) => void;
-  toggleVocabularyFlip: (noteId: string) => void;
   openExternalUrl: (url: string) => void;
   onDownloadFileNote: (noteId: string) => void;
   onToggleAudioPlayback: (noteId: string) => void;
@@ -82,7 +81,6 @@ export const WallFullNoteRenderer = ({
   tagPalette,
   selectSingleNote,
   openEditor,
-  toggleVocabularyFlip,
   openExternalUrl,
   onDownloadFileNote,
   onToggleAudioPlayback,
@@ -100,7 +98,6 @@ export const WallFullNoteRenderer = ({
     noteCornerRadius,
     noteTextStyle,
     noteTextFontFamily,
-    isVocabulary,
     isQuote,
     isCanon,
     isJournal,
@@ -110,7 +107,6 @@ export const WallFullNoteRenderer = ({
     isAudio,
     isVideo,
     isStandardNote,
-    isVocabularyBack,
     canonTitle,
     quoteAttribution,
     quoteSource,
@@ -239,8 +235,8 @@ export const WallFullNoteRenderer = ({
             shadowOffsetY={isDragging ? 7 : 3}
           />
           <Rect width={noteView.w} height={noteView.h} cornerRadius={noteCornerRadius} fill={resolvedNoteColor} opacity={paperTintOpacity} listening={false} />
-          {isQuote && (
-            <Rect x={0} y={0} width={4} height={noteView.h} cornerRadius={[noteCornerRadius, 0, 0, noteCornerRadius]} fill={atelierPalette.terracotta} listening={false} />
+          {(isQuote || isStandardNote) && (
+            <Rect x={0} y={0} width={3} height={noteView.h} cornerRadius={[noteCornerRadius, 0, 0, noteCornerRadius]} fill={resolvedNoteColor} listening={false} />
           )}
         </>
       )}
@@ -258,8 +254,6 @@ export const WallFullNoteRenderer = ({
         isEisenhower={isEisenhower}
         isVideo={isVideo}
         isBookmark={isBookmark}
-        isVocabulary={isVocabulary}
-        isVocabularyBack={isVocabularyBack}
         wikiLinks={wikiLinks}
         noteTags={noteTags}
         overflowTags={overflowTags}
@@ -267,7 +261,6 @@ export const WallFullNoteRenderer = ({
         isTimeLocked={isTimeLocked}
         recencyIntensity={recencyIntensity}
         onNavigateWikiLink={onNavigateWikiLink}
-        onToggleVocabularyFlip={toggleVocabularyFlip}
       />
       {!isPrivate && !isImageNote && !isEisenhower && !isBookmark && !isJournal && !isQuote && !isAudio && !isVideo && !looksLikeCode && !looksLikeFile && !isStandardNote && (
         <Text
@@ -280,7 +273,7 @@ export const WallFullNoteRenderer = ({
           fontStyle={isCanon ? "bold" : "normal"}
           fill={resolvedTextColor}
           lineHeight={noteTextStyle.lineHeight}
-          align={isVocabulary ? "center" : (noteView.textAlign ?? "left")}
+          align={noteView.textAlign ?? "left"}
           verticalAlign={noteView.textVAlign ?? NOTE_DEFAULTS.textVAlign}
           text={noteTextContent}
           onClick={(event) => {
@@ -289,11 +282,7 @@ export const WallFullNoteRenderer = ({
             }
             event.cancelBubble = true;
             selectSingleNote(note.id);
-            if (isVocabulary) {
-              toggleVocabularyFlip(note.id);
-            } else {
-              openEditor(note.id, noteView.text);
-            }
+            openEditor(note.id, noteView.text);
           }}
         />
       )}

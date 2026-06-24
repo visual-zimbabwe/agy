@@ -22,25 +22,19 @@ export type UseWallCommandPaletteOptions = {
   presentationMode: boolean;
   quickCaptureOpen: boolean;
   showHeatmap: boolean;
-  leftPanelOpen: boolean;
   rightPanelOpen: boolean;
   timelineMode: boolean;
   timelineViewActive: boolean;
   showClusters: boolean;
   spatialPrefs: SpatialPreferences;
   selectedNotesCount: number;
-  vocabularyDueNotesCount: number;
-  selectedVocabularyNote?: Note;
   zoneGroups: ZoneGroup[];
   makeNoteAtViewportCenter: () => void;
   makeCanonNoteAtViewportCenter: () => void;
   makeJournalNoteAtViewportCenter: () => void;
   makeQuoteNoteAtViewportCenter: () => void;
   makeEisenhowerNoteAtViewportCenter: () => void;
-  makeWordNoteAtViewportCenter: () => void;
   makeZoneAtViewportCenter: (kind?: ZoneKind) => void;
-  focusNextDueWord: () => void;
-  toggleVocabularyFlip: (noteId: string) => void;
   setQuickCaptureOpen: Dispatch<SetStateAction<boolean>>;
   setExportOpenTracked: (open: boolean) => void;
   openFileConversion: (conversionMode?: "pdf_to_word" | "word_to_pdf") => void;
@@ -54,9 +48,6 @@ export type UseWallCommandPaletteOptions = {
   toggleTimelineMode: () => void;
   toggleTimelineView: () => void;
   setShowHeatmap: Dispatch<SetStateAction<boolean>>;
-  toggleLeftPanel: () => void;
-  openLeftPanel: () => void;
-  closeLeftPanel: () => void;
   toggleRightPanel: () => void;
   openRightPanel: () => void;
   closeRightPanel: () => void;
@@ -116,35 +107,6 @@ export const useWallCommandPalette = (options: UseWallCommandPaletteOptions) =>
         keywords: ["matrix", "eisenhower", "priority", "urgent", "important"],
         disabled: options.isTimeLocked,
         onSelect: options.makeEisenhowerNoteAtViewportCenter,
-      },
-      {
-        id: "new-word-note",
-        label: "Create word note",
-        description: "Capture a vocabulary card with spaced-review fields.",
-        keywords: ["word", "vocabulary", "flashcard", "learn"],
-        disabled: options.isTimeLocked,
-        onSelect: options.makeWordNoteAtViewportCenter,
-      },
-      {
-        id: "review-next-word",
-        label: "Review next due word",
-        description: "Jump to the most overdue vocabulary card.",
-        keywords: ["review", "due", "spaced repetition", "focus word"],
-        disabled: options.vocabularyDueNotesCount === 0,
-        onSelect: options.focusNextDueWord,
-      },
-      {
-        id: "flip-word-card",
-        label: "Flip selected word card",
-        description: "Toggle front/back for the selected vocabulary flashcard.",
-        shortcut: "F",
-        keywords: ["flashcard", "flip", "word", "vocabulary"],
-        disabled: options.isTimeLocked || !options.selectedVocabularyNote,
-        onSelect: () => {
-          if (options.selectedVocabularyNote) {
-            options.toggleVocabularyFlip(options.selectedVocabularyNote.id);
-          }
-        },
       },
       {
         id: "new-frame",
@@ -279,29 +241,6 @@ export const useWallCommandPalette = (options: UseWallCommandPaletteOptions) =>
         shortcut: "H",
         keywords: ["calendar", "activity"],
         onSelect: () => options.setShowHeatmap((previous) => !previous),
-      },
-      {
-        id: "toggle-tools-panel",
-        label: options.leftPanelOpen ? "Hide tools panel" : "Show tools panel",
-        description: "Toggle the left tools panel.",
-        keywords: ["left", "panel", "tools", "show tools"],
-        onSelect: options.toggleLeftPanel,
-      },
-      {
-        id: "open-tools-panel",
-        label: "Show tools panel",
-        description: "Open the left tools panel.",
-        keywords: ["left", "panel", "tools", "show", "open"],
-        disabled: options.leftPanelOpen,
-        onSelect: options.openLeftPanel,
-      },
-      {
-        id: "close-tools-panel",
-        label: "Hide tools panel",
-        description: "Close the left tools panel.",
-        keywords: ["left", "panel", "tools", "hide", "close"],
-        disabled: !options.leftPanelOpen,
-        onSelect: options.closeLeftPanel,
       },
       {
         id: "toggle-details-panel",

@@ -21,7 +21,7 @@ export const StartupRouteHandler = () => {
 
   useEffect(() => {
     const applyLatest = () => {
-      applyPreferencesToDocument(readStoredPreferences());
+      applyPreferencesToDocument();
     };
     const applyLatestOnVisibility = () => {
       if (document.visibilityState === "visible") {

@@ -6,24 +6,23 @@ This document describes the current settings surface and the kinds of user prefe
 
 ## Scope
 
-This covers the `/settings` route and the embedded settings experience used from other parts of the product.
+This covers the `/settings` route and the embedded settings modal opened from the wall header gear icon.
 
 ## Behavior
 
-The settings workspace is authenticated and currently organized into four sections:
+The settings workspace is authenticated and organized into three sections:
 
-- `general`: profile and identity
-- `appearance`: theme, startup, and timezone behavior
-- `keyboard`: keyboard color slots
-- `advanced`: wall workspace chrome and control density
+- **Account**: profile and identity
+- **Preferences**: startup, timezone, and keyboard color slots
+- **Workspace**: wall chrome (context bar, tags on cards, pin details panel, replay tour)
 
-The settings surface can be used as a full route and can also be embedded in wall-adjacent UI.
+The app is **light-only**; theme preference was removed in the Phase 1 unified refactor.
+
+The settings surface can be used as a full route (`/settings`) and as a modal overlay on `/wall`.
 
 ## Current Settings Areas
 
 ### Account and Profile
-
-Current account-related behavior includes:
 
 - preferred name
 - profile photo upload and crop flow
@@ -32,57 +31,43 @@ Current account-related behavior includes:
 - logout and account-level actions
 - MFA-related state
 
-### Appearance and Startup
+### Preferences
 
-Current appearance and startup settings include:
-
-- theme preference
-- startup behavior
-- startup default page
+- startup behavior (`continue_last` or `default_page`)
+- startup default page (`/wall`, `/decks`, `/settings`)
 - timezone mode and manual timezone
-
-The startup default page currently includes wall, page, decks, and settings destinations.
-
-### Keyboard
-
-Current keyboard settings include:
-
 - configurable keyboard color slots
 
-### Workspace Settings
+### Workspace
 
-Current workspace settings include:
-
-- wall layout preferences
-- controls mode (`basic` or `advanced`)
-- wall tour replay action in the embedded wall settings modal
-
-These settings affect how much wall chrome and advanced tooling the user sees.
+- show context bar on note selection (default on)
+- show tags on note cards
+- pin details panel open
+- replay wall product tour (embedded modal only)
 
 ## Data and State
 
 Settings draw from both local preference reads and cloud-backed account settings.
-
-Current behavior includes:
 
 - local preference initialization
 - fetch from `/api/account/settings`
 - save through `/api/account/settings`
 - local persistence of normalized account settings after successful save
 
+The account API no longer accepts `theme` or `controls_mode`; existing rows are normalized to light theme and basic controls on save.
+
 ## Edge Cases
 
 - If settings cannot be loaded from the server, the UI can continue using local settings.
-- Avatar upload and crop is its own interaction flow and can fail independently from other settings.
-- Embedded settings need to remain usable without assuming full-page navigation context.
+- Avatar upload and crop can fail independently from other settings.
+- Embedded settings remain usable without full-page navigation.
 
 ## Limitations
 
-- Settings currently spans personal profile, workspace behavior, and wall chrome preferences in one surface.
-- The current doc set does not yet include a dedicated API contract doc for account settings and avatar management.
+- Decks still uses legacy chrome until Phase 3 rebuild; workspace settings apply primarily to Wall.
 
 ## Related Docs
 
 - `docs/product/overview.md`
-- `docs/contributing/development-workflow.md`
+- `docs/api/account.md`
 - `docs/qa.md`

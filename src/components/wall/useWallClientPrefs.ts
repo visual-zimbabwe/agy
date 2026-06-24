@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import type { RecallDateFilter, SavedRecallSearch } from "@/components/wall/details/DetailsSectionTypes";
 import {
   backupReminderCadenceStorageKey,
-  controlsModeStorageKey,
   layoutPrefsStorageKey,
   legacyBackupReminderCadenceStorageKeys,
   legacyPresentationPathsStorageKeys,
@@ -15,15 +14,11 @@ import {
   recallStorageKey,
   spatialPrefsStorageKey,
 } from "@/components/wall/wall-storage-keys";
-import {
-  accountSettingsUpdatedEventName,
-  readStoredControlsMode,
-  readStoredWallLayoutPrefs,
-} from "@/lib/account-settings";
+import { accountSettingsUpdatedEventName, readStoredWallLayoutPrefs } from "@/lib/account-settings";
 import { parsePresentationPathsPayload, type PresentationPath } from "@/lib/presentation-paths";
 import { readStorageValue, writeStorageValue } from "@/lib/local-storage";
 
-export type LayoutPreferenceKey = "showToolsPanel" | "showDetailsPanel" | "showContextBar" | "showNoteTags";
+export type LayoutPreferenceKey = "showDetailsPanel" | "showContextBar" | "showNoteTags";
 export type LayoutPreferences = Record<LayoutPreferenceKey, boolean>;
 export type SpatialPreferences = {
   showDotMatrix: boolean;
@@ -31,12 +26,10 @@ export type SpatialPreferences = {
   snapToGrid: boolean;
   dotGridSpacing: number;
 };
-export type ControlsMode = "basic" | "advanced";
 
 export const defaultLayoutPrefs: LayoutPreferences = {
-  showToolsPanel: true,
-  showDetailsPanel: true,
-  showContextBar: false,
+  showDetailsPanel: false,
+  showContextBar: true,
   showNoteTags: false,
 };
 
@@ -114,9 +107,6 @@ export const useWallClientPrefs = () => {
   const [layoutPrefs, setLayoutPrefs] = useState<LayoutPreferences>(() =>
     typeof window === "undefined" ? defaultLayoutPrefs : readStoredWallLayoutPrefs(),
   );
-  const [controlsMode, setControlsMode] = useState<ControlsMode>(() =>
-    typeof window === "undefined" ? "basic" : readStoredControlsMode(),
-  );
   const [spatialPrefs, setSpatialPrefs] = useState<SpatialPreferences>(readInitialSpatialPrefs);
   const [savedRecallSearches, setSavedRecallSearches] = useState<SavedRecallSearch[]>(readInitialRecallSearches);
   const [presentationPaths, setPresentationPaths] = useState<PresentationPath[]>(readInitialPresentationPaths);
@@ -130,7 +120,6 @@ export const useWallClientPrefs = () => {
 
     const applyAccountSettings = () => {
       setLayoutPrefs(readStoredWallLayoutPrefs());
-      setControlsMode(readStoredControlsMode());
     };
 
     window.addEventListener(accountSettingsUpdatedEventName, applyAccountSettings);
@@ -161,13 +150,6 @@ export const useWallClientPrefs = () => {
     if (typeof window === "undefined" || skipInitialPersistRef.current) {
       return;
     }
-    writeStorageValue(controlsModeStorageKey, controlsMode);
-  }, [controlsMode]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || skipInitialPersistRef.current) {
-      return;
-    }
     writeStorageValue(spatialPrefsStorageKey, JSON.stringify(spatialPrefs));
   }, [spatialPrefs]);
 
@@ -188,8 +170,6 @@ export const useWallClientPrefs = () => {
   return {
     layoutPrefs,
     setLayoutPrefs,
-    controlsMode,
-    setControlsMode,
     spatialPrefs,
     setSpatialPrefs,
     savedRecallSearches,
