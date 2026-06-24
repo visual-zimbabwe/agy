@@ -132,9 +132,6 @@ export const getTimelineStreamSearchHaystack = (note: Note): string[] => {
   if (note.quoteSource) {
     haystack.push(note.quoteSource);
   }
-  if (note.vocabulary?.word) {
-    haystack.push(note.vocabulary.word);
-  }
 
   return haystack.filter((value) => value.trim().length > 0);
 };

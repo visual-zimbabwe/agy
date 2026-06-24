@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — Phase 1 implemented on branch `refactor/phase-1-wall-unified`.** Tunnel verification and PR pending.
+**In progress — Phase 2 implemented on branch `refactor/phase-2-timeline-tokens`.** Phase 1 on `refactor/phase-1-wall-unified`. Tunnel verification and PR pending.
 
 ## Purpose
 
@@ -503,10 +503,10 @@ Edge cases (locked defaults):
 
 **Goal:** Timeline overlay uses unified light tokens and shared header/settings patterns. Behavior unchanged.
 
-- [ ] Replace `wall-timeline-shell` custom dark/light split with unified tokens
-- [ ] Align typography, chips, search bar, and detail pane with Wall surfaces
-- [ ] Keep overlay model (`V`, header button); optional `?timeline=1` query later
-- [ ] Verify note type renderers post-vocabulary removal (no word cards)
+- [x] Replace `wall-timeline-shell` custom dark/light split with unified tokens
+- [x] Align typography, chips, search bar, and detail pane with Wall surfaces
+- [x] Keep overlay model (`V`, header button); optional `?timeline=1` query later
+- [x] Verify note type renderers post-vocabulary removal (no word cards)
 - [ ] QA: open Timeline, search, jump by day, prev/next, Enter reveal, Escape close
 
 **Done when:** Timeline visually matches Wall on **https://xy3ywehn9o.localto.net/**; no regression in stream navigation.

@@ -53,6 +53,29 @@ Expected:
 - Slim details inspector; Structure menu + omnibar own advanced actions.
 - Vocabulary and Smart Merge fully removed from Wall; vocabulary content preserved as standard note text.
 
+## Phase 2 — Timeline Token Alignment (2026-06-24)
+
+Run after Phase 2 refactor changes:
+
+```bash
+npm run lint
+npm run build
+npm run test:wall:p0
+```
+
+Tunnel verification: **https://xy3ywehn9o.localto.net/wall** → open Timeline (`V` or header **Timeline**)
+
+1. Timeline overlay uses warm light paper background matching wall chrome (no separate dark/black accent shell).
+2. Header search, day jump, sort chips, and prev/next controls use glass surfaces and unified borders/typography.
+3. Stream day markers, empty states, and keyboard hint pill match wall token styling.
+4. Detail rail (`xl+`): glass panel, unified text colors, terracotta **Reveal on Wall** CTA.
+5. Search timeline by title/tags/files; no vocabulary-specific cards or search fields.
+6. Jump by day, prev/next (or J/K), Enter reveals note on wall, Escape closes timeline — no regressions.
+
+Expected:
+
+- Timeline visually matches unified light Wall; stream navigation behavior unchanged.
+
 ## Removed Workspaces Redirect (`/page`, `/media`) (2026-06-17)
 1. Open `/page` directly and verify the browser lands on `/wall` without rendering a page editor.
 2. Open `/page?doc=example#block-id` and verify the redirect still lands on plain `/wall` without preserving query or hash.

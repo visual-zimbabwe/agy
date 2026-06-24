@@ -32,6 +32,7 @@ Current capabilities include:
 - keeping attachment cards within the stream column without horizontal scrolling at default desktop widths
 - virtualizing the stream list so only visible day headers and note rows mount in the DOM while preserving smooth scroll and selection scroll-into-view behavior
 - showing a read-only detail rail on `xl+` viewports when a note is selected, with tags, created/updated timestamps, a larger preview, and a **Reveal on Wall** action
+- unified light product tokens for stream shell, header controls, chips, search bar, and detail rail (warm paper background, glass surfaces, terracotta CTA accents)
 
 Timeline remains view-only for note content. Notes in this mode do not open the wall details sidebar or enter inline editing, and do not mutate note data from the timeline surface.
 

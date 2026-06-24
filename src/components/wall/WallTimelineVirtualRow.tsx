@@ -3,7 +3,6 @@
 import { memo } from "react";
 
 import type { TimelineStreamShellStyles } from "@/components/wall/atelier-palette";
-import { atelierPalette } from "@/components/wall/atelier-palette";
 import { WallNotePreview } from "@/components/wall/WallNotePreview";
 import { formatTimelineDateTime } from "@/components/wall/wallTimelineViewHelpers";
 import {
@@ -29,9 +28,11 @@ const formatTimeLabel = (timestamp: number) =>
 
 const RevealOnWallButton = memo(function RevealOnWallButton({
   visible,
+  selectionColor,
   onReveal,
 }: {
   visible: boolean;
+  selectionColor: string;
   onReveal: () => void;
 }) {
   if (!visible) {
@@ -45,11 +46,11 @@ const RevealOnWallButton = memo(function RevealOnWallButton({
         event.stopPropagation();
         onReveal();
       }}
-      className="pointer-events-auto mt-3 inline-flex items-center rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-white/70 md:mt-0 md:absolute md:right-3 md:top-3 md:shadow-sm"
+      className="pointer-events-auto mt-3 inline-flex items-center rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-[var(--color-surface-muted)] md:mt-0 md:absolute md:right-3 md:top-3 md:shadow-sm"
       style={{
-        borderColor: "var(--timeline-selection)",
-        background: "rgba(255,255,255,0.92)",
-        color: "var(--timeline-selection)",
+        borderColor: selectionColor,
+        background: "var(--color-surface-glass)",
+        color: selectionColor,
       }}
     >
       Reveal on Wall
@@ -61,6 +62,7 @@ const TimelineStreamCard = memo(function TimelineStreamCard({
   entry,
   isDesktop,
   selected,
+  selectionColor,
   onSelect,
   onReveal,
   alignment,
@@ -68,6 +70,7 @@ const TimelineStreamCard = memo(function TimelineStreamCard({
   entry: TimelineStreamEntry;
   isDesktop: boolean;
   selected: boolean;
+  selectionColor: string;
   onSelect: () => void;
   onReveal: () => void;
   alignment: "left" | "right" | "center";
@@ -102,7 +105,7 @@ const TimelineStreamCard = memo(function TimelineStreamCard({
             selected={selected}
           />
         </div>
-        <RevealOnWallButton visible={selected} onReveal={onReveal} />
+        <RevealOnWallButton visible={selected} selectionColor={selectionColor} onReveal={onReveal} />
       </button>
     </div>
   );
@@ -142,12 +145,13 @@ export const WallTimelineVirtualRow = memo(function WallTimelineVirtualRow({
 
   if (entry.side === "center") {
     return (
-      <div className="flex justify-center px-4" style={{ ["--timeline-selection" as string]: shellStyles.selection }}>
+      <div className="flex justify-center px-4">
         <div className="max-w-full text-center">
           <TimelineStreamCard
             entry={entry}
             isDesktop={isDesktop}
             selected={isSelected}
+            selectionColor={shellStyles.selection}
             onSelect={() => onSelect(entry.id)}
             onReveal={() => onReveal(entry.id)}
             alignment="center"
@@ -159,16 +163,14 @@ export const WallTimelineVirtualRow = memo(function WallTimelineVirtualRow({
   }
 
   return (
-    <div
-      className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] md:gap-10"
-      style={{ ["--timeline-selection" as string]: shellStyles.selection }}
-    >
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] md:gap-10">
       <div className={`flex ${entry.side === "left" ? "justify-end text-right" : "justify-start md:col-start-3"}`}>
         <div className={`flex max-w-full flex-col ${entry.side === "left" ? "items-end text-right" : "items-start text-left"}`}>
           <TimelineStreamCard
             entry={entry}
             isDesktop={isDesktop}
             selected={isSelected}
+            selectionColor={shellStyles.selection}
             onSelect={() => onSelect(entry.id)}
             onReveal={() => onReveal(entry.id)}
             alignment={entry.side}
@@ -178,7 +180,7 @@ export const WallTimelineVirtualRow = memo(function WallTimelineVirtualRow({
       </div>
 
       <div className="relative hidden items-start justify-center md:flex">
-        <div className="mt-4 h-3 w-3 rounded-full border-2" style={{ borderColor: shellStyles.axis, background: atelierPalette.warm }} />
+        <div className="mt-4 h-3 w-3 rounded-full border-2" style={{ borderColor: shellStyles.axis, background: "var(--color-surface)" }} />
       </div>
     </div>
   );

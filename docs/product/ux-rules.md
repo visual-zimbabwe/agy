@@ -38,8 +38,7 @@ The wall workspace uses a warm editorial palette distinct from generic product t
 
 ### Intentional divergence
 
-- Timeline stream and HTML note previews **always** use the Digital Atelier palette, even when global theme preference is dark. The stream is a read/review surface with fixed warm-paper presentation.
-- Generic `--timeline-*` tokens on `.wall-timeline-shell` serve the legacy horizontal scrubber chrome; the vertical stream (`WallTimelineView`) uses `timelineStreamShellStyles` from `atelier-palette.ts`.
+- Timeline stream chrome uses the same unified product tokens as wall settings and shared UI (`--color-*`, `--background`) via `.wall-timeline-shell` and `timelineStreamShellStyles` in `atelier-palette.ts`. HTML note previews still use the Digital Atelier palette for card surfaces.
 - Note-kind reserved colors (Poetry `#B73A3A`, Economist `#F6EFE2`, Throne dark stone, code charcoal) stay in note-specific renderers and are documented in `docs/features/wall-notes.md`.
 
 ## Typography

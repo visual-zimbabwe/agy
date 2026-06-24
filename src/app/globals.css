@@ -329,34 +329,23 @@ select optgroup {
 }
 
 .wall-timeline-shell {
-  --timeline-bg: #ffffff;
-  --timeline-panel: rgb(255 255 255 / 0.9);
-  --timeline-panel-alt: rgb(249 249 249 / 0.98);
-  --timeline-panel-border: rgb(0 0 0 / 0.12);
-  --timeline-chip-bg: rgb(255 255 255 / 0.92);
-  --timeline-chip-hover: rgb(0 0 0 / 0.05);
-  --timeline-chip-active: #000000;
-  --timeline-chip-active-text: #ffffff;
-  --timeline-text: #080808;
-  --timeline-text-muted: rgb(0 0 0 / 0.62);
-  --timeline-text-soft: rgb(0 0 0 / 0.42);
-  --timeline-line: rgb(0 0 0 / 0.12);
-  --timeline-line-strong: rgb(0 0 0 / 0.2);
-  --timeline-selection: #000000;
+  --timeline-selection: #a33818;
   --timeline-selection-text: #ffffff;
-  --timeline-meta-bg: rgb(255 255 255 / 0.88);
-  --timeline-meta-text: #000000;
-  --timeline-note-border: rgb(0 0 0 / 0.14);
-  --timeline-bucket-fill: rgb(0 0 0 / 0.025);
-  --timeline-bucket-border: rgb(0 0 0 / 0.14);
-  --timeline-scrubber-bg: linear-gradient(90deg, rgb(0 0 0 / 0.03), rgb(0 0 0 / 0.06));
-  --timeline-density-bar: rgb(0 0 0 / 0.2);
-  background: #ffffff;
-  color: var(--timeline-text);
+  background:
+    radial-gradient(circle at 10% 18%, var(--color-atmosphere-gold) 0, transparent 35%),
+    radial-gradient(circle at 86% 16%, var(--color-atmosphere-sea) 0, transparent 40%),
+    radial-gradient(circle at 78% 88%, var(--color-atmosphere-mint) 0, transparent 36%),
+    linear-gradient(
+      140deg,
+      color-mix(in oklab, var(--background), #f8efe0 42%) 0%,
+      color-mix(in oklab, var(--background), #f4f7ec 42%) 55%,
+      color-mix(in oklab, var(--background), #ebf3f7 42%) 100%
+    );
+  color: var(--color-text);
 }
 
 .wall-timeline-scrollbar {
-  scrollbar-color: rgb(0 0 0 / 0.3) transparent;
+  scrollbar-color: color-mix(in oklab, var(--color-text-muted), transparent 55%) transparent;
 }
 
 .wall-timeline-scrollbar::-webkit-scrollbar {
@@ -365,7 +354,7 @@ select optgroup {
 }
 
 .wall-timeline-scrollbar::-webkit-scrollbar-thumb {
-  background: rgb(0 0 0 / 0.22);
+  background: color-mix(in oklab, var(--color-text-muted), transparent 45%);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: padding-box;

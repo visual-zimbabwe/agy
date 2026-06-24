@@ -22,7 +22,7 @@ type WallTimelineStreamHeaderProps = {
 };
 
 const controlClassName =
-  "rounded-full border px-3 py-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]";
+  "rounded-full border px-3 py-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/40";
 
 export const WallTimelineStreamHeader = memo(function WallTimelineStreamHeader({
   noteCountLabel,
@@ -41,7 +41,7 @@ export const WallTimelineStreamHeader = memo(function WallTimelineStreamHeader({
 }: WallTimelineStreamHeaderProps) {
   return (
     <header
-      className="absolute inset-x-0 top-0 z-10 border-b border-white/30 px-4 py-4 backdrop-blur-xl sm:px-8"
+      className="absolute inset-x-0 top-0 z-10 border-b border-[var(--color-border-muted)] px-4 py-4 backdrop-blur-xl sm:px-8"
       style={{ background: shellStyles.background }}
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-4">
@@ -57,7 +57,7 @@ export const WallTimelineStreamHeader = memo(function WallTimelineStreamHeader({
           <button
             type="button"
             onClick={onExit}
-            className="pointer-events-auto inline-flex items-center rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors hover:bg-white/60"
+            className="pointer-events-auto inline-flex items-center rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors hover:bg-[var(--color-surface-muted)]"
             style={{
               borderColor: shellStyles.chipBorder,
               background: shellStyles.chipBg,
@@ -80,7 +80,7 @@ export const WallTimelineStreamHeader = memo(function WallTimelineStreamHeader({
               className={`${controlClassName} w-full`}
               style={{
                 borderColor: shellStyles.chipBorder,
-                background: "rgba(255,255,255,0.72)",
+                background: shellStyles.chipBg,
                 color: shellStyles.text,
               }}
             />
@@ -98,7 +98,7 @@ export const WallTimelineStreamHeader = memo(function WallTimelineStreamHeader({
                 className={`${controlClassName} min-w-[10rem] appearance-none pr-8`}
                 style={{
                   borderColor: shellStyles.chipBorder,
-                  background: "rgba(255,255,255,0.72)",
+                  background: shellStyles.chipBg,
                   color: shellStyles.text,
                 }}
               >
@@ -123,7 +123,7 @@ export const WallTimelineStreamHeader = memo(function WallTimelineStreamHeader({
                   type="button"
                   onClick={() => onSortModeChange(mode)}
                   className={`rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors ${
-                    sortMode === mode ? "bg-white/90 shadow-sm" : "hover:bg-white/50"
+                    sortMode === mode ? "bg-[var(--color-surface-elevated)] shadow-sm" : "hover:bg-[var(--color-surface-muted)]"
                   }`}
                   style={{ color: sortMode === mode ? shellStyles.text : shellStyles.muted }}
                 >
