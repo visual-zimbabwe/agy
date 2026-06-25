@@ -906,6 +906,7 @@ Expected:
 5. Open **Settings → Workspace**, disable `Show Details panel controls`, save, and verify Details no longer appears on `/wall`.
 6. Re-enable Details panel controls and verify Selection Tags return after selecting a note.
 7. Refresh the page and verify layout preferences persist.
+8. On a second signed-in device (or fresh browser profile), open `/wall` with Details enabled in account settings, select a note before and after settings sync, and verify Details opens in both cases.
 
 Expected:
 - Selection Tags stay visible whenever a note is selected in Details.

@@ -26,21 +26,20 @@ export const StartupRouteHandler = () => {
     const applyLatestOnVisibility = () => {
       if (document.visibilityState === "visible") {
         applyLatest();
+        void syncAccountSettings();
       }
     };
 
     let cancelled = false;
-    const bootstrap = async () => {
-      applyLatest();
-      readLastVisitedPath();
-      void runRemovedWorkspacesMigration();
-
+    const syncAccountSettings = async (markReady = false) => {
       const { session } = await getSupabaseBrowserSessionSafely();
       if (cancelled) {
         return;
       }
       if (!session) {
-        setSettingsReady(true);
+        if (markReady) {
+          setSettingsReady(true);
+        }
         return;
       }
 
@@ -65,10 +64,17 @@ export const StartupRouteHandler = () => {
       } catch {
         // Keep local preferences when account settings are unavailable.
       } finally {
-        if (!cancelled) {
+        if (markReady && !cancelled) {
           setSettingsReady(true);
         }
       }
+    };
+
+    const bootstrap = async () => {
+      applyLatest();
+      readLastVisitedPath();
+      void runRemovedWorkspacesMigration();
+      await syncAccountSettings(true);
     };
 
     void bootstrap();

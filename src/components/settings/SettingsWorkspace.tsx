@@ -393,6 +393,7 @@ export const SettingsWorkspace = ({
           return;
         }
         const settings = normalizeAccountSettings(payload.settings);
+        persistAccountSettingsLocally(settings);
         setStartupBehavior(settings.startupBehavior);
         setStartupDefaultPage(settings.startupDefaultPage);
         setAutoTimezone(settings.autoTimezone);
