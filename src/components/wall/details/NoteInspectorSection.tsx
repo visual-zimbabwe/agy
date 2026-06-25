@@ -13,6 +13,7 @@ import {
 } from "@/components/wall/details/detailSectionStyles";
 import type { Note, NoteTextFont } from "@/features/wall/types";
 import { NOTE_COLORS, NOTE_TEXT_FONTS, NOTE_TEXT_SIZE_OPTIONS } from "@/features/wall/constants";
+import { formatTimelineDateTime } from "@/components/wall/wallTimelineViewHelpers";
 
 type NoteInspectorSectionProps = {
   selectedNote?: Note;
@@ -90,6 +91,14 @@ export const NoteInspectorSection = ({
           {selectedNote.pinned ? <span className={detailChip}>Pinned</span> : null}
           {selectedNote.highlighted ? <span className={detailChip}>Highlighted</span> : null}
           {isFocused ? <span className={detailChip}>Focused</span> : null}
+        </div>
+      </div>
+
+      <div className={detailMutedPanel}>
+        <p className={detailSectionTitle}>Timestamps</p>
+        <div className="mt-2 grid gap-1 text-xs text-[var(--color-text)]">
+          <p>Created: {formatTimelineDateTime(selectedNote.createdAt)}</p>
+          <p>Last edited: {formatTimelineDateTime(selectedNote.updatedAt)}</p>
         </div>
       </div>
 

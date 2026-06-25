@@ -89,6 +89,17 @@ export const WallFloatingUi = () => {
   const editingNote = editing ? notesById[editing.id] : undefined;
   const editingCanon = editingNote?.canon;
   const editingBackgroundColor = editingNote ? sanitizeStandardNoteColor(editingNote.color) : undefined;
+  const editingNoteLayout = editingNote
+    ? (() => {
+        const screen = toScreenPoint(editingNote.x, editingNote.y, camera);
+        return {
+          left: screen.x,
+          top: screen.y,
+          width: editingNote.w * camera.zoom,
+          height: editingNote.h * camera.zoom,
+        };
+      })()
+    : null;
   const currentTimelineEntry = timeline.timelineEntries[Math.min(timeline.timelineIndex, timeline.timelineEntries.length - 1)];
 
   return (
@@ -379,84 +390,95 @@ export const WallFloatingUi = () => {
               </div>
             </div>
           )}
-          <div data-note-edit-tags="true" className={noteEditorSectionClass}>
-            <p className={noteEditorSectionLabelClass}>Tags</p>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {editingNote.tags.length === 0 && <span className="text-[11px] text-[var(--color-text-muted)]">No tags yet.</span>}
-              {editingNote.tags.map((tag) => (
-                <span key={`edit-tag-${tag}`} className={noteEditorTagChipClass}>
+          {editingNoteLayout ? (
+            <div
+              className="absolute z-[46]"
+              style={{
+                left: `${editingNoteLayout.left}px`,
+                top: `${editingNoteLayout.top + editingNoteLayout.height + 8}px`,
+                width: `${editingNoteLayout.width}px`,
+              }}
+            >
+              <div data-note-edit-tags="true" className={noteEditorSectionClass}>
+                <p className={noteEditorSectionLabelClass}>Tags</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {editingNote.tags.length === 0 && <span className="text-[11px] text-[var(--color-text-muted)]">No tags yet.</span>}
+                  {editingNote.tags.map((tag) => (
+                    <span key={`edit-tag-${tag}`} className={noteEditorTagChipClass}>
+                      <button
+                        type="button"
+                        data-note-edit-tags="true"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setEditTagRenameFrom(tag);
+                          setEditTagInput(tag);
+                        }}
+                        className="text-[var(--color-text)] hover:opacity-80"
+                      >
+                        #{tag}
+                      </button>
+                      <button
+                        type="button"
+                        data-note-edit-tags="true"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => removeTagFromNote(editing.id, tag)}
+                        className="text-[var(--color-text-muted)] hover:text-red-500"
+                        title="Delete tag"
+                        aria-label={`Delete tag ${tag}`}
+                      >
+                        x
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    data-note-edit-tags="true"
+                    value={editTagInput}
+                    onChange={(event) => setEditTagInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter") {
+                        return;
+                      }
+                      event.preventDefault();
+                      if (!editTagInput.trim()) {
+                        return;
+                      }
+                      if (editTagRenameFrom) {
+                        renameTagOnNote(editing.id, editTagRenameFrom, editTagInput);
+                        setEditTagRenameFrom(null);
+                      } else {
+                        addTagToNote(editing.id, editTagInput);
+                      }
+                      setEditTagInput("");
+                    }}
+                    placeholder={editTagRenameFrom ? "Rename tag" : "Add tag"}
+                    className={`flex-1 ${noteEditorInputClass}`}
+                  />
                   <button
                     type="button"
                     data-note-edit-tags="true"
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => {
-                      setEditTagRenameFrom(tag);
-                      setEditTagInput(tag);
+                      if (!editTagInput.trim()) {
+                        return;
+                      }
+                      if (editTagRenameFrom) {
+                        renameTagOnNote(editing.id, editTagRenameFrom, editTagInput);
+                        setEditTagRenameFrom(null);
+                      } else {
+                        addTagToNote(editing.id, editTagInput);
+                      }
+                      setEditTagInput("");
                     }}
-                    className="text-[var(--color-text)] hover:opacity-80"
+                    className={noteEditorSecondaryButtonClass}
                   >
-                    #{tag}
+                    {editTagRenameFrom ? "Rename" : "Add"}
                   </button>
-                  <button
-                    type="button"
-                    data-note-edit-tags="true"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => removeTagFromNote(editing.id, tag)}
-                    className="text-[var(--color-text-muted)] hover:text-red-500"
-                    title="Delete tag"
-                    aria-label={`Delete tag ${tag}`}
-                  >
-                    x
-                  </button>
-                </span>
-              ))}
+                </div>
+              </div>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                data-note-edit-tags="true"
-                value={editTagInput}
-                onChange={(event) => setEditTagInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") {
-                    return;
-                  }
-                  event.preventDefault();
-                  if (!editTagInput.trim()) {
-                    return;
-                  }
-                  if (editTagRenameFrom) {
-                    renameTagOnNote(editing.id, editTagRenameFrom, editTagInput);
-                    setEditTagRenameFrom(null);
-                  } else {
-                    addTagToNote(editing.id, editTagInput);
-                  }
-                  setEditTagInput("");
-                }}
-                placeholder={editTagRenameFrom ? "Rename tag" : "Add tag"}
-                className={`flex-1 ${noteEditorInputClass}`}
-              />
-              <button
-                type="button"
-                data-note-edit-tags="true"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  if (!editTagInput.trim()) {
-                    return;
-                  }
-                  if (editTagRenameFrom) {
-                    renameTagOnNote(editing.id, editTagRenameFrom, editTagInput);
-                    setEditTagRenameFrom(null);
-                  } else {
-                    addTagToNote(editing.id, editTagInput);
-                  }
-                  setEditTagInput("");
-                }}
-                className={noteEditorSecondaryButtonClass}
-              >
-                {editTagRenameFrom ? "Rename" : "Add"}
-              </button>
-            </div>
-          </div>
+          ) : null}
         </>
       )}
 

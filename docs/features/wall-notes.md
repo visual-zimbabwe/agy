@@ -124,6 +124,16 @@ Important fields include:
 - pinned and highlighted state
 - timestamps
 
+## Details Panel (selection inspector)
+
+When a note is selected and the Details panel is enabled (**Settings → Workspace → Show Details panel controls**), the right-rail inspector shows:
+
+- **Inspector** — typography, colors, timestamps, pin/highlight/focus/link actions, privacy, and backlinks for the selected note.
+- **Selection Tags** — add or remove tags on the current selection (bulk tagging when multiple notes are selected). Always visible without expansion while a note is selected.
+- **Tag Signals** — collapsible list of tags shared by two or more notes; click an entry to focus the cluster, or toggle canvas overlay visibility.
+
+Tag editing is also available in the floating inline editor (below the note while typing). Omnibar `tag:` filters and optional on-card tag chips (**Settings → Workspace → Show note tags on cards**) remain separate surfaces.
+
 ## Related Organization Primitives
 
 Notes can participate in:

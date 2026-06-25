@@ -39,8 +39,8 @@ Tunnel verification (signed-in account, ~141 notes): **https://xy3ywehn9o.localt
 
 1. Hard-refresh `/wall`; verify warm light chrome only (no dark/system theme artifacts).
 2. Edit a note → wait for `Synced` → hard reload → change persisted.
-3. Select a note: context bar visible by default; Details panel opens on selection (collapsed by default unless pinned in Workspace settings).
-4. Details panel shows inspector fields only (no Recall, Word Review, Zones bulk, Smart Merge, Templates bulk).
+3. Select a note with Details enabled in Workspace settings: Details panel opens on selection (or via omnibar `tool:details`).
+4. Details panel shows inspector, **Selection Tags**, and collapsible **Tag Signals** when a note is selected (no Recall, Word Review, Zones bulk, Smart Merge, or Templates bulk).
 5. Open **Structure** menu (wall chrome); verify zone, link, box select, snap, clusters, dot matrix, template, presentation, reading, heatmap, history, file conversion actions work.
 6. Omnibar (`Ctrl/Cmd+K`): search, `tag:`, `type:`, `is:`, `tool:` filters work; no vocabulary, deck, or merge actions.
 7. No Tools left rail; no deck badge or “Open decks” in wall toolbar (header **Decks** link still navigates to `/decks`).
@@ -647,9 +647,9 @@ Expected:
 6. Collapse that group in the panel and verify grouped zones and overlapping notes are hidden.
 7. Expand group and verify content returns.
 8. Refresh page.
-9. Add the same tag to at least two notes and verify an automatic `Tag Groups (Auto)` entry appears.
+9. Add the same tag to at least two notes and verify a **Tag Signals** entry appears in Details.
 10. Click the tag-group entry and verify camera jumps to the grouped notes.
-11. Toggle `Tag Signals (Auto)` visibility and verify auto-tag overlays show/hide.
+11. Expand **Tag Signals** in Details and toggle canvas visibility; verify auto-tag overlays show/hide.
 
 Expected:
 - Tags are displayed on notes and searchable.
@@ -898,22 +898,18 @@ Expected:
 - Control iconography is consistent across top bar and tools rail.
 - Tooltips render for controls, with shortcut chips where available.
 
-## IA Cleanup - Accordions, Minimal Context, Layout Preferences
-1. Open `/wall` with default layout.
-2. In the `Details` panel, verify `History`, `Recall`, `Zone Groups`, and `Tag Signals (Auto)` sections can each be expanded/collapsed independently.
-3. Confirm `Templates` and `Selection Tags` remain visible without needing expansion.
-4. Clear note selection and verify top `Context` bar is hidden.
-5. Select one note and verify `Context` bar appears with only relevant controls (`Color`, `Tags`).
-6. Select two or more notes and verify alignment/distribution controls appear.
-7. Open `Settings > Advanced`, disable `Show Tools panel controls`, save, and verify `Tools` pill is hidden on `/wall`.
-8. Disable `Show Details panel controls`, save, and verify `Details` pill is hidden on `/wall`.
-9. Disable `Show context bar`, save, and verify context bar stays hidden even with selected notes.
-10. Refresh the page and verify layout preferences persist.
-11. Re-enable all related settings and verify full layout is restored.
+## IA Cleanup - Details Tags and Layout Preferences
+1. Enable `Show Details panel controls` in **Settings → Workspace** if needed, then open `/wall`.
+2. Select a note and open Details; verify **Selection Tags** is visible without expansion.
+3. Expand **Tag Signals** in Details and verify the collapsible section toggles independently.
+4. Clear note selection and verify the Details body is empty/hidden while the panel can stay open.
+5. Open **Settings → Workspace**, disable `Show Details panel controls`, save, and verify Details no longer appears on `/wall`.
+6. Re-enable Details panel controls and verify Selection Tags return after selecting a note.
+7. Refresh the page and verify layout preferences persist.
 
 Expected:
-- Dense right-panel sections are organized with collapsible accordions.
-- Context bar remains minimal and appears only when selection-dependent actions are relevant.
+- Selection Tags stay visible whenever a note is selected in Details.
+- Tag Signals use a collapsible accordion and can toggle canvas overlays.
 - Layout preference toggles persist across reloads and control panel visibility reliably.
 
 ## Wall UI Preferences in Settings
@@ -991,7 +987,7 @@ Expected:
 - Inline hashtags typed directly inside note text are recognized and added to `note.tags`.
 - Quick capture and direct note editing produce consistent tag parsing behavior.
 - Existing manual tags are preserved while new inline tags are appended (deduplicated).
-- Tag editing entry point is the `Selection Tags` section in `Details` panel (not the top context bar).
+- Tag editing entry point is the `Selection Tags` section in `Details` panel (not the top context bar). The floating inline editor also exposes tag chips while editing note text.
 - Hovering or selecting a note with tags reveals full tag list context beyond compact chip truncation.
 
 ## Accounts and Cloud Sync (Supabase)
@@ -1401,16 +1397,15 @@ Smoke steps after context migration of floating UI, details panel, and global mo
 
 1. Open `/wall` and create a standard note; double-click to edit inline — verify the floating text editor appears and commits on blur.
 2. Create an image note; verify the floating image editor opens with file/URL controls.
-3. Select a note with tags; verify tag editing chips appear in the floating editor footer.
-4. Open the details panel (`Details` toggle); verify overview metrics, inspector, templates, recall, vocabulary, zones, and smart merge sections render.
-5. In advanced controls mode, expand the **History** section; verify timeline/undo metrics and **Jump Stale** / **Jump Priority** buttons work.
-6. Toggle presentation mode; verify floating presentation dock and zoom controls still work; details/tools panels hide as before.
-7. Open **Export**, **Shortcuts**, **Help**, **Settings**, quick capture, and image insert modals — verify each opens and closes without console errors.
-8. Import/export JSON backup — verify no regression from modal cluster split.
+3. Select a note with tags; verify tag editing chips appear below the note in the floating editor while typing.
+4. Open the details panel with a note selected; verify inspector, **Selection Tags**, and **Tag Signals** sections render.
+5. Toggle presentation mode; verify floating presentation dock and zoom controls still work; details panel hides in presentation mode as before.
+6. Open **Export**, **Shortcuts**, **Help**, **Settings**, quick capture, and image insert modals — verify each opens and closes without console errors.
+7. Import/export JSON backup — verify no regression from modal cluster split.
 
 Expected:
 - `WallFloatingUi`, `WallDetailsSidebar`, and `WallGlobalModals` mount without props from `WallCanvas`.
-- Panel and editor behavior matches pre-migration flows.
+- Tag editing works from both Details (**Selection Tags**) and the floating editor footer.
 - No new props added to sidebar/floating UI during this phase.
 
 ## Wall Notes Layer Refactor Smoke (`/wall`) (Phase 3, 2026-06-18)

@@ -2,11 +2,18 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-import type { Note, NoteTextFont } from "@/features/wall/types";
+import type { AutoTagGroup } from "@/components/wall/details/DetailsSectionTypes";
+import type { Bounds, Note, NoteTextFont } from "@/features/wall/types";
 
 export type WallDetailsContextValue = {
+  tagInput: string;
+  onTagInputChange: (value: string) => void;
+  onAddTag: () => void;
   selectedNote?: Note;
   selectedNoteId?: string;
+  selectedNoteIdsCount: number;
+  displayedTags: string[];
+  onRemoveTag: (tag: string) => void;
   linkingFromNoteId?: string;
   isSelectedNoteFocused: boolean;
   backlinks: Array<{ noteId: string; title: string }>;
@@ -30,11 +37,21 @@ export type WallDetailsContextValue = {
   onUnlockPrivateNote: (noteId: string) => void;
   onLockPrivateNote: (noteId: string) => void;
   onRemovePrivateProtection: (noteId: string) => void;
+  showAutoTagGroups: boolean;
+  onToggleAutoTagGroups: () => void;
+  autoTagGroups: AutoTagGroup[];
+  onFocusBounds: (bounds: Bounds) => void;
 };
 
 const noop = () => undefined;
 
 const defaultWallDetailsContext: WallDetailsContextValue = {
+  tagInput: "",
+  onTagInputChange: noop,
+  onAddTag: noop,
+  selectedNoteIdsCount: 0,
+  displayedTags: [],
+  onRemoveTag: noop,
   isSelectedNoteFocused: false,
   backlinks: [],
   onNavigateLinkedNote: noop,
@@ -57,6 +74,10 @@ const defaultWallDetailsContext: WallDetailsContextValue = {
   onUnlockPrivateNote: noop,
   onLockPrivateNote: noop,
   onRemovePrivateProtection: noop,
+  showAutoTagGroups: false,
+  onToggleAutoTagGroups: noop,
+  autoTagGroups: [],
+  onFocusBounds: noop,
 };
 
 const WallDetailsContext = createContext<WallDetailsContextValue>(defaultWallDetailsContext);
