@@ -12,7 +12,7 @@ import { appName, profileUpdatedEventName } from "@/lib/brand";
 import { defaultKeyboardColorSlots, readKeyboardColorSlots } from "@/lib/keyboard-color-slots";
 import { readStoredPreferences, type StartupBehavior, type StartupPage } from "@/lib/preferences";
 import type { AppUserProfile } from "@/lib/profile";
-import { readUserProfile } from "@/lib/profile";
+import { readUserProfile, resolveProfileAvatarUrl } from "@/lib/profile";
 import { getBrowserAuthErrorMessage, getSupabaseBrowserUserSafely } from "@/lib/supabase/browser-auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -458,7 +458,7 @@ export const SettingsWorkspace = ({
       const payload: { email?: string; data?: { full_name: string | null; avatar_url: string | null } } = {
         data: {
           full_name: preferredName.trim() || null,
-          avatar_url: profilePhotoUrl.trim() || null,
+          avatar_url: resolveProfileAvatarUrl(profilePhotoUrl.trim()) || null,
         },
       };
       const normalizedEmail = profileEmail.trim();
