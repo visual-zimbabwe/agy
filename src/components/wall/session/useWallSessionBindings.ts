@@ -186,6 +186,10 @@ export type UseWallSessionBindingsOptions = {
   expandAllZoneGroups: () => void;
   deleteGroup: (groupId: string) => void;
   clearNoteSelection: () => void;
+  showAutoTagGroups: boolean;
+  onToggleAutoTagGroups: () => void;
+  autoTagGroups: Array<{ tag: string; noteIds: string[]; bounds: { x: number; y: number; w: number; h: number } }>;
+  focusBounds: (bounds: { x: number; y: number; w: number; h: number }) => void;
   quickCaptureOpen: boolean;
   setQuickCaptureOpen: (open: boolean) => void;
   captureNotes: (items: Array<{ text: string; tags: string[] }>) => void;
@@ -330,6 +334,16 @@ export const useWallSessionBindings = (options: UseWallSessionBindingsOptions): 
     lockPrivateNote,
     privateSessions,
     syncWikiLinksForNote,
+    showAutoTagGroups,
+    onToggleAutoTagGroups,
+    autoTagGroups,
+    focusBounds,
+    tagInput,
+    setTagInput,
+    addTagToSelectedNote,
+    activeSelectedNoteIdsCount,
+    displayedTags,
+    removeTagFromSelectedNote,
     quickCaptureOpen,
     setQuickCaptureOpen,
     captureNotes,
@@ -576,8 +590,14 @@ export const useWallSessionBindings = (options: UseWallSessionBindingsOptions): 
 
   const details = useMemo(
     (): Partial<WallDetailsContextValue> => ({
+      tagInput,
+      onTagInputChange: setTagInput,
+      onAddTag: addTagToSelectedNote,
       selectedNote: primarySelectedNote,
       selectedNoteId: ui.selectedNoteId,
+      selectedNoteIdsCount: activeSelectedNoteIdsCount,
+      displayedTags,
+      onRemoveTag: removeTagFromSelectedNote,
       linkingFromNoteId: ui.linkingFromNoteId,
       isSelectedNoteFocused: Boolean(primarySelectedNote && focusedNoteId === primarySelectedNote.id),
       backlinks: primarySelectedNote ? backlinksByNoteId[primarySelectedNote.id] ?? [] : [],
@@ -645,8 +665,22 @@ export const useWallSessionBindings = (options: UseWallSessionBindingsOptions): 
         syncWikiLinksForNote(noteId, session.hidden.text);
         lockPrivateNote(noteId);
       },
+      showAutoTagGroups,
+      onToggleAutoTagGroups,
+      autoTagGroups,
+      onFocusBounds: focusBounds,
     }),
     [
+      tagInput,
+      setTagInput,
+      addTagToSelectedNote,
+      activeSelectedNoteIdsCount,
+      displayedTags,
+      removeTagFromSelectedNote,
+      showAutoTagGroups,
+      onToggleAutoTagGroups,
+      autoTagGroups,
+      focusBounds,
       ui,
       primarySelectedNote,
       focusedNoteId,
