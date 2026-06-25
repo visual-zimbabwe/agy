@@ -62,7 +62,7 @@ Current behavior:
 - enforces a 5 MB max size
 - ensures public bucket `profile-images` exists
 - stores file under `userId/timestamp-sanitized-name.ext`
-- returns `avatarUrl`
+- returns `avatarUrl` as an app-relative `/supabase/storage/...` path so profile images load on any device/origin through the Supabase proxy
 
 Allowed MIME types are currently:
 

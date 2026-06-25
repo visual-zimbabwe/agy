@@ -52,16 +52,6 @@ type WallHeaderBarProps = {
 
 const navLinkClassName =
   "relative inline-flex items-center justify-center px-1 py-2 text-sm font-medium text-[#4d6356] transition hover:text-[#1c1c19] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30";
-const roundButtonClassName =
-  "inline-flex h-12 w-12 items-center justify-center rounded-full text-[#1c1c19] transition hover:bg-[#1c1c19]/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a33818]/30";
-
-const HeaderIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 4.75L13.4 5.14L14.2 6.42L15.63 6.33L16.78 7.18L16.69 8.61L17.97 9.41L18.36 10.81L17.45 11.92L18.36 13.03L17.97 14.43L16.69 15.23L16.78 16.66L15.63 17.51L14.2 17.42L13.4 18.7L12 19.09L10.6 18.7L9.8 17.42L8.37 17.51L7.22 16.66L7.31 15.23L6.03 14.43L5.64 13.03L6.55 11.92L5.64 10.81L6.03 9.41L7.31 8.61L7.22 7.18L8.37 6.33L9.8 6.42L10.6 5.14L12 4.75Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-    <circle cx="12" cy="11.92" r="2.6" stroke="currentColor" strokeWidth="1.3" />
-  </svg>
-);
-
 export const WallHeaderBar = ({
   presentationMode,
   publishedReadOnly,
@@ -119,9 +109,6 @@ export const WallHeaderBar = ({
               />
             </div>
           ) : null}
-          <button type="button" onClick={onOpenSettings} className={roundButtonClassName} aria-label="Open settings">
-            <HeaderIcon />
-          </button>
           {userEmail ? (
             <ProfileMenu
               email={userEmail}

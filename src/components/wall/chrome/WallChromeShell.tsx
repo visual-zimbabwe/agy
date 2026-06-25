@@ -7,7 +7,6 @@ import { WallDetailsSidebar } from "@/components/wall/WallDetailsSidebar";
 import { WallHeaderBar } from "@/components/wall/WallHeaderBar";
 import { WallProductTour, type TourCoachmark } from "@/components/wall/WallProductTour";
 import { WallSearchDock } from "@/components/wall/WallSearchDock";
-import { WallStatusFooter } from "@/components/wall/WallStatusFooter";
 import { WallStructureMenu } from "@/components/wall/WallStructureMenu";
 import { WallTimelineView } from "@/components/wall/WallTimelineView";
 import type { LinkType, Note, TemplateType } from "@/features/wall/types";
@@ -99,10 +98,6 @@ export type WallInCanvasChromeProps = {
   recallQuery: string;
   commandPaletteCommands: CommandPaletteCommand[];
   availableRecallTags: string[];
-  cloudWallId: string | null;
-  isSyncing: boolean;
-  hasPendingSync: boolean;
-  syncError: string | null;
   setBoxSelectMode: Dispatch<SetStateAction<boolean>>;
   setSpatialPrefs: Dispatch<SetStateAction<SpatialPreferences>>;
   setLinkingFromNote: (noteId: string | undefined) => void;
@@ -157,10 +152,6 @@ export const WallInCanvasChrome = ({
   recallQuery,
   commandPaletteCommands,
   availableRecallTags,
-  cloudWallId,
-  isSyncing,
-  hasPendingSync,
-  syncError,
   setBoxSelectMode,
   setSpatialPrefs,
   setLinkingFromNote,
@@ -268,14 +259,6 @@ export const WallInCanvasChrome = ({
         hidden={isChromeHidden}
       />
     )}
-
-    <WallStatusFooter
-      publishedReadOnly={publishedReadOnly}
-      hasCloudWall={Boolean(cloudWallId)}
-      isSyncing={isSyncing}
-      hasPendingSync={hasPendingSync}
-      syncError={syncError}
-    />
 
     {!timelineViewActive && <WallDetailsSidebar />}
   </>

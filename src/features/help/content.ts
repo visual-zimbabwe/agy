@@ -97,7 +97,7 @@ export const helpArticles: HelpArticle[] = [
       {
         title: "What is always on screen",
         bullets: [
-          "The header keeps route navigation, sync status, settings, and profile actions close without covering the canvas.",
+          "The header keeps route navigation, sync status, and profile actions close without covering the canvas.",
           "The bottom omnibar is the primary search and action surface.",
           "The right rail handles zoom and camera recovery.",
         ],

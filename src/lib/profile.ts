@@ -6,7 +6,37 @@ export type AppUserProfile = {
   avatarUrl: string | null;
 };
 
+const profileImagesBucket = "profile-images";
+const profileImageStoragePathPattern = /\/storage\/v1\/object\/public\/profile-images\/(.+)$/i;
+
 const readString = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+
+/** Rewrites Supabase storage URLs to the app proxy path so avatars load on any device/origin. */
+export const resolveProfileAvatarUrl = (avatarUrl: string | null | undefined): string | null => {
+  const raw = readString(avatarUrl);
+  if (!raw) {
+    return null;
+  }
+
+  if (raw.startsWith("blob:") || raw.startsWith("data:")) {
+    return null;
+  }
+
+  if (raw.startsWith("/supabase/")) {
+    return raw;
+  }
+
+  const storageMatch = raw.match(profileImageStoragePathPattern);
+  if (storageMatch) {
+    return `/supabase/storage/v1/object/public/${profileImagesBucket}/${storageMatch[1]}`;
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    return raw;
+  }
+
+  return raw;
+};
 
 export const readUserProfile = (
   user: Pick<User, "email" | "user_metadata"> | null | undefined,
@@ -18,14 +48,13 @@ export const readUserProfile = (
     readString(metadata?.full_name) ||
     readString(metadata?.name) ||
     readString(metadata?.display_name);
-  const avatarUrl =
-    readString(metadata?.avatar_url) ||
-    readString(metadata?.picture) ||
-    readString(metadata?.avatar);
+  const avatarUrl = resolveProfileAvatarUrl(
+    readString(metadata?.avatar_url) || readString(metadata?.picture) || readString(metadata?.avatar),
+  );
 
   return {
     email: readString(user?.email) || fallbackEmail,
     preferredName,
-    avatarUrl: avatarUrl || null,
+    avatarUrl,
   };
 };

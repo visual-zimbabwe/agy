@@ -56,6 +56,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: uploadError.message ?? "Failed to upload avatar." }, { status: 500 });
   }
 
-  const { data } = admin.storage.from(avatarBucket).getPublicUrl(path);
-  return NextResponse.json({ avatarUrl: data.publicUrl });
+  const avatarUrl = `/supabase/storage/v1/object/public/${avatarBucket}/${path}`;
+  return NextResponse.json({ avatarUrl });
 }
