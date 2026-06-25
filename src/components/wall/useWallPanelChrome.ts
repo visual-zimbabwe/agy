@@ -30,6 +30,7 @@ export const useWallPanelChrome = ({
   const [preferredFileConversionMode, setPreferredFileConversionMode] = useState<"pdf_to_word" | "word_to_pdf" | null>(null);
 
   const previousSelectedNoteIdRef = useRef<string | undefined>(undefined);
+  const previousShowDetailsPanelRef = useRef(showDetailsPanel);
   const detailsPanelAutoOpenedRef = useRef(false);
 
   const setSearchOpenTracked = useCallback(
@@ -125,7 +126,6 @@ export const useWallPanelChrome = ({
 
   useEffect(() => {
     if (isChromeHidden || !showDetailsPanel) {
-      previousSelectedNoteIdRef.current = selectedNoteId;
       return;
     }
 
@@ -149,6 +149,22 @@ export const useWallPanelChrome = ({
       detailsPanelAutoOpenedRef.current = false;
     }
 
+    previousSelectedNoteIdRef.current = selectedNoteId;
+  }, [isChromeHidden, markOpenIntent, rightPanelOpen, selectedNoteId, showDetailsPanel]);
+
+  useEffect(() => {
+    const wasDisabled = !previousShowDetailsPanelRef.current;
+    previousShowDetailsPanelRef.current = showDetailsPanel;
+
+    if (isChromeHidden || !showDetailsPanel || !wasDisabled || !selectedNoteId || rightPanelOpen) {
+      return;
+    }
+
+    markOpenIntent("detailsPanelOpenMs");
+    // Account/workspace prefs can arrive after the first selection on a new device.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- opens panel once prefs become available
+    setRightPanelOpen(true);
+    detailsPanelAutoOpenedRef.current = true;
     previousSelectedNoteIdRef.current = selectedNoteId;
   }, [isChromeHidden, markOpenIntent, rightPanelOpen, selectedNoteId, showDetailsPanel]);
 

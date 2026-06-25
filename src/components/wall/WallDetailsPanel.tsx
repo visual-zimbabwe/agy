@@ -20,7 +20,7 @@ export const WallDetailsPanel = ({
   return (
     <aside
       data-tour-anchor="details-panel"
-      className={`pointer-events-auto absolute right-5 top-24 z-40 flex h-[calc(100dvh-8rem)] w-[min(24rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-[28px] border border-[#efe4d8] bg-[rgba(252,249,244,0.9)] shadow-[0_24px_60px_rgba(28,28,25,0.08)] backdrop-blur-2xl transition-all duration-300 md:right-5 md:w-[23.5rem] ${rightPanelOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[120%] opacity-0"}`}
+      className={`pointer-events-auto absolute right-5 top-24 z-[50] flex h-[calc(100dvh-8rem)] w-[min(24rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-[28px] border border-[#efe4d8] bg-[rgba(252,249,244,0.9)] shadow-[0_24px_60px_rgba(28,28,25,0.08)] backdrop-blur-2xl transition-all duration-300 md:right-5 md:w-[23.5rem] ${rightPanelOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[120%] opacity-0"}`}
       aria-label="Details sidebar"
     >
       <div className="flex min-h-0 h-full flex-col">

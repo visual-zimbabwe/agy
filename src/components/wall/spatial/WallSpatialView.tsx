@@ -12,6 +12,7 @@ import type Konva from "konva";
 
 import { WallDotMatrixLayer } from "@/components/wall/WallDotMatrixLayer";
 import { WallFloatingUi } from "@/components/wall/WallFloatingUi";
+import { WallDetailsSidebar } from "@/components/wall/WallDetailsSidebar";
 import { WallLinksZonesLayer } from "@/components/wall/WallLinksZonesLayer";
 import { WallNotesLayer } from "@/components/wall/WallNotesLayer";
 import { WallOverlaysLayer } from "@/components/wall/WallOverlaysLayer";
@@ -601,5 +602,7 @@ export const WallSpatialView = ({
     ) : null}
 
     {!readingMode && !timelineViewActive && <WallFloatingUi />}
+
+    {!timelineViewActive && <WallDetailsSidebar />}
   </div>
 );

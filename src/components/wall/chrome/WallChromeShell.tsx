@@ -3,7 +3,6 @@
 import type { Dispatch, SetStateAction } from "react";
 
 import type { CommandPaletteCommand } from "@/components/SearchPalette";
-import { WallDetailsSidebar } from "@/components/wall/WallDetailsSidebar";
 import { WallHeaderBar } from "@/components/wall/WallHeaderBar";
 import { WallProductTour, type TourCoachmark } from "@/components/wall/WallProductTour";
 import { WallSearchDock } from "@/components/wall/WallSearchDock";
@@ -260,6 +259,5 @@ export const WallInCanvasChrome = ({
       />
     )}
 
-    {!timelineViewActive && <WallDetailsSidebar />}
   </>
 );
