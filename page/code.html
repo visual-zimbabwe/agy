@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agy | Page Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#31302d",
+                        "tertiary-fixed": "#ffdea5",
+                        "on-primary-fixed": "#3b0900",
+                        "primary-container": "#c44f2e",
+                        "on-primary-fixed-variant": "#862303",
+                        "surface-container-low": "#f6f3ee",
+                        "on-primary-container": "#fffbff",
+                        "secondary-fixed": "#d0e8d7",
+                        "tertiary": "#755717",
+                        "secondary-fixed-dim": "#b4ccbc",
+                        "on-surface": "#1c1c19",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container": "#f0ede8",
+                        "primary-fixed-dim": "#ffb5a0",
+                        "tertiary-container": "#90702e",
+                        "on-secondary": "#ffffff",
+                        "surface": "#fcf9f4",
+                        "on-primary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-high": "#ebe8e3",
+                        "on-tertiary-fixed": "#261900",
+                        "surface-tint": "#a63a1a",
+                        "outline-variant": "#dfc0b8",
+                        "on-secondary-fixed-variant": "#364b3f",
+                        "background": "#fcf9f4",
+                        "surface-variant": "#e5e2dd",
+                        "primary": "#a33818",
+                        "surface-container-highest": "#e5e2dd",
+                        "primary-fixed": "#ffdbd1",
+                        "surface-bright": "#fcf9f4",
+                        "on-secondary-container": "#52685a",
+                        "inverse-primary": "#ffb5a0",
+                        "tertiary-fixed-dim": "#e9c176",
+                        "inverse-on-surface": "#f3f0eb",
+                        "on-secondary-fixed": "#0b1f15",
+                        "on-tertiary-container": "#fffbff",
+                        "secondary-container": "#cde6d5",
+                        "secondary": "#4d6356",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#58423c",
+                        "on-background": "#1c1c19",
+                        "on-tertiary-fixed-variant": "#5d4201",
+                        "on-error-container": "#93000a",
+                        "outline": "#8b716a",
+                        "surface-dim": "#dcdad5"
+                    },
+                    fontFamily: {
+                        "headline": ["Newsreader", "serif"],
+                        "body": ["Manrope", "sans-serif"],
+                        "label": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
+            font-size: 20px;
+        }
+        .glass-blur {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-surface border-b border-outline-variant/30 flex justify-between items-center px-8 h-16">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-serif italic text-primary">Agy</span>
+<nav class="hidden md:flex items-center space-x-8">
+<a class="text-on-surface-variant font-sans tracking-wide hover:text-primary transition-colors" href="#">Wall</a>
+<a class="text-on-surface-variant font-sans tracking-wide hover:text-primary transition-colors" href="#">Decks</a>
+<a class="text-on-surface font-semibold border-b-2 border-primary pb-1" href="#">Page</a>
+<a class="text-on-surface-variant font-sans tracking-wide hover:text-primary transition-colors" href="#">Timeline</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">settings</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">account_circle</button>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-surface border-r border-outline-variant/20 flex flex-col p-6 space-y-6">
+<button class="w-full py-2.5 px-4 bg-primary text-on-primary rounded-lg font-medium text-sm hover:opacity-90 transition-opacity">
+            New Block
+        </button>
+<nav class="space-y-0.5">
+<a class="flex items-center gap-3 py-2 px-3 text-primary bg-primary-fixed/20 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">folder</span>
+<span class="text-sm font-medium">Documents</span>
+</a>
+<a class="flex items-center gap-3 py-2 px-3 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="text-sm font-medium">Hierarchy</span>
+</a>
+<a class="flex items-center gap-3 py-2 px-3 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">layers</span>
+<span class="text-sm font-medium">Collections</span>
+</a>
+<a class="flex items-center gap-3 py-2 px-3 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-sm font-medium">Archive</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-outline-variant/20">
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant/60 mb-4 px-3">Recent</p>
+<div class="space-y-1">
+<div class="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-surface-container rounded-md">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="text-sm text-on-surface-variant truncate">Project Strategy</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-surface-container rounded-md">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="text-sm text-on-surface-variant truncate">Q4 Roadmaps</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Canvas Content -->
+<main class="ml-64 mt-16 min-h-screen relative bg-surface">
+<!-- Minimal Header -->
+<div class="max-w-5xl mx-auto px-12 pt-16 pb-8">
+<div class="flex items-center gap-2 text-on-surface-variant/60 mb-4 font-medium tracking-wide text-xs">
+<span>Documents</span>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<span>Strategy</span>
+</div>
+<h1 class="text-5xl font-headline font-bold text-on-surface tracking-tight">Project Strategy</h1>
+</div>
+<!-- The Block System -->
+<div class="max-w-5xl mx-auto px-12 pb-32 grid grid-cols-12 gap-8">
+<!-- Main Content Area -->
+<div class="col-span-8 space-y-12">
+<!-- Text Block -->
+<div class="relative group">
+<div class="absolute -left-6 top-0 bottom-0 w-0.5 bg-outline-variant/20 group-hover:bg-primary transition-colors"></div>
+<h2 class="text-2xl font-headline text-on-surface mb-6">Foundational Objectives</h2>
+<div class="space-y-4 text-lg leading-relaxed text-on-surface-variant font-body">
+<p>
+                            In the coming quarter, we focus on the intersection of <span class="text-primary font-medium">user agency</span> and <span class="text-secondary font-medium">spatial organization</span>. Our goal is to transform the traditional document into a tactile environment.
+                        </p>
+<p>
+                            This shift requires a fundamental rethinking of the interface, moving away from "flat" design toward a layered, textural experience that respects the user's focus.
+                        </p>
+</div>
+</div>
+<!-- Code Block -->
+<div class="rounded-xl overflow-hidden bg-stone-900 shadow-sm border border-stone-800">
+<div class="flex items-center gap-1.5 px-4 py-3 bg-stone-800/50">
+<div class="w-2.5 h-2.5 rounded-full bg-stone-700"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-stone-700"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-stone-700"></div>
+<span class="ml-auto text-[10px] text-stone-500 font-mono">theme.config.js</span>
+</div>
+<div class="p-6 font-mono text-sm text-stone-300">
+<code class="block whitespace-pre overflow-x-auto">
+<span class="text-orange-400">const</span> <span class="text-orange-200">atelierTheme</span> = {
+  primary: <span class="text-stone-400">'#a33818'</span>,
+  material: <span class="text-stone-400">'clean_minimal'</span>,
+  shadows: [<span class="text-stone-400">'0 4px 12px rgba(0,0,0,0.05)'</span>],
+  typography: {
+    display: <span class="text-stone-400">'Newsreader'</span>,
+    interface: <span class="text-stone-400">'Manrope'</span>
+  }
+};</code>
+</div>
+</div>
+</div>
+<!-- Side Rail -->
+<div class="col-span-4 space-y-6 relative">
+<!-- Floating Comment Example -->
+<div class="bg-surface-container-lowest border border-outline-variant/30 p-5 rounded-xl shadow-sm relative">
+<div class="flex items-center gap-2 mb-3">
+<img alt="User" class="w-6 h-6 rounded-full grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZaas0JeO09ojbgoDiAAphKELMtPLV5h9FtxF3QAkrOT6VF0ceOC_YmNUG1TQacgW8dZv51XtZExZ9jAyUYmw2SPG-PeCqwPtusm0JwYueoKeV5Qwo4JDdOYsI0BnFKtvPABwH7x5MsaqXhO4zYL4M6Nrl9TbxYT3zGTO0xQjja_ibYXH84GkBFzsF4ZLCUe3VA2Mk_0W985xkZXeqBfw9PdTr-6y2CqW2Cb9NKx5CYqjhvFSr1BGpGN9028ClFhrI_i3I8tbO4PoW"/>
+<span class="text-xs font-bold text-on-surface">Elena S.</span>
+<span class="text-[10px] text-on-surface-variant/60 ml-auto">2m ago</span>
+</div>
+<p class="text-sm text-on-surface-variant leading-snug italic">"Let's focus on the clean aesthetic for the v1 release."</p>
+<div class="mt-4 flex gap-3">
+<button class="text-[10px] font-bold text-primary uppercase tracking-widest">Reply</button>
+<button class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">Resolve</button>
+</div>
+</div>
+<!-- Simple Card -->
+<div class="p-6 rounded-xl border border-outline-variant/20 bg-surface">
+<h4 class="text-xs font-bold uppercase tracking-widest text-on-surface-variant/60 mb-4">Milestones</h4>
+<ul class="space-y-4">
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-sm text-on-surface-variant">Simplify interface chrome</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-outline">radio_button_unchecked</span>
+<span class="text-sm text-on-surface">Review canvas spacing</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-outline">radio_button_unchecked</span>
+<span class="text-sm text-on-surface">Final typography audit</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Bottom Command Bar -->
+<div class="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-lg z-50 px-6">
+<div class="bg-surface border border-outline-variant/30 rounded-full shadow-lg flex items-center h-14 px-6 gap-4">
+<span class="text-primary font-headline font-bold text-xl">/</span>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-on-surface-variant placeholder:text-on-surface-variant/40 font-body text-sm" placeholder="Type a command or search..." type="text"/>
+<div class="flex items-center gap-2">
+<kbd class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-bold text-on-surface-variant/60">⌘K</kbd>
+</div>
+</div>
+</div>
+<!-- Vertical Zoom Stack -->
+<div class="fixed bottom-8 right-8 flex flex-col gap-2 z-50">
+<div class="bg-surface border border-outline-variant/30 p-1 rounded-full shadow-sm flex flex-col items-center">
+<button class="p-2 hover:text-primary transition-colors material-symbols-outlined">add</button>
+<div class="h-px w-4 bg-outline-variant/20"></div>
+<button class="p-2 hover:text-primary transition-colors text-[10px] font-bold">100%</button>
+<div class="h-px w-4 bg-outline-variant/20"></div>
+<button class="p-2 hover:text-primary transition-colors material-symbols-outlined">remove</button>
+</div>
+<button class="w-12 h-12 bg-secondary text-on-secondary rounded-full flex items-center justify-center shadow-md hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined">fullscreen</span>
+</button>
+</div>
+<!-- Sync Status -->
+<footer class="fixed bottom-4 left-72 z-40">
+<div class="flex items-center gap-2 px-3 py-1 bg-surface/80 rounded-full">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+<span class="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/40">Syncing changes</span>
+</div>
+</footer>
+</main>
+</body></html>
